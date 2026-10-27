@@ -1,0 +1,18 @@
+{
+  "dependency_cruiser_label": "dependency-cruiser (TS/JS architecture)",
+  "dependency_cruiser_missing": "dependency-cruiser was not found ({detail}). Install it with: npm install --save-dev dependency-cruiser in the project, or set JGATES_DEPCRUISE to the executable path. JGates never downloads the tool during a run.",
+  "dependency_cruiser_probe_failed": "dependency-cruiser at {path} did not answer --version. Reinstall it in the project.",
+  "dependency_cruiser_incompatible": "Incompatible dependency-cruiser version: {version} outside the range {range}.",
+  "dependency_cruiser_no_architecture": "The instance {tool} needs the architecture contract: create .jgates/architecture.yml (and list it in extends in jgates.yml).",
+  "dependency_cruiser_architecture_invalid": "The contract .jgates/architecture.yml of the instance {tool} is invalid: {detail}",
+  "dependency_cruiser_blocked": "dependency-cruiser could not run: {detail}",
+  "dependency_cruiser_timeout": "dependency-cruiser exceeded the limit of {seconds} s and was ended.",
+  "dependency_cruiser_exit_error": "dependency-cruiser ended with code {code}: {detail}",
+  "dependency_cruiser_invalid_output": "The dependency-cruiser output is not the expected JSON: {detail}",
+  "dependency_cruiser_no_invocation": "The plan has no dependency-cruiser invocation for the instance {tool}.",
+  "dependency_cruiser_reason_completed": "dependency-cruiser {version}: graph with {nodes} module(s) and {edges} dependency(ies); {findings} finding(s); coverage {coverage} ({unresolved} unresolved dependency(ies)).",
+  "dependency_cruiser_reason_incomplete": "Architecture not proven: {detail} (coverage {coverage}, {unresolved} unresolved dependency(ies); see coverage.json).",
+  "dependency_cruiser_condition_generated": "The dependency-cruiser configuration is generated in the run folder from .jgates/architecture.yml; the rules are evaluated by JGates over the normalized graph.",
+  "dependency_cruiser_condition_binding": "Uses the native configuration of the binding ({file}); dependency-cruiser loads that JavaScript file.",
+  "dependency_cruiser_condition_binary": "Executable: {tool} ({source}); nothing is downloaded during the run."
+}

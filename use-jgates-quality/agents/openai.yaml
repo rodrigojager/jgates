@@ -1,0 +1,4 @@
+interface:
+  display_name: "Use JGates Quality"
+  short_description: "Run quality-gate in headless mode and fix code until approved."
+  default_prompt: "Run quality-gate . --scope changed --format=json,md --output .quality/reports --json --no-interactive for the current repository, run jgates doctor --json if setup is uncertain, fix issues without lowering the threshold, and repeat until approved."

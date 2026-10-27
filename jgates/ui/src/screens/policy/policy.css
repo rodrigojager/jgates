@@ -1,0 +1,9 @@
+.policy-band { flex: 0 0 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; border-radius: var(--radius); background: var(--accent); color: var(--accent-ink); font-size: 14px; }
+.policy-hash { font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; word-break: break-all; }
+.policy-snippet { margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); font: 12px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.policy-test-form { display: grid; gap: 8px; max-width: 720px; }
+.policy-test-form input[type="text"] { padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.policy-files th, .policy-files td { text-align: left; padding: 6px 8px; vertical-align: top; }
+.policy-files td.num { text-align: right; white-space: nowrap; }
+.policy-plan ul { margin: 4px 0 0; padding-left: 20px; }
+.kv-row { display: contents; }

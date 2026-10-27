@@ -1,0 +1,20 @@
+# Quality Gate specific ignore file.
+# Syntax follows the same style as .gitignore.
+
+.git/
+node_modules/
+coverage/
+dist/
+build/
+out/
+tmp/
+temp/
+
+.quality/
+
+playwright-report/
+test-results/
+projects/**/artifacts/
+
+*.log
+*.tmp

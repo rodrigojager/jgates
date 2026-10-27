@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodrigojager/jgates/schemas/bridge-response.schema.json",
+  "title": "Quality Sidecar Bridge Response",
+  "description": "Single JSON document the bridge writes to stdout. Logs go to stderr.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "ok", "status", "exitCode", "subchecks"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "ok": { "type": "boolean" },
+    "status": { "enum": ["APPROVED", "REJECTED", "NEEDS_CHANGES", "ERROR"] },
+    "exitCode": { "enum": [0, 1, 2, 3] },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "enum": ["invalid-request", "unsupported-version", "governed-mode-refused", "target-missing", "output-unwritable", "sidecar-crashed", "no-report", "invalid-report", "config-outside-target", "config-missing"] },
+        "message": { "type": "string" },
+        "tool": { "type": "string", "description": "Scanner of a toolConfigs entry the bridge refused." },
+        "path": { "type": "string", "description": "The refused path, as the request wrote it." }
+      }
+    },
+    "outputDir": { "type": "string" },
+    "reportPath": { "type": "string" },
+    "markdownPath": { "type": "string" },
+    "subchecks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "enum": ["file-size", "megalinter", "semgrep", "gitleaks", "trivy", "checkov", "osv-scanner", "jscpd", "project-tests", "coverage"] },
+          "status": { "enum": ["ok", "findings", "skipped", "missing", "timeout", "error"] },
+          "findings": { "type": "integer", "minimum": 0 },
+          "exitCode": { "type": "integer" },
+          "reason": { "type": "string" },
+          "error": { "type": "string" },
+          "command": { "type": "array", "items": { "type": "string" }, "description": "Effective argv the sidecar ran (no shell)." },
+          "config": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["source", "path"],
+            "properties": {
+              "source": { "enum": ["project", "package"] },
+              "path": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "report": {
+      "type": "object",
+      "description": "The quality-report.json document (schemaVersion 1.0.0).",
+      "required": ["schemaVersion", "status", "exitCode", "mode", "tools", "findings"],
+      "properties": {
+        "schemaVersion": { "const": "1.0.0" },
+        "status": { "enum": ["APPROVED", "REJECTED", "NEEDS_CHANGES"] },
+        "exitCode": { "enum": [0, 1, 2] },
+        "mode": { "enum": ["quick", "offline", "full"] },
+        "tools": { "type": "array" },
+        "findings": { "type": "array" }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "ok": { "const": true } } }, "then": { "properties": { "report": true, "reportPath": true, "outputDir": true }, "required": ["report", "reportPath", "outputDir"] } },
+    { "if": { "properties": { "ok": { "const": false } } }, "then": { "properties": { "error": true }, "required": ["error"] } }
+  ]
+}

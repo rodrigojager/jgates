@@ -1,0 +1,16 @@
+{
+  "waivers": [
+    {
+      "rule": "pii.cpf",
+      "path": "samples/**",
+      "reason": "Synthetic sample data used in documentation.",
+      "expires": "2026-12-31"
+    },
+    {
+      "fingerprint": "replace-with-finding-fingerprint",
+      "reason": "Reviewed false positive.",
+      "expires": "2026-12-31"
+    }
+  ]
+}
+

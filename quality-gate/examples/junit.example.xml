@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="example" tests="1" failures="0" errors="0" skipped="0">
+  <properties>
+    <property name="quality.sourceCommit" value="0123456789abcdef0123456789abcdef01234567" />
+    <property name="quality.producer" value="example-test-adapter" />
+    <property name="quality.producerVersion" value="1.0.0" />
+    <property name="quality.generatedAt" value="2026-07-15T12:00:00Z" />
+  </properties>
+  <testcase classname="example" name="passes" time="0.01" />
+</testsuite>

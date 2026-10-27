@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "python-import-linter",
+  "label": "Python com Import Linter",
+  "description": "Verifica a arquitetura dos componentes Python com o Import Linter: contratos gerados do .jgates/architecture.yml ou a configuração nativa do projeto. Entra por evidência: só quando há o architecture.yml no workspace ou um .importlinter, [importlinter] no setup.cfg ou [tool.importlinter] no pyproject.toml; sem contrato, o Import Linter não aparece no plano.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "python"
+    ],
+    "files": [
+      ".jgates/architecture.yml",
+      ".importlinter",
+      {
+        "path": "setup.cfg",
+        "contains": "[importlinter]"
+      },
+      {
+        "path": "pyproject.toml",
+        "contains": "[tool.importlinter]"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "import-linter": {
+        "adapter": "import-linter",
+        "enabled": true,
+        "capabilities": [
+          "architecture"
+        ]
+      }
+    }
+  }
+}

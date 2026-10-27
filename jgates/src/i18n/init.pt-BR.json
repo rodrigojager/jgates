@@ -1,0 +1,19 @@
+{
+  "init_description": "Cria a configuração mínima do JGates (jgates.yml e .jgates/profiles.yml) a partir dos componentes descobertos.",
+  "init_option_cwd": "Pasta do projeto (padrão: a pasta atual).",
+  "init_option_profile": "Perfil de partida: minimal, standard ou strict (padrão: standard).",
+  "init_option_no_interactive": "Não pergunta nada; usa o perfil padrão quando --profile não é dado.",
+  "init_unexpected_argument": "Argumento inesperado: {name}",
+  "init_unexpected_argument_fix": "Use: jgates init [--cwd <projeto>] [--profile minimal|standard|strict] [--no-interactive] [--json]",
+  "init_bad_cwd": "A pasta do projeto não existe ou não é uma pasta: {path}",
+  "init_bad_cwd_fix": "Passe uma pasta existente em --cwd.",
+  "init_bad_profile": "Perfil de partida desconhecido: {profile}",
+  "init_bad_profile_fix": "Use um destes: {available}.",
+  "init_exists": "O projeto já tem configuração do JGates: {files}",
+  "init_exists_fix": "Nada foi alterado. Edite os arquivos existentes, ou apague-os se quiser recomeçar, e rode jgates config validate para conferir.",
+  "init_write_failed": "Não foi possível criar a configuração: {reason}",
+  "init_write_failed_fix": "Confira a permissão de escrita na pasta do projeto e rode jgates init de novo.",
+  "init_done": "Configuração criada com o perfil {profile}. Templates: {templates}.",
+  "init_created": "Criado: {file}",
+  "init_next": "Próximos passos: jgates config validate, jgates config resolve --explain."
+}

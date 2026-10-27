@@ -1,0 +1,15 @@
+// Project config: comments and trailing commas are legal in this dialect.
+{
+	/* compiler block */
+	"compilerOptions": {
+		"strict": true, // keep strict
+		"target": "ES2022",
+		"lib": [
+			"ES2022", // runtime
+			"DOM",
+		],
+	},
+	// before include
+	"include": ["src"],
+	"extra": 1,
+}

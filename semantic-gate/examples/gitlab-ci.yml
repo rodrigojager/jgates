@@ -1,0 +1,21 @@
+semantic_gate:
+  stage: test
+  image: node:22
+  variables:
+    GIT_DEPTH: "0"
+    CODEX_NON_INTERACTIVE: "1"
+  before_script:
+    # The package is not published to npm: install JGates (which includes semantic-gate) from its repository,
+    # in a folder outside the project. See docs/jgates/ci.en.md.
+    - npm install --prefix "$HOME/jgates-tool" git+https://github.com/rodrigojager/jgates
+    - export PATH="$HOME/jgates-tool/node_modules/.bin:$PATH"
+  script:
+    - semantic-gate status
+    - semantic-gate run --ci --scope changed --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --objective-file .quality/objective.md --provider codex-cli --model gpt-6-astra --reasoning-effort high
+  artifacts:
+    when: always
+    paths:
+      - .quality/semantic-gate/
+    expire_in: 14 days
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

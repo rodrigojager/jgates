@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "sourceCommit": "0123456789abcdef0123456789abcdef01234567",
+    "producer": "example-dependency-adapter",
+    "producerVersion": "1.0.0",
+    "generatedAt": "2026-07-15T12:00:00Z"
+  },
+  "nodes": [
+    {
+      "id": "domain/orders",
+      "layer": "domain"
+    },
+    {
+      "id": "application/checkout",
+      "layer": "application"
+    },
+    {
+      "id": "infrastructure/database",
+      "layer": "infrastructure"
+    }
+  ],
+  "edges": [
+    {
+      "from": "application/checkout",
+      "to": "domain/orders"
+    },
+    {
+      "from": "infrastructure/database",
+      "to": "domain/orders"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "python",
+  "label": "Python",
+  "description": "Componentes Python: Ruff e a exclusão de ambientes virtuais e caches. Segredos, dependências, SAST e dados pessoais vêm do template base. O Import Linter entra pelo template python-import-linter e o pytest pelo python-pytest, cada um só quando há a configuração dele no projeto.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "python"
+    ]
+  },
+  "config": {
+    "tools": {
+      "ruff": {
+        "adapter": "ruff",
+        "enabled": true,
+        "capabilities": [
+          "lint"
+        ]
+      }
+    },
+    "workspace": {
+      "exclude": {
+        "add": [
+          "**/.venv/**",
+          "**/__pycache__/**",
+          "**/.pytest_cache/**",
+          "**/.mypy_cache/**",
+          "**/.ruff_cache/**"
+        ]
+      }
+    }
+  }
+}

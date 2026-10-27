@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodrigojager/jgates/schemas/semantic-gate/semantic-result.schema.json",
+  "title": "Semantic Gate Result",
+  "type": "object",
+  "required": [
+    "gate",
+    "status",
+    "score",
+    "threshold",
+    "deterministicSummaryUsed",
+    "objectiveSource",
+    "changesReviewed",
+    "scoreAppliesTo",
+    "hardBlockers",
+    "scoreBreakdown",
+    "commandsExecuted",
+    "findings",
+    "requiredFixPlan",
+    "rerunCommands",
+    "approvalNotes",
+    "residualRisks",
+    "contextWarnings",
+    "provider"
+  ],
+  "properties": {
+    "gate": {
+      "const": "semantic"
+    },
+    "status": {
+      "enum": ["APPROVED", "NEEDS_CHANGES", "REJECTED"]
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "threshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "deterministicSummaryUsed": {
+      "const": false
+    },
+    "objectiveSource": {
+      "type": "string"
+    },
+    "changesReviewed": {
+      "type": "string"
+    },
+    "scoreAppliesTo": {
+      "enum": ["changed-files", "entire-project", "selected-paths"]
+    },
+    "hardBlockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scoreBreakdown": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "weight", "score", "observations"],
+        "properties": {
+          "category": { "type": "string" },
+          "weight": { "type": "number" },
+          "score": { "type": "number" },
+          "observations": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "commandsExecuted": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["command", "result", "purpose"],
+        "properties": {
+          "command": { "type": "string" },
+          "result": { "type": "string" },
+          "purpose": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "category", "message"],
+        "properties": {
+          "severity": {
+            "enum": ["blocking", "important", "suggestion", "nit"]
+          },
+          "category": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "message": {
+            "type": "string"
+          },
+          "requiredFix": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "requiredFixPlan": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rerunCommands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "approvalNotes": {
+      "type": "string"
+    },
+    "residualRisks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contextWarnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provider": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "reports": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

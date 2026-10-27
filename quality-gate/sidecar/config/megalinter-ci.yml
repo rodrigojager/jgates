@@ -1,0 +1,5 @@
+---
+# Deliberately empty trusted configuration. Runtime-critical settings are
+# supplied as environment variables by quality_sidecar.tools, which take
+# precedence over repository configuration.
+{}

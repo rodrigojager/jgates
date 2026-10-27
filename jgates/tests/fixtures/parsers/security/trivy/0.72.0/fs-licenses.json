@@ -1,0 +1,52 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.72.0"
+  },
+  "ReportID": "01a177bd-47ad-7654-8249-1a711d48d1c6",
+  "CreatedAt": "2026-10-26T10:24:15.789418959Z",
+  "ArtifactName": ".",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "package-lock.json",
+      "Class": "lang-pkgs",
+      "Type": "npm",
+      "Packages": [
+        {
+          "ID": "gpl-lib@1.0.0",
+          "Name": "gpl-lib",
+          "Identifier": {
+            "PURL": "pkg:npm/gpl-lib@1.0.0",
+            "UID": "6a12f88bbb889d57"
+          },
+          "Version": "1.0.0",
+          "Licenses": [
+            "GPL-3.0-only"
+          ],
+          "Relationship": "direct",
+          "Locations": [
+            {}
+          ],
+          "AnalyzedBy": "npm"
+        }
+      ]
+    },
+    {
+      "Target": "package-lock.json",
+      "Class": "license",
+      "Licenses": [
+        {
+          "Severity": "HIGH",
+          "Category": "restricted",
+          "PkgName": "gpl-lib",
+          "FilePath": "package-lock.json",
+          "Name": "GPL-3.0-only",
+          "Text": "",
+          "Confidence": 1,
+          "Link": ""
+        }
+      ]
+    }
+  ]
+}

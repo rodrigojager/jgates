@@ -1,0 +1,17 @@
+{
+  "analysis_approval_commit": "O resultado vale para o commit {commit}: a árvore estava limpa e nada do que foi analisado mudou durante o run.",
+  "analysis_approval_snapshot": "O resultado vale para o commit {commit}, analisado num snapshot na pasta de dados.",
+  "analysis_approval_not_passed": "A decisão foi {decision}: o resultado não aprova o commit {commit}.",
+  "analysis_approval_dirty": "A árvore tinha mudanças locais ({count} arquivo(s)): o resultado vale para esse estado e não aprova o commit limpo {commit}.",
+  "analysis_approval_dirty_unborn": "A árvore tinha mudanças locais ({count} arquivo(s)) e ainda não tem commit: o resultado vale só para esse estado.",
+  "analysis_approval_stale": "{count} arquivo(s) analisado(s) mudaram durante o run: o resultado está desatualizado e não é atribuído a nenhum estado. Rode de novo.",
+  "analysis_approval_untraceable": "A pasta tem mais arquivos do que o limite do manifesto ({count} conferidos): o estado analisado não é rastreável por inteiro e o resultado não aprova um commit.",
+  "analysis_approval_no_git": "O Git não foi encontrado (defina JGATES_GIT ou ponha o git no PATH): o resultado vale para o conteúdo da pasta, não para um commit.",
+  "analysis_approval_not_repository": "A pasta não é um repositório Git: o resultado vale para o conteúdo dela, não para um commit.",
+  "analysis_approval_unborn": "O repositório ainda não tem commit: o resultado vale para o conteúdo da pasta, não para um commit.",
+  "analysis_text_target_commit": "Analisado: commit {commit}, num snapshot na pasta de dados ({path}).",
+  "analysis_text_target_tree": "Analisado: a árvore de trabalho no commit {commit}{dirty}.",
+  "analysis_text_target_directory": "Analisado: a pasta como está (sem commit).",
+  "analysis_text_dirty": ", com mudanças locais",
+  "analysis_text_identity": "Identidade da análise: {identity}"
+}

@@ -1,0 +1,11 @@
+{
+  "architecture_passed": "Architecture verified: the graph is complete and no blocking rule was violated.",
+  "architecture_failed": "{count} blocking violation(s) of the architecture rules.",
+  "architecture_incomplete_partial": "Architecture not proven: the graph is partial ({unresolved} unresolved dependency(ies)). A partial graph does not prove the absence of violations.",
+  "architecture_incomplete_empty": "Architecture not proven: the graph has no node. An empty graph does not prove the absence of violations.",
+  "architecture_incomplete_bridge": "Architecture not evaluated: {detail}.",
+  "architecture_partial_not_required": "Partial graph coverage ({unresolved} unresolved dependency(ies)); the architecture check is not required in this run.",
+  "architecture_no_rules": "No architecture rule enabled.",
+  "architecture_file_missing": "The file .jgates/architecture.yml does not exist.",
+  "architecture_file_invalid": "The file .jgates/architecture.yml is invalid: {detail}."
+}

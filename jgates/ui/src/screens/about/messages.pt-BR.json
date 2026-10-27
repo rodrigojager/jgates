@@ -1,0 +1,16 @@
+{
+  "about_title": "Sobre o JGates",
+  "about_lead": "Validação local de código para qualquer stack: o plano é revisado antes e o resultado fica ligado ao código que foi analisado.",
+  "about_facts": "Esta instalação",
+  "about_version": "Versão",
+  "about_mode": "Modo",
+  "about_mode_local": "Local",
+  "about_mode_governed": "Governado",
+  "about_workspace": "Caminho do workspace",
+  "about_docs": "Documentação",
+  "about_doc_compat_pt": "Matriz de compatibilidade (português)",
+  "about_doc_compat_en": "Compatibility matrix (English)",
+  "about_doc_start_pt": "Primeiros passos (português)",
+  "about_doc_start_en": "Getting started (English)",
+  "about_docs_note": "A interface funciona sem rede, então a documentação é indicada pelo caminho dentro do repositório do projeto."
+}

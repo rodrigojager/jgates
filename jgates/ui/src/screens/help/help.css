@@ -1,0 +1,6 @@
+.help-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.help-faq details { border-top: 1px solid var(--line); padding: 10px 0; }
+.help-faq summary { cursor: pointer; font-weight: 600; }
+.help-faq details p { margin: 8px 0 0; }
+.help-more-item { gap: 8px; }
+.command.row { justify-content: space-between; }

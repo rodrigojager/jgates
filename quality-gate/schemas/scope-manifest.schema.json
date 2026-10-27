@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodrigojager/jgates/schemas/scope-manifest.schema.json",
+  "title": "Quality Gate Scope Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "scope", "selectedFiles", "diff"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "scope": { "enum": ["changed", "full", "paths"] },
+    "sourceCommit": { "type": "string", "minLength": 7 },
+    "base": { "type": ["string", "null"] },
+    "head": { "type": ["string", "null"] },
+    "mergeBase": { "type": ["string", "null"] },
+    "files": { "type": "array", "items": { "type": "string" } },
+    "fileCount": { "type": "integer", "minimum": 0 },
+    "selectedFiles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "selectedFileCount": { "type": "integer", "minimum": 0 },
+    "analyzedFileCount": { "type": "integer", "minimum": 0 },
+    "supportFiles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "ignoredCount": { "type": "integer", "minimum": 0 },
+    "excludedUntrackedCount": { "type": "integer", "minimum": 0 },
+    "ignoreFiles": { "type": "array", "items": { "type": "string" } },
+    "targetBranch": { "type": ["string", "null"] },
+    "sourceMaterialization": { "const": "git-archive" },
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["available", "not-applicable"] },
+        "base": { "type": ["string", "null"] },
+        "head": { "type": ["string", "null"] },
+        "fileCount": { "type": "integer", "minimum": 0 },
+        "additions": { "type": "integer", "minimum": 0 },
+        "deletions": { "type": "integer", "minimum": 0 },
+        "changedLines": { "type": "integer", "minimum": 0 },
+        "patchBytes": { "type": "integer", "minimum": 0 },
+        "binaryFiles": { "type": "integer", "minimum": 0 },
+        "files": { "type": "object" },
+        "commands": { "type": "array" }
+      }
+    },
+    "history": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["available", "partial", "unavailable", "not-applicable"] },
+        "commitLimit": { "type": "integer", "minimum": 0 },
+        "fileLimit": { "type": "integer", "minimum": 0 },
+        "truncatedFiles": { "type": "integer", "minimum": 0 },
+        "files": { "type": "object" }
+      }
+    },
+    "commands": { "type": "array" },
+    "resolution": { "type": "object" },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "sha256"],
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "evidenceContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenanceRequired", "expectedSourceCommit", "maxAgeSeconds"],
+      "properties": {
+        "provenanceRequired": { "const": true },
+        "expectedSourceCommit": { "type": "string", "minLength": 7 },
+        "maxAgeSeconds": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

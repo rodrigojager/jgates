@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/config/template.schema.json",
+  "title": "JGates template",
+  "description": "How to verify a stack: tool instances, check selection, excludes and policy defaults. Built-in templates and project templates (.jgates/templates/) share this format. Simple lists accept add, remove or replace; null clears an inherited value; enabled: false turns a check off and enabled: null is invalid.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "label": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "extends": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "priority": { "type": "integer" },
+    "match": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "languages": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "frameworks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "files": { "$ref": "#/$defs/evidenceFiles" }
+      }
+    },
+    "support": {
+      "type": "object",
+      "description": "Declared support level of the stack and what the template does not cover. Shown in the plan.",
+      "additionalProperties": false,
+      "required": ["level", "uncovered"],
+      "properties": {
+        "level": { "enum": ["partial", "inventory"] },
+        "uncovered": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "execution": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "concurrency": { "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }] },
+            "network": { "enum": ["explicit", "allow", "deny"] },
+            "timeoutSeconds": { "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }] }
+          }
+        },
+        "workspace": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "include": { "$ref": "#/$defs/stringList" },
+            "exclude": { "$ref": "#/$defs/stringList" }
+          }
+        },
+        "tools": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "adapter": { "type": "string", "minLength": 1 },
+              "enabled": { "type": "boolean" },
+              "capabilities": { "$ref": "#/$defs/stringList" },
+              "command": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
+              "args": { "$ref": "#/$defs/stringList" },
+              "timeoutSeconds": { "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }] },
+              "config": { "type": "object" }
+            }
+          }
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "rules": {
+              "type": "object",
+              "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$" },
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "enabled": { "type": "boolean" },
+                  "severity": { "enum": ["info", "warning", "error", "blocking"] },
+                  "locked": { "type": "boolean" },
+                  "threshold": { "anyOf": [{ "type": "number" }, { "type": "null" }] }
+                }
+              }
+            }
+          }
+        },
+        "checks": {
+          "type": "object",
+          "propertyNames": { "pattern": "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/-]+$" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "intensity": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "evidenceFiles": {
+      "description": "Configuration evidence: the template is detected only when at least one of these files exists in the root of a component of the matched languages, or in the workspace root. A string is a path relative to that root; an object also asks for a line that starts with `contains` (after spaces), for a section of a shared file such as [tool.pytest.ini_options] in pyproject.toml.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "anyOf": [
+          { "$ref": "#/$defs/evidencePath" },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "contains"],
+            "properties": {
+              "path": { "$ref": "#/$defs/evidencePath" },
+              "contains": { "type": "string", "minLength": 1 }
+            }
+          }
+        ]
+      }
+    },
+    "evidencePath": { "type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$))[^:*?<>|]+$" },
+    "stringList": {
+      "anyOf": [
+        { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["replace"],
+          "properties": { "replace": { "type": "array", "items": { "type": "string", "minLength": 1 } } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "add": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "remove": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          }
+        }
+      ]
+    }
+  }
+}

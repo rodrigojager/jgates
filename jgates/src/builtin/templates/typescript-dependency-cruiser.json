@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript-dependency-cruiser",
+  "label": "TypeScript com dependency-cruiser",
+  "description": "Verifica a arquitetura dos componentes TypeScript e JavaScript com o dependency-cruiser, contra as regras do .jgates/architecture.yml. Entra por evidência: só quando há o architecture.yml no workspace; sem contrato, o dependency-cruiser não aparece no plano.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ],
+    "files": [
+      ".jgates/architecture.yml"
+    ]
+  },
+  "config": {
+    "tools": {
+      "dependency-cruiser": {
+        "adapter": "dependency-cruiser",
+        "enabled": true,
+        "capabilities": [
+          "architecture"
+        ]
+      }
+    }
+  }
+}

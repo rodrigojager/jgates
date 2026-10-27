@@ -1,0 +1,56 @@
+
+---------
+Contracts
+---------
+
+Analyzed 11 files, 5 dependencies.
+----------------------------------
+
+domain-independent BROKEN
+layers BROKEN
+Independent things BROKEN
+
+Contracts: 0 kept, 3 broken.
+
+
+----------------
+Broken contracts
+----------------
+
+domain-independent
+------------------
+
+shop_api.domain is not allowed to import shop_api.application:
+
+-   shop_api.domain.sub.deep -> shop_api.application.place_order (l.1)
+
+-   shop_api.domain.viaapp -> shop_api.application.place_order (l.1)
+
+
+shop_api.domain is not allowed to import shop_api.infrastructure:
+
+-   shop_api.domain.order -> shop_api.infrastructure.repository (l.1)
+
+-   shop_api.domain.sub.deep -> shop_api.infrastructure.repository (l.2, l.3)
+
+
+layers
+------
+
+shop_api.domain is not allowed to import shop_api.application:
+
+- shop_api.domain.viaapp -> shop_api.application.place_order (l.1)
+
+- shop_api.domain.sub.deep -> shop_api.application.place_order (l.1)
+
+
+Independent things
+------------------
+
+shop_api.domain is not allowed to import shop_api.infrastructure:
+
+- shop_api.domain.sub.deep -> shop_api.infrastructure.repository (l.2, l.3)
+
+- shop_api.domain.order -> shop_api.infrastructure.repository (l.1)
+
+

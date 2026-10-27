@@ -1,0 +1,18 @@
+{
+  "ruff_label": "Ruff",
+  "ruff_missing": "O Ruff não está instalado ({detail}). Rode: jgates doctor --fix (ou pip install ruff no ambiente Python do projeto).",
+  "ruff_probe_failed": "O Ruff em {path} não respondeu a --version. Reinstale com: jgates doctor --fix.",
+  "ruff_blocked": "O Ruff não pôde rodar: {detail}",
+  "ruff_exit_error": "O Ruff terminou com o código {code}: {detail}",
+  "ruff_timeout": "O Ruff passou do limite de {seconds} s e foi encerrado.",
+  "ruff_invalid_output": "A saída do Ruff não é a lista JSON esperada: {detail}",
+  "ruff_no_invocation": "O plano não tem a invocação do Ruff para a instância {tool}.",
+  "ruff_reason_completed": "Ruff {version}: {count} achado(s)",
+  "ruff_condition_python": "Analisa os arquivos Python do componente.",
+  "ruff_condition_container": "Roda no runner de container, na imagem {image}: rede desligada, workspace somente leitura, cache na pasta do run.",
+  "ruff_container_runtime_missing": "O runner de container precisa do Docker, e {runtime} não foi encontrado no PATH (ou defina JGATES_CONTAINER_RUNTIME).",
+  "ruff_container_image_unprepared": "O Ruff ({instance}) está com runner: container, mas a imagem ainda não foi preparada: rode {command} (grava a imagem por digest e a versão no .jgates/lock.json).",
+  "ruff_container_lock_invalid": "O .jgates/lock.json não é válido ({detail}), e a imagem do Ruff vem só dele. Corrija ou apague o arquivo e rode {command}.",
+  "ruff_container_image_missing": "A imagem {image} fixada no .jgates/lock.json para {instance} não está no runtime de container ({detail}). Rode {command} de novo.",
+  "ruff_container_image_changed": "A imagem {image} não diz mais a versão fixada no .jgates/lock.json ({detail}). Rode {command} de novo."
+}

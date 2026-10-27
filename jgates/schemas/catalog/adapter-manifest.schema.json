@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/catalog/adapter-manifest.schema.json",
+  "title": "JGates adapter manifest",
+  "type": "object",
+  "required": [
+    "schemaVersion", "id", "displayName", "adapterVersion", "apiRange", "toolName", "toolVersionRange",
+    "platforms", "categories", "capabilities", "granularity", "configFiles", "editing", "exitCodes",
+    "effects", "relativeCost", "origin", "license"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "displayName": { "type": "string", "minLength": 1 },
+    "adapterVersion": { "type": "string", "minLength": 1 },
+    "apiRange": { "type": "string", "minLength": 1 },
+    "toolName": { "type": "string", "minLength": 1 },
+    "toolVersionRange": { "type": "string" },
+    "runtimes": { "type": "array", "items": { "type": "string" } },
+    "platforms": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "cpuArchitectures": { "type": "array", "items": { "type": "string" } },
+    "categories": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+    "capabilities": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+    "languages": { "type": "array", "items": { "type": "string" } },
+    "frameworks": { "type": "array", "items": { "type": "string" } },
+    "compatibleManifests": { "type": "array", "items": { "type": "string" } },
+    "granularity": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["workspace", "component", "file", "diff"] }
+    },
+    "minimumContext": { "type": "array", "items": { "type": "string" } },
+    "configFiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["format", "discovery"],
+        "additionalProperties": false,
+        "properties": {
+          "format": { "type": "string" },
+          "discovery": { "type": "string" },
+          "precedence": { "type": "string" },
+          "ownedSelector": { "type": "string" }
+        }
+      }
+    },
+    "parameterSchema": { "type": "object" },
+    "uiSchema": { "type": "object" },
+    "editing": {
+      "type": "object",
+      "required": ["implemented", "tested"],
+      "additionalProperties": false,
+      "properties": {
+        "implemented": { "type": "array", "items": { "$ref": "#/$defs/editMode" } },
+        "tested": { "type": "array", "items": { "$ref": "#/$defs/editMode" } }
+      }
+    },
+    "exitCodes": {
+      "type": "object",
+      "required": ["codes", "reportRequired"],
+      "additionalProperties": false,
+      "properties": {
+        "codes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["code", "meaning"],
+            "additionalProperties": false,
+            "properties": { "code": { "type": "integer" }, "meaning": { "type": "string" } }
+          }
+        },
+        "reportRequired": { "type": "boolean" }
+      }
+    },
+    "effects": {
+      "type": "object",
+      "required": [
+        "readsCode", "writesOutputs", "mayChangeCode", "executesProjectCode", "usesNetwork", "needsService",
+        "usesAi", "needsLicense"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "readsCode": { "type": "boolean" },
+        "writesOutputs": { "type": "boolean" },
+        "mayChangeCode": { "type": "boolean" },
+        "executesProjectCode": { "type": "boolean" },
+        "usesNetwork": { "type": "boolean" },
+        "needsService": { "type": "boolean" },
+        "usesAi": { "type": "boolean" },
+        "needsLicense": { "type": "boolean" }
+      }
+    },
+    "redirection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "flags": { "type": "array", "items": { "type": "string" } },
+        "env": { "type": "array", "items": { "type": "string" } },
+        "outputPaths": {
+          "description": "Folders of the run folder the tool writes into instead of the workspace (caches, a throwaway home, reports); the runner creates them and sets the listed variables to their absolute path.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "purpose"],
+            "properties": {
+              "path": { "type": "string", "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))[A-Za-z0-9._/-]+$" },
+              "purpose": { "enum": ["cache", "home", "output", "report"] },
+              "env": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" } }
+            }
+          }
+        },
+        "unavoidableWorkspaceWrites": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "toggles": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "togglable": { "type": "array", "items": { "type": "string" } },
+        "perRunByFlag": { "type": "boolean" }
+      }
+    },
+    "relativeCost": { "enum": ["low", "medium", "high"] },
+    "recommendedLimits": { "type": "object" },
+    "cache": { "type": "object" },
+    "origin": { "type": "string", "minLength": 1 },
+    "integrity": { "type": "string" },
+    "license": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["tool", "composite"] },
+    "subchecks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "capabilities", "modes"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "capabilities": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+          "modes": { "type": "array", "items": { "enum": ["quick", "offline", "full"] } },
+          "conditions": { "type": "array", "items": { "type": "string" } },
+          "limitations": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^([a-z][a-z0-9-]*|x-[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9._-]*)$"
+    },
+    "editMode": { "enum": ["text", "structured-read", "structured-write", "partial", "effective-preview"] }
+  }
+}

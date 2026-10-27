@@ -1,0 +1,18 @@
+{
+  "dependency_cruiser_label": "dependency-cruiser (arquitetura TS/JS)",
+  "dependency_cruiser_missing": "O dependency-cruiser não foi encontrado ({detail}). Instale com: npm install --save-dev dependency-cruiser no projeto, ou defina JGATES_DEPCRUISE com o caminho do executável. O JGates nunca baixa a ferramenta durante o run.",
+  "dependency_cruiser_probe_failed": "O dependency-cruiser em {path} não respondeu a --version. Reinstale-o no projeto.",
+  "dependency_cruiser_incompatible": "Versão incompatível do dependency-cruiser: {version} fora da faixa {range}.",
+  "dependency_cruiser_no_architecture": "A instância {tool} precisa do contrato de arquitetura: crie .jgates/architecture.yml (e liste-o em extends no jgates.yml).",
+  "dependency_cruiser_architecture_invalid": "O contrato .jgates/architecture.yml da instância {tool} é inválido: {detail}",
+  "dependency_cruiser_blocked": "O dependency-cruiser não pôde rodar: {detail}",
+  "dependency_cruiser_timeout": "O dependency-cruiser passou do limite de {seconds} s e foi encerrado.",
+  "dependency_cruiser_exit_error": "O dependency-cruiser terminou com o código {code}: {detail}",
+  "dependency_cruiser_invalid_output": "A saída do dependency-cruiser não é o JSON esperado: {detail}",
+  "dependency_cruiser_no_invocation": "O plano não tem a invocação do dependency-cruiser para a instância {tool}.",
+  "dependency_cruiser_reason_completed": "dependency-cruiser {version}: grafo com {nodes} módulo(s) e {edges} dependência(s); {findings} achado(s); cobertura {coverage} ({unresolved} dependência(s) não resolvida(s)).",
+  "dependency_cruiser_reason_incomplete": "Arquitetura não provada: {detail} (cobertura {coverage}, {unresolved} dependência(s) não resolvida(s); veja coverage.json).",
+  "dependency_cruiser_condition_generated": "A configuração do dependency-cruiser é gerada na pasta do run a partir de .jgates/architecture.yml; as regras são avaliadas pelo JGates sobre o grafo normalizado.",
+  "dependency_cruiser_condition_binding": "Usa a configuração nativa do binding ({file}); o dependency-cruiser carrega esse arquivo JavaScript.",
+  "dependency_cruiser_condition_binary": "Executável: {tool} ({source}); nada é baixado durante o run."
+}

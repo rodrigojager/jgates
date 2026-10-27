@@ -1,0 +1,14 @@
+{
+  "selection_selector_invalid": "Seletor inválido: '{selector}' (em {where}). Use <tipo>:<id>, com o tipo entre: {kinds}.",
+  "selection_selector_unmatched": "O seletor '{selector}' não casa com nada neste projeto (em {where}).",
+  "selection_rule_unsupported": "O seletor '{selector}' foi recusado como não suportado: a ferramenta '{tool}' não expõe essa regra para ser desligada (em {where}).",
+  "selection_unmatched_suggest": "Quis dizer '{suggestion}'?",
+  "selection_unmatched_fix": "Confira o nome (jgates config resolve --explain lista as verificações) ou remova o seletor.",
+  "selection_locked_default_reason": "requisito obrigatório da política",
+  "selection_locked_violation": "Não é possível desligar o requisito travado '{lock}': {reason}. O desligamento veio de '{selector}' em {by}.",
+  "selection_locked_fix": "Remova o desligamento, ou destrave o requisito no policy.yml (locked: true) com a aprovação de quem governa a política.",
+  "selection_item_line": "{selector}: {state} ({reason}){origin}",
+  "selection_state_on": "ligada",
+  "selection_state_off": "desligada",
+  "selection_origin": " por {decision} em {layer}/{source}{file}"
+}

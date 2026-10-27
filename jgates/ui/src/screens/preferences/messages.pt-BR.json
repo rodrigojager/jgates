@@ -1,0 +1,17 @@
+{
+  "prefs_title": "Preferências",
+  "prefs_lead": "Escolhas pessoais, guardadas na sua pasta de dados do JGates. Elas não mudam o projeto nem o que é aprovado.",
+  "prefs_theme_note": "Sistema segue o tema do seu sistema operacional.",
+  "prefs_language": "Idioma",
+  "prefs_language_pt-BR": "Português (Brasil)",
+  "prefs_language_en": "English",
+  "prefs_language_note": "O idioma vale para os textos da interface e para as mensagens do servidor local. Trocar recarrega a página.",
+  "prefs_language_saved": "Idioma salvo nas suas preferências.",
+  "prefs_language_failed": "Não foi possível salvar o idioma.",
+  "prefs_more": "O que não é preferência pessoal",
+  "prefs_network_note": "O acesso à rede é política de execução do repositório: ele é editado na Configuração e aparece na revisão do plano. A retenção dos runs é da sua pasta de dados e fica em Armazenamento.",
+  "prefs_storage_link": "Abrir Armazenamento",
+  "prefs_providers": "Providers e chaves",
+  "prefs_providers_note": "Os providers de IA do semantic gate, as conexões com um gateway e as chaves de API ficam fora do projeto, no cofre do usuário. A tela grava e troca uma chave, mas nunca mostra o valor guardado.",
+  "prefs_providers_link": "Abrir Providers e chaves"
+}

@@ -1,0 +1,21 @@
+{
+  "cfgp_profile_readonly": "O perfil '{id}' é um perfil de partida do JGates e não pode ser editado.",
+  "cfgp_profile_readonly_fix": "Crie um perfil do projeto a partir de '{id}' e edite o novo.",
+  "cfgp_not_found": "O perfil '{id}' não existe no projeto.",
+  "cfgp_suggest": "Quis dizer '{suggestion}'?",
+  "cfgp_no_changes": "Nenhuma alteração foi pedida.",
+  "cfgp_no_changes_fix": "Envie ao menos um item para ligar ou desligar.",
+  "cfgp_resolve_failed": "A configuração não pôde ser resolvida: {first}",
+  "cfgp_selector_invalid": "'{selector}' não é um seletor válido.",
+  "cfgp_selector_invalid_fix": "Use o formato tipo:id, por exemplo capability:unit.",
+  "cfgp_selector_unknown": "'{selector}' não nomeia nenhuma verificação deste projeto.",
+  "cfgp_selector_repeated": "O seletor '{selector}' veio mais de uma vez.",
+  "cfgp_locked": "'{selector}' está travado pela política e não pode ser desligado: {reason}",
+  "cfgp_locked_fix": "Para liberar, a política em {file} precisa mudar.",
+  "cfgp_policy_governed": "No modo governado a política vem de fora do repositório e não pode ser alterada por aqui.",
+  "cfgp_policy_governed_fix": "Altere a política no repositório de governança.",
+  "cfgp_policy_value_invalid": "O valor de '{field}' não é válido.",
+  "cfgp_policy_value_invalid_fix": "Veja os valores aceitos na tela.",
+  "cfgp_profile_query_invalid": "O perfil '{id}' não existe.",
+  "cfgp_explain_unknown": "'{selector}' não nomeia nenhuma verificação deste projeto."
+}

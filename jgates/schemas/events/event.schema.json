@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/events/event.schema.json",
+  "title": "JGates run event",
+  "description": "One line of events.jsonl (and of the --events-jsonl copy). The sequence starts at 1 and grows by one per event of the run; a reader resumes from the last sequence it saw.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "sequence",
+    "type",
+    "at",
+    "data"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^run_[0-9]{8}T[0-9]{6}Z_[0-9a-f]{8}$"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "type": {
+      "enum": [
+        "run-started",
+        "step-started",
+        "process-started",
+        "process-finished",
+        "stage",
+        "step-finished",
+        "step-skipped",
+        "cancel-requested",
+        "run-finished"
+      ]
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO 8601 timestamp."
+    },
+    "data": {
+      "type": "object",
+      "description": "Fields of the event type (step, stageId, state, pid, exitCode, decision...)."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "run-finished"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "decision",
+              "exitCode"
+            ],
+            "properties": {
+              "decision": {
+                "enum": [
+                  "passed",
+                  "failed",
+                  "incomplete",
+                  "invalid",
+                  "cancelled"
+                ]
+              },
+              "exitCode": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "stage"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "step",
+              "stageId",
+              "state"
+            ],
+            "properties": {
+              "step": {
+                "type": "string"
+              },
+              "stageId": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "step-started",
+              "step-finished",
+              "step-skipped",
+              "process-started",
+              "process-finished"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "step"
+            ],
+            "properties": {
+              "step": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

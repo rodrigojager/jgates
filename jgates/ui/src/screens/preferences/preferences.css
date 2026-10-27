@@ -1,0 +1,4 @@
+.prefs-choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.prefs-choice { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); cursor: pointer; }
+.prefs-choice:has(input:checked) { border-color: var(--accent); background: var(--mint); }
+.prefs-select select { min-width: 220px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); min-height: 38px; }

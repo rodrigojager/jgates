@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "profiles": {
+    "minimal": {
+      "label": "Essencial",
+      "description": "O mínimo antes de cada commit: lint, tamanho de arquivo e segredos.",
+      "checks": {
+        "capability:file-size": { "enabled": true },
+        "capability:lint": { "enabled": true },
+        "capability:secrets": { "enabled": true },
+        "capability:sast": { "enabled": false },
+        "capability:dependencies": { "enabled": false },
+        "capability:duplication": { "enabled": false },
+        "capability:iac": { "enabled": false },
+        "capability:unit": { "enabled": false },
+        "capability:coverage": { "enabled": false }
+      }
+    }
+  }
+}

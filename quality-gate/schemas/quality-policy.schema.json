@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodrigojager/jgates/schemas/quality-policy.schema.json",
+  "title": "JGates Quality Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "maxFileBytes": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxFileLines": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxScopeBytes": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxScopeLines": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxChangedFiles": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxChangedLines": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxDiffBytes": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxBinaryFiles": { "$ref": "#/$defs/nonNegativeInteger" },
+        "hotspotMinCommits": { "$ref": "#/$defs/nonNegativeInteger" },
+        "hotspotMinChurn": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    },
+    "changeRequirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "whenAny": { "$ref": "#/$defs/pathPatterns" },
+          "when": { "$ref": "#/$defs/pathPatterns" },
+          "requireAny": { "$ref": "#/$defs/pathPatterns" },
+          "requireAll": { "$ref": "#/$defs/pathPatterns" },
+          "unlessAny": { "$ref": "#/$defs/pathPatterns" },
+          "severity": { "type": "string" },
+          "message": { "type": "string" }
+        },
+        "allOf": [
+          {
+            "anyOf": [
+              { "required": ["whenAny"] },
+              { "required": ["when"] }
+            ]
+          },
+          {
+            "anyOf": [
+              { "required": ["requireAny"] },
+              { "required": ["requireAll"] }
+            ]
+          }
+        ]
+      }
+    },
+    "dependencyGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reports": { "$ref": "#/$defs/paths" },
+        "maxFanIn": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxFanOut": { "$ref": "#/$defs/nonNegativeInteger" },
+        "allowCycles": { "type": "boolean" },
+        "forbiddenLayerDependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "severity": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reports": { "$ref": "#/$defs/paths" },
+        "requiredMetrics": { "type": "object" }
+      }
+    },
+    "testQuality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reports": { "$ref": "#/$defs/paths" },
+        "minTests": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxSkippedTests": { "$ref": "#/$defs/nonNegativeInteger" },
+        "maxSkippedPercent": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requireEvidence": { "type": "boolean" },
+        "maxEvidenceAgeSeconds": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    }
+  },
+  "$defs": {
+    "nonNegativeInteger": { "type": "integer", "minimum": 0 },
+    "paths": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "pathPatterns": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  }
+}

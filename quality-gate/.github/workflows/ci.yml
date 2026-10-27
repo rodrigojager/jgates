@@ -1,0 +1,45 @@
+name: quality-gate-ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: npm test
+      - run: git diff --check
+      - run: python -m pip install --dry-run .
+      - run: PYTHONPATH=sidecar python -m quality_sidecar check . --mode quick --format json,md --output .quality/reports/ci-offline
+      - run: npm pack --dry-run
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sidecar image
+        run: docker build -t jgates/quality-sidecar:ci .
+      - name: Prepare fixture
+        run: |
+          mkdir -p /tmp/quality-sidecar-fixture
+          printf '# clean fixture\n' > /tmp/quality-sidecar-fixture/README.md
+      - name: Run sidecar smoke check
+        run: |
+          docker run --rm \
+            -v "/tmp/quality-sidecar-fixture:/workspace" \
+            -v "/tmp/quality-sidecar-fixture/.quality/reports:/workspace/.quality/reports" \
+            -w /workspace \
+            jgates/quality-sidecar:ci \
+            check /workspace --mode quick --format json,md
+          test -f /tmp/quality-sidecar-fixture/.quality/reports/quality-report.json
+

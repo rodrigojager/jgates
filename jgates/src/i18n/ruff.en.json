@@ -1,0 +1,18 @@
+{
+  "ruff_label": "Ruff",
+  "ruff_missing": "Ruff is not installed ({detail}). Run: jgates doctor --fix (or pip install ruff in the project's Python environment).",
+  "ruff_probe_failed": "Ruff at {path} did not answer --version. Reinstall with: jgates doctor --fix.",
+  "ruff_blocked": "Ruff could not run: {detail}",
+  "ruff_exit_error": "Ruff ended with code {code}: {detail}",
+  "ruff_timeout": "Ruff exceeded the limit of {seconds} s and was ended.",
+  "ruff_invalid_output": "The Ruff output is not the expected JSON list: {detail}",
+  "ruff_no_invocation": "The plan has no Ruff invocation for the instance {tool}.",
+  "ruff_reason_completed": "Ruff {version}: {count} finding(s)",
+  "ruff_condition_python": "Analyzes the component's Python files.",
+  "ruff_condition_container": "Runs in the container runner, in the image {image}: network off, workspace read-only, cache in the run folder.",
+  "ruff_container_runtime_missing": "The container runner needs Docker, and {runtime} was not found on the PATH (or set JGATES_CONTAINER_RUNTIME).",
+  "ruff_container_image_unprepared": "Ruff ({instance}) has runner: container, but the image has not been prepared yet: run {command} (it writes the image by digest and the version to .jgates/lock.json).",
+  "ruff_container_lock_invalid": ".jgates/lock.json is not valid ({detail}), and the Ruff image comes only from it. Fix or delete the file and run {command}.",
+  "ruff_container_image_missing": "The image {image} pinned in .jgates/lock.json for {instance} is not in the container runtime ({detail}). Run {command} again.",
+  "ruff_container_image_changed": "The image {image} no longer states the version pinned in .jgates/lock.json ({detail}). Run {command} again."
+}

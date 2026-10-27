@@ -1,0 +1,21 @@
+{
+  "baseline_description": "Marks the reference run (baseline) of the workspace and compares a run with it: set, clear, show, compare.",
+  "baseline_option_cwd": "Workspace folder (default: the current folder).",
+  "baseline_unknown_subcommand": "Unknown subcommand: {name}",
+  "baseline_unknown_subcommand_fix": "Use: jgates baseline set <runId> | clear | show | compare <runId>.",
+  "baseline_missing_run": "Give the run id.",
+  "baseline_missing_run_fix": "See the ids with jgates history.",
+  "baseline_bad_cwd": "Could not access the folder: {path}",
+  "baseline_bad_cwd_fix": "Check that the folder exists.",
+  "baseline_run_not_found": "Run not found in this workspace: {runId}",
+  "baseline_run_not_found_fix": "See the runs with jgates history.",
+  "baseline_run_unfinished": "The run {runId} did not finish; it cannot be a baseline.",
+  "baseline_run_unfinished_fix": "Mark a run that has a final result.",
+  "baseline_no_baseline": "This workspace has no baseline.",
+  "baseline_no_baseline_fix": "Mark one with jgates baseline set <runId>.",
+  "baseline_set": "Baseline: {runId}",
+  "baseline_cleared": "Baseline removed.",
+  "baseline_none": "No baseline.",
+  "baseline_compare_line": "new {new}, resolved {resolved}, kept {kept}",
+  "baseline_not_comparable": "Warning: the comparison is not like for like ({codes})."
+}

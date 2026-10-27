@@ -1,0 +1,21 @@
+{
+  "cfgp_profile_readonly": "The profile '{id}' is a JGates starter profile and cannot be edited.",
+  "cfgp_profile_readonly_fix": "Create a project profile from '{id}' and edit the new one.",
+  "cfgp_not_found": "The profile '{id}' does not exist in the project.",
+  "cfgp_suggest": "Did you mean '{suggestion}'?",
+  "cfgp_no_changes": "No change was requested.",
+  "cfgp_no_changes_fix": "Send at least one item to turn on or off.",
+  "cfgp_resolve_failed": "The configuration could not be resolved: {first}",
+  "cfgp_selector_invalid": "'{selector}' is not a valid selector.",
+  "cfgp_selector_invalid_fix": "Use the format type:id, for example capability:unit.",
+  "cfgp_selector_unknown": "'{selector}' does not name any check of this project.",
+  "cfgp_selector_repeated": "The selector '{selector}' came more than once.",
+  "cfgp_locked": "'{selector}' is locked by the policy and cannot be turned off: {reason}",
+  "cfgp_locked_fix": "To release it, the policy in {file} has to change.",
+  "cfgp_policy_governed": "In governed mode the policy comes from outside the repository and cannot be changed from here.",
+  "cfgp_policy_governed_fix": "Change the policy in the governance repository.",
+  "cfgp_policy_value_invalid": "The value of '{field}' is not valid.",
+  "cfgp_policy_value_invalid_fix": "See the accepted values on the screen.",
+  "cfgp_profile_query_invalid": "The profile '{id}' does not exist.",
+  "cfgp_explain_unknown": "'{selector}' does not name any check of this project."
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "sourceCommit": "0123456789abcdef0123456789abcdef01234567",
+    "producer": "example-quality-adapter",
+    "producerVersion": "1.0.0",
+    "generatedAt": "2026-07-15T12:00:00Z"
+  },
+  "metrics": {
+    "mutation.score": {
+      "value": 84.2,
+      "path": "src"
+    },
+    "complexity.cyclomatic.max": {
+      "value": 12,
+      "path": "src/core"
+    }
+  },
+  "checks": [
+    {
+      "id": "api-breaking-change",
+      "status": "passed",
+      "category": "contract-policy",
+      "message": "No breaking API change was detected."
+    }
+  ]
+}

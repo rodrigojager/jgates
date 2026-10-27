@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet",
+  "label": ".NET",
+  "description": "Componentes .NET (csproj, fsproj, vbproj): encaixa a cadeia atual do flavor dotnetweb pela ponte, que vem do template base. Suporte parcial: não há integração própria com build, testes, cobertura nem analisadores Roslyn.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "csharp",
+      "fsharp",
+      "visualbasic"
+    ]
+  },
+  "support": {
+    "level": "partial",
+    "uncovered": [
+      "Build do projeto (dotnet build)",
+      "Testes do projeto (dotnet test)",
+      "Cobertura de testes",
+      "Analisadores Roslyn e regras do .editorconfig",
+      "Typecheck do compilador"
+    ]
+  },
+  "config": {
+    "workspace": {
+      "exclude": {
+        "add": [
+          "**/bin/**",
+          "**/obj/**"
+        ]
+      }
+    }
+  }
+}

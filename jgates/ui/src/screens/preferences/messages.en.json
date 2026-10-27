@@ -1,0 +1,17 @@
+{
+  "prefs_title": "Preferences",
+  "prefs_lead": "Personal choices, kept in your JGates data folder. They change neither the project nor what is approved.",
+  "prefs_theme_note": "System follows the theme of your operating system.",
+  "prefs_language": "Language",
+  "prefs_language_pt-BR": "Português (Brasil)",
+  "prefs_language_en": "English",
+  "prefs_language_note": "The language applies to the interface text and to the messages of the local server. Changing it reloads the page.",
+  "prefs_language_saved": "Language saved to your preferences.",
+  "prefs_language_failed": "Could not save the language.",
+  "prefs_more": "What is not a personal preference",
+  "prefs_network_note": "Network access is a run policy of the repository: it is edited in Configuration and shows up in the plan review. Run retention belongs to your data folder and lives in Storage.",
+  "prefs_storage_link": "Open Storage",
+  "prefs_providers": "Providers and keys",
+  "prefs_providers_note": "The AI providers of the semantic gate, the connections to a gateway and the API keys live outside the project, in the user's key store. The screen saves and changes a key, but never shows the stored value.",
+  "prefs_providers_link": "Open Providers and keys"
+}

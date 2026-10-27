@@ -1,0 +1,6 @@
+/* Configuração > Execução. Tokens from theme.css (light and dark). */
+.field .input.number { max-width: 140px; }
+.field .row > .field-label { min-width: 220px; }
+@media (max-width: 640px) {
+  .field .row > .field-label { min-width: 0; flex: 1 1 100%; }
+}

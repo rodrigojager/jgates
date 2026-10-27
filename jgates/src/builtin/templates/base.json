@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "base",
+  "label": "Base",
+  "description": "Base de qualquer stack: declara a ponte com o quality-gate e seleciona as subverificações dela. Os testes do projeto e a cobertura ficam para o perfil ligar.",
+  "config": {
+    "workspace": {
+      "exclude": [".git/**"]
+    },
+    "tools": {
+      "quality-bridge": {
+        "adapter": "quality-bridge",
+        "enabled": true,
+        "capabilities": ["lint", "sast", "secrets", "dependencies", "duplication", "iac", "coverage", "unit", "file-size"]
+      },
+      "builtin-pii": {
+        "adapter": "builtin-pii",
+        "capabilities": ["pii"]
+      }
+    },
+    "checks": {
+      "tool:quality-bridge.file-size": { "enabled": true },
+      "tool:quality-bridge.megalinter": { "enabled": true },
+      "tool:quality-bridge.semgrep": { "enabled": true },
+      "tool:quality-bridge.gitleaks": { "enabled": true },
+      "tool:quality-bridge.trivy": { "enabled": true },
+      "tool:quality-bridge.osv-scanner": { "enabled": true },
+      "tool:quality-bridge.jscpd": { "enabled": true },
+      "tool:quality-bridge.checkov": { "enabled": true },
+      "tool:quality-bridge.project-tests": { "enabled": false },
+      "tool:quality-bridge.coverage": { "enabled": false }
+    }
+  }
+}

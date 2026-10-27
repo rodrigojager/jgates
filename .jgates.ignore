@@ -1,0 +1,17 @@
+# Shared ignore file for JGates components (quality-gate and semantic-gate).
+# Syntax follows the same style as .gitignore.
+
+.git/
+node_modules/
+coverage/
+dist/
+build/
+out/
+tmp/
+temp/
+
+.quality/
+.semantic/
+
+*.log
+*.tmp

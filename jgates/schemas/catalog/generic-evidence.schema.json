@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/catalog/generic-evidence.schema.json",
+  "title": "Generic command: declaration and evidence contract",
+  "description": "The config block of a tool instance that uses the generic-command adapter. A generic command is an explicit executable plus args (never a shell string), with declared effects and a contract that says what its result proves. Without a findings parser the result is a well-defined boolean (exit code); only a verifiable contract lets the command cover security, architecture or tests.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["effects", "evidence"],
+  "properties": {
+    "cwd": { "type": "string", "minLength": 1, "description": "Working directory relative to the workspace; accepts {componentRoot}. Default: the workspace root (or the component root)." },
+    "successExitCodes": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 0, "maximum": 255 }, "default": [0] },
+    "support": { "enum": ["partial", "declared"], "description": "partial: the stack has no dedicated adapter; the plan shows the limits." },
+    "limitations": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "effects": { "$ref": "#/$defs/effects" },
+    "evidence": { "$ref": "#/$defs/evidence" }
+  },
+  "$defs": {
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["readsCode", "writesOutputs", "mayChangeCode", "executesProjectCode", "usesNetwork"],
+      "properties": {
+        "readsCode": { "type": "boolean" },
+        "writesOutputs": { "type": "boolean" },
+        "mayChangeCode": { "type": "boolean" },
+        "executesProjectCode": { "type": "boolean" },
+        "usesNetwork": { "type": "boolean" },
+        "workspaceWrites": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "evidence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "exit-code" } },
+          "description": "Boolean check: the exit code is the whole result. It never covers security, architecture or tests."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "runner"],
+          "properties": {
+            "kind": { "const": "test-runner" },
+            "runner": { "enum": ["go-test", "cargo-test"] }
+          },
+          "description": "A recognised test runner whose exit code is the verdict of the tests. May cover the tests category."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "file", "schema"],
+          "properties": {
+            "kind": { "const": "json-file" },
+            "file": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$", "description": "Name of the JSON file the command writes in {outputDir}." },
+            "schema": { "type": "string", "minLength": 1, "description": "JSON Schema (workspace-relative path) the evidence file must satisfy." }
+          },
+          "description": "The command writes an evidence file the run validates against the declared schema; invalid evidence is an error."
+        }
+      ]
+    }
+  }
+}

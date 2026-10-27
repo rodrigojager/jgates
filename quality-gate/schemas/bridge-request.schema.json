@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodrigojager/jgates/schemas/bridge-request.schema.json",
+  "title": "Quality Sidecar Bridge Request",
+  "description": "Request the JGates core sends to `python -m quality_sidecar bridge`. Local mode only: governed mode is always refused.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "target", "outputDir"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "target": { "type": "string", "minLength": 1 },
+    "outputDir": { "type": "string", "minLength": 1, "description": "Absolute folder for reports, raw evidence and scope projections." },
+    "mode": { "enum": ["quick", "offline", "full", "governed"], "default": "full", "description": "governed is accepted by the schema only so it can be refused with a structured error." },
+    "governed": { "type": "boolean", "description": "true is always refused." },
+    "profile": { "enum": ["relaxed", "standard", "strict"], "default": "standard" },
+    "locale": { "type": "string" },
+    "threshold": { "type": "integer" },
+    "pii": { "type": "boolean" },
+    "secrets": { "type": "boolean" },
+    "iac": { "type": "boolean", "default": true },
+    "projectTests": { "type": "boolean" },
+    "coverage": { "type": "boolean" },
+    "coverageReports": { "type": "array", "items": { "type": "string" } },
+    "minLineCoverage": { "type": "number" },
+    "minBranchCoverage": { "type": "number" },
+    "policyFile": { "type": "string" },
+    "policySha256": { "type": "string" },
+    "requirePolicy": { "type": "boolean" },
+    "failOnToolError": { "type": "boolean" },
+    "disableBudgets": { "type": "boolean" },
+    "maxFileLines": { "type": "integer" },
+    "maxFileBytes": { "type": "integer" },
+    "scopeManifest": { "type": "string" },
+    "subchecks": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["file-size", "megalinter", "semgrep", "gitleaks", "trivy", "checkov", "osv-scanner", "jscpd", "project-tests", "coverage"] },
+      "description": "Subchecks to run. A subcheck left out does not run (file-size out means budgets disabled). Absent: every subcheck the mode and the flags turn on."
+    },
+    "hardened": {
+      "type": "boolean",
+      "description": "The governed CI path (jgates ci): MegaLinter runs only the linters megalinter-linters.json does not exclude, with their forcing arguments, and MEGALINTER_COMMAND is ignored. Never combined with toolConfigs."
+    },
+    "toolConfigs": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Local mode only: the project configuration file each scanner uses instead of the trusted package file. Relative to target (or absolute); it must stay inside target, symlinks followed, and exist.",
+      "properties": {
+        "gitleaks": { "type": "string", "minLength": 1 },
+        "trivy": { "type": "string", "minLength": 1 },
+        "osv-scanner": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

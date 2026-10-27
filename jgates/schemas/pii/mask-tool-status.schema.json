@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/pii/mask-tool-status.schema.json",
+  "title": "Status line of an external PII tool",
+  "description": "The one JSON line an external PII tool (.jgates/pii.yml > tools) writes to stdout when it finishes. JGates copies the files to a temporary folder (JGATES_MASK_DIR, the working directory of the tool), lists them in JGATES_MASK_FILES (one relative path per line) and says the use in JGATES_MASK_MODE: context (masking the context of the semantic gate), check (detect only: nothing may change) or fix (correct the copy of project files). The tool edits the listed files in place and reports here what it did; JGates then checks the folder against this status (only listed files may change, no file created, removed or turned into a link, changed must match what changed). Exit code 0 with status ok is success; any other exit code or status error is a failure.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jgatesMask", "status", "detected", "changed"],
+  "properties": {
+    "jgatesMask": { "const": 1, "description": "Version of this contract." },
+    "status": { "enum": ["ok", "error"], "description": "ok: the tool finished its work; error: it could not (nothing it did is used)." },
+    "detected": { "type": "boolean", "description": "The tool found sensitive data in at least one listed file." },
+    "changed": { "type": "boolean", "description": "The tool changed at least one listed file. In check mode it must be false." },
+    "counts": {
+      "type": "object",
+      "description": "What the tool found, per label (for example {\"employee-id\": 3}). The labels show in the result; the values never do.",
+      "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$" },
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "files": {
+      "type": "array",
+      "description": "The listed files (relative paths, as in JGATES_MASK_FILES) in which the tool found something.",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "message": { "type": "string", "maxLength": 2000, "description": "A short note for the user. It must not carry a sensitive value." }
+  }
+}

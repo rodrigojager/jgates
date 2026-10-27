@@ -1,0 +1,16 @@
+/* Configuração > Templates. Tokens from theme.css (light and dark). */
+.tpl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.tpl-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.tpl-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tpl-main h3 { margin: 0; overflow-wrap: anywhere; }
+.tpl-actions { flex: none; align-items: center; }
+.tpl-reason { margin: 0; }
+.tpl-order { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.tpl-effects { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.tpl-chain { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; }
+.tpl-chain ul { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+.tpl-chain code { overflow-wrap: anywhere; }
+.tpl-yaml { margin: 0; padding: 12px; max-height: 40vh; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); font-family: var(--mono); font-size: 12px; white-space: pre; }
+@media (max-width: 640px) {
+  .tpl-row { flex-direction: column; }
+}

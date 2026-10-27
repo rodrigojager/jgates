@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/config/tools.schema.json",
+  "title": ".jgates/tools.yml",
+  "description": "Tool instances and their bindings to components.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "tools": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9._-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "adapter"
+        ],
+        "properties": {
+          "adapter": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "component": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "command": {
+            "type": "string",
+            "minLength": 1
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "config": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/pathText"
+              },
+              {
+                "$ref": "#/$defs/fileRef"
+              }
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "runner": {
+            "enum": [
+              "local",
+              "container"
+            ]
+          },
+          "base": {
+            "$ref": "#/$defs/pathText"
+          },
+          "configFiles": {
+            "type": "object",
+            "propertyNames": {
+              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+            },
+            "additionalProperties": {
+              "$ref": "#/$defs/fileRef"
+            }
+          }
+        }
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tool"
+        ],
+        "properties": {
+          "tool": {
+            "type": "string",
+            "minLength": 1
+          },
+          "component": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capability": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "externalRoots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "path"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]*$"
+          },
+          "path": {
+            "$ref": "#/$defs/pathText"
+          },
+          "origin": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "pathText": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/pathText"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "directory"
+          ]
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "role": {
+          "enum": [
+            "primary",
+            "support",
+            "rules",
+            "ignore"
+          ]
+        },
+        "access": {
+          "enum": [
+            "read",
+            "write"
+          ]
+        },
+        "section": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base": {
+          "$ref": "#/$defs/pathText"
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

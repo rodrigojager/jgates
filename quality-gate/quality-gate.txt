@@ -1,0 +1,15 @@
+# Historical note
+
+This file used to describe an older contract of the quality gate command, where it always meant a full Docker scan.
+
+The current product contract is defined by the root README:
+
+- `jgates run` is the main command; it runs this quality gate through the quality bridge.
+- `quality-gate . --scope changed|full|paths` remains available as the low-level deterministic gate; `changed` is its default scope.
+- `quality-gate . --scope full` performs a full project scan.
+- `quality-gate . --scope paths --path <dir>` scans selected paths.
+- `.jgates.ignore`, `.quality-gate.ignore`, and `.semantic-gate.ignore` control ignored files.
+- `--json --no-interactive` is the recommended mode for AI agents and scripts.
+- `--ci` is the recommended mode for GitLab/GitHub pipelines.
+
+Do not use this file as the source of truth for current commands. Keep it only as a migration note for earlier design decisions.

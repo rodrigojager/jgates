@@ -1,0 +1,10 @@
+{
+  "shell_workspace_not_found": "This workspace is not in the JGates registry.",
+  "shell_workspace_not_found_fix": "Choose a workspace from the list or give the folder path.",
+  "shell_workspace_missing": "The folder {path} no longer exists.",
+  "shell_workspace_missing_fix": "If the project moved, run jgates workspaces relink <oldId> --cwd <new path>.",
+  "shell_workspace_not_directory": "{path} is not a folder.",
+  "shell_workspace_not_directory_fix": "Give the path of a folder that exists on this machine.",
+  "shell_open_failed": "Could not open the workspace ({code}).",
+  "shell_open_failed_fix": "Run jgates ui --cwd <folder> in the terminal and open the link it creates."
+}

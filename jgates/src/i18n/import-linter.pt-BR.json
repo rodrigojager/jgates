@@ -1,0 +1,22 @@
+{
+  "il_label": "Import Linter (arquitetura Python)",
+  "il_missing": "O Import Linter não está instalado ({detail}). Rode: jgates doctor --fix (ou pip install import-linter no ambiente Python do projeto).",
+  "il_probe_failed": "O Import Linter em {path} não respondeu a --version. Reinstale com: jgates doctor --fix.",
+  "il_incompatible": "A versão {version} do Import Linter está fora da faixa suportada ({range}); o leitor de saída só foi verificado nessa faixa.",
+  "il_blocked": "O Import Linter não pôde rodar: {detail}",
+  "il_timeout": "O Import Linter passou do limite de {seconds} s e foi encerrado.",
+  "il_exit_error": "O Import Linter terminou com o código {code}: {detail}",
+  "il_invalid_output": "A saída do Import Linter não pôde ser interpretada ({detail}); sem leitura confiável, a etapa não prova nada.",
+  "il_no_invocation": "O plano não tem a invocação do Import Linter para a instância {tool}.",
+  "il_no_contract": "A instância {tool} não tem contratos: declare regras forbidden-dependency em .jgates/architecture.yml ou mantenha uma configuração nativa (.importlinter, setup.cfg ou pyproject.toml com [importlinter]).",
+  "il_architecture_invalid": "O .jgates/architecture.yml da instância {tool} é inválido: {detail}. Corrija o arquivo antes de planejar.",
+  "il_condition_generated": "Os contratos são gerados na pasta do run a partir das regras forbidden-dependency do architecture.yml (dono generated, somente leitura).",
+  "il_condition_native": "Usa a configuração nativa {file} como está, no dialeto do Import Linter.",
+  "il_limitation_python": "Só olha os imports estáticos dos pacotes Python do componente; importação dinâmica (importlib) não entra no grafo.",
+  "il_no_python": "O Python do ambiente do Import Linter não foi achado ao lado de {executable}; sem ele não há grafo.",
+  "il_no_packages": "Nenhum pacote Python (pasta com __init__.py) foi achado no componente; o grafo está vazio.",
+  "il_contract_missing": "O relatório do Import Linter não traz o contrato das regras {rules}: a verificação não foi feita.",
+  "il_finding": "{header}: {route}",
+  "il_reason_completed": "Import Linter {version}: {contracts} contrato(s), {findings} achado(s); grafo {coverage} ({nodes} módulos, {edges} dependências)",
+  "il_reason_incomplete": "Arquitetura não provada: {detail} Cobertura {coverage}, {unresolved} import(s) sem resolução ({gaps}). Ausência de achados aqui não é ausência de violação."
+}

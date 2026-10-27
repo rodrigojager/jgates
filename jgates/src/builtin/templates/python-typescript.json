@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "python-typescript",
+  "label": "Python e TypeScript",
+  "description": "Integração de repositórios com componentes Python e TypeScript: reúne os templates python e typescript, cada ferramenta no componente da sua linguagem. Os contratos de fronteira entre os componentes ficam no architecture.yml (regra component-boundary). Não repete a configuração dos dois.",
+  "extends": [
+    "builtin:python",
+    "builtin:typescript"
+  ]
+}

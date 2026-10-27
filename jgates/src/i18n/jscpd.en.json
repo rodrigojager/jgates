@@ -1,0 +1,17 @@
+{
+  "jscpd_label": "jscpd (duplication)",
+  "jscpd_missing": "jscpd is not installed in the project ({detail}). Install it with: npm install --save-dev jscpd (or point JGATES_JSCPD to the executable).",
+  "jscpd_no_version": "Could not read the jscpd version at {path}. Reinstall with: npm install --save-dev jscpd.",
+  "jscpd_config_invalid": "The jscpd config ({file}) is not valid JSON: {detail}. Fix the file before planning.",
+  "jscpd_blocked": "jscpd could not run: {detail}",
+  "jscpd_timeout": "jscpd exceeded the limit of {seconds} s and was ended.",
+  "jscpd_exit_error": "jscpd ended with code {code}: {detail}",
+  "jscpd_invalid_output": "The jscpd report is not the expected JSON: {detail}",
+  "jscpd_no_invocation": "The plan has no jscpd invocation for the instance {tool}.",
+  "jscpd_reason_completed": "jscpd {version}: {count} duplication(s), {percent}% of the lines duplicated",
+  "jscpd_finding_duplicate": "Duplicated code block with {other} ({lines} lines).",
+  "jscpd_finding_threshold": "The total duplication ({percent}%) exceeded the threshold of the jscpd config.",
+  "jscpd_condition_config_binding": "Uses the jscpd config chosen in the binding: {file}.",
+  "jscpd_condition_config_native": "Uses the .jscpd.json of the component: {file}.",
+  "jscpd_condition_config_none": "No jscpd config: uses the tool defaults."
+}

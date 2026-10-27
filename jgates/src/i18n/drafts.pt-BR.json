@@ -1,0 +1,9 @@
+{
+  "drafts_too_large": "O rascunho passa do limite de {max} bytes.",
+  "drafts_too_large_fix": "Salve o arquivo em partes menores ou edite-o fora do JGates.",
+  "drafts_not_editable": "O documento {path} está em estado {state} e não aceita rascunho.",
+  "drafts_not_editable_fix": "Só documentos editáveis guardam rascunho; abra o arquivo de origem do projeto.",
+  "drafts_not_found": "Não há rascunho para este documento.",
+  "drafts_not_found_fix": "O rascunho é criado enquanto você edita um documento editável.",
+  "drafts_use_saved_failed": "Não foi possível salvar o rascunho de {path}: {detail}."
+}

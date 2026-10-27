@@ -1,0 +1,21 @@
+{
+  "runner_runtime_missing": "The runtime {name} was not found ({detail}).",
+  "runner_binary_not_found": "The executable {executable} was not found.",
+  "runner_binary_not_executable": "The file {executable} exists, but has no execute permission.",
+  "runner_version_unknown": "Could not read the version of {executable} (the plan expects {expected}).",
+  "runner_version_mismatch": "The version of {executable} is {actual}, but the plan was made with {expected}; generate the plan again.",
+  "runner_config_missing": "The configuration file {file} no longer exists.",
+  "runner_cwd_missing": "The working folder {dir} does not exist.",
+  "runner_dir_unwritable": "Could not create or write in the folder {dir}.",
+  "runner_bridge_sidecar_missing": "The sidecar package (quality_sidecar) was not found in {dir}; set JGATES_SIDECAR_DIR or install quality-gate.",
+  "runner_bridge_python_missing": "The bridge Python ({python}) was not found; set JGATES_PYTHON or put python on the PATH.",
+  "runner_not_run_cancelled": "Not run: the run was cancelled before this stage.",
+  "runner_cancelled_running": "Cancelled while running: the stage processes were ended and what it produced does not count.",
+  "runner_not_run_fail_fast": "Not run: --fail-fast stopped the run after the failure in {step} ({detail}).",
+  "runner_blocked_dependency": "Blocked: depends on {steps}, which did not finish well ({states}).",
+  "runner_unknown_dependency": "Blocked: depends on {steps}, which is not in the plan.",
+  "runner_dependency_cycle": "Blocked: circular dependency between {steps}.",
+  "runner_blocked_preflight": "Blocked before starting: {detail}",
+  "runner_step_crashed": "Adapter error: {detail}",
+  "runner_invalid_output": "Unreadable output, the stage proves nothing: {detail}"
+}

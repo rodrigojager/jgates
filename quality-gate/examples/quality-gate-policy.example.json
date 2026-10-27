@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "requireEvidence": true
+  },
+  "budgets": {
+    "maxFileBytes": 2097152,
+    "maxFileLines": 5000,
+    "maxChangedFiles": 100,
+    "maxChangedLines": 20000,
+    "maxDiffBytes": 10485760,
+    "maxBinaryFiles": 20,
+    "hotspotMinCommits": 150,
+    "hotspotMinChurn": 50000
+  },
+  "changeRequirements": [
+    {
+      "id": "contract-consumers",
+      "whenAny": ["contracts/**", "schemas/**"],
+      "requireAny": ["tests/**", "clients/**", "migrations/**"],
+      "message": "Contract changes require tests, client updates, or a migration."
+    }
+  ],
+  "dependencyGraph": {
+    "reports": [".quality/evidence/dependency-graph.json"],
+    "maxFanIn": 60,
+    "maxFanOut": 40,
+    "allowCycles": false,
+    "forbiddenLayerDependencies": [
+      {
+        "from": "domain",
+        "to": "infrastructure"
+      }
+    ]
+  },
+  "evidence": {
+    "reports": [".quality/evidence/quality-evidence.json"],
+    "requiredMetrics": {
+      "mutation.score": {
+        "min": 80
+      },
+      "complexity.cyclomatic.max": {
+        "max": 15
+      }
+    }
+  },
+  "testQuality": {
+    "reports": [".quality/evidence/junit.xml"],
+    "minTests": 1,
+    "maxSkippedPercent": 5
+  }
+}

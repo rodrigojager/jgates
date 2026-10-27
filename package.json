@@ -1,0 +1,95 @@
+{
+  "name": "jgates",
+  "version": "0.3.0",
+  "private": true,
+  "description": "JGates: governed quality gates for code approval, with a deterministic quality gate, an optional AI semantic gate, a local UI, and CI/headless workflows.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rodrigojager/jgates.git"
+  },
+  "homepage": "https://github.com/rodrigojager/jgates#readme",
+  "bugs": {
+    "url": "https://github.com/rodrigojager/jgates/issues"
+  },
+  "bin": {
+    "semantic-gate": "semantic-gate/dist/cli.js",
+    "quality-gate": "quality-gate/bin/quality-gate.js",
+    "jgates": "jgates/dist/cli/main.js"
+  },
+  "files": [
+    "README.md",
+    ".jgates.ignore",
+    ".quality-gate.ignore",
+    ".semantic-gate.ignore",
+    "tests/",
+    "examples/ci/",
+    "scripts/",
+    "use-jgates-semantic/",
+    "use-jgates-quality/",
+    "semantic-gate/dist/",
+    "semantic-gate/templates/",
+    "semantic-gate/examples/",
+    "semantic-gate/schemas/",
+    "semantic-gate/tests/",
+    "semantic-gate/README.md",
+    "semantic-gate/LICENSE",
+    "semantic-gate/package.json",
+    "jgates/dist/",
+    "jgates/package.json",
+    "jgates/skill/",
+    "quality-gate/bin/",
+    "quality-gate/docker/",
+    "quality-gate/sidecar/",
+    "quality-gate/examples/",
+    "quality-gate/schemas/",
+    "quality-gate/scripts/",
+    "quality-gate/skill/",
+    "quality-gate/tests/",
+    "quality-gate/Dockerfile",
+    "quality-gate/.dockerignore",
+    "quality-gate/quality-gate.ps1",
+    "quality-gate/quality-gate.txt",
+    "quality-gate/pyproject.toml",
+    "quality-gate/README.md",
+    "quality-gate/LICENSE",
+    "quality-gate/package.json",
+    "!quality-gate/**/__pycache__/**",
+    "!quality-gate/**/*.pyc",
+    "!**/*.pyc"
+  ],
+  "workspaces": [
+    "semantic-gate",
+    "quality-gate",
+    "jgates"
+  ],
+  "dependencies": {
+    "@babel/parser": "^8.0.8",
+    "ajv": "^8.17.1",
+    "jsonc-parser": "^3.3.1",
+    "yaml": "^2.9.1"
+  },
+  "scripts": {
+    "prepare": "node scripts/prepare.mjs",
+    "test": "npm run test:root && npm run test:semantic && npm run test:quality && npm run test:jgates",
+    "test:root": "node --test tests/*.test.js",
+    "test:semantic": "npm --prefix semantic-gate test --workspaces=false",
+    "test:semantic:build": "npm --prefix semantic-gate run test:build --workspaces=false",
+    "test:quality": "npm --prefix quality-gate test --workspaces=false",
+    "test:docker": "npm --prefix jgates run test:docker --workspaces=false",
+    "test:ui": "npm --prefix jgates run test:ui --workspaces=false",
+    "test:jgates": "npm --prefix jgates run test:build --workspaces=false",
+    "verify": "node scripts/verify-all.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "jgates",
+    "quality-gate",
+    "semantic-gate",
+    "mlops",
+    "ci",
+    "static-analysis",
+    "ai-review"
+  ]
+}

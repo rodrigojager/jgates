@@ -1,0 +1,22 @@
+{
+  "gc_description": "Applies retention to the JGates data folder and lists workspaces whose path no longer exists (deleting requires --yes).",
+  "gc_option_dry_run": "Only lists what retention would delete.",
+  "gc_option_yes": "Confirms and deletes what retention lists.",
+  "gc_option_max_age_days": "Maximum age of runs in days (default 30, or JGATES_RETENTION_DAYS).",
+  "gc_option_max_workspace_mb": "Maximum size of the runs of a workspace in MiB (default 2048, or JGATES_RETENTION_WORKSPACE_MB).",
+  "gc_option_max_total_mb": "Maximum size of all runs in MiB (default 10240, or JGATES_RETENTION_TOTAL_MB).",
+  "gc_bad_number": "Invalid value for {name}: {value}",
+  "gc_bad_number_fix": "Use a number greater than or equal to zero.",
+  "gc_unexpected_argument": "Unexpected argument: {name}",
+  "gc_unexpected_argument_fix": "Use: jgates gc [--dry-run] [--yes] [--json]",
+  "gc_dry_and_yes": "--dry-run and --yes do not go together.",
+  "gc_dry_and_yes_fix": "Use --dry-run to list or --yes to delete.",
+  "gc_text_nothing": "Nothing to delete.",
+  "gc_text_run": "  {reason}  {workspace}/{run}  {bytes} bytes",
+  "gc_text_missing": "  Workspace without a path: {id}  {path}{kept}",
+  "gc_text_kept": "  (marked runs kept: {runs})",
+  "gc_text_summary_dry": "{count} run(s) would be deleted ({bytes} bytes). Use --yes to delete.",
+  "gc_text_summary_none": "Nothing was deleted: use --yes to delete or --dry-run to list. {count} run(s) would be deleted ({bytes} bytes).",
+  "gc_text_summary_done": "{count} run(s) and {workspaces} workspace(s) deleted ({bytes} bytes).",
+  "gc_text_skipped": "  Skipped: {path} ({reason})"
+}

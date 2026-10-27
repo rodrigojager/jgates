@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/config/jgates.schema.json",
+  "title": "jgates.yml",
+  "description": "Entry point of the JGates configuration: profile, templates and general overrides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "extends": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile": { "type": "string", "minLength": 1 },
+        "scope": { "enum": ["changed", "full", "paths"] },
+        "paths": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "intensity": { "type": "string", "minLength": 1 }
+      }
+    },
+    "templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "source"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+          "source": { "type": "string", "minLength": 1 },
+          "activation": { "enum": ["always", "detected", "manual"] },
+          "match": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "languages": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "frameworks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+              "files": {
+                "description": "Configuration evidence (same as match.files of a template): at least one of these files must exist in the root of a component of the matched languages, or in the workspace root.",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "anyOf": [
+                    { "type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$))[^:*?<>|]+$" },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["path", "contains"],
+                      "properties": {
+                        "path": { "type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$))[^:*?<>|]+$" },
+                        "contains": { "type": "string", "minLength": 1 }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "priority": { "type": "integer" },
+          "enabled": { "type": "boolean" }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "concurrency": { "type": "integer", "minimum": 1 },
+        "network": { "enum": ["explicit", "allow", "deny"] },
+        "timeoutSeconds": { "type": "integer", "minimum": 1 },
+        "runner": { "enum": ["local", "container"], "description": "Default runner of the tools that do not choose their own." },
+        "failFast": { "type": "boolean", "description": "Stop at the first failed stage; the rest is recorded as not run." },
+        "trustSelfReported": {
+          "type": "boolean",
+          "description": "jgates ci only: whether a stage whose result the analyzed project controls (its tests, its build, a command that runs its code) may satisfy a requirement on its own. Default false: such a stage can fail the run but never approves it alone."
+        },
+        "budgets": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Limits of one run. Declared by the repository; the plan shows them.",
+          "properties": {
+            "totalSeconds": { "type": "integer", "minimum": 1 },
+            "memoryMegabytes": { "type": "integer", "minimum": 1 },
+            "processes": { "type": "integer", "minimum": 1 },
+            "logMegabytes": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "additionalProperties": { "type": "object" }
+    }
+  }
+}

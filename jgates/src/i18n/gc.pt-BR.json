@@ -1,0 +1,22 @@
+{
+  "gc_description": "Aplica a retenção na pasta de dados do JGates e lista workspaces cujo caminho não existe mais (apagar exige --yes).",
+  "gc_option_dry_run": "Só lista o que a retenção apagaria.",
+  "gc_option_yes": "Confirma e apaga o que a retenção lista.",
+  "gc_option_max_age_days": "Idade máxima dos runs em dias (padrão 30, ou JGATES_RETENTION_DAYS).",
+  "gc_option_max_workspace_mb": "Tamanho máximo dos runs de um workspace em MiB (padrão 2048, ou JGATES_RETENTION_WORKSPACE_MB).",
+  "gc_option_max_total_mb": "Tamanho máximo de todos os runs em MiB (padrão 10240, ou JGATES_RETENTION_TOTAL_MB).",
+  "gc_bad_number": "Valor inválido para {name}: {value}",
+  "gc_bad_number_fix": "Use um número maior ou igual a zero.",
+  "gc_unexpected_argument": "Argumento inesperado: {name}",
+  "gc_unexpected_argument_fix": "Use: jgates gc [--dry-run] [--yes] [--json]",
+  "gc_dry_and_yes": "--dry-run e --yes não combinam.",
+  "gc_dry_and_yes_fix": "Use --dry-run para listar ou --yes para apagar.",
+  "gc_text_nothing": "Nada a apagar.",
+  "gc_text_run": "  {reason}  {workspace}/{run}  {bytes} bytes",
+  "gc_text_missing": "  Workspace sem caminho: {id}  {path}{kept}",
+  "gc_text_kept": "  (runs marcados mantidos: {runs})",
+  "gc_text_summary_dry": "{count} run(s) seriam apagados ({bytes} bytes). Use --yes para apagar.",
+  "gc_text_summary_none": "Nada foi apagado: use --yes para apagar ou --dry-run para listar. {count} run(s) seriam apagados ({bytes} bytes).",
+  "gc_text_summary_done": "{count} run(s) e {workspaces} workspace(s) apagados ({bytes} bytes).",
+  "gc_text_skipped": "  Ignorado: {path} ({reason})"
+}

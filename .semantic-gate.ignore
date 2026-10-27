@@ -1,0 +1,22 @@
+# Semantic Gate specific ignore file.
+# Syntax follows the same style as .gitignore.
+
+.git/
+node_modules/
+coverage/
+dist/
+build/
+out/
+tmp/
+temp/
+
+.semantic/
+
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+*.min.js
+docs/archive/**
+
+*.log
+*.tmp

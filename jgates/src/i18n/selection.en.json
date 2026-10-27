@@ -1,0 +1,14 @@
+{
+  "selection_selector_invalid": "Invalid selector: '{selector}' (in {where}). Use <type>:<id>, with the type among: {kinds}.",
+  "selection_selector_unmatched": "The selector '{selector}' matches nothing in this project (in {where}).",
+  "selection_rule_unsupported": "The selector '{selector}' was refused as unsupported: the tool '{tool}' does not expose that rule to be switched off (in {where}).",
+  "selection_unmatched_suggest": "Did you mean '{suggestion}'?",
+  "selection_unmatched_fix": "Check the name (jgates config resolve --explain lists the checks) or remove the selector.",
+  "selection_locked_default_reason": "required requirement of the policy",
+  "selection_locked_violation": "Cannot switch off the locked requirement '{lock}': {reason}. The switch-off came from '{selector}' in {by}.",
+  "selection_locked_fix": "Remove the switch-off, or unlock the requirement in policy.yml (locked: true) with the approval of whoever governs the policy.",
+  "selection_item_line": "{selector}: {state} ({reason}){origin}",
+  "selection_state_on": "on",
+  "selection_state_off": "off",
+  "selection_origin": " by {decision} in {layer}/{source}{file}"
+}

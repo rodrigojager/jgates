@@ -1,0 +1,22 @@
+{
+  "workspaces_description": "Lista, registra e religa os workspaces conhecidos pelo JGates.",
+  "workspaces_unknown_action": "Ação desconhecida para workspaces: {name}",
+  "workspaces_unknown_action_fix": "Use: jgates workspaces list [--json], add <caminho> ou relink <idAntigo> --cwd <novo caminho>",
+  "workspaces_missing_path": "Informe o caminho do workspace.",
+  "workspaces_missing_path_fix": "Use: jgates workspaces add <caminho>",
+  "workspaces_bad_path": "Não foi possível acessar o caminho: {path}",
+  "workspaces_bad_path_fix": "Confira se a pasta existe.",
+  "workspaces_empty": "Nenhum workspace registrado.",
+  "workspaces_registered": "Workspace registrado: {id} {path}",
+  "workspaces_option_cwd": "Novo caminho do workspace (relink).",
+  "workspaces_relink_missing_id": "Informe o id do workspace antigo.",
+  "workspaces_relink_missing_id_fix": "Use: jgates workspaces relink <idAntigo> --cwd <novo caminho>",
+  "workspaces_relink_missing_cwd": "Informe o novo caminho com --cwd.",
+  "workspaces_relink_not_found": "Workspace não registrado: {id}",
+  "workspaces_relink_not_found_fix": "Veja os ids com: jgates workspaces list",
+  "workspaces_relink_same": "O caminho novo é o mesmo workspace: {id}",
+  "workspaces_relink_same_fix": "Informe a pasta nova do projeto.",
+  "workspaces_relink_cycle": "O histórico de {id} já descende do workspace novo.",
+  "workspaces_relink_cycle_fix": "Religue na outra direção ou escolha outro caminho.",
+  "workspaces_relinked": "Histórico de {old} ligado a {id} ({path})"
+}

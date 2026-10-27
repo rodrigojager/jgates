@@ -1,0 +1,128 @@
+import type { AdapterManifest } from "../../core/catalog/index.js";
+
+/**
+ * Bridge adapter: declares the current quality-gate (Python sidecar) as one composite step with its subchecks.
+ * In the sidecar, quick and offline skip every external tool; full runs them in a fixed order.
+ */
+export const qualityBridgeManifest: AdapterManifest = {
+  schemaVersion: 1,
+  id: "quality-bridge",
+  displayName: "Quality gate (bridge)",
+  adapterVersion: "0.1.0",
+  apiRange: ">=0.3.0 <1.0.0",
+  toolName: "quality-gate",
+  toolVersionRange: "*",
+  runtimes: ["python", "docker"],
+  platforms: ["linux", "win32", "darwin"],
+  cpuArchitectures: ["x64", "arm64"],
+  categories: ["quality", "security", "dependencies", "infrastructure", "tests"],
+  capabilities: ["lint", "sast", "secrets", "dependencies", "duplication", "iac", "coverage", "unit", "file-size"],
+  granularity: ["workspace"],
+  minimumContext: ["workspace"],
+  configFiles: [
+    { format: "json", discovery: "policy file passed to the sidecar (--policy-file)", precedence: "policy over defaults" },
+    // Local mode only (tool-configs.ts): a configFiles binding of the bridge instance whose id is the subcheck.
+    { format: "toml", discovery: "tools.yml configFiles.gitleaks of the bridge instance", precedence: "project file over the package gitleaks-ci.toml; jgates ci always uses the package file" },
+    { format: "yaml", discovery: "tools.yml configFiles.trivy of the bridge instance", precedence: "project file over the package trivy-ci.yaml; jgates ci always uses the package file" },
+    { format: "toml", discovery: "tools.yml configFiles.osv-scanner of the bridge instance", precedence: "project file over the package osv-scanner-ci.toml; jgates ci always uses the package file" },
+  ],
+  editing: { implemented: ["text"], tested: [] },
+  exitCodes: {
+    codes: [
+      { code: 0, meaning: "APPROVED" },
+      { code: 1, meaning: "REJECTED" },
+      { code: 2, meaning: "NEEDS_CHANGES" },
+      { code: 3, meaning: "operational error" },
+    ],
+    reportRequired: true,
+  },
+  effects: {
+    readsCode: true,
+    writesOutputs: true,
+    mayChangeCode: false,
+    executesProjectCode: false,
+    usesNetwork: true,
+    needsService: false,
+    usesAi: false,
+    needsLicense: false,
+  },
+  redirection: { flags: ["--output"], unavoidableWorkspaceWrites: [".quality/scopes (until the projection root is configurable)"] },
+  toggles: { togglable: ["secrets", "iac", "project-tests", "coverage"], perRunByFlag: true },
+  relativeCost: "high",
+  origin: "builtin",
+  license: "MIT",
+  kind: "composite",
+  subchecks: [
+    {
+      id: "file-size",
+      label: "Tamanho de arquivo",
+      description: "Limite de linhas por arquivo (--max-file-lines).",
+      capabilities: ["file-size"],
+      modes: ["quick", "offline", "full"],
+    },
+    {
+      id: "megalinter",
+      label: "MegaLinter",
+      capabilities: ["lint"],
+      modes: ["full"],
+      limitations: [
+        "linters depend on the image flavor",
+        "runs only through the bridge, in a container, with the trusted configuration of governed mode; the project's own linter configs are not used",
+        "ESLint inside MegaLinter uses the trusted config and --no-inline-config; it cannot be left out on its own, so with the ESLint adapter active the plan reports the duplication as intentional",
+        "the linters that actually ran are listed only when MegaLinter's per-analyzer logs say so; the plan cannot know them beforehand",
+      ],
+    },
+    {
+      id: "semgrep",
+      label: "Semgrep",
+      capabilities: ["sast"],
+      modes: ["full"],
+      limitations: ["registry p/default is not version pinned and needs network", "inline suppressions are disabled on purpose"],
+    },
+    {
+      id: "gitleaks",
+      label: "Gitleaks",
+      capabilities: ["secrets"],
+      modes: ["full"],
+      conditions: ["secrets enabled"],
+      limitations: ["ignores gitleaks:allow and the project ignore file on purpose"],
+    },
+    {
+      id: "trivy",
+      label: "Trivy",
+      capabilities: ["dependencies", "iac"],
+      modes: ["full"],
+      limitations: ["scans vuln and misconfig; secret only when secrets are enabled"],
+    },
+    { id: "checkov", label: "Checkov", capabilities: ["iac"], modes: ["full"], conditions: ["IaC files present"] },
+    {
+      id: "osv-scanner",
+      label: "OSV-Scanner",
+      capabilities: ["dependencies"],
+      modes: ["full"],
+      limitations: ["needs network"],
+    },
+    { id: "jscpd", label: "jscpd", capabilities: ["duplication"], modes: ["full"] },
+    {
+      id: "project-tests",
+      label: "Testes do projeto",
+      capabilities: ["unit"],
+      modes: ["full"],
+      conditions: ["--run-project-tests"],
+      limitations: ["executes project code"],
+    },
+    {
+      id: "coverage",
+      label: "Cobertura",
+      capabilities: ["coverage"],
+      modes: ["full"],
+      conditions: ["--enable-coverage"],
+      limitations: ["reads LCOV, Go coverprofile, JaCoCo, Cobertura and Clover reports; does not run tests"],
+    },
+  ],
+  limitations: [
+    "quick and offline modes skip every external tool",
+    "full without a required tool gives NEEDS_CHANGES (exit 2)",
+    "the sidecar prints human text on stdout today; the bridge reads the JSON report, not the text",
+  ],
+};

@@ -1,0 +1,588 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/plan/plan.schema.json",
+  "title": "JGates plan",
+  "description": "Reviewable plan of a workspace. planHash is the content hash of every field except planHash, createdAt and changes. The run executes exactly this plan; a received plan is validated against this schema, its hash and the workspace.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "kind", "planHash", "createdAt", "changes", "workspace", "versions", "profile", "scope", "selection",
+    "components", "templates", "incompatibilities", "invocations", "groups", "requirements", "network", "inputs",
+    "approvable", "blocked", "blockers", "warnings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "jgates-plan" },
+    "planHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "changes": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/changes" }] },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "id"],
+      "properties": { "path": { "type": "string", "minLength": 1 }, "id": { "type": "string", "minLength": 1 } }
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["jgates", "detector", "adapters", "tools"],
+      "properties": {
+        "jgates": { "type": "string" },
+        "detector": { "type": "string" },
+        "adapters": { "type": "object", "additionalProperties": { "type": "string" } },
+        "tools": { "type": "object", "additionalProperties": { "type": ["string", "null"] } }
+      }
+    },
+    "profile": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "label", "chain"],
+          "properties": {
+            "id": { "type": "string" },
+            "label": { "type": ["string", "null"] },
+            "chain": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "file", "path"],
+                "properties": { "id": { "type": "string" }, "file": { "type": "string" }, "path": { "type": "string" } }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested", "effective", "paths", "base", "head", "note"],
+      "properties": {
+        "requested": { "$ref": "#/$defs/scopeKind" },
+        "effective": { "$ref": "#/$defs/scopeKind" },
+        "paths": { "$ref": "#/$defs/strings" },
+        "base": { "type": ["string", "null"] },
+        "head": { "type": ["string", "null"] },
+        "note": { "type": ["string", "null"] }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request", "overrides", "reduced"],
+      "properties": {
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["profile", "scope", "paths", "base", "head", "skip", "only", "templates"],
+          "properties": {
+            "profile": { "type": ["string", "null"] },
+            "scope": { "$ref": "#/$defs/scopeKind" },
+            "paths": { "$ref": "#/$defs/strings" },
+            "base": { "type": ["string", "null"] },
+            "head": { "type": ["string", "null"] },
+            "skip": { "$ref": "#/$defs/strings" },
+            "only": { "$ref": "#/$defs/strings" },
+            "templates": { "$ref": "#/$defs/strings" }
+          }
+        },
+        "overrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["source", "selector", "value", "items"],
+            "properties": {
+              "source": { "enum": ["--skip", "--only"] },
+              "selector": { "type": ["string", "null"] },
+              "value": { "type": "boolean" },
+              "items": { "$ref": "#/$defs/strings" }
+            }
+          }
+        },
+        "reduced": { "type": "boolean" }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "root", "language", "framework", "status", "approvable", "templates"],
+        "properties": {
+          "id": { "type": "string" },
+          "root": { "type": "string" },
+          "language": { "type": ["string", "null"] },
+          "framework": { "type": ["string", "null"] },
+          "status": { "type": "string" },
+          "approvable": { "type": "boolean" },
+          "templates": { "$ref": "#/$defs/strings" }
+        }
+      }
+    },
+    "templates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active", "inactive"],
+      "properties": {
+        "active": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "source", "reason", "matched", "chain"],
+            "properties": {
+              "id": { "type": "string" },
+              "source": { "type": "string" },
+              "reason": { "type": "string" },
+              "matched": { "$ref": "#/$defs/strings" },
+              "chain": { "$ref": "#/$defs/strings" },
+              "support": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["level", "uncovered"],
+                "properties": {
+                  "level": { "enum": ["partial", "inventory"] },
+                  "uncovered": { "$ref": "#/$defs/strings" }
+                }
+              }
+            }
+          }
+        },
+        "inactive": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "source", "reason"],
+            "properties": { "id": { "type": "string" }, "source": { "type": "string" }, "reason": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "incompatibilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "template", "source", "activation", "match", "components", "message"],
+        "properties": {
+          "code": { "const": "TEMPLATE_INCOMPATIBLE" },
+          "template": { "type": "string" },
+          "source": { "type": "string" },
+          "activation": { "type": "string" },
+          "match": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["languages", "frameworks"],
+            "properties": { "languages": { "$ref": "#/$defs/strings" }, "frameworks": { "$ref": "#/$defs/strings" } }
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "language", "framework"],
+              "properties": { "id": { "type": "string" }, "language": { "type": ["string", "null"] }, "framework": { "type": ["string", "null"] } }
+            }
+          },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "invocations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "adapter", "command", "subchecks", "runsAnyway"],
+        "properties": {
+          "id": { "type": "string" },
+          "adapter": { "type": "string" },
+          "command": { "$ref": "#/$defs/command" },
+          "subchecks": { "$ref": "#/$defs/strings" },
+          "runsAnyway": { "$ref": "#/$defs/strings" },
+          "contract": { "type": "object" }
+        }
+      }
+    },
+    "groups": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["willRun", "notApplicableOrDisabled", "uncoveredRequirements"],
+      "properties": {
+        "willRun": { "type": "array", "items": { "$ref": "#/$defs/item" } },
+        "notApplicableOrDisabled": { "type": "array", "items": { "$ref": "#/$defs/item" } },
+        "uncoveredRequirements": { "type": "array", "items": { "$ref": "#/$defs/uncovered" } }
+      }
+    },
+    "requirements": { "type": "array", "items": { "$ref": "#/$defs/requirement" } },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "required", "items"],
+      "properties": { "policy": { "type": "string" }, "required": { "type": "boolean" }, "items": { "$ref": "#/$defs/strings" } }
+    },
+    "architecture": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "rules"],
+          "properties": {
+            "file": { "type": "string" },
+            "rules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "kind", "enabled", "blocking", "owner", "origin"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "kind": { "type": "string" },
+                  "enabled": { "type": "boolean" },
+                  "blocking": { "type": "boolean" },
+                  "owner": { "type": "string" },
+                  "origin": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["file", "path"],
+                    "properties": { "file": { "type": "string" }, "path": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["configFiles", "inventoryHash", "configHash"],
+      "properties": {
+        "configFiles": { "$ref": "#/$defs/fileHashes" },
+        "inventoryHash": { "$ref": "#/$defs/hash" },
+        "configHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "approvable": { "type": "boolean" },
+    "blocked": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/blocker" }] },
+    "blockers": { "type": "array", "items": { "$ref": "#/$defs/blocker" } },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": { "code": { "type": "string" }, "message": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "strings": { "type": "array", "items": { "type": "string" } },
+    "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "scopeKind": { "enum": ["changed", "full", "paths"] },
+    "fileHashes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "sha256"],
+        "properties": { "file": { "type": "string" }, "sha256": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/hash" }] } }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": ["selector", "value", "layer", "source", "file", "path", "pointer", "specificity"],
+      "properties": {
+        "selector": { "type": "string" },
+        "value": { "type": ["boolean", "string"] },
+        "layer": { "enum": ["defaults", "template", "profile", "project", "call"] },
+        "source": { "type": "string" },
+        "file": { "type": ["string", "null"] },
+        "path": { "type": ["string", "null"] },
+        "pointer": { "type": "string" },
+        "specificity": { "type": "number" }
+      }
+    },
+    "lock": {
+      "type": "object",
+      "required": ["selector", "reason", "file", "path"],
+      "properties": {
+        "selector": { "type": "string" },
+        "reason": { "type": "string" },
+        "file": { "type": ["string", "null"] },
+        "path": { "type": ["string", "null"] }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["invocation", "executable", "args", "cwd", "env", "stdin"],
+      "properties": {
+        "invocation": { "type": "string" },
+        "executable": { "type": "string", "minLength": 1 },
+        "args": { "$ref": "#/$defs/strings" },
+        "cwd": { "type": "string" },
+        "env": { "type": "object", "additionalProperties": { "type": "string" } },
+        "stdin": { "type": ["object", "null"] },
+        "container": {
+          "description": "The instance runs on the container runner: executable and args are the command inside the image.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runtime", "image", "network", "mounts"],
+          "properties": {
+            "runtime": { "type": "string", "minLength": 1 },
+            "image": { "type": "string" },
+            "network": { "enum": ["none", "bridge"] },
+            "mounts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["source", "target", "readOnly"],
+                "properties": {
+                  "source": { "type": "string", "minLength": 1 },
+                  "target": { "type": "string", "minLength": 1 },
+                  "readOnly": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "identity", "tool", "adapter", "subcheck", "label", "category", "capabilities", "components", "languages",
+        "granularity", "scope", "requirement", "conditions", "limitations", "reason", "origin", "includedBy", "state",
+        "command", "runtime", "versions", "configFiles", "network", "effects", "limits", "output", "dependsOn",
+        "availability", "bridge"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "identity": { "$ref": "#/$defs/hash" },
+        "tool": { "type": "string" },
+        "adapter": { "type": ["string", "null"] },
+        "subcheck": { "type": ["string", "null"] },
+        "label": { "type": "string" },
+        "category": { "type": ["string", "null"] },
+        "capabilities": { "$ref": "#/$defs/strings" },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "root", "language"],
+            "properties": { "id": { "type": "string" }, "root": { "type": "string" }, "language": { "type": ["string", "null"] } }
+          }
+        },
+        "languages": { "$ref": "#/$defs/strings" },
+        "granularity": { "enum": ["workspace", "component"] },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requested", "effective", "context"],
+          "properties": { "requested": { "$ref": "#/$defs/scopeKind" }, "effective": { "$ref": "#/$defs/scopeKind" }, "context": { "$ref": "#/$defs/strings" } }
+        },
+        "requirement": { "enum": ["required", "conditional", "optional"] },
+        "conditions": { "$ref": "#/$defs/strings" },
+        "limitations": { "$ref": "#/$defs/strings" },
+        "reason": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": { "code": { "type": "string" }, "message": { "type": "string" } }
+        },
+        "origin": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "selector", "layer", "source", "file", "path", "pointer"],
+          "properties": {
+            "kind": { "enum": ["defaults", "template", "profile", "project", "run", "policy", "none"] },
+            "selector": { "type": ["string", "null"] },
+            "layer": { "enum": ["defaults", "template", "profile", "project", "call", null] },
+            "source": { "type": ["string", "null"] },
+            "file": { "type": ["string", "null"] },
+            "path": { "type": ["string", "null"] },
+            "pointer": { "type": ["string", "null"] }
+          }
+        },
+        "includedBy": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "entry", "source", "file", "reason", "matched"],
+            "properties": {
+              "kind": { "enum": ["template", "project", "adapter"] },
+              "entry": { "type": ["string", "null"] },
+              "source": { "type": "string" },
+              "file": { "type": ["string", "null"] },
+              "reason": { "type": ["string", "null"] },
+              "matched": { "$ref": "#/$defs/strings" }
+            }
+          }
+        },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "origin", "originLabel", "reason", "decision", "overridden", "runOnly", "locked"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "origin": { "enum": ["defaults", "template", "profile", "project", "run", "policy", null] },
+            "originLabel": { "type": "string" },
+            "reason": { "enum": ["EXPLICIT", "DERIVED", "NOT_SELECTED", "DEFAULT", "LOCKED_REQUIRED", "ONLY_EXCLUDED"] },
+            "decision": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/decision" }] },
+            "overridden": { "type": "array", "items": { "$ref": "#/$defs/decision" } },
+            "runOnly": { "type": "boolean" },
+            "locked": { "type": "array", "items": { "$ref": "#/$defs/lock" } }
+          }
+        },
+        "command": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/command" }] },
+        "runtime": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "interpreter", "available"],
+              "properties": { "name": { "type": "string" }, "interpreter": { "type": ["string", "null"] }, "available": { "type": "boolean" } }
+            }
+          ]
+        },
+        "versions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["adapter", "tool", "toolVersion", "rules"],
+          "properties": {
+            "adapter": { "type": ["string", "null"] },
+            "tool": { "type": ["string", "null"] },
+            "toolVersion": { "type": ["string", "null"] },
+            "rules": { "type": ["string", "null"] }
+          }
+        },
+        "configFiles": { "$ref": "#/$defs/fileHashes" },
+        "network": { "type": "boolean" },
+        "effects": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["readsCode", "writesOutputs", "mayChangeCode", "executesProjectCode", "workspaceWrites"],
+          "properties": {
+            "readsCode": { "type": "boolean" },
+            "writesOutputs": { "type": "boolean" },
+            "mayChangeCode": { "type": "boolean" },
+            "executesProjectCode": { "type": "boolean" },
+            "workspaceWrites": { "$ref": "#/$defs/strings" }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["timeoutSeconds"],
+          "properties": { "timeoutSeconds": { "type": "number", "exclusiveMinimum": 0 } }
+        },
+        "output": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["format", "schema"],
+          "properties": { "format": { "type": "string" }, "schema": { "type": ["string", "null"] } }
+        },
+        "dependsOn": { "$ref": "#/$defs/strings" },
+        "availability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "reason"],
+          "properties": { "status": { "enum": ["available", "unavailable", "not_executable"] }, "reason": { "type": ["string", "null"] } }
+        },
+        "bridge": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["skipMeans", "invoked"],
+              "properties": {
+                "skipMeans": { "enum": ["not_applicable", "blocked"] },
+                "invoked": { "type": "boolean" },
+                "effectiveCommand": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["executable", "args", "cwd", "config"],
+                  "description": "Argv the sidecar runs for a scanner whose configuration file can be chosen (local mode only).",
+                  "properties": {
+                    "executable": { "type": "string", "minLength": 1 },
+                    "args": { "$ref": "#/$defs/strings" },
+                    "cwd": { "type": "string" },
+                    "config": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["source", "file"],
+                      "properties": { "source": { "enum": ["project", "package"] }, "file": { "type": "string", "minLength": 1 } }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "required": ["selector", "kind", "category", "requiredBy", "coveredBy"],
+      "properties": {
+        "selector": { "type": "string" },
+        "kind": { "enum": ["capability", "lock"] },
+        "category": { "type": ["string", "null"] },
+        "requiredBy": { "type": ["object", "null"] },
+        "coveredBy": { "$ref": "#/$defs/strings" }
+      }
+    },
+    "uncovered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selector", "kind", "category", "requiredBy", "coveredBy", "reason", "message", "disabledBy", "runOnly", "candidates"],
+      "properties": {
+        "selector": { "type": "string" },
+        "kind": { "enum": ["capability", "lock"] },
+        "category": { "type": ["string", "null"] },
+        "requiredBy": { "type": ["object", "null"] },
+        "coveredBy": { "$ref": "#/$defs/strings" },
+        "reason": { "enum": ["DISABLED_FOR_RUN", "NO_EXECUTABLE_CHECK", "CHECKS_DISABLED", "EVIDENCE_MISSING"] },
+        "message": { "type": "string" },
+        "disabledBy": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/decision" }] },
+        "runOnly": { "type": "boolean" },
+        "candidates": { "$ref": "#/$defs/strings" }
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": { "code": { "type": "string" }, "message": { "type": "string" }, "items": { "$ref": "#/$defs/strings" } }
+    },
+    "changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["previousHash", "previousCreatedAt", "same", "profile", "items", "configFiles", "versions", "network"],
+      "properties": {
+        "previousHash": { "type": "string" },
+        "previousCreatedAt": { "type": ["string", "null"] },
+        "same": { "type": "boolean" },
+        "profile": { "type": ["object", "null"] },
+        "items": { "type": "object" },
+        "configFiles": { "type": "object" },
+        "versions": { "type": "array" },
+        "network": { "type": ["object", "null"] }
+      }
+    }
+  }
+}

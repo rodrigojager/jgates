@@ -1,0 +1,15 @@
+{
+  "name": "demo",
+  "version": "1.0.0",
+  "unknownField": { "keep": [1, 2, 3] },
+  "rules": {
+    "semi": true,
+    "quotes": "single"
+  },
+  "files": [
+    "a.js",
+    "b.js",
+    "c.js"
+  ],
+  "last": null
+}

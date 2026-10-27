@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/config/pii.schema.json",
+  "title": ".jgates/pii.yml",
+  "description": "Settings of the builtin-pii detector: the instance switch, one rule per entity, detection, reporting and remediation, plus the external PII tools (tools), the check and correction of project files (fix) and the local hook (hook). Every key is optional and inherits the default that keeps today's behavior (CPF, CNPJ and credit-card on, phone off). An option the detector cannot honor is refused by the adapter, never dropped.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "enabled": {
+      "type": "boolean",
+      "description": "Turns the builtin-pii instance on or off. Absent: the template decides."
+    },
+    "severity": {
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Severity of the entities that do not set their own. Absent: the detector's own (credit-card high, the others medium)."
+    },
+    "entities": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One rule per entity; each one turns on and off alone (selector pii:<entity>).",
+      "properties": {
+        "cpf": { "$ref": "#/$defs/entity" },
+        "cnpj": { "$ref": "#/$defs/entity" },
+        "phone": { "$ref": "#/$defs/entity" },
+        "credit-card": { "$ref": "#/$defs/entity" }
+      }
+    },
+    "detection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locale": { "type": "string", "minLength": 1, "description": "Formats the detector reads. The built-in detector supports pt-BR only." },
+        "validateCheckDigits": { "type": "boolean", "description": "Keeps only candidates whose check digits (CPF, CNPJ) or Luhn sum (credit-card) are valid. Default false." }
+      }
+    },
+    "reporting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "redactMatchedValues": { "type": "boolean", "description": "Masks the matched value in every report. Default true; the built-in detector never reports raw values, so false is refused." }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["none"], "description": "Observation only. Content correction is not available in the built-in detector." }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "description": "External PII tools, defined once and used by name (extensions.semantic-gate.masking.tools). Each one runs without a shell on a temporary copy of the files and reports with the status line of jgates/schemas/pii/mask-tool-status.schema.json.",
+      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+      "additionalProperties": { "$ref": "#/$defs/tool" }
+    },
+    "fix": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "jgates pii check and jgates pii fix: the external tools that detect and correct personal data in the project files, the files they cover and how long the originals are kept. The built-in detector only detects: without a tool here, jgates pii fix changes nothing.",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+          "uniqueItems": true,
+          "description": "Ids of tools defined in tools, run in this order (mode check in jgates pii check, mode fix in jgates pii fix)."
+        },
+        "includes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Globs of the files covered (relative to the project). Default [\"**\"]."
+        },
+        "excludes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Globs of the files left out of jgates pii check and jgates pii fix."
+        },
+        "backupRetentionDays": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Days the originals replaced by jgates pii fix are kept in the data folder for jgates pii fix --undo; jgates gc deletes them after that. Default 7."
+        }
+      }
+    },
+    "hook": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The optional local pre-commit hook (jgates hooks install pre-commit).",
+      "properties": {
+        "mode": {
+          "enum": ["block", "fix", "off"],
+          "description": "block: the commit stops when jgates pii check --staged finds personal data; fix: jgates pii fix --staged --yes runs and the commit goes on; off: no hook."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "severity": { "enum": ["low", "medium", "high", "critical"] }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command"],
+      "properties": {
+        "command": { "type": "string", "minLength": 1, "description": "Executable (a name found in PATH or a path). It runs without a shell, with the copy as working directory; {configDir} is replaced by the folder of the configuration." },
+        "args": { "type": "array", "items": { "type": "string" }, "description": "Arguments, passed as written; {configDir} is replaced by the folder of the configuration." },
+        "timeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 3600, "description": "Time limit of one run of the tool. Default 60." },
+        "passEnv": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+          "uniqueItems": true,
+          "description": "Names of environment variables passed to the tool on top of the basic ones (PATH, HOME, locale, temp). The values are never in the configuration."
+        },
+        "description": { "type": "string", "description": "Free text for people." }
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "cache_reused": "Resultado reutilizado do run {runId} ({at}): as entradas, a configuração, a política e as ferramentas são idênticas às daquele run.",
+  "cache_executed": "Executado: não havia resultado anterior com as mesmas entradas.",
+  "cache_reason_inputs_truncated": "A pasta tem mais arquivos do que o manifesto de entrada cobre; as entradas não são rastreáveis por inteiro.",
+  "cache_reason_dynamic_import": "A configuração {file} usa import dinâmico ou avalia código: as dependências dela não são identificáveis.",
+  "cache_reason_computed_require": "A configuração {file} chama require com um caminho calculado: as dependências dela não são identificáveis.",
+  "cache_reason_environment_dependent": "A configuração {file} lê o ambiente (process.env ou process.argv): o resultado pode variar sem que um arquivo mude.",
+  "cache_reason_network_dependent": "A configuração {file} acessa a rede: o resultado pode variar sem que um arquivo mude.",
+  "cache_reason_unparseable_config": "A configuração {file} não pôde ser lida para rastrear o que ela importa.",
+  "cache_reason_trace_limit": "A configuração {file} importa arquivos demais (ou grandes demais) para o rastreio.",
+  "cache_blocker_network": "A etapa usa a rede: dados externos podem mudar sem que um arquivo mude.",
+  "cache_blocker_may_change_code": "A ferramenta pode alterar o código analisado: o resultado não vale para o estado que ela deixa.",
+  "cache_blocker_executes_project_code": "A etapa executa código do projeto (testes, scripts): o resultado pode variar sem que um arquivo mude."
+}

@@ -1,0 +1,9 @@
+{
+  "codecs_toml_unavailable": "Edição estruturada indisponível para TOML: {reason}. A leitura e a edição de texto continuam funcionando.",
+  "codecs_toml_no_python": "nenhum Python foi encontrado",
+  "codecs_toml_no_sidecar": "o sidecar de qualidade não foi encontrado",
+  "codecs_toml_no_tomlkit": "o tomlkit não está instalado no Python do sidecar",
+  "codecs_toml_helper_failed": "o auxiliar TOML falhou: {reason}",
+  "codecs_toml_patch_failed": "A edição TOML não produziu o documento esperado; nada foi gravado.",
+  "codecs_toml_bad_edit": "Edição TOML inválida: {reason}"
+}

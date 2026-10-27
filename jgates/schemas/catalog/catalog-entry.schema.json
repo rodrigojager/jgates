@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/catalog/catalog-entry.schema.json",
+  "title": "JGates category or capability",
+  "type": "object",
+  "required": ["id", "label", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^([a-z][a-z0-9-]*|x-[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9._-]*)$"
+    },
+    "label": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "category": { "type": "string" },
+    "unit": { "type": "string" },
+    "proves": { "type": "string" },
+    "observes": { "type": "array", "items": { "type": "string" } },
+    "limits": { "type": "array", "items": { "type": "string" } },
+    "valueSchema": { "type": "object" }
+  }
+}

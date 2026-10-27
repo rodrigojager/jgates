@@ -1,0 +1,9 @@
+{
+  "drafts_too_large": "The draft exceeds the limit of {max} bytes.",
+  "drafts_too_large_fix": "Save the file in smaller parts or edit it outside JGates.",
+  "drafts_not_editable": "The document {path} is in state {state} and does not accept a draft.",
+  "drafts_not_editable_fix": "Only editable documents keep a draft; open the project's source file.",
+  "drafts_not_found": "There is no draft for this document.",
+  "drafts_not_found_fix": "The draft is created while you edit an editable document.",
+  "drafts_use_saved_failed": "Could not save the draft of {path}: {detail}."
+}

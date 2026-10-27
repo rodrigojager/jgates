@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "profiles": {
+    "standard": {
+      "label": "Equilibrado",
+      "description": "O Essencial mais SAST, dependências, duplicação, infraestrutura como código e dados pessoais.",
+      "extends": "builtin:minimal",
+      "checks": {
+        "capability:sast": { "enabled": true },
+        "capability:dependencies": { "enabled": true },
+        "capability:duplication": { "enabled": true },
+        "capability:iac": { "enabled": true },
+        "capability:pii": { "enabled": true }
+      }
+    }
+  }
+}

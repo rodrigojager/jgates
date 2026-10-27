@@ -1,0 +1,12 @@
+.history-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.history-segmented { display: inline-flex; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--sidebar); }
+.history-segmented button { padding: 6px 12px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
+.history-segmented button.active { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 4px #24342012; }
+.history-filter { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
+.history-filter select { padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); min-height: 34px; }
+.history-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.history-actions {display: flex; flex-wrap: wrap; gap: 6px; }
+.history-actions .btn { white-space: normal; font-size: 12px; padding: 6px 10px; }
+.history-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.history-findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.history-findings li { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); overflow-wrap: anywhere; }

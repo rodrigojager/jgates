@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "description": "Every MegaLinter linter the quality gate can activate, where it reads its configuration, whether it honors suppressions written in the analyzed code, and how the governed CI path (jgates ci) treats it. ci: trusted (runs, its result counts), self-reported (runs, but the project controls the result: it never approves alone), excluded (never runs in jgates ci). jgates ci sets ENABLE_LINTERS to the linters that are not excluded and adds ciArguments to each.",
+  "linters": [
+    {
+      "id": "JAVASCRIPT_ES",
+      "config": "package: eslint.config.mjs of the quality gate, forced with an absolute --config (a project eslint.config.* or .eslintrc never wins)",
+      "suppressions": "disabled: --no-inline-config ignores eslint-disable and /* eslint */ comments",
+      "executesProjectCode": false,
+      "ci": "trusted",
+      "ciArguments": "--config {configDir}/eslint.config.mjs --no-ignore --no-inline-config"
+    },
+    {
+      "id": "XML_XMLLINT",
+      "config": "none: xmllint reads no configuration file",
+      "suppressions": "none: xmllint has no suppression comments",
+      "executesProjectCode": false,
+      "ci": "trusted"
+    },
+    {
+      "id": "BASH_SHELLCHECK",
+      "config": "none in jgates ci: --norc stops ShellCheck from reading a .shellcheckrc of the project",
+      "suppressions": "honored: '# shellcheck disable=' comments; jgates ci reports each one as a blocking finding of the policy",
+      "suppressionMarker": "shellcheck",
+      "executesProjectCode": false,
+      "ci": "trusted",
+      "ciArguments": "--norc"
+    },
+    {
+      "id": "CSHARP_DOTNET_FORMAT",
+      "config": "project: .editorconfig, Directory.Build.props/targets and the .csproj (MSBuild evaluates the project files)",
+      "suppressions": "honored: #pragma warning disable, [SuppressMessage], GlobalSuppressions.cs, NoWarn",
+      "suppressionMarker": "csharp",
+      "executesProjectCode": true,
+      "ci": "self-reported"
+    },
+    {
+      "id": "CSHARP_ROSLYNATOR",
+      "config": "project: .editorconfig, .roslynatorconfig and the MSBuild project files it loads",
+      "suppressions": "honored: #pragma warning disable, [SuppressMessage], GlobalSuppressions.cs, NoWarn",
+      "suppressionMarker": "csharp",
+      "executesProjectCode": true,
+      "ci": "self-reported"
+    },
+    {
+      "id": "CSHARP_CSHARPIER",
+      "config": "project: .csharpierrc*, .editorconfig and .csharpierignore, found by CSharpier itself",
+      "suppressions": "honored: // csharpier-ignore comments and .csharpierignore",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "CSharpier reads .csharpierignore and its options from the analyzed tree by itself; not verified for jgates ci"
+    },
+    {
+      "id": "ACTION_ACTIONLINT",
+      "config": "project: .github/actionlint.yaml, found by actionlint itself when no -config-file is given",
+      "suppressions": "honored: the ShellCheck directives inside run: scripts and the ignore patterns of actionlint.yaml",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "actionlint reads .github/actionlint.yaml and the scripts' ShellCheck directives from the analyzed tree; not verified for jgates ci"
+    },
+    {
+      "id": "DOCKERFILE_HADOLINT",
+      "config": "project: .hadolint.yaml in the working folder wins MegaLinter's workspace-first lookup",
+      "suppressions": "honored unless --disable-ignore-pragma: '# hadolint ignore=' comments",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "MegaLinter prefers a .hadolint.yml at the project root over the trusted file; not verified for jgates ci"
+    },
+    {
+      "id": "HTML_HTMLHINT",
+      "config": "project: .htmlhintrc, found by HTMLHint itself and by MegaLinter's workspace-first lookup",
+      "suppressions": "honored: <!-- htmlhint ... --> inline rule configuration",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "HTMLHint reads .htmlhintrc and inline rule comments from the analyzed tree; not verified for jgates ci"
+    },
+    {
+      "id": "MARKDOWN_MARKDOWNLINT",
+      "config": "project: .markdownlint.* and .markdownlintrc files, merged by markdownlint-cli even with --config",
+      "suppressions": "honored: <!-- markdownlint-disable --> comments",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "markdownlint-cli merges the project's .markdownlintrc files and honors markdownlint-disable comments"
+    },
+    {
+      "id": "POWERSHELL_POWERSHELL",
+      "config": "project: PSScriptAnalyzer settings file at the project root (MegaLinter's workspace-first lookup)",
+      "suppressions": "honored: [Diagnostics.CodeAnalysis.SuppressMessageAttribute]",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "PSScriptAnalyzer settings and suppression attributes come from the analyzed tree; not verified for jgates ci"
+    },
+    {
+      "id": "TYPESCRIPT_STANDARD",
+      "config": "project: the ts-standard and standard keys of package.json (ignore lists, globals) and tsconfig.json",
+      "suppressions": "honored: eslint-disable comments (no --no-inline-config)",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "ts-standard reads its ignore list from package.json and honors eslint-disable comments; use the ESLint adapter with the policy's configuration"
+    },
+    {
+      "id": "YAML_YAMLLINT",
+      "config": "project: .yamllint, .yamllint.yaml or .yamllint.yml, found by yamllint itself and by MegaLinter's workspace-first lookup",
+      "suppressions": "honored: '# yamllint disable' comments",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "yamllint reads its configuration from the analyzed tree and honors yamllint disable comments; not verified for jgates ci"
+    },
+    {
+      "id": "TERRAFORM_TFLINT",
+      "config": "package: tflint-ci.hcl through the rules path, but a file of the same name at the project root wins MegaLinter's workspace-first lookup",
+      "suppressions": "honored: '# tflint-ignore:' annotations",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "a tflint-ci.hcl at the project root replaces the trusted file, and tflint-ignore annotations are honored; not verified for jgates ci"
+    },
+    {
+      "id": "REPOSITORY_DEVSKIM",
+      "config": "project: a .devskim.json at the project root and the ignore globs MegaLinter passes",
+      "suppressions": "honored: '// DevSkim: ignore DSnnnnnn' comments",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "DevSkim honors ignore comments written in the analyzed code and reads its options from the analyzed tree; not verified for jgates ci"
+    }
+  ]
+}

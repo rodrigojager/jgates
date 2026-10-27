@@ -1,0 +1,22 @@
+{
+  "semgrep_label": "Semgrep (regras locais)",
+  "semgrep_missing": "O Semgrep não está instalado ({detail}). Rode: jgates doctor --fix (ou pip install semgrep no ambiente Python do projeto).",
+  "semgrep_probe_failed": "O Semgrep em {path} não respondeu a --version. Reinstale com: jgates doctor --fix.",
+  "semgrep_blocked": "O Semgrep não pôde rodar: {detail}",
+  "semgrep_exit_error": "O Semgrep terminou com o código {code}: {detail}",
+  "semgrep_timeout": "O Semgrep passou do limite de {seconds} s e foi encerrado.",
+  "semgrep_invalid_output": "A saída do Semgrep não é o JSON esperado: {detail}",
+  "semgrep_no_invocation": "O plano não tem a invocação do Semgrep para a instância {tool}.",
+  "semgrep_reason_completed": "Semgrep {version}: {count} achado(s) com {rules} regra(s) local(is)",
+  "semgrep_condition_local": "Usa só as regras locais do binding; não acessa registry nem rede.",
+  "semgrep_no_binding": "A instância {tool} não tem regras locais: declare tools.{tool}.config apontando para um arquivo ou uma pasta de regras (por exemplo .jgates/rules).",
+  "semgrep_binding_refused": "O binding de regras da instância {tool} foi recusado ({detail}). Corrija o caminho em .jgates/tools.yml.",
+  "semgrep_binding_missing": "A pasta ou o arquivo de regras da instância {tool} não existe ({detail}). Crie a regra pela área da ferramenta ou corrija o caminho.",
+  "semgrep_no_rule_files": "A pasta de regras da instância {tool} não tem arquivos .yml ou .yaml ({detail}). Crie ao menos uma regra.",
+  "semgrep_rules_invalid": "Regras locais inválidas na instância {tool}: {detail}. Corrija o arquivo antes de planejar.",
+  "semgrep_issue": "{file}{where}: {message}",
+  "semgrep_rules_hidden": "(e mais {count} problema(s))",
+  "semgrep_condition_prepared": "Usa as regras do registry {ref} preparadas antes (hash {hash}, de {source}); a cópia local roda sem rede.",
+  "semgrep_prepared_missing": "A instância {tool} fixa as regras {ref} no {file}, mas a cópia preparada não está na pasta de dados. Rode jgates tools prepare --instance {tool} --no-interactive.",
+  "semgrep_prepared_corrupt": "A cópia preparada das regras {ref} da instância {tool} não confere com o hash do {file}. Rode jgates tools prepare --instance {tool} --no-interactive."
+}

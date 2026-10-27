@@ -1,0 +1,43 @@
+{
+  "name": "semantic-gate",
+  "version": "0.1.0",
+  "description": "AI-powered semantic quality gate for reviewing recent code changes before deterministic quality-gate.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rodrigojager/jgates.git",
+    "directory": "semantic-gate"
+  },
+  "homepage": "https://github.com/rodrigojager/jgates#readme",
+  "bugs": {
+    "url": "https://github.com/rodrigojager/jgates/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "semantic-gate": "dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "templates/",
+    "examples/",
+    "schemas/",
+    "tests/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "test": "node --test tests/*.test.js",
+    "test:build": "npm run build && npm run test",
+    "test:unit": "node --test tests/*.test.js",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0"
+  }
+}

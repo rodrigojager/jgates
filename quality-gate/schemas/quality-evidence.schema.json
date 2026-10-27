@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodrigojager/jgates/schemas/quality-evidence.schema.json",
+  "title": "Normalized Quality Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "metrics", "checks"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "number" },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["value"],
+            "properties": {
+              "value": { "type": "number" },
+              "path": { "type": "string" }
+            }
+          }
+        ]
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["passed", "approved", "ok", "skipped", "failed", "rejected", "needs_changes"] },
+          "severity": { "type": "string" },
+          "category": { "type": "string" },
+          "path": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceCommit", "producer", "producerVersion", "generatedAt"],
+      "properties": {
+        "sourceCommit": { "type": "string", "minLength": 7 },
+        "producer": { "type": "string", "minLength": 1 },
+        "producerVersion": { "type": "string", "minLength": 1 },
+        "generatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

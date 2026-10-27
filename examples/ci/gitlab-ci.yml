@@ -1,0 +1,22 @@
+# .gitlab-ci.yml (in the project repository)
+# Store the fingerprint in a protected CI/CD variable: JGATES_POLICY_SHA256 = <policy-sha256>
+jgates:
+  stage: test
+  image: node:22
+  variables:
+    GIT_DEPTH: "0"
+    # Outside $CI_PROJECT_DIR: a policy inside the analyzed project is refused (POLICY_INSIDE_PROJECT).
+    JGATES_POLICY_DIR: "$CI_BUILDS_DIR/jgates-policy-$CI_JOB_ID"
+    # JGates itself is installed outside $CI_PROJECT_DIR too, so its files never enter the analysis.
+    JGATES_INSTALL_DIR: "$CI_BUILDS_DIR/jgates-install-$CI_JOB_ID"
+  script:
+    - git clone --depth 1 --branch main "https://gitlab-ci-token:$CI_JOB_TOKEN@$CI_SERVER_HOST/<group>/<policy-repository>.git" "$JGATES_POLICY_DIR"
+    # Install JGates from the repository (or from a tarball your organization stores), never from a registry.
+    # npm cannot install a git dependency with --global: install into a folder and put its bins on PATH.
+    - npm install --prefix "$JGATES_INSTALL_DIR" git+https://github.com/rodrigojager/jgates
+    - export PATH="$JGATES_INSTALL_DIR/node_modules/.bin:$PATH"
+    - jgates ci --policy "$JGATES_POLICY_DIR" --sarif jgates.sarif
+  artifacts:
+    when: always
+    paths:
+      - jgates.sarif

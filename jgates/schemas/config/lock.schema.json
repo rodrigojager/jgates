@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/config/lock.schema.json",
+  "title": ".jgates/lock.json",
+  "description": "Tool versions, prepared rule sets and container images pinned by `jgates tools prepare`. The only writer is the prepare step.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tools"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "tools": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["adapter", "adapterVersion", "toolVersion", "preparedAt"],
+        "properties": {
+          "adapter": { "type": "string", "minLength": 1 },
+          "adapterVersion": { "type": "string", "minLength": 1 },
+          "toolVersion": { "type": ["string", "null"] },
+          "preparedAt": { "type": "string", "minLength": 1 },
+          "rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ref", "hash", "file", "source", "bytes"],
+              "properties": {
+                "ref": { "type": "string", "minLength": 1 },
+                "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+                "file": { "type": "string", "minLength": 1 },
+                "source": { "type": "string", "minLength": 1 },
+                "bytes": { "type": "integer", "minimum": 0 }
+              }
+            }
+          },
+          "image": {
+            "description": "Container image of an instance that runs on the container runner: what was asked for, the id the runtime reported, the reference the runner starts (a repository digest or the image id) and the label the tool version came from.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["reference", "id", "pinned", "versionLabel"],
+            "properties": {
+              "reference": { "type": "string", "minLength": 1 },
+              "id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+              "pinned": { "type": "string", "pattern": "^(?:[A-Za-z0-9][A-Za-z0-9._\\-/:]*@)?sha256:[0-9a-f]{64}$" },
+              "versionLabel": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

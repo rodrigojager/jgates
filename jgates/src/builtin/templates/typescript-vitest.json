@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript-vitest",
+  "label": "TypeScript com Vitest",
+  "description": "Roda os testes e a cobertura com o Vitest nos componentes TypeScript e JavaScript. Entra por evidência: só quando há um vitest.config (ou um vite.config com o bloco test) na raiz de um componente ou do workspace; o Vitest não é imposto a todo repositório, e o JGates não instala nem migra o framework de testes.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ],
+    "files": [
+      "vitest.config.ts",
+      "vitest.config.mts",
+      "vitest.config.cts",
+      "vitest.config.js",
+      "vitest.config.mjs",
+      "vitest.config.cjs",
+      {
+        "path": "vite.config.ts",
+        "contains": "test:"
+      },
+      {
+        "path": "vite.config.mts",
+        "contains": "test:"
+      },
+      {
+        "path": "vite.config.cts",
+        "contains": "test:"
+      },
+      {
+        "path": "vite.config.js",
+        "contains": "test:"
+      },
+      {
+        "path": "vite.config.mjs",
+        "contains": "test:"
+      },
+      {
+        "path": "vite.config.cjs",
+        "contains": "test:"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "vitest": {
+        "adapter": "vitest",
+        "enabled": true,
+        "capabilities": [
+          "unit",
+          "coverage"
+        ]
+      }
+    }
+  }
+}

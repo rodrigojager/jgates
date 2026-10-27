@@ -1,0 +1,23 @@
+{
+  "unknown_command": "Comando desconhecido: {name}",
+  "unknown_command_fix": "Rode jgates help para ver os comandos disponíveis.",
+  "unknown_flag": "Opção desconhecida: {name}",
+  "unknown_flag_fix": "Rode jgates help --json para ver as opções de cada comando.",
+  "missing_value": "A opção {name} exige um valor.",
+  "missing_value_fix": "Use {name}=<valor> ou {name} <valor>.",
+  "unexpected_value": "A opção {name} não aceita valor.",
+  "unexpected_value_fix": "Use {name} sem valor.",
+  "internal_error": "Erro interno: {detail}",
+  "internal_error_fix": "Rode de novo com --json e relate o erro.",
+  "help_title": "jgates {version}",
+  "help_usage": "Uso: jgates <comando> [opções]",
+  "help_commands": "Comandos:",
+  "help_global": "Opções globais: --json, --version, --help, --locale <pt-BR|en>",
+  "help_description": "Lista os comandos e as opções do jgates.",
+  "global_option_json": "Imprime um único documento JSON no stdout.",
+  "global_option_version": "Imprime a versão.",
+  "global_option_help": "Mostra a ajuda.",
+  "global_option_locale": "Idioma dos textos (pt-BR ou en); também vale JGATES_LOCALE.",
+  "bad_locale": "Idioma não suportado: {value}",
+  "bad_locale_fix": "Use --locale pt-BR ou --locale en."
+}

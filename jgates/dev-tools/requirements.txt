@@ -1,0 +1,7 @@
+# Scanners the JGates adapters drive during development and tests. Exact versions, installed by
+# `npm --prefix jgates run setup:dev-tools` into the repository .venv.
+ruff==0.17.2
+semgrep==1.182.1
+import-linter==2.15
+pytest==9.1.1
+pytest-cov==7.1.0

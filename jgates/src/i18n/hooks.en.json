@@ -1,0 +1,22 @@
+{
+  "hooks_cmd_description": "Installs or removes the optional Git hook that checks (or fixes) personal data before a commit: hooks install pre-commit, hooks uninstall pre-commit.",
+  "hooks_cmd_option_cwd": "Project folder (default: the current one).",
+  "hooks_cmd_usage_fix": "Use: jgates hooks install pre-commit or jgates hooks uninstall pre-commit.",
+  "hooks_cmd_unknown_action": "Unknown action \"{name}\" for jgates hooks.",
+  "hooks_cmd_unknown_hook": "Unknown hook \"{name}\": only pre-commit exists.",
+  "hooks_cmd_not_git": "{path} is not inside a Git repository.",
+  "hooks_cmd_not_git_fix": "Run the command inside a Git repository (git init creates one).",
+  "hooks_cmd_mode_off": "hook.mode is off in .jgates/pii.yml: no hook was written.",
+  "hooks_cmd_hooks_path": "core.hooksPath is set ({path}): nothing was changed. Add this line to your pre-commit hook:\n{line}",
+  "hooks_cmd_existing": "A pre-commit hook already exists ({path}): nothing was changed. Add this line to it:\n{line}",
+  "hooks_cmd_installed": "Hook written: {path} (hook.mode {mode}). Remove it with jgates hooks uninstall pre-commit.",
+  "hooks_cmd_not_installed": "There is no pre-commit hook to remove.",
+  "hooks_cmd_uninstall_foreign": "The pre-commit hook ({path}) was not written by jgates: it was left as it is.",
+  "hooks_cmd_removed": "Hook removed: {path}.",
+  "hooks_script_managed": "Written by jgates hooks install pre-commit; remove it with jgates hooks uninstall pre-commit.",
+  "hooks_script_missing": "jgates: the jgates that installed this hook was not found. Run jgates hooks install pre-commit again or jgates hooks uninstall pre-commit.",
+  "hooks_script_no_tool": "jgates: hook.mode is fix but pii.yml has no correction tool (fix.tools); nothing was corrected. The commit goes on only if the check finds nothing.",
+  "hooks_script_blocked": "jgates: commit blocked because of personal data in the staged files. Fix it (jgates pii fix --staged) and commit again; git commit --no-verify skips the hook.",
+  "hooks_cmd_invalid_config": "Invalid .jgates/pii.yml, no hook was written: {problems}",
+  "hooks_cmd_invalid_config_fix": "Fix the file named above and run jgates hooks install pre-commit again."
+}

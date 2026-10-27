@@ -1,0 +1,14 @@
+{
+  "cache_reused": "Result reused from run {runId} ({at}): the inputs, the configuration, the policy and the tools are identical to that run's.",
+  "cache_executed": "Executed: there was no earlier result with the same inputs.",
+  "cache_reason_inputs_truncated": "The folder has more files than the input manifest covers; the inputs are not fully traceable.",
+  "cache_reason_dynamic_import": "The configuration {file} uses a dynamic import or evaluates code: its dependencies cannot be identified.",
+  "cache_reason_computed_require": "The configuration {file} calls require with a computed path: its dependencies cannot be identified.",
+  "cache_reason_environment_dependent": "The configuration {file} reads the environment (process.env or process.argv): the result may vary without a file changing.",
+  "cache_reason_network_dependent": "The configuration {file} accesses the network: the result may vary without a file changing.",
+  "cache_reason_unparseable_config": "The configuration {file} could not be read to trace what it imports.",
+  "cache_reason_trace_limit": "The configuration {file} imports too many (or too large) files for tracing.",
+  "cache_blocker_network": "The stage uses the network: external data may change without a file changing.",
+  "cache_blocker_may_change_code": "The tool may change the analyzed code: the result does not apply to the state it leaves.",
+  "cache_blocker_executes_project_code": "The stage executes project code (tests, scripts): the result may vary without a file changing."
+}

@@ -1,0 +1,30 @@
+# Top comment
+schemaVersion: 1
+
+build:   &build   # anchored block
+  retries: 3
+  mode: fast
+  note: "keep   this"
+
+test:
+  <<: *build
+  mode: slow   # trailing comment
+
+deploy:
+  settings: *build
+  steps:
+    - name: lint
+      run: npm run lint
+    # comment before test
+    - name: test
+      run: npm test
+    - name: ship
+      run: npm run ship
+  tags:
+    - a
+    - b   # tag b
+    - c
+
+unknown:
+  keep: [1, 2,   3]
+  'quoted': 'single'

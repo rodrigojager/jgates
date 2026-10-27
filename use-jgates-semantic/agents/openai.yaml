@@ -1,0 +1,4 @@
+interface:
+  display_name: "Use JGates Semantic"
+  short_description: "Run semantic-gate in headless mode and fix code until approved."
+  default_prompt: "Run semantic-gate run --scope changed --objective-file .quality/objective.md --json for the current changes (or pass the objective with --objective-stdin), run semantic-gate status if setup is uncertain, fix issues without lowering the threshold, and repeat until approved."

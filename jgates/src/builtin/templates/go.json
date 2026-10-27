@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "go",
+  "label": "Go",
+  "description": "Componentes Go (go.mod): suporte parcial. Descoberta, configuração explícita e o comando genérico com go test; build, vet, cobertura e dependências ficam para depois.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "go"
+    ]
+  },
+  "support": {
+    "level": "partial",
+    "uncovered": [
+      "Build e go vet",
+      "Cobertura de testes",
+      "Análise de dependências (go.sum)",
+      "Linters (staticcheck, golangci-lint)"
+    ]
+  },
+  "config": {
+    "tools": {
+      "go-test": {
+        "adapter": "generic-command",
+        "enabled": true,
+        "capabilities": [
+          "unit"
+        ],
+        "command": "go",
+        "args": [
+          "test",
+          "./..."
+        ],
+        "config": {
+          "support": "partial",
+          "limitations": [
+            "Roda apenas go test ./... no workspace: sem go vet, cobertura ou análise de dependências."
+          ],
+          "effects": {
+            "readsCode": true,
+            "writesOutputs": true,
+            "mayChangeCode": false,
+            "executesProjectCode": true,
+            "usesNetwork": false
+          },
+          "evidence": {
+            "kind": "test-runner",
+            "runner": "go-test"
+          }
+        }
+      }
+    },
+    "workspace": {
+      "exclude": {
+        "add": [
+          "**/vendor/**"
+        ]
+      }
+    }
+  }
+}

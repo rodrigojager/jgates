@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript",
+  "label": "TypeScript",
+  "description": "Componentes TypeScript e JavaScript: a exclusão das dependências instaladas e das saídas de build e de cobertura. Segredos, dependências e SAST vêm do template base. O ESLint (typescript-eslint), o dependency-cruiser (typescript-dependency-cruiser) e o Vitest (typescript-vitest) entram cada um só quando há a configuração dele no projeto. O typecheck pelo tsc ainda não tem adaptador próprio.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ]
+  },
+  "config": {
+    "workspace": {
+      "exclude": {
+        "add": [
+          "**/node_modules/**",
+          "**/dist/**",
+          "**/coverage/**"
+        ]
+      }
+    }
+  }
+}

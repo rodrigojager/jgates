@@ -1,0 +1,27 @@
+
+---------
+Contracts
+---------
+
+Analyzed 12 files, 6 dependencies.
+----------------------------------
+
+chain BROKEN
+
+Contracts: 0 kept, 1 broken.
+
+
+----------------
+Broken contracts
+----------------
+
+chain
+-----
+
+shop_api.domain.viaapp is not allowed to import shop_api.infrastructure:
+
+-   shop_api.domain.viaapp -> shop_api.application.place_order (l.1)
+    shop_api.application.place_order -> shop_api.domain.order (l.1)
+    shop_api.domain.order -> shop_api.infrastructure.repository (l.1)
+
+

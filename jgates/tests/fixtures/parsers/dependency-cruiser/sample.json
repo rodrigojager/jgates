@@ -1,0 +1,25 @@
+{
+  "modules": [
+    {
+      "source": "libs/shared/src/format.ts",
+      "dependencies": [
+        { "module": "../../../web/src/app.js", "resolved": "web/src/app.ts", "coreModule": false, "couldNotResolve": false, "dependencyTypes": ["local"] },
+        { "module": "node:path", "resolved": "node:path", "coreModule": true, "couldNotResolve": false, "dependencyTypes": ["core"] }
+      ],
+      "valid": true
+    },
+    {
+      "source": "web/src/app.ts",
+      "dependencies": [
+        { "module": "react", "resolved": "node_modules/react/index.js", "coreModule": false, "couldNotResolve": false, "dependencyTypes": ["npm"] },
+        { "module": "@app/missing", "resolved": "@app/missing", "coreModule": false, "couldNotResolve": true, "dependencyTypes": ["unknown"] },
+        { "module": "./util.js", "resolved": "web/src/util.js", "coreModule": false, "couldNotResolve": false, "dependencyTypes": ["local"] }
+      ],
+      "valid": true
+    },
+    { "source": "web/src/util.js", "dependencies": [], "valid": true },
+    { "source": "node_modules/react/index.js", "dependencies": [], "valid": true },
+    { "source": "@app/missing", "couldNotResolve": true, "dependencies": [], "valid": true }
+  ],
+  "summary": { "violations": [], "error": 0, "warn": 0, "info": 0, "ignore": 0, "totalCruised": 3, "totalDependenciesCruised": 4 }
+}

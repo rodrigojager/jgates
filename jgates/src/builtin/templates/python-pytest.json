@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "python-pytest",
+  "label": "Python com pytest",
+  "description": "Roda os testes e a cobertura com pytest nos componentes Python. Entra por evidência: só quando o componente (ou o workspace) tem configuração do pytest (pytest.ini, conftest.py, [tool.pytest.ini_options] no pyproject.toml, [pytest] no tox.ini ou [tool:pytest] no setup.cfg); o pytest não é imposto a todo repositório Python, e o JGates não instala nem migra o framework de testes.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "python"
+    ],
+    "files": [
+      "pytest.ini",
+      ".pytest.ini",
+      "conftest.py",
+      {
+        "path": "pyproject.toml",
+        "contains": "[tool.pytest.ini_options]"
+      },
+      {
+        "path": "tox.ini",
+        "contains": "[pytest]"
+      },
+      {
+        "path": "setup.cfg",
+        "contains": "[tool:pytest]"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "pytest": {
+        "adapter": "pytest",
+        "enabled": true,
+        "capabilities": [
+          "unit",
+          "coverage"
+        ]
+      }
+    }
+  }
+}

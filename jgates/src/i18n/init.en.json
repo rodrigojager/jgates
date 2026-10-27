@@ -1,0 +1,19 @@
+{
+  "init_description": "Creates the minimal JGates configuration (jgates.yml and .jgates/profiles.yml) from the discovered components.",
+  "init_option_cwd": "Project folder (default: the current folder).",
+  "init_option_profile": "Starter profile: minimal, standard or strict (default: standard).",
+  "init_option_no_interactive": "Asks nothing; uses the default profile when --profile is not given.",
+  "init_unexpected_argument": "Unexpected argument: {name}",
+  "init_unexpected_argument_fix": "Use: jgates init [--cwd <project>] [--profile minimal|standard|strict] [--no-interactive] [--json]",
+  "init_bad_cwd": "The project folder does not exist or is not a folder: {path}",
+  "init_bad_cwd_fix": "Pass an existing folder in --cwd.",
+  "init_bad_profile": "Unknown starter profile: {profile}",
+  "init_bad_profile_fix": "Use one of these: {available}.",
+  "init_exists": "The project already has JGates configuration: {files}",
+  "init_exists_fix": "Nothing was changed. Edit the existing files, or delete them if you want to start over, and run jgates config validate to check.",
+  "init_write_failed": "Could not create the configuration: {reason}",
+  "init_write_failed_fix": "Check the write permission on the project folder and run jgates init again.",
+  "init_done": "Configuration created with the profile {profile}. Templates: {templates}.",
+  "init_created": "Created: {file}",
+  "init_next": "Next steps: jgates config validate, jgates config resolve --explain."
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/config/policy.schema.json",
+  "title": ".jgates/policy.yml",
+  "description": "Criteria, severity, required evidence and exceptions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "rules": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "severity": { "enum": ["info", "warning", "error", "blocking"] },
+          "locked": { "type": "boolean" },
+          "threshold": { "type": "number" }
+        }
+      }
+    },
+    "requiredEvidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check"],
+        "properties": {
+          "check": { "type": "string", "pattern": "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/-]+$" },
+          "locked": { "type": "boolean" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule", "reason"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "rule": { "type": "string", "minLength": 1 },
+          "paths": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "reason": { "type": "string", "minLength": 1 },
+          "owner": { "type": "string", "minLength": 1 },
+          "expires": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+        }
+      }
+    }
+  }
+}

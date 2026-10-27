@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodrigojager/jgates/schemas/dependency-graph.schema.json",
+  "title": "Normalized Dependency Graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "provenance": { "$ref": "quality-evidence.schema.json#/$defs/provenance" },
+    "name": { "type": "string" },
+    "nodes": { "$ref": "#/$defs/nodes" },
+    "edges": { "$ref": "#/$defs/edges" },
+    "forbiddenLayerDependencies": { "$ref": "#/$defs/layerDependencies" },
+    "graphs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["nodes", "edges"],
+        "properties": {
+          "name": { "type": "string" },
+          "nodes": { "$ref": "#/$defs/nodes" },
+          "edges": { "$ref": "#/$defs/edges" },
+          "forbiddenLayerDependencies": { "$ref": "#/$defs/layerDependencies" }
+        }
+      }
+    }
+  },
+  "anyOf": [
+    { "required": ["nodes", "edges"] },
+    { "required": ["graphs"] }
+  ],
+  "$defs": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string", "minLength": 1 },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id"],
+            "properties": { "id": { "type": "string", "minLength": 1 }, "layer": { "type": "string" } }
+          }
+        ]
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "array", "prefixItems": [{ "type": "string" }, { "type": "string" }], "minItems": 2, "maxItems": 2 },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to"],
+            "properties": { "from": { "type": "string" }, "to": { "type": "string" } }
+          }
+        ]
+      }
+    },
+    "layerDependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "minLength": 1 },
+          "to": { "type": "string", "minLength": 1 },
+          "severity": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}

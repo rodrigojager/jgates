@@ -1,0 +1,17 @@
+{
+  "analysis_approval_commit": "The result applies to commit {commit}: the tree was clean and nothing that was analyzed changed during the run.",
+  "analysis_approval_snapshot": "The result applies to commit {commit}, analyzed in a snapshot in the data folder.",
+  "analysis_approval_not_passed": "The decision was {decision}: the result does not approve commit {commit}.",
+  "analysis_approval_dirty": "The tree had local changes ({count} file(s)): the result applies to that state and does not approve the clean commit {commit}.",
+  "analysis_approval_dirty_unborn": "The tree had local changes ({count} file(s)) and has no commit yet: the result applies only to that state.",
+  "analysis_approval_stale": "{count} analyzed file(s) changed during the run: the result is out of date and is not attributed to any state. Run again.",
+  "analysis_approval_untraceable": "The folder has more files than the manifest limit ({count} checked): the analyzed state is not fully traceable and the result does not approve a commit.",
+  "analysis_approval_no_git": "Git was not found (set JGATES_GIT or put git on the PATH): the result applies to the folder contents, not to a commit.",
+  "analysis_approval_not_repository": "The folder is not a Git repository: the result applies to its contents, not to a commit.",
+  "analysis_approval_unborn": "The repository has no commit yet: the result applies to the folder contents, not to a commit.",
+  "analysis_text_target_commit": "Analyzed: commit {commit}, in a snapshot in the data folder ({path}).",
+  "analysis_text_target_tree": "Analyzed: the working tree at commit {commit}{dirty}.",
+  "analysis_text_target_directory": "Analyzed: the folder as it is (no commit).",
+  "analysis_text_dirty": ", with local changes",
+  "analysis_text_identity": "Analysis identity: {identity}"
+}

@@ -1,0 +1,16 @@
+{
+  "eslint_label": "ESLint (config do projeto)",
+  "eslint_missing": "O ESLint não está instalado no projeto ({detail}). Instale com: npm install --save-dev eslint (ou aponte JGATES_ESLINT para o executável).",
+  "eslint_no_version": "Não foi possível ler a versão do ESLint em {path}. Reinstale com: npm install --save-dev eslint.",
+  "eslint_no_config": "A instância {tool} não tem um eslint.config no componente nem acima dele. Crie o arquivo ou declare tools.{tool}.config em .jgates/tools.yml.",
+  "eslint_blocked": "O ESLint não pôde rodar: {detail}",
+  "eslint_timeout": "O ESLint passou do limite de {seconds} s e foi encerrado.",
+  "eslint_exit_error": "O ESLint terminou com o código {code}: {detail}",
+  "eslint_invalid_output": "O relatório do ESLint não é o JSON esperado: {detail}",
+  "eslint_no_invocation": "O plano não tem a invocação do ESLint para a instância {tool}.",
+  "eslint_reason_completed": "ESLint {version}: {files} arquivo(s) analisado(s), {count} achado(s), {blocking} bloqueante(s)",
+  "eslint_condition_executes": "Executa código do projeto: o eslint.config e os plugins dele rodam durante a análise. Por isso a etapa nunca é reaproveitada do cache.",
+  "eslint_condition_config_binding": "Usa o eslint.config escolhido no binding: {file}.",
+  "eslint_condition_config_native": "Usa o eslint.config que o próprio ESLint encontra: {file}.",
+  "eslint_condition_inline": "No modo local o ESLint respeita os comentários de configuração do código (eslint-disable); o modo governado (jgates ci) os ignora."
+}

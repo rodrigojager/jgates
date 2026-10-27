@@ -1,0 +1,10 @@
+
+---------
+Contracts
+---------
+
+Analyzed 12 files, 6 dependencies.
+----------------------------------
+
+
+Contracts: 0 kept, 0 broken.

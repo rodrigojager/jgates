@@ -1,0 +1,6 @@
+[tool.ruff]
+line-length = 100
+
+# keep
+[tool.other]
+x = 1

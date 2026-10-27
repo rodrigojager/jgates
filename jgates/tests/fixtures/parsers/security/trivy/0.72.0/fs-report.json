@@ -1,0 +1,365 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.72.0"
+  },
+  "ReportID": "01a174ea-9c3e-74f0-a334-e56bb6f7f850",
+  "CreatedAt": "2026-10-25T21:14:54.910327712Z",
+  "ArtifactName": ".",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "package-lock.json",
+      "Class": "lang-pkgs",
+      "Type": "npm",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2020-8203",
+          "VendorIDs": [
+            "GHSA-p6mc-m468-83gw"
+          ],
+          "PkgID": "lodash@4.17.15",
+          "PkgName": "lodash",
+          "PkgIdentifier": {
+            "PURL": "pkg:npm/lodash@4.17.15",
+            "UID": "65602a6fc99c3c2"
+          },
+          "InstalledVersion": "4.17.15",
+          "FixedVersion": "4.17.19",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2020-8203",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory npm",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Anpm"
+          },
+          "Fingerprint": "sha256:03711e0c466b260cd55911dc8a435d99cd895459400538b586ddb31056c205e7",
+          "Title": "nodejs-lodash: prototype pollution in zipObjectDeep function",
+          "Description": "Prototype pollution attack when using _.zipObjectDeep in lodash before 4.17.20.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-770",
+            "CWE-1321"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3,
+            "nvd": 3,
+            "redhat": 2,
+            "ruby-advisory-db": 3,
+            "ubuntu": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+              "V3Score": 7.4
+            },
+            "nvd": {
+              "V2Vector": "AV:N/AC:M/Au:N/C:N/I:P/A:P",
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+              "V2Score": 5.8,
+              "V3Score": 7.4
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:H",
+              "V3Score": 7.4
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2020-8203",
+            "https://github.com/advisories/GHSA-p6mc-m468-83gw",
+            "https://github.com/github/advisory-database/pull/2884",
+            "https://github.com/lodash/lodash",
+            "https://github.com/lodash/lodash/commit/c84fe82760fb2d3e03a63379b297a1cc1a2fce12",
+            "https://github.com/lodash/lodash/issues/4744",
+            "https://github.com/lodash/lodash/issues/4874",
+            "https://github.com/lodash/lodash/wiki/Changelog#v41719",
+            "https://github.com/rubysec/ruby-advisory-db/blob/master/gems/lodash-rails/CVE-2020-8203.yml",
+            "https://hackerone.com/reports/712065",
+            "https://hackerone.com/reports/864701",
+            "https://nvd.nist.gov/vuln/detail/CVE-2020-8203",
+            "https://security.netapp.com/advisory/ntap-20200724-0006",
+            "https://security.netapp.com/advisory/ntap-20200724-0006/",
+            "https://ubuntu.com/security/notices/USN-8411-1",
+            "https://web.archive.org/web/20210914001339/https://github.com/lodash/lodash/issues/4744",
+            "https://www.cve.org/CVERecord?id=CVE-2020-8203",
+            "https://www.npmjs.com/advisories/1523",
+            "https://www.oracle.com//security-alerts/cpujul2021.html",
+            "https://www.oracle.com/security-alerts/cpuApr2021.html",
+            "https://www.oracle.com/security-alerts/cpuapr2022.html",
+            "https://www.oracle.com/security-alerts/cpujan2022.html",
+            "https://www.oracle.com/security-alerts/cpuoct2021.html"
+          ],
+          "PublishedDate": "2020-07-15T17:15:11.797Z",
+          "LastModifiedDate": "2026-06-17T03:26:02.917Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2021-23337",
+          "VendorIDs": [
+            "GHSA-35jh-r3h4-6jhm"
+          ],
+          "PkgID": "lodash@4.17.15",
+          "PkgName": "lodash",
+          "PkgIdentifier": {
+            "PURL": "pkg:npm/lodash@4.17.15",
+            "UID": "65602a6fc99c3c2"
+          },
+          "InstalledVersion": "4.17.15",
+          "FixedVersion": "4.17.21",
+          "Status": "fixed",
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2021-23337",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory npm",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Anpm"
+          },
+          "Fingerprint": "sha256:9d4ffe9613502b3854efcf2fe22ba8cc38374c50048171f4ac17d96b2f0cf8e7",
+          "Title": "nodejs-lodash: command injection via template",
+          "Description": "Lodash versions prior to 4.17.21 are vulnerable to Command Injection via the template function.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-94"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3,
+            "nvd": 3,
+            "redhat": 2,
+            "ruby-advisory-db": 3,
+            "ubuntu": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.2
+            },
+            "nvd": {
+              "V2Vector": "AV:N/AC:L/Au:S/C:P/I:P/A:P",
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H",
+              "V2Score": 6.5,
+              "V3Score": 7.2
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.2
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2021-23337",
+            "https://cert-portal.siemens.com/productcert/pdf/ssa-637483.pdf",
+            "https://github.com/advisories/GHSA-35jh-r3h4-6jhm",
+            "https://github.com/lodash/lodash",
+            "https://github.com/lodash/lodash/blob/ddfd9b11a0126db2302cb70ec9973b66baec0975/lodash.js",
+            "https://github.com/lodash/lodash/blob/ddfd9b11a0126db2302cb70ec9973b66baec0975/lodash.js#L14851",
+            "https://github.com/lodash/lodash/blob/ddfd9b11a0126db2302cb70ec9973b66baec0975/lodash.js%23L14851",
+            "https://github.com/lodash/lodash/commit/3469357cff396a26c363f8c1b5a91dde28ba4b1c",
+            "https://github.com/rubysec/ruby-advisory-db/blob/master/gems/lodash-rails/CVE-2021-23337.yml",
+            "https://nvd.nist.gov/vuln/detail/CVE-2021-23337",
+            "https://security.netapp.com/advisory/ntap-20210312-0006",
+            "https://security.netapp.com/advisory/ntap-20210312-0006/",
+            "https://snyk.io/vuln/SNYK-JAVA-ORGFUJIONWEBJARS-1074932",
+            "https://snyk.io/vuln/SNYK-JAVA-ORGWEBJARS-1074930",
+            "https://snyk.io/vuln/SNYK-JAVA-ORGWEBJARSBOWER-1074928",
+            "https://snyk.io/vuln/SNYK-JAVA-ORGWEBJARSBOWERGITHUBLODASH-1074931",
+            "https://snyk.io/vuln/SNYK-JAVA-ORGWEBJARSNPM-1074929",
+            "https://snyk.io/vuln/SNYK-JS-LODASH-1040724",
+            "https://ubuntu.com/security/notices/USN-8411-1",
+            "https://www.cve.org/CVERecord?id=CVE-2021-23337",
+            "https://www.oracle.com//security-alerts/cpujul2021.html",
+            "https://www.oracle.com/security-alerts/cpujan2022.html",
+            "https://www.oracle.com/security-alerts/cpujul2022.html",
+            "https://www.oracle.com/security-alerts/cpuoct2021.html"
+          ],
+          "PublishedDate": "2021-02-15T13:15:12.56Z",
+          "LastModifiedDate": "2026-10-08T22:17:07.363Z"
+        }
+      ]
+    },
+    {
+      "Target": ".",
+      "Class": "config",
+      "Type": "terraform",
+      "MisconfSummary": {
+        "Successes": 52,
+        "Failures": 0
+      }
+    },
+    {
+      "Target": "main.tf",
+      "Class": "config",
+      "Type": "terraform",
+      "MisconfSummary": {
+        "Successes": 0,
+        "Failures": 9
+      },
+      "Misconfigurations": [
+        {
+          "Type": "Terraform Security Check",
+          "ID": "AWS-0086",
+          "Title": "S3 Access block should block public ACL",
+          "Description": "S3 buckets should block public ACLs on buckets and any objects they contain. By blocking, PUTs with fail if the object has any public ACL a.\n",
+          "Message": "No public access block so not blocking public acls",
+          "Namespace": "builtin.aws.s3.aws0086",
+          "Query": "data.builtin.aws.s3.aws0086.deny",
+          "Resolution": "Enable blocking any PUT calls with a public ACL specified",
+          "Severity": "HIGH",
+          "PrimaryURL": "https://avd.aquasec.com/misconfig/aws-0086",
+          "References": [
+            "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html",
+            "https://avd.aquasec.com/misconfig/aws-0086"
+          ],
+          "Status": "FAIL",
+          "CauseMetadata": {
+            "Resource": "aws_s3_bucket.data",
+            "Provider": "AWS",
+            "Service": "s3",
+            "StartLine": 1,
+            "EndLine": 4,
+            "Code": {
+              "Lines": [
+                {
+                  "Number": 1,
+                  "Content": "resource \"aws_s3_bucket\" \"data\" {",
+                  "IsCause": true,
+                  "Annotation": "",
+                  "Truncated": false,
+                  "FirstCause": true,
+                  "LastCause": false
+                },
+                {
+                  "Number": 2,
+                  "Content": "  bucket = \"demo-data\"",
+                  "IsCause": true,
+                  "Annotation": "",
+                  "Truncated": false,
+                  "FirstCause": false,
+                  "LastCause": false
+                },
+                {
+                  "Number": 3,
+                  "Content": "  acl    = \"public-read\"",
+                  "IsCause": true,
+                  "Annotation": "",
+                  "Truncated": false,
+                  "FirstCause": false,
+                  "LastCause": false
+                },
+                {
+                  "Number": 4,
+                  "Content": "}",
+                  "IsCause": true,
+                  "Annotation": "",
+                  "Truncated": false,
+                  "FirstCause": false,
+                  "LastCause": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "Type": "Terraform Security Check",
+          "ID": "AWS-0087",
+          "Title": "S3 Access block should block public policy",
+          "Description": "S3 bucket policy should have block public policy to prevent users from putting a policy that enable public access.\n",
+          "Message": "No public access block so not blocking public policies",
+          "Namespace": "builtin.aws.s3.aws0087",
+          "Query": "data.builtin.aws.s3.aws0087.deny",
+          "Resolution": "Prevent policies that allow public access being PUT",
+          "Severity": "HIGH",
+          "PrimaryURL": "https://avd.aquasec.com/misconfig/aws-0087",
+          "References": [
+            "https://docs.aws.amazon.com/AmazonS3/latest/dev-retired/access-control-block-public-access.html",
+            "https://avd.aquasec.com/misconfig/aws-0087"
+          ],
+          "Status": "FAIL",
+          "CauseMetadata": {
+            "Resource": "aws_s3_bucket.data",
+            "Provider": "AWS",
+            "Service": "s3",
+            "StartLine": 1,
+            "EndLine": 4,
+            "Code": {
+              "Lines": [
+                {
+                  "Number": 1,
+                  "Content": "resource \"aws_s3_bucket\" \"data\" {",
+                  "IsCause": true,
+                  "Annotation": "",
+                  "Truncated": false,
+                  "FirstCause": true,
+                  "LastCause": false
+                },
+                {
+                  "Number": 2,
+                  "Content": "  bucket = \"demo-data\"",
+                  "IsCause": true,
+                  "Annotation": "",
+                  "Truncated": false,
+                  "FirstCause": false,
+                  "LastCause": false
+                },
+                {
+                  "Number": 3,
+                  "Content": "  acl    = \"public-read\"",
+                  "IsCause": true,
+                  "Annotation": "",
+                  "Truncated": false,
+                  "FirstCause": false,
+                  "LastCause": false
+                },
+                {
+                  "Number": 4,
+                  "Content": "}",
+                  "IsCause": true,
+                  "Annotation": "",
+                  "Truncated": false,
+                  "FirstCause": false,
+                  "LastCause": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "Target": "settings.py",
+      "Class": "secret",
+      "Secrets": [
+        {
+          "RuleID": "github-pat",
+          "Category": "GitHub",
+          "Severity": "CRITICAL",
+          "Title": "GitHub Personal Access Token",
+          "StartLine": 1,
+          "EndLine": 1,
+          "Code": {
+            "Lines": [
+              {
+                "Number": 1,
+                "Content": "GITHUB_TOKEN = \"****************************************\"",
+                "IsCause": true,
+                "Annotation": "",
+                "Truncated": false,
+                "FirstCause": true,
+                "LastCause": true
+              },
+              {
+                "Number": 2,
+                "Content": "",
+                "IsCause": false,
+                "Annotation": "",
+                "Truncated": false,
+                "FirstCause": false,
+                "LastCause": false
+              }
+            ]
+          },
+          "Match": "GITHUB_TOKEN = \"****************************************\"",
+          "Offset": 16
+        }
+      ]
+    }
+  ]
+}

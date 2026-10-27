@@ -1,0 +1,3 @@
+
+Contract "bad2" is not configured correctly:
+    forbidden_modules: This is a required field.

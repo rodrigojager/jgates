@@ -1,0 +1,19 @@
+[project]
+name = "jgates-quality-sidecar"
+version = "0.3.0"
+description = "Container-side quality gate runner for JGates projects."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "defusedxml==0.7.1",
+  "tomlkit==0.13.3",
+]
+
+[project.scripts]
+quality-sidecar = "quality_sidecar.cli:entrypoint"
+
+[tool.setuptools]
+package-dir = { "" = "sidecar" }
+
+[tool.setuptools.packages.find]
+where = ["sidecar"]

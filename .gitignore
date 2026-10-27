@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.quality/
+*.log
+*.tgz
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+!.env.example

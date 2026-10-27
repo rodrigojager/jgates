@@ -1,0 +1,16 @@
+{
+  "eslint_label": "ESLint (project config)",
+  "eslint_missing": "ESLint is not installed in the project ({detail}). Install it with: npm install --save-dev eslint (or point JGATES_ESLINT to the executable).",
+  "eslint_no_version": "Could not read the ESLint version at {path}. Reinstall with: npm install --save-dev eslint.",
+  "eslint_no_config": "The instance {tool} has no eslint.config in the component or above it. Create the file or declare tools.{tool}.config in .jgates/tools.yml.",
+  "eslint_blocked": "ESLint could not run: {detail}",
+  "eslint_timeout": "ESLint exceeded the limit of {seconds} s and was ended.",
+  "eslint_exit_error": "ESLint ended with code {code}: {detail}",
+  "eslint_invalid_output": "The ESLint report is not the expected JSON: {detail}",
+  "eslint_no_invocation": "The plan has no ESLint invocation for the instance {tool}.",
+  "eslint_reason_completed": "ESLint {version}: {files} file(s) analyzed, {count} finding(s), {blocking} blocking",
+  "eslint_condition_executes": "Executes project code: the eslint.config and its plugins run during the analysis. That is why the stage is never reused from the cache.",
+  "eslint_condition_config_binding": "Uses the eslint.config chosen in the binding: {file}.",
+  "eslint_condition_config_native": "Uses the eslint.config that ESLint itself finds: {file}.",
+  "eslint_condition_inline": "In local mode ESLint respects the configuration comments in the code (eslint-disable); governed mode (jgates ci) ignores them."
+}

@@ -1,0 +1,11 @@
+/* Configuração > YAML. Tokens from theme.css (light and dark). */
+.yaml-layout { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(0, 4fr); gap: 18px; align-items: start; }
+.yaml-files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.yaml-files .file-item { width: 100%; display: flex; align-items: center; gap: 8px; text-align: left; }
+.yaml-files .file-item[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.yaml-files code { overflow-wrap: anywhere; }
+.yaml-diags { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.yaml-diags code { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .yaml-layout { grid-template-columns: minmax(0, 1fr); }
+}

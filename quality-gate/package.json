@@ -1,0 +1,47 @@
+{
+  "name": "quality-gate",
+  "version": "0.3.0",
+  "description": "Local Docker wrapper for the JGates quality-sidecar.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rodrigojager/jgates.git",
+    "directory": "quality-gate"
+  },
+  "homepage": "https://github.com/rodrigojager/jgates#readme",
+  "bugs": {
+    "url": "https://github.com/rodrigojager/jgates/issues"
+  },
+  "license": "MIT",
+  "type": "commonjs",
+  "files": [
+    "bin/",
+    "docker/",
+    "sidecar/",
+    "examples/",
+    "schemas/",
+    "scripts/",
+    "skill/",
+    "tests/",
+    "!sidecar/**/__pycache__/**",
+    "!tests/**/__pycache__/**",
+    "!**/*.pyc",
+    "Dockerfile",
+    ".dockerignore",
+    "quality-gate.ps1",
+    "pyproject.toml",
+    "README.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "quality-gate": "bin/quality-gate.js"
+  },
+  "scripts": {
+    "build:image": "docker build -t jgates/quality-sidecar:latest .",
+    "test": "node --test tests/*.test.js && npm run test:python",
+    "test:node": "node --test tests/*.test.js",
+    "test:python": "python -m pip install --disable-pip-version-check --quiet \"defusedxml==0.7.1\" \"tomlkit==0.13.3\" && python -m unittest discover -s tests -p \"test_*.py\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

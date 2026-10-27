@@ -1,0 +1,40 @@
+# Shared pyproject.toml: build, project, pytest and ruff live in one file.
+[build-system]
+requires = ["setuptools>=68", "wheel"]   # build deps
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "demo"
+version = "0.1.0"
+dependencies = [
+  "requests>=2",  # http
+  "tomlkit",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+# Ruff settings below.
+[tool.ruff]
+line-length = 88    # keep it short
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F"]   # basics
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+"__init__.py" = ["F401"]
+
+[[tool.mypy.overrides]]
+module = "a.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "b.*"
+strict = true

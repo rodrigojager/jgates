@@ -1,0 +1,10 @@
+# plain document
+name: demo   # the name
+options:
+  strict: true
+  level: 2
+  # list below
+  paths:
+    - src
+    - tests
+empty: []

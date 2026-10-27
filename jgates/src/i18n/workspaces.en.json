@@ -1,0 +1,22 @@
+{
+  "workspaces_description": "Lists, registers and relinks the workspaces JGates knows.",
+  "workspaces_unknown_action": "Unknown action for workspaces: {name}",
+  "workspaces_unknown_action_fix": "Use: jgates workspaces list [--json], add <path> or relink <oldId> --cwd <new path>",
+  "workspaces_missing_path": "Give the workspace path.",
+  "workspaces_missing_path_fix": "Use: jgates workspaces add <path>",
+  "workspaces_bad_path": "Could not access the path: {path}",
+  "workspaces_bad_path_fix": "Check that the folder exists.",
+  "workspaces_empty": "No workspace registered.",
+  "workspaces_registered": "Workspace registered: {id} {path}",
+  "workspaces_option_cwd": "New workspace path (relink).",
+  "workspaces_relink_missing_id": "Give the id of the old workspace.",
+  "workspaces_relink_missing_id_fix": "Use: jgates workspaces relink <oldId> --cwd <new path>",
+  "workspaces_relink_missing_cwd": "Give the new path with --cwd.",
+  "workspaces_relink_not_found": "Workspace not registered: {id}",
+  "workspaces_relink_not_found_fix": "See the ids with: jgates workspaces list",
+  "workspaces_relink_same": "The new path is the same workspace: {id}",
+  "workspaces_relink_same_fix": "Give the new project folder.",
+  "workspaces_relink_cycle": "The history of {id} already descends from the new workspace.",
+  "workspaces_relink_cycle_fix": "Relink in the other direction or choose another path.",
+  "workspaces_relinked": "History of {old} linked to {id} ({path})"
+}

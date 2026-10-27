@@ -1,0 +1,21 @@
+{
+  "runner_runtime_missing": "O runtime {name} não foi encontrado ({detail}).",
+  "runner_binary_not_found": "O executável {executable} não foi encontrado.",
+  "runner_binary_not_executable": "O arquivo {executable} existe, mas não tem permissão de execução.",
+  "runner_version_unknown": "Não foi possível ler a versão de {executable} (o plano espera {expected}).",
+  "runner_version_mismatch": "A versão de {executable} é {actual}, mas o plano foi feito com {expected}; gere o plano de novo.",
+  "runner_config_missing": "O arquivo de configuração {file} não existe mais.",
+  "runner_cwd_missing": "A pasta de trabalho {dir} não existe.",
+  "runner_dir_unwritable": "Não foi possível criar ou gravar na pasta {dir}.",
+  "runner_bridge_sidecar_missing": "O pacote do sidecar (quality_sidecar) não foi encontrado em {dir}; defina JGATES_SIDECAR_DIR ou instale o quality-gate.",
+  "runner_bridge_python_missing": "O Python da ponte ({python}) não foi encontrado; defina JGATES_PYTHON ou ponha o python no PATH.",
+  "runner_not_run_cancelled": "Não executada: o run foi cancelado antes desta etapa.",
+  "runner_cancelled_running": "Cancelada durante a execução: os processos da etapa foram encerrados e o que ela produziu não conta.",
+  "runner_not_run_fail_fast": "Não executada: --fail-fast parou o run depois da falha em {step} ({detail}).",
+  "runner_blocked_dependency": "Bloqueada: depende de {steps}, que não terminou bem ({states}).",
+  "runner_unknown_dependency": "Bloqueada: depende de {steps}, que não está no plano.",
+  "runner_dependency_cycle": "Bloqueada: dependência circular entre {steps}.",
+  "runner_blocked_preflight": "Bloqueada antes de iniciar: {detail}",
+  "runner_step_crashed": "Erro do adaptador: {detail}",
+  "runner_invalid_output": "Saída ilegível, a etapa não prova nada: {detail}"
+}

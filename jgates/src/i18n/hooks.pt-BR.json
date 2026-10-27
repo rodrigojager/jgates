@@ -1,0 +1,22 @@
+{
+  "hooks_cmd_description": "Instala ou remove o gancho opcional do Git que verifica (ou corrige) dados pessoais antes do commit: hooks install pre-commit, hooks uninstall pre-commit.",
+  "hooks_cmd_option_cwd": "Pasta do projeto (padrão: a atual).",
+  "hooks_cmd_usage_fix": "Use: jgates hooks install pre-commit ou jgates hooks uninstall pre-commit.",
+  "hooks_cmd_unknown_action": "Ação \"{name}\" desconhecida para jgates hooks.",
+  "hooks_cmd_unknown_hook": "Gancho \"{name}\" desconhecido: só existe o pre-commit.",
+  "hooks_cmd_not_git": "{path} não está dentro de um repositório Git.",
+  "hooks_cmd_not_git_fix": "Rode o comando dentro de um repositório Git (git init cria um).",
+  "hooks_cmd_mode_off": "hook.mode está off em .jgates/pii.yml: nenhum gancho foi gravado.",
+  "hooks_cmd_hooks_path": "core.hooksPath está definido ({path}): nada foi mudado. Acrescente esta linha ao seu gancho pre-commit:\n{line}",
+  "hooks_cmd_existing": "Já existe um gancho pre-commit ({path}): nada foi mudado. Acrescente esta linha a ele:\n{line}",
+  "hooks_cmd_installed": "Gancho gravado: {path} (hook.mode {mode}). Para tirar, use jgates hooks uninstall pre-commit.",
+  "hooks_cmd_not_installed": "Não há gancho pre-commit para remover.",
+  "hooks_cmd_uninstall_foreign": "O gancho pre-commit ({path}) não foi gravado pelo jgates: ficou como estava.",
+  "hooks_cmd_removed": "Gancho removido: {path}.",
+  "hooks_script_managed": "Gravado por jgates hooks install pre-commit; para tirar, use jgates hooks uninstall pre-commit.",
+  "hooks_script_missing": "jgates: o jgates que instalou este gancho não foi encontrado. Rode jgates hooks install pre-commit de novo ou jgates hooks uninstall pre-commit.",
+  "hooks_script_no_tool": "jgates: hook.mode é fix mas o pii.yml não tem ferramenta de correção (fix.tools); nada foi corrigido. O commit segue só se a verificação não achar nada.",
+  "hooks_script_blocked": "jgates: commit barrado por dados pessoais nos arquivos do stage. Corrija (jgates pii fix --staged) e faça o commit de novo; git commit --no-verify pula o gancho.",
+  "hooks_cmd_invalid_config": "O .jgates/pii.yml é inválido, nenhum gancho foi gravado: {problems}",
+  "hooks_cmd_invalid_config_fix": "Corrija o arquivo e o campo indicados e rode jgates hooks install pre-commit de novo."
+}

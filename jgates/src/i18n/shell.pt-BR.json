@@ -1,0 +1,10 @@
+{
+  "shell_workspace_not_found": "Este workspace não está no registro do JGates.",
+  "shell_workspace_not_found_fix": "Escolha um workspace da lista ou informe o caminho da pasta.",
+  "shell_workspace_missing": "A pasta {path} não existe mais.",
+  "shell_workspace_missing_fix": "Se o projeto mudou de lugar, rode jgates workspaces relink <idAntigo> --cwd <novo caminho>.",
+  "shell_workspace_not_directory": "{path} não é uma pasta.",
+  "shell_workspace_not_directory_fix": "Informe o caminho de uma pasta que exista nesta máquina.",
+  "shell_open_failed": "Não foi possível abrir o workspace ({code}).",
+  "shell_open_failed_fix": "Rode jgates ui --cwd <pasta> no terminal e abra o link que ele criar."
+}

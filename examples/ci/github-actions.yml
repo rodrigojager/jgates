@@ -1,0 +1,38 @@
+# .github/workflows/jgates.yml (in the project repository)
+# Store the fingerprint in a protected repository variable: JGATES_POLICY_SHA256 = <policy-sha256>
+name: JGates
+on: [pull_request]
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  jgates:
+    runs-on: ubuntu-latest
+    env:
+      JGATES_POLICY_DIR: ${{ github.workspace }}/policy
+      JGATES_POLICY_SHA256: ${{ vars.JGATES_POLICY_SHA256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: project
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: <organization>/<policy-repository>
+          ref: main
+          path: policy
+          token: ${{ secrets.POLICY_REPOSITORY_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Install JGates from the repository (or from a tarball your organization stores), never from a registry.
+      # npm cannot install a git dependency with --global: install into a folder and put its bins on PATH.
+      - run: |
+          npm install --prefix "$RUNNER_TEMP/jgates" git+https://github.com/rodrigojager/jgates
+          echo "$RUNNER_TEMP/jgates/node_modules/.bin" >> "$GITHUB_PATH"
+      - run: jgates ci --policy "$JGATES_POLICY_DIR" --sarif jgates.sarif
+        working-directory: project
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: project/jgates.sarif

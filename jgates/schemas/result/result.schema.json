@@ -1,0 +1,1800 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/result/1.json",
+  "title": "JGates run result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "decision",
+    "complete",
+    "reduced",
+    "exitCode",
+    "stages",
+    "disabled"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tool": {
+      "const": "jgates"
+    },
+    "version": {
+      "type": "string"
+    },
+    "startedAt": {
+      "type": "string",
+      "description": "ISO 8601 UTC timestamp."
+    },
+    "finishedAt": {
+      "type": "string",
+      "description": "ISO 8601 UTC timestamp."
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "path"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "runDir": {
+      "type": "string",
+      "description": "Absolute folder of the run, outside the workspace."
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "type": "string"
+        },
+        "options": {
+          "type": "object",
+          "description": "Options of this run, as given.",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        },
+        "overrides": {
+          "type": "array",
+          "description": "What this run alone turned off (reduced).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "reason"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "planHash": {
+          "type": "string",
+          "description": "Hash of the plan this run executed."
+        },
+        "planSource": {
+          "enum": [
+            "built",
+            "file",
+            "options"
+          ],
+          "description": "built: assembled for this run; file: received with --plan; options: assembled from the option flags of a project without jgates.yml."
+        },
+        "profile": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Profile the plan was built from."
+        },
+        "scope": {
+          "type": "string"
+        },
+        "request": {
+          "type": "object",
+          "description": "The plan request: profile, scope, paths, skip, only, templates."
+        },
+        "planOverrides": {
+          "type": "array",
+          "description": "What --skip and --only changed in the plan (selection.overrides of the plan).",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "decision": {
+      "enum": [
+        "passed",
+        "failed",
+        "incomplete",
+        "invalid",
+        "cancelled"
+      ]
+    },
+    "complete": {
+      "type": "boolean"
+    },
+    "reduced": {
+      "type": "boolean"
+    },
+    "exitCode": {
+      "enum": [
+        0,
+        1,
+        2,
+        3,
+        130
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "requirements": {
+      "type": "array",
+      "description": "Requirements of this run and why each is required or not.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "required"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/stage"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "unsatisfied": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requirementId",
+          "state"
+        ],
+        "properties": {
+          "requirementId": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "missing",
+              "pending",
+              "running",
+              "completed",
+              "not_applicable",
+              "disabled",
+              "blocked",
+              "error",
+              "timeout",
+              "cancelled"
+            ]
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stageId",
+          "state"
+        ],
+        "properties": {
+          "stageId": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/$defs/stageState"
+          }
+        }
+      }
+    },
+    "blockingViolations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "disabled": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "origin"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "origin": {
+            "enum": [
+              "template",
+              "profile",
+              "project",
+              "component",
+              "run"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "workspaceChanges": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checked",
+        "added",
+        "modified",
+        "removed"
+      ],
+      "properties": {
+        "checked": {
+          "type": "boolean"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "modified": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "entries": {
+          "type": "array",
+          "description": "The same files with the step that left them (null when unknown).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "change",
+              "stage"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "change": {
+                "enum": [
+                  "added",
+                  "modified",
+                  "removed"
+                ]
+              },
+              "stage": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "workspaceGit": {
+      "type": "object",
+      "description": "Git status of the workspace before and after the run (tracked changes and untracked files that are not ignored), next to the file manifest of workspaceChanges; null records when the workspace is not a Git work tree.",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "before",
+        "after",
+        "changed"
+      ],
+      "properties": {
+        "repository": {
+          "type": "boolean"
+        },
+        "before": {
+          "$ref": "#/$defs/gitStatusRecord"
+        },
+        "after": {
+          "$ref": "#/$defs/gitStatusRecord"
+        },
+        "changed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result"
+      ],
+      "description": "Paths relative to runDir.",
+      "properties": {
+        "result": {
+          "type": "string"
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "plan": {
+          "type": "string",
+          "description": "The plan this run executed, relative to runDir."
+        },
+        "events": {
+          "type": "string",
+          "description": "The event stream of the run (JSON Lines), relative to runDir."
+        }
+      }
+    },
+    "partial": {
+      "type": "boolean",
+      "description": "true in the copies written while the run is still going; a result that stays partial belongs to a run whose process died (never passed)."
+    },
+    "stopped": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cause",
+        "detail"
+      ],
+      "description": "Why the run stopped before running everything.",
+      "properties": {
+        "cause": {
+          "enum": [
+            "cancelled",
+            "fail-fast"
+          ]
+        },
+        "stepId": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    },
+    "analyzed": {
+      "$ref": "#/$defs/analyzed"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "policy": {
+      "type": "object",
+      "description": "Governed runs (jgates ci) only: the CI policy the run was held to. sha256 is the hash of the canonical manifest of the bundle (the value of JGATES_POLICY_SHA256); files are the bundle files in manifest order.",
+      "additionalProperties": false,
+      "required": ["sha256", "files", "source", "qualityPolicy"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256", "size"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "size": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["dir", "from"],
+          "properties": {
+            "dir": { "type": "string", "minLength": 1 },
+            "from": { "enum": ["option", "env"] }
+          }
+        },
+        "qualityPolicy": {
+          "type": "object",
+          "description": "The quality policy handed to the bridge: the policy's file (policy-relative), or null for the built-in default.",
+          "additionalProperties": false,
+          "required": ["file", "sha256"],
+          "properties": {
+            "file": { "type": ["string", "null"] },
+            "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        },
+        "trustSelfReported": {
+          "type": "boolean",
+          "description": "execution.trustSelfReported of the policy: true lets a self-reported stage satisfy its requirement; false (the default) keeps it from approving alone."
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "fix": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    },
+    "architecture": {
+      "type": "array",
+      "description": "Coverage of the dependency graph each architecture check judged: complete, partial or empty, with the dependencies the extractor could not resolve. Absent when no architecture check ran.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool", "status", "verified", "nodes", "edges", "unresolved", "unresolvedSample"],
+        "properties": {
+          "tool": { "type": "string" },
+          "status": { "enum": ["complete", "partial", "empty"] },
+          "verified": { "type": "boolean" },
+          "nodes": { "type": "integer", "minimum": 0 },
+          "edges": { "type": "integer", "minimum": 0 },
+          "unresolved": { "type": "integer", "minimum": 0 },
+          "unresolvedSample": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["from", "specifier"],
+              "properties": {
+                "from": { "type": "string" },
+                "specifier": { "type": "string" },
+                "reason": { "type": "string" }
+              }
+            }
+          },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "semantic": {
+      "type": "object",
+      "description": "Optional semantic review. Present only when the run asked for it. It is apart from the decision: unavailability, timeout or an exhausted budget never change decision, exitCode or complete.",
+      "required": ["requested", "state", "separateFromDecision"],
+      "properties": {
+        "requested": { "const": true },
+        "state": { "enum": ["completed", "not-configured", "unavailable", "timeout", "budget-exhausted", "blocked"] },
+        "separateFromDecision": { "const": true },
+        "provider": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "scope": { "type": ["string", "null"] },
+        "limits": { "type": ["object", "null"] },
+        "cost": { "type": "object" },
+        "calls": { "type": "integer", "minimum": 0 },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "reason": { "type": "string" },
+        "code": { "enum": ["MASKING_COMMAND_FAILED", "MASKING_UNRESOLVED", "MASKING_BLOCKED"], "description": "Why nothing was sent, when the masking of the context decided it." },
+        "context": { "type": "object" },
+        "conclusion": { "type": "object" },
+        "prompts": { "$ref": "#/$defs/semanticPrompts" },
+        "effective": {
+          "type": "object",
+          "description": "The provider fields in effect, each with its origin: project (jgates.yml), user (the user's preferences: a provider's preference or a named connection; jgates ci never reads them) or default (the provider's own value); unset when none has one.",
+          "required": ["provider", "kind", "preferences", "baseUrl", "model", "apiKeyEnv", "headers"],
+          "properties": {
+            "provider": { "type": "string" },
+            "kind": { "enum": ["provider", "connection", "other", "unknown"] },
+            "preferences": { "enum": ["used", "ignored"] },
+            "baseUrl": { "$ref": "#/$defs/semanticFieldValue" },
+            "model": { "$ref": "#/$defs/semanticFieldValue" },
+            "apiKeyEnv": { "$ref": "#/$defs/semanticFieldValue" },
+            "headers": { "type": "array", "items": { "type": "string" } },
+            "allowInsecureHttp": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runId",
+        "comparable",
+        "warnings",
+        "new",
+        "resolved",
+        "kept"
+      ],
+      "properties": {
+        "runId": {
+          "type": "string"
+        },
+        "comparable": {
+          "type": "boolean"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "new": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kept": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resolved": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fingerprint",
+              "ruleId"
+            ],
+            "properties": {
+              "fingerprint": {
+                "type": "string"
+              },
+              "ruleId": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "passed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "complete": {
+            "const": true
+          },
+          "exitCode": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exitCode": {
+            "const": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "incomplete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "complete": {
+            "const": false
+          },
+          "exitCode": {
+            "const": 2
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "invalid"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exitCode": {
+            "const": 3
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "cancelled"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "exitCode": {
+            "const": 130
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "gitStatusRecord": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tracked",
+            "untracked",
+            "truncated"
+          ],
+          "properties": {
+            "tracked": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "status"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "untracked": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "truncated": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "stageState": {
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "not_applicable",
+        "disabled",
+        "blocked",
+        "error",
+        "timeout",
+        "cancelled"
+      ]
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "state"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "composite",
+            "subcheck",
+            "evidence",
+            "step"
+          ]
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "adapter": {
+          "type": "string"
+        },
+        "requirementId": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/stageState"
+        },
+        "nativeStatus": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blockingViolations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "interpreted": {
+          "type": "boolean"
+        },
+        "selfReported": {
+          "type": "boolean",
+          "description": "jgates ci: the analyzed project controls this result (it ran the project's code or read evidence the project produced). It can fail the run; it satisfies its requirement only when the policy trusts self-reported results (policy.trustSelfReported)."
+        },
+        "reason": {
+          "type": "string"
+        },
+        "execution": {
+          "$ref": "#/$defs/execution"
+        },
+        "cache": {
+          "$ref": "#/$defs/stageCache"
+        },
+        "analysisInput": {
+          "description": "What the analysis read besides the code, as the tool reports it: the vulnerability database (source, date) of Trivy and OSV-Scanner.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "database": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source",
+                "updatedAt",
+                "reported",
+                "networkRequired"
+              ],
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "nextUpdate": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "downloadedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reported": {
+                  "type": "boolean",
+                  "description": "false: the tool does not report the date of its data; only the source is known."
+                },
+                "networkRequired": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "stageCache": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "reused",
+            "executed",
+            "uncacheable"
+          ]
+        },
+        "runId": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stageId",
+        "tool",
+        "ruleId",
+        "severity",
+        "normalizedSeverity",
+        "message",
+        "blocking",
+        "waived"
+      ],
+      "properties": {
+        "stageId": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "toolVersion": {
+          "type": "string"
+        },
+        "ruleId": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "description": "Native severity, as the tool reported it."
+        },
+        "normalizedSeverity": {
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "info",
+            "unknown"
+          ],
+          "description": "An unknown native severity stays unknown, never low."
+        },
+        "message": {
+          "type": "string"
+        },
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "column": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "fingerprint": {
+          "type": "string"
+        },
+        "origin": {
+          "type": "string"
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "blockingReason": {
+          "enum": [
+            "critical",
+            "blocking-category",
+            "blocking-tool",
+            "score-below-threshold",
+            "legacy-verdict"
+          ]
+        },
+        "waived": {
+          "type": "boolean"
+        },
+        "waiverReason": {
+          "type": "string"
+        },
+        "nativeFingerprint": {
+          "type": "string",
+          "description": "Fingerprint the tool or the sidecar gave, kept so waiver files written for it still match."
+        },
+        "fingerprintVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence": {
+          "type": "string",
+          "description": "Masked evidence; never the raw secret or PII value."
+        },
+        "remediation": {
+          "type": "string"
+        },
+        "docsUrl": {
+          "type": "string"
+        },
+        "waiverId": {
+          "type": "string"
+        },
+        "baselineState": {
+          "enum": [
+            "new",
+            "unchanged"
+          ],
+          "description": "Against the baseline run: new or kept."
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step"
+      ],
+      "description": "How the step that produced the stage was executed (local runner).",
+      "properties": {
+        "step": {
+          "type": "string",
+          "description": "Executor step (one per invocation of the plan)."
+        },
+        "startedAt": {
+          "type": "string"
+        },
+        "finishedAt": {
+          "type": "string"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exitCode": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "signal": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timedOut": {
+          "type": "boolean"
+        },
+        "cancelled": {
+          "type": "boolean"
+        },
+        "stdoutBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stderrBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "logTruncated": {
+          "type": "boolean",
+          "description": "A log file was cut at the log limit (it ends with the truncation marker)."
+        },
+        "processes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "notRun": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "cause",
+            "detail"
+          ],
+          "properties": {
+            "cause": {
+              "enum": [
+                "preflight",
+                "dependency",
+                "fail-fast",
+                "cancelled"
+              ]
+            },
+            "detail": {
+              "type": "string"
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "problems": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan",
+        "config",
+        "policy",
+        "templates",
+        "tools",
+        "nativeFiles",
+        "inventory"
+      ],
+      "description": "Hashes of everything besides the code that decides what the run checks and how.",
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/hash",
+          "description": "planHash of the plan executed."
+        },
+        "config": {
+          "$ref": "#/$defs/hash",
+          "description": "Resolved configuration and the JGates configuration files."
+        },
+        "policy": {
+          "$ref": "#/$defs/hash",
+          "description": "Policy documents."
+        },
+        "templates": {
+          "$ref": "#/$defs/hash",
+          "description": "Templates in effect and their source files."
+        },
+        "tools": {
+          "$ref": "#/$defs/hash",
+          "description": "Versions of JGates, adapters and tools, invocation commands and the tool lockfile."
+        },
+        "nativeFiles": {
+          "$ref": "#/$defs/hash",
+          "description": "Native configuration files of the tools."
+        },
+        "inventory": {
+          "$ref": "#/$defs/hash",
+          "description": "Discovery inventory."
+        }
+      }
+    },
+    "analyzed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "path",
+        "dirty",
+        "snapshot",
+        "git",
+        "inputs",
+        "stale",
+        "hashes",
+        "identity",
+        "approval"
+      ],
+      "description": "What the run analyzed.",
+      "properties": {
+        "target": {
+          "enum": [
+            "directory",
+            "working-tree",
+            "commit"
+          ],
+          "description": "directory: a folder without Git; working-tree: the work tree in place; commit: a snapshot of a commit in the data folder."
+        },
+        "path": {
+          "type": "string",
+          "description": "Folder the steps read."
+        },
+        "dirty": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "The analyzed state had changes that are not in the commit (null without Git)."
+        },
+        "snapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "kind",
+            "commit",
+            "tree",
+            "path",
+            "removed",
+            "notMaterialized"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/hash",
+              "description": "Identity of the analyzed snapshot (commit, tree, dirty, input manifest)."
+            },
+            "kind": {
+              "enum": [
+                "in-place",
+                "git-commit"
+              ]
+            },
+            "commit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "tree": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "path": {
+              "type": "string"
+            },
+            "removed": {
+              "type": "boolean",
+              "description": "The snapshot folder was removed after the run."
+            },
+            "notMaterialized": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "path",
+                  "kind"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "submodule",
+                      "lfs-pointer"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "git": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "available",
+            "repository",
+            "head",
+            "branch",
+            "base",
+            "changes"
+          ],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "repository": {
+              "type": "boolean"
+            },
+            "head": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "HEAD of the user's work tree when the run started."
+            },
+            "branch": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "base": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Base commit of a changed scope."
+            },
+            "changes": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tracked",
+                    "untracked",
+                    "truncated"
+                  ],
+                  "properties": {
+                    "tracked": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "path",
+                          "status"
+                        ],
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "untracked": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              ],
+              "description": "Tracked changes and untracked files included in the analysis (work tree in place only)."
+            }
+          }
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hash",
+            "files",
+            "bytes",
+            "truncated",
+            "excluded",
+            "lfsPointers",
+            "verified",
+            "after",
+            "changes"
+          ],
+          "properties": {
+            "hash": {
+              "$ref": "#/$defs/hash",
+              "description": "Content hash of the files the run read (outputs and caches excluded)."
+            },
+            "files": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "truncated": {
+              "type": "boolean"
+            },
+            "excluded": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "lfsPointers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "verified": {
+              "type": "boolean",
+              "description": "The manifest was taken again after the steps."
+            },
+            "after": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/hash"
+                }
+              ]
+            },
+            "changes": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "added",
+                    "modified",
+                    "removed"
+                  ],
+                  "properties": {
+                    "added": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "modified": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "removed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "stale": {
+          "type": "boolean",
+          "description": "An analyzed file changed during the run: the result belongs to no state and never passes."
+        },
+        "hashes": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hashes"
+            }
+          ]
+        },
+        "identity": {
+          "$ref": "#/$defs/hash",
+          "description": "Identity of the analysis: the snapshot plus the hashes and the scope."
+        },
+        "approval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "commit",
+            "approved",
+            "code",
+            "message"
+          ],
+          "description": "Whether the result approves a commit, and why not.",
+          "properties": {
+            "commit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "approved": {
+              "type": "boolean"
+            },
+            "code": {
+              "enum": [
+                "COMMIT_APPROVED",
+                "DECISION_NOT_PASSED",
+                "DIRTY_WORKING_TREE",
+                "INPUTS_CHANGED",
+                "INPUTS_UNTRACEABLE",
+                "NO_COMMIT"
+              ]
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "sourceCommit",
+        "producer",
+        "producerVersion",
+        "generatedAt",
+        "evidence",
+        "process",
+        "plan",
+        "identity",
+        "snapshot",
+        "hashes"
+      ],
+      "description": "Provenance of the result: the current evidence fields plus hashes, process and plan.",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "sourceCommit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "producer": {
+          "const": "jgates"
+        },
+        "producerVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generatedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "const": "runner",
+          "description": "Produced by this run on this machine; self-declared, not an attestation."
+        },
+        "process": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pid",
+            "platform",
+            "arch",
+            "node"
+          ],
+          "properties": {
+            "pid": {
+              "type": "integer"
+            },
+            "platform": {
+              "type": "string"
+            },
+            "arch": {
+              "type": "string"
+            },
+            "node": {
+              "type": "string"
+            }
+          }
+        },
+        "plan": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "hash",
+                "source",
+                "file"
+              ],
+              "properties": {
+                "hash": {
+                  "$ref": "#/$defs/hash"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        },
+        "identity": {
+          "$ref": "#/$defs/hash"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/hash"
+        },
+        "hashes": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/hashes"
+            }
+          ]
+        },
+        "semanticPrompts": {
+          "$ref": "#/$defs/semanticPrompts"
+        }
+      }
+    },
+    "semanticPrompts": {
+      "type": "object",
+      "description": "The prompts the semantic review used: the sha256 of the effective prompts (system prompt and review rubric together) and, for each, where its text came from (the packaged default, a project file or a CI policy file) and the sha256 of its text. Not part of the identity: the semantic review never feeds the decision.",
+      "additionalProperties": false,
+      "required": ["sha256", "system", "review"],
+      "properties": {
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "system": { "$ref": "#/$defs/semanticPromptPart" },
+        "review": { "$ref": "#/$defs/semanticPromptPart" }
+      }
+    },
+    "semanticFieldValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "origin"],
+      "properties": {
+        "value": { "type": ["string", "null"] },
+        "origin": { "enum": ["project", "user", "default", "unset"] }
+      }
+    },
+    "semanticPromptPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "mode", "file", "sha256"],
+      "properties": {
+        "source": { "enum": ["default", "project", "policy"] },
+        "mode": { "enum": ["default", "replace", "append"] },
+        "file": { "type": ["string", "null"], "description": "The configured file, relative to the configuration folder; null for the packaged default." },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "unit",
+        "scope",
+        "origin"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "value"
+          ],
+          "properties": {
+            "value": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "required": [
+            "measured",
+            "reason"
+          ],
+          "properties": {
+            "measured": {
+              "const": false
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "percent",
+            "count",
+            "bytes",
+            "ms",
+            "ratio",
+            "lines"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "measured": {
+          "type": "boolean",
+          "description": "false: the metric was not measured (no report, plugin missing); it has a reason and no value, and is never shown as 0."
+        },
+        "reason": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "string"
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "format": {
+          "type": "string"
+        },
+        "numerator": {
+          "type": "number"
+        },
+        "denominator": {
+          "type": "number"
+        },
+        "component": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "origin": {
+          "type": "string"
+        },
+        "scoreAppliesTo": {
+          "enum": [
+            "changed-files",
+            "entire-project",
+            "selected-paths"
+          ]
+        }
+      }
+    }
+  }
+}

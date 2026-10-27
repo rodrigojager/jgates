@@ -1,0 +1,22 @@
+{
+  "report_description": "Exports the result of a run: JSON (result.json itself) or SARIF 2.1.0 (only the compatible findings).",
+  "report_option_cwd": "Workspace folder (default: the current folder).",
+  "report_option_format": "Format: json (default) or sarif.",
+  "report_option_out": "Output file (without this option, the document goes to standard output).",
+  "report_option_agent_context": "Produces the safe summary for a coding agent (frozen policy instruction, delimited data, reproduction command). Sends nothing.",
+  "report_agent_context_format": "--agent-context does not go with --format sarif.",
+  "report_agent_context_format_fix": "Use --agent-context alone, with or without --json.",
+  "report_missing_run": "Give the run id.",
+  "report_missing_run_fix": "Use: jgates report <runId> [--format json|sarif] [--out <file>]. See the ids with jgates history.",
+  "report_bad_format": "Unknown format: {value}",
+  "report_bad_format_fix": "Use --format json or --format sarif.",
+  "report_bad_cwd": "Could not access the folder: {path}",
+  "report_bad_cwd_fix": "Check that the folder exists.",
+  "report_run_not_found": "Run not found in this workspace: {runId}",
+  "report_run_not_found_fix": "See the runs with jgates history.",
+  "report_unreadable": "The result of the run {runId} could not be read.",
+  "report_unreadable_fix": "The run may have been interrupted or deleted by retention.",
+  "report_write_failed": "Could not write {path}: {reason}",
+  "report_write_failed_fix": "Check the folder and the permissions.",
+  "report_written": "Report written to {path}"
+}

@@ -1,0 +1,9 @@
+/* Origem dos valores. Tokens from theme.css. */
+.origin-chain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.origin-chain > li { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.origin-chain > li.wins { border-color: var(--accent); background: var(--mint); }
+.origin-chain > li.wins .muted, .origin-chain > li.wins dt { color: var(--ink); }
+.origin-chain code, .origin-place code { overflow-wrap: anywhere; }
+.origin-overridden { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.origin-line { margin: 0; color: var(--muted); }
+.origin-btn { padding: 4px 10px; font-size: 12px; }

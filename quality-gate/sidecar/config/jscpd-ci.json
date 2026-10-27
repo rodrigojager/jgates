@@ -1,0 +1,12 @@
+{
+  "gitignore": false,
+  "ignore": [
+    "**/*.md",
+    "**/.quality/**",
+    "**/node_modules/**",
+    "**/obj/**",
+    "**/bin/**"
+  ],
+  "reporters": ["json"],
+  "silent": true
+}

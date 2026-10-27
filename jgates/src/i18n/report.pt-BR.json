@@ -1,0 +1,22 @@
+{
+  "report_description": "Exporta o resultado de um run: JSON (o próprio result.json) ou SARIF 2.1.0 (só os achados compatíveis).",
+  "report_option_cwd": "Pasta do workspace (padrão: a pasta atual).",
+  "report_option_format": "Formato: json (padrão) ou sarif.",
+  "report_option_out": "Arquivo de saída (sem esta opção, o documento vai para a saída padrão).",
+  "report_option_agent_context": "Gera o resumo seguro para um agente de código (instrução de política congelada, dados demarcados, comando de reprodução). Não envia nada.",
+  "report_agent_context_format": "--agent-context não combina com --format sarif.",
+  "report_agent_context_format_fix": "Use --agent-context sozinho, com ou sem --json.",
+  "report_missing_run":"Informe o id do run.",
+  "report_missing_run_fix": "Use: jgates report <runId> [--format json|sarif] [--out <arquivo>]. Veja os ids com jgates history.",
+  "report_bad_format": "Formato desconhecido: {value}",
+  "report_bad_format_fix": "Use --format json ou --format sarif.",
+  "report_bad_cwd": "Não foi possível acessar a pasta: {path}",
+  "report_bad_cwd_fix": "Confira se a pasta existe.",
+  "report_run_not_found": "Run não encontrado neste workspace: {runId}",
+  "report_run_not_found_fix": "Veja os runs com jgates history.",
+  "report_unreadable": "O resultado do run {runId} não pôde ser lido.",
+  "report_unreadable_fix": "O run pode ter sido interrompido ou apagado pela retenção.",
+  "report_write_failed": "Não foi possível gravar {path}: {reason}",
+  "report_write_failed_fix": "Confira a pasta e as permissões.",
+  "report_written": "Relatório gravado em {path}"
+}

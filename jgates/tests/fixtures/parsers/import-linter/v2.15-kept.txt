@@ -1,0 +1,12 @@
+
+---------
+Contracts
+---------
+
+Analyzed 8 files, 1 dependencies.
+---------------------------------
+
+domain-independent KEPT
+layers KEPT
+
+Contracts: 2 kept, 0 broken.

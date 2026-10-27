@@ -1,0 +1,151 @@
+# Complementary Semantic Quality Review
+
+Use this rubric to approve, reject, or improve recent code changes before commit, merge, release, or agent completion.
+
+This review is complementary to, but independent from, the deterministic quality gate. Do not use deterministic quality gate summaries as input. Review the repository diff and changed files directly.
+
+The goal is not perfect code. The goal is to block functional regressions, contextual security risks, obvious technical debt, fragile design, and changes that are hard to maintain.
+
+## Deterministic Boundary
+
+Do not duplicate deterministic responsibilities:
+
+- build, lint, format, type-check, test execution, and project command status
+- dependency and vulnerability scanners
+- static rule scanners
+- duplication detection
+- report normalization
+- deterministic score calculation
+- optional secret and PII checks when explicitly enabled elsewhere
+
+If a deterministic tool can prove a fact mechanically, do not spend findings on that fact. If the same code creates a semantic risk that requires reasoning, report only the semantic risk.
+
+## Privacy Boundary
+
+Do not inspect, infer, request, or classify secrets or PII.
+
+Secrets and PII review is opt-in and belongs to deterministic tooling by default. Do not hunt for credentials, personal documents, tokens, cookies, private keys, sensitive payloads, or identity values.
+
+If a privacy-sensitive behavior is visible from the code path, discuss only the high-level logging, data-flow, authorization, or retention risk. Never ask the user to paste real credentials or personal data.
+
+## Approval Policy
+
+Approve only when all conditions below are true for the semantic layer:
+
+1. Final score is greater than or equal to the threshold.
+2. No hard blocker is active.
+3. The change satisfies the declared or inferred objective.
+4. Important behavior changes have meaningful behavior-level tests or a clear justification for why tests are not applicable.
+5. The change does not introduce a concrete contextual security risk.
+6. Public contracts are preserved, or the migration/compatibility path is clear.
+7. The implementation does not add unnecessary complexity.
+8. The change does not remove useful validation, error handling, observability, or tests without a defensible reason.
+
+Reject automatically if any semantic hard blocker exists, even if the numeric score is high.
+
+Do not reject solely because deterministic command output was not provided. That belongs to a separate deterministic quality-gate execution.
+
+## Hard Blockers
+
+Mark as hard blocker only when the issue is concrete and grounded in the changed code.
+
+### Functional Correctness
+
+- Main requirement was not implemented.
+- Happy path works but a common error path breaks the system.
+- Existing expected behavior is likely regressed.
+- State can become inconsistent between database, cache, queue, UI, or local persistence.
+- Boundary bug is evident: null, empty, zero, off-by-one, timezone, encoding, locale, precision, or concurrent update.
+- Probable race condition or ordering bug.
+- Changed code calls an API, field, method, event, or contract that does not exist in the local project context.
+- Error handling hides failure in a way that makes the caller believe the operation succeeded.
+
+### Tests and Regression
+
+- Business rule changed without behavior-level coverage or an explicit valid reason.
+- Bug fix has no regression test when the bug is practical to reproduce.
+- Tests assert implementation trivia while missing observable behavior.
+- Test setup mocks away the integration point that the change is supposed to protect.
+- Critical edge case is not covered and manual reasoning is insufficient.
+- Test update appears to lower confidence rather than reflect a legitimate behavior change.
+
+### Semantic Security
+
+- Authentication or authorization behavior can be bypassed by the changed flow.
+- A privilege boundary was widened without an explicit product reason.
+- External input reaches a privileged business operation without domain validation at the correct boundary.
+- Error responses or UI states reveal operational internals that materially help abuse.
+- A new workflow allows confused-deputy behavior, cross-tenant access, or unintended data mutation.
+- A risky file, network, template, or command operation is introduced without adequate contextual constraints.
+- Dependency usage is architecturally unjustified or gives broad new capability where a local helper already exists.
+
+### Architecture
+
+- Public API, event, schema, or storage contract changed without compatibility or migration path.
+- Domain logic moved into UI, transport, infrastructure, or scripts against the local architecture.
+- Shared module now depends on a specific product rule that should remain local.
+- New abstraction is generic for only one concrete use case and makes the code harder to change.
+- Refactor moves complexity instead of reducing it.
+- Change creates or worsens circular ownership between modules.
+
+### Performance and Reliability
+
+- Relevant path now risks unbounded work over user-controlled or potentially large data.
+- List or search path lacks a limit, cursor, or pagination strategy where volume matters.
+- New synchronous or blocking operation appears in a hot path.
+- External IO lacks credible timeout, cancellation, idempotency, or bounded retry strategy.
+- Error handling around IO, parsing, storage, queue, or network is missing or misleading.
+- Resource lifecycle is unsafe: connection, stream, subscription, timer, handle, cache, or listener may leak.
+- UI change can trigger unnecessary repeated rendering or work in a common path.
+
+## Review Axes
+
+Score these six axes:
+
+- Functional correctness: 25 points.
+- Tests and regression: 20 points.
+- Semantic security: 20 points.
+- Maintainability: 15 points.
+- Architecture and integration: 10 points.
+- Performance and reliability: 10 points.
+
+Use the lower value between the weighted sum and these caps:
+
+- Semantic hard blocker: status REJECTED, score maximum 69.
+- Critical contextual vulnerability: score maximum 40.
+- High contextual security risk: score maximum 60.
+- Important business rule without behavior-level test: score maximum 75.
+- Bug fix without practical regression test: score maximum 75.
+- Public contract change without migration or compatibility path: score maximum 70.
+- Dangerous performance or reliability risk in a hot path: score maximum 70.
+- Complexity much higher than necessary: score maximum 80.
+- Only suggestions and nits: score should not fall below 90.
+
+## Severity
+
+- blocking: prevents semantic approval.
+- important: normally should be fixed in the same cycle.
+- suggestion: useful but not blocking.
+- nit: never blocks.
+
+Do not block on personal taste, formatter output, or style that deterministic tools already own.
+
+## AI-Generated Code Criteria
+
+AI-generated code should receive stricter scrutiny, not lighter scrutiny. Check for:
+
+- invented APIs, imports, methods, fields, events, or package names
+- code that works only in the prompt example but not in the real project
+- tests that mock away the bug or integration risk
+- superficial error handling
+- silent fallback
+- relaxed types, broad casts, or unexplained any/unknown usage
+- duplicated code caused by missing local helpers
+- confident but false comments
+- security that is only apparent
+
+## Final Instructions
+
+Always cite changed files and lines when possible. Separate blockers from suggestions. Propose concrete fixes. Explain accepted residual risks when approving. Explain the smallest required fix set when rejecting.
+
+When this rubric is used by an implementation agent, the agent should apply scoped fixes and repeat the same semantic review until approval. Keep the same objective, threshold, provider, model, and comparison range unless the user explicitly changes them. Do not pass by weakening the gate, hiding context, switching to mock/easier providers, or removing useful tests, validations, error handling, observability, or security checks.

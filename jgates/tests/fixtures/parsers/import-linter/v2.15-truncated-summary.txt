@@ -1,0 +1,12 @@
+
+---------
+Contracts
+---------
+
+Analyzed 11 files, 5 dependencies.
+----------------------------------
+
+domain-independent BROKEN
+layers BROKEN
+Independent things BROKEN
+

@@ -1,0 +1,21 @@
+{
+  "baseline_description": "Marca o run de referência (baseline) do workspace e compara um run com ele: set, clear, show, compare.",
+  "baseline_option_cwd": "Pasta do workspace (padrão: a pasta atual).",
+  "baseline_unknown_subcommand": "Subcomando desconhecido: {name}",
+  "baseline_unknown_subcommand_fix": "Use: jgates baseline set <runId> | clear | show | compare <runId>.",
+  "baseline_missing_run": "Informe o id do run.",
+  "baseline_missing_run_fix": "Veja os ids com jgates history.",
+  "baseline_bad_cwd": "Não foi possível acessar a pasta: {path}",
+  "baseline_bad_cwd_fix": "Confira se a pasta existe.",
+  "baseline_run_not_found": "Run não encontrado neste workspace: {runId}",
+  "baseline_run_not_found_fix": "Veja os runs com jgates history.",
+  "baseline_run_unfinished": "O run {runId} não terminou; não serve de baseline.",
+  "baseline_run_unfinished_fix": "Marque um run com resultado final.",
+  "baseline_no_baseline": "Este workspace não tem baseline.",
+  "baseline_no_baseline_fix": "Marque um com jgates baseline set <runId>.",
+  "baseline_set": "Baseline: {runId}",
+  "baseline_cleared": "Baseline removida.",
+  "baseline_none": "Sem baseline.",
+  "baseline_compare_line": "novos {new}, resolvidos {resolved}, mantidos {kept}",
+  "baseline_not_comparable": "Atenção: a comparação não é direta ({codes})."
+}

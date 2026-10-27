@@ -1,0 +1,9 @@
+{
+  "codecs_toml_unavailable": "Structured editing is unavailable for TOML: {reason}. Reading and text editing keep working.",
+  "codecs_toml_no_python": "no Python was found",
+  "codecs_toml_no_sidecar": "the quality sidecar was not found",
+  "codecs_toml_no_tomlkit": "tomlkit is not installed in the sidecar's Python",
+  "codecs_toml_helper_failed": "the TOML helper failed: {reason}",
+  "codecs_toml_patch_failed": "The TOML edit did not produce the expected document; nothing was written.",
+  "codecs_toml_bad_edit": "Invalid TOML edit: {reason}"
+}

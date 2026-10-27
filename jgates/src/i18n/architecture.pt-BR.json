@@ -1,0 +1,11 @@
+{
+  "architecture_passed": "Arquitetura verificada: o grafo está completo e nenhuma regra bloqueante foi violada.",
+  "architecture_failed": "{count} violação(ões) bloqueante(s) das regras de arquitetura.",
+  "architecture_incomplete_partial": "Arquitetura não provada: o grafo é parcial ({unresolved} dependência(s) sem resolução). Grafo parcial não prova ausência de violações.",
+  "architecture_incomplete_empty": "Arquitetura não provada: o grafo não tem nenhum nó. Grafo vazio não prova ausência de violações.",
+  "architecture_incomplete_bridge": "Arquitetura não avaliada: {detail}.",
+  "architecture_partial_not_required": "Cobertura parcial do grafo ({unresolved} dependência(s) sem resolução); a verificação de arquitetura não é obrigatória neste run.",
+  "architecture_no_rules": "Nenhuma regra de arquitetura habilitada.",
+  "architecture_file_missing": "O arquivo .jgates/architecture.yml não existe.",
+  "architecture_file_invalid": "O arquivo .jgates/architecture.yml é inválido: {detail}."
+}

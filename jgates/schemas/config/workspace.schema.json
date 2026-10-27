@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/config/workspace.schema.json",
+  "title": ".jgates/workspace.yml",
+  "description": "Discovery, components, includes and excludes of the workspace.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "mode": { "enum": ["auto", "explicit", "report-only"] }
+      }
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "path"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+          "path": { "type": "string", "minLength": 1 },
+          "language": { "type": "string", "minLength": 1 },
+          "framework": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 },
+          "enabled": { "type": "boolean" },
+          "include": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "exclude": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "include": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "exclude": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  }
+}

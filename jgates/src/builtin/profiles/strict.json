@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "profiles": {
+    "strict": {
+      "label": "Rigoroso",
+      "description": "O Equilibrado mais os testes do projeto e a cobertura, antes do merge.",
+      "extends": "builtin:standard",
+      "checks": {
+        "capability:pii": { "enabled": true },
+        "capability:unit": { "enabled": true },
+        "capability:coverage": { "enabled": true }
+      }
+    }
+  }
+}
