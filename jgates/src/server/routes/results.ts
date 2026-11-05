@@ -1,6 +1,7 @@
 // Results of finished (or partial) runs of this workspace for the Resultado screen: the document, the run before it, the
 // logs of the steps (paged), JSON/SARIF export, the safe context for an agent, and opening the run folder.
 // Everything is found by run id under the workspace's runs folder; no path comes from the request.
+import { runMascots } from "../mascots.js";
 import fs from "node:fs";
 import path from "node:path";
 import { buildAgentContext, scrub } from "../../core/agent-context/index.js";
@@ -69,7 +70,7 @@ export const routes: RouteDefinition[] = [
     params: runParams,
     handler({ params, server }) {
       const { result } = readResult(server, params.runId as string);
-      return { status: 200, json: { schemaVersion: 1, status: "OK", result, previous: previousOf(server, result) } };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", result, mascots: runMascots(server, result.runId, result, { orphan: result.partial === true }), previous: previousOf(server, result) } };
     },
   },
   {

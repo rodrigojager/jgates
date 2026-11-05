@@ -1,5 +1,6 @@
 // Overview: one read-only answer with everything the first screen shows (discovery counts, profile, last run, next
 // steps and the categories of the resolved profile), so the screen needs no more than one request.
+import { projectMascots } from "../../core/mascots/index.js";
 import fs from "node:fs";
 import path from "node:path";
 import { listRuns } from "../../core/artifacts/index.js";
@@ -104,6 +105,7 @@ export const routes: RouteDefinition[] = [
             ? { planHash: plan.planHash, approvable: plan.approvable, blocked: plan.blocked ? plan.blocked.message : null, uncovered: plan.groups.uncoveredRequirements.map((u) => ({ selector: u.selector, category: u.category, reason: u.reason, message: u.message })) }
             : { planHash: null, approvable: false, blocked: built.ok ? null : built.error.message, uncovered: [] },
           categories,
+          mascots: projectMascots({ plan, invalid: !built.ok }),
           lastRun: readLastRun(server),
         },
       };

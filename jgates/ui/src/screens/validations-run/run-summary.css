@@ -1,0 +1,20 @@
+.run-summary { display: grid; gap: 18px; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.run-summary[data-running="true"] { border-left: 3px solid var(--accent); }
+.run-summary-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.run-summary-state { display: flex; align-items: center; gap: 10px; font-size: 17px; min-width: 0; }
+.run-summary-spinner { flex: 0 0 auto; width: 19px; height: 19px; border: 2px solid var(--line); border-top-color: var(--accent); border-right-color: var(--accent); border-radius: 50%; animation: run-summary-turn .85s linear infinite; }
+.run-summary-icon { color: var(--accent); display: inline-flex; }
+.run-summary-icon[data-state="failed"], .run-summary-icon[data-state="crashed"] { color: var(--red); }
+.run-summary-icon[data-state="cancelled"] { color: var(--gold); }
+.run-summary-current { display: grid; gap: 5px; overflow-wrap: anywhere; }
+.run-summary-current > strong { font-size: 15px; font-weight: 600; }
+.run-summary-progress { display: grid; gap: 8px; }
+.run-summary-count { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.run-summary-count > strong { font-variant-numeric: tabular-nums; }
+.run-summary progress { display: block; appearance: none; width: 100%; height: 7px; border: 0; border-radius: 99px; overflow: hidden; background: var(--line); accent-color: var(--accent); }
+.run-summary progress::-webkit-progress-bar { background: var(--line); border-radius: 99px; }
+.run-summary progress::-webkit-progress-value { background: var(--accent); border-radius: 99px; transition: width .25s ease; }
+.run-summary progress::-moz-progress-bar { background: var(--accent); border-radius: 99px; }
+@keyframes run-summary-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .run-summary-spinner { animation: none; } .run-summary progress::-webkit-progress-value { transition: none; } }
+@media (max-width: 520px) { .run-summary { padding: 16px; } .run-summary-header { flex-wrap: wrap; gap: 12px; } }

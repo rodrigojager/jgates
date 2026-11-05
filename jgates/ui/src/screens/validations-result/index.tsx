@@ -22,7 +22,7 @@ export default function ValidationsResultScreen({ params }: { params: Record<str
       </div>
       {loaded.loading ? <Loading /> : null}
       {notFound ? <p>{t("vres_not_found")}</p> : loaded.error ? <ErrorNotice error={loaded.error} onRetry={loaded.reload} /> : null}
-      {loaded.data ? <ResultView result={(loaded.data as any).result} previous={(loaded.data as any).previous} crashed={(loaded.data as any).result?.partial === true} /> : null}
+      {loaded.data ? <ResultView mascots={loaded.data?.mascots} result={(loaded.data as any).result} previous={(loaded.data as any).previous} crashed={(loaded.data as any).result?.partial === true} /> : null}
     </div>
   );
 }

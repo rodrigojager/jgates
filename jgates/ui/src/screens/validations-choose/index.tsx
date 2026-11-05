@@ -1,3 +1,4 @@
+import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
@@ -178,6 +179,8 @@ export default function ChooseScreen() {
     if (choose && request.profile === null && choose.default) setRequest((r) => ({ ...r, profile: choose.default }));
   }, [choose, request.profile]);
 
+  const mascotPreview = useAsync(() => selected ? api("POST", "/api/plans", { profile: selected.ref, scope: "full", skip: request.skip, preview: true }) : Promise.resolve(null), `mascot-preview:${selected?.ref}:${request.skip.join(",")}:${version}`);
+
   const set = (patch: Partial<ValidationRequest>) => setRequest((r) => ({ ...r, ...patch }));
   const git = info?.git ?? null;
 
@@ -307,6 +310,7 @@ export default function ChooseScreen() {
         </section>
       ) : null}
 
+      <QualityMascotStrip snapshot={(mascotPreview.data as any)?.mascots} />
       {selected ? <Customize key={selected.ref} profile={selected} skip={request.skip} onSkip={(skip) => set({ skip })} onSaved={(id) => { setVersion((n) => n + 1); set({ skip: [], ...(id ? { profile: id } : {}) }); }} /> : null}
 
       <div className="row wrap">

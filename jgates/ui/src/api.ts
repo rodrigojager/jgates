@@ -24,7 +24,7 @@ async function ensureCsrf(): Promise<{ header: string; token: string }> {
   return csrf;
 }
 
-export async function api<T = any>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, body?: unknown): Promise<T> {
+export async function api<T = any>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (method !== "GET") {
     const token = await ensureCsrf();
@@ -33,6 +33,7 @@ export async function api<T = any>(method: "GET" | "POST" | "PUT" | "DELETE", pa
   if (body !== undefined) headers["Content-Type"] = "application/json";
   const response = await fetch(path, {
     method,
+    signal,
     credentials: "same-origin",
     headers,
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

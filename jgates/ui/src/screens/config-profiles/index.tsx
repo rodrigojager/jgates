@@ -1,3 +1,4 @@
+import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { useState } from "react";
 import { api } from "../../api";
 import { ErrorNotice, Loading, useAsync } from "../../components/common";
@@ -56,6 +57,7 @@ export default function ConfigProfilesScreen() {
 
       <ProfileCards cards={cards} starters={starters} selected={current} onSelect={setSelected} onChanged={refresh} />
 
+      <QualityMascotStrip snapshot={v.mascots} />
       <div className="cfgp-columns">
         <Protect categories={v.categories as CategoryView[]} profile={current} editable={v.profile.editable === true} onChanged={refresh} />
         <Policy policy={v.policy as PolicyView} governedPolicy={v.governed?.policy ?? null} onChanged={refresh} />

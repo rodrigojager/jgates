@@ -1,4 +1,5 @@
 // Plans: built by the core exactly as `jgates plan` does (with the switch-offs of this run only), kept by hash.
+import { projectMascots } from "../../core/mascots/index.js";
 import fs from "node:fs";
 import path from "node:path";
 import { BuiltinError } from "../../builtin/index.js";
@@ -164,7 +165,7 @@ export const routes: RouteDefinition[] = [
       if (b.preview !== true) saveLastPlan(plan, server.home);
       server.plans.set(plan.planHash, plan);
       while (server.plans.size > 20) server.plans.delete(server.plans.keys().next().value as string);
-      return { status: 201, json: { schemaVersion: 1, status: plan.blocked ? "BLOCKED" : "OK", planHash: plan.planHash, approvable: plan.approvable, blocked: plan.blocked, plan, review: { ...selectionReview(server.projectDir, b), estimate: estimateMs(server) } } };
+      return { status: 201, json: { schemaVersion: 1, status: plan.blocked ? "BLOCKED" : "OK", planHash: plan.planHash, approvable: plan.approvable, blocked: plan.blocked, plan, mascots: projectMascots({ plan }), review: { ...selectionReview(server.projectDir, b), estimate: estimateMs(server) } } };
     },
   },
   {

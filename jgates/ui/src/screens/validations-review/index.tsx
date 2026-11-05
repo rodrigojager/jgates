@@ -1,3 +1,4 @@
+import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { useMemo, useState } from "react";
 import { ApiError, api } from "../../api";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
@@ -205,6 +206,7 @@ export default function ReviewScreen() {
         </section>
       ) : null}
 
+      <QualityMascotStrip snapshot={response?.mascots} />
       {plan ? (
         <>
           <div className="card flat stack">

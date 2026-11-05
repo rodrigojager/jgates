@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { readEvents, type RunEvent as StepEvent } from "../../core/events/index.js";
 import { workspaceDir } from "../../core/home/index.js";
+import { frozenPlan, runMascots } from "../mascots.js";
+import type { RunResult } from "../../core/run/types.js";
 import { RESULT_FILE } from "../../core/run/index.js";
 import { translator } from "../../i18n/index.js";
 import { refuse } from "../http.js";
@@ -152,7 +154,12 @@ export const routes: RouteDefinition[] = [
           status: "OK",
           runId,
           run: job ? jobView(job, false) : null,
-          steps: job ? planSteps(server, job.planHash) : [],
+          steps: job ? planSteps(server, job.planHash) : (frozenPlan(server, runId)?.invocations ?? []).map((i) => ({ id: i.id, label: i.id })),
+          mascots: runMascots(server, runId, stored as RunResult | null, {
+            plan: job ? findPlan(server, job.planHash) : null,
+            events: readEvents(eventsFileOf(runId), runId ? { runId } : {}).events,
+            running, orphan, cancelRequested: job?.events.some((e) => e.type === "cancel-requested") === true,
+          }),
           events,
           cursor: nextCursor,
           done,

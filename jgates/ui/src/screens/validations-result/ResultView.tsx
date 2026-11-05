@@ -1,3 +1,5 @@
+import { QualityMascotStrip } from "../../components/QualityMascotStrip";
+import type { MascotSnapshot } from "../../../../src/core/mascots/index";
 import { useMemo, useState } from "react";
 import { formatLocale } from "../../i18n/locale";
 import { api } from "../../api";
@@ -305,7 +307,7 @@ function FindingRow({ f }: { f: any }) {
   );
 }
 
-function Findings({ result }: { result: any }) {
+function Findings({ result, domainFilter, onClear }: { result: any; domainFilter: { domain: string; ids: string[] } | null; onClear: () => void }) {
   const findings: any[] = result.findings ?? [];
   const [severity, setSeverity] = useState("");
   const [category, setCategory] = useState("");
@@ -313,10 +315,11 @@ function Findings({ result }: { result: any }) {
   const severities = useMemo(() => [...new Set(findings.map((f) => String(f.normalizedSeverity)))], [findings]);
   const categories = useMemo(() => [...new Set(findings.map((f) => String(f.category ?? "")))], [findings]);
   const components = useMemo(() => [...new Set(findings.map((f) => String(f.component ?? "")).filter(Boolean))], [findings]);
-  const shown = findings.filter((f) => (!severity || String(f.normalizedSeverity) === severity) && (!category || String(f.category ?? "") === category) && (!component || String(f.component ?? "") === component));
+  const shown = findings.filter((f) => (!domainFilter || domainFilter.ids.includes(f.stageId)) && (!severity || String(f.normalizedSeverity) === severity) && (!category || String(f.category ?? "") === category) && (!component || String(f.component ?? "") === component));
   return (
     <section className="stack" aria-labelledby="vres-findings">
       <h3 id="vres-findings">{t("vres_findings")}</h3>
+      {domainFilter ? <p>{t(`mascot_domain_${domainFilter.domain}`)} <button className="btn" type="button" onClick={onClear}>{t("mascot_clear_filter")}</button></p> : null}
       {findings.length > 0 ? (
         <div className="row wrap" role="group" aria-label={t("vres_findings")}>
           <label className="row">
@@ -608,7 +611,10 @@ function Actions({ runId }: { runId: string }) {
 }
 
 /** The Resultado of a run: the decision, the steps, metrics, findings, what was turned off and what was left behind. */
-export function ResultView({ result, previous, crashed = false }: { result: any; previous: any; crashed?: boolean }) {
+export type DomainFilter = { domain: string; ids: string[] };
+export function ResultView({ result, previous, crashed = false, mascots, selectedDomain, onClearDomain }: { result: any; previous: any; crashed?: boolean; mascots?: MascotSnapshot; selectedDomain?: DomainFilter | null; onClearDomain?: () => void }) {
+  const [localDomain, setDomainFilter] = useState<DomainFilter | null>(null);
+  const domainFilter = selectedDomain === undefined ? localDomain : selectedDomain;
   const started = Date.parse(result.startedAt ?? "");
   const finished = Date.parse(result.finishedAt ?? "");
   const duration = Number.isFinite(started) && Number.isFinite(finished) ? finished - started : undefined;
@@ -617,6 +623,7 @@ export function ResultView({ result, previous, crashed = false }: { result: any;
     <section className="stack" aria-labelledby="result-title">
       <h2 id="result-title">{t("vres_title")}</h2>
       <Banner result={result} crashed={crashed} />
+      <QualityMascotStrip snapshot={mascots} onSelect={(domain, ids) => setDomainFilter({ domain, ids })} />
       <div className="card flat">
         <dl className="kv">
           <dt>{t("vres_decision")}</dt>
@@ -669,7 +676,7 @@ export function ResultView({ result, previous, crashed = false }: { result: any;
       </div>
       <Actions runId={result.runId} />
       <Stages result={result} />
-      <Findings result={result} />
+      <Findings result={result} domainFilter={domainFilter} onClear={() => { setDomainFilter(null); onClearDomain?.(); }} />
       <Metrics result={result} />
       <Architecture result={result} />
       <Disabled result={result} />

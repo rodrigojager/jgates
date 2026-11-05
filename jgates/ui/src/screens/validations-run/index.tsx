@@ -1,10 +1,13 @@
+import { QualityMascotStrip } from "../../components/QualityMascotStrip";
+import type { MascotSnapshot } from "../../../../src/core/mascots/index";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api } from "../../api";
 import { ErrorNotice, Loading, Pill } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
-import { ResultView, formatDuration, stageName, stateText } from "../validations-result/ResultView";
+import { ResultView, formatDuration, stageName, stateText, type DomainFilter } from "../validations-result/ResultView";
+import "./run-summary.css";
 
 // Runs are opened by the id the server gave (job_...) or by the id of a stored run (run_...); the route stays /runs/:id.
 export const screen: ScreenMeta = { id: "validations-run", path: "/runs/:id", area: "validations", order: 40 };
@@ -154,17 +157,27 @@ export default function RunScreen({ params }: { params: Record<string, string> }
   const [error, setError] = useState<unknown>(null);
   const [notFound, setNotFound] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const stop = useRef(false);
+  const [followVersion, setFollowVersion] = useState(0);
+  const followedId = useRef<string | null>(null);
+  const [mascots, setMascots] = useState<MascotSnapshot | null>(null);
+  const [selectedDomain, setSelectedDomain] = useState<DomainFilter | null>(null);
 
   useEffect(() => {
-    stop.current = false;
+    let stopped = false;
+    const abort = new AbortController();
+    if (followedId.current !== id) {
+      setJob(null); setRunId(id.startsWith("run_") ? id : null); setSteps([]); setEvents([]);
+      setFinal(null); setCancelling(false); setMascots(null); setSelectedDomain(null); followedId.current = id;
+    }
+    setError(null); setNotFound(false);
     let cursor = 0;
     async function follow() {
       try {
         for (;;) {
-          const r = await api("GET", `/api/runs/${id}/progress?cursor=${cursor}&wait=${id.startsWith("job_") ? 20000 : 0}`);
-          if (stop.current) return;
+          const r = await api("GET", `/api/runs/${id}/progress?cursor=${cursor}&wait=${id.startsWith("job_") ? 20000 : 0}`, undefined, abort.signal);
+          if (stopped) return;
           cursor = r.cursor;
+          if (r.mascots) setMascots(r.mascots);
           if (r.runId) setRunId(r.runId);
           if (r.run) setJob(r.run);
           else if (!id.startsWith("job_")) setJob({ id, state: r.orphan ? "crashed" : r.done ? "finished" : "running" });
@@ -182,14 +195,15 @@ export default function RunScreen({ params }: { params: Record<string, string> }
             let previous: any = null;
             if (r.runId) {
               try {
-                const full = await api("GET", `/api/results/${r.runId}`);
+                const full = await api("GET", `/api/results/${r.runId}`, undefined, abort.signal);
                 result = full.result;
                 previous = full.previous;
+                if (!stopped && full.mascots) setMascots(full.mascots);
               } catch {
                 // The progress copy of the result is enough.
               }
             }
-            if (stop.current) return;
+            if (stopped) return;
             if (r.run) setJob(r.run);
             if (result) setFinal({ result, previous, crashed: r.orphan === true });
             return;
@@ -197,16 +211,17 @@ export default function RunScreen({ params }: { params: Record<string, string> }
           if (!id.startsWith("job_")) await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       } catch (e) {
-        if (stop.current) return;
+        if (stopped) return;
         if (e instanceof ApiError && e.status === 404) setNotFound(true);
         else setError(e);
       }
     }
     follow();
     return () => {
-      stop.current = true;
+      stopped = true;
+      abort.abort();
     };
-  }, [id]);
+  }, [id, followVersion]);
 
   async function cancel() {
     setCancelling(true);
@@ -233,34 +248,36 @@ export default function RunScreen({ params }: { params: Record<string, string> }
         <h1>{t("vrun_title")}</h1>
       </div>
       {notFound ? <p>{t("vrun_not_found")}</p> : null}
-      {error ? <ErrorNotice error={error} /> : null}
+      {error ? <ErrorNotice error={error} onRetry={() => setFollowVersion((n) => n + 1)} /> : null}
       {!job && !notFound && !error ? <Loading /> : null}
       {job ? (
-        <div className="between wrap">
-          <div className="row wrap">
-            <span className="muted">{t("vrun_state")}</span>
-            <Pill tone={running ? "blue" : uiState === "finished" ? "green" : "gold"}>
-              <span data-testid="run-state" data-state={uiState}>
+        <section className="run-summary" data-running={running} aria-label={t("vrun_summary")}>
+          <div className="run-summary-header">
+            <div className="run-summary-state" role="status">
+              <span className={running ? "run-summary-spinner" : "run-summary-icon"} data-state={uiState} aria-hidden="true">
+                {running ? null : <Icon name={uiState === "finished" ? "check" : uiState === "cancelled" ? "stop" : "alert"} />}
+              </span>
+              <strong data-testid="run-state" data-state={uiState}>
                 {tOr(`vrun_state_${uiState}`, uiState)}
-              </span>
-            </Pill>
-            {running && total > 0 ? (
-              <span data-testid="run-progress">
-                {current ? t("vrun_current", { current: Math.min(closed + 1, total), total, name: current.label }) : t("vrun_current_idle", { current: Math.min(closed + 1, total), total })}
-              </span>
-            ) : total > 0 ? (
-              <span data-testid="run-progress">{t("vrun_progress_done", { done: closed, total })}</span>
-            ) : null}
-          </div>
+              </strong>
+            </div>
           {running ? (
-            <div className="row wrap">
-              <button type="button" className="btn danger" onClick={cancel} disabled={cancelling}>
+              <button type="button" className="btn" onClick={cancel} disabled={cancelling}>
                 <Icon name="stop" />
                 {t("vrun_cancel")}
               </button>
-            </div>
           ) : null}
-        </div>
+          </div>
+          {running ? <div className="run-summary-current">
+            <span className="small muted" data-testid="run-progress">{total > 0 ? t("vrun_current_idle", { current: Math.min(closed + 1, total), total }) : t("vrun_preparing")}</span>
+            <strong>{current ? stageName(current) : t("vrun_waiting_step")}</strong>
+          </div> : null}
+          {total > 0 ? <div className="run-summary-progress">
+            <div className="run-summary-count"><span>{t("vrun_closed_label")}</span><strong>{closed}<span className="muted"> / {total}</span></strong></div>
+            <progress max={total} value={closed} aria-label={t("vrun_progress_label")} aria-valuetext={t("vrun_progress_done", { done: closed, total })} />
+            <span className="sr-only" {...(!running ? { "data-testid": "run-progress" } : {})}>{t("vrun_progress_done", { done: closed, total })}</span>
+          </div> : null}
+        </section>
       ) : null}
       {running && cancelling ? (
         <p role="status" className="muted">
@@ -278,6 +295,7 @@ export default function RunScreen({ params }: { params: Record<string, string> }
           </div>
         </div>
       ) : null}
+      <QualityMascotStrip snapshot={mascots} onSelect={(domain, ids) => setSelectedDomain({ domain, ids })} />
       {job && rows.length > 0 ? (
         <section className="stack" aria-labelledby="vrun-steps">
           <h2 id="vrun-steps">{t("vrun_steps")}</h2>
@@ -336,7 +354,7 @@ export default function RunScreen({ params }: { params: Record<string, string> }
           )}
         </section>
       ) : null}
-      {final ? <ResultView result={final.result} previous={final.previous} crashed={final.crashed} /> : null}
+      {final ? <ResultView result={final.result} previous={final.previous} crashed={final.crashed} selectedDomain={selectedDomain} onClearDomain={() => setSelectedDomain(null)} /> : null}
     </div>
   );
 }

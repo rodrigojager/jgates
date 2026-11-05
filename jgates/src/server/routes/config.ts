@@ -1,6 +1,8 @@
 // Configuração > Perfil: the selected profile's checks by category (capabilities, tools, rules) with the origin of every
 // value, "why is this on?" (the same chain `jgates config resolve --explain` prints), granular on/off written into the
 // profile by patch, and the policy controls (severity, minimum coverage, missing verification).
+import { buildPlan } from "../../core/plan/index.js";
+import { projectMascots } from "../../core/mascots/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { createCoreCatalog } from "../../core/catalog/index.js";
 import { encodePointer, resolveConfig, type ResolvedField, type ResolveResult } from "../../core/config/resolve/index.js";
@@ -165,9 +167,11 @@ function buildView(server: ServerContext, ref: string) {
     coverage: { denominator: "lines", scopes: coverageScopes },
   };
 
+  const built = buildPlan(server.projectDir, { profile: ref, home: server.home, version: server.version, compare: false });
   return {
     schemaVersion: 1,
     status: "OK",
+    mascots: projectMascots({ plan: built.ok ? built.plan : null, invalid: !built.ok }),
     mode: mode.mode,
     governed: mode.governed,
     profile: { ref, id: ref.replace(/^builtin:/, ""), editable, isDefault: def === ref, file },

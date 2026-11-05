@@ -1,3 +1,4 @@
+import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { api } from "../../api";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { Icon, type IconName } from "../../components/icons";
@@ -35,6 +36,7 @@ interface Category {
 }
 
 interface Overview {
+  mascots?: import("../../../../src/core/mascots/index").MascotSnapshot;
   discovery: { components: number; languages: string[]; ambiguous: Array<{ id: string; root: string; reasonCode: string }>; inconsistencies: number };
   profile: { id: string; label: string | null } | null;
   plan: { planHash: string | null; approvable: boolean; blocked: string | null; uncovered: Array<{ selector: string; category: string | null; reason: string; message: string }> };
@@ -289,6 +291,7 @@ export default function OverviewScreen() {
                 {t("overview_customize")} <Icon name="sliders" />
               </a>
             </div>
+            <QualityMascotStrip snapshot={data.mascots} />
             <Protection categories={data.categories} />
           </section>
 

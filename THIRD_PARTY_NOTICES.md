@@ -107,3 +107,7 @@ here; their licenses are inside the MegaLinter image.
 
 - Models and providers used by the semantic gate are called over their APIs and are not distributed.
 - The vulnerability and rule databases named above are downloaded by the user's run and never stored in this repository.
+
+## Three.js
+
+The Quality Gate mascots use Three.js 0.187.0, copyright Three.js authors, under the MIT license. The full license is included at `jgates/ui/public/licenses/three.txt`. Character geometry and animations are procedural local assets.
