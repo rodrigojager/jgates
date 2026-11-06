@@ -5,6 +5,7 @@ import { translator, type Translator } from "../../i18n/index.js";
 import { readVersion } from "../../cli/version.js";
 import { listBuiltinProfiles, listBuiltinTemplates, getBuiltinTemplate, isBuiltinRef } from "../../builtin/index.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
+import { subcheckLabel } from "../catalog/index.js";
 import { buildRequest } from "../../adapters/quality-bridge/index.js";
 import { bridgeToolConfigs, effectiveCommand, isConfigurable } from "../../adapters/quality-bridge/tool-configs.js";
 import { ADAPTER_ID, planSubchecks, type BridgeSelection, type SubcheckPlan } from "../../adapters/quality-bridge/requirements.js";
@@ -607,7 +608,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       tool: p.tool.id,
       adapter: adapterId,
       subcheck: subId,
-      label: sub?.label ?? ext?.plan.label ?? p.tool.id,
+      label: (sub ? subcheckLabel(ADAPTER_ID, sub) : null) ?? ext?.plan.label ?? p.tool.id,
       category: capCategory.get(p.capability) ?? null,
       capabilities: [p.capability],
       components: refs,

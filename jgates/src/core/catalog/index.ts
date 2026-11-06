@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020Module from "ajv/dist/2020.js";
+import { translator } from "../../i18n/index.js";
 
 export interface CatalogEntry {
   id: string;
@@ -206,10 +207,31 @@ export const CORE_CAPABILITIES: CatalogEntry[] = [
   cap("file-size", "quality", "Tamanho de arquivo", "Limite de linhas por arquivo.", { unit: "lines" }),
 ];
 
-/** Builds a catalog with the core categories and capabilities (no adapters). */
+/** The label and description of a core entry in the current language; the text above is the fallback. */
+function localized(kind: "category" | "capability", entry: CatalogEntry): CatalogEntry {
+  const t = translator("catalog");
+  const text = (key: string, fallback: string) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
+  return {
+    ...entry,
+    label: text(`${kind}_${entry.id}_label`, entry.label),
+    description: text(`${kind}_${entry.id}_description`, entry.description),
+  };
+}
+
+/** The label of an adapter's subcheck in the current language (built-in subchecks), or the one in its manifest. */
+export function subcheckLabel(adapterId: string, sub: { id: string; label: string }): string {
+  const key = `subcheck_${adapterId}_${sub.id}_label`;
+  const value = translator("catalog")(key);
+  return value === key ? sub.label : value;
+}
+
+/** Builds a catalog with the core categories and capabilities (no adapters), in the current language. */
 export function createCoreCatalog(): Catalog {
   const catalog = new Catalog();
-  for (const c of CORE_CATEGORIES) catalog.addCategory(c);
-  for (const c of CORE_CAPABILITIES) catalog.addCapability(c);
+  for (const c of CORE_CATEGORIES) catalog.addCategory(localized("category", c));
+  for (const c of CORE_CAPABILITIES) catalog.addCapability(localized("capability", c));
   return catalog;
 }

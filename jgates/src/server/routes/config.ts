@@ -5,7 +5,7 @@ import { buildPlan } from "../../core/plan/index.js";
 import { findNativeMinimum } from "../../adapters/pytest/coverage.js";
 import { projectMascots } from "../../core/mascots/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
-import { createCoreCatalog } from "../../core/catalog/index.js";
+import { createCoreCatalog, subcheckLabel } from "../../core/catalog/index.js";
 import { encodePointer, resolveConfig, type ResolvedField, type ResolveResult } from "../../core/config/resolve/index.js";
 import { listProfiles, setPolicyRules, setProfileChecks, type PolicyChange } from "../../core/profiles/index.js";
 import { resolveSelection, type SelectionItem, type SelectionResult } from "../../core/selection/index.js";
@@ -60,7 +60,7 @@ function toolLabels(): Map<string, string> {
   const labels = new Map<string, string>();
   for (const manifest of builtinManifests()) {
     labels.set(manifest.id, manifest.displayName);
-    for (const sub of manifest.subchecks ?? []) labels.set(`${manifest.id}.${sub.id}`, sub.label);
+    for (const sub of manifest.subchecks ?? []) labels.set(`${manifest.id}.${sub.id}`, subcheckLabel(manifest.id, sub));
   }
   return labels;
 }

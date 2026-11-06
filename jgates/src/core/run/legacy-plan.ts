@@ -14,7 +14,7 @@ import { requestFromPlan } from "../../adapters/quality-bridge/from-plan.js";
 import { ADAPTER_ID, planSubchecks, type BridgeMode, type BridgeSelection, type SubcheckPlan } from "../../adapters/quality-bridge/requirements.js";
 import type { BridgeRequest } from "../bridge/index.js";
 import { resolvePython, resolveSidecarDir } from "../bridge/index.js";
-import { CORE_CAPABILITIES } from "../catalog/index.js";
+import { CORE_CAPABILITIES, subcheckLabel } from "../catalog/index.js";
 import { discoverWorkspace } from "../discovery/index.js";
 import { canonicalJson, canonicalPath, contentHash, workspaceId } from "../ids/index.js";
 import { computePlanHash, diffPlans, rebuildInPlanLocale, RUN_DIR_TOKEN, validatePlanDocument, type PlanCheck, type PlanCheckCode } from "../plan/index.js";
@@ -98,7 +98,7 @@ export function legacyPlan(workspacePath: string, selection: BridgeSelection, op
         tool,
         adapter: ADAPTER_ID,
         subcheck: sub.id,
-        label: sub.label,
+        label: subcheckLabel(ADAPTER_ID, sub),
         category: categoryOf.get(capability) ?? null,
         capabilities: [capability],
         components: refs,
