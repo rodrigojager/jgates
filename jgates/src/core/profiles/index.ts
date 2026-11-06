@@ -91,6 +91,22 @@ function defaultOf(load: ConfigLoadResult): string {
   return typeof selection.profile === "string" ? selection.profile : DEFAULT_PROFILE;
 }
 
+/**
+ * The label and description of a starter profile in the active language (the catalog "profiles"), falling back to
+ * the text of its built-in file. A project's own profiles keep the text written in their file.
+ */
+export function starterProfileText(id: string, body: Record<string, unknown>): { label: string | null; description: string | null } {
+  const tp = translator("profiles");
+  const fromCatalog = (key: string) => {
+    const value = tp(key);
+    return value === key ? null : value;
+  };
+  return {
+    label: fromCatalog(`builtin_profile_${id}_label`) ?? (typeof body.label === "string" ? body.label : null),
+    description: fromCatalog(`builtin_profile_${id}_description`) ?? (typeof body.description === "string" ? body.description : null),
+  };
+}
+
 /** Lists the project profiles, then the starter profiles, with the default and the revisions of the files. */
 export function listProfiles(dir: string): ProfileList {
   const load = loadValid(path.resolve(dir));
@@ -100,8 +116,9 @@ export function listProfiles(dir: string): ProfileList {
     id: origin === "builtin" ? ref.replace(/^builtin:/, "") : ref,
     origin,
     ref,
-    label: typeof body.label === "string" ? body.label : null,
-    description: typeof body.description === "string" ? body.description : null,
+    ...(origin === "builtin"
+      ? starterProfileText(ref.replace(/^builtin:/, ""), body)
+      : { label: typeof body.label === "string" ? body.label : null, description: typeof body.description === "string" ? body.description : null }),
     extends: typeof body.extends === "string" ? body.extends : null,
     checks: asRecord(body.checks) as ProfileInfo["checks"],
     isDefault: def === ref,

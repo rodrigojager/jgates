@@ -59,5 +59,11 @@
   "profiles_save_only_fix": "Rode de novo com --skip nos itens a desligar e salve esse run, ou use profiles create.",
   "profiles_save_description": "Salvo do run {run}.",
   "profiles_saved": "Perfil {id} salvo em {file} a partir do run {run}: base {from}, {count} seletores desligados.",
-  "profiles_usage_save": "Use: jgates profiles save --run <runId> --as <id> [--label <nome>] [--replace] [--if-match <hash>]"
+  "profiles_usage_save": "Use: jgates profiles save --run <runId> --as <id> [--label <nome>] [--replace] [--if-match <hash>]",
+  "builtin_profile_minimal_label": "Essencial",
+  "builtin_profile_minimal_description": "O mínimo antes de cada commit: lint, tamanho de arquivo e segredos.",
+  "builtin_profile_standard_label": "Equilibrado",
+  "builtin_profile_standard_description": "O Essencial mais SAST, dependências, duplicação, infraestrutura como código e dados pessoais.",
+  "builtin_profile_strict_label": "Rigoroso",
+  "builtin_profile_strict_description": "O Equilibrado mais os testes do projeto e a cobertura, antes do merge."
 }

@@ -15,5 +15,7 @@
   "init_write_failed_fix": "Confira a permissão de escrita na pasta do projeto e rode jgates init de novo.",
   "init_done": "Configuração criada com o perfil {profile}. Templates: {templates}.",
   "init_created": "Criado: {file}",
-  "init_next": "Próximos passos: jgates config validate, jgates config resolve --explain."
+  "init_next": "Próximos passos: jgates config validate, jgates config resolve --explain.",
+  "init_file_header_root": "Configuração do JGates: perfil usado por padrão e templates das stacks do projeto.\nOs perfis ficam em .jgates/profiles.yml.",
+  "init_file_header_profiles": "Perfis do projeto (JGates). Cada perfil herda do perfil de partida de mesmo nome\n(builtin:*) e pode ser editado, renomeado ou removido."
 }

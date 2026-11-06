@@ -4,6 +4,8 @@ import YAML from "yaml";
 import { builtinProfileBody, getBuiltinProfile } from "../../builtin/index.js";
 import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE } from "../config/load/index.js";
 import { discoverWorkspace } from "../discovery/index.js";
+import { starterProfileText } from "../profiles/index.js";
+import { translator } from "../../i18n/index.js";
 
 export const STARTER_PROFILES = ["minimal", "standard", "strict"] as const;
 export const DEFAULT_PROFILE = "standard";
@@ -76,10 +78,13 @@ function profilesText(): string {
     const item = getBuiltinProfile(`builtin:${id}`);
     if (!item) throw new Error(`Starter profile builtin:${id} is missing`);
     // Same shape as the starter, but inheriting from it by name and with the id of the project.
-    profiles[id] = { ...builtinProfileBody(item), extends: `builtin:${id}` };
+    // The label and description in the language the configuration is created in (the person's UI or CLI language).
+    const body = builtinProfileBody(item);
+    const text = starterProfileText(id, body);
+    profiles[id] = { ...body, ...(text.label ? { label: text.label } : {}), ...(text.description ? { description: text.description } : {}), extends: `builtin:${id}` };
   }
   const doc = YAML.stringify({ schemaVersion: 1, profiles }, { lineWidth: 0 });
-  return `${header("Perfis do projeto (JGates). Cada perfil herda do perfil de partida de mesmo nome\n(builtin:*) e pode ser editado, renomeado ou removido.")}\n${doc}`;
+  return `${header(translator("init")("init_file_header_profiles"))}\n${doc}`;
 }
 
 function rootText(profile: string, templates: TemplateEntry[]): string {
@@ -94,7 +99,7 @@ function rootText(profile: string, templates: TemplateEntry[]): string {
     { schemaVersion: 1, extends: [PROFILES_FILE], selection: { profile }, templates: list },
     { lineWidth: 0 },
   );
-  return `${header("Configuração do JGates: perfil usado por padrão e templates das stacks do projeto.\nOs perfis ficam em .jgates/profiles.yml.")}\n${doc}`;
+  return `${header(translator("init")("init_file_header_root"))}\n${doc}`;
 }
 
 /** Builds the files init would create from what discovery finds; touches nothing. */

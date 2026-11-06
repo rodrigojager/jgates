@@ -15,5 +15,7 @@
   "init_write_failed_fix": "Check the write permission on the project folder and run jgates init again.",
   "init_done": "Configuration created with the profile {profile}. Templates: {templates}.",
   "init_created": "Created: {file}",
-  "init_next": "Next steps: jgates config validate, jgates config resolve --explain."
+  "init_next": "Next steps: jgates config validate, jgates config resolve --explain.",
+  "init_file_header_root": "JGates configuration: the default profile and the templates of the project's stacks.\nThe profiles are in .jgates/profiles.yml.",
+  "init_file_header_profiles": "Project profiles (JGates). Each profile inherits from the starter profile of the same name\n(builtin:*) and can be edited, renamed or removed."
 }
