@@ -96,6 +96,7 @@ const PATHS: Record<string, ReactNode> = {
     </>
   ),
   power: <path d="M12 3v8M6.5 6.8a7.5 7.5 0 1 0 11 0" />,
+  hourglass: <path d="M6 3.5h12M6 20.5h12M8 3.5v2.5c0 2.2 1.6 3.8 4 6 2.4-2.2 4-3.8 4-6V3.5M8 20.5V18c0-2.2 1.6-3.8 4-6 2.4 2.2 4 3.8 4 6v2.5" />,
   lock: (
     <>
       <path d="M6 11h12v9H6z" />

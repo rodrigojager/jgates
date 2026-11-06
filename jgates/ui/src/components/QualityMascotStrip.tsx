@@ -84,7 +84,7 @@ export function QualityMascotStrip({ snapshot, onSelect }: { snapshot: MascotSna
           <div key={d.domain} className="quality-mascot" data-domain={d.domain} data-status={d.status} data-selection={d.selection}>
             <div className="quality-mascot-viewport" data-viewport={d.domain} aria-hidden="true" />
             <strong>{t(`mascot_domain_${d.domain}`)}</strong>
-            <span className="quality-mascot-status" data-status={d.status}><Icon name={statusIcons[d.status] ?? "info"} /> {t(snapshot.context === "configuration" && d.status === "waiting" ? "mascot_enabled" : `mascot_status_${d.status}`)}</span>
+            <span className="quality-mascot-status" data-status={d.status}><Icon name={snapshot.context === "run" && d.status === "waiting" ? "hourglass" : (statusIcons[d.status] ?? "info")} /> {t(snapshot.context === "configuration" && d.status === "waiting" ? "mascot_enabled" : `mascot_status_${d.status}`)}</span>
             {(d.status === "processing" || d.status === "waiting") && (d.hasFindings || d.hasWarnings) ? <small>{t(d.hasFindings ? "mascot_partial_findings" : "mascot_warnings")}</small> : null}
             {d.progress ? <small>{t("mascot_checks", { completed: d.progress.completed, total: d.progress.total })}</small> : null}
             {d.excluded ? <small>{t("mascot_excluded", { count: d.excluded })}</small> : null}
