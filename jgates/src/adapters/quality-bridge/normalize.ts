@@ -11,6 +11,7 @@ import type {
   ResultRequirement,
   ResultStage,
 } from "../../core/run/types.js";
+import { subcheckLabel } from "../../core/catalog/index.js";
 import { qualityBridgeManifest } from "./manifest.js";
 import { ADAPTER_ID, COMPOSITE_STAGE_ID, stageIdOf, type SubcheckPlan } from "./requirements.js";
 
@@ -64,7 +65,11 @@ function defaultReason(status: BridgeSubcheck["status"]): string | undefined {
   return undefined;
 }
 
-const labels = new Map((qualityBridgeManifest.subchecks ?? []).map((s) => [s.id, s.label]));
+// Labels in the person's language (catalog i18n), read when the result is built: the locale is set after import.
+const labelOf = (id: string): string | undefined => {
+  const sub = (qualityBridgeManifest.subchecks ?? []).find((s) => s.id === id);
+  return sub ? subcheckLabel(ADAPTER_ID, sub) : undefined;
+};
 
 interface ExtraTool {
   name: string;
@@ -175,7 +180,7 @@ export function normalizeBridge(outcome: BridgeOutcome, plans: SubcheckPlan[]): 
   const subStage = (p: SubcheckPlan, state: StageState, reason?: string): ResultStage => {
     const stage: ResultStage = {
       id: p.stageId,
-      label: labels.get(p.subcheckId) ?? p.subcheckId,
+      label: labelOf(p.subcheckId) ?? p.subcheckId,
       kind: "subcheck",
       parentId: COMPOSITE_STAGE_ID,
       adapter: ADAPTER_ID,
