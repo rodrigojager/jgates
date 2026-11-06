@@ -1,0 +1,16 @@
+{
+  "skill_description": "Shortcut for coding agents: prints the JGates skill (how to validate, read the result and fix without changing the criteria); --path prints where it is and --install <folder> copies it into the agent's skills folder.",
+  "skill_option_path": "Only the path of this installation's SKILL.md.",
+  "skill_option_install": "Copies the skill to <folder>/SKILL.md (for example your agent's skills folder).",
+  "skill_option_force": "With --install, replaces a different SKILL.md already there.",
+  "skill_unexpected_argument": "Unexpected argument: {name}.",
+  "skill_unexpected_argument_fix": "Use jgates skill, jgates skill --path or jgates skill --install <folder>.",
+  "skill_missing": "The skill was not found at {path}.",
+  "skill_missing_fix": "Reinstall JGates: the package ships jgates/skill/SKILL.md.",
+  "skill_exists": "A different SKILL.md already exists at {path}.",
+  "skill_exists_fix": "Check the file and repeat with --force to replace it, or choose another folder.",
+  "skill_write_failed": "Could not write {path}: {reason}",
+  "skill_write_failed_fix": "Check the folder and its permissions.",
+  "skill_installed": "Skill installed at {path}.",
+  "skill_installed_same": "The skill at {path} is already this version's."
+}

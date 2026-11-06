@@ -1,0 +1,16 @@
+{
+  "skill_description": "Atalho para agentes de código: mostra o skill do JGates (como validar, ler o resultado e corrigir sem mudar os critérios); --path mostra onde ele está e --install <pasta> o copia para a pasta de skills do agente.",
+  "skill_option_path": "Só o caminho do arquivo SKILL.md desta instalação.",
+  "skill_option_install": "Copia o skill para <pasta>/SKILL.md (por exemplo, a pasta de skills do seu agente).",
+  "skill_option_force": "Com --install, substitui um SKILL.md diferente que já esteja lá.",
+  "skill_unexpected_argument": "Argumento inesperado: {name}.",
+  "skill_unexpected_argument_fix": "Use jgates skill, jgates skill --path ou jgates skill --install <pasta>.",
+  "skill_missing": "O skill não foi encontrado em {path}.",
+  "skill_missing_fix": "Reinstale o JGates: o pacote traz jgates/skill/SKILL.md.",
+  "skill_exists": "Já existe um SKILL.md diferente em {path}.",
+  "skill_exists_fix": "Confira o arquivo e repita com --force para substituí-lo, ou escolha outra pasta.",
+  "skill_write_failed": "Não foi possível gravar {path}: {reason}",
+  "skill_write_failed_fix": "Confira a pasta e as permissões.",
+  "skill_installed": "Skill instalado em {path}.",
+  "skill_installed_same": "O skill em {path} já é o desta versão."
+}
