@@ -4,7 +4,7 @@ import { localeFromArgv, parseArgs, wantsJson } from "./args.js";
 import type { CommandContext } from "./command.js";
 import { loadCommands, defaultCommandsDir } from "./loader.js";
 import { EXIT_INTERNAL, EXIT_USAGE, reportError, writeJson, type Sink } from "./output.js";
-import { readVersion } from "./version.js";
+import { readBuild, readVersion } from "./version.js";
 
 const sink: Sink = {
   stdout: (text) => void process.stdout.write(text),
@@ -34,8 +34,13 @@ export async function main(argv: string[]): Promise<number> {
       return reportError(sink, json, kind.toUpperCase(), t(kind, { name }), t(`${kind}_fix`, { name }), EXIT_USAGE);
     }
     if (parsed.options.version) {
-      if (json) writeJson(sink, { schemaVersion: 1, status: "OK", version });
-      else sink.stdout(`jgates ${version}\n`);
+      // The build goes to stderr (and into the JSON): stdout stays "jgates <version>" for scripts that read it.
+      const build = readBuild();
+      if (json) writeJson(sink, { schemaVersion: 1, status: "OK", version, build });
+      else {
+        sink.stdout(`jgates ${version}\n`);
+        sink.stderr(`build ${build.hash.slice(0, 8)} · ${build.dir}\n`);
+      }
       return 0;
     }
     const name = parsed.options.help || parsed.command === null ? "help" : parsed.command;
