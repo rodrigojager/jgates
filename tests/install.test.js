@@ -40,6 +40,11 @@ test("the tarball carries the compiled jgates, the UI assets and the skill, and 
   assert.ok(files.some((f) => /^jgates\/dist\/ui\/assets\/.+\.js$/.test(f)), "UI scripts");
   assert.ok(files.some((f) => /^jgates\/dist\/ui\/assets\/.+\.css$/.test(f)), "UI styles");
   assert.ok(has("jgates/skill/SKILL.md"), "jgates agent skill");
+  // The compiled code reads its JSON Schemas from jgates/schemas at run time (configuration, plan, catalog, lock, PII).
+  for (const schema of ["config/jgates.schema.json", "config/lock.schema.json", "plan/plan.schema.json"]) {
+    assert.ok(has(`jgates/schemas/${schema}`), `schema ${schema}`);
+  }
+  assert.ok(files.some((f) => f.startsWith("jgates/schemas/catalog/")), "catalog schemas");
   assert.ok(has("semantic-gate/dist/cli.js") && has("quality-gate/bin/quality-gate.js"), "component commands");
   assert.ok(!files.some((f) => f.startsWith("bin/")), "no removed command in the tarball");
 

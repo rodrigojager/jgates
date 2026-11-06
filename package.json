@@ -35,6 +35,7 @@
     "semantic-gate/LICENSE",
     "semantic-gate/package.json",
     "jgates/dist/",
+    "jgates/schemas/",
     "jgates/package.json",
     "jgates/skill/",
     "quality-gate/bin/",
