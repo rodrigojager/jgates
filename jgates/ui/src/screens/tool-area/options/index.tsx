@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatLocale } from "../../../i18n/locale";
 import { ApiError, api } from "../../../api";
-import { Dialog, ErrorNotice, Loading, Pill, Spinner } from "../../../components/common";
+import { Dialog, ErrorNotice, Pill, Spinner } from "../../../components/common";
 import { DiffView } from "../../../components/DiffView";
 import { Icon } from "../../../components/icons";
 import { FormRenderer } from "../../../forms/FormRenderer";
@@ -124,7 +124,13 @@ export default function OptionsTab({ instance, active, openFile }: ToolTabProps)
     if (view) openFile({ binding: view.binding, line });
   };
 
-  if (loading && !view) return <Loading />;
+  if (loading && !view) {
+    return (
+      <p className="spinner-text" role="status" data-testid="form-loading">
+        {ft("loading")}
+      </p>
+    );
+  }
   if (error) return <ErrorNotice error={error} onRetry={load} />;
   if (!view) return null;
 

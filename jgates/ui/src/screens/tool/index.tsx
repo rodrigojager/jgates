@@ -133,6 +133,7 @@ function FilesTab({ instance, target, onChanged }: { instance: any; target: (Fil
   const [checked, setChecked] = useState<any | null>(null);
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [busy, setBusy] = useState(false);
+  const [working, setWorking] = useState<"validate" | "diff" | "save" | null>(null);
   const [saveError, setSaveError] = useState<unknown>(null);
   const [rulesKey, setRulesKey] = useState(0);
 
@@ -229,6 +230,7 @@ function FilesTab({ instance, target, onChanged }: { instance: any; target: (Fil
   async function validateNow() {
     if (!selection || !doc) return;
     setBusy(true);
+    setWorking("validate");
     setSaveError(null);
     try {
       const r = await api("POST", documentPath(instance.id, selection.binding, "/validate"), { text, ...(selection.entry ? { entry: selection.entry } : {}) });
@@ -237,12 +239,14 @@ function FilesTab({ instance, target, onChanged }: { instance: any; target: (Fil
       setSaveError(e);
     } finally {
       setBusy(false);
+      setWorking(null);
     }
   }
 
   async function startReview(mode: "save" | "diff" = "save", proposed?: string) {
     if (!selection || !doc) return;
     setBusy(true);
+    setWorking(mode);
     setSaveError(null);
     setSaved(null);
     try {
@@ -256,6 +260,7 @@ function FilesTab({ instance, target, onChanged }: { instance: any; target: (Fil
       setSaveError(e);
     } finally {
       setBusy(false);
+      setWorking(null);
     }
   }
 
@@ -504,6 +509,7 @@ function FilesTab({ instance, target, onChanged }: { instance: any; target: (Fil
                 <EditBar
                   dirty={dirty}
                   busy={busy}
+                  working={working}
                   editable={editable}
                   draftState={draft.state}
                   hasDraft={draft.exists}

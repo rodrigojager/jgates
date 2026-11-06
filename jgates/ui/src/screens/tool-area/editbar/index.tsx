@@ -1,5 +1,5 @@
 import { Icon } from "../../../components/icons";
-import { Pill } from "../../../components/common";
+import { Pill, Spinner } from "../../../components/common";
 import { t } from "../../../i18n";
 import type { DraftState } from "./drafts";
 import { eb } from "./messages";
@@ -11,6 +11,8 @@ import { eb } from "./messages";
 export interface EditBarProps {
   dirty: boolean;
   busy: boolean;
+  /** Which action of the bar is running, so its button shows the ring (and Validar says "Validando..."). */
+  working?: "validate" | "diff" | "save" | null;
   editable: boolean;
   draftState: DraftState;
   hasDraft: boolean;
@@ -28,7 +30,7 @@ function draftLine(state: DraftState, hasDraft: boolean, dirty: boolean): string
   return eb("draft_none");
 }
 
-export function EditBar({ dirty, busy, editable, draftState, hasDraft, onValidate, onDiff, onSave, onReload, onDiscardDraft }: EditBarProps) {
+export function EditBar({ dirty, busy, working = null, editable, draftState, hasDraft, onValidate, onDiff, onSave, onReload, onDiscardDraft }: EditBarProps) {
   return (
     <div className="edit-bar" role="region" aria-label={eb("bar_label")}>
       <div className="row wrap">
@@ -39,15 +41,15 @@ export function EditBar({ dirty, busy, editable, draftState, hasDraft, onValidat
       </div>
       <div className="row wrap">
         <button type="button" className="btn" disabled={busy || !editable} onClick={onValidate}>
-          <Icon name="check" />
-          {eb("validate")}
+          {working === "validate" ? <Spinner /> : <Icon name="check" />}
+          {working === "validate" ? eb("validate_checking") : eb("validate")}
         </button>
         <button type="button" className="btn" disabled={busy || !editable || !dirty} onClick={onDiff}>
-          <Icon name="file" />
+          {working === "diff" ? <Spinner /> : <Icon name="file" />}
           {eb("view_diff")}
         </button>
         <button type="button" className="btn primary" disabled={!editable || !dirty || busy} onClick={onSave}>
-          <Icon name="check" />
+          {working === "save" ? <Spinner /> : <Icon name="check" />}
           {t("doc_review")}
         </button>
         <button type="button" className="btn" disabled={busy} onClick={onReload}>
