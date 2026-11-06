@@ -432,6 +432,11 @@ MEGALINTER_GENERIC_DUPLICATE_LINTERS = ",".join(
     ]
 )
 
+# Test files of a Python project: Bandit's convention is not to scan them (assert is how pytest tests, and test-only
+# code never ships), so the Bandit inside MegaLinter skips them. Semgrep, the secret scanners and the other linters
+# still read them.
+PYTHON_TEST_FILES_REGEX = r"(^|/)(tests?/|test_[^/]*\.py$|[^/]*_test\.py$|conftest\.py$)"
+
 INSTALLED_CONFIG_DIR = Path("/opt/quality-sidecar/sidecar/config")
 SOURCE_CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
 MEGALINTER_CONFIG_DIR = (INSTALLED_CONFIG_DIR if INSTALLED_CONFIG_DIR.is_dir() else SOURCE_CONFIG_DIR).resolve()
@@ -524,6 +529,10 @@ def _run_megalinter(root: Path, raw_dir: Path, *, hardened: bool = False) -> Too
         "DOTNET_CLI_HOME": "/home/quality",
         "NUGET_HTTP_CACHE_PATH": "/home/quality/.cache/NuGet/v3-cache",
         "NUGET_PACKAGES": "/home/quality/.nuget/packages",
+        # The workspace is mounted read-only: Ruff's cache goes to the
+        # container's writable /tmp, or every Ruff run fails before linting.
+        "RUFF_CACHE_DIR": "/tmp/ruff-cache",
+        "PYTHON_BANDIT_FILTER_REGEX_EXCLUDE": PYTHON_TEST_FILES_REGEX,
         "FILTER_REGEX_EXCLUDE": _megalinter_exclude_regex(root),
         "MEGALINTER_CONFIG": MEGALINTER_TRUSTED_CONFIG,
         # DevSkim is a project-mode analyzer and scans the workspace directly,

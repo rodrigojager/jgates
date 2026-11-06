@@ -349,6 +349,14 @@ class QualityPolicyTests(unittest.TestCase):
             self.assertEqual(environment["TERRAFORM_TFLINT_RULES_PATH"], str(MEGALINTER_CONFIG_DIR))
             self.assertEqual(environment["TERRAFORM_TFLINT_CONFIG_FILE"], "tflint-ci.hcl")
             self.assertEqual(environment["FORMATTERS_DISABLE_ERRORS"], "false")
+            # Ruff writes its cache outside the read-only workspace.
+            self.assertTrue(environment["RUFF_CACHE_DIR"].startswith("/tmp/"))
+            # Bandit skips the test files (pytest asserts), never the product code.
+            tests_only = re.compile(environment["PYTHON_BANDIT_FILTER_REGEX_EXCLUDE"])
+            for path in ("tests/test_cli.py", "/workspace/tests/fixtures/data.py", "pkg/test_util.py", "pkg/util_test.py", "conftest.py"):
+                self.assertIsNotNone(tests_only.search(path), path)
+            for path in ("hello/infrastructure/system.py", "/workspace/hello/cli.py", "latest/attest.py", "contest.py"):
+                self.assertIsNone(tests_only.search(path), path)
 
     def test_generic_flavor_preserves_megalinter_language_auto_detection(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
