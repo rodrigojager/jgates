@@ -255,7 +255,11 @@ dialog::backdrop { background: var(--scrim); }
 .pane pre { margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); font: 12px/1.5 var(--mono); overflow: auto; max-height: 40vh; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .log { margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); font: 12px/1.5 var(--mono); max-height: 260px; overflow: auto; white-space: pre-wrap; }
-.spinner-text { color: var(--muted); }
+/* "Carregando...": a small ring turns beside the word; with reduced motion it stays still. */
+.spinner-text { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.spinner-text::before { content: ""; flex-shrink: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spinner-turn 0.8s linear infinite; }
+@keyframes spinner-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner-text::before { animation: none; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 @media (max-width: 900px) {

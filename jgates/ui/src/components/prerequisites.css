@@ -3,13 +3,13 @@
 .prq { display: flex; gap: 16px; align-items: flex-start; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); background: var(--gold-bg); border-radius: 14px; padding: 16px 20px; margin-bottom: 18px; }
 .prq h2 { margin: 2px 0 0; font-size: 18px; letter-spacing: -0.3px; }
 .prq-body p { margin: 2px 0 0; }
-.prq-slim { align-items: center; padding: 10px 16px; }
+/* The short states (checking, all clear, error) keep the Doctor at full size, so he does not grow when the list arrives. */
+.prq-slim { align-items: center; }
 .prq-checking { border-color: var(--line); background: var(--surface); }
 .prq-ready { border-color: var(--line); background: var(--mint); }
 .prq-error { border-color: var(--line); background: var(--surface); }
 /* The Doctor's slot: a transparent square the Three.js canvas fills; an icon in a circle when WebGL is unavailable. */
 .prq-avatar { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 104px; height: 104px; margin: -6px 0 -6px -6px; }
-.prq-slim .prq-avatar { width: 64px; height: 64px; margin: -6px 0; }
 .prq-avatar.fallback { width: 48px; height: 48px; margin: 0; border-radius: 50%; background: var(--surface); color: var(--gold); border: 1px solid var(--line); }
 .prq-avatar.fallback[data-state="ok"] { color: var(--accent); }
 .prq-avatar.fallback[data-state="checking"] { color: var(--muted); }
@@ -28,7 +28,8 @@
 .prq-foot { margin-top: 12px; }
 @media (max-width: 720px) {
   .prq:not(.prq-slim) { flex-direction: column; }
-  .prq:not(.prq-slim) .prq-avatar { width: 88px; height: 88px; margin: -6px 0 -10px; }
+  .prq .prq-avatar { width: 88px; height: 88px; }
+  .prq:not(.prq-slim) .prq-avatar { margin: -6px 0 -10px; }
   .prq-body { width: 100%; }
   .prq-row { flex-direction: column; }
   .prq-actions { align-items: stretch; width: 100%; }
