@@ -7,10 +7,10 @@ export const screen: ScreenMeta = { id: "about", path: "/about", order: 95, icon
 
 // The interface is offline and makes no external request, so the documentation is named by its path in the repository.
 const DOCS = [
-  { id: "compat_pt", file: "docs/jgates/compatibilidade.pt-BR.md" },
-  { id: "compat_en", file: "docs/jgates/compatibilidade.en.md" },
-  { id: "start_pt", file: "docs/jgates/primeiros-passos.pt-BR.md" },
-  { id: "start_en", file: "docs/jgates/primeiros-passos.en.md" },
+  { id: "compat_pt", file: "docs/jgates/compatibility.pt-BR.md" },
+  { id: "compat_en", file: "docs/jgates/compatibility.en.md" },
+  { id: "start_pt", file: "docs/jgates/getting-started.pt-BR.md" },
+  { id: "start_en", file: "docs/jgates/getting-started.en.md" },
 ] as const;
 
 export default function AboutScreen() {

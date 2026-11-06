@@ -6,7 +6,7 @@ Each JGates error carries a code (`error.code`), a message and a fix instruction
 jgates doctor
 ```
 
-`doctor` shows the runtimes (Node, Python, Git, Docker), each tool in the plan (ready, absent or at an incompatible version), the preparation and, for what is missing, whether it is essential, optional (with the alternative) or unused, with the recipe that installs it. On a terminal it offers to install; without a terminal and without `--fix` it only reads and exits with 0 (see [getting started](primeiros-passos.en.md)).
+`doctor` shows the runtimes (Node, Python, Git, Docker), each tool in the plan (ready, absent or at an incompatible version), the preparation and, for what is missing, whether it is essential, optional (with the alternative) or unused, with the recipe that installs it. On a terminal it offers to install; without a terminal and without `--fix` it only reads and exits with 0 (see [getting started](getting-started.en.md)).
 
 ## The run ended "incomplete" (exit 2)
 
@@ -52,11 +52,11 @@ jgates plan
 
 - Ask for a new link with `jgates ui`; the entry link is single-use and valid for 10 minutes. The server answers on loopback only, and a proxy or a different host name gets 421.
 - One run at a time: the second gets 409 while the first has not finished.
-- The controls marked as unavailable, and the component filter that does not show up are in [limitations](limitacoes.en.md).
+- The controls marked as unavailable, and the component filter that does not show up are in [limitations](limitations.en.md).
 
 ## Disk space and cache
 
-- Run `jgates gc --dry-run` to see what retention would delete (see [data folder](pasta-de-dados.en.md)).
+- Run `jgates gc --dry-run` to see what retention would delete (see [data folder](data-folder.en.md)).
 - A result "reused" from an earlier execution comes from the cache. To force a real execution, use `jgates run --no-cache`.
 - The sidecar image (`jgates/quality-sidecar:latest`, around 22 GB) and its scanner cache (`<data folder>/cache/quality-sidecar`, a few GB) are the largest items. Deleting the cache only makes the next run download the databases again.
 
@@ -64,8 +64,8 @@ jgates plan
 
 - **"Git refused the repository" / `detected dubious ownership`.** The folder belongs to another account (often the Administrators group, when an elevated terminal created it), and Git refuses to read it from your user. The result then applies to the folder contents, not to a commit, and the message carries the command Git suggests: `git config --global --add safe.directory <folder>`. Run it once, or take ownership of the folder.
 - **A tool installed with `pip install --user` shows as missing.** Update JGates: the child processes now get `APPDATA`, through which Python finds the user's site-packages.
-- **The bridge's scanners come out `missing`.** Build the sidecar image (see [adapters](adaptadores.en.md#the-bridges-scanners-in-the-sidecar-image)); with it, the run sends them to Docker by itself.
+- **The bridge's scanners come out `missing`.** Build the sidecar image (see [adapters](adapters.en.md#the-bridges-scanners-in-the-sidecar-image)); with it, the run sends them to Docker by itself.
 
 ## macOS
 
-macOS was not tested on a real machine (see [limitations](limitacoes.en.md)). If something fails, note the command, the `runId` and the output of `jgates doctor`.
+macOS was not tested on a real machine (see [limitations](limitations.en.md)). If something fails, note the command, the `runId` and the output of `jgates doctor`.

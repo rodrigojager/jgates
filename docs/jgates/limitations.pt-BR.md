@@ -7,7 +7,7 @@ Esta página junta o que o JGates ainda não faz, o que não foi testado e os co
 - **macOS.** Nenhum teste rodou em um Mac real. A matriz de compatibilidade mostra "não testado em máquina real" na coluna do macOS para todos os adaptadores. O caminho da pasta de dados no macOS (`~/Library/Application Support/jgates`) existe no código e é coberto só por teste de unidade.
 - **Windows.** A suíte automática roda no Linux. Numa máquina com Windows 10 e Docker Desktop, o fluxo do primeiro uso foi conferido à mão: a instalação global pelo tarball do `npm pack` (com o `jgates` no `Path`), `init`, `doctor --fix`, `plan`, `run` com os scanners da ponte na imagem do sidecar, e `ui`. A suíte ainda tem falhas próprias no Windows (caminhos comparados com maiúsculas e minúsculas diferentes, verificações que exigem POSIX: permissões `0600`, cancelamento por grupo de processos, symlinks); os testes que dependem do Windows estão marcados e pulam fora dele, com o motivo. O comando `winget` da receita do Docker não foi executado. Antes de confiar no JGates em outra máquina Windows, rode a suíte lá (`node scripts/smoke-install.mjs` repete a prova de instalação).
 - **Leitor de tela.** A acessibilidade foi verificada com o axe (WCAG 2.2 AA, sem violação crítica ou séria nos temas claro, escuro e do sistema), com o teclado e com redução de movimento. Nenhum leitor de tela real foi usado.
-- **Instalação direta do GitHub.** O `npm install --prefix <pasta> git+https://github.com/rodrigojager/jgates` e o `npm install git+https://github.com/rodrigojager/jgates` dentro de um projeto foram verificados à mão com um clone local (`git+file://`, npm 11), inclusive numa pasta com espaço no caminho: `jgates --version` e `jgates doctor --json` funcionaram. Não estão na suíte automática, e o download pelo GitHub em si não foi exercitado. O caminho testado pela suíte é o tarball de `npm pack` (veja [primeiros passos](primeiros-passos.pt-BR.md)).
+- **Instalação direta do GitHub.** O `npm install --prefix <pasta> git+https://github.com/rodrigojager/jgates` e o `npm install git+https://github.com/rodrigojager/jgates` dentro de um projeto foram verificados à mão com um clone local (`git+file://`, npm 11), inclusive numa pasta com espaço no caminho: `jgates --version` e `jgates doctor --json` funcionaram. Não estão na suíte automática, e o download pelo GitHub em si não foi exercitado. O caminho testado pela suíte é o tarball de `npm pack` (veja [primeiros passos](getting-started.pt-BR.md)).
 
 ## Instalação global a partir do GitHub
 
@@ -61,8 +61,8 @@ O que já vale: `execution.failFast` (age como `--fail-fast`) e `coverage.minimu
 - **Ponte (quality-bridge).** Das nove capacidades da ponte, oito estão como `declared` (declarada, sem prova) na matriz: só `file-size` tem teste na suíte padrão. As demais precisam do smoke com Docker da imagem do sidecar, que não foi feito.
 - **Trivy.** O cache cobre só o banco de vulnerabilidades; a base Java e o pacote de verificações ainda são baixados a cada execução.
 - **ESLint em monorepo.** O ESLint dos templates roda na raiz do workspace, não na pasta de cada componente.
-- **Go, Rust e .NET** têm suporte parcial; a lista do que não é coberto está na matriz de [compatibilidade](compatibilidade.pt-BR.md).
+- **Go, Rust e .NET** têm suporte parcial; a lista do que não é coberto está na matriz de [compatibilidade](compatibility.pt-BR.md).
 
 ## Relacionados
 
-[Segurança](seguranca.pt-BR.md) · [problemas comuns](problemas.pt-BR.md)
+[Segurança](security.pt-BR.md) · [problemas comuns](troubleshooting.pt-BR.md)

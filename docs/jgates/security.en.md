@@ -1,6 +1,6 @@
 # JGates: security
 
-JGates reads and runs tools over code that may not be trusted, and it has a local interface. This page says what it protects, how, and what it does **not** promise. The limits that still exist are in [limitations](limitacoes.en.md).
+JGates reads and runs tools over code that may not be trusted, and it has a local interface. This page says what it protects, how, and what it does **not** promise. The limits that still exist are in [limitations](limitations.en.md).
 
 ## Untrusted repository
 
@@ -27,12 +27,12 @@ The interface does not receive free paths. Each editable file has a binding id, 
 - Secrets never enter the configuration. The semantic gate receives only the **name** of the environment variable (`apiKeyEnv`); the value comes from the environment or from the [user key store](#the-user-key-store).
 - Secret and PII findings do not carry the raw value: it is masked in the adapter, in `result.json`, in SARIF and in the agent context.
 - The semantic-gate context is masked before it leaves the machine: secrets and secret files always; the PII entities, the patterns and the external tools as the project configures them (`extensions.semantic-gate.masking`). An external tool that fails or answers inconsistently makes JGates send nothing. See [the semantic gate](semantic-gate.en.md#what-the-provider-receives).
-- The [data folder](pasta-de-dados.en.md) is permissioned for the current user only (`0700` folders, `0600` files on POSIX systems). There is no debug copy with secrets.
+- The [data folder](data-folder.en.md) is permissioned for the current user only (`0700` folders, `0600` files on POSIX systems). There is no debug copy with secrets.
 - The configuration is read with limits: 1 MiB, 64 levels, 50 aliases, YAML without executable tags and without command interpolation.
 
 ## The user key store
 
-API keys stored through the **Preferences > Providers and keys** screen of `jgates ui`, with `jgates secrets set` or with `semantic-gate auth set` live in a single file of the user, **outside every project** and outside the [data folder](pasta-de-dados.en.md): `secrets.json` in the semantic-gate configuration folder (`SEMANTIC_GATE_HOME`, else `%APPDATA%\semantic-gate` on Windows, else `$XDG_CONFIG_HOME/semantic-gate`, by default `~/.config/semantic-gate`). The folder is `0700` and the file `0600` on POSIX systems; the write is atomic (a temporary file renamed over it).
+API keys stored through the **Preferences > Providers and keys** screen of `jgates ui`, with `jgates secrets set` or with `semantic-gate auth set` live in a single file of the user, **outside every project** and outside the [data folder](data-folder.en.md): `secrets.json` in the semantic-gate configuration folder (`SEMANTIC_GATE_HOME`, else `%APPDATA%\semantic-gate` on Windows, else `$XDG_CONFIG_HOME/semantic-gate`, by default `~/.config/semantic-gate`). The folder is `0700` and the file `0600` on POSIX systems; the write is atomic (a temporary file renamed over it).
 
 - None of these keys goes to the project, to results, logs, cache, drafts, history or undo.
 - The environment variable wins over the store, and the listing says where each value comes from. `jgates ci` never reads nor writes the store: in CI only the environment counts.
@@ -56,7 +56,7 @@ jgates pii fix --undo <fixId>
 - **Scope.** Without an option, what goes into the next commit: the changed files and the untracked ones. `--staged` covers only what is in the index, `--changed` only the changed tracked files, `--all` the whole project (except what Git ignores), and paths cover the files named (a folder covers what is in it). Binary files and files larger than 8 MiB are left out, and listed.
 - **`jgates pii check`** detects with the built-in detector (the entities turned on in `pii.yml`) and with the tools of `fix.tools` in `check` mode, on a temporary copy, changing nothing. It exits 0 without findings, 1 with findings and 2 when a detector did not complete, with the files and the count by label. The value found never appears in the output, in the JSON (`--json`) or in a log. With `--staged`, it reads the content of the index, which is what goes into the commit.
 - **`jgates pii fix`** corrects only through a tool named in `fix.tools`: the built-in detector only detects. Without a configured tool, the command says so, exits with 3 and changes nothing. With a tool:
-  1. it copies the files of the scope to a temporary folder inside the [data folder](pasta-de-dados.en.md) and runs the tools there, in order, in `fix` mode, with the [same protocol as the semantic gate](semantic-gate.en.md#external-pii-tools);
+  1. it copies the files of the scope to a temporary folder inside the [data folder](data-folder.en.md) and runs the tools there, in order, in `fix` mode, with the [same protocol as the semantic gate](semantic-gate.en.md#external-pii-tools);
   2. it shows the files that would change and the count by label; `--diff` shows the diff on the terminal (never written to a log or a result) and `--dry-run` stops there;
   3. it asks (or takes `--yes`) and applies file by file, by atomic write, only if the project file still has the bytes of the copy; a file that changed in the meantime is skipped and listed;
   4. it keeps the originals for `jgates pii fix --undo [<fixId>]`, which restores them byte for byte (a file changed after the fix is not overwritten).

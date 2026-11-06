@@ -36,6 +36,6 @@ The gate also reads evidence produced by other tools, in neutral formats: a depe
 
 ## Documentation
 
-- [Getting started](../docs/jgates/primeiros-passos.en.md) and [CI](../docs/jgates/ci.en.md).
-- [Adapters and the bridge](../docs/jgates/adaptadores.en.md) and the [compatibility matrix](../docs/jgates/compatibilidade.en.md).
-- [Known limitations](../docs/jgates/limitacoes.en.md) and [third-party licenses](../THIRD_PARTY_NOTICES.md).
+- [Getting started](../docs/jgates/getting-started.en.md) and [CI](../docs/jgates/ci.en.md).
+- [Adapters and the bridge](../docs/jgates/adapters.en.md) and the [compatibility matrix](../docs/jgates/compatibility.en.md).
+- [Known limitations](../docs/jgates/limitations.en.md) and [third-party licenses](../THIRD_PARTY_NOTICES.md).

@@ -1,6 +1,6 @@
 # JGates: segurança
 
-O JGates lê e executa ferramentas sobre código que pode não ser confiável, e tem uma interface local. Esta página diz o que ele protege, como, e o que **não** promete. Os limites que ainda existem estão em [limitações](limitacoes.pt-BR.md).
+O JGates lê e executa ferramentas sobre código que pode não ser confiável, e tem uma interface local. Esta página diz o que ele protege, como, e o que **não** promete. Os limites que ainda existem estão em [limitações](limitations.pt-BR.md).
 
 ## Repositório não confiável
 
@@ -27,12 +27,12 @@ A interface não recebe caminhos livres. Cada arquivo editável tem um id de ví
 - Segredos nunca entram na configuração. O semantic gate recebe só o **nome** da variável de ambiente (`apiKeyEnv`); o valor vem do ambiente ou do [cofre do usuário](#o-cofre-de-chaves-do-usuário).
 - Os achados de segredo e de PII não trazem o valor bruto: ele é mascarado no adaptador, no `result.json`, no SARIF e no contexto para agente.
 - O contexto do semantic gate é mascarado antes de sair da máquina: segredos e arquivos de segredo sempre; as entidades de PII, os padrões e as ferramentas externas como o projeto configura (`extensions.semantic-gate.masking`). Uma ferramenta externa que falha ou responde de forma inconsistente faz o JGates não enviar nada. Veja [o semantic gate](semantic-gate.pt-BR.md#o-que-o-provider-recebe).
-- A [pasta de dados](pasta-de-dados.pt-BR.md) tem permissão só do usuário (`0700` nas pastas, `0600` nos arquivos em sistemas POSIX). Não existe uma cópia de depuração com segredos.
+- A [pasta de dados](data-folder.pt-BR.md) tem permissão só do usuário (`0700` nas pastas, `0600` nos arquivos em sistemas POSIX). Não existe uma cópia de depuração com segredos.
 - A configuração é lida com limites: 1 MiB, 64 níveis, 50 aliases, YAML sem tags executáveis e sem interpolação de comandos.
 
 ## O cofre de chaves do usuário
 
-As chaves de API gravadas pela tela **Preferências > Providers e chaves** do `jgates ui`, pelo `jgates secrets set` ou pelo `semantic-gate auth set` ficam num único arquivo do usuário, **fora de qualquer projeto** e fora da [pasta de dados](pasta-de-dados.pt-BR.md): `secrets.json` na pasta de configuração do semantic-gate (`SEMANTIC_GATE_HOME`, senão `%APPDATA%\semantic-gate` no Windows, senão `$XDG_CONFIG_HOME/semantic-gate`, por padrão `~/.config/semantic-gate`). A pasta tem permissão `0700` e o arquivo `0600` em sistemas POSIX; a gravação é atômica (um arquivo temporário renomeado por cima).
+As chaves de API gravadas pela tela **Preferências > Providers e chaves** do `jgates ui`, pelo `jgates secrets set` ou pelo `semantic-gate auth set` ficam num único arquivo do usuário, **fora de qualquer projeto** e fora da [pasta de dados](data-folder.pt-BR.md): `secrets.json` na pasta de configuração do semantic-gate (`SEMANTIC_GATE_HOME`, senão `%APPDATA%\semantic-gate` no Windows, senão `$XDG_CONFIG_HOME/semantic-gate`, por padrão `~/.config/semantic-gate`). A pasta tem permissão `0700` e o arquivo `0600` em sistemas POSIX; a gravação é atômica (um arquivo temporário renomeado por cima).
 
 - Nada dessas chaves vai para o projeto, para resultados, logs, cache, rascunhos, histórico ou desfazer.
 - A variável de ambiente vence o cofre, e a listagem diz de onde vem cada valor. O `jgates ci` nunca lê nem grava o cofre: no CI, só o ambiente conta.
@@ -56,7 +56,7 @@ jgates pii fix --undo <fixId>
 - **Escopo.** Sem opção, o que vai entrar no próximo commit: os arquivos alterados e os não rastreados. `--staged` cobre só o que está no índice, `--changed` só os rastreados alterados, `--all` todo o projeto (fora os ignorados pelo Git), e caminhos cobrem os arquivos indicados (uma pasta cobre o que está nela). Arquivos binários e maiores que 8 MiB ficam de fora, listados.
 - **`jgates pii check`** detecta com o detector interno (as entidades ligadas no `pii.yml`) e com as ferramentas de `fix.tools` no modo `check`, sobre uma cópia temporária, sem mudar nada. Sai 0 sem achado, 1 com achado e 2 se um detector não terminou, com os arquivos e a contagem por rótulo. O valor encontrado nunca aparece na saída, no JSON (`--json`) nem em log. Com `--staged`, lê o conteúdo do índice, que é o que vai para o commit.
 - **`jgates pii fix`** corrige só por uma ferramenta indicada em `fix.tools`: o detector interno só detecta. Sem ferramenta configurada, o comando explica isso, sai com 3 e não muda nada. Com ferramenta:
-  1. copia os arquivos do escopo para uma pasta temporária dentro da [pasta de dados](pasta-de-dados.pt-BR.md) e roda nela as ferramentas, em ordem, no modo `fix`, com o [mesmo protocolo do semantic gate](semantic-gate.pt-BR.md#ferramentas-externas-de-pii);
+  1. copia os arquivos do escopo para uma pasta temporária dentro da [pasta de dados](data-folder.pt-BR.md) e roda nela as ferramentas, em ordem, no modo `fix`, com o [mesmo protocolo do semantic gate](semantic-gate.pt-BR.md#ferramentas-externas-de-pii);
   2. mostra os arquivos que mudariam e a contagem por rótulo; `--diff` mostra o diff no terminal (nunca gravado em log ou resultado) e `--dry-run` para aí;
   3. pergunta (ou aceita `--yes`) e aplica arquivo por arquivo, por escrita atômica, só se o arquivo do projeto ainda tem os bytes da cópia; um arquivo que mudou nesse meio tempo é pulado e listado;
   4. guarda os originais para `jgates pii fix --undo [<fixId>]`, que restaura byte a byte (um arquivo mudado depois da correção não é sobrescrito).

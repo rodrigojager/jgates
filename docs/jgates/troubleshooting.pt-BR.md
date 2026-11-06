@@ -6,7 +6,7 @@ Cada erro do JGates traz um código (`error.code`), uma mensagem e uma instruç�
 jgates doctor
 ```
 
-O `doctor` mostra os runtimes (Node, Python, Git, Docker), cada ferramenta do plano (pronta, ausente ou em versão incompatível), a preparação e, para o que falta, se é essencial, opcional (com a alternativa) ou não usada, com a receita que instala. Num terminal ele oferece instalar; sem terminal e sem `--fix` ele só lê e sai com 0 (veja [primeiros passos](primeiros-passos.pt-BR.md)).
+O `doctor` mostra os runtimes (Node, Python, Git, Docker), cada ferramenta do plano (pronta, ausente ou em versão incompatível), a preparação e, para o que falta, se é essencial, opcional (com a alternativa) ou não usada, com a receita que instala. Num terminal ele oferece instalar; sem terminal e sem `--fix` ele só lê e sai com 0 (veja [primeiros passos](getting-started.pt-BR.md)).
 
 ## O run terminou "incompleto" (saída 2)
 
@@ -52,11 +52,11 @@ jgates plan
 
 - Peça o link novo com `jgates ui`; o link de entrada é de uso único e vale 10 minutos. O servidor responde só no loopback, e um proxy ou um nome de host diferente recebe 421.
 - Um run por vez: o segundo recebe 409 enquanto o primeiro não termina.
-- Os controles marcados como indisponíveis e o filtro por componente que não aparece estão em [limitações](limitacoes.pt-BR.md).
+- Os controles marcados como indisponíveis e o filtro por componente que não aparece estão em [limitações](limitations.pt-BR.md).
 
 ## Espaço em disco e cache
 
-- Rode `jgates gc --dry-run` para ver o que a retenção apagaria (veja [pasta de dados](pasta-de-dados.pt-BR.md)).
+- Rode `jgates gc --dry-run` para ver o que a retenção apagaria (veja [pasta de dados](data-folder.pt-BR.md)).
 - Um resultado "reaproveitado" de uma execução anterior vem do cache. Para forçar a execução real, use `jgates run --no-cache`.
 - A imagem do sidecar (`jgates/quality-sidecar:latest`, cerca de 22 GB) e o cache dos scanners (`<pasta de dados>/cache/quality-sidecar`, alguns GB) são os itens maiores. Apagar o cache só faz o próximo run baixar as bases de novo.
 
@@ -64,8 +64,8 @@ jgates plan
 
 - **"O Git recusou o repositório" / `detected dubious ownership`.** A pasta pertence a outra conta (muitas vezes ao grupo Administradores, quando um terminal elevado a criou), e o Git se recusa a lê-la com o seu usuário. O resultado passa a valer para o conteúdo da pasta, não para um commit, e a mensagem traz o comando que o próprio Git sugere: `git config --global --add safe.directory <pasta>`. Rode uma vez, ou assuma a posse da pasta.
 - **Uma ferramenta instalada com `pip install --user` aparece como ausente.** Atualize o JGates: os processos filhos agora recebem o `APPDATA`, por onde o Python acha os pacotes do usuário.
-- **Os scanners da ponte saem `missing`.** Construa a imagem do sidecar (veja [adaptadores](adaptadores.pt-BR.md#os-scanners-da-ponte-na-imagem-do-sidecar)); com ela, o run os manda para o Docker sozinho.
+- **Os scanners da ponte saem `missing`.** Construa a imagem do sidecar (veja [adaptadores](adapters.pt-BR.md#os-scanners-da-ponte-na-imagem-do-sidecar)); com ela, o run os manda para o Docker sozinho.
 
 ## macOS
 
-O macOS não foi testado em máquina real (veja [limitações](limitacoes.pt-BR.md)). Se algo falhar, anote o comando, o `runId` e a saída de `jgates doctor`.
+O macOS não foi testado em máquina real (veja [limitações](limitations.pt-BR.md)). Se algo falhar, anote o comando, o `runId` e a saída de `jgates doctor`.

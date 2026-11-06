@@ -24,13 +24,13 @@ const require = createRequire(import.meta.url);
 const fixture = require("../../tests/fixtures/jgates/main-fixture.js");
 
 const LOCALES = ["pt-BR", "en"];
-const REQUIRED_PAGES = ["primeiros-passos", "ci", "templates-e-perfis", "editor", "adaptadores", "seguranca", "semantic-gate", "agentes", "pasta-de-dados", "limitacoes", "problemas"];
+const REQUIRED_PAGES = ["getting-started", "ci", "templates-and-profiles", "editor", "adapters", "security", "semantic-gate", "agents", "data-folder", "limitations", "troubleshooting"];
 
 /**
  * How a page starts, by page name. `init` (the default): the fixture already has the configuration `jgates init` writes.
  * `none`: a clean fixture (the page runs `jgates init` itself). `tools`: init plus an instance `ruff-api` in tools.yml.
  */
-const PAGE_SETUP = { "primeiros-passos": "none", editor: "tools", adaptadores: "tools" };
+const PAGE_SETUP = { "getting-started": "none", editor: "tools", adapters: "tools" };
 
 /** Commands never executed by the test (they serve, download, delete or run the whole gate); they are still checked statically. */
 const NOT_EXECUTED = [

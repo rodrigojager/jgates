@@ -356,7 +356,7 @@ export default function ProvidersScreen() {
         )}
       </section>
 
-      <p className="small muted">{t("pk_docs", { pt: "docs/jgates/seguranca.pt-BR.md", en: "docs/jgates/seguranca.en.md" })}</p>
+      <p className="small muted">{t("pk_docs", { pt: "docs/jgates/security.pt-BR.md", en: "docs/jgates/security.en.md" })}</p>
     </div>
   );
 }

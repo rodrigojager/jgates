@@ -56,7 +56,7 @@ jgates ci --policy <policy-folder>
 
 No GitHub Actions, os exemplos instalam em `$RUNNER_TEMP/jgates` e acrescentam `$RUNNER_TEMP/jgates/node_modules/.bin` ao `$GITHUB_PATH`, o que vale para os passos seguintes. No GitLab CI, instalam numa pasta em `$CI_BUILDS_DIR`, fora de `$CI_PROJECT_DIR`, e fazem `export PATH=...` no mesmo `script`.
 
-Não use `npm install --global git+https://github.com/rodrigojager/jgates`: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga, e o `jgates` some (veja [limitações](limitacoes.pt-BR.md)). Para jobs reproduzíveis, fixe uma tag ou um commit depois do `#`, ou guarde o tarball (`npm pack`) num armazenamento interno e instale esse arquivo; um tarball pode ser instalado com `--global`.
+Não use `npm install --global git+https://github.com/rodrigojager/jgates`: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga, e o `jgates` some (veja [limitações](limitations.pt-BR.md)). Para jobs reproduzíveis, fixe uma tag ou um commit depois do `#`, ou guarde o tarball (`npm pack`) num armazenamento interno e instale esse arquivo; um tarball pode ser instalado com `--global`.
 
 ## O que o `jgates ci` recusa
 
@@ -68,7 +68,7 @@ Saída 3, antes de qualquer coisa rodar:
 - uma política de qualidade que desliga ou afrouxa os orçamentos obrigatórios;
 - um commit com submódulo (gitlink) ou com link simbólico que aponta para fora do checkout.
 
-O que não entra no `jgates ci` é a sua configuração pessoal: ele não lê nem grava o [cofre de chaves do usuário](seguranca.pt-BR.md#o-cofre-de-chaves-do-usuário) nem as [preferências e conexões de providers](semantic-gate.pt-BR.md#preferências-e-conexões). A revisão semântica no CI usa as chaves de API do ambiente do pipeline e os ajustes de provider do projeto ou da política.
+O que não entra no `jgates ci` é a sua configuração pessoal: ele não lê nem grava o [cofre de chaves do usuário](security.pt-BR.md#o-cofre-de-chaves-do-usuário) nem as [preferências e conexões de providers](semantic-gate.pt-BR.md#preferências-e-conexões). A revisão semântica no CI usa as chaves de API do ambiente do pipeline e os ajustes de provider do projeto ou da política.
 
 ## O que vem autodeclarado
 

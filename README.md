@@ -19,7 +19,7 @@ The main command is `jgates`. It runs the quality gate and, when you ask, the se
 
 | Component | What it does | Documentation |
 | --- | --- | --- |
-| `jgates` | Discovers the project, builds the plan, runs it, keeps the history, opens the interface and runs the governed CI. | [docs/jgates/](docs/jgates/primeiros-passos.en.md) |
+| `jgates` | Discovers the project, builds the plan, runs it, keeps the history, opens the interface and runs the governed CI. | [docs/jgates/](docs/jgates/getting-started.en.md) |
 | `quality-gate` | The quality gate, used by `jgates` or directly. | [quality-gate/README.md](quality-gate/README.md) |
 | `semantic-gate` | The semantic gate, used by `jgates` or directly. | [semantic-gate/README.md](semantic-gate/README.md) |
 
@@ -28,7 +28,7 @@ The main command is `jgates`. It runs the quality gate and, when you ask, the se
 - Node 22 or newer, Python 3.11 or newer and Git.
 - Docker is optional: it is needed for the tools that run in a container (Gitleaks, Trivy, OSV-Scanner, Checkov and the bridge's MegaLinter) and for the quality gate image. Without Docker, `quality-gate` runs the local Python sidecar and fails explicitly if a required tool is not installed.
 - For the bridge's scanners in Docker (the `strict` profile on a machine without them installed, such as Windows), build the sidecar image once from a clone: `docker build -t jgates/quality-sidecar:latest <clone>/quality-gate`. The image is large (about 22 GB) and the first build takes a while; the first run also downloads vulnerability databases into the data folder (a few GB). On Windows, Docker Desktop must be running: `jgates ui` shows when it is not and offers to open it.
-- Linux was tested. On Windows 10 with Docker Desktop the first-run flow was checked by hand: there, `jgates run` sends the bridge's scanners to the sidecar image (see [adapters](docs/jgates/adaptadores.en.md)). macOS was not tested on a real Mac.
+- Linux was tested. On Windows 10 with Docker Desktop the first-run flow was checked by hand: there, `jgates run` sends the bridge's scanners to the sidecar image (see [adapters](docs/jgates/adapters.en.md)). macOS was not tested on a real Mac.
 
 ### Installation
 
@@ -60,7 +60,7 @@ npm install --global ./jgates-0.3.0.tgz
 jgates doctor
 ```
 
-`npm install --global git+https://github.com/rodrigojager/jgates` **does not work**: for a global install of a git dependency, npm links the commands to a temporary clone that it then deletes, so the commands point at nothing. Use one of the forms above (see [limitations](docs/jgates/limitacoes.en.md)).
+`npm install --global git+https://github.com/rodrigojager/jgates` **does not work**: for a global install of a git dependency, npm links the commands to a temporary clone that it then deletes, so the commands point at nothing. Use one of the forms above (see [limitations](docs/jgates/limitations.en.md)).
 
 `jgates --version` prints the version and, on stderr, the build and its folder: use it to check which installation a terminal runs (a terminal opened before an install keeps its old `PATH`).
 
@@ -88,7 +88,7 @@ jgates run
 - `plan` shows what will run, what is left out and the requirements without coverage, without executing anything.
 - `run` executes the plan and stores the result and the decision. The exit code tells the decision: 0 approved, 1 failed, 2 incomplete (something required could not be proven; it never becomes approved), 3 invalid usage or configuration, 4 internal error, 130 cancelled. When a run ends because a tool is missing, on a terminal `jgates run` lists what is missing, offers the same recipes as `doctor` and, after installing, asks whether to run again; with `--json`, `--ci` or without a terminal it asks nothing, the exit code is unchanged and the message points to `jgates doctor --fix`. At a terminal the run shows colors and a live line with the time of the running step; `--plain` prints one line per step (and one a minute while a long step works) for agents and logs. It ends with the file to read to fix: `agent-context.md` in the run folder (the same summary as the interface's "Copy to the agent" button), with `result.json` beside it.
 
-Runs, caches and prepared tools live in a data folder outside the project (`~/.local/state/jgates` on Linux; `JGATES_HOME` changes the folder). To see the history and export a result, use `jgates history` and `jgates report`. The complete walkthrough is in [getting started](docs/jgates/primeiros-passos.en.md).
+Runs, caches and prepared tools live in a data folder outside the project (`~/.local/state/jgates` on Linux; `JGATES_HOME` changes the folder). To see the history and export a result, use `jgates history` and `jgates report`. The complete walkthrough is in [getting started](docs/jgates/getting-started.en.md).
 
 ### In CI
 
@@ -122,7 +122,7 @@ jgates pii fix --undo
 jgates hooks install pre-commit
 ```
 
-`pii check` detects without changing anything (exit 0 clean, 1 with findings, 2 incomplete) and shows files and the count by label, never the value. `pii fix` corrects only through a tool you name in `fix.tools` of `.jgates/pii.yml`: it works on a copy, shows what would change, asks for confirmation (or takes `--yes`), applies file by file only if the file did not change and keeps the originals, which hold the personal data, for 7 days so that `pii fix --undo` can restore them byte for byte. `hooks install pre-commit` is an optional, local Git hook that stops (or fixes) a commit with personal data in the staged files; it never replaces a hook of yours and does nothing when `core.hooksPath` is set (it shows the line to add instead), and `hooks uninstall pre-commit` removes only the hook it wrote. Fixing a file does not clean the git history. Details in [security](docs/jgates/seguranca.en.md#personal-data-in-the-project-files) and in the [data folder](docs/jgates/pasta-de-dados.en.md).
+`pii check` detects without changing anything (exit 0 clean, 1 with findings, 2 incomplete) and shows files and the count by label, never the value. `pii fix` corrects only through a tool you name in `fix.tools` of `.jgates/pii.yml`: it works on a copy, shows what would change, asks for confirmation (or takes `--yes`), applies file by file only if the file did not change and keeps the originals, which hold the personal data, for 7 days so that `pii fix --undo` can restore them byte for byte. `hooks install pre-commit` is an optional, local Git hook that stops (or fixes) a commit with personal data in the staged files; it never replaces a hook of yours and does nothing when `core.hooksPath` is set (it shows the line to add instead), and `hooks uninstall pre-commit` removes only the hook it wrote. Fixing a file does not clean the git history. Details in [security](docs/jgates/security.en.md#personal-data-in-the-project-files) and in the [data folder](docs/jgates/data-folder.en.md).
 
 ### Agents
 
@@ -135,25 +135,25 @@ jgates skill --install <skills-folder>/jgates
 
 The first prints it (an agent can read it straight from the terminal); the second copies it as `SKILL.md` into your agent's skills folder (for Claude Code, `~/.claude/skills/jgates`). The shortest instruction for an agent is: *run `jgates skill` and follow it*. In short, the agent runs `jgates run --plain` (or `--json`), reads the `agent-context.md` whose path the run prints at the end, fixes the code and runs again. For the gates used directly, the repository also ships `use-jgates-quality/` (`quality-gate` headless) and `use-jgates-semantic/` (`semantic-gate` headless).
 
-A reduced run (`reduced: true`) or an incomplete one never closes the cycle as approved. See [agents](docs/jgates/agentes.en.md).
+A reduced run (`reduced: true`) or an incomplete one never closes the cycle as approved. See [agents](docs/jgates/agents.en.md).
 
 ### Security and limitations
 
-JGates reads and runs tools over code that may not be trusted, and it has a local interface. What it protects, how, and what it does not promise is in [security](docs/jgates/seguranca.en.md). What it does not do yet and what was not tested is in [limitations](docs/jgates/limitacoes.en.md). JGates sends no telemetry. The governed CI protects the gate against the code author only together with the external policy and a controlled runner.
+JGates reads and runs tools over code that may not be trusted, and it has a local interface. What it protects, how, and what it does not promise is in [security](docs/jgates/security.en.md). What it does not do yet and what was not tested is in [limitations](docs/jgates/limitations.en.md). JGates sends no telemetry. The governed CI protects the gate against the code author only together with the external policy and a controlled runner.
 
 ### Documentation
 
-- [Getting started](docs/jgates/primeiros-passos.en.md)
+- [Getting started](docs/jgates/getting-started.en.md)
 - [CI](docs/jgates/ci.en.md)
-- [Templates and profiles](docs/jgates/templates-e-perfis.en.md)
+- [Templates and profiles](docs/jgates/templates-and-profiles.en.md)
 - [Editor](docs/jgates/editor.en.md)
-- [Adapters](docs/jgates/adaptadores.en.md) and the [compatibility matrix](docs/jgates/compatibilidade.en.md)
+- [Adapters](docs/jgates/adapters.en.md) and the [compatibility matrix](docs/jgates/compatibility.en.md)
 - [Semantic gate](docs/jgates/semantic-gate.en.md)
-- [Agents](docs/jgates/agentes.en.md)
-- [Data folder](docs/jgates/pasta-de-dados.en.md)
-- [Security](docs/jgates/seguranca.en.md)
-- [Limitations](docs/jgates/limitacoes.en.md)
-- [Common problems](docs/jgates/problemas.en.md)
+- [Agents](docs/jgates/agents.en.md)
+- [Data folder](docs/jgates/data-folder.en.md)
+- [Security](docs/jgates/security.en.md)
+- [Limitations](docs/jgates/limitations.en.md)
+- [Common problems](docs/jgates/troubleshooting.en.md)
 - [Third-party licenses](THIRD_PARTY_NOTICES.md)
 
 ### Development
@@ -183,7 +183,7 @@ O comando principal é o `jgates`. Ele roda o quality gate e, quando você pede,
 
 | Componente | O que faz | Documentação |
 | --- | --- | --- |
-| `jgates` | Descobre o projeto, monta o plano, executa, guarda o histórico, abre a interface e roda o CI governado. | [docs/jgates/](docs/jgates/primeiros-passos.pt-BR.md) |
+| `jgates` | Descobre o projeto, monta o plano, executa, guarda o histórico, abre a interface e roda o CI governado. | [docs/jgates/](docs/jgates/getting-started.pt-BR.md) |
 | `quality-gate` | O quality gate, usado pelo `jgates` ou diretamente. | [quality-gate/README.md](quality-gate/README.md) |
 | `semantic-gate` | O semantic gate, usado pelo `jgates` ou diretamente. | [semantic-gate/README.md](semantic-gate/README.md) |
 
@@ -192,7 +192,7 @@ O comando principal é o `jgates`. Ele roda o quality gate e, quando você pede,
 - Node 22 ou mais novo, Python 3.11 ou mais novo e Git.
 - Docker é opcional: é preciso para as ferramentas que rodam em container (Gitleaks, Trivy, OSV-Scanner, Checkov e o MegaLinter da ponte) e para a imagem do quality gate. Sem o Docker, o `quality-gate` roda o sidecar Python local e falha de forma explícita se uma ferramenta exigida não estiver instalada.
 - Para os scanners da ponte no Docker (o perfil `strict` numa máquina sem eles instalados, como no Windows), construa uma vez a imagem do sidecar a partir de um clone: `docker build -t jgates/quality-sidecar:latest <clone>/quality-gate`. A imagem é grande (uns 22 GB) e o primeiro build demora; o primeiro run também baixa bases de vulnerabilidades para a pasta de dados (alguns GB). No Windows, o Docker Desktop precisa estar aberto: o `jgates ui` mostra quando não está e oferece abri-lo.
-- O Linux foi testado. No Windows 10 com Docker Desktop o fluxo do primeiro uso foi conferido à mão: lá, o `jgates run` manda os scanners da ponte para a imagem do sidecar (veja [adaptadores](docs/jgates/adaptadores.pt-BR.md)). O macOS não foi testado num Mac real.
+- O Linux foi testado. No Windows 10 com Docker Desktop o fluxo do primeiro uso foi conferido à mão: lá, o `jgates run` manda os scanners da ponte para a imagem do sidecar (veja [adaptadores](docs/jgates/adapters.pt-BR.md)). O macOS não foi testado num Mac real.
 
 ### Instalação
 
@@ -224,7 +224,7 @@ npm install --global ./jgates-0.3.0.tgz
 jgates doctor
 ```
 
-O `npm install --global git+https://github.com/rodrigojager/jgates` **não funciona**: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga em seguida, e os comandos ficam apontando para nada. Use uma das formas acima (veja [limitações](docs/jgates/limitacoes.pt-BR.md)).
+O `npm install --global git+https://github.com/rodrigojager/jgates` **não funciona**: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga em seguida, e os comandos ficam apontando para nada. Use uma das formas acima (veja [limitações](docs/jgates/limitations.pt-BR.md)).
 
 O `jgates --version` mostra a versão e, no stderr, a build e a pasta dela: use para conferir qual instalação um terminal está rodando (um terminal aberto antes de uma instalação mantém o `PATH` antigo).
 
@@ -252,7 +252,7 @@ jgates run
 - `plan` mostra o que vai executar, o que fica de fora e os requisitos sem cobertura, sem executar nada.
 - `run` executa o plano e grava o resultado e a decisão. O código de saída diz a decisão: 0 aprovado, 1 reprovado, 2 incompleto (algo exigido não pôde ser provado; nunca vira aprovado), 3 uso ou configuração inválidos, 4 erro interno, 130 cancelado. Quando um run termina por falta de uma ferramenta, num terminal o `jgates run` lista o que falta, oferece as mesmas receitas do `doctor` e, depois de instalar, pergunta se deve rodar de novo; com `--json`, `--ci` ou sem terminal ele não pergunta nada, o código de saída é o mesmo e a mensagem aponta para `jgates doctor --fix`. Num terminal, o run mostra cores e uma linha viva com o tempo da etapa em andamento; `--plain` imprime uma linha por etapa (e uma por minuto enquanto uma etapa longa trabalha), para agentes e logs. Ele termina com o arquivo a ler para corrigir: `agent-context.md`, na pasta do run (o mesmo resumo do botão "Copiar para o agente" da interface), com o `result.json` ao lado.
 
-Os runs, os caches e as ferramentas preparadas ficam numa pasta de dados fora do projeto (`~/.local/state/jgates` no Linux; `JGATES_HOME` muda a pasta). Para ver o histórico e exportar um resultado, use `jgates history` e `jgates report`. O passo a passo completo está em [primeiros passos](docs/jgates/primeiros-passos.pt-BR.md).
+Os runs, os caches e as ferramentas preparadas ficam numa pasta de dados fora do projeto (`~/.local/state/jgates` no Linux; `JGATES_HOME` muda a pasta). Para ver o histórico e exportar um resultado, use `jgates history` e `jgates report`. O passo a passo completo está em [primeiros passos](docs/jgates/getting-started.pt-BR.md).
 
 ### No CI
 
@@ -286,7 +286,7 @@ jgates pii fix --undo
 jgates hooks install pre-commit
 ```
 
-O `pii check` detecta sem mudar nada (saída 0 limpo, 1 com achado, 2 incompleto) e mostra os arquivos e a contagem por rótulo, nunca o valor. O `pii fix` corrige só por uma ferramenta que você indica em `fix.tools` do `.jgates/pii.yml`: trabalha numa cópia, mostra o que mudaria, pede confirmação (ou aceita `--yes`), aplica arquivo por arquivo só se o arquivo não mudou e guarda os originais, que contêm o dado pessoal, por 7 dias, para o `pii fix --undo` restaurá-los byte a byte. O `hooks install pre-commit` é um gancho do Git opcional e local que barra (ou corrige) um commit com dado pessoal nos arquivos do stage; nunca substitui um gancho seu e não faz nada com `core.hooksPath` definido (mostra a linha para acrescentar), e o `hooks uninstall pre-commit` tira só o gancho que ele gravou. Corrigir o arquivo não limpa o histórico do git. Detalhes em [segurança](docs/jgates/seguranca.pt-BR.md#dados-pessoais-nos-arquivos-do-projeto) e na [pasta de dados](docs/jgates/pasta-de-dados.pt-BR.md).
+O `pii check` detecta sem mudar nada (saída 0 limpo, 1 com achado, 2 incompleto) e mostra os arquivos e a contagem por rótulo, nunca o valor. O `pii fix` corrige só por uma ferramenta que você indica em `fix.tools` do `.jgates/pii.yml`: trabalha numa cópia, mostra o que mudaria, pede confirmação (ou aceita `--yes`), aplica arquivo por arquivo só se o arquivo não mudou e guarda os originais, que contêm o dado pessoal, por 7 dias, para o `pii fix --undo` restaurá-los byte a byte. O `hooks install pre-commit` é um gancho do Git opcional e local que barra (ou corrige) um commit com dado pessoal nos arquivos do stage; nunca substitui um gancho seu e não faz nada com `core.hooksPath` definido (mostra a linha para acrescentar), e o `hooks uninstall pre-commit` tira só o gancho que ele gravou. Corrigir o arquivo não limpa o histórico do git. Detalhes em [segurança](docs/jgates/security.pt-BR.md#dados-pessoais-nos-arquivos-do-projeto) e na [pasta de dados](docs/jgates/data-folder.pt-BR.md).
 
 ### Agentes
 
@@ -299,25 +299,25 @@ jgates skill --install <skills-folder>/jgates
 
 O primeiro imprime o skill (um agente lê direto pelo terminal); o segundo o copia como `SKILL.md` para a pasta de skills do seu agente (no Claude Code, `~/.claude/skills/jgates`). A instrução mais curta para um agente é: *rode `jgates skill` e siga*. Em resumo, o agente roda `jgates run --plain` (ou `--json`), lê o `agent-context.md` cujo caminho o run imprime no fim, corrige o código e roda de novo. Para os gates usados diretamente, o repositório também traz `use-jgates-quality/` (`quality-gate` headless) e `use-jgates-semantic/` (`semantic-gate` headless).
 
-Um run reduzido (`reduced: true`) ou incompleto nunca encerra o ciclo como aprovado. Veja [agentes](docs/jgates/agentes.pt-BR.md).
+Um run reduzido (`reduced: true`) ou incompleto nunca encerra o ciclo como aprovado. Veja [agentes](docs/jgates/agents.pt-BR.md).
 
 ### Segurança e limitações
 
-O JGates lê e executa ferramentas sobre código que pode não ser confiável, e tem uma interface local. O que ele protege, como, e o que ele não promete estão em [segurança](docs/jgates/seguranca.pt-BR.md). O que ainda não faz e o que não foi testado está em [limitações](docs/jgates/limitacoes.pt-BR.md). O JGates não envia telemetria. O CI governado protege o gate contra o autor do código só com a política externa e um runner controlado.
+O JGates lê e executa ferramentas sobre código que pode não ser confiável, e tem uma interface local. O que ele protege, como, e o que ele não promete estão em [segurança](docs/jgates/security.pt-BR.md). O que ainda não faz e o que não foi testado está em [limitações](docs/jgates/limitations.pt-BR.md). O JGates não envia telemetria. O CI governado protege o gate contra o autor do código só com a política externa e um runner controlado.
 
 ### Documentação
 
-- [Primeiros passos](docs/jgates/primeiros-passos.pt-BR.md)
+- [Primeiros passos](docs/jgates/getting-started.pt-BR.md)
 - [CI](docs/jgates/ci.pt-BR.md)
-- [Templates e perfis](docs/jgates/templates-e-perfis.pt-BR.md)
+- [Templates e perfis](docs/jgates/templates-and-profiles.pt-BR.md)
 - [Editor](docs/jgates/editor.pt-BR.md)
-- [Adaptadores](docs/jgates/adaptadores.pt-BR.md) e [matriz de compatibilidade](docs/jgates/compatibilidade.pt-BR.md)
+- [Adaptadores](docs/jgates/adapters.pt-BR.md) e [matriz de compatibilidade](docs/jgates/compatibility.pt-BR.md)
 - [Semantic gate](docs/jgates/semantic-gate.pt-BR.md)
-- [Agentes](docs/jgates/agentes.pt-BR.md)
-- [Pasta de dados](docs/jgates/pasta-de-dados.pt-BR.md)
-- [Segurança](docs/jgates/seguranca.pt-BR.md)
-- [Limitações](docs/jgates/limitacoes.pt-BR.md)
-- [Problemas comuns](docs/jgates/problemas.pt-BR.md)
+- [Agentes](docs/jgates/agents.pt-BR.md)
+- [Pasta de dados](docs/jgates/data-folder.pt-BR.md)
+- [Segurança](docs/jgates/security.pt-BR.md)
+- [Limitações](docs/jgates/limitations.pt-BR.md)
+- [Problemas comuns](docs/jgates/troubleshooting.pt-BR.md)
 - [Licenças de terceiros](THIRD_PARTY_NOTICES.md)
 
 ### Desenvolvimento

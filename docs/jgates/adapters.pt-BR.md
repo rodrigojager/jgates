@@ -2,7 +2,7 @@
 
 Um **adaptador** liga o JGates a uma ferramenta de verdade (Ruff, ESLint, pytest, Gitleaks...). Ele diz quais capacidades a ferramenta entrega, como montar o comando, quais arquivos de configuração ela lê e como interpretar o resultado. Uma **instância** é um adaptador aplicado a um componente do projeto (por exemplo `ruff-api`: o Ruff no componente `api`).
 
-A lista de adaptadores, o que cada um entrega, em que sistemas foi testado e a limitação de cada um está na [matriz de compatibilidade](compatibilidade.pt-BR.md). Ela é gerada dos manifestos e das evidências de teste; esta página não repete a tabela.
+A lista de adaptadores, o que cada um entrega, em que sistemas foi testado e a limitação de cada um está na [matriz de compatibilidade](compatibility.pt-BR.md). Ela é gerada dos manifestos e das evidências de teste; esta página não repete a tabela.
 
 ## Declarar uma instância
 
@@ -83,7 +83,7 @@ docker build -t jgates/quality-sidecar:latest <caminho>/quality-gate
 
 ## O que entra no plano
 
-Ferramentas de configuração própria (ESLint, Vitest, pytest, Import Linter, dependency-cruiser) só entram no plano quando o projeto tem a configuração delas; veja [templates e perfis](templates-e-perfis.pt-BR.md). Uma instância declarada à mão em `.jgates/tools.yml` entra quando a capacidade dela é selecionada, e fica `blocked` se faltar o que ela precisa (por exemplo o ESLint sem `eslint.config`). Isso vale também para quem executa código do projeto (ESLint, Vitest, pytest): o plano mostra o efeito, e o resultado desses nunca é reaproveitado do cache.
+Ferramentas de configuração própria (ESLint, Vitest, pytest, Import Linter, dependency-cruiser) só entram no plano quando o projeto tem a configuração delas; veja [templates e perfis](templates-and-profiles.pt-BR.md). Uma instância declarada à mão em `.jgates/tools.yml` entra quando a capacidade dela é selecionada, e fica `blocked` se faltar o que ela precisa (por exemplo o ESLint sem `eslint.config`). Isso vale também para quem executa código do projeto (ESLint, Vitest, pytest): o plano mostra o efeito, e o resultado desses nunca é reaproveitado do cache.
 
 ## Comando genérico
 
@@ -125,8 +125,8 @@ Os contratos de evidência: `exit-code` (o código de saída decide), `test-runn
 
 ## Suporte parcial
 
-Go, Rust e .NET têm templates de suporte parcial. Go e Rust: descoberta, configuração explícita e `go test` / `cargo test` pelo comando genérico. .NET: a cadeia atual do flavor `dotnetweb` pela ponte, sem integração própria com build, testes, cobertura nem analisadores. O que cada um **não** cobre aparece no plano (`support.uncovered`) e na [matriz](compatibilidade.pt-BR.md). Nada disso é apresentado como cobertura completa.
+Go, Rust e .NET têm templates de suporte parcial. Go e Rust: descoberta, configuração explícita e `go test` / `cargo test` pelo comando genérico. .NET: a cadeia atual do flavor `dotnetweb` pela ponte, sem integração própria com build, testes, cobertura nem analisadores. O que cada um **não** cobre aparece no plano (`support.uncovered`) e na [matriz](compatibility.pt-BR.md). Nada disso é apresentado como cobertura completa.
 
 ## Sistemas operacionais
 
-Linux: testado. Windows: o fluxo do primeiro uso foi conferido à mão no Windows 10 com Docker Desktop, onde os scanners da ponte rodam na imagem do sidecar (veja [limitações](limitacoes.pt-BR.md)); os testes que dependem do Windows estão marcados e pulam fora dele. macOS: não testado num Mac real. A prova de instalação está em [primeiros passos](primeiros-passos.pt-BR.md).
+Linux: testado. Windows: o fluxo do primeiro uso foi conferido à mão no Windows 10 com Docker Desktop, onde os scanners da ponte rodam na imagem do sidecar (veja [limitações](limitations.pt-BR.md)); os testes que dependem do Windows estão marcados e pulam fora dele. macOS: não testado num Mac real. A prova de instalação está em [primeiros passos](getting-started.pt-BR.md).

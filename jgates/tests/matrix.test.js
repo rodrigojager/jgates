@@ -19,7 +19,7 @@ function cliMatrix() {
 }
 
 function docBlock(lang) {
-  const text = fs.readFileSync(path.join(repo, "docs", "jgates", `compatibilidade.${lang}.md`), "utf8");
+  const text = fs.readFileSync(path.join(repo, "docs", "jgates", `compatibility.${lang}.md`), "utf8");
   const a = text.indexOf(mx.MATRIX_START);
   const b = text.indexOf(mx.MATRIX_END);
   assert.ok(a >= 0 && b > a, `markers missing in the ${lang} document`);

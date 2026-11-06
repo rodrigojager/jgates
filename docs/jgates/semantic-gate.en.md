@@ -34,7 +34,7 @@ The configuration keeps **only the name** of the variable (`apiKeyEnv`, or the p
 
 1. **CLI login.** The CLI providers (`codex-cli`, `claude-code`, `gemini-cli`, `opencode`) use the CLI's own login and need no key.
 2. **Environment variable.** Export the variable in the environment where `jgates run` runs. This is the CI way: `jgates ci` uses only the environment (the pipeline's secrets) and never reads the key store.
-3. **User key store.** Store the key once through the **Preferences > Providers and keys** screen of `jgates ui` or with `jgates secrets`, and it works for every project on your machine. The store is outside every project (see [security](seguranca.en.md#the-user-key-store)), and the environment variable, when set, wins over the store.
+3. **User key store.** Store the key once through the **Preferences > Providers and keys** screen of `jgates ui` or with `jgates secrets`, and it works for every project on your machine. The store is outside every project (see [security](security.en.md#the-user-key-store)), and the environment variable, when set, wins over the store.
 
 ```bash
 jgates secrets set <NAME>
@@ -305,10 +305,10 @@ An unavailable provider, a timeout, an exhausted budget or a masking block never
 
 ## Limits
 
-- The smoke with a real provider has not been done yet; the tests use a fake provider and spend no tokens. See [limitations](limitacoes.en.md).
+- The smoke with a real provider has not been done yet; the tests use a fake provider and spend no tokens. See [limitations](limitations.en.md).
 - The request is the `--semantic` flag, not a field of `plan.json`: a `jgates run --plan` does not carry the request, and the plan hash does not change because of the review.
 - The cost is yours: `maxCalls` limits the calls and `costPerCall`, when informed, makes the result carry the total cost (calls times the value).
 
 ## Using it with an agent
 
-The agent context and the fix cycle are in [agents](agentes.en.md). The semantic review complements them; it does not replace the deterministic gate.
+The agent context and the fix cycle are in [agents](agents.en.md). The semantic review complements them; it does not replace the deterministic gate.

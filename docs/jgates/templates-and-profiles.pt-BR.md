@@ -31,7 +31,7 @@ Os templates embutidos:
 | `python-pytest`, `python-import-linter` | pytest com cobertura, e Import Linter. |
 | `typescript-eslint`, `typescript-vitest`, `typescript-dependency-cruiser` | ESLint, Vitest com cobertura, e dependency-cruiser. |
 | `python-typescript` | Reúne os de Python e TypeScript para repositórios com os dois. |
-| `dotnet`, `go`, `rust` | Suporte parcial: veja [adaptadores](adaptadores.pt-BR.md). |
+| `dotnet`, `go`, `rust` | Suporte parcial: veja [adaptadores](adapters.pt-BR.md). |
 
 ### Templates que entram por evidência
 

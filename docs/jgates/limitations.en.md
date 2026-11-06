@@ -7,7 +7,7 @@ This page gathers what JGates does not do yet, what was not tested and the contr
 - **macOS.** No test ran on a real Mac. The compatibility matrix shows "not tested on a real machine" in the macOS column for every adapter. The data folder path on macOS (`~/Library/Application Support/jgates`) exists in the code and is covered by a unit test only.
 - **Windows.** The automatic suite runs on Linux. On one Windows 10 machine with Docker Desktop, the first-run flow was checked by hand: the global install from the `npm pack` tarball (with `jgates` on the `Path`), `init`, `doctor --fix`, `plan`, `run` with the bridge's scanners in the sidecar image, and `ui`. The suite itself still has failures of its own on Windows (paths compared with a different letter case, checks that need POSIX: `0600` permissions, cancellation by process group, symlinks); the tests that depend on Windows are marked and skip elsewhere, with the reason. The `winget` command of the Docker recipe was not run. Before relying on JGates on another Windows machine, run the suite there (`node scripts/smoke-install.mjs` repeats the installation proof).
 - **Screen reader.** Accessibility was checked with axe (WCAG 2.2 AA, no critical or serious violation in the light, dark and system themes), with the keyboard and with reduced motion. No real screen reader was used.
-- **Direct installation from GitHub.** `npm install --prefix <folder> git+https://github.com/rodrigojager/jgates` and `npm install git+https://github.com/rodrigojager/jgates` inside a project were checked by hand with a local clone (`git+file://`, npm 11), including in a folder with a space in its path: `jgates --version` and `jgates doctor --json` worked. They are not in the automatic suite, and the download from GitHub itself was not exercised. The path the suite tests is the `npm pack` tarball (see [getting started](primeiros-passos.en.md)).
+- **Direct installation from GitHub.** `npm install --prefix <folder> git+https://github.com/rodrigojager/jgates` and `npm install git+https://github.com/rodrigojager/jgates` inside a project were checked by hand with a local clone (`git+file://`, npm 11), including in a folder with a space in its path: `jgates --version` and `jgates doctor --json` worked. They are not in the automatic suite, and the download from GitHub itself was not exercised. The path the suite tests is the `npm pack` tarball (see [getting started](getting-started.en.md)).
 
 ## Global installation from GitHub
 
@@ -61,8 +61,8 @@ What already works: `execution.failFast` (acts as `--fail-fast`) and `coverage.m
 - **Bridge (quality-bridge).** Of the bridge's nine capabilities, eight are `declared` (declared, no proof) in the matrix: only `file-size` has a test in the default suite. The others need the Docker smoke of the sidecar image, which was not done.
 - **Trivy.** The cache covers only the vulnerability database; the Java database and the checks bundle are still downloaded on every run.
 - **ESLint in a monorepo.** The ESLint from the templates runs at the workspace root, not in each component's folder.
-- **Go, Rust and .NET** have partial support; the list of what is not covered is in the [compatibility](compatibilidade.en.md) matrix.
+- **Go, Rust and .NET** have partial support; the list of what is not covered is in the [compatibility](compatibility.en.md) matrix.
 
 ## Related
 
-[Security](seguranca.en.md) · [common problems](problemas.en.md)
+[Security](security.en.md) · [common problems](troubleshooting.en.md)

@@ -36,7 +36,7 @@ O idioma (português ou inglês) vem de `--locale`, da variável `JGATES_LOCALE`
 
 ## O que o JGates nunca faz
 
-- Não apaga arquivos do seu projeto. Se uma ferramenta criar ou mudar um arquivo no workspace durante o run, o `result.json` lista a mudança (`workspaceChanges`), e quem apaga é você. O único comando que muda arquivos do projeto é o `jgates pii fix`, e só depois da sua confirmação (ou `--yes`), com os originais guardados para o `--undo` (veja [segurança](seguranca.pt-BR.md#dados-pessoais-nos-arquivos-do-projeto)).
+- Não apaga arquivos do seu projeto. Se uma ferramenta criar ou mudar um arquivo no workspace durante o run, o `result.json` lista a mudança (`workspaceChanges`), e quem apaga é você. O único comando que muda arquivos do projeto é o `jgates pii fix`, e só depois da sua confirmação (ou `--yes`), com os originais guardados para o `--undo` (veja [segurança](security.pt-BR.md#dados-pessoais-nos-arquivos-do-projeto)).
 - Não apaga caches globais do usuário (o cache do npm, do pip ou do Ruff fora da pasta de dados).
 - Não guarda segredos: valores de segredo e de dados pessoais são mascarados antes de gravar. A exceção são os originais do `jgates pii fix`, que precisam do conteúdo para o `--undo`: ficam em `pii-fix/`, com permissão só do usuário, e vencem em 7 dias (`fix.backupRetentionDays` no `.jgates/pii.yml`).
 

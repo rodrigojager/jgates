@@ -2,7 +2,7 @@
 
 An **adapter** connects JGates to a real tool (Ruff, ESLint, pytest, Gitleaks...). It says which capabilities the tool delivers, how to build the command, which configuration files it reads and how to interpret the result. An **instance** is an adapter applied to a component of the project (for example `ruff-api`: Ruff on the `api` component).
 
-The list of adapters, what each one delivers, on which systems it was tested and each one's limitation is in the [compatibility matrix](compatibilidade.en.md). It is generated from the manifests and the test evidence; this page does not repeat the table.
+The list of adapters, what each one delivers, on which systems it was tested and each one's limitation is in the [compatibility matrix](compatibility.en.md). It is generated from the manifests and the test evidence; this page does not repeat the table.
 
 ## Declare an instance
 
@@ -83,7 +83,7 @@ docker build -t jgates/quality-sidecar:latest <path>/quality-gate
 
 ## What enters the plan
 
-Tools with their own configuration (ESLint, Vitest, pytest, Import Linter, dependency-cruiser) only enter the plan when the project has their configuration; see [templates and profiles](templates-e-perfis.en.md). An instance declared by hand in `.jgates/tools.yml` enters when its capability is selected, and stays `blocked` if what it needs is missing (for example ESLint without an `eslint.config`). The same goes for the tools that execute project code (ESLint, Vitest, pytest): the plan shows the effect, and their result is never reused from the cache.
+Tools with their own configuration (ESLint, Vitest, pytest, Import Linter, dependency-cruiser) only enter the plan when the project has their configuration; see [templates and profiles](templates-and-profiles.en.md). An instance declared by hand in `.jgates/tools.yml` enters when its capability is selected, and stays `blocked` if what it needs is missing (for example ESLint without an `eslint.config`). The same goes for the tools that execute project code (ESLint, Vitest, pytest): the plan shows the effect, and their result is never reused from the cache.
 
 ## Generic command
 
@@ -125,8 +125,8 @@ The evidence contracts: `exit-code` (the exit code decides), `test-runner` (`go-
 
 ## Partial support
 
-Go, Rust and .NET have partial-support templates. Go and Rust: discovery, explicit configuration and `go test` / `cargo test` through the generic command. .NET: the current `dotnetweb` flavor chain through the bridge, without its own integration for build, tests, coverage or analyzers. What each one does **not** cover appears in the plan (`support.uncovered`) and in the [matrix](compatibilidade.en.md). None of this is presented as full coverage.
+Go, Rust and .NET have partial-support templates. Go and Rust: discovery, explicit configuration and `go test` / `cargo test` through the generic command. .NET: the current `dotnetweb` flavor chain through the bridge, without its own integration for build, tests, coverage or analyzers. What each one does **not** cover appears in the plan (`support.uncovered`) and in the [matrix](compatibility.en.md). None of this is presented as full coverage.
 
 ## Operating systems
 
-Linux: tested. Windows: the first-run flow was checked by hand on Windows 10 with Docker Desktop, where the bridge's scanners run in the sidecar image (see [limitations](limitacoes.en.md)); the tests that depend on Windows are marked and skip elsewhere. macOS: not tested on a real Mac. The installation proof is in [getting started](primeiros-passos.en.md).
+Linux: tested. Windows: the first-run flow was checked by hand on Windows 10 with Docker Desktop, where the bridge's scanners run in the sidecar image (see [limitations](limitations.en.md)); the tests that depend on Windows are marked and skip elsewhere. macOS: not tested on a real Mac. The installation proof is in [getting started](getting-started.en.md).

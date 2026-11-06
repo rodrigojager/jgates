@@ -106,6 +106,6 @@ rebuilds `dist/` and runs the tests. `npm test` runs them against the files alre
 
 ## Documentation
 
-- [Getting started](../docs/jgates/primeiros-passos.en.md) and [the semantic gate in JGates](../docs/jgates/semantic-gate.en.md).
-- [Using JGates with AI agents](../docs/jgates/agentes.en.md) and [security](../docs/jgates/seguranca.en.md).
-- [Known limitations](../docs/jgates/limitacoes.en.md): the check with a real provider has not been done yet.
+- [Getting started](../docs/jgates/getting-started.en.md) and [the semantic gate in JGates](../docs/jgates/semantic-gate.en.md).
+- [Using JGates with AI agents](../docs/jgates/agents.en.md) and [security](../docs/jgates/security.en.md).
+- [Known limitations](../docs/jgates/limitations.en.md): the check with a real provider has not been done yet.

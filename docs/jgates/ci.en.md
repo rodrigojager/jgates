@@ -56,7 +56,7 @@ jgates ci --policy <policy-folder>
 
 On GitHub Actions, the examples install into `$RUNNER_TEMP/jgates` and add `$RUNNER_TEMP/jgates/node_modules/.bin` to `$GITHUB_PATH`, which applies to the following steps. On GitLab CI, they install into a folder under `$CI_BUILDS_DIR`, outside `$CI_PROJECT_DIR`, and run `export PATH=...` in the same `script`.
 
-Do not use `npm install --global git+https://github.com/rodrigojager/jgates`: for a global install of a git dependency, npm links the commands to a temporary clone that it then deletes, and `jgates` disappears (see [limitations](limitacoes.en.md)). For reproducible jobs, pin a tag or commit after the `#`, or keep the tarball (`npm pack`) in an internal store and install that file; a tarball can be installed with `--global`.
+Do not use `npm install --global git+https://github.com/rodrigojager/jgates`: for a global install of a git dependency, npm links the commands to a temporary clone that it then deletes, and `jgates` disappears (see [limitations](limitations.en.md)). For reproducible jobs, pin a tag or commit after the `#`, or keep the tarball (`npm pack`) in an internal store and install that file; a tarball can be installed with `--global`.
 
 ## What `jgates ci` refuses
 
@@ -68,7 +68,7 @@ Exit 3, before anything runs:
 - a quality policy that turns off or loosens the mandatory budgets;
 - a commit with a submodule (gitlink) or with a symbolic link that resolves outside the checkout.
 
-What does not enter `jgates ci` is your personal setup: it neither reads nor writes the [user key store](seguranca.en.md#the-user-key-store) or the [provider preferences and connections](semantic-gate.en.md#preferences-and-connections). The semantic review in CI uses the API keys of the pipeline environment and the provider settings of the project or of the policy.
+What does not enter `jgates ci` is your personal setup: it neither reads nor writes the [user key store](security.en.md#the-user-key-store) or the [provider preferences and connections](semantic-gate.en.md#preferences-and-connections). The semantic review in CI uses the API keys of the pipeline environment and the provider settings of the project or of the policy.
 
 ## What comes self-reported
 

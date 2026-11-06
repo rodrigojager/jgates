@@ -183,8 +183,8 @@ test("verify: package.json runs the Node script, and engines require Node 22 in 
   assert.equal(readJson(ROOT, "jgates", "package.json").engines.node, ">=22");
   assert.equal(readJson(ROOT, "quality-gate", "package.json").engines.node, ">=22");
   assert.equal(readJson(ROOT, "semantic-gate", "package.json").engines.node, ">=22");
-  assert.match(fs.readFileSync(path.join(ROOT, "docs", "jgates", "primeiros-passos.pt-BR.md"), "utf8"), /Node 22 ou mais novo/);
-  assert.match(fs.readFileSync(path.join(ROOT, "docs", "jgates", "primeiros-passos.en.md"), "utf8"), /Node 22 or newer/);
+  assert.match(fs.readFileSync(path.join(ROOT, "docs", "jgates", "getting-started.pt-BR.md"), "utf8"), /Node 22 ou mais novo/);
+  assert.match(fs.readFileSync(path.join(ROOT, "docs", "jgates", "getting-started.en.md"), "utf8"), /Node 22 or newer/);
 });
 
 test("verify: verify-all.mjs lists the steps verify-all.ps1 used to run, without PowerShell", () => {

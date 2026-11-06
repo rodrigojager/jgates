@@ -36,7 +36,7 @@ The language (Portuguese or English) comes from `--locale`, the `JGATES_LOCALE` 
 
 ## What JGates never does
 
-- It does not delete files from your project. If a tool creates or changes a file in the workspace during the run, `result.json` lists the change (`workspaceChanges`), and deleting it is up to you. The only command that changes project files is `jgates pii fix`, and only after your confirmation (or `--yes`), with the originals kept for `--undo` (see [security](seguranca.en.md#personal-data-in-the-project-files)).
+- It does not delete files from your project. If a tool creates or changes a file in the workspace during the run, `result.json` lists the change (`workspaceChanges`), and deleting it is up to you. The only command that changes project files is `jgates pii fix`, and only after your confirmation (or `--yes`), with the originals kept for `--undo` (see [security](security.en.md#personal-data-in-the-project-files)).
 - It does not delete the user's global caches (the npm, pip or Ruff cache outside the data folder).
 - It does not store secrets: secret and personal data values are masked before writing. The exception is the originals of `jgates pii fix`, which need the content for `--undo`: they stay in `pii-fix/`, readable by the user only, and expire in 7 days (`fix.backupRetentionDays` in `.jgates/pii.yml`).
 

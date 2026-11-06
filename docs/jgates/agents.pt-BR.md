@@ -18,7 +18,7 @@ jgates plan --json
 jgates run --no-interactive --json --events-jsonl eventos.jsonl
 ```
 
-Regras da automação: `--no-interactive` nunca espera por entrada (um dado que falta vira erro estruturado com a instrução de correção); `--json` imprime exatamente um documento no stdout, com o progresso humano no stderr; `--events-jsonl` grava os eventos em um arquivo separado, com `runId`, `sequence` e `type`. O código de saída diz a decisão: 0 aprovado, 1 reprovado, 2 incompleto, 3 uso ou configuração inválida, 4 erro interno, 130 cancelado (veja [primeiros passos](primeiros-passos.pt-BR.md)).
+Regras da automação: `--no-interactive` nunca espera por entrada (um dado que falta vira erro estruturado com a instrução de correção); `--json` imprime exatamente um documento no stdout, com o progresso humano no stderr; `--events-jsonl` grava os eventos em um arquivo separado, com `runId`, `sequence` e `type`. O código de saída diz a decisão: 0 aprovado, 1 reprovado, 2 incompleto, 3 uso ou configuração inválida, 4 erro interno, 130 cancelado (veja [primeiros passos](getting-started.pt-BR.md)).
 
 Sem `--json`, use `--plain`: uma linha por etapa, sem cores nem animação, e um aviso por minuto enquanto uma etapa longa (a ponte do quality gate) roda, para o agente saber que não travou. É o padrão quando a saída não é um terminal, com `NO_COLOR` ou em CI; `--pretty` força o modo com cores.
 
@@ -51,11 +51,11 @@ Corrigir o gate em vez do código. Por isso o resultado mostra quando a polític
 - o resumo para o agente começa com a instrução de política congelada: corrigir o código, não editar `jgates.yml`, a pasta `.jgates/`, limiares, regras, waivers nem baseline, e, se um critério parecer errado, descrever o problema e parar;
 - waivers precisam de regra, caminho, motivo e validade, e um waiver vencido não se aplica.
 
-No modo local o usuário pode mudar a própria política. Proteção contra o autor do código mudar o gate exige a política externa e o [modo governado](seguranca.pt-BR.md).
+No modo local o usuário pode mudar a própria política. Proteção contra o autor do código mudar o gate exige a política externa e o [modo governado](security.pt-BR.md).
 
 ## Dados pessoais nos arquivos do projeto
 
-O `jgates pii check` encontra dados pessoais nos arquivos do próximo commit sem mostrar o valor, e o `jgates pii fix` os corrige pela ferramenta que o projeto configura, só depois de confirmação ou `--yes`, guardando os originais para o `jgates pii fix --undo`. Um agente roda `pii fix --yes` só quando o usuário autorizou, nunca usa `--diff` numa execução automatizada (ele mostra os valores), não contorna com `--no-verify` o gancho opcional `jgates hooks install pre-commit` e não tenta recuperar um valor dos arquivos. Veja [segurança](seguranca.pt-BR.md#dados-pessoais-nos-arquivos-do-projeto).
+O `jgates pii check` encontra dados pessoais nos arquivos do próximo commit sem mostrar o valor, e o `jgates pii fix` os corrige pela ferramenta que o projeto configura, só depois de confirmação ou `--yes`, guardando os originais para o `jgates pii fix --undo`. Um agente roda `pii fix --yes` só quando o usuário autorizou, nunca usa `--diff` numa execução automatizada (ele mostra os valores), não contorna com `--no-verify` o gancho opcional `jgates hooks install pre-commit` e não tenta recuperar um valor dos arquivos. Veja [segurança](security.pt-BR.md#dados-pessoais-nos-arquivos-do-projeto).
 
 ## As skills
 

@@ -18,7 +18,7 @@ jgates plan --json
 jgates run --no-interactive --json --events-jsonl eventos.jsonl
 ```
 
-Automation rules: `--no-interactive` never waits for input (missing data becomes a structured error with the fix instruction); `--json` prints exactly one document on stdout, with human progress on stderr; `--events-jsonl` writes the events to a separate file, with `runId`, `sequence` and `type`. The exit code tells the decision: 0 approved, 1 failed, 2 incomplete, 3 invalid usage or configuration, 4 internal error, 130 cancelled (see [getting started](primeiros-passos.en.md)).
+Automation rules: `--no-interactive` never waits for input (missing data becomes a structured error with the fix instruction); `--json` prints exactly one document on stdout, with human progress on stderr; `--events-jsonl` writes the events to a separate file, with `runId`, `sequence` and `type`. The exit code tells the decision: 0 approved, 1 failed, 2 incomplete, 3 invalid usage or configuration, 4 internal error, 130 cancelled (see [getting started](getting-started.en.md)).
 
 Without `--json`, use `--plain`: one line per step, no colors or animation, and a notice a minute while a long step (the quality gate bridge) runs, so the agent knows it did not hang. It is the default when the output is not a terminal, with `NO_COLOR` or in CI; `--pretty` forces the colored mode.
 
@@ -51,11 +51,11 @@ Fix the gate instead of the code. That is why the result shows when the policy c
 - the summary for the agent starts with the frozen policy instruction: fix the code, do not edit `jgates.yml`, the `.jgates/` folder, thresholds, rules, waivers or baseline, and, if a criterion looks wrong, describe the problem and stop;
 - waivers need a rule, a path, a reason and an expiry, and an expired waiver does not apply.
 
-In local mode the user can change their own policy. Protection against the code author changing the gate needs the external policy and [governed mode](seguranca.en.md).
+In local mode the user can change their own policy. Protection against the code author changing the gate needs the external policy and [governed mode](security.en.md).
 
 ## Personal data in the project files
 
-`jgates pii check` finds personal data in the files of the next commit without printing the value, and `jgates pii fix` corrects it through the tool the project configures, only after confirmation or `--yes`, keeping the originals for `jgates pii fix --undo`. An agent runs `pii fix --yes` only when the user authorized it, never uses `--diff` in an automated run (it shows the values), does not bypass the optional `jgates hooks install pre-commit` hook with `--no-verify`, and does not try to recover a value from the files. See [security](seguranca.en.md#personal-data-in-the-project-files).
+`jgates pii check` finds personal data in the files of the next commit without printing the value, and `jgates pii fix` corrects it through the tool the project configures, only after confirmation or `--yes`, keeping the originals for `jgates pii fix --undo`. An agent runs `pii fix --yes` only when the user authorized it, never uses `--diff` in an automated run (it shows the values), does not bypass the optional `jgates hooks install pre-commit` hook with `--no-verify`, and does not try to recover a value from the files. See [security](security.en.md#personal-data-in-the-project-files).
 
 ## The skills
 

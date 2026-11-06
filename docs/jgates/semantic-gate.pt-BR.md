@@ -34,7 +34,7 @@ A configuração guarda **só o nome** da variável (`apiKeyEnv`, ou o nome padr
 
 1. **Login do CLI.** Os providers de CLI (`codex-cli`, `claude-code`, `gemini-cli`, `opencode`) usam o login do próprio CLI e não precisam de chave.
 2. **Variável de ambiente.** Exporte a variável no ambiente onde roda o `jgates run`. É a forma do CI: o `jgates ci` usa só o ambiente (os segredos do pipeline) e nunca lê o cofre.
-3. **Cofre do usuário.** Grave a chave uma vez pela tela **Preferências > Providers e chaves** do `jgates ui` ou com o `jgates secrets`, e ela vale para todos os projetos da sua máquina. O cofre fica fora de qualquer projeto (veja [a segurança](seguranca.pt-BR.md#o-cofre-de-chaves-do-usuário)), e a variável de ambiente, quando existe, vence o cofre.
+3. **Cofre do usuário.** Grave a chave uma vez pela tela **Preferências > Providers e chaves** do `jgates ui` ou com o `jgates secrets`, e ela vale para todos os projetos da sua máquina. O cofre fica fora de qualquer projeto (veja [a segurança](security.pt-BR.md#o-cofre-de-chaves-do-usuário)), e a variável de ambiente, quando existe, vence o cofre.
 
 ```bash
 jgates secrets set <NAME>
@@ -305,10 +305,10 @@ Um provider indisponível, um timeout, um orçamento esgotado ou um bloqueio do 
 
 ## Limites
 
-- O smoke com um provider real ainda não foi feito; os testes usam um provider falso e não gastam tokens. Veja [limitações](limitacoes.pt-BR.md).
+- O smoke com um provider real ainda não foi feito; os testes usam um provider falso e não gastam tokens. Veja [limitações](limitations.pt-BR.md).
 - O pedido é a flag `--semantic`, não um campo do `plan.json`: um `jgates run --plan` não carrega o pedido, e o hash do plano não muda por causa da revisão.
 - O custo é seu: `maxCalls` limita as chamadas e `costPerCall`, quando informado, faz o resultado trazer o custo total (chamadas vezes o valor).
 
 ## Usar com um agente
 
-O contexto para agente e o ciclo de correção estão em [agentes](agentes.pt-BR.md). A revisão semântica é complementar a eles, não substitui o gate determinístico.
+O contexto para agente e o ciclo de correção estão em [agentes](agents.pt-BR.md). A revisão semântica é complementar a eles, não substitui o gate determinístico.

@@ -1,4 +1,4 @@
-// Regenerates the compatibility matrix tables in docs/jgates/compatibilidade.{pt-BR,en}.md from the adapter manifests
+// Regenerates the compatibility matrix tables in docs/jgates/compatibility.{pt-BR,en}.md from the adapter manifests
 // and the test evidence (jgates/src/core/matrix). Only the text between the two markers is replaced; the prose around
 // the tables is kept. A missing document is created with its prose.
 //
@@ -68,7 +68,7 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 
 let stale = 0;
 for (const lang of ["pt-BR", "en"]) {
-  const file = path.join(docsDir, `compatibilidade.${lang}.md`);
+  const file = path.join(docsDir, `compatibility.${lang}.md`);
   const block = `${m.MATRIX_START}\n${m.renderMatrixMarkdown(matrix, lang)}${m.MATRIX_END}\n`;
   const current = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
   let next;

@@ -2,13 +2,13 @@
 
 O JGates valida um repositório antes de uma aprovação: descobre os componentes, monta um plano que você pode revisar, executa as verificações e grava um resultado com a decisão e as evidências. O JGates reúne o quality gate (`quality-gate`) e o semantic gate (`semantic-gate`); o comando principal é o `jgates`.
 
-Esta página leva do zero à primeira validação. As outras páginas desta pasta: [templates e perfis](templates-e-perfis.pt-BR.md), [editor](editor.pt-BR.md), [adaptadores](adaptadores.pt-BR.md) (com a [matriz de compatibilidade](compatibilidade.pt-BR.md)).
+Esta página leva do zero à primeira validação. As outras páginas desta pasta: [templates e perfis](templates-and-profiles.pt-BR.md), [editor](editor.pt-BR.md), [adaptadores](adapters.pt-BR.md) (com a [matriz de compatibilidade](compatibility.pt-BR.md)).
 
 ## O que você precisa
 
 - Node 22 ou mais novo, Python 3.11 ou mais novo e Git.
 - Docker é opcional: só os scanners que rodam em container (Gitleaks, Trivy, OSV-Scanner, Checkov e o MegaLinter da ponte) precisam dele.
-- O Linux foi testado. No Windows 10 com Docker Desktop o fluxo do primeiro uso foi conferido à mão (veja [limitações](limitacoes.pt-BR.md)); o macOS não foi testado num Mac real.
+- O Linux foi testado. No Windows 10 com Docker Desktop o fluxo do primeiro uso foi conferido à mão (veja [limitações](limitations.pt-BR.md)); o macOS não foi testado num Mac real.
 
 ## Instalar
 
@@ -44,7 +44,7 @@ No Windows, o `npm install --global` põe `jgates`, `quality-gate` e `semantic-g
 
 Em vez do `--global`, você pode instalar o arquivo dentro do seu projeto (`npm install /caminho/do/clone/jgates-0.3.0.tgz`) e usar `npx jgates`. Para repetir a prova de instalação (por exemplo no Windows), rode `node scripts/smoke-install.mjs` na raiz do clone, com o JGates já compilado (`npm --prefix jgates run build`).
 
-O `npm install --global git+https://github.com/rodrigojager/jgates` **não funciona**: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga em seguida. Use a pasta com `--prefix`, a instalação dentro do projeto ou o tarball (veja [limitações](limitacoes.pt-BR.md)).
+O `npm install --global git+https://github.com/rodrigojager/jgates` **não funciona**: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga em seguida. Use a pasta com `--prefix`, a instalação dentro do projeto ou o tarball (veja [limitações](limitations.pt-BR.md)).
 
 ## Conferir a máquina
 
@@ -73,7 +73,7 @@ jgates doctor --fix
 As receitas:
 
 - **Pacotes Python** (os pacotes do quality gate, o Ruff, o Semgrep e o Import Linter): vão para um ambiente próprio do JGates em `<JGATES_HOME>/tools/python`, criado com `python -m venv` a partir do seu Python 3.11 ou mais novo, sem mexer no Python do sistema. A rede é o PyPI (`pypi.org`, `files.pythonhosted.org`), ou o índice de `PIP_INDEX_URL`. Os adaptadores do Ruff e do Semgrep e a ponte do quality gate procuram as ferramentas ali depois de `JGATES_RUFF`, `JGATES_SEMGREP` e `JGATES_PYTHON` e antes do `PATH`; o Import Linter, depois de `JGATES_IMPORT_LINTER` e do `PATH`. O Python do projeto (o do pytest) continua sendo o do `PATH`: o pytest roda o código do projeto, por isso o `doctor` nunca o instala; ele diz para instalar as dependências de teste do projeto nesse Python. Um pacote instalado com `pip install --user` conta (no Windows ele fica em `%APPDATA%\Python`).
-- **Imagens e regras**: a mesma preparação de `jgates tools prepare --instance <id>` (veja [adaptadores](adaptadores.pt-BR.md)).
+- **Imagens e regras**: a mesma preparação de `jgates tools prepare --instance <id>` (veja [adaptadores](adapters.pt-BR.md)).
 - **Docker**: o JGates mostra o comando oficial do sistema detectado (`apt-get` no Debian e no Ubuntu, `dnf` no Fedora, `brew` no macOS, `winget` no Windows) e só o executa depois de um "s" no terminal; o próprio comando pede o `sudo`, e o `--yes` não vale para ele. Com o Docker instalado e parado, a receita o inicia (`sudo systemctl start docker` no Linux). Num sistema que o JGates não conhece, o texto aponta as instruções oficiais. Os comandos do macOS e do Windows ainda não foram testados nessas máquinas.
 
 O JGates nunca roda `sudo` por conta própria.
@@ -153,4 +153,4 @@ Os comandos aceitam `--json` (um único documento no stdout; o progresso humano 
 jgates run --profile standard --scope changed --base main --no-interactive --json
 ```
 
-Um run com `reduced: true` (algo exigido pelo perfil foi desligado só naquela execução) nunca encerra o ciclo como aprovado. Veja em [templates e perfis](templates-e-perfis.pt-BR.md).
+Um run com `reduced: true` (algo exigido pelo perfil foi desligado só naquela execução) nunca encerra o ciclo como aprovado. Veja em [templates e perfis](templates-and-profiles.pt-BR.md).
