@@ -87,6 +87,7 @@
   "cfgp_coverage_all": "todos os componentes",
   "cfgp_coverage_for": "Cobertura mínima de {scope}",
   "cfgp_coverage_none": "sem mínimo",
+  "cfgp_coverage_native": "Sem mínimo próprio do JGates: vale o fail_under de {source}, {value}%. Salve um valor aqui só se quiser outro.",
   "cfgp_coverage_unset": "Sem mínimo definido.",
   "cfgp_coverage_save_aria": "Salvar a cobertura mínima de {scope}",
   "cfgp_missing_label": "Bloquear se faltar uma verificação",

@@ -61,5 +61,6 @@
   "history_warning_REDUCED_RUN": "Um dos runs desligou verificações só naquela rodada: é uma rodada parcial.",
   "history_warning_BASELINE_PARTIAL": "O run mais antigo não terminou.",
   "history_context_title": "Aprovação tem contexto.",
-  "history_context_body": "Uma mudança no código ou na configuração exige nova validação. Nenhum resultado antigo aprova um commit novo."
+  "history_context_body": "Uma mudança no código ou na configuração exige nova validação. Nenhum resultado antigo aprova um commit novo.",
+  "history_new_run": "Nova validação"
 }

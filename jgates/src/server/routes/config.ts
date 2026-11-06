@@ -2,6 +2,7 @@
 // value, "why is this on?" (the same chain `jgates config resolve --explain` prints), granular on/off written into the
 // profile by patch, and the policy controls (severity, minimum coverage, missing verification).
 import { buildPlan } from "../../core/plan/index.js";
+import { findNativeMinimum } from "../../adapters/pytest/coverage.js";
 import { projectMascots } from "../../core/mascots/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { createCoreCatalog } from "../../core/catalog/index.js";
@@ -142,12 +143,23 @@ function buildView(server: ServerContext, ref: string) {
   const field = (key: string, name: string) => result.fields[encodePointer(["policy", "rules", key, name])];
   const severityField = field(POLICY_KEYS.severity.key, "severity");
   const missingField = field(POLICY_KEYS.onMissing.key, "enabled");
+  const built = buildPlan(server.projectDir, { profile: ref, home: server.home, version: server.version, compare: false });
+  const roots = new Map<string, string | null>((built.ok ? built.plan.components : []).map((c) => [c.id, c.root]));
   const coverageScopes = [
     { scope: null as string | null, key: POLICY_KEYS.coverage.key },
     ...selection.universe.components.map((c) => ({ scope: c as string | null, key: `${POLICY_KEYS.coverage.key}.${c}` })),
   ].map(({ scope, key }) => {
     const f = field(key, "threshold");
-    return { scope, key, value: typeof f?.value === "number" ? f.value : null, origin: origin(f), saveTo: { file: ".jgates/policy.yml", path: `rules.${key}.threshold` } };
+    // Without a minimum of its own, the component's coverage configuration (`fail_under`) is the one that applies.
+    const native = findNativeMinimum(server.projectDir, scope === null ? null : (roots.get(scope) ?? null));
+    return {
+      scope,
+      key,
+      value: typeof f?.value === "number" ? f.value : null,
+      origin: origin(f),
+      native: native.value !== null ? native : null,
+      saveTo: { file: ".jgates/policy.yml", path: `rules.${key}.threshold` },
+    };
   });
 
   const policy = {
@@ -167,7 +179,6 @@ function buildView(server: ServerContext, ref: string) {
     coverage: { denominator: "lines", scopes: coverageScopes },
   };
 
-  const built = buildPlan(server.projectDir, { profile: ref, home: server.home, version: server.version, compare: false });
   return {
     schemaVersion: 1,
     status: "OK",

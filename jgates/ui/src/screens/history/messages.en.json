@@ -61,5 +61,6 @@
   "history_warning_REDUCED_RUN": "One of the runs switched checks off only for that round: it is a partial round.",
   "history_warning_BASELINE_PARTIAL": "The older run did not finish.",
   "history_context_title": "Approval has context.",
-  "history_context_body": "A change in the code or in the configuration requires a new validation. No old result approves a new commit."
+  "history_context_body": "A change in the code or in the configuration requires a new validation. No old result approves a new commit.",
+  "history_new_run": "New validation"
 }

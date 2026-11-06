@@ -15,7 +15,7 @@ import { ratioMetric } from "../../core/results/metrics.js";
 import { runSpec, substituteTokens } from "../../core/runner/index.js";
 import type { AdapterContext, AdapterOutput, ResultFinding, ResultMetric, ResultStage } from "../../core/run/types.js";
 import { choosePytestConfig } from "./config.js";
-import { findCoverageConfig, parseCoverageJson } from "./coverage.js";
+import { findCoverageConfig, findNativeMinimum, parseCoverageJson } from "./coverage.js";
 import { caseFile, parseJunit } from "./junit.js";
 import { pytestManifest } from "./manifest.js";
 import { probePytest } from "./probe.js";
@@ -89,7 +89,9 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
   const hasSrc = fs.existsSync(path.join(cwdAbs, "src"));
   const coverageSource = coverageConfig.file !== null ? "config" : hasSrc ? "src" : ".";
   const coverageInCommand = coverageSelected && probe.coverage;
-  const minimum = policyMinimum(input.config, component);
+  // The policy of JGates wins; without one, the component's own `fail_under` is the minimum.
+  const fromPolicy = policyMinimum(input.config, component);
+  const minimum = fromPolicy.value !== null ? fromPolicy : findNativeMinimum(input.dir, input.componentRoot);
 
   const out = `${RUN_DIR}/outputs/${ADAPTER_ID}/${input.tool}`;
   const junit = `${out}/junit.xml`;

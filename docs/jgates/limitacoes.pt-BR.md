@@ -40,7 +40,7 @@ Alguns controles gravam o valor no arquivo, mas o motor ainda não o lê. A inte
 - `security.block-from` (Configuração, Perfis, política): o bloqueio por severidade é decidido na ponte do quality-gate, que não lê essa regra.
 - `missing-check.block` (Configuração, Perfis, política): idem para o bloqueio por verificação ausente.
 
-O que já vale: `execution.failFast` (age como `--fail-fast`) e `coverage.minimum`, com um mínimo por componente.
+O que já vale: `execution.failFast` (age como `--fail-fast`) e `coverage.minimum`, com um mínimo por componente. Sem `coverage.minimum`, vale o `fail_under` do próprio componente (`.coveragerc`, `pyproject.toml`, `setup.cfg` ou `tox.ini`).
 ## Resultado e interface
 
 - **Filtro por componente nos achados.** A lista de achados da tela de resultado só mostraria um filtro por componente se algum achado tivesse `component`; o `finding` do `result.json` não tem esse campo (só as métricas têm), então o filtro nunca aparece. Incluí-lo exige um campo novo no resultado e o preenchimento pelos adaptadores.

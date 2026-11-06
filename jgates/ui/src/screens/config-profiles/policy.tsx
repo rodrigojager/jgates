@@ -11,7 +11,7 @@ export interface PolicyView {
   governed: boolean;
   severity: { value: "critical" | "high" | "medium" | "low"; explicit: boolean; origin: OriginRef | null; saveTo: SaveTarget };
   onMissing: { value: "block" | "warn"; explicit: boolean; origin: OriginRef | null; saveTo: SaveTarget };
-  coverage: { denominator: string; scopes: Array<{ scope: string | null; key: string; value: number | null; origin: OriginRef | null; saveTo: SaveTarget }> };
+  coverage: { denominator: string; scopes: Array<{ scope: string | null; key: string; value: number | null; origin: OriginRef | null; native?: { value: number; source: string } | null; saveTo: SaveTarget }> };
 }
 
 const LEVELS = ["critical", "high", "medium", "low"] as const;
@@ -24,7 +24,7 @@ function CoverageRow({ scope, onSave, busy, governedReason }: { scope: PolicyVie
   if (governedReason) {
     return (
       <div data-scope={scope.scope ?? "all"}>
-        <LockedField label={t("cfgp_coverage_for", { scope: name })} value={scope.value === null ? t("cfgp_coverage_none") : `${scope.value}%`} reason={governedReason} />
+        <LockedField label={t("cfgp_coverage_for", { scope: name })} value={scope.value !== null ? `${scope.value}%` : scope.native ? `${scope.native.value}%` : t("cfgp_coverage_none")} reason={governedReason} />
       </div>
     );
   }
@@ -34,13 +34,17 @@ function CoverageRow({ scope, onSave, busy, governedReason }: { scope: PolicyVie
         <label htmlFor={`cov-${scope.key}`} className="field-label">
           {t("cfgp_coverage_for", { scope: name })}
         </label>
-        <input id={`cov-${scope.key}`} className="input number" type="number" min={0} max={100} step={5} value={value} onChange={(e) => setValue(e.target.value)} />
+        <input id={`cov-${scope.key}`} className="input number" type="number" min={0} max={100} step={5} value={value} placeholder={scope.native ? String(scope.native.value) : undefined} onChange={(e) => setValue(e.target.value)} />
         <span aria-hidden="true">%</span>
         <button type="button" className="btn" disabled={!valid || busy || (scope.value !== null && number === scope.value)} aria-label={t("cfgp_coverage_save_aria", { scope: name })} onClick={() => onSave(scope.scope, number)}>
           {t("save")}
         </button>
       </div>
-      <OriginLine origin={scope.origin} saveTo={scope.saveTo} fallback={t("cfgp_coverage_unset")} />
+      <OriginLine
+        origin={scope.origin}
+        saveTo={scope.saveTo}
+        fallback={scope.native ? t("cfgp_coverage_native", { value: scope.native.value, source: scope.native.source }) : t("cfgp_coverage_unset")}
+      />
     </div>
   );
 }

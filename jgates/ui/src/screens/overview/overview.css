@@ -1,9 +1,9 @@
 .ov-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 .ov-head h1 { margin: 0 0 4px; }
-.ov-hero { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 28px; border: 1px solid var(--line); border-radius: 14px; background: var(--mint); margin-bottom: 18px; }
-.ov-hero h2 { font-size: 26px; letter-spacing: -0.8px; margin: 6px 0 8px; max-width: 18ch; }
-.ov-hero p { max-width: 52ch; margin: 0 0 16px; }
-.ov-hero svg { width: 200px; max-width: 30%; height: auto; flex-shrink: 0; }
+.ov-hero { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 20px 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--mint); margin-bottom: 18px; }
+.ov-hero h2 { font-size: 21px; letter-spacing: -0.5px; margin: 4px 0 6px; }
+.ov-hero p { max-width: 64ch; margin: 0 0 10px; }
+.ov-hero > svg { width: 200px; max-width: 30%; height: auto; flex-shrink: 0; }
 .ov-hero svg .a { stroke: var(--accent); }
 .ov-hero svg .b { stroke: var(--logo-soft); }
 .ov-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 22px; list-style: none; padding: 0; }
@@ -37,5 +37,5 @@
 .ov-cat p { margin: 2px 0 0; font-size: 12px; }
 .ov-uncovered { margin-top: 22px; }
 .ov-uncovered ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
-@media (max-width: 720px) { .ov-hero { flex-direction: column; align-items: flex-start; } .ov-hero svg { display: none; } }
+@media (max-width: 720px) { .ov-hero { flex-direction: column; align-items: flex-start; } .ov-hero > svg { display: none; } }
 .ov-hero .eyebrow, .ov-hero p { color: var(--ink); }

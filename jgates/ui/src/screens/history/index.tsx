@@ -122,9 +122,15 @@ export default function HistoryScreen() {
 
   return (
     <div className="stack">
-      <div>
-        <h1>{t("history_title")}</h1>
-        <p>{t("history_lead")}</p>
+      <div className="between wrap">
+        <div>
+          <h1>{t("history_title")}</h1>
+          <p>{t("history_lead")}</p>
+        </div>
+        <a className="btn primary" href="#/validations/choose" data-testid="history-new-run">
+          <Icon name="play" />
+          {t("history_new_run")}
+        </a>
       </div>
 
       <div className="history-toolbar">
@@ -141,7 +147,7 @@ export default function HistoryScreen() {
         <span className="small muted grow" role="status">
           {t("history_count", { count: rows.length })}
         </span>
-        <button type="button" className="btn primary" disabled={picked.length !== 2} onClick={compare}>
+        <button type="button" className="btn" disabled={picked.length !== 2} onClick={compare}>
           <Icon name="copy" />
           {t("history_compare")}
         </button>

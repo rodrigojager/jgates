@@ -5,8 +5,7 @@
   "overview_hero_eyebrow": "From the first lint to architecture",
   "overview_hero_title": "Good deliveries start with clear rules.",
   "overview_hero_text": "Your workspace is configured. Review the checks and let each tool do its part.",
-  "overview_hero_text_first": "You have not run any validation yet. Review the plan to see exactly what will run.",
-  "overview_hero_cta": "Review my plan",
+  "overview_hero_text_first": "You have not run a validation yet. Start with \"New validation\": you choose what to validate and review the plan before it runs.",
   "overview_strip": "Workspace summary",
   "overview_components": "components",
   "overview_components_one": "component",
@@ -61,7 +60,7 @@
   "overview_step3_title": "Validate with clarity",
   "overview_step3_text": "Know exactly what will run.",
   "overview_step3_pending": "No validation run yet.",
-  "overview_step3_open": "Review plan",
+  "overview_step3_open": "Choose what to validate",
   "overview_protection": "A simple view of your protection",
   "overview_customize": "Customize",
   "overview_protection_empty": "The resolved profile has no categories.",
@@ -77,5 +76,6 @@
   "overview_category_tests": "Tests",
   "overview_uncovered": "Requirements without coverage",
   "overview_uncovered_text": "These requirements are in the profile, but no enabled check covers them.",
-  "overview_load_error": "Could not load the overview."
+  "overview_load_error": "Could not load the overview.",
+  "overview_hero_review": "or review the plan first"
 }

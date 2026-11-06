@@ -1,7 +1,7 @@
 {
   "nav_environment": "Environment",
   "env_title": "Environment",
-  "env_lead": "The same diagnosis as jgates doctor: runtimes, binaries and tool versions against the lockfile. Nothing is installed or downloaded here, only when preparing.",
+  "env_lead": "The same diagnosis as jgates doctor: runtimes, binaries and tool versions against the lockfile. Anything missing shows on top, with the button that fixes it; nothing runs without your confirmation.",
   "env_recheck": "Check again",
   "env_ready": "Environment ready.",
   "env_not_ready": "Environment with pending items: {absent} absent, {incompatible} incompatible.",

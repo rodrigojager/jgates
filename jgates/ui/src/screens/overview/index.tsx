@@ -1,3 +1,4 @@
+import { PrerequisitesBar } from "../../components/PrerequisitesBar";
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { api } from "../../api";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
@@ -152,7 +153,7 @@ function steps(data: Overview): Step[] {
   return [
     { n: "01", icon: "folder", title: t("overview_step1_title"), text: t("overview_step1_text"), pending: step1, href: "#/workspace", open: t("overview_step1_open") },
     { n: "02", icon: "sliders", title: t("overview_step2_title"), text: t("overview_step2_text"), pending: step2, href: "#/config", open: t("overview_step2_open") },
-    { n: "03", icon: "play", title: t("overview_step3_title"), text: t("overview_step3_text"), pending: data.lastRun ? null : t("overview_step3_pending"), href: "#/plan", open: t("overview_step3_open") },
+    { n: "03", icon: "play", title: t("overview_step3_title"), text: t("overview_step3_text"), pending: data.lastRun ? null : t("overview_step3_pending"), href: "#/validations/choose", open: t("overview_step3_open") },
   ];
 }
 
@@ -214,11 +215,13 @@ export default function OverviewScreen() {
           <h1>{t("overview_title")}</h1>
           <p>{t("overview_subtitle")}</p>
         </div>
-        <a className="btn primary" href="#/validations" data-testid="new-run">
+        <a className="btn primary" href="#/validations/choose" data-testid="new-run">
           <Icon name="play" />
           {t("overview_new_run")}
         </a>
       </div>
+
+      <PrerequisitesBar onChanged={loaded.reload} />
 
       {loaded.loading && !data ? <Loading /> : null}
       {loaded.error ? <ErrorNotice error={loaded.error} onRetry={loaded.reload} /> : null}
@@ -230,9 +233,9 @@ export default function OverviewScreen() {
               <span className="eyebrow">{t("overview_hero_eyebrow").toUpperCase()}</span>
               <h2>{t("overview_hero_title")}</h2>
               <p>{first ? t("overview_hero_text_first") : t("overview_hero_text")}</p>
-              <a className="btn primary" href="#/plan">
-                {t("overview_hero_cta")}
-                <Icon name="chevron" />
+              {/* One primary action per page ("Nova validação", above); reviewing the plan first is a deliberate detour. */}
+              <a className="ov-link" href="#/validations/review" data-testid="hero-review">
+                {t("overview_hero_review")} <Icon name="chevron" />
               </a>
             </div>
           </section>

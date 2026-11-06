@@ -4,6 +4,7 @@ import { Dialog, ErrorNotice, Loading, Pill, useAsync } from "../../components/c
 import { Icon } from "../../components/icons";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
+import { PrerequisitesBar } from "../../components/PrerequisitesBar";
 import { WorkspaceTabs } from "../workspace/tabs";
 
 export const screen: ScreenMeta = { id: "environment", path: "/environment", area: "workspace", navLabel: "nav_environment", navPath: "/environment", order: 30, icon: "tools" };
@@ -109,6 +110,8 @@ export default function EnvironmentScreen() {
           {t("env_recheck")}
         </button>
       </div>
+
+      <PrerequisitesBar showReady inEnvironment onChanged={env.reload} />
 
       <div className={`notice ${d.environmentReady ? "ok" : "warn"}`} role="status" data-testid="env-summary">
         <Icon name={d.environmentReady ? "check" : "alert"} />

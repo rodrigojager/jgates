@@ -5,8 +5,7 @@
   "overview_hero_eyebrow": "Do primeiro lint à arquitetura",
   "overview_hero_title": "Boas entregas começam com regras claras.",
   "overview_hero_text": "Seu workspace está configurado. Revise as verificações e deixe cada ferramenta fazer a sua parte.",
-  "overview_hero_text_first": "Você ainda não fez nenhuma validação. Revise o plano para ver exatamente o que vai rodar.",
-  "overview_hero_cta": "Revisar meu plano",
+  "overview_hero_text_first": "Você ainda não fez nenhuma validação. Comece por \"Nova validação\": você escolhe o que validar e revisa o plano antes de rodar.",
   "overview_strip": "Resumo do workspace",
   "overview_components": "componentes",
   "overview_components_one": "componente",
@@ -61,7 +60,7 @@
   "overview_step3_title": "Valide com clareza",
   "overview_step3_text": "Saiba exatamente o que vai rodar.",
   "overview_step3_pending": "Nenhuma validação feita ainda.",
-  "overview_step3_open": "Revisar plano",
+  "overview_step3_open": "Escolher o que validar",
   "overview_protection": "Uma visão simples da sua proteção",
   "overview_customize": "Personalizar",
   "overview_protection_empty": "O perfil resolvido não tem categorias.",
@@ -77,5 +76,6 @@
   "overview_category_tests": "Testes",
   "overview_uncovered": "Requisitos sem cobertura",
   "overview_uncovered_text": "Estes requisitos estão no perfil, mas nenhuma verificação ligada os cobre.",
-  "overview_load_error": "Não foi possível carregar a visão geral."
+  "overview_load_error": "Não foi possível carregar a visão geral.",
+  "overview_hero_review": "ou revise o plano antes"
 }

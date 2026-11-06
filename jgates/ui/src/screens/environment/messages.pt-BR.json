@@ -1,7 +1,7 @@
 {
   "nav_environment": "Ambiente",
   "env_title": "Ambiente",
-  "env_lead": "O mesmo diagnóstico do jgates doctor: runtimes, binários e versões das ferramentas contra o lockfile. Nada é instalado ou baixado aqui, só ao preparar.",
+  "env_lead": "O mesmo diagnóstico do jgates doctor: runtimes, binários e versões das ferramentas contra o lockfile. O que faltar aparece no topo, com o botão que resolve; nada roda sem você confirmar.",
   "env_recheck": "Conferir de novo",
   "env_ready": "Ambiente pronto.",
   "env_not_ready": "Ambiente com pendências: {absent} ausente(s), {incompatible} incompatível(is).",

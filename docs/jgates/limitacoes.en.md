@@ -40,7 +40,7 @@ Some controls write the value to the file, but the engine does not read it yet. 
 - `security.block-from` (Configuration, Profiles, policy): blocking by severity is decided in the quality-gate bridge, which does not read this rule.
 - `missing-check.block` (Configuration, Profiles, policy): the same for blocking on a missing check.
 
-What already works: `execution.failFast` (acts as `--fail-fast`) and `coverage.minimum`, with a minimum per component.
+What already works: `execution.failFast` (acts as `--fail-fast`) and `coverage.minimum`, with a minimum per component. Without a `coverage.minimum`, the component's own `fail_under` (`.coveragerc`, `pyproject.toml`, `setup.cfg` or `tox.ini`) is the minimum.
 ## Result and interface
 
 - **Filter by component in the findings.** The findings list of the result screen would show a component filter only if some finding had `component`; the `finding` in `result.json` has no such field (only the metrics do), so the filter never appears. Adding it needs a new field in the result and the adapters filling it.

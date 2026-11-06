@@ -64,6 +64,50 @@ export interface CoverageConfig {
   present: string[];
 }
 
+/** Where coverage.py reads `fail_under`: the report section of each configuration file, in coverage.py's order. */
+const REPORT_SECTIONS: Array<{ name: string; header: RegExp; section: string }> = [
+  { name: ".coveragerc", header: /^\[report\]/m, section: "report" },
+  { name: "pyproject.toml", header: /^\[tool\.coverage\.report\]/m, section: "tool.coverage.report" },
+  { name: "setup.cfg", header: /^\[coverage:report\]/m, section: "coverage:report" },
+  { name: "tox.ini", header: /^\[coverage:report\]/m, section: "coverage:report" },
+];
+
+export interface NativeMinimum {
+  /** The minimum line coverage the component's own coverage configuration declares (`fail_under`), or null. */
+  value: number | null;
+  /** Workspace-relative file and section it came from, for example `pyproject.toml#tool.coverage.report.fail_under`. */
+  source: string | null;
+}
+
+/**
+ * The `fail_under` of the component's coverage configuration, read the way coverage.py reads it: the first file that
+ * has a report section wins. JGates uses it as the minimum when its own policy sets none, so a project keeps one
+ * number in its native file instead of two that drift apart.
+ */
+export function findNativeMinimum(workspace: string, componentRoot: string | null): NativeMinimum {
+  const dir = path.join(workspace, componentRoot && componentRoot !== "." ? componentRoot : "");
+  for (const c of REPORT_SECTIONS) {
+    let text: string;
+    try {
+      text = fs.readFileSync(path.join(dir, c.name), "utf8");
+    } catch {
+      continue;
+    }
+    const start = c.header.exec(text);
+    if (!start) continue;
+    const rest = text.slice(start.index + start[0].length);
+    const next = rest.search(/^\[/m);
+    const body = next === -1 ? rest : rest.slice(0, next);
+    const m = /^\s*fail_under\s*=\s*["']?([0-9]+(?:\.[0-9]+)?)["']?\s*(?:[#;].*)?$/m.exec(body);
+    if (!m?.[1]) continue;
+    const value = Number(m[1]);
+    if (!Number.isFinite(value) || value < 0 || value > 100) continue;
+    const rel = path.relative(workspace, path.join(dir, c.name)).split(path.sep).join("/");
+    return { value, source: `${rel}#${c.section}.fail_under` };
+  }
+  return { value: null, source: null };
+}
+
 /** Whether the component's own coverage configuration already chooses what to measure (then `--cov` takes no path). */
 export function findCoverageConfig(workspace: string, componentRoot: string | null): CoverageConfig {
   const dir = path.join(workspace, componentRoot && componentRoot !== "." ? componentRoot : "");
