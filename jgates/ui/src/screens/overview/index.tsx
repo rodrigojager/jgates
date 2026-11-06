@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { PrerequisitesBar } from "../../components/PrerequisitesBar";
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { api } from "../../api";
@@ -21,6 +22,8 @@ interface LastRun {
   decision: string;
   complete?: boolean;
   partial?: boolean;
+  /** Partial and its process still beats: the run is going on now. */
+  running?: boolean;
   durationMs?: number | null;
   branch?: string | null;
   commit?: string | null;
@@ -97,18 +100,18 @@ function LastRunCard({ run }: { run: LastRun | null }) {
       </div>
     );
   }
-  const decision = run.decision in DECISION_TONE ? run.decision : "unknown";
+  const decision = run.running ? "running" : run.decision in DECISION_TONE ? run.decision : "unknown";
   return (
     <div className="card" data-testid="last-run">
       <div className="between">
-        <Pill tone={DECISION_TONE[run.decision] ?? "blue"}>
-          <Icon name={run.decision === "passed" ? "check" : "alert"} />
+        <Pill tone={run.running ? "blue" : (DECISION_TONE[run.decision] ?? "blue")}>
+          <Icon name={run.running ? "refresh" : run.decision === "passed" ? "check" : "alert"} />
           {t(`overview_decision_${decision}`)}
         </Pill>
         <span className="small muted">{runWhen(run.runId)}</span>
       </div>
       {run.branch ? <h3 className="ov-run-title">{run.branch}</h3> : null}
-      {run.partial ? <p className="small">{t("overview_run_partial")}</p> : null}
+      {run.running ? <p className="small">{t("overview_run_running")}</p> : run.partial ? <p className="small">{t("overview_run_partial")}</p> : null}
       {run.summary ? <p className="small">{run.summary}</p> : null}
       {run.stages.length > 0 ? <Segments stages={run.stages} /> : null}
       <div className="between wrap">
@@ -124,7 +127,7 @@ function LastRunCard({ run }: { run: LastRun | null }) {
           <span>{run.findings === 1 ? t("overview_findings_one") : t("overview_findings", { count: run.findings ?? 0 })}</span>
         </div>
         <a className="ov-link" href={`#/runs/${encodeURIComponent(run.runId)}`}>
-          {t("overview_view_result")} <Icon name="chevron" />
+          {run.running ? t("overview_follow_run") : t("overview_view_result")} <Icon name="chevron" />
         </a>
       </div>
     </div>
@@ -207,6 +210,17 @@ export default function OverviewScreen() {
   const languages = data?.discovery.languages ?? [];
   const uncovered = data?.plan.uncovered ?? [];
   const first = data !== null && data.lastRun === null;
+
+  // While a run is going on, look again every few seconds, so the card turns into its result when it ends (or into
+  // "Interrompida" when its process dies) without a reload.
+  const lastRunning = data?.lastRun?.running === true;
+  const reload = useRef(loaded.reload);
+  reload.current = loaded.reload;
+  useEffect(() => {
+    if (!lastRunning) return;
+    const timer = setInterval(() => reload.current(), 5000);
+    return () => clearInterval(timer);
+  }, [lastRunning]);
 
   return (
     <div className="stack" data-testid="overview">

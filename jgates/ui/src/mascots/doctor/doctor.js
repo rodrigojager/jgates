@@ -3,10 +3,10 @@ import { V, vinyl, box, ball, group, extrusion, deformable, tube, arm, boot, seg
 import { Spring, clamp, pulse, auscultationPose } from './motion.js';
 
 export const DOCTOR_STATES = Object.freeze({
-  checking: { label: 'Checking the environment', short: 'Checking', symbol: '↻', description: 'Moving, pausing and listening at different points.' },
+  checking: { label: 'Checking the environment', short: 'Checking', symbol: '...', description: 'Moving, pausing and listening at different points.' },
   'needs-you': { label: 'Needs your attention', short: 'Needs you', symbol: '!', description: 'A pulsing red cross asks for your attention.' },
-  ok: { label: 'Ready for quality checks', short: 'Ready', symbol: '✓', description: 'The environment is ready. Quality checks can begin.' },
-  error: { label: 'Unable to diagnose', short: 'Diagnostic error', symbol: '×', description: 'A steady illuminated X: the diagnosis could not finish.' }
+  ok: { label: 'Ready for quality checks', short: 'Ready', symbol: 'ok', description: 'The environment is ready. Quality checks can begin.' },
+  error: { label: 'Unable to diagnose', short: 'Diagnostic error', symbol: 'x', description: 'A steady illuminated X: the diagnosis could not finish.' }
 });
 
 function roundedShape(width, height, radius, centerY = 0) {

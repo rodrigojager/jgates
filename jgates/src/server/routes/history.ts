@@ -60,6 +60,7 @@ function summary(run: RunInfo, result: RunResult | null, componentOf: (file: str
     partial: run.partial || run.reduced,
     reduced: run.reduced,
     unfinished: run.partial,
+    running: run.alive,
     bytes: run.bytes,
     baseline: run.marks.baseline,
     preserved: run.marks.preserved,

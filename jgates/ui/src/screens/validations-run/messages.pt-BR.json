@@ -55,5 +55,7 @@
   "vrun_logs_empty_file": "(vazio)",
   "vrun_error_title": "A execução não pôde terminar",
   "vrun_crashed": "O processo da execução caiu antes de gravar o resultado final. Abaixo, o relatório parcial.",
-  "vrun_reload_note": "Os eventos continuam de onde pararam; recarregar a página não repete linhas."
+  "vrun_reload_note": "Os eventos continuam de onde pararam; recarregar a página não repete linhas.",
+  "vrun_connection_lost": "O servidor do JGates não está respondendo. A tela tenta de novo a cada 3 segundos; a validação pode continuar rodando enquanto isso. Se você fechou o jgates ui, abra de novo para voltar a acompanhar.",
+  "vrun_stalled": "Nenhuma saída nova há {time}, mas o processo continua vivo. Alguns scanners baixam bases grandes (por exemplo, a base de vulnerabilidades do grype) e ficam um tempo sem escrever nada. Você pode esperar ou cancelar."
 }

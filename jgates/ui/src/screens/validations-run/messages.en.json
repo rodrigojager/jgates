@@ -55,5 +55,7 @@
   "vrun_logs_empty_file": "(empty)",
   "vrun_error_title": "The run could not finish",
   "vrun_crashed": "The run process died before writing the final result. Below, the partial report.",
-  "vrun_reload_note": "Events continue from where they stopped; reloading the page does not repeat lines."
+  "vrun_reload_note": "Events continue from where they stopped; reloading the page does not repeat lines.",
+  "vrun_connection_lost": "The JGates server is not answering. The screen tries again every 3 seconds; the validation may still be running meanwhile. If you closed jgates ui, open it again to keep following.",
+  "vrun_stalled": "No new output for {time}, but the process is still alive. Some scanners download large databases (for example grype's vulnerability database) and write nothing for a while. You can wait or cancel."
 }

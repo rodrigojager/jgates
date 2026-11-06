@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { readRegistry, removeRegistryEntries, workspaceDir, workspaceLineage } from "../home/index.js";
 import type { WorkspaceEntry } from "../home/index.js";
+import { readLiveness } from "../run/heartbeat.js";
 
 // Run history, run marks and retention over the JGates data folder. Everything here stays inside
 // <home>/workspaces/<id>/runs: nothing reads or deletes the user's project.
@@ -19,6 +20,8 @@ export interface RunInfo {
   startedAt: string | null;
   decision: string | null;
   partial: boolean;
+  /** A partial run whose process still beats (heartbeat.json): it is running, not interrupted. */
+  alive: boolean;
   /** The run switched checks off for that run only: a partial round, not an approval of the full profile. */
   reduced: boolean;
   bytes: number;
@@ -107,6 +110,7 @@ export function readRunsOf(home: string, workspaceId: string): RunInfo[] {
       startedAt,
       decision: typeof result?.decision === "string" ? result.decision : null,
       partial: result?.partial === true || result === null,
+      alive: (result?.partial === true || result === null) && readLiveness(dir).alive,
       reduced: result?.reduced === true,
       bytes: dirBytes(dir),
       marks: readMarks(dir),
@@ -163,7 +167,7 @@ export interface RetentionPlan {
 }
 
 function isProtected(run: RunInfo, now: number): boolean {
-  if (run.marks.baseline || run.marks.preserved) return true;
+  if (run.marks.baseline || run.marks.preserved || run.alive) return true;
   // A run still writing its result.json (or whose result is not there yet) is not touched for an hour.
   return run.partial && now - run.time < ACTIVE_WINDOW_MS && now - fs.lstatSync(run.dir).mtimeMs < ACTIVE_WINDOW_MS;
 }

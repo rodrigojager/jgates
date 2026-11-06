@@ -25,7 +25,7 @@
   "overview_decision_invalid": "Inválido",
   "overview_decision_cancelled": "Cancelado",
   "overview_decision_unknown": "Sem decisão",
-  "overview_run_partial": "Resultado parcial: a execução não terminou.",
+  "overview_run_partial": "Interrompida: o processo parou antes de terminar, sem resultado final.",
   "overview_findings": "{count} achados",
   "overview_findings_one": "1 achado",
   "overview_stages_label": "Etapas da validação",
@@ -77,5 +77,8 @@
   "overview_uncovered": "Requisitos sem cobertura",
   "overview_uncovered_text": "Estes requisitos estão no perfil, mas nenhuma verificação ligada os cobre.",
   "overview_load_error": "Não foi possível carregar a visão geral.",
-  "overview_hero_review": "ou revise o plano antes"
+  "overview_hero_review": "ou revise o plano antes",
+  "overview_decision_running": "Em andamento",
+  "overview_run_running": "A validação está rodando agora. Acompanhe a execução para ver cada etapa e o batimento do processo.",
+  "overview_follow_run": "Acompanhar"
 }

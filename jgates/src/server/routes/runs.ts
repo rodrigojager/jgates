@@ -5,7 +5,7 @@ import { readEvents, type RunEvent as StepEvent } from "../../core/events/index.
 import { workspaceDir } from "../../core/home/index.js";
 import { frozenPlan, runMascots } from "../mascots.js";
 import type { RunResult } from "../../core/run/types.js";
-import { RESULT_FILE } from "../../core/run/index.js";
+import { RESULT_FILE, lastActivity, readLiveness } from "../../core/run/index.js";
 import { translator } from "../../i18n/index.js";
 import { refuse } from "../http.js";
 import { JOB_ID_PATTERN, RUN_ID_PATTERN, jobView } from "../runs.js";
@@ -144,8 +144,12 @@ export const routes: RouteDefinition[] = [
       const more = read.events.length > events.length;
       const stored = runId ? readStoredRun(server, runId) : null;
       const partial = (stored as { partial?: boolean } | null)?.partial === true;
-      const running = job ? job.state === "running" : false;
-      const orphan = !job && partial && server.runs.active === null;
+      // A job of this server runs while its child process does; a stored run that is still partial runs while its
+      // process beats (heartbeat.json), wherever it was started. A partial run that stopped beating died: orphan.
+      const runDir = runId ? path.join(runsDir, runId) : null;
+      const liveness = runDir ? readLiveness(runDir) : { alive: false, beatAt: null, pid: null };
+      const running = job ? job.state === "running" : partial && liveness.alive;
+      const orphan = !job && partial && !liveness.alive;
       const done = !more && !running && (job !== null || !partial || orphan);
       return {
         status: 200,
@@ -164,6 +168,9 @@ export const routes: RouteDefinition[] = [
           cursor: nextCursor,
           done,
           orphan,
+          // What the screen shows while a long step runs: the process beats, and the last file it wrote, and when.
+          liveness: { alive: running, beatAt: liveness.beatAt, checkedAt: new Date().toISOString() },
+          activity: running && runDir ? lastActivity(runDir) : null,
           result: done || orphan ? stored : null,
         },
       };

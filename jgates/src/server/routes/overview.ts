@@ -43,7 +43,8 @@ export function categoriesOf(plan: Plan): OverviewCategory[] {
 
 function readLastRun(server: ServerContext): Record<string, unknown> | null {
   const runs = listRuns(server.home, server.workspace.id);
-  const last = runs.find((r) => !r.partial) ?? runs[0];
+  // A run that is still beating is the one to show; otherwise the last finished one.
+  const last = runs.find((r) => r.alive) ?? runs.find((r) => !r.partial) ?? runs[0];
   if (!last) return null;
   const runsDir = path.join(workspaceDir(server.home, server.workspace.id), "runs");
   let result: any = null;
@@ -55,7 +56,7 @@ function readLastRun(server: ServerContext): Record<string, unknown> | null {
       // Try the next place (a relinked workspace keeps its runs under the old id).
     }
   }
-  if (!result) return { runId: last.runId, decision: last.decision, partial: true, stages: [] };
+  if (!result) return { runId: last.runId, decision: last.decision, partial: true, running: last.alive, stages: [] };
   const started = Date.parse(result.startedAt ?? "");
   const finished = Date.parse(result.finishedAt ?? "");
   const stages = (Array.isArray(result.stages) ? result.stages : [])
@@ -66,6 +67,7 @@ function readLastRun(server: ServerContext): Record<string, unknown> | null {
     decision: String(result.decision ?? ""),
     complete: result.complete === true,
     partial: result.partial === true,
+    running: last.alive,
     startedAt: result.startedAt ?? null,
     durationMs: Number.isFinite(started) && Number.isFinite(finished) ? Math.max(0, finished - started) : null,
     branch: result.analyzed?.git?.branch ?? null,

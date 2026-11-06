@@ -25,7 +25,7 @@
   "overview_decision_invalid": "Invalid",
   "overview_decision_cancelled": "Cancelled",
   "overview_decision_unknown": "No decision",
-  "overview_run_partial": "Partial result: the run did not finish.",
+  "overview_run_partial": "Interrupted: the process stopped before it finished, with no final result.",
   "overview_findings": "{count} findings",
   "overview_findings_one": "1 finding",
   "overview_stages_label": "Validation stages",
@@ -77,5 +77,8 @@
   "overview_uncovered": "Requirements without coverage",
   "overview_uncovered_text": "These requirements are in the profile, but no enabled check covers them.",
   "overview_load_error": "Could not load the overview.",
-  "overview_hero_review": "or review the plan first"
+  "overview_hero_review": "or review the plan first",
+  "overview_decision_running": "Running",
+  "overview_run_running": "The validation is running now. Follow it to see each step and the process's heartbeat.",
+  "overview_follow_run": "Follow"
 }

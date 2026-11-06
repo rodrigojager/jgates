@@ -18,10 +18,12 @@ import type { Plan } from "../plan/types.js";
 import { describeAnalysis, planOutputs, prepareAnalysis, verifyInputs, type PreparedAnalysis } from "./analysis.js";
 import type { AdapterContext, AdapterOutput, CacheableStep, ResultDisabled, ResultPolicy, RunResult, SemanticHook } from "./types.js";
 import { ChangeAttribution, compareGitStatus, diffManifests, takeGitStatus, takeManifest } from "./workspace-state.js";
+import { startHeartbeat } from "./heartbeat.js";
 
 export * from "./types.js";
 export { compareGitStatus, diffManifests, takeGitStatus, takeManifest } from "./workspace-state.js";
 export * from "./analysis.js";
+export * from "./heartbeat.js";
 export { isLegacyPlan, legacyPlan, legacySteps, legacySelection, validateLegacyPlan } from "./legacy-plan.js";
 
 export const RESULT_FILE = "result.json";
@@ -271,6 +273,9 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     writePrivateFileAtomic(path.join(runDir, RESULT_FILE), JSON.stringify(assemble(merged, true, null, false, pending), null, 2) + "\n");
   };
   checkpoint([]);
+  // While the steps run, heartbeat.json tells a working run from one whose process died (both are `partial`).
+  // Real time on purpose: a test clock (opts.now) would make a live run look stale.
+  const heartbeat = startHeartbeat(runDir);
 
   const cache = new RunCache({
     home,
@@ -323,6 +328,8 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     else cache.commit();
   } finally {
     signal?.removeEventListener("abort", onAbort);
+    // A step threw: the run stops here, and it must not look alive.
+    if (!executed) heartbeat.stop();
     // A snapshot never outlives its run, even when a step threw (JGATES_KEEP_SNAPSHOTS=1 keeps it for diagnosis).
     if (!verified && prep.snapshot && env.JGATES_KEEP_SNAPSHOTS !== "1") fs.rmSync(prep.snapshot.path, { recursive: true, force: true });
   }
@@ -365,6 +372,7 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     }
   }
   writePrivateFileAtomic(path.join(runDir, RESULT_FILE), JSON.stringify(result, null, 2) + "\n");
+  heartbeat.stop();
   events.emit("run-finished", { decision: result.decision, exitCode: result.exitCode, complete: result.complete, reduced: result.reduced, ...(stopped ? { stopped } : {}) });
   events.close();
   return result;

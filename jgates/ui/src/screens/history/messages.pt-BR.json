@@ -29,7 +29,7 @@
   "history_decision_incomplete": "Incompleto",
   "history_decision_invalid": "Inválido",
   "history_decision_cancelled": "Cancelado",
-  "history_unfinished": "Sem resultado final",
+  "history_unfinished": "Interrompida",
   "history_partial": "Parcial",
   "history_baseline": "Baseline",
   "history_preserved": "Preservado",
@@ -62,5 +62,6 @@
   "history_warning_BASELINE_PARTIAL": "O run mais antigo não terminou.",
   "history_context_title": "Aprovação tem contexto.",
   "history_context_body": "Uma mudança no código ou na configuração exige nova validação. Nenhum resultado antigo aprova um commit novo.",
-  "history_new_run": "Nova validação"
+  "history_new_run": "Nova validação",
+  "history_running": "Em andamento"
 }

@@ -3,6 +3,7 @@ import type { MascotSnapshot } from "../../../../src/core/mascots/index";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api } from "../../api";
 import { ErrorNotice, Loading, Pill } from "../../components/common";
+import { Heartbeat } from "../../components/Heartbeat";
 import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
@@ -29,6 +30,28 @@ interface Row {
 }
 
 const ORDER = ["error", "timeout", "blocked", "cancelled", "completed"] as const;
+
+/** Without a new file for this long while the process still beats, the screen says the step is slow, not dead. */
+const STALL_MS = 3 * 60 * 1000;
+/** How long the screen waits before asking a server it lost contact with again. */
+const RETRY_MS = 3000;
+
+interface Liveness {
+  alive: boolean;
+  beatAt: string | null;
+}
+
+interface Activity {
+  file: string | null;
+  at: string | null;
+}
+
+const since = (iso: string | null | undefined, now: number): number | undefined => {
+  const at = iso ? Date.parse(iso) : NaN;
+  return Number.isFinite(at) ? Math.max(0, now - at) : undefined;
+};
+
+const lastPart = (file: string): string => file.split("/").slice(-1)[0] ?? file;
 
 /** Rows of the steps from the events, in plan order; pure, so a replay from cursor 0 gives the same rows. */
 function rowsFrom(steps: Array<{ id: string; label: string }>, events: StepEvent[]): Row[] {
@@ -161,6 +184,10 @@ export default function RunScreen({ params }: { params: Record<string, string> }
   const followedId = useRef<string | null>(null);
   const [mascots, setMascots] = useState<MascotSnapshot | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<DomainFilter | null>(null);
+  const [liveness, setLiveness] = useState<Liveness | null>(null);
+  const [activity, setActivity] = useState<Activity | null>(null);
+  const [connectionLost, setConnectionLost] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let stopped = false;
@@ -171,11 +198,36 @@ export default function RunScreen({ params }: { params: Record<string, string> }
     }
     setError(null); setNotFound(false);
     let cursor = 0;
+    let knownRunId: string | null = id.startsWith("run_") ? id : null;
     async function follow() {
       try {
         for (;;) {
-          const r = await api("GET", `/api/runs/${id}/progress?cursor=${cursor}&wait=${id.startsWith("job_") ? 20000 : 0}`, undefined, abort.signal);
+          let r: any;
+          try {
+            // A short wait, so the pulse and the last activity refresh every few seconds even when no event comes.
+            r = await api("GET", `/api/runs/${id}/progress?cursor=${cursor}&wait=${id.startsWith("job_") ? 5000 : 0}`, undefined, abort.signal);
+          } catch (e) {
+            if (stopped) return;
+            // The server that started this job is gone (restarted): the run itself may still be running, so follow
+            // it by its run id, whose heartbeat says whether it is alive.
+            if (e instanceof ApiError && e.status === 404 && id.startsWith("job_") && knownRunId) {
+              location.hash = `#/runs/${knownRunId}`;
+              return;
+            }
+            // No answer at all: keep trying, and say so, instead of leaving a frozen screen.
+            if (!(e instanceof ApiError)) {
+              setConnectionLost(true);
+              await new Promise((resolve) => setTimeout(resolve, RETRY_MS));
+              if (stopped) return;
+              continue;
+            }
+            throw e;
+          }
           if (stopped) return;
+          setConnectionLost(false);
+          if (r.runId) knownRunId = r.runId;
+          setLiveness(r.liveness ?? null);
+          setActivity(r.activity ?? null);
           cursor = r.cursor;
           if (r.mascots) setMascots(r.mascots);
           if (r.runId) setRunId(r.runId);
@@ -234,10 +286,31 @@ export default function RunScreen({ params }: { params: Record<string, string> }
 
   const rows = useMemo(() => rowsFrom(steps, events), [steps, events]);
   const running = job?.state === "running";
+
+  // A clock for the elapsed times while the run is running.
+  useEffect(() => {
+    if (!running) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [running]);
   const total = rows.length;
   const closed = rows.filter((r) => r.state !== "pending" && r.state !== "running").length;
   const current = rows.find((r) => r.state === "running");
   const uiState = job?.state === "crashed" ? "crashed" : final?.result && job?.state === "running" ? "finished" : (job?.state ?? "running");
+  const startedAt: string | undefined = job?.startedAt ?? events[0]?.at;
+  const elapsed = since(startedAt, now);
+  const currentStart = current ? [...events].reverse().find((e) => e.type === "step-started" && e.data.step === current.id)?.at : undefined;
+  const stepElapsed = since(currentStart, now);
+  const activityAge = since(activity?.at, now);
+  const stalled = running && liveness?.alive === true && activityAge !== undefined && activityAge > STALL_MS;
+  const pulseDetail = running
+    ? [
+        elapsed !== undefined ? t("pulse_elapsed", { time: formatDuration(elapsed) }) : null,
+        activity?.file && activityAge !== undefined ? t("pulse_activity", { file: lastPart(activity.file), ago: formatDuration(activityAge) }) : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : t("pulse_dead_detail");
 
   return (
     <div className="stack">
@@ -268,9 +341,15 @@ export default function RunScreen({ params }: { params: Record<string, string> }
               </button>
           ) : null}
           </div>
+          {running || uiState === "crashed" ? (
+            <Heartbeat state={running && !connectionLost && liveness?.alive !== false ? "alive" : "dead"} detail={connectionLost ? t("pulse_connection_lost") : pulseDetail} />
+          ) : null}
           {running ? <div className="run-summary-current">
             <span className="small muted" data-testid="run-progress">{total > 0 ? t("vrun_current_idle", { current: Math.min(closed + 1, total), total }) : t("vrun_preparing")}</span>
-            <strong>{current ? stageName(current) : t("vrun_waiting_step")}</strong>
+            <strong>
+              {current ? stageName(current) : t("vrun_waiting_step")}
+              {current && stepElapsed !== undefined ? <span className="muted small"> · {formatDuration(stepElapsed)}</span> : null}
+            </strong>
           </div> : null}
           {total > 0 ? <div className="run-summary-progress">
             <div className="run-summary-count"><span>{t("vrun_closed_label")}</span><strong>{closed}<span className="muted"> / {total}</span></strong></div>
@@ -278,6 +357,18 @@ export default function RunScreen({ params }: { params: Record<string, string> }
             <span className="sr-only" {...(!running ? { "data-testid": "run-progress" } : {})}>{t("vrun_progress_done", { done: closed, total })}</span>
           </div> : null}
         </section>
+      ) : null}
+      {connectionLost ? (
+        <div className="notice warn" role="status" data-testid="run-connection-lost">
+          <Icon name="refresh" />
+          <p>{t("vrun_connection_lost")}</p>
+        </div>
+      ) : null}
+      {stalled && !connectionLost ? (
+        <div className="notice warn" role="status" data-testid="run-stalled">
+          <Icon name="info" />
+          <p>{t("vrun_stalled", { time: formatDuration(activityAge) })}</p>
+        </div>
       ) : null}
       {running && cancelling ? (
         <p role="status" className="muted">

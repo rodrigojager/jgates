@@ -119,5 +119,11 @@
   "prq_consent": "Nothing runs without your confirmation.",
   "prq_ready_title": "All set to validate.",
   "prq_ready_text": "Docker, Git and the tools are in place.",
-  "prq_checking": "Checking what the validation needs (Docker, Git and tools)..."
+  "prq_checking": "Checking what the validation needs (Docker, Git and tools)...",
+  "pulse_alive": "Process alive",
+  "pulse_dead": "No heartbeat",
+  "pulse_dead_detail": "the validation's process stopped before it finished",
+  "pulse_elapsed": "running for {time}",
+  "pulse_activity": "last output: {file}, {ago} ago",
+  "pulse_connection_lost": "no contact with the JGates server"
 }

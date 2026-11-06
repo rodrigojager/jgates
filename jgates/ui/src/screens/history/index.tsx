@@ -20,6 +20,8 @@ export interface RunRow {
   partial: boolean;
   reduced: boolean;
   unfinished: boolean;
+  /** Unfinished and its process still beats: running now, not interrupted. */
+  running?: boolean;
   baseline: boolean;
   preserved: boolean;
   profile: string | null;
@@ -197,7 +199,7 @@ export default function HistoryScreen() {
                   </th>
                   <td>
                     <div className="history-pills">
-                      <Pill tone={TONE[r.decision ?? ""] ?? "blue"}>{r.unfinished ? t("history_unfinished") : tOr(`history_decision_${r.decision}`, r.decision ?? "-")}</Pill>
+                      <Pill tone={r.running ? "blue" : (TONE[r.decision ?? ""] ?? "blue")}>{r.running ? t("history_running") : r.unfinished ? t("history_unfinished") : tOr(`history_decision_${r.decision}`, r.decision ?? "-")}</Pill>
                       {r.partial && !r.unfinished ? <Pill tone="gold">{t("history_partial")}</Pill> : null}
                       {r.baseline ? <Pill tone="blue">{t("history_baseline")}</Pill> : null}
                       {r.preserved ? <Pill tone="green">{t("history_preserved")}</Pill> : null}
