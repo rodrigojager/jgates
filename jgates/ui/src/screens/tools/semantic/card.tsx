@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { api, ApiError } from "../../../api";
-import { ErrorNotice, Loading, Pill, useAsync } from "../../../components/common";
+import { ErrorNotice, Loading, Pill, useAsync, Spinner } from "../../../components/common";
 import { Icon } from "../../../components/icons";
 import { useToast } from "../../../components/Toast";
 import { FormRenderer } from "../../../forms/FormRenderer";
@@ -180,7 +180,7 @@ function SemanticForm({ info, onSaved, onClose }: { info: SemanticInfo; onSaved:
             {t("semantic_discard")}
           </button>
           <button type="submit" className="btn primary" disabled={busy || pending.size === 0 || conflict}>
-            <Icon name="check" />
+            {busy ? <Spinner /> : <Icon name="check" />}
             {busy ? t("semantic_saving") : t("semantic_save", { file: info.form.file })}
           </button>
         </div>

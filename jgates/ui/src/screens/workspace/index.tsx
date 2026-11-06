@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { ErrorNotice, Loading, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, useAsync, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
@@ -114,7 +114,7 @@ export default function WorkspaceScreen() {
           <p>{t("ws_lead")}</p>
         </div>
         <button type="button" className="btn" onClick={detectAgain} disabled={running}>
-          <Icon name="refresh" />
+          {running ? <Spinner /> : <Icon name="refresh" />}
           {running ? t("ws_detecting") : t("ws_detect_again")}
         </button>
       </div>

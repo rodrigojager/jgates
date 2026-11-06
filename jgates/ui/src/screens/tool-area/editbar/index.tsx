@@ -33,7 +33,7 @@ export function EditBar({ dirty, busy, editable, draftState, hasDraft, onValidat
     <div className="edit-bar" role="region" aria-label={eb("bar_label")}>
       <div className="row wrap">
         <Pill tone={dirty ? "gold" : undefined}>{dirty ? t("doc_dirty") : t("doc_clean")}</Pill>
-        <span className="small muted" data-testid="draft-state" data-state={draftState}>
+        <span className={"small muted" + (draftState === "saving" ? " spinner-text" : "")} data-testid="draft-state" data-state={draftState}>
           {draftLine(draftState, hasDraft, dirty)}
         </span>
       </div>

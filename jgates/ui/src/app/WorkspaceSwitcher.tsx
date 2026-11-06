@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { api } from "../api";
-import { Dialog, errorText } from "../components/common";
+import { Dialog, errorText, Spinner } from "../components/common";
 import { Icon } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { t } from "../i18n";
@@ -110,6 +110,7 @@ function SwitchDialog({ onClose }: { onClose: () => void }) {
               <span className="pill green">{t("ws_current")}</span>
             ) : (
               <button type="button" className="btn" disabled={!w.exists || busy !== null} aria-label={t("ws_open", { name: w.name })} onClick={() => open(w.id, { id: w.id }, w.name)}>
+                {busy === w.id ? <Spinner /> : null}
                 {busy === w.id ? t("ws_opening") : t("ws_open_short")}
               </button>
             )}
@@ -134,6 +135,7 @@ function SwitchDialog({ onClose }: { onClose: () => void }) {
             {t("ws_browse")}
           </button>
           <button type="submit" className="btn" disabled={folder.trim() === "" || busy !== null}>
+            {busy === "path" ? <Spinner /> : null}
             {busy === "path" ? t("ws_opening") : t("ws_path_button")}
           </button>
         </div>

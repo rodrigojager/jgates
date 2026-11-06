@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { errorText } from "../components/common";
+import { errorText, Spinner } from "../components/common";
 import { Icon } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { t } from "../i18n";
@@ -37,7 +37,7 @@ export function ServerStopped({ path }: { path: string }) {
         </ol>
         <div className="row wrap">
           <button type="button" className="btn primary" onClick={check} disabled={checking}>
-            <Icon name="refresh" />
+            {checking ? <Spinner /> : <Icon name="refresh" />}
             {checking ? t("stopped_checking") : t("stopped_retry")}
           </button>
           {still ? <span className="small muted">{t("stopped_still")}</span> : null}
@@ -157,7 +157,7 @@ export function FirstAccess() {
 
       <div className="card flat stack" data-step="detected">
         <h2>{t("first_detected_title")}</h2>
-        {!data ? <p className="small muted">{t("first_loading")}</p> : null}
+        {!data ? <p className="small spinner-text" role="status">{t("first_loading")}</p> : null}
         {data && data.components.length === 0 ? <p>{t("first_detected_none")}</p> : null}
         {data && data.components.length > 0 ? (
           <ul className="ws-list" aria-label={t("first_detected_title")}>
@@ -194,7 +194,7 @@ export function FirstAccess() {
         {data ? <p className="small muted">{t("first_files", { files: data.files.join(", ") })}</p> : null}
         <div className="row wrap">
           <button type="button" className="btn primary" onClick={() => void create()} disabled={creating || !data}>
-            <Icon name="check" />
+            {creating ? <Spinner /> : <Icon name="check" />}
             {creating ? t("first_creating") : t("first_create")}
           </button>
         </div>

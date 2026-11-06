@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatLocale } from "../../../i18n/locale";
 import { ApiError, api } from "../../../api";
-import { Dialog, ErrorNotice, Loading, Pill } from "../../../components/common";
+import { Dialog, ErrorNotice, Loading, Pill, Spinner } from "../../../components/common";
 import { DiffView } from "../../../components/DiffView";
 import { Icon } from "../../../components/icons";
 import { FormRenderer } from "../../../forms/FormRenderer";
@@ -249,6 +249,7 @@ export default function OptionsTab({ instance, active, openFile }: ToolTabProps)
           <DiffView diff={review.diff} />
           <div className="row wrap">
             <button type="button" className="btn primary" disabled={busy} onClick={() => save(view.revision)}>
+              {busy ? <Spinner /> : null}
               {busy ? ft("saving") : ft("save")}
             </button>
             <button type="button" className="btn" onClick={() => setReview(null)}>

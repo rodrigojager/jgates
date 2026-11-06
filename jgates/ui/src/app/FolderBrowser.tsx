@@ -66,7 +66,7 @@ export function FolderBrowser({ start, busy, onChoose, onCancel }: { start: stri
         ))}
       </div>
       <div className="fb-path mono small" aria-live="polite">
-        {loading ? t("ws_browse_loading") : (listing?.path ?? "")}
+        {loading ? <span className="spinner-text">{t("ws_browse_loading")}</span> : (listing?.path ?? "")}
         {listing?.configured ? <span className="pill green">{t("ws_browse_configured")}</span> : null}
       </div>
       {error ? (

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { Dialog, ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
+import { Dialog, ErrorNotice, Loading, Pill, useAsync, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
@@ -77,7 +77,7 @@ function PrepareDialog({ instance, onClose, onDone }: { instance: string; onClos
       ) : null}
       <div className="row">
         <button type="button" className="btn primary" disabled={!p || running || done !== null} onClick={execute}>
-          <Icon name="refresh" />
+          {running ? <Spinner /> : <Icon name="refresh" />}
           {running ? t("env_prepare_running") : t("env_prepare_confirm")}
         </button>
         <button type="button" className="btn" onClick={onClose}>

@@ -258,8 +258,12 @@ dialog::backdrop { background: var(--scrim); }
 /* "Carregando...": a small ring turns beside the word; with reduced motion it stays still. */
 .spinner-text { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
 .spinner-text::before { content: ""; flex-shrink: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spinner-turn 0.8s linear infinite; }
+/* The same ring as a standalone element (<Spinner />), beside a button's label; inside a button it follows the label's
+   color, so it shows on a primary (accent) button as well. */
+.spinner { display: inline-block; flex-shrink: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); animation: spinner-turn 0.8s linear infinite; }
+.btn .spinner { border-color: color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; }
 @keyframes spinner-turn { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spinner-text::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .spinner-text::before, .spinner { animation: none; } }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 @media (max-width: 900px) {

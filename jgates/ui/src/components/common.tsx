@@ -60,6 +60,11 @@ export function ErrorNotice({ error, onRetry }: { error: unknown; onRetry?: () =
   );
 }
 
+/** The turning ring of work in progress, beside a button's label or a status line; still under reduced motion. */
+export function Spinner() {
+  return <span className="spinner" aria-hidden="true" />;
+}
+
 export function Loading() {
   return (
     <p className="spinner-text" role="status">

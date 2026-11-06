@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, api } from "../../api";
-import { Dialog, ErrorNotice } from "../../components/common";
+import { Dialog, ErrorNotice, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
@@ -235,6 +235,7 @@ export function ScopeTab({ settings, refreshKey, onChanged }: { settings: Settin
         )}
         <div className="row">
           <button type="button" className="btn primary" disabled={!dirty || saving || conflict} onClick={() => save({ include: includeList, exclude: excludeList })}>
+            {saving ? <Spinner /> : null}
             {saving ? t("ws_saving") : t("ws_save")}
           </button>
           <button

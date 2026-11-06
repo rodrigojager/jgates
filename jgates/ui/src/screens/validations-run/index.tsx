@@ -371,7 +371,7 @@ export default function RunScreen({ params }: { params: Record<string, string> }
         </div>
       ) : null}
       {running && cancelling ? (
-        <p role="status" className="muted">
+        <p role="status" className="spinner-text">
           {t("vrun_cancelling")}
         </p>
       ) : running ? (

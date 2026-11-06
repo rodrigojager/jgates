@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { api } from "../../api";
-import { Dialog, ErrorNotice, Pill } from "../../components/common";
+import { Dialog, ErrorNotice, Pill, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
@@ -152,6 +152,7 @@ function DeclareDialog({
         {error ? <ErrorNotice error={error} /> : null}
         <div className="row">
           <button type="submit" className="btn primary" disabled={saving}>
+            {saving ? <Spinner /> : null}
             {saving ? t("ws_saving") : t("ws_declare_save")}
           </button>
           <button type="button" className="btn" onClick={onClose}>

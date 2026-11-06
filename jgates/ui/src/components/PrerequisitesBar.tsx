@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
-import { Dialog, ErrorNotice, Pill, useAsync } from "./common";
+import { Dialog, ErrorNotice, Pill, useAsync, Spinner } from "./common";
 import { DoctorAvatar } from "./DoctorAvatar";
 import { Icon, type IconName } from "./icons";
 import type { DoctorState } from "../mascots/doctor/index.js";
@@ -132,7 +132,7 @@ function ConfirmDialog({ item, platform, onClose, onDone }: { item: Prerequisite
         {error ? <ErrorNotice error={error} /> : null}
         <div className="row">
           <button type="button" className="btn primary" disabled={running} onClick={() => void run()} data-testid="prq-confirm">
-            <Icon name="play" />
+            {running ? <Spinner /> : <Icon name="play" />}
             {running ? t("prq_running_short") : t("prq_run")}
           </button>
           <button type="button" className="btn" disabled={running} onClick={onClose}>

@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { api, ApiError } from "../../api";
-import { Dialog, ErrorNotice, Pill } from "../../components/common";
+import { Dialog, ErrorNotice, Pill, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
@@ -176,7 +176,7 @@ function PrefsForm({ entry, revision, models, onSaved, onCancel }: { entry: Prov
         </datalist>
       ) : null}
       {models.busy ? (
-        <p className="small muted" role="status">
+        <p className="small spinner-text" role="status">
           {t("pk_models_loading")}
         </p>
       ) : models.answer ? (
@@ -327,7 +327,7 @@ export function ProviderCard({ entry, secret, writable, revision, onChanged }: {
           ) : null}
           {testable ? (
             <button type="button" className="btn" disabled={models.busy} aria-label={t("pk_test_aria", { name: entry.name })} onClick={() => void models.run()}>
-              <Icon name="refresh" />
+              {models.busy ? <Spinner /> : <Icon name="refresh" />}
               {models.busy ? t("pk_testing") : t("pk_test")}
             </button>
           ) : null}

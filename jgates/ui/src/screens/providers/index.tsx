@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from "react";
 import { api, ApiError } from "../../api";
-import { ErrorNotice, Loading, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, useAsync, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
@@ -210,7 +210,7 @@ function OtherKey({ secret, writable, onChanged }: { secret: SecretView; writabl
       {secret.testable && secret.state === "set" ? (
         <div>
           <button type="button" className="btn" disabled={busy} aria-label={t("pk_key_test_aria", { name: secret.name })} onClick={() => void test()}>
-            <Icon name="refresh" />
+            {busy ? <Spinner /> : <Icon name="refresh" />}
             {busy ? t("pk_testing") : t("pk_test")}
           </button>
         </div>

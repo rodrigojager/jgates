@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import { formatLocale } from "../../i18n/locale";
 import { ApiError, api, documentPath, entryQuery } from "../../api";
 import { useShell } from "../../app/shell-context";
-import { Dialog, ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
+import { Dialog, ErrorNotice, Loading, Pill, useAsync, Spinner } from "../../components/common";
 import { DiffView } from "../../components/DiffView";
 import { Editor } from "../../components/Editor";
 import { Icon } from "../../components/icons";
@@ -554,6 +554,7 @@ function FilesTab({ instance, target, onChanged }: { instance: any; target: (Fil
           <div className="row wrap">
             {review.mode === "save" ? (
               <button type="button" className="btn primary" disabled={busy || (review.preview.validation?.status === "invalid" && !review.allowInvalid)} onClick={confirmSave}>
+                {busy ? <Spinner /> : null}
                 {busy ? t("saving") : t("save")}
               </button>
             ) : null}
