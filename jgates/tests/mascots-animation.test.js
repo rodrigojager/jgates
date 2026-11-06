@@ -125,13 +125,13 @@ test('disabled and not applicable are gray and resting, then restore their palet
   }
 });
 
-test('server signals blink yellow or red while running and stay green or red at completion', () => {
+test('server signals blink green or red while running and stay green or red at completion', () => {
   const a = new Mascot('infrastructure');
   for (const hasFindings of [false, true]) {
     a.setStatus('processing', { hasFindings }); const powers = [];
     for (let i = 0; i < 90; i++) { a.update(1 / 60); powers.push(a.inspect().leds[0].power); }
     assert.ok(Math.min(...powers) < .08 && Math.max(...powers) > .95, 'visible blink');
-    assert.equal(a.inspect().leds[0].signal, hasFindings ? 'red' : 'yellow');
+    assert.equal(a.inspect().leds[0].signal, hasFindings ? 'red' : 'green');
     assert.equal(a.status, 'processing');
   }
   for (const [status, signal] of [['passed', 'green'], ['failed', 'red']]) {

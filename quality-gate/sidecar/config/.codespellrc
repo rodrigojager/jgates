@@ -1,0 +1,7 @@
+[codespell]
+# Read by the Codespell inside MegaLinter (quality_sidecar.tools). English typo lists only; the Portuguese
+# (pt-BR) words they would report are ignored (codespell-ignore-pt-br.txt, made by
+# scripts/build-codespell-pt-br.py), and two-letter tokens (language codes, short names) are skipped.
+builtin = clear,rare
+ignore-words = /opt/quality-sidecar/sidecar/config/codespell-ignore-pt-br.txt
+ignore-regex = \b[A-Za-z]{2}\b

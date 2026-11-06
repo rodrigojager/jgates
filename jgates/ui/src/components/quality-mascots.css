@@ -13,3 +13,11 @@
 .quality-mascot-evidence { padding-top: 16px; }
 @media (max-width: 1050px) { .quality-mascots-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .quality-mascots-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .quality-mascot-viewport { height: 180px; } }
+/* While a check runs, its status icon turns in pulses: one quick turn with a slight swell, then a short rest. */
+.quality-mascot-status[data-status="processing"] svg.icon { animation: qm-pulse-turn 1.3s cubic-bezier(.55, 0, .25, 1) infinite; transform-origin: 50% 50%; }
+@keyframes qm-pulse-turn {
+  0% { transform: rotate(0deg) scale(1); }
+  45% { transform: rotate(360deg) scale(1.18); }
+  60%, 100% { transform: rotate(360deg) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .quality-mascot-status[data-status="processing"] svg.icon { animation: none; } }

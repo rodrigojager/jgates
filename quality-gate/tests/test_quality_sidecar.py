@@ -379,6 +379,55 @@ class QualityPolicyTests(unittest.TestCase):
             self.assertIn("REPOSITORY_SEMGREP", environment["DISABLE_LINTERS"])
             self.assertIn("COPYPASTE_JSCPD", environment["DISABLE_LINTERS"])
             self.assertIn("REPOSITORY_GIT_DIFF", environment["DISABLE_LINTERS"])
+            # CSpell writes into the read-only workspace and crashes MegaLinter's pool.
+            self.assertIn("SPELL_CSPELL", environment["DISABLE_LINTERS"].split(","))
+            # Codespell takes its place, with the gate's configuration and code files included.
+            self.assertEqual(environment["SPELL_CODESPELL_CONFIG_FILE"], ".codespellrc")
+            self.assertIn(".py", environment["SPELL_CODESPELL_FILE_EXTENSIONS"].split(","))
+            config = MEGALINTER_CONFIG_DIR / ".codespellrc"
+            self.assertTrue(config.is_file())
+            text = config.read_text(encoding="utf-8")
+            self.assertIn("ignore-words = /opt/quality-sidecar/sidecar/config/codespell-ignore-pt-br.txt", text)
+            ignore = (MEGALINTER_CONFIG_DIR / "codespell-ignore-pt-br.txt").read_text(encoding="utf-8").split()
+            for word in ("ser", "nome", "essencial"):
+                self.assertIn(word, ignore)
+            self.assertNotIn("recieve", ignore)
+
+    def test_megalinter_crash_is_an_error_even_when_an_analyzer_already_failed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            target, raw = self.create_megalinter_error_log(temp, "a real lint finding\n")
+            stderr = raw / "megalinter.stderr.log"
+            stderr.write_text(
+                "Traceback (most recent call last):\n"
+                '  File "/megalinter/MegaLinter.py", line 462, in process_linters_parallel\n'
+                "    updated_linters = pool_result.get()\n"
+                "OSError: [Errno 30] Read-only file system: '/workspace/x-megalinter_file_names_cspell.txt'\n",
+                encoding="utf-8",
+            )
+            with (
+                patch.dict(os.environ, {"QUALITY_GATE_FLAVOR": "generic"}),
+                patch(
+                    "quality_sidecar.tools.run_command",
+                    return_value=ToolResult(name="megalinter", status="ok", exit_code=1, output_path=str(raw / "megalinter"), stderr_path=str(stderr)),
+                ),
+            ):
+                result = _run_megalinter(target, raw)
+            self.assertEqual(result.status, "error")
+            self.assertIn("Read-only file system", result.summary["stoppedBy"])
+            self.assertTrue(result.summary["stoppedBy"].startswith("OSError"))
+            self.assertEqual(result.summary["failedAnalyzers"], ["YAML_YAMLLINT"])
+
+            # Without a traceback, an analyzer's failure stays a finding.
+            stderr.write_text("", encoding="utf-8")
+            with (
+                patch.dict(os.environ, {"QUALITY_GATE_FLAVOR": "generic"}),
+                patch(
+                    "quality_sidecar.tools.run_command",
+                    return_value=ToolResult(name="megalinter", status="ok", exit_code=1, output_path=str(raw / "megalinter"), stderr_path=str(stderr)),
+                ),
+            ):
+                result = _run_megalinter(target, raw)
+            self.assertEqual(result.status, "findings")
 
     def test_baked_flavor_wins_over_runtime_environment(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

@@ -109,6 +109,12 @@ here; their licenses are inside the MegaLinter image.
 - Models and providers used by the semantic gate are called over their APIs and are not distributed.
 - The vulnerability and rule databases named above are downloaded by the user's run and never stored in this repository.
 
+## Codespell word list for Portuguese
+
+`quality-gate/sidecar/config/codespell-ignore-pt-br.txt` lists the codespell misspelling keys that are valid
+Brazilian Portuguese words. It is derived from the VERO pt-BR Hunspell dictionary (LibreOffice dictionaries,
+LGPLv3 or MPL), by `quality-gate/scripts/build-codespell-pt-br.py`; keep that notice with the file.
+
 ## Three.js
 
 The Quality Gate mascots and the Doctor of the prerequisites bar use Three.js 0.187.0, copyright Three.js authors, under the MIT license. The full license is included at `jgates/ui/public/licenses/three.txt`. Character geometry and animations are procedural local assets.

@@ -473,13 +473,14 @@ export class Mascot extends EventTarget {
       });
       r.pieces.leds.forEach((led, i) => {
         const failed = trouble || technical;
-        const color = failed ? '#ff3549' : success ? '#37e783' : '#ffca35';
+        // Green while it checks (blinking) and when it passed (steady); yellow only for an idle, unknown state.
+        const color = failed ? '#ff3549' : success || processing ? '#37e783' : '#ffca35';
         const blink = this.reducedMotion ? 1 : smooth((Math.sin(t * Math.PI * 2 * 1.35 - i * .45) + .12) * 4);
         const power = resting ? .03 : processing ? mix(.035, 1, blink) : (success || failed) ? 1 : .13;
         led.mat.color.set(color).multiplyScalar(power);
         led.mat.emissive.set(color); led.mat.emissiveIntensity = power * 1.6;
         led.halo.material.color.set(color); led.halo.material.opacity = resting ? 0 : power * .23;
-        led.mesh.userData.power = power; led.mesh.userData.signal = resting ? 'off' : failed ? 'red' : success ? 'green' : 'yellow';
+        led.mesh.userData.power = power; led.mesh.userData.signal = resting ? 'off' : failed ? 'red' : success || processing ? 'green' : 'yellow';
       });
       if (processing) gazeX = Math.sin(t * 1.4) * .025;
     }

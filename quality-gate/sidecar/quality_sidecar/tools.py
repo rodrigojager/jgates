@@ -429,6 +429,10 @@ MEGALINTER_GENERIC_DUPLICATE_LINTERS = ",".join(
         # transitive dependencies removed from the published image.
         "GHERKIN_GHERKIN_LINT",
         "SQL_TSQLLINT",
+        # CSpell writes its file list into the workspace, which is mounted
+        # read-only: it crashes MegaLinter's whole parallel pool. It is an
+        # English spelling check, not a quality or security gate.
+        "SPELL_CSPELL",
     ]
 )
 
@@ -436,6 +440,14 @@ MEGALINTER_GENERIC_DUPLICATE_LINTERS = ",".join(
 # code never ships), so the Bandit inside MegaLinter skips them. Semgrep, the secret scanners and the other linters
 # still read them.
 PYTHON_TEST_FILES_REGEX = r"(^|/)(tests?/|test_[^/]*\.py$|[^/]*_test\.py$|conftest\.py$)"
+
+CODESPELL_FILE_EXTENSIONS = ",".join(
+    [
+        ".py", ".pyi", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".cs", ".java", ".kt", ".go", ".rs", ".rb",
+        ".php", ".sh", ".ps1", ".sql", ".md", ".mdx", ".markdown", ".rst", ".txt", ".html", ".htm", ".json",
+        ".jsonc", ".yaml", ".yml", ".toml", ".ini", ".cfg",
+    ]
+)
 
 INSTALLED_CONFIG_DIR = Path("/opt/quality-sidecar/sidecar/config")
 SOURCE_CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
@@ -508,6 +520,18 @@ def megalinter_hardened_env(flavor: str, linters: list[dict[str, Any]] | None = 
     return env
 
 
+def _megalinter_crash(result: ToolResult) -> str | None:
+    """The exception that stopped MegaLinter's own process, from its stderr (its last line), or None."""
+    if result.exit_code in (None, 0) or not result.stderr_path:
+        return None
+    text = _read_text(Path(result.stderr_path))
+    if "Traceback (most recent call last)" not in text:
+        return None
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    last = next((line for line in reversed(lines) if re.match(r"^[A-Za-z_][\w.]*(Error|Exception)\b", line)), lines[-1] if lines else "")
+    return last[:300]
+
+
 def _run_megalinter(root: Path, raw_dir: Path, *, hardened: bool = False) -> ToolResult:
     configured = None if hardened else os.environ.get("MEGALINTER_COMMAND")
     command = [configured] if configured else ["/entrypoint.sh"]
@@ -533,6 +557,15 @@ def _run_megalinter(root: Path, raw_dir: Path, *, hardened: bool = False) -> Too
         # container's writable /tmp, or every Ruff run fails before linting.
         "RUFF_CACHE_DIR": "/tmp/ruff-cache",
         "PYTHON_BANDIT_FILTER_REGEX_EXCLUDE": PYTHON_TEST_FILES_REGEX,
+        # Spelling: Codespell (known English misspellings, few false
+        # positives) instead of CSpell, with the gate's own .codespellrc. It
+        # ignores the Portuguese words its English lists would report, so a
+        # pt-BR project is not rejected for its language. MegaLinter turns it
+        # on only when its configuration is found, here through RULES_PATH;
+        # the default extensions cover docs only, so code is added.
+        "SPELL_CODESPELL_RULES_PATH": _megalinter_rules_path(root),
+        "SPELL_CODESPELL_CONFIG_FILE": ".codespellrc",
+        "SPELL_CODESPELL_FILE_EXTENSIONS": CODESPELL_FILE_EXTENSIONS,
         "FILTER_REGEX_EXCLUDE": _megalinter_exclude_regex(root),
         "MEGALINTER_CONFIG": MEGALINTER_TRUSTED_CONFIG,
         # DevSkim is a project-mode analyzer and scans the workspace directly,
@@ -593,6 +626,16 @@ def _run_megalinter(root: Path, raw_dir: Path, *, hardened: bool = False) -> Too
                 for path in evidence_logs
             }
         )
+    crash = _megalinter_crash(result)
+    if crash is not None:
+        # MegaLinter itself stopped (an exception in its own process): some
+        # analyzers may never have run, so this is never "findings" or a pass,
+        # even when an analyzer had already failed.
+        result.status = "error"
+        result.error = "MegaLinter stopped before every analyzer finished."
+        result.summary["stoppedBy"] = crash
+        result.summary["failedAnalyzers"] = [path.stem.removesuffix("-ERROR") for path in _megalinter_error_logs(output_directory)]
+        return result
     if result.exit_code == 1:
         error_logs = _megalinter_error_logs(output_directory)
         fatal_logs = [
