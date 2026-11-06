@@ -118,7 +118,8 @@ function ConfirmDialog({ item, platform, onClose, onDone }: { item: Prerequisite
         </pre>
         <p className="small muted">{item.hosts.length > 0 ? t("prq_network", { hosts: item.hosts.join(", ") }) : t("prq_no_network")}</p>
         {running ? (
-          <p className="small" role="status">
+          // The same turning ring as "Carregando...": an install takes minutes and must not look frozen.
+          <p className="small spinner-text" role="status" data-testid="prq-running">
             {t(item.kind === "tools-install" ? "prq_running_tools" : "prq_running")}
           </p>
         ) : null}
