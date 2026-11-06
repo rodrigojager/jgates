@@ -70,6 +70,8 @@ export class MascotGallery {
     this.views.set(domain, view);
     return actor;
   }
+  /** Points an existing view at another element (the same mascot drawn where a new screen placed its viewport). */
+  bind(domain, element) { const view = this.views.get(domain); if (view) view.element = element; return view?.actor; }
   get(domain) { return this.views.get(domain)?.actor; }
   setAll(status) { this.views.forEach(v => v.actor.setStatus(status)); return this; }
   setReducedMotion(enabled) { this.reducedMotion = !!enabled; this.views.forEach(v => { v.actor.reducedMotion = !!enabled; }); }

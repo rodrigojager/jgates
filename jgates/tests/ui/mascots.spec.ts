@@ -181,13 +181,18 @@ test("navigation releases graphics contexts and the English preference localizes
   try {
     await page.addInitScript(() => {
       const contexts = new WeakSet<object>();
+      // `graphics` counts every WebGL context of the page (the Doctor of the prerequisites bar has its own); `strip`
+      // counts those of the quality mascots' canvas only.
       (window as any).graphics = { created: 0, lost: 0 };
+      (window as any).strip = { created: 0, lost: 0 };
       const original = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (type: string, ...args: any[]) {
         const context = (original as any).call(this, type, ...args);
         if (type.includes("webgl") && context && !contexts.has(context)) {
-          contexts.add(context); (window as any).graphics.created++;
-          this.addEventListener("webglcontextlost", () => (window as any).graphics.lost++, { once: true });
+          contexts.add(context);
+          const counters = [(window as any).graphics, ...(this.classList.contains("quality-mascots-canvas") ? [(window as any).strip] : [])];
+          for (const c of counters) c.created++;
+          this.addEventListener("webglcontextlost", () => { for (const c of counters) c.lost++; }, { once: true });
         }
         return context;
       } as any;
@@ -206,10 +211,14 @@ test("navigation releases graphics contexts and the English preference localizes
     for (const route of ["config", "overview", "validations/choose", "overview"]) {
       await page.evaluate((route) => { window.location.hash = `#/${route}`; }, route);
       await expect(strip.locator("canvas")).toHaveAttribute("data-statuses", /disabled/);
-      await expect.poll(() => page.evaluate(() => (window as any).graphics.created - (window as any).graphics.lost)).toBe(1);
+      await expect.poll(() => page.evaluate(() => (window as any).strip.created - (window as any).strip.lost)).toBe(1);
     }
+    // One gallery for the whole navigation: the mascots were built once, not once per screen.
+    expect(await page.evaluate(() => (window as any).strip.created)).toBe(1);
     await page.evaluate(() => { window.location.hash = "#/help"; });
     await expect(strip).toHaveCount(0);
-    await expect.poll(() => page.evaluate(() => (window as any).graphics.created - (window as any).graphics.lost)).toBe(0);
+    // With no strip on screen the shared gallery is released after its grace period, and the Doctor's context too.
+    await expect.poll(() => page.evaluate(() => (window as any).strip.created - (window as any).strip.lost), { timeout: 30_000 }).toBe(0);
+    await expect.poll(() => page.evaluate(() => (window as any).graphics.created - (window as any).graphics.lost), { timeout: 30_000 }).toBe(0);
   } finally { await server.stop(); fixture.cleanup(); }
 });

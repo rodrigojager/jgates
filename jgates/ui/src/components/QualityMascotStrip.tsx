@@ -7,11 +7,33 @@ import "./quality-mascots.css";
 
 // A remounted historical view must not replay an already observed celebration.
 const observed = new Map<string, string>();
+
+// One gallery (one WebGL context, the six mascots already built) for the whole app: going from one screen to the next
+// moves its canvas into the new strip and points each mascot at the new viewport, so the mascots are not rebuilt and
+// redrawn from scratch at every step. While no strip shows it, it waits RELEASE_MS for the next screen (which may
+// still be loading its data) and is then disposed, so no graphics context outlives the screens that use it. A second
+// strip shown at the same time gets a gallery of its own, as before.
+interface SharedGallery {
+  gallery: MascotGallery;
+  owner: symbol | null;
+  release: ReturnType<typeof setTimeout> | null;
+  onError: (() => void) | null;
+}
+let shared: SharedGallery | null = null;
+const RELEASE_MS = 10_000;
+const healthy = (g: MascotGallery) => !g.disposed && !g.contextLost;
+
+function newCanvas(): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.className = "quality-mascots-canvas";
+  canvas.setAttribute("aria-hidden", "true");
+  return canvas;
+}
 const statusIcons: Record<string, IconName> = { waiting: "info", processing: "refresh", passed: "check", failed: "alert", incomplete: "info", blocked: "lock", error: "x", timeout: "alert", cancelled: "stop", finished: "check", disabled: "power", not_applicable: "info", invalid: "settings" };
 
 export function QualityMascotStrip({ snapshot, onSelect }: { snapshot: MascotSnapshot | null | undefined; onSelect?: (domain: MascotDomain, ids: string[]) => void }) {
   const root = useRef<HTMLElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
+  const slot = useRef<HTMLDivElement>(null);
   const gallery = useRef<MascotGallery | null>(null);
   const firstApply = useRef(true);
   const latest = useRef(snapshot);
@@ -23,40 +45,99 @@ export function QualityMascotStrip({ snapshot, onSelect }: { snapshot: MascotSna
   const id = useId();
   const identity = snapshot ? `${snapshot.context}:${snapshot.runId ?? snapshot.planHash ?? "unknown"}` : "";
 
+  const hasSnapshot = snapshot !== null && snapshot !== undefined;
+
   useEffect(() => {
-    if (!snapshot || !canvas.current || !root.current) return;
+    if (!hasSnapshot || !slot.current || !root.current) return;
+    const me = Symbol("strip");
     let disposed = false;
     let scene: MascotGallery | null = null;
+    let isShared = false;
     let resize: ResizeObserver | null = null;
     let intersection: IntersectionObserver | null = null;
     const motion = matchMedia("(prefers-reduced-motion: reduce)");
     const invalidate = () => scene?.invalidate();
     const changeMotion = () => { scene?.setReducedMotion(motion.matches); invalidate(); };
+    const fail = () => { if (!disposed) setFailure(true); };
     setReady(false);
     setFailure(false);
     void import("../mascots/actors/renderer.js").then(({ MascotGallery }) => {
-      if (disposed || !canvas.current || !root.current) return;
+      if (disposed || !slot.current || !root.current) return;
       try {
-        scene = new MascotGallery({ canvas: canvas.current, reducedMotion: motion.matches, onError: () => { if (!disposed) setFailure(true); } });
+        // A shared gallery that lost its context (or was disposed) is replaced, never reused.
+        if (shared && shared.owner === null && !healthy(shared.gallery)) {
+          if (shared.release) clearTimeout(shared.release);
+          shared.gallery.dispose();
+          shared = null;
+        }
+        if (shared && shared.owner === null) {
+          if (shared.release) clearTimeout(shared.release);
+          shared.release = null;
+          shared.owner = me;
+          shared.onError = fail;
+          scene = shared.gallery;
+          isShared = true;
+        } else if (!shared) {
+          const created: SharedGallery = { gallery: null as unknown as MascotGallery, owner: me, release: null, onError: fail };
+          created.gallery = new MascotGallery({ canvas: newCanvas(), reducedMotion: motion.matches, onError: () => created.onError?.() });
+          shared = created;
+          scene = created.gallery;
+          isShared = true;
+        } else {
+          scene = new MascotGallery({ canvas: newCanvas(), reducedMotion: motion.matches, onError: fail });
+        }
+        slot.current.appendChild(scene.canvas);
         for (const d of latest.current!.domains) {
           const viewport = root.current.querySelector<HTMLElement>(`[data-viewport="${d.domain}"]`)!;
-          scene.add(d.domain, viewport, { status: d.status });
+          if (scene.get(d.domain)) scene.bind(d.domain, viewport);
+          else scene.add(d.domain, viewport, { status: d.status });
         }
+        scene.setReducedMotion(motion.matches);
+        scene.visible = true;
         gallery.current = scene; firstApply.current = true;
         resize = new ResizeObserver(invalidate); resize.observe(root.current);
         intersection = new IntersectionObserver(([entry]) => { if (scene) { scene.visible = entry?.isIntersecting ?? true; invalidate(); } });
         intersection.observe(root.current);
         motion.addEventListener("change", changeMotion);
         window.addEventListener("scroll", invalidate, true);
+        invalidate();
         setReady(true);
-      } catch { scene?.dispose(); scene = null; if (!disposed) setFailure(true); }
-    }).catch(() => { if (!disposed) setFailure(true); });
+      } catch {
+        if (scene && !isShared) scene.dispose();
+        if (isShared && shared?.owner === me) { shared.gallery.dispose(); shared = null; }
+        scene = null; isShared = false;
+        fail();
+      }
+    }).catch(fail);
     return () => {
       disposed = true; resize?.disconnect(); intersection?.disconnect();
       motion.removeEventListener("change", changeMotion); window.removeEventListener("scroll", invalidate, true);
-      scene?.dispose(); gallery.current = null;
+      if (scene) {
+        scene.canvas.remove();
+        const current = shared;
+        if (isShared && current && current.gallery === scene && current.owner === me) {
+          // Kept for the next screen's strip; disposed if none takes it in time.
+          scene.visible = false;
+          current.owner = null;
+          current.onError = null;
+          current.release = setTimeout(() => {
+            if (shared === current && current.owner === null) { current.gallery.dispose(); shared = null; }
+          }, RELEASE_MS);
+        } else if (!isShared) scene.dispose();
+      }
+      gallery.current = null;
     };
-  }, [identity, attempt]);
+  }, [hasSnapshot, attempt]);
+
+  // The canvas is not rendered by React (it moves between screens): hide it here when the animation failed.
+  useEffect(() => {
+    if (gallery.current) gallery.current.canvas.hidden = failure;
+  }, [failure, ready]);
+
+  // A new subject (another plan, the run id that became known) is a first application of statuses, not a rebuild.
+  useEffect(() => {
+    firstApply.current = true;
+  }, [identity]);
 
   useEffect(() => {
     if (!snapshot || !ready || !gallery.current) return;
@@ -78,7 +159,7 @@ export function QualityMascotStrip({ snapshot, onSelect }: { snapshot: MascotSna
   const announcement = snapshot.domains.map((d) => `${t(`mascot_domain_${d.domain}`)}: ${t(snapshot.context === "configuration" && d.status === "waiting" ? "mascot_enabled" : `mascot_status_${d.status}`)}${d.hasFindings ? `. ${t("mascot_partial_findings")}` : d.hasWarnings ? `. ${t("mascot_warnings")}` : ""}`).join(". ");
   return (
     <section ref={root} className="quality-mascots" aria-label={t(snapshot.context === "run" ? "mascot_run" : "mascot_configuration")} data-testid="quality-mascots" data-context={snapshot.context}>
-      <canvas key={attempt} ref={canvas} className="quality-mascots-canvas" aria-hidden="true" hidden={failure} />
+      <div ref={slot} className="quality-mascots-canvas-slot" />
       <div className="quality-mascots-grid">
         {snapshot.domains.map((d) => (
           <div key={d.domain} className="quality-mascot" data-domain={d.domain} data-status={d.status} data-selection={d.selection}>
