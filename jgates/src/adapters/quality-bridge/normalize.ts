@@ -232,7 +232,8 @@ export function normalizeBridge(outcome: BridgeOutcome, plans: SubcheckPlan[]): 
   const counted = (stage: ResultStage): ResultStage => {
     stage.findings = activeBy.get(stage.id) ?? 0;
     const blocking = blockingBy.get(stage.id) ?? 0;
-    if (blocking > 0) stage.blockingViolations = blocking;
+    // A completed stage carries its count even when it is zero: that is the evidence that it found nothing blocking.
+    if (blocking > 0 || stage.state === "completed") stage.blockingViolations = blocking;
     return stage;
   };
 

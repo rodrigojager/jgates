@@ -75,14 +75,21 @@ export function tripsFailFast(output: AdapterOutput): ResultStage | null {
   return null;
 }
 
-/** Fail-closed reading of an adapter output: a completed stage whose output was not interpreted is an error. */
+/**
+ * Fail-closed reading of an adapter output: a completed stage whose output was not interpreted is an error. A
+ * completed stage that came back with its count of blocking violations (and not marked uninterpreted) is an output
+ * the adapter read, so it says so (interpreted: true); a completed stage without a count stays neutral.
+ */
 export function failClosed(output: AdapterOutput): AdapterOutput {
   const t = translator("runner");
   return {
     ...output,
-    stages: output.stages.map((s) =>
-      s.state === "completed" && s.interpreted === false ? { ...s, state: "error", reason: t("runner_invalid_output", { detail: s.reason ?? "-" }), blockingViolations: 0 } : s,
-    ),
+    stages: output.stages.map((s) => {
+      if (s.state !== "completed") return s;
+      if (s.interpreted === false) return { ...s, state: "error", reason: t("runner_invalid_output", { detail: s.reason ?? "-" }), blockingViolations: 0 };
+      if (s.interpreted === undefined && typeof s.blockingViolations === "number") return { ...s, interpreted: true };
+      return s;
+    }),
   };
 }
 
