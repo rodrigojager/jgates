@@ -126,5 +126,7 @@
   "server_semantic_field_unrecognized_fix": "Edit the value in jgates.yml, in the YAML tab of Configuração.",
   "server_semantic_value_invalid": "Value refused for {field}: {problems}",
   "server_semantic_conflict": "{file} changed since it was read.",
-  "server_semantic_conflict_fix": "Reload the screen to see the current version before saving again."
+  "server_semantic_conflict_fix": "Reload the screen to see the current version before saving again.",
+  "ui_text_replaced": "A JGates server was open for this workspace with other code ({dir}, version {version}, pid {pid}); it was stopped and replaced by this one.",
+  "ui_text_replaced_unknown": "A JGates server was open for this workspace with an earlier version ({version}, pid {pid}); it was stopped and replaced by this one."
 }

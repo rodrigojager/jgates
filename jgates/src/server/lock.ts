@@ -18,6 +18,11 @@ export interface ServerLock {
   controlToken: string;
   startedAt: string;
   version: string;
+  /**
+   * Which code serves: the installation folder and a hash of its built UI. Two installations can share a version
+   * number (a local build and an installed package); a server of another build is replaced, not reused.
+   */
+  build?: { dir: string; hash: string };
 }
 
 export function lockFile(home: string, wsId: string): string {

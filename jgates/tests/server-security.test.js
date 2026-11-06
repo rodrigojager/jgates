@@ -533,6 +533,33 @@ test("saving with an outdated expectedRevision returns a conflict and leaves the
   });
 });
 
+test("an open server of another build is stopped and replaced, never reused (an old UI would be served)", async () => {
+  const p = documentsProject();
+  const home = tmp("jg-srv-home-");
+  let first = null;
+  let second = null;
+  try {
+    first = await startUi(p.dir, home);
+    const lockPath = path.join(home, "workspaces", first.info.workspace.id, "locks", "ui-server.json");
+    const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    assert.ok(lock.build?.hash, "the lock records the build it serves");
+    // The same server, as if another installation (or this one before an update) had started it.
+    fs.writeFileSync(lockPath, JSON.stringify({ ...lock, build: { dir: "D:/other/jgates/dist", hash: "0000000000000000" } }, null, 2));
+    const exited = new Promise((resolve) => first.proc.on("exit", resolve));
+    second = await startUi(p.dir, home);
+    assert.equal(second.info.reused, false);
+    assert.equal(second.info.replaced.pid, first.info.pid);
+    assert.equal(second.info.replaced.dir, "D:/other/jgates/dist");
+    await exited;
+    assert.equal(JSON.parse(fs.readFileSync(lockPath, "utf8")).pid, second.info.pid);
+    const auth = await login(second);
+    assert.equal((await request(second.info.port, "GET", "/api/workspace", { headers: { Cookie: auth.cookie } })).status, 200);
+  } finally {
+    await stopUi(first);
+    await stopUi(second);
+  }
+});
+
 test("a second jgates ui for the same workspace reuses the open server; a stale lock is replaced", async () => {
   const p = documentsProject();
   const home = tmp("jg-srv-home-");

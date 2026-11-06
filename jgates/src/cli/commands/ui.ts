@@ -83,6 +83,7 @@ export const command: CommandModule = {
         tool: "jgates",
         version: ctx.version,
         reused: outcome.kind === "reused",
+        ...(outcome.kind === "started" && outcome.replaced ? { replaced: outcome.replaced } : {}),
         url: outcome.url,
         host: outcome.host,
         port: outcome.port,
@@ -95,6 +96,10 @@ export const command: CommandModule = {
         log: outcome.log,
       });
     } else {
+      if (outcome.kind === "started" && outcome.replaced) {
+        const r = outcome.replaced;
+        ctx.stdout(`${t(r.dir ? "ui_text_replaced" : "ui_text_replaced_unknown", { pid: r.pid, dir: r.dir ?? "", version: r.version })}\n`);
+      }
       ctx.stdout(`${t(outcome.kind === "reused" ? "ui_text_reused" : policy !== undefined ? "ui_text_started_policy" : "ui_text_started", { url: outcome.url, workspace: outcome.workspace.name })}\n`);
       ctx.stdout(`${t("ui_text_launcher", { launcher: launcherUrl })}\n`);
       if (outcome.kind === "started") ctx.stdout(`${t("ui_text_stop")}\n`);

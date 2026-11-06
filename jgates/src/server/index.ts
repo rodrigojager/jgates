@@ -335,8 +335,38 @@ export interface LaunchOptions {
   policyMode?: boolean;
 }
 
+/**
+ * The code this process serves: its installation folder (dist/) and a hash of the built UI page, which names every
+ * hashed asset, so any rebuild changes it. Without a built UI the hash is of the folder alone.
+ */
+export function buildIdentity(): { dir: string; hash: string } {
+  const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  let page = "";
+  try {
+    page = fs.readFileSync(path.join(dist, "ui", "index.html"), "utf8");
+  } catch {
+    page = "";
+  }
+  return { dir: dist, hash: crypto.createHash("sha256").update(dist).update("\0").update(page).digest("hex").slice(0, 16) };
+}
+
+const sameBuild = (a: ServerLock["build"], b: { dir: string; hash: string }): boolean => a !== undefined && a.hash === b.hash;
+
 export type LaunchOutcome =
-  | { kind: "started"; server: RunningServer; launcher: string; url: string; host: string; port: number; pid: number; workspace: ServerWorkspace; log: string; stop(): Promise<void> }
+  | {
+      kind: "started";
+      server: RunningServer;
+      launcher: string;
+      url: string;
+      host: string;
+      port: number;
+      pid: number;
+      workspace: ServerWorkspace;
+      log: string;
+      /** The open server of another build that this one replaced (its installation folder, when it said). */
+      replaced?: { pid: number; dir: string | null; version: string };
+      stop(): Promise<void>;
+    }
   | { kind: "reused"; launcher: string; url: string; host: string; port: number; pid: number; workspace: ServerWorkspace; log: string };
 
 /**
@@ -352,6 +382,8 @@ export async function launchUi(opts: LaunchOptions): Promise<LaunchOutcome> {
   const workspace: ServerWorkspace = { id: entry.id, path: entry.path, name: entry.name };
   const file = lockFile(home, workspace.id);
   const logPath = path.join(serverDirOf(home, workspace.id), SERVER_LOG);
+  const build = buildIdentity();
+  let replaced: { pid: number; dir: string | null; version: string } | undefined;
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const current = readLock(file);
@@ -366,6 +398,20 @@ export async function launchUi(opts: LaunchOptions): Promise<LaunchOutcome> {
     }
     if (current.kind === "lock") {
       const answer = await requestLauncher(current.lock);
+      if (answer.kind === "ok" && !sameBuild(current.lock.build, build)) {
+        // A JGates server answers, but it serves other code (another installation, or this one before an update):
+        // reusing it would show an old UI. Its pid is the one its own control channel just confirmed; stop it and
+        // start this build in its place.
+        replaced = { pid: answer.pid, dir: current.lock.build?.dir ?? null, version: current.lock.version };
+        try {
+          process.kill(answer.pid);
+        } catch {
+          // Already gone.
+        }
+        for (let wait = 0; wait < 50 && processAlive(answer.pid); wait++) await new Promise((r) => setTimeout(r, 100));
+        removeLockIfSame(file, current.raw);
+        continue;
+      }
       if (answer.kind === "ok") {
         const base = `http://${current.lock.host.includes(":") ? `[${current.lock.host}]` : current.lock.host}:${current.lock.port}/`;
         return { kind: "reused", launcher: answer.launcher, url: base, host: current.lock.host, port: current.lock.port, pid: answer.pid, workspace, log: logPath };
@@ -395,6 +441,7 @@ export async function launchUi(opts: LaunchOptions): Promise<LaunchOutcome> {
       controlToken: server.context.controlToken,
       startedAt: new Date().toISOString(),
       version: opts.version,
+      build,
     };
     if (!tryCreateLock(file, lock)) {
       // Another `jgates ui` won the race: use its server instead.
@@ -413,6 +460,7 @@ export async function launchUi(opts: LaunchOptions): Promise<LaunchOutcome> {
       pid: process.pid,
       workspace,
       log: logPath,
+      ...(replaced ? { replaced } : {}),
       async stop() {
         await server.close();
         removeLockIfSame(file, raw);
