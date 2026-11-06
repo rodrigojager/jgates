@@ -11,6 +11,7 @@ import { ROOT_FILE, parseYamlText, validateDocument } from "../../core/config/lo
 import { resolveConfig, type ResolveIssue } from "../../core/config/resolve/index.js";
 import { templateOps } from "../../core/config/resolve/layers.js";
 import { TemplateGraph } from "../../core/config/resolve/templates.js";
+import { builtinTemplateText } from "../../core/catalog/index.js";
 import { discoverWorkspace } from "../../core/discovery/index.js";
 import type { Classification } from "../../core/discovery/types.js";
 import { HttpError } from "../http.js";
@@ -143,8 +144,8 @@ function describe(server: ServerContext): Rec {
     const support = isRec(value.support) && typeof value.support.level === "string" ? { level: value.support.level, uncovered: strings(value.support.uncovered) } : null;
     return {
       id,
-      label: typeof value.label === "string" ? value.label : id,
-      description: typeof value.description === "string" ? value.description : null,
+      label: builtinTemplateText(source, value).label ?? id,
+      description: builtinTemplateText(source, value).description,
       source,
       origin: source.startsWith("builtin:") ? "builtin" : "project",
       declared,
@@ -187,7 +188,7 @@ function detail(server: ServerContext, id: string): Rec {
       sets.push({ pointer: op.pointer, value: op.value, path: op.path, overrides: before !== undefined });
       seen.set(op.pointer, { node: ref, value: op.value });
     }
-    return { ref, file: node.file, label: typeof node.value.label === "string" ? node.value.label : ref, parents: node.parents, sets, overrides };
+    return { ref, file: node.file, label: builtinTemplateText(ref, node.value).label ?? ref, parents: node.parents, sets, overrides };
   });
   const loaded = loadSource(server, row.source);
   const yamlText = loaded ? (row.source.startsWith("builtin:") ? stringify(loaded.value, { lineWidth: 0 }) : fs.readFileSync(path.join(server.projectDir, row.source), "utf8")) : "";

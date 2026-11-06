@@ -228,6 +228,22 @@ export function subcheckLabel(adapterId: string, sub: { id: string; label: strin
   return value === key ? sub.label : value;
 }
 
+/**
+ * The label and description of a built-in template in the current language (template_<id>_* in the catalog area),
+ * or the text of its file. A project's own templates keep the text written in their file.
+ */
+export function builtinTemplateText(source: string, value: { label?: unknown; description?: unknown }): { label: string | null; description: string | null } {
+  const own = { label: typeof value.label === "string" ? value.label : null, description: typeof value.description === "string" ? value.description : null };
+  if (!source.startsWith("builtin:")) return own;
+  const id = source.slice("builtin:".length);
+  const t = translator("catalog");
+  const text = (key: string, fallback: string | null) => {
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
+  return { label: text(`template_${id}_label`, own.label), description: text(`template_${id}_description`, own.description) };
+}
+
 /** Builds a catalog with the core categories and capabilities (no adapters), in the current language. */
 export function createCoreCatalog(): Catalog {
   const catalog = new Catalog();
