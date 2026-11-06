@@ -5,14 +5,23 @@
 // running in the bridge, and the plan says the tool runs twice.
 import { translator } from "../../i18n/index.js";
 
-/** Subcheck id -> the adapter that replaces it. */
-export const SUPERSEDING_ADAPTERS: Readonly<Record<string, string>> = {
-  gitleaks: "gitleaks",
-  trivy: "trivy",
-  "osv-scanner": "osv-scanner",
-  checkov: "checkov",
-  jscpd: "jscpd",
+/**
+ * Subcheck id -> the adapters that replace it. The project's tests are one more case: the bridge's project-tests
+ * (`npm test` or `python -m unittest discover`) and its coverage (a report the project left in the folder) are the
+ * weaker copy of what a test adapter does with the project's own runner, so they stay out when one runs.
+ */
+export const SUPERSEDING_ADAPTERS: Readonly<Record<string, readonly string[]>> = {
+  gitleaks: ["gitleaks"],
+  trivy: ["trivy"],
+  "osv-scanner": ["osv-scanner"],
+  checkov: ["checkov"],
+  jscpd: ["jscpd"],
+  "project-tests": ["pytest", "vitest"],
+  coverage: ["pytest", "vitest"],
 };
+
+/** Subchecks replaced by a test adapter (a different tool doing the same job), with their own reason. */
+const TEST_SUBCHECKS = new Set(["project-tests", "coverage"]);
 
 export interface ActivePair {
   /** Tool instance id. */
@@ -34,15 +43,16 @@ export function supersededPairs(bridgePairs: Array<{ subcheck: string; capabilit
   const t = translator("security");
   const out = new Map<string, SupersededPair>();
   for (const pair of bridgePairs) {
-    const adapter = SUPERSEDING_ADAPTERS[pair.subcheck];
-    if (!adapter) continue;
-    const by = active.filter((a) => a.adapter === adapter && a.capability === pair.capability).map((a) => `${a.tool}#${a.capability}`);
+    const adapters = SUPERSEDING_ADAPTERS[pair.subcheck];
+    if (!adapters) continue;
+    const by = active.filter((a) => a.adapter !== null && adapters.includes(a.adapter) && a.capability === pair.capability).map((a) => `${a.tool}#${a.capability}`);
     if (by.length === 0) continue;
+    const key = TEST_SUBCHECKS.has(pair.subcheck) ? "bridge_superseded_tests" : "bridge_superseded";
     out.set(`${pair.subcheck}#${pair.capability}`, {
       subcheck: pair.subcheck,
       capability: pair.capability,
       by,
-      reason: { code: "SUPERSEDED", message: t("bridge_superseded", { subcheck: pair.subcheck, capability: pair.capability, by: by.join(", ") }) },
+      reason: { code: "SUPERSEDED", message: t(key, { subcheck: pair.subcheck, capability: pair.capability, by: by.join(", ") }) },
     });
   }
   return out;

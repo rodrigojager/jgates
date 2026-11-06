@@ -6,5 +6,15 @@
   "shell_workspace_not_directory": "{path} is not a folder.",
   "shell_workspace_not_directory_fix": "Give the path of a folder that exists on this machine.",
   "shell_open_failed": "Could not open the workspace ({code}).",
-  "shell_open_failed_fix": "Run jgates ui --cwd <folder> in the terminal and open the link it creates."
+  "shell_open_failed_fix": "Run jgates ui --cwd <folder> in the terminal and open the link it creates.",
+  "shell_browse_unreadable": "The folder {path} cannot be read (no permission).",
+  "shell_browse_unreadable_fix": "Go back up and choose another folder, or type the path.",
+  "shell_browse_policy": "Editing a CI policy serves that folder only; there is no other folder to open.",
+  "shell_browse_policy_fix": "Run jgates ui --cwd <folder> in the terminal to open a project.",
+  "shell_init_exists": "The project is already set up: {files}.",
+  "shell_init_exists_fix": "Reload the page; to start over, remove those files first.",
+  "shell_init_bad_profile": "Unknown profile {profile}; the choices are {available}.",
+  "shell_init_bad_profile_fix": "Choose one of the listed profiles.",
+  "shell_init_failed": "The configuration could not be written: {reason}",
+  "shell_init_failed_fix": "Check that the folder can be written and try again, or run jgates init in the terminal."
 }

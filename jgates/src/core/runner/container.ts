@@ -11,6 +11,7 @@ import { currentScope } from "./scope.js";
 
 export const CONTAINER_WORKSPACE = "/workspace";
 export const CONTAINER_OUTPUT = "/output";
+export const CONTAINER_CACHE = "/cache";
 export const DEFAULT_CONTAINER_LIMITS = { memoryMb: 1024, cpus: 2, pids: 256, tmpfsMb: 64 } as const;
 /** Connection settings of the Docker client; they stay on the host side and are never passed into the container. */
 export const DOCKER_CLIENT_ENV: readonly string[] = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "XDG_RUNTIME_DIR"];
@@ -28,6 +29,11 @@ export interface ContainerSpec {
   workspace: string;
   /** Host folder mounted writable at /output, kept apart from the workspace. */
   outputDir?: string;
+  /**
+   * Host folder mounted writable at /cache and kept between runs (the scanners' databases and rule caches), in the
+   * JGates data folder, never in the workspace.
+   */
+  cacheDir?: string;
   /** Working directory relative to the workspace ("." = the root). */
   cwd?: string;
   /** `uid:gid`; defaults to the host user (never root). "root" is a declared exception, reported in the result. */
@@ -151,6 +157,7 @@ export function buildContainerArgs(spec: ContainerSpec): { args: string[]; name:
     `type=bind,src=${workspace},dst=${CONTAINER_WORKSPACE},readonly`,
   ];
   if (spec.outputDir !== undefined) args.push("--mount", `type=bind,src=${mountPath(spec.outputDir, "outputDir")},dst=${CONTAINER_OUTPUT}`);
+  if (spec.cacheDir !== undefined) args.push("--mount", `type=bind,src=${mountPath(spec.cacheDir, "cacheDir")},dst=${CONTAINER_CACHE}`);
   args.push("--workdir", toContainerPath(spec.cwd ?? "."));
   for (const [k, v] of Object.entries(spec.labels ?? {})) {
     if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(k) || /[\n\r\0]/.test(v)) throw new ContainerSpecError("BAD_ENV", `invalid label: ${k}`);

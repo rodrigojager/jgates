@@ -1224,6 +1224,10 @@ def _missing_npm_workspaces(root: Path, package_json: Path) -> list[str]:
 def _project_test_outcome(result: ToolResult, *, path: str, message: str) -> tuple[ToolResult, list[Finding]]:
     if result.exit_code in {None, 0}:
         return result, []
+    # An exit code the runner does not use for failing tests (the command is missing, it crashed, nothing was
+    # collected) is an operational error, never a test failure: the status stays error, so it is not evidence.
+    if result.status != "ok":
+        return result, []
     result.status = "findings"
     return result, [
         Finding(
@@ -1235,6 +1239,9 @@ def _project_test_outcome(result: ToolResult, *, path: str, message: str) -> tup
             message=message,
         )
     ]
+
+
+UNITTEST_NO_TESTS = 5
 
 
 def _run_project_tests(root: Path, raw_dir: Path) -> tuple[ToolResult | None, list[Finding]]:
@@ -1279,7 +1286,15 @@ def _run_project_tests(root: Path, raw_dir: Path) -> tuple[ToolResult | None, li
             acceptable_exit_codes={0, 1},
             inherit_environment=True,
         )
-        return _project_test_outcome(result, path="tests", message="Python unittest discovery failed.")
+        # unittest exits with 5 when discovery finds no test (pytest-style functions are not unittest tests).
+        if result.exit_code == UNITTEST_NO_TESTS:
+            result.status = "error"
+            result.error = (
+                "python -m unittest discover found no tests (exit code 5). Tests written for pytest are run by "
+                "the pytest adapter, not by this subcheck."
+            )
+            return result, []
+        return _project_test_outcome(result, path="tests", message="Python unittest tests failed.")
 
     return None, []
 

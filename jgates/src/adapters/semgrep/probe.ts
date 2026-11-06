@@ -4,6 +4,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
 import { pythonEnvExecutable } from "../../core/install/paths.js";
+import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface SemgrepProbe {
   executable: string | null;
@@ -59,7 +60,7 @@ export function probeSemgrep(env: NodeJS.ProcessEnv): SemgrepProbe {
   const r = spawnSync(executable, ["--version", "--disable-version-check"], {
     encoding: "utf8",
     timeout: 60_000,
-    env: { PATH: scannerPath(env.PATH), HOME: env.HOME ?? "", SEMGREP_SEND_METRICS: "off", SEMGREP_ENABLE_VERSION_CHECK: "0" },
+    env: probeEnv(env, { PATH: scannerPath(env.PATH), HOME: env.HOME ?? "", SEMGREP_SEND_METRICS: "off", SEMGREP_ENABLE_VERSION_CHECK: "0" }),
     windowsHide: true,
   });
   const version = r.status === 0 ? (/(\d+\.\d+\.\d+\S*)/.exec(r.stdout)?.[1] ?? null) : null;

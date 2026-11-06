@@ -13,7 +13,9 @@ export {
   type ExecutionSpec,
   type RunnerOptions,
 } from "./process.js";
+export { exceptionLine } from "./stderr.js";
 export {
+  CONTAINER_CACHE,
   CONTAINER_OUTPUT,
   CONTAINER_WORKSPACE,
   ContainerSpecError,

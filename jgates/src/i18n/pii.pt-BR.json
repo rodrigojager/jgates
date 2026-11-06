@@ -9,6 +9,7 @@
   "pii_timeout": "O detector de PII passou do limite de {seconds} s e foi encerrado.",
   "pii_exit_error": "O detector de PII terminou com o código {code}: {detail}",
   "pii_invalid_output": "A resposta do detector de PII não tem o formato esperado: {detail}",
+  "pii_crashed": "O detector de PII terminou com o código {code} antes de responder: {error}. A saída completa está em {log}.",
   "pii_bridge_error": "O detector de PII recusou o pedido ({code}): {message}",
   "pii_reason_completed": "{count} ocorrência(s) de dados pessoais",
   "pii_route_entity_unsupported": "A entidade {entity} não tem detector; não há o que ligar ({path}).",

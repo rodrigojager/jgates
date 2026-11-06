@@ -6,5 +6,15 @@
   "shell_workspace_not_directory": "{path} não é uma pasta.",
   "shell_workspace_not_directory_fix": "Informe o caminho de uma pasta que exista nesta máquina.",
   "shell_open_failed": "Não foi possível abrir o workspace ({code}).",
-  "shell_open_failed_fix": "Rode jgates ui --cwd <pasta> no terminal e abra o link que ele criar."
+  "shell_open_failed_fix": "Rode jgates ui --cwd <pasta> no terminal e abra o link que ele criar.",
+  "shell_browse_unreadable": "A pasta {path} não pode ser lida (sem permissão).",
+  "shell_browse_unreadable_fix": "Volte um nível e escolha outra pasta, ou digite o caminho.",
+  "shell_browse_policy": "A edição de uma política de CI serve só aquela pasta; não há outra pasta para abrir.",
+  "shell_browse_policy_fix": "Rode jgates ui --cwd <pasta> no terminal para abrir um projeto.",
+  "shell_init_exists": "O projeto já está configurado: {files}.",
+  "shell_init_exists_fix": "Recarregue a página; para recomeçar, remova esses arquivos antes.",
+  "shell_init_bad_profile": "Perfil desconhecido {profile}; as opções são {available}.",
+  "shell_init_bad_profile_fix": "Escolha um dos perfis listados.",
+  "shell_init_failed": "Não foi possível gravar a configuração: {reason}",
+  "shell_init_failed_fix": "Confira se a pasta pode ser gravada e tente de novo, ou rode jgates init no terminal."
 }

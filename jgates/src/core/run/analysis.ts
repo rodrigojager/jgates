@@ -189,7 +189,16 @@ export function describeAnalysis(prep: PreparedAnalysis, input: DescribeInput): 
     message = commit ? t("analysis_approval_dirty", { count: localChanges, commit }) : t("analysis_approval_dirty_unborn", { count: localChanges });
   } else if (commit === null) {
     code = "NO_COMMIT";
-    message = !git.available ? t("analysis_approval_no_git") : git.repository ? t("analysis_approval_unborn") : t("analysis_approval_not_repository");
+    const problem = !git.repository && git.available ? git.problem : undefined;
+    message = !git.available
+      ? t("analysis_approval_no_git")
+      : git.repository
+        ? t("analysis_approval_unborn")
+        : problem?.code === "UNSAFE_REPOSITORY" && problem.fix
+          ? t("analysis_approval_unsafe_repository", { detail: problem.message, fix: problem.fix })
+          : problem
+            ? t("analysis_approval_git_error", { detail: problem.message })
+            : t("analysis_approval_not_repository");
   } else if (input.decision !== "passed") {
     code = "DECISION_NOT_PASSED";
     message = t("analysis_approval_not_passed", { decision: input.decision, commit });

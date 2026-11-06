@@ -15,6 +15,7 @@ import { findQualityGateDir, resolveProjectPython } from "../bridge/index.js";
 import { ensureHome, resolveHome } from "../home/index.js";
 import { LOCK_FILE } from "../lock/index.js";
 import { prepareCommand, prepareInstance, satisfiesRange, toolsDir } from "../prepare/index.js";
+import { probeEnv } from "../runner/probe-env.js";
 import { pythonEnvBinDir, pythonEnvDir, pythonEnvInterpreter } from "./paths.js";
 import { displayCommand, dockerInstallCommands, dockerStartCommands, type HostSystem } from "./system.js";
 
@@ -95,7 +96,7 @@ export function pipHosts(env: NodeJS.ProcessEnv): string[] {
 }
 
 function pythonVersionOf(interpreter: string, env: NodeJS.ProcessEnv): string | null {
-  const r = spawnSync(interpreter, ["--version"], { encoding: "utf8", timeout: 15_000, env: { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }, windowsHide: true });
+  const r = spawnSync(interpreter, ["--version"], { encoding: "utf8", timeout: 15_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }), windowsHide: true });
   if (r.status !== 0) return null;
   return /(\d+\.\d+\.\d+)/.exec(`${r.stdout}${r.stderr}`)?.[1] ?? null;
 }

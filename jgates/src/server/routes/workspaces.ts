@@ -2,6 +2,7 @@
 // progress and the workspaces known to this user. Opening another workspace starts (or reuses) the server of that
 // workspace and hands back a one-time link: a session serves exactly one workspace.
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { ROOT_FILE } from "../../core/config/load/index.js";
 import { readRegistry, workspaceDir, workspaceLineage, type WorkspaceEntry } from "../../core/home/index.js";
@@ -83,6 +84,56 @@ function hookStop(): void {
   if (process.platform === "win32") process.once("SIGBREAK", stopAll);
 }
 
+const MAX_BROWSE = 500;
+
+/** Where browsing starts: the drives on Windows, the root elsewhere, and the user's home folder. */
+function browseRoots(): string[] {
+  if (process.platform !== "win32") return ["/"];
+  const drives: string[] = [];
+  for (const letter of "CDEFGHIJKLMNOPQRSTUVWXYZ") {
+    const root = `${letter}:\\`;
+    if (isDirectory(root)) drives.push(root);
+  }
+  return drives;
+}
+
+/**
+ * The folders inside one folder, for the folder picker of the workspace dialog: names only (never a file or its
+ * contents), hidden and system folders left out, the ones already set up for JGates or Git marked. A browser cannot
+ * hand a page the absolute path of a folder it picks, so the local server lists them; a session can already open any
+ * folder by its path, so this shows nothing it could not reach.
+ */
+function browse(dir: string): Record<string, unknown> {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    throw new HttpError(403, "FOLDER_UNREADABLE", t("shell_browse_unreadable", { path: dir }), t("shell_browse_unreadable_fix"));
+  }
+  const folders = entries
+    .filter((e) => !e.name.startsWith(".") && !e.name.startsWith("$") && e.name !== "System Volume Information")
+    .filter((e) => e.isDirectory() || (e.isSymbolicLink() && isDirectory(path.join(dir, e.name))))
+    .map((e) => e.name)
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base", numeric: true }));
+  const shown = folders.slice(0, MAX_BROWSE).map((name) => {
+    const full = path.join(dir, name);
+    return { name, path: full, configured: fs.existsSync(path.join(full, ROOT_FILE)), repository: fs.existsSync(path.join(full, ".git")) };
+  });
+  const parent = path.dirname(dir);
+  return {
+    schemaVersion: 1,
+    status: "OK",
+    path: dir,
+    parent: parent === dir ? null : parent,
+    roots: browseRoots(),
+    home: os.homedir(),
+    separator: path.sep,
+    configured: fs.existsSync(path.join(dir, ROOT_FILE)),
+    entries: shown,
+    truncated: folders.length > MAX_BROWSE,
+  };
+}
+
 function target(server: ServerContext, body: { id?: string; path?: string }): WorkspaceEntry | string {
   if (body.id !== undefined) {
     const entry = readRegistry(server.home).workspaces.find((w) => w.id === body.id && !w.relinkedTo);
@@ -125,6 +176,25 @@ export const routes: RouteDefinition[] = [
     path: "/api/workspaces",
     handler({ server }) {
       return { status: 200, json: { schemaVersion: 1, status: "OK", workspaces: knownWorkspaces(server) } };
+    },
+  },
+  {
+    // The folder picker: the subfolders of `path` (the parent of the current workspace when absent).
+    method: "GET",
+    path: "/api/workspaces/browse",
+    query: { type: "object", properties: { path: { type: "string", minLength: 1, maxLength: 4096 } }, additionalProperties: false },
+    handler({ query, server }) {
+      if (policyEditingDir() !== null) throw new HttpError(403, "POLICY_MODE", t("shell_browse_policy"), t("shell_browse_policy_fix"));
+      const asked = query.path !== undefined ? path.resolve(query.path) : path.dirname(server.projectDir);
+      if (!isDirectory(asked)) throw new HttpError(400, "WORKSPACE_NOT_DIRECTORY", t("shell_workspace_not_directory", { path: asked }), t("shell_workspace_not_directory_fix"));
+      // The path as the disk spells it (on Windows the registry may keep it in lower case).
+      let dir = asked;
+      try {
+        dir = fs.realpathSync.native(asked);
+      } catch {
+        dir = asked;
+      }
+      return { status: 200, json: browse(dir) };
     },
   },
   {

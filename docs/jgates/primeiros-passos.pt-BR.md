@@ -8,7 +8,7 @@ Esta página leva do zero à primeira validação. As outras páginas desta past
 
 - Node 22 ou mais novo, Python 3.11 ou mais novo e Git.
 - Docker é opcional: só os scanners que rodam em container (Gitleaks, Trivy, OSV-Scanner, Checkov e o MegaLinter da ponte) precisam dele.
-- O Linux foi testado. O Windows ainda não foi testado (os testes que dependem dele estão marcados e pulam fora dele), e o macOS não foi testado num Mac real.
+- O Linux foi testado. No Windows 10 com Docker Desktop o fluxo do primeiro uso foi conferido à mão (veja [limitações](limitacoes.pt-BR.md)); o macOS não foi testado num Mac real.
 
 ## Instalar
 
@@ -40,6 +40,8 @@ npm install --global ./jgates-0.3.0.tgz
 jgates doctor
 ```
 
+No Windows, o `npm install --global` põe `jgates`, `quality-gate` e `semantic-gate` em `%APPDATA%\npm`, uma pasta que o instalador do Node.js já acrescenta ao `Path`: abra um terminal novo e o `jgates --version` responde de qualquer pasta. Para atualizar, rode `npm pack` de novo no clone e repita o `npm install --global` com o arquivo novo.
+
 Em vez do `--global`, você pode instalar o arquivo dentro do seu projeto (`npm install /caminho/do/clone/jgates-0.3.0.tgz`) e usar `npx jgates`. Para repetir a prova de instalação (por exemplo no Windows), rode `node scripts/smoke-install.mjs` na raiz do clone, com o JGates já compilado (`npm --prefix jgates run build`).
 
 O `npm install --global git+https://github.com/rodrigojager/jgates` **não funciona**: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga em seguida. Use a pasta com `--prefix`, a instalação dentro do projeto ou o tarball (veja [limitações](limitacoes.pt-BR.md)).
@@ -49,6 +51,8 @@ O `npm install --global git+https://github.com/rodrigojager/jgates` **não funci
 ```bash
 jgates doctor
 ```
+
+Rode depois do `init` (abaixo): antes de o projeto ter configuração não há plano, então o `doctor` confere só os runtimes. Com a configuração, ele confere todas as ferramentas que o plano roda, as que os templates trazem (Ruff, pytest, Import Linter, a ponte do quality gate) e também as declaradas em `.jgates/tools.yml`.
 
 O `doctor` mostra os runtimes (Node, Python, Git, Docker) e, para cada ferramenta do plano, se ela está pronta, ausente ou numa versão incompatível. Para o que falta, ele diz a classificação, tirada da configuração do projeto (`.jgates/tools.yml`):
 
@@ -68,7 +72,7 @@ jgates doctor --fix
 
 As receitas:
 
-- **Pacotes Python** (os pacotes do quality gate, o Ruff e o Semgrep): vão para um ambiente próprio do JGates em `<JGATES_HOME>/tools/python`, criado com `python -m venv` a partir do seu Python 3.11 ou mais novo, sem mexer no Python do sistema. A rede é o PyPI (`pypi.org`, `files.pythonhosted.org`), ou o índice de `PIP_INDEX_URL`. Os adaptadores do Ruff e do Semgrep e a ponte do quality gate procuram as ferramentas ali depois de `JGATES_RUFF`, `JGATES_SEMGREP` e `JGATES_PYTHON` e antes do `PATH`; o Python do projeto (o do pytest) continua sendo o do `PATH`.
+- **Pacotes Python** (os pacotes do quality gate, o Ruff, o Semgrep e o Import Linter): vão para um ambiente próprio do JGates em `<JGATES_HOME>/tools/python`, criado com `python -m venv` a partir do seu Python 3.11 ou mais novo, sem mexer no Python do sistema. A rede é o PyPI (`pypi.org`, `files.pythonhosted.org`), ou o índice de `PIP_INDEX_URL`. Os adaptadores do Ruff e do Semgrep e a ponte do quality gate procuram as ferramentas ali depois de `JGATES_RUFF`, `JGATES_SEMGREP` e `JGATES_PYTHON` e antes do `PATH`; o Import Linter, depois de `JGATES_IMPORT_LINTER` e do `PATH`. O Python do projeto (o do pytest) continua sendo o do `PATH`: o pytest roda o código do projeto, por isso o `doctor` nunca o instala; ele diz para instalar as dependências de teste do projeto nesse Python. Um pacote instalado com `pip install --user` conta (no Windows ele fica em `%APPDATA%\Python`).
 - **Imagens e regras**: a mesma preparação de `jgates tools prepare --instance <id>` (veja [adaptadores](adaptadores.pt-BR.md)).
 - **Docker**: o JGates mostra o comando oficial do sistema detectado (`apt-get` no Debian e no Ubuntu, `dnf` no Fedora, `brew` no macOS, `winget` no Windows) e só o executa depois de um "s" no terminal; o próprio comando pede o `sudo`, e o `--yes` não vale para ele. Com o Docker instalado e parado, a receita o inicia (`sudo systemctl start docker` no Linux). Num sistema que o JGates não conhece, o texto aponta as instruções oficiais. Os comandos do macOS e do Windows ainda não foram testados nessas máquinas.
 
@@ -85,6 +89,8 @@ jgates config validate
 - `discover` lê só os arquivos do projeto (nada é executado) e lista os componentes e as linguagens: no repositório de exemplo, `api` (Python), `web` e `libs/shared` (TypeScript).
 - `init` cria `jgates.yml` e `.jgates/profiles.yml` com o perfil que você escolher (`minimal`, `standard` ou `strict`; o padrão é `standard`) e os templates das stacks encontradas. Se já houver configuração, ele recusa com `CONFIG_EXISTS` e não muda nada.
 - `config validate` confere sintaxe, schema e referências dos arquivos, e diz o arquivo e a linha de cada problema.
+
+A interface faz o mesmo sem o terminal: numa pasta sem `jgates.yml`, a Visão geral mostra o que a descoberta encontrou, deixa escolher o perfil de partida e cria os mesmos dois arquivos com o botão "Criar configuração".
 
 Os arquivos do projeto ficam versionados com o código (`jgates.yml`, `.jgates/*.yml`, `.jgates/lock.json`). O que o JGates produz (runs, caches, ferramentas preparadas, rascunhos) fica na pasta de dados, fora do projeto: `~/.local/state/jgates` no Linux (ou `XDG_STATE_HOME`), `Library/Application Support/jgates` no macOS e `%LOCALAPPDATA%\jgates` no Windows. `JGATES_HOME` troca a pasta.
 
@@ -136,6 +142,8 @@ jgates ui --no-open
 O `ui` sobe um servidor local só neste computador (`127.0.0.1`). Ele não imprime o segredo da sessão: o link de entrada, de uso único e com validade de 10 minutos, fica num arquivo da pasta de dados (o campo `launcher` da saída com `--json`). Abra esse arquivo no navegador. Sem `--no-open`, o JGates abre o navegador sozinho.
 
 Telas principais: Visão geral (`#/overview`), Workspace (`#/workspace`), Ferramentas (`#/tools`), Configuração (`#/config`), Ambiente (`#/environment`), Preferências (`#/preferences`, com a tela Providers e chaves em `#/preferences/providers`) e Ajuda (`#/help`). Tudo o que a interface faz tem um comando equivalente.
+
+O botão do workspace no topo da barra lateral troca de projeto: escolha um dos workspaces conhecidos, digite o caminho de uma pasta ou use **Procurar...** para navegar pelas pastas desta máquina (as unidades, no Windows) e abrir uma. Uma pasta já configurada para o JGates ou com Git aparece marcada na lista. Um projeto sem configuração abre na tela de primeiro acesso, que a cria.
 
 ## Em CI e com agentes
 

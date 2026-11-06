@@ -4,6 +4,7 @@ import { Dialog, errorText } from "../components/common";
 import { Icon } from "../components/icons";
 import { useToast } from "../components/Toast";
 import { t } from "../i18n";
+import { FolderBrowser } from "./FolderBrowser";
 import { useShell, type WorkspaceChoice } from "./shell-context";
 
 /**
@@ -59,6 +60,7 @@ function SwitchDialog({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<{ message: string; fix: string | null } | null>(null);
   const [opened, setOpened] = useState<Opened | null>(null);
   const [folder, setFolder] = useState("");
+  const [browsing, setBrowsing] = useState(false);
   const link = useRef<HTMLAnchorElement>(null);
 
   const open = async (key: string, body: { id: string } | { path: string }, label: string) => {
@@ -126,12 +128,28 @@ function SwitchDialog({ onClose }: { onClose: () => void }) {
           <input id="ws-path" type="text" value={folder} onChange={(e) => setFolder(e.target.value)} placeholder={t("ws_path_placeholder")} spellCheck={false} autoComplete="off" />
           <span className="small muted">{t("ws_path_hint")}</span>
         </label>
-        <div>
+        <div className="row wrap">
+          <button type="button" className="btn" aria-expanded={browsing} onClick={() => setBrowsing((b) => !b)} disabled={busy !== null}>
+            <Icon name="folder" />
+            {t("ws_browse")}
+          </button>
           <button type="submit" className="btn" disabled={folder.trim() === "" || busy !== null}>
             {busy === "path" ? t("ws_opening") : t("ws_path_button")}
           </button>
         </div>
       </form>
+      {browsing ? (
+        <FolderBrowser
+          start={folder}
+          busy={busy !== null}
+          onCancel={() => setBrowsing(false)}
+          onChoose={(picked) => {
+            setFolder(picked);
+            setBrowsing(false);
+            void open("path", { path: picked }, picked);
+          }}
+        />
+      ) : null}
       {error ? (
         <div className="notice error" role="alert">
           <Icon name="alert" />

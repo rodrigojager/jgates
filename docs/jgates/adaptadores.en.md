@@ -68,6 +68,19 @@ jgates tools prepare --instance ruff-api --image ruff:0.17.2 --no-interactive
 
 `--image` accepts `name:tag` or `name@sha256:...`. If the image is not in the runtime, `prepare` warns that it will do a `docker pull` and from which host, and in an interactive terminal asks for your confirmation first. The result, with the digest and the version from the image label, goes to `.jgates/lock.json`. Without `--image`, the image already pinned in the lockfile applies, otherwise the one from the JGates sidecar. The `JGATES_*_IMAGE` variables of the development versions no longer exist: the image lives in the lockfile, versioned with the project.
 
+### The bridge's scanners in the sidecar image
+
+The quality gate's bridge runs MegaLinter, Semgrep, Gitleaks, Trivy, Checkov, OSV-Scanner and jscpd. On a machine that does not have them installed (on Windows, MegaLinter only exists in the image), each one would come out `missing`. When Docker answers and the sidecar image `jgates/quality-sidecar:latest` exists, the run sends those scanners to the image and keeps the built-in subchecks (file size, the project's tests and coverage) on the host; the two answers become one, and the plan and the result do not change shape. Build the image once, from the `quality-gate` folder of the installed package or of the clone (it is based on MegaLinter: large, and the first build takes a while):
+
+```bash
+docker build -t jgates/quality-sidecar:latest <path>/quality-gate
+```
+
+- `JGATES_BRIDGE_RUNNER` chooses: `auto` (the default) uses the image only when a requested scanner is not on the host; `local` never uses it; `container` always does.
+- The container gets the workspace read-only, its own output folder in the run folder, the network (Trivy, OSV-Scanner and Semgrep's `p/default` download their databases and rules) and a cache in the data folder (`<data folder>/cache/quality-sidecar`, a few GB after the first run), so the next runs reuse the databases. It runs as your user on Linux and macOS and as `nobody` on Windows, never as root.
+- Without Docker or without the image, the missing scanners say so in the result, with the command that builds the image.
+- `jgates ci` (governed mode) and a sidecar of your own (`JGATES_SIDECAR_DIR`) always run on the host.
+
 ## What enters the plan
 
 Tools with their own configuration (ESLint, Vitest, pytest, Import Linter, dependency-cruiser) only enter the plan when the project has their configuration; see [templates and profiles](templates-e-perfis.en.md). An instance declared by hand in `.jgates/tools.yml` enters when its capability is selected, and stays `blocked` if what it needs is missing (for example ESLint without an `eslint.config`). The same goes for the tools that execute project code (ESLint, Vitest, pytest): the plan shows the effect, and their result is never reused from the cache.
@@ -116,4 +129,4 @@ Go, Rust and .NET have partial-support templates. Go and Rust: discovery, explic
 
 ## Operating systems
 
-Linux: tested. Windows: not tested yet; the tests that depend on Windows are marked and skip elsewhere. macOS: not tested on a real Mac. The installation proof is in [getting started](primeiros-passos.en.md).
+Linux: tested. Windows: the first-run flow was checked by hand on Windows 10 with Docker Desktop, where the bridge's scanners run in the sidecar image (see [limitations](limitacoes.en.md)); the tests that depend on Windows are marked and skip elsewhere. macOS: not tested on a real Mac. The installation proof is in [getting started](primeiros-passos.en.md).

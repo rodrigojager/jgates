@@ -2,6 +2,7 @@
 // temporary copy of the files of `jgates pii check`. The answer carries rule, entity, file and line, never the value.
 import { resolvePython, resolveSidecarDir } from "../bridge/index.js";
 import { runSpec } from "../runner/process.js";
+import { exceptionLine } from "../runner/stderr.js";
 import { parsePiiResponse } from "../../adapters/builtin-pii/normalize.js";
 
 export interface BuiltinFinding {
@@ -39,6 +40,9 @@ export async function runBuiltinDetector(target: string, config: Record<string, 
   const parsed = parsePiiResponse(result.stdout, { stageId: "pii-check", version: null });
   if (parsed.bridgeError) return { state: "error", reason: `${parsed.bridgeError.code}: ${parsed.bridgeError.message}` };
   if (!parsed.ok || result.truncated || result.exitCode !== 0) {
+    // A detector that died before answering: the exception line of its stderr says why (never the rest of it).
+    const crash = result.stdout.trim() === "" && result.exitCode !== 0 ? exceptionLine(result.stderr) : null;
+    if (crash) return { state: "error", reason: `exit code ${result.exitCode ?? "-"}: ${crash}` };
     return { state: "error", reason: result.truncated ? "output truncated" : (parsed.problem ?? `exit code ${result.exitCode ?? "-"}`) };
   }
   return {

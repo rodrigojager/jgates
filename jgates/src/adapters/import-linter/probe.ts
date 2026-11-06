@@ -3,7 +3,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { findOnPath } from "../../core/bridge/index.js";
+import { findOnPath, resolveProjectPython } from "../../core/bridge/index.js";
+import { pythonEnvExecutable } from "../../core/install/paths.js";
+import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface ImportLinterProbe {
   executable: string | null;
@@ -19,7 +21,11 @@ const win = process.platform === "win32";
 const exeName = win ? "lint-imports.exe" : "lint-imports";
 const pythonName = win ? "python.exe" : "python";
 
-/** JGATES_IMPORT_LINTER, then the folder of JGATES_PYTHON (same virtual environment), then PATH. */
+/**
+ * JGATES_IMPORT_LINTER, then the folder of JGATES_PYTHON (same virtual environment), then PATH, then the JGates
+ * environment (<JGATES_HOME>/tools/python, where `jgates doctor --fix` installs it: Import Linter only reads the
+ * source, it never imports the project, so it does not need the project's own environment).
+ */
 export function findImportLinter(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
   const tried: string[] = [];
   if (env.JGATES_IMPORT_LINTER) {
@@ -32,13 +38,38 @@ export function findImportLinter(env: NodeJS.ProcessEnv): { executable: string |
     if (fs.existsSync(sibling)) return { executable: path.resolve(sibling), tried };
   }
   tried.push("lint-imports on PATH");
-  return { executable: findOnPath("lint-imports", env), tried };
+  const onPath = findOnPath("lint-imports", env);
+  if (onPath) return { executable: onPath, tried };
+  const own = pythonEnvExecutable("lint-imports", env);
+  if (own) tried.push(own);
+  return { executable: own, tried };
 }
 
 /** The interpreter next to the executable (not resolved through symlinks: a virtual environment is found by its path). */
 export function pythonBeside(executable: string): string | null {
   const sibling = path.join(path.dirname(executable), pythonName);
   return fs.existsSync(sibling) ? sibling : null;
+}
+
+const grimpCache = new Map<string, boolean>();
+
+/**
+ * The interpreter of the graph helper: the one beside lint-imports (a virtual environment), otherwise the project's
+ * Python when it imports grimp. The second case is a `pip install --user` install, where lint-imports lives in the
+ * user's scripts folder (~/.local/bin, %APPDATA%\Python\PythonXY\Scripts) and no interpreter sits beside it.
+ */
+export function pythonFor(executable: string, env: NodeJS.ProcessEnv): string | null {
+  const beside = pythonBeside(executable);
+  if (beside) return beside;
+  const { interpreter } = resolveProjectPython(env);
+  if (!interpreter) return null;
+  let ok = grimpCache.get(interpreter);
+  if (ok === undefined) {
+    const r = spawnSync(interpreter, ["-c", "import grimp"], { encoding: "utf8", timeout: 30_000, env: probeEnv(env, { PATH: toolPath(env.PATH), PYTHONDONTWRITEBYTECODE: "1" }), windowsHide: true });
+    ok = r.status === 0;
+    grimpCache.set(interpreter, ok);
+  }
+  return ok ? interpreter : null;
 }
 
 /** The scanner's PATH: the caller's, with the system folders the interpreter may need. */
@@ -52,7 +83,7 @@ export function toolPath(parent: string | undefined): string {
 export function probeImportLinter(env: NodeJS.ProcessEnv): ImportLinterProbe {
   const { executable, tried } = findImportLinter(env);
   if (!executable) return { executable: null, python: null, version: null, problem: "not_found", detail: tried.join(", ") };
-  const python = pythonBeside(executable);
+  const python = pythonFor(executable, env);
   let mtimeMs = 0;
   try {
     mtimeMs = fs.statSync(executable).mtimeMs;
@@ -63,7 +94,7 @@ export function probeImportLinter(env: NodeJS.ProcessEnv): ImportLinterProbe {
   if (hit && hit.mtimeMs === mtimeMs) {
     return hit.version ? { executable, python, version: hit.version, problem: null, detail: "" } : { executable, python, version: null, problem: "no_answer", detail: executable };
   }
-  const r = spawnSync(executable, ["--version"], { encoding: "utf8", timeout: 60_000, env: { PATH: toolPath(env.PATH) }, windowsHide: true });
+  const r = spawnSync(executable, ["--version"], { encoding: "utf8", timeout: 60_000, env: probeEnv(env, { PATH: toolPath(env.PATH) }), windowsHide: true });
   // "lint-imports, version 2.15" (click) or "import-linter 2.15": the first x.y(.z) in the answer.
   const found = r.status === 0 ? (/(\d+\.\d+(?:\.\d+)?)/.exec(r.stdout)?.[1] ?? null) : null;
   // Import Linter says "2.15": semver wants three parts.

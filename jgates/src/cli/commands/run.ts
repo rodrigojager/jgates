@@ -407,7 +407,9 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
           analyzed.target === "commit"
             ? ta("analysis_text_target_commit", { commit, path: analyzed.path })
             : analyzed.target === "working-tree"
-              ? ta("analysis_text_target_tree", { commit, dirty: analyzed.dirty ? ta("analysis_text_dirty") : "" })
+              ? analyzed.snapshot.commit
+                ? ta("analysis_text_target_tree", { commit, dirty: analyzed.dirty ? ta("analysis_text_dirty") : "" })
+                : ta("analysis_text_target_tree_unborn", { dirty: analyzed.dirty ? ta("analysis_text_dirty") : "" })
               : ta("analysis_text_target_directory");
         ctx.stdout(`${line}\n${analyzed.approval.message}\n${ta("analysis_text_identity", { identity: analyzed.identity })}\n`);
       }

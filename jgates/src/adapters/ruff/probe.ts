@@ -4,6 +4,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
 import { pythonEnvExecutable } from "../../core/install/paths.js";
+import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface RuffProbe {
   /** Absolute executable path, or null when none was found. */
@@ -50,7 +51,7 @@ export function probeRuff(env: NodeJS.ProcessEnv): RuffProbe {
   if (hit && hit.mtimeMs === mtimeMs) {
     return hit.version ? { executable, version: hit.version, problem: null, detail: "" } : { executable, version: null, problem: "no_answer", detail: executable };
   }
-  const r = spawnSync(executable, ["--version"], { encoding: "utf8", timeout: 15_000, env: { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }, windowsHide: true });
+  const r = spawnSync(executable, ["--version"], { encoding: "utf8", timeout: 15_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }), windowsHide: true });
   const version = r.status === 0 ? (/(\d+\.\d+\.\d+\S*)/.exec(r.stdout)?.[1] ?? null) : null;
   cache.set(executable, { mtimeMs, version });
   return version ? { executable, version, problem: null, detail: "" } : { executable, version: null, problem: "no_answer", detail: executable };

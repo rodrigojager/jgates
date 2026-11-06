@@ -9,6 +9,7 @@
   "pii_timeout": "The PII detector exceeded the limit of {seconds} s and was ended.",
   "pii_exit_error": "The PII detector ended with code {code}: {detail}",
   "pii_invalid_output": "The PII detector answer does not have the expected format: {detail}",
+  "pii_crashed": "The PII detector ended with code {code} before answering: {error}. The full output is in {log}.",
   "pii_bridge_error": "The PII detector refused the request ({code}): {message}",
   "pii_reason_completed": "{count} occurrence(s) of personal data",
   "pii_route_entity_unsupported": "The entity {entity} has no detector; there is nothing to turn on ({path}).",

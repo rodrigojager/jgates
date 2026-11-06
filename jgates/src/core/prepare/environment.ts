@@ -5,12 +5,16 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { translator } from "../../i18n/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
+import { probeImportLinter } from "../../adapters/import-linter/probe.js";
+import { probePytest } from "../../adapters/pytest/probe.js";
 import { probeRuff } from "../../adapters/ruff/probe.js";
 import { probeSemgrep } from "../../adapters/semgrep/probe.js";
 import { findOnPath, resolvePython, resolveSidecarDir } from "../bridge/index.js";
+import { probeEnv } from "../runner/probe-env.js";
 import type { AdapterManifest } from "../catalog/index.js";
 import { resolveHome } from "../home/index.js";
 import { readLock, LOCK_FILE, type LockRead } from "../lock/index.js";
+import { buildPlan } from "../plan/build.js";
 import { resolveToolBindings } from "../tools/index.js";
 import { probeLockedImage, runsInContainer, runtimeClientEnv, type LockedImageProbe } from "./image.js";
 import { satisfiesRange } from "./semver.js";
@@ -103,16 +107,27 @@ export function sidecarDependenciesPresent(interpreter: string, env: NodeJS.Proc
   }
   const hit = depsCache.get(interpreter);
   if (hit && hit.mtimeMs === mtimeMs) return hit.ok;
-  const r = spawnSync(interpreter, ["-c", `import ${SIDECAR_IMPORTS.join(", ")}`], { encoding: "utf8", timeout: 30_000, env: { PATH: env.PATH ?? "", HOME: env.HOME ?? "", PYTHONDONTWRITEBYTECODE: "1" }, windowsHide: true });
+  const r = spawnSync(interpreter, ["-c", `import ${SIDECAR_IMPORTS.join(", ")}`], { encoding: "utf8", timeout: 30_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "", PYTHONDONTWRITEBYTECODE: "1" }), windowsHide: true });
   const ok = r.status === 0;
   depsCache.set(interpreter, { mtimeMs, ok });
   return ok;
 }
 
 /** What the doctor can check for an adapter without running anything but `--version`. */
-function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv): ToolProbe | null {
+function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, projectDir: string): ToolProbe | null {
   if (manifest.id === "ruff") return probeRuff(env);
   if (manifest.id === "semgrep") return probeSemgrep(env);
+  if (manifest.id === "import-linter") {
+    const p = probeImportLinter(env);
+    return { executable: p.executable, version: p.version, problem: p.problem, detail: p.detail };
+  }
+  if (manifest.id === "pytest") {
+    // The project's own Python: pytest runs the project's code, so it is the one the tests need.
+    const p = probePytest(env, projectDir);
+    if (p.problem === "python_missing") return { executable: null, version: null, problem: "not_found", detail: `python (${p.detail})` };
+    if (p.problem === "no_pytest") return { executable: null, version: null, problem: "not_found", detail: `pytest, ${p.detail}` };
+    return { executable: p.python, version: p.version, problem: null, detail: "" };
+  }
   if (manifest.id === "quality-bridge") {
     const python = resolvePython(env);
     if (!python.interpreter) return { executable: null, version: null, problem: "not_found", detail: python.tried.join(", ") };
@@ -131,7 +146,8 @@ function containerProbe(image: LockedImageProbe): ToolProbe {
 }
 
 function fixFor(manifest: AdapterManifest): string | null {
-  if (manifest.id === "ruff" || manifest.id === "semgrep" || manifest.id === "quality-bridge") return INSTALL_FIX;
+  if (manifest.id === "ruff" || manifest.id === "semgrep" || manifest.id === "import-linter" || manifest.id === "quality-bridge") return INSTALL_FIX;
+  if (manifest.id === "pytest") return translator("prepare")("prepare_fix_pytest");
   return null;
 }
 
@@ -144,7 +160,7 @@ function dockerDaemon(docker: string, env: NodeJS.ProcessEnv): { running: boolea
 }
 
 function pythonVersion(interpreter: string, env: NodeJS.ProcessEnv): string | null {
-  const r = spawnSync(interpreter, ["--version"], { encoding: "utf8", timeout: 15_000, env: { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }, windowsHide: true });
+  const r = spawnSync(interpreter, ["--version"], { encoding: "utf8", timeout: 15_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }), windowsHide: true });
   if (r.status !== 0) return null;
   return /(\d+\.\d+\.\d+)/.exec(`${r.stdout}${r.stderr}`)?.[1] ?? null;
 }
@@ -247,6 +263,48 @@ function preparationOf(manifest: AdapterManifest, instance: string, runner: stri
   };
 }
 
+interface PlannedInstance {
+  id: string;
+  adapter: string;
+  component: string | null;
+  enabled: boolean;
+  required: boolean;
+  runner: string;
+}
+
+/**
+ * The tool instances of the project's plan (default profile and scope): the ones its templates bring and tools.yml
+ * does not declare. A project without configuration, or one whose plan cannot be built, has none (the plan says why).
+ */
+function plannedInstances(projectDir: string, env: NodeJS.ProcessEnv): PlannedInstance[] {
+  let built;
+  try {
+    built = buildPlan(projectDir, { env });
+  } catch {
+    return [];
+  }
+  if (!built.ok) return [];
+  const plan = built.plan;
+  const out = new Map<string, PlannedInstance>();
+  for (const item of plan.groups.willRun) {
+    if (!item.adapter) continue;
+    // A bridge subcheck is a part of the bridge: the bridge itself is the instance to check.
+    const id = item.subcheck ? item.adapter : item.tool;
+    const previous = out.get(id);
+    const required = item.requirement === "required" || (previous?.required ?? false);
+    const invocation = plan.invocations.find((i) => i.id === id || i.adapter === id);
+    out.set(id, {
+      id,
+      adapter: item.adapter,
+      component: item.subcheck ? null : (item.components[0]?.id ?? null),
+      enabled: true,
+      required,
+      runner: invocation?.command.container ? "container" : "local",
+    });
+  }
+  return [...out.values()];
+}
+
 export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.ProcessEnv; manifests?: AdapterManifest[] } = {}): EnvironmentDiagnosis {
   const env = options.env ?? process.env;
   const t = translator("prepare");
@@ -256,8 +314,12 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
   const lock = readLock(projectDir);
   const runtimes = diagnoseRuntimes(env);
   const resolved = resolveToolBindings(projectDir, { manifests, skipInventory: true });
+  // The tools the plan runs come from the templates as well, not only from tools.yml: the doctor checks every one of
+  // them, so "ready" means what the run needs is there (a pytest or Ruff brought by a template included).
+  const declared = new Set(resolved.instances.map((i) => i.id));
+  const instances: PlannedInstance[] = [...resolved.instances, ...plannedInstances(projectDir, env).filter((i) => !declared.has(i.id))];
   const tools: ToolStatus[] = [];
-  for (const instance of resolved.instances) {
+  for (const instance of instances) {
     const manifest = byAdapter.get(instance.adapter);
     if (!manifest) {
       tools.push({
@@ -280,7 +342,7 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
     }
     // An instance that runs in a container is checked through the image the lock pins, not a local binary.
     const container = runsInContainer(manifest.id, instance.runner) ? probeLockedImage({ env, dir: projectDir, instance: instance.id }) : null;
-    const probe = container ? containerProbe(container) : probeAdapter(manifest, env);
+    const probe = container ? containerProbe(container) : probeAdapter(manifest, env, projectDir);
     const range = manifest.toolVersionRange;
     const fit = probe?.version ? satisfiesRange(probe.version, range) : null;
     let state: EnvState;

@@ -59,11 +59,18 @@ export interface RunnerOptions {
   killGraceMs?: number;
 }
 
-/** Variables every scanner may need to start; nothing else leaks from the parent (tokens, proxies, credentials). */
+/**
+ * Variables every scanner may need to start; nothing else leaks from the parent (tokens, proxies, credentials).
+ * APPDATA and LOCALAPPDATA exist only on Windows (elsewhere they are absent and skipped): Python finds the user's
+ * site-packages through APPDATA there, as it does through HOME on Linux and macOS, and npm keeps its global tools
+ * under it. Without them a package installed with `pip install --user` is invisible to the child.
+ */
 export const DEFAULT_ENV_ALLOWLIST: readonly string[] = [
   "PATH",
   "HOME",
   "USERPROFILE",
+  "APPDATA",
+  "LOCALAPPDATA",
   "LANG",
   "LC_ALL",
   "LC_CTYPE",

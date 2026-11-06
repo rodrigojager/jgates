@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { NormalizedGraph } from "../../core/architecture/index.js";
 import { runSpec } from "../../core/runner/index.js";
+import { probeEnv } from "../../core/runner/probe-env.js";
 import { toolPath } from "./probe.js";
 
 export interface PythonRoot {
@@ -149,15 +150,18 @@ export async function buildImportGraph(options: {
   outFile: string;
   errFile: string;
   timeoutMs: number;
+  /** The interpreter finds grimp in the user's site-packages (it is not the one beside lint-imports). */
+  userSite?: boolean;
 }): Promise<GraphResult> {
   const request = JSON.stringify({ workspace: options.workspace, roots: options.roots });
   const result = await runSpec(
     {
       executable: options.python,
-      // -I: no user site, no PYTHONPATH, no cwd on sys.path: only the roots the helper adds itself.
-      args: ["-I", "-c", GRAPH_HELPER, request],
+      // -I: no user site, no PYTHONPATH, no cwd on sys.path: only the roots the helper adds itself. When grimp lives
+      // in the user's site-packages (a `pip install --user`), -E -P keeps the same guarantees except the user site.
+      args: [...(options.userSite ? ["-E", "-P"] : ["-I"]), "-c", GRAPH_HELPER, request],
       cwd: options.cwd,
-      env: { PATH: toolPath(options.env.PATH), PYTHONDONTWRITEBYTECODE: "1", PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" },
+      env: probeEnv(options.env, { PATH: toolPath(options.env.PATH), PYTHONDONTWRITEBYTECODE: "1", PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" }),
       stdin: null,
       timeoutMs: options.timeoutMs,
       stdoutFile: options.outFile,

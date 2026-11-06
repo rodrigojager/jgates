@@ -18,7 +18,7 @@ import { chooseNativeConfig, generateConfig, sha256File, translatableRules } fro
 import { buildImportGraph, discoverPythonRoots, type PythonRoot } from "./graph.js";
 import { importLinterManifest } from "./manifest.js";
 import { parseImportLinterOutput, type ImportLinterReport } from "./parse.js";
-import { probeImportLinter, pythonBeside, toolPath } from "./probe.js";
+import { probeImportLinter, pythonBeside, pythonFor, toolPath } from "./probe.js";
 
 export { importLinterManifest } from "./manifest.js";
 export { parseImportLinterOutput } from "./parse.js";
@@ -164,13 +164,14 @@ async function runImportLinter(context: AdapterContext, plan: Plan, tool: string
   const contract: ArchitectureContract = declaration?.contract ?? {};
 
   // 1. The normalized graph (it also tells which layers cover which modules, for the generated configuration).
-  const python = pythonBeside(command.executable);
+  const python = pythonFor(command.executable, context.env);
   const graphFile = path.join(outDir, "normalized-graph.json");
   let graph: NormalizedGraph;
   if (!python) graph = { nodes: [], edges: [], unresolved: [], coverage: { extractor: ADAPTER_ID, complete: false, reason: t("il_no_python", { executable: command.executable }) } };
   else if (roots.length === 0) graph = { nodes: [], edges: [], unresolved: [], coverage: { extractor: ADAPTER_ID, complete: false, reason: t("il_no_packages") } };
   else {
-    const built = await buildImportGraph({ python, workspace: context.workspacePath, roots, env: context.env, cwd: context.runDir, outFile: graphFile, errFile: graphLog, timeoutMs: timeoutSeconds * 1000 });
+    const userSite = pythonBeside(command.executable) === null;
+    const built = await buildImportGraph({ python, workspace: context.workspacePath, roots, env: context.env, cwd: context.runDir, outFile: graphFile, errFile: graphLog, timeoutMs: timeoutSeconds * 1000, userSite });
     graph = built.graph;
   }
   assignComponents(graph, (items[0]?.components ?? []).map((c) => ({ id: c.id, root: c.root })));

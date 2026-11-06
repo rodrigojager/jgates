@@ -58,7 +58,14 @@ jgates plan
 
 - Rode `jgates gc --dry-run` para ver o que a retenção apagaria (veja [pasta de dados](pasta-de-dados.pt-BR.md)).
 - Um resultado "reaproveitado" de uma execução anterior vem do cache. Para forçar a execução real, use `jgates run --no-cache`.
+- A imagem do sidecar (`jgates/quality-sidecar:latest`, cerca de 22 GB) e o cache dos scanners (`<pasta de dados>/cache/quality-sidecar`, alguns GB) são os itens maiores. Apagar o cache só faz o próximo run baixar as bases de novo.
 
-## Windows e macOS
+## Windows
 
-O Windows ainda não foi testado e o macOS não foi testado em máquina real (veja [limitações](limitacoes.pt-BR.md)). Se algo falhar, anote o comando, o `runId` e a saída de `jgates doctor`.
+- **"O Git recusou o repositório" / `detected dubious ownership`.** A pasta pertence a outra conta (muitas vezes ao grupo Administradores, quando um terminal elevado a criou), e o Git se recusa a lê-la com o seu usuário. O resultado passa a valer para o conteúdo da pasta, não para um commit, e a mensagem traz o comando que o próprio Git sugere: `git config --global --add safe.directory <pasta>`. Rode uma vez, ou assuma a posse da pasta.
+- **Uma ferramenta instalada com `pip install --user` aparece como ausente.** Atualize o JGates: os processos filhos agora recebem o `APPDATA`, por onde o Python acha os pacotes do usuário.
+- **Os scanners da ponte saem `missing`.** Construa a imagem do sidecar (veja [adaptadores](adaptadores.pt-BR.md#os-scanners-da-ponte-na-imagem-do-sidecar)); com ela, o run os manda para o Docker sozinho.
+
+## macOS
+
+O macOS não foi testado em máquina real (veja [limitações](limitacoes.pt-BR.md)). Se algo falhar, anote o comando, o `runId` e a saída de `jgates doctor`.

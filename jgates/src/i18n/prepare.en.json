@@ -6,6 +6,7 @@
   "prepare_fix_incompatible": "Install a version of {tool} within the range {range} and run doctor again. There is no automatic downgrade.",
   "prepare_fix_python": "Install Python 3.11 or newer and put it on the PATH (or point JGATES_PYTHON), then run jgates doctor --fix, which creates the JGates environment with the quality gate's packages.",
   "prepare_fix_git": "Install Git and put it on the PATH.",
+  "prepare_fix_pytest": "pytest runs the project's code, so it goes into the project's own Python, never into JGates's: install the project's test dependencies there (for example pip install -r requirements-dev.txt, or pip install pytest pytest-cov) and run doctor again.",
   "prepare_fix_docker": "Install Docker only if you will use container stages.",
   "prepare_adapter_unknown": "The adapter {adapter} is not among the built-in ones; nothing to check.",
   "prepare_not_checked": "{tool}: the adapter has no environment check yet.",

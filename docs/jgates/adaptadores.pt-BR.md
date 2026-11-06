@@ -68,6 +68,19 @@ jgates tools prepare --instance ruff-api --image ruff:0.17.2 --no-interactive
 
 `--image` aceita `nome:tag` ou `nome@sha256:...`. Se a imagem não está no runtime, o `prepare` avisa que fará um `docker pull` e em qual host, e num terminal interativo pede a sua confirmação antes. O resultado, com o digest e a versão pelo rótulo da imagem, vai para o `.jgates/lock.json`. Sem `--image`, vale a imagem já fixada no lockfile, senão a do sidecar do JGates. As variáveis `JGATES_*_IMAGE` das versões de desenvolvimento não existem mais: a imagem vive no lockfile, versionada com o projeto.
 
+### Os scanners da ponte na imagem do sidecar
+
+A ponte do quality gate roda MegaLinter, Semgrep, Gitleaks, Trivy, Checkov, OSV-Scanner e jscpd. Numa máquina que não os tem instalados (no Windows, o MegaLinter só existe na imagem), cada um sairia `missing`. Quando o Docker responde e a imagem do sidecar `jgates/quality-sidecar:latest` existe, o run manda esses scanners para a imagem e mantém no host as subverificações internas (tamanho de arquivo, testes do projeto e cobertura); as duas respostas viram uma, e o plano e o resultado não mudam de forma. Construa a imagem uma vez, a partir da pasta `quality-gate` do pacote instalado ou do clone (ela é baseada no MegaLinter: grande, e a primeira construção demora):
+
+```bash
+docker build -t jgates/quality-sidecar:latest <caminho>/quality-gate
+```
+
+- `JGATES_BRIDGE_RUNNER` escolhe: `auto` (o padrão) usa a imagem só quando um scanner pedido não está no host; `local` nunca usa; `container` usa sempre.
+- O container recebe o workspace só para leitura, uma pasta de saída própria na pasta do run, a rede (Trivy, OSV-Scanner e o `p/default` do Semgrep baixam bases e regras) e um cache na pasta de dados (`<pasta de dados>/cache/quality-sidecar`, alguns GB depois do primeiro run), para os runs seguintes reaproveitarem as bases. Ele roda com o seu usuário no Linux e no macOS e como `nobody` no Windows, nunca como root.
+- Sem Docker ou sem a imagem, os scanners que faltam dizem isso no resultado, com o comando que constrói a imagem.
+- O `jgates ci` (modo governado) e um sidecar seu (`JGATES_SIDECAR_DIR`) rodam sempre no host.
+
 ## O que entra no plano
 
 Ferramentas de configuração própria (ESLint, Vitest, pytest, Import Linter, dependency-cruiser) só entram no plano quando o projeto tem a configuração delas; veja [templates e perfis](templates-e-perfis.pt-BR.md). Uma instância declarada à mão em `.jgates/tools.yml` entra quando a capacidade dela é selecionada, e fica `blocked` se faltar o que ela precisa (por exemplo o ESLint sem `eslint.config`). Isso vale também para quem executa código do projeto (ESLint, Vitest, pytest): o plano mostra o efeito, e o resultado desses nunca é reaproveitado do cache.
@@ -116,4 +129,4 @@ Go, Rust e .NET têm templates de suporte parcial. Go e Rust: descoberta, config
 
 ## Sistemas operacionais
 
-Linux: testado. Windows: ainda não testado; os testes que dependem do Windows estão marcados e pulam fora dele. macOS: não testado num Mac real. A prova de instalação está em [primeiros passos](primeiros-passos.pt-BR.md).
+Linux: testado. Windows: o fluxo do primeiro uso foi conferido à mão no Windows 10 com Docker Desktop, onde os scanners da ponte rodam na imagem do sidecar (veja [limitações](limitacoes.pt-BR.md)); os testes que dependem do Windows estão marcados e pulam fora dele. macOS: não testado num Mac real. A prova de instalação está em [primeiros passos](primeiros-passos.pt-BR.md).

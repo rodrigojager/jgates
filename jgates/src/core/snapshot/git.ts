@@ -2,6 +2,8 @@
 // writes in the user's repository: no checkout, no reset, no index refresh (GIT_OPTIONAL_LOCKS=0), and the snapshot
 // of another commit is materialized through a private index file in the data folder (see materialize.ts).
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import { findOnPath } from "../bridge/index.js";
 
 /** Variables that would point Git at another repository, index or work tree than the one asked for. */
@@ -34,9 +36,19 @@ export function runGit(git: string, args: string[], cwd: string, env: NodeJS.Pro
   return { status: r.error ? null : r.status, stdout: r.stdout ?? "", stderr: r.error ? r.error.message : (r.stderr ?? "") };
 }
 
+/**
+ * Why Git refused a folder that holds a repository: an ownership it does not trust (safe.directory), or another error.
+ * `fix` is the command Git itself suggests, when it suggests one.
+ */
+export interface GitProblem {
+  code: "UNSAFE_REPOSITORY" | "GIT_ERROR";
+  message: string;
+  fix: string | null;
+}
+
 export type GitContext =
   | { available: false; repository: false; git: null }
-  | { available: true; repository: false; git: string }
+  | { available: true; repository: false; git: string; problem?: GitProblem }
   | {
       available: true;
       repository: true;
@@ -57,7 +69,10 @@ export function gitContext(dir: string, env: NodeJS.ProcessEnv = process.env): G
   if (!git) return { available: false, repository: false, git: null };
   const top = runGit(git, ["rev-parse", "--is-inside-work-tree", "--show-toplevel", "--show-prefix"], dir, env);
   const lines = top.stdout.split(/\r?\n/);
-  if (top.status !== 0 || lines[0] !== "true") return { available: true, repository: false, git };
+  if (top.status !== 0 || lines[0] !== "true") {
+    const problem = top.status !== 0 ? gitProblem(top.stderr, dir) : null;
+    return problem ? { available: true, repository: false, git, problem } : { available: true, repository: false, git };
+  }
   const head = runGit(git, ["rev-parse", "--verify", "--quiet", "HEAD^{commit}"], dir, env);
   const branch = runGit(git, ["symbolic-ref", "--quiet", "--short", "HEAD"], dir, env);
   return {
@@ -69,6 +84,31 @@ export function gitContext(dir: string, env: NodeJS.ProcessEnv = process.env): G
     head: head.status === 0 && head.stdout.trim() !== "" ? head.stdout.trim() : null,
     branch: branch.status === 0 && branch.stdout.trim() !== "" ? branch.stdout.trim() : null,
   };
+}
+
+/** True when `dir` or one of its parents holds a `.git` entry (a folder, or the file of a worktree or submodule). */
+function insideRepository(dir: string): boolean {
+  let current = path.resolve(dir);
+  for (let i = 0; i < 64; i++) {
+    if (fs.existsSync(path.join(current, ".git"))) return true;
+    const parent = path.dirname(current);
+    if (parent === current) return false;
+    current = parent;
+  }
+  return false;
+}
+
+/**
+ * Tells a folder without a repository from a repository Git refused, whatever the language of Git's messages: the
+ * safe.directory hint is a command and is never translated, and a refused folder still has its `.git` entry.
+ */
+export function gitProblem(stderr: string, dir: string): GitProblem | null {
+  const lines = stderr.split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== "");
+  const fix = lines.find((l) => /^git config .*safe\.directory\s/.test(l)) ?? null;
+  const first = (lines[0] ?? "").replace(/^fatal:\s*/, "");
+  if (fix) return { code: "UNSAFE_REPOSITORY", message: first, fix };
+  if (!insideRepository(dir)) return null;
+  return first ? { code: "GIT_ERROR", message: first, fix: null } : null;
 }
 
 /** Resolves a reference to a full commit id, or null when it names no commit. Never reads an option from the ref. */

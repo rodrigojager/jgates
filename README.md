@@ -27,7 +27,7 @@ The main command is `jgates`. It runs the quality gate and, when you ask, the se
 
 - Node 22 or newer, Python 3.11 or newer and Git.
 - Docker is optional: it is needed for the tools that run in a container (Gitleaks, Trivy, OSV-Scanner, Checkov and the bridge's MegaLinter) and for the quality gate image. Without Docker, `quality-gate` runs the local Python sidecar and fails explicitly if a required tool is not installed.
-- Linux was tested. Windows was not tested yet (the tests that depend on it are marked and skip elsewhere), and macOS was not tested on a real Mac.
+- Linux was tested. On Windows 10 with Docker Desktop the first-run flow was checked by hand: there, `jgates run` sends the bridge's scanners to the sidecar image (see [adapters](docs/jgates/adaptadores.en.md)). macOS was not tested on a real Mac.
 
 ### Installation
 
@@ -179,7 +179,7 @@ O comando principal é o `jgates`. Ele roda o quality gate e, quando você pede,
 
 - Node 22 ou mais novo, Python 3.11 ou mais novo e Git.
 - Docker é opcional: é preciso para as ferramentas que rodam em container (Gitleaks, Trivy, OSV-Scanner, Checkov e o MegaLinter da ponte) e para a imagem do quality gate. Sem o Docker, o `quality-gate` roda o sidecar Python local e falha de forma explícita se uma ferramenta exigida não estiver instalada.
-- O Linux foi testado. O Windows ainda não foi testado (os testes que dependem dele estão marcados e pulam fora dele), e o macOS não foi testado num Mac real.
+- O Linux foi testado. No Windows 10 com Docker Desktop o fluxo do primeiro uso foi conferido à mão: lá, o `jgates run` manda os scanners da ponte para a imagem do sidecar (veja [adaptadores](docs/jgates/adaptadores.pt-BR.md)). O macOS não foi testado num Mac real.
 
 ### Instalação
 

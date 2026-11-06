@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolveProjectPython } from "../../core/bridge/index.js";
+import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface PytestProbe {
   /** Absolute path of the Python interpreter, or null when none was found. */
@@ -19,7 +20,7 @@ export interface PytestProbe {
 const versions = new Map<string, { mtimeMs: number; version: string | null; detail: string }>();
 
 function safeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
-  return { PATH: env.PATH ?? "", HOME: env.HOME ?? "", PYTHONDONTWRITEBYTECODE: "1", PYTHONIOENCODING: "utf-8" };
+  return probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "", PYTHONDONTWRITEBYTECODE: "1", PYTHONIOENCODING: "utf-8" });
 }
 
 export function probePytest(env: NodeJS.ProcessEnv, cwd: string): PytestProbe {

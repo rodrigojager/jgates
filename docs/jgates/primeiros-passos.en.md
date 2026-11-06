@@ -8,7 +8,7 @@ This page goes from zero to the first validation. The other pages in this folder
 
 - Node 22 or newer, Python 3.11 or newer and Git.
 - Docker is optional: only the scanners that run in a container (Gitleaks, Trivy, OSV-Scanner, Checkov and the bridge's MegaLinter) need it.
-- Linux was tested. Windows was not tested yet (the tests that depend on it are marked and skip elsewhere), and macOS was not tested on a real Mac.
+- Linux was tested. On Windows 10 with Docker Desktop the first-run flow was checked by hand (see [limitations](limitacoes.en.md)); macOS was not tested on a real Mac.
 
 ## Install
 
@@ -40,6 +40,8 @@ npm install --global ./jgates-0.3.0.tgz
 jgates doctor
 ```
 
+On Windows, `npm install --global` puts `jgates`, `quality-gate` and `semantic-gate` in `%APPDATA%\npm`, a folder the Node.js installer already adds to `Path`: open a new terminal and `jgates --version` answers from any folder. To update, run `npm pack` again in the clone and repeat the `npm install --global` with the new file.
+
 Instead of `--global`, you can install the file inside your project (`npm install /path/to/the/clone/jgates-0.3.0.tgz`) and use `npx jgates`. To repeat the installation proof (for example on Windows), run `node scripts/smoke-install.mjs` at the root of the clone, with JGates already built (`npm --prefix jgates run build`).
 
 `npm install --global git+https://github.com/rodrigojager/jgates` **does not work**: for a global install of a git dependency, npm links the commands to a temporary clone that it then deletes. Use the folder with `--prefix`, the installation inside the project or the tarball (see [limitations](limitacoes.en.md)).
@@ -49,6 +51,8 @@ Instead of `--global`, you can install the file inside your project (`npm instal
 ```bash
 jgates doctor
 ```
+
+Run it after `init` (below): before a project has a configuration there is no plan, so `doctor` checks only the runtimes. With a configuration, it checks every tool the plan runs, the ones the templates bring (Ruff, pytest, Import Linter, the quality gate's bridge) as well as the ones declared in `.jgates/tools.yml`.
 
 `doctor` shows the runtimes (Node, Python, Git, Docker) and, for each tool in the plan, whether it is ready, absent or at an incompatible version. For what is missing, it gives the classification, taken from the project's configuration (`.jgates/tools.yml`):
 
@@ -68,7 +72,7 @@ jgates doctor --fix
 
 The recipes:
 
-- **Python packages** (the quality gate's packages, Ruff and Semgrep): they go into an environment of JGates's own at `<JGATES_HOME>/tools/python`, created with `python -m venv` from your Python 3.11 or newer, without touching the system Python. The network is PyPI (`pypi.org`, `files.pythonhosted.org`), or the index of `PIP_INDEX_URL`. The Ruff and Semgrep adapters and the quality gate's bridge look for the tools there after `JGATES_RUFF`, `JGATES_SEMGREP` and `JGATES_PYTHON` and before the `PATH`; the project's Python (the one pytest uses) is still the one on the `PATH`.
+- **Python packages** (the quality gate's packages, Ruff, Semgrep and Import Linter): they go into an environment of JGates's own at `<JGATES_HOME>/tools/python`, created with `python -m venv` from your Python 3.11 or newer, without touching the system Python. The network is PyPI (`pypi.org`, `files.pythonhosted.org`), or the index of `PIP_INDEX_URL`. The Ruff and Semgrep adapters and the quality gate's bridge look for the tools there after `JGATES_RUFF`, `JGATES_SEMGREP` and `JGATES_PYTHON` and before the `PATH`; Import Linter after `JGATES_IMPORT_LINTER` and the `PATH`. The project's Python (the one pytest uses) is still the one on the `PATH`: pytest runs the project's code, so `doctor` never installs it; it says to install the project's test dependencies in that Python. A package installed with `pip install --user` counts (on Windows it lives under `%APPDATA%\Python`).
 - **Images and rules**: the same preparation as `jgates tools prepare --instance <id>` (see [adapters](adaptadores.en.md)).
 - **Docker**: JGates shows the official command of the detected system (`apt-get` on Debian and Ubuntu, `dnf` on Fedora, `brew` on macOS, `winget` on Windows) and runs it only after a "y" on the terminal; the command itself asks for `sudo`, and `--yes` does not cover it. With Docker installed and stopped, the recipe starts it (`sudo systemctl start docker` on Linux). On a system JGates does not know, the text points to the official instructions. The macOS and Windows commands were not tested on those machines yet.
 
@@ -85,6 +89,8 @@ jgates config validate
 - `discover` reads only the project's files (nothing is executed) and lists the components and languages: in the example repository, `api` (Python), `web` and `libs/shared` (TypeScript).
 - `init` creates `jgates.yml` and `.jgates/profiles.yml` with the profile you choose (`minimal`, `standard` or `strict`; the default is `standard`) and the templates of the stacks it found. If a configuration already exists it refuses with `CONFIG_EXISTS` and changes nothing.
 - `config validate` checks the syntax, schema and references of the files, and names the file and line of each problem.
+
+The interface does the same without the terminal: in a folder without `jgates.yml`, the Overview shows what discovery found, lets you choose the starting profile and creates the same two files with the "Create configuration" button.
 
 The project files are versioned with the code (`jgates.yml`, `.jgates/*.yml`, `.jgates/lock.json`). What JGates produces (runs, caches, prepared tools, drafts) goes to the data folder, outside the project: `~/.local/state/jgates` on Linux (or `XDG_STATE_HOME`), `Library/Application Support/jgates` on macOS and `%LOCALAPPDATA%\jgates` on Windows. `JGATES_HOME` changes the folder.
 
@@ -136,6 +142,8 @@ jgates ui --no-open
 `ui` starts a local server on this computer only (`127.0.0.1`). It does not print the session secret: the entry link, single-use and valid for 10 minutes, is in a file in the data folder (the `launcher` field of the `--json` output). Open that file in the browser. Without `--no-open`, JGates opens the browser itself.
 
 Main screens: Overview (`#/overview`), Workspace (`#/workspace`), Tools (`#/tools`), Configuration (`#/config`), Environment (`#/environment`), Preferences (`#/preferences`, with the Providers and keys screen at `#/preferences/providers`) and Help (`#/help`). Everything the interface does has an equivalent command.
+
+The workspace button at the top of the sidebar switches to another project: pick one of the known workspaces, type a folder path, or use **Browse...** to walk the folders of this machine (the drives on Windows) and open one. A folder already set up for JGates or Git is marked in the list. A project without configuration opens on the first-access screen, which creates it.
 
 ## In CI and with agents
 

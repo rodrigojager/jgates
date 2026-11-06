@@ -907,6 +907,56 @@ class QualityPolicyTests(unittest.TestCase):
             self.assertEqual(len(findings), 1)
             self.assertEqual(findings[0].category, "tests")
 
+    def test_project_test_crash_stays_an_operational_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            target = Path(temp)
+            raw = target / "raw"
+            raw.mkdir()
+            (target / "package.json").write_text(
+                json.dumps({"scripts": {"test": "node -e \"process.exit(7)\""}}),
+                encoding="utf-8",
+            )
+
+            result, findings = run_project_tests(target, raw)
+
+            assert result is not None
+            self.assertEqual(result.status, "error")
+            self.assertEqual(findings, [])
+
+    def python_project(self, temp: str, test_source: str) -> tuple[Path, Path]:
+        target = Path(temp)
+        raw = target / "raw"
+        raw.mkdir()
+        (target / "pyproject.toml").write_text("[project]\nname = \"sample\"\nversion = \"0\"\n", encoding="utf-8")
+        tests = target / "tests"
+        tests.mkdir()
+        (tests / "__init__.py").write_text("", encoding="utf-8")
+        (tests / "test_sample.py").write_text(test_source, encoding="utf-8")
+        return target, raw
+
+    def test_unittest_without_discoverable_tests_is_an_error_not_a_pass_or_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            target, raw = self.python_project(temp, "def test_pytest_style():\n    assert True\n")
+
+            result, findings = run_project_tests(target, raw)
+
+            assert result is not None
+            self.assertEqual(result.status, "error")
+            self.assertIn("found no tests", result.error or "")
+            self.assertEqual(findings, [])
+
+    def test_unittest_failure_is_a_finding(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            source = "import unittest\n\nclass T(unittest.TestCase):\n    def test_fails(self):\n        self.assertEqual(1, 2)\n"
+            target, raw = self.python_project(temp, source)
+
+            result, findings = run_project_tests(target, raw)
+
+            assert result is not None
+            self.assertEqual(result.status, "findings")
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(findings[0].category, "tests")
+
     def test_coverage_tool_error_always_needs_changes(self) -> None:
         result = evaluate_policy(
             [],

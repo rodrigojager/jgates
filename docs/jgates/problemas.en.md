@@ -58,7 +58,14 @@ jgates plan
 
 - Run `jgates gc --dry-run` to see what retention would delete (see [data folder](pasta-de-dados.en.md)).
 - A result "reused" from an earlier execution comes from the cache. To force a real execution, use `jgates run --no-cache`.
+- The sidecar image (`jgates/quality-sidecar:latest`, around 22 GB) and its scanner cache (`<data folder>/cache/quality-sidecar`, a few GB) are the largest items. Deleting the cache only makes the next run download the databases again.
 
-## Windows and macOS
+## Windows
 
-Windows was not tested yet and macOS was not tested on a real machine (see [limitations](limitacoes.en.md)). If something fails, note the command, the `runId` and the output of `jgates doctor`.
+- **"Git refused the repository" / `detected dubious ownership`.** The folder belongs to another account (often the Administrators group, when an elevated terminal created it), and Git refuses to read it from your user. The result then applies to the folder contents, not to a commit, and the message carries the command Git suggests: `git config --global --add safe.directory <folder>`. Run it once, or take ownership of the folder.
+- **A tool installed with `pip install --user` shows as missing.** Update JGates: the child processes now get `APPDATA`, through which Python finds the user's site-packages.
+- **The bridge's scanners come out `missing`.** Build the sidecar image (see [adapters](adaptadores.en.md#the-bridges-scanners-in-the-sidecar-image)); with it, the run sends them to Docker by itself.
+
+## macOS
+
+macOS was not tested on a real machine (see [limitations](limitacoes.en.md)). If something fails, note the command, the `runId` and the output of `jgates doctor`.

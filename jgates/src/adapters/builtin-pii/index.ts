@@ -8,7 +8,7 @@ import { translator } from "../../i18n/index.js";
 import { resolvePython, resolveSidecarDir } from "../../core/bridge/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
-import { runSpec, substituteTokens } from "../../core/runner/index.js";
+import { exceptionLine, runSpec, substituteTokens } from "../../core/runner/index.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { builtinPiiManifest } from "./manifest.js";
 import { parsePiiResponse } from "./normalize.js";
@@ -161,6 +161,12 @@ async function runPii(context: AdapterContext, plan: Plan, tool: string): Promis
   const parsed = parsePiiResponse(result.stdout, { stageId: items[0]?.id as string, version });
   if (parsed.bridgeError) {
     const reason = t("pii_bridge_error", { code: parsed.bridgeError.code, message: parsed.bridgeError.message });
+    return { ...base, stages: items.map((i) => stageFor(i, "error", reason, { interpreted: false, nativeStatus: `exit ${result.exitCode}` })), findings: [] };
+  }
+  // The detector died before answering (an import error, a crash): say why, from its stderr, and where the log is.
+  const crash = result.stdout.trim() === "" && result.exitCode !== 0 ? exceptionLine(result.stderr) : null;
+  if (crash) {
+    const reason = t("pii_crashed", { code: result.exitCode ?? "-", error: crash, log: relToRun(context.runDir, stderrLog) });
     return { ...base, stages: items.map((i) => stageFor(i, "error", reason, { interpreted: false, nativeStatus: `exit ${result.exitCode}` })), findings: [] };
   }
   if (!parsed.ok || result.truncated || result.exitCode !== 0) {

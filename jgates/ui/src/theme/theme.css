@@ -165,6 +165,16 @@ svg.icon { width: 18px; height: 18px; flex-shrink: 0; stroke: currentColor; fill
 .ws-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
 .ws-item.current { border-color: var(--accent); background: var(--mint); }
 .ws-form input[type="text"] { padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); }
+.folder-browser { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--bg); }
+.fb-path { display: flex; align-items: center; gap: 8px; word-break: break-all; }
+.fb-list { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.fb-entry { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.fb-list li:last-child .fb-entry { border-bottom: 0; }
+.fb-entry:hover, .fb-entry:focus-visible { background: var(--mint); }
+.fb-entry:disabled { cursor: progress; opacity: 0.6; }
+.first-profile { align-items: baseline; gap: 8px; cursor: pointer; }
+fieldset.card { margin: 0; }
+fieldset.card > legend { padding: 0; }
 .field.locked { border-bottom: 0; }
 .logo .a { stroke: var(--accent); }
 .logo .b { stroke: var(--logo-soft); }

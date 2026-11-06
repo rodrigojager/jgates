@@ -8,9 +8,12 @@
   "analysis_approval_untraceable": "The folder has more files than the manifest limit ({count} checked): the analyzed state is not fully traceable and the result does not approve a commit.",
   "analysis_approval_no_git": "Git was not found (set JGATES_GIT or put git on the PATH): the result applies to the folder contents, not to a commit.",
   "analysis_approval_not_repository": "The folder is not a Git repository: the result applies to its contents, not to a commit.",
+  "analysis_approval_unsafe_repository": "Git refused the repository ({detail}): the result applies to the folder contents, not to a commit. To trust the folder, run: {fix}",
+  "analysis_approval_git_error": "Git could not read the repository ({detail}): the result applies to the folder contents, not to a commit.",
   "analysis_approval_unborn": "The repository has no commit yet: the result applies to the folder contents, not to a commit.",
   "analysis_text_target_commit": "Analyzed: commit {commit}, in a snapshot in the data folder ({path}).",
   "analysis_text_target_tree": "Analyzed: the working tree at commit {commit}{dirty}.",
+  "analysis_text_target_tree_unborn": "Analyzed: the working tree of a repository with no commit yet{dirty}.",
   "analysis_text_target_directory": "Analyzed: the folder as it is (no commit).",
   "analysis_text_dirty": ", with local changes",
   "analysis_text_identity": "Analysis identity: {identity}"
