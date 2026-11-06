@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Plan } from "../core/plan/index.js";
+import { getLocale } from "../i18n/index.js";
 
 export type JobState = "running" | "finished" | "failed" | "cancelled";
 
@@ -102,7 +103,8 @@ export class RunManager {
     };
     this.jobs.set(id, job);
 
-    const args = [cliMain(), "run", "--cwd", this.opts.projectDir, "--plan", planFile, "--no-interactive", "--json", "--events-jsonl", job.eventsFile];
+    // The run speaks the UI's language: its stage reasons and messages reach the screen as they are written.
+    const args = [cliMain(), "run", "--cwd", this.opts.projectDir, "--plan", planFile, "--no-interactive", "--json", "--events-jsonl", job.eventsFile, "--locale", getLocale()];
     const child = spawn(process.execPath, args, {
       cwd: this.opts.projectDir,
       env: this.opts.env ?? process.env,
