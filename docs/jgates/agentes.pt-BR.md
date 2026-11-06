@@ -20,11 +20,15 @@ jgates run --no-interactive --json --events-jsonl eventos.jsonl
 
 Regras da automação: `--no-interactive` nunca espera por entrada (um dado que falta vira erro estruturado com a instrução de correção); `--json` imprime exatamente um documento no stdout, com o progresso humano no stderr; `--events-jsonl` grava os eventos em um arquivo separado, com `runId`, `sequence` e `type`. O código de saída diz a decisão: 0 aprovado, 1 reprovado, 2 incompleto, 3 uso ou configuração inválida, 4 erro interno, 130 cancelado (veja [primeiros passos](primeiros-passos.pt-BR.md)).
 
+Sem `--json`, use `--plain`: uma linha por etapa, sem cores nem animação, e um aviso por minuto enquanto uma etapa longa (a ponte do quality gate) roda, para o agente saber que não travou. É o padrão quando a saída não é um terminal, com `NO_COLOR` ou em CI; `--pretty` força o modo com cores.
+
 ## Contexto para o agente
 
 ```bash
 jgates report <runId> --agent-context
 ```
+
+Todo run também grava esse resumo em `agent-context.md`, na pasta do run (a saída em texto mostra o caminho em "Para corrigir"; no JSON, a pasta é `runDir`). É o arquivo para o agente ler e corrigir; o `result.json` ao lado é o resultado completo.
 
 O comando (e o botão "Copiar para o agente" da interface, que usa a mesma função) gera um resumo em texto: a instrução de política congelada, a decisão, o que ficou incompleto ou reduzido, as etapas, as métricas, os achados com arquivo e linha e a seção "Como reproduzir". Esse resumo:
 

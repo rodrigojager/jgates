@@ -131,7 +131,7 @@ jgates report <runId> --format json
 jgates report <runId> --format sarif --out ./relatorio.sarif
 ```
 
-Each run writes a `result.json` in the data folder. `report --format json` returns that file without changing a byte, and `--format sarif` produces a SARIF 2.1.0 for code review tools. `report <runId> --agent-context` produces the safe summary to paste into an agent.
+Each run writes a `result.json` in the data folder. `report --format json` returns that file without changing a byte, and `--format sarif` produces a SARIF 2.1.0 for code review tools. `report <runId> --agent-context` produces the safe summary to paste into an agent; the same summary is written to `agent-context.md` in the run folder, and the output of `jgates run` ends with its path ("To fix... read"). At a terminal, `run` shows colors and a live line with the time of the running step; `--plain` gives the lean output for agents and logs.
 
 ## The interface
 

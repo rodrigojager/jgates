@@ -59,5 +59,16 @@
   "run_bad_waiver_fix": "Use, por exemplo, --waiver \"rule=ruff.F401;path=src/**;expires=2026-12-31;reason=legado em migração\".",
   "run_install_hint": "Algumas verificações não rodaram porque falta uma ferramenta. Rode: jgates doctor --fix",
   "run_install_again": "Rodar de novo agora? [s/N] ",
-  "run_option_ci": "Igual a --no-interactive: nunca pergunta, nem para instalar uma ferramenta que falta."
+  "run_option_ci": "Igual a --no-interactive: nunca pergunta, nem para instalar uma ferramenta que falta.",
+  "run_option_plain": "Saída enxuta para agentes, logs e CI: sem cores nem animação, uma linha por evento e um aviso por minuto enquanto uma etapa longa roda. É o padrão quando a saída não é um terminal, com NO_COLOR ou em CI.",
+  "run_option_pretty": "Força a saída com cores e a linha viva da etapa em andamento, mesmo fora de um terminal.",
+  "run_progress_started": "{step}: iniciada",
+  "run_progress_finished": "{step}: {status} em {elapsed}",
+  "run_progress_skipped": "{step}: pulada ({cause})",
+  "run_progress_running": "{step}: em andamento há {elapsed}{activity}",
+  "run_progress_activity": " · última saída: {file}, há {ago}",
+  "run_text_duration": "Duração: {elapsed}",
+  "run_text_fix_file": "Para corrigir (você ou um agente), leia: {path}",
+  "run_text_result_file": "Resultado completo (JSON): {path}",
+  "run_text_agent_command": "O mesmo resumo pelo terminal: jgates report {runId} --agent-context"
 }

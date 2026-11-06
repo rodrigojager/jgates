@@ -7,6 +7,8 @@ import { executeRun, isLegacyPlan, legacyPlan, legacySteps, validateLegacyPlan, 
 import { planDisabled, planSteps } from "../../core/run/plan-run.js";
 import { SnapshotError } from "../../core/snapshot/index.js";
 import type { RunEvent } from "../../core/events/index.js";
+import { buildAgentContext } from "../../core/agent-context/index.js";
+import { RunProgress, formatElapsed, paint, terminalStyle, type Paint, type TerminalStyle } from "../terminal.js";
 import { semanticHook } from "../../adapters/semantic-gate/index.js";
 import { ADAPTER_ID, selectionFromOptions } from "../../adapters/quality-bridge/index.js";
 import { BuiltinError } from "../../builtin/index.js";
@@ -59,23 +61,6 @@ function isDirectory(p: string): boolean {
   }
 }
 
-/** Progress for people goes to stderr, only without --json (the JSON on stdout stays the one document). */
-function progressLine(event: RunEvent): string | null {
-  const d = event.data;
-  switch (event.type) {
-    case "step-started":
-      return `> ${String(d.step)}`;
-    case "step-finished":
-      return `< ${String(d.step)} ${String(d.status)} (${String(d.durationMs)} ms)`;
-    case "step-skipped":
-      return `- ${String(d.step)} ${String(d.cause)}`;
-    case "cancel-requested":
-      return `! ${tr("run_cancel_requested")}`;
-    default:
-      return null;
-  }
-}
-
 /** `execution.failFast` of the configuration (Configuração > Execução): the run behaves as if --fail-fast had been passed. */
 function configuredFailFast(workspacePath: string): boolean {
   try {
@@ -86,22 +71,41 @@ function configuredFailFast(workspacePath: string): boolean {
   }
 }
 
-/** The run controls every run of this command shares: cancellation, --fail-fast, --events-jsonl and the progress lines. */
-function runControls(ctx: CommandContext, signal: AbortSignal, failFast: boolean, eventsFile: string | undefined) {
+/**
+ * The run controls every run of this command shares: cancellation, --fail-fast, --events-jsonl and the progress on
+ * stderr (none with --json: stdout is the one JSON document).
+ */
+function runControls(signal: AbortSignal, failFast: boolean, eventsFile: string | undefined, progress: RunProgress | null) {
   return {
     signal,
     failFast,
     ownsProcess: true,
     ...(eventsFile !== undefined ? { eventsFile } : {}),
-    ...(ctx.json
-      ? {}
-      : {
-          onEvent: (event: RunEvent) => {
-            const line = progressLine(event);
-            if (line) ctx.stderr(`${line}\n`);
-          },
-        }),
+    ...(progress ? { onEvent: (event: RunEvent) => progress.onEvent(event) } : {}),
   };
+}
+
+/** The file a person or a coding agent reads to fix what the run found: the same safe summary as the UI's button. */
+export const AGENT_CONTEXT_FILE = "agent-context.md";
+
+function writeAgentContext(result: RunResult): string | null {
+  try {
+    const file = path.join(result.runDir, AGENT_CONTEXT_FILE);
+    fs.writeFileSync(file, buildAgentContext(result).text, { encoding: "utf8", mode: 0o600 });
+    return file;
+  } catch {
+    return null;
+  }
+}
+
+const DECISION_COLOR: Record<string, Paint> = { passed: "green", failed: "red", invalid: "red", incomplete: "yellow", cancelled: "yellow" };
+
+function stageLine(style: TerminalStyle, s: { id: string; state: string; reason?: string | null }): string {
+  const text = `${s.state.padEnd(14)} ${s.id}${s.reason ? `  (${s.reason})` : ""}`;
+  if (!style.color) return `  ${text}`;
+  const color: Paint = s.state === "completed" ? "green" : ["failed", "error", "timeout", "blocked"].includes(s.state) ? "red" : ["disabled", "not_applicable"].includes(s.state) ? "dim" : "yellow";
+  const mark = color === "green" ? "✓" : color === "red" ? "✗" : color === "dim" ? "–" : "!";
+  return `  ${paint(style, color, `${mark} ${s.state.padEnd(14)}`)} ${s.id}${s.reason ? paint(style, "dim", `  (${s.reason})`) : ""}`;
 }
 
 /**
@@ -154,6 +158,8 @@ export const command: CommandModule = {
     { name: "events-jsonl", type: "string", description: tr("run_option_events_jsonl") },
     { name: "ci", type: "boolean", description: tr("run_option_ci") },
     { name: "no-interactive", type: "boolean", description: tr("run_option_no_interactive") },
+    { name: "plain", type: "boolean", description: tr("run_option_plain") },
+    { name: "pretty", type: "boolean", description: tr("run_option_pretty") },
   ],
   async run(ctx) {
     // A run that ended for lack of a tool offers to install it and, when it did, to run again (D7).
@@ -234,6 +240,8 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
     const eventsFile = eventsOption !== undefined ? path.resolve(eventsOption) : undefined;
     if (eventsFile !== undefined && !isDirectory(path.dirname(eventsFile))) return usage("BAD_EVENTS_PATH", "run_bad_events_path", { path: eventsFile });
     const failFast = ctx.options["fail-fast"] === true || configuredFailFast(workspacePath);
+    const style = terminalStyle(ctx.options);
+    const progress = ctx.json ? null : new RunProgress((text) => ctx.stderr(text), style);
 
     // Waivers of the call come on top of .jgates/waivers.json; a spec that cannot be read stops the run before it starts.
     const flagWaivers: Waiver[] = [];
@@ -256,7 +264,7 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
     // A commit that cannot be written as a snapshot stops the run before anything starts (no run is left).
     const execute = async (options: RunOptions): Promise<RunResult | number> => {
       try {
-        return await withCancellation((signal) => executeRun({ ...options, ...(noCache ? { cache: false } : {}), ...(semantic ? { semantic } : {}), ...(waivers ? { waivers } : {}), ...runControls(ctx, signal, failFast, eventsFile) }));
+        return await withCancellation((signal) => executeRun({ ...options, ...(noCache ? { cache: false } : {}), ...(semantic ? { semantic } : {}), ...(waivers ? { waivers } : {}), ...runControls(signal, failFast, eventsFile, progress) }));
       } catch (error) {
         if (!(error instanceof SnapshotError)) throw error;
         const commit = options.plan?.scope.head ?? "-";
@@ -392,13 +400,15 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
         summarize: (r) => summarize(t, r),
       });
     }
+    progress?.stop();
     if (typeof outcome === "number") return outcome;
     const result = outcome;
     holder.result = result;
+    const fixFile = writeAgentContext(result);
 
     if (ctx.json) writeJson(ctx, result);
     else {
-      ctx.stdout(`${t("run_text_decision", { decision: result.decision, summary: result.summary ?? "" })}\n`);
+      ctx.stdout(`${t("run_text_decision", { decision: paint(style, DECISION_COLOR[result.decision] ?? "yellow", result.decision), summary: result.summary ?? "" })}\n`);
       const analyzed = result.analyzed;
       if (analyzed) {
         const ta = translator("analysis");
@@ -413,13 +423,18 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
               : ta("analysis_text_target_directory");
         ctx.stdout(`${line}\n${analyzed.approval.message}\n${ta("analysis_text_identity", { identity: analyzed.identity })}\n`);
       }
-      for (const s of result.stages) ctx.stdout(`  ${s.state.padEnd(14)} ${s.id}${s.reason ? `  (${s.reason})` : ""}\n`);
+      for (const s of result.stages) ctx.stdout(`${stageLine(style, s)}\n`);
       if (result.semantic) {
         const c = result.semantic.conclusion;
         const detail = c ? ` (${String(c.status)}, ${String(c.score)})` : result.semantic.reason ? ` (${result.semantic.reason})` : "";
         ctx.stdout(`${t("run_text_semantic", { state: result.semantic.state, detail })}\n`);
       }
       ctx.stdout(`${t("run_text_run", { runId: result.runId })}\n${t("run_text_folder", { path: result.runDir })}\n`);
+      // Where to go next: the file to fix from (for a person or an agent), the full result, the same summary on demand.
+      const duration = Date.parse(result.finishedAt) - Date.parse(result.startedAt);
+      ctx.stdout(`${t("run_text_duration", { elapsed: formatElapsed(duration) })}\n`);
+      if (fixFile) ctx.stdout(`${paint(style, "bold", t("run_text_fix_file", { path: fixFile }))}\n`);
+      ctx.stdout(`${t("run_text_result_file", { path: path.join(result.runDir, "result.json") })}\n${paint(style, "dim", t("run_text_agent_command", { runId: result.runId }))}\n`);
       const changed = result.workspaceChanges.added.length + result.workspaceChanges.modified.length + result.workspaceChanges.removed.length;
       if (changed > 0) ctx.stdout(`${t("run_text_workspace_changes", { count: changed })}\n`);
     }

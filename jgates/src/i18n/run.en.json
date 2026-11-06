@@ -59,5 +59,16 @@
   "run_bad_waiver_fix": "Use, for example, --waiver \"rule=ruff.F401;path=src/**;expires=2026-12-31;reason=legacy under migration\".",
   "run_install_hint": "Some checks did not run because a tool is missing. Run: jgates doctor --fix",
   "run_install_again": "Run again now? [y/N] ",
-  "run_option_ci": "Same as --no-interactive: never asks, not even to install a missing tool."
+  "run_option_ci": "Same as --no-interactive: never asks, not even to install a missing tool.",
+  "run_option_plain": "Lean output for agents, logs and CI: no colors or animation, one line per event and a notice a minute while a long step runs. The default when the output is not a terminal, with NO_COLOR or in CI.",
+  "run_option_pretty": "Forces colors and the live line of the running step, even outside a terminal.",
+  "run_progress_started": "{step}: started",
+  "run_progress_finished": "{step}: {status} in {elapsed}",
+  "run_progress_skipped": "{step}: skipped ({cause})",
+  "run_progress_running": "{step}: running for {elapsed}{activity}",
+  "run_progress_activity": " · last output: {file}, {ago} ago",
+  "run_text_duration": "Duration: {elapsed}",
+  "run_text_fix_file": "To fix (you or an agent), read: {path}",
+  "run_text_result_file": "Full result (JSON): {path}",
+  "run_text_agent_command": "The same summary from the terminal: jgates report {runId} --agent-context"
 }

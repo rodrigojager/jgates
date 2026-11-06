@@ -20,11 +20,15 @@ jgates run --no-interactive --json --events-jsonl eventos.jsonl
 
 Automation rules: `--no-interactive` never waits for input (missing data becomes a structured error with the fix instruction); `--json` prints exactly one document on stdout, with human progress on stderr; `--events-jsonl` writes the events to a separate file, with `runId`, `sequence` and `type`. The exit code tells the decision: 0 approved, 1 failed, 2 incomplete, 3 invalid usage or configuration, 4 internal error, 130 cancelled (see [getting started](primeiros-passos.en.md)).
 
+Without `--json`, use `--plain`: one line per step, no colors or animation, and a notice a minute while a long step (the quality gate bridge) runs, so the agent knows it did not hang. It is the default when the output is not a terminal, with `NO_COLOR` or in CI; `--pretty` forces the colored mode.
+
 ## Context for the agent
 
 ```bash
 jgates report <runId> --agent-context
 ```
+
+Every run also writes that summary to `agent-context.md` in its run folder (the text output prints the path after "To fix"; in the JSON the folder is `runDir`). It is the file for the agent to read and fix from; `result.json` beside it is the full result.
 
 The command (and the "Copy to the agent" button of the interface, which uses the same function) produces a text summary: the frozen policy instruction, the decision, what stayed incomplete or reduced, the stages, the metrics, the findings with file and line and the "How to reproduce" section. This summary:
 
