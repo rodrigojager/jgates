@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
 import { Dialog, ErrorNotice, Pill, useAsync } from "./common";
+import { DoctorAvatar } from "./DoctorAvatar";
 import { Icon, type IconName } from "./icons";
+import type { DoctorState } from "../mascots/doctor/index.js";
 import { t } from "../i18n";
 import "./prerequisites.css";
 
@@ -185,6 +187,8 @@ function Row({ item, platform, onRun, waiting, inEnvironment }: { item: Prerequi
 /** How long the bar keeps checking after Docker was asked to start (its daemon takes a while to answer). */
 const DOCKER_WAIT_MS = 120_000;
 const DOCKER_POLL_MS = 4_000;
+/** How long the all-clear line stays on the Overview after the last item was fixed. */
+const READY_LINGER_MS = 4_000;
 
 /**
  * `showReady` keeps an all-clear line when nothing is missing; `inEnvironment` is the bar inside the Environment screen,
@@ -228,34 +232,13 @@ export function PrerequisitesBar({ showReady = false, inEnvironment = false, onC
     };
   }, [dockerSince]);
 
-  if (loaded.error && !report) return <ErrorNotice error={loaded.error} onRetry={loaded.reload} />;
-  if (!report) {
-    // The diagnosis probes Docker, Git and every tool: say so while it runs instead of leaving a gap.
-    return (
-      <section className="prq prq-checking" data-testid="prerequisites" data-state="checking" aria-live="polite">
-        <span className="prq-avatar" data-mascot="doctor" data-state="checking" aria-hidden="true">
-          <Icon name="refresh" />
-        </span>
-        <p className="small">{t("prq_checking")}</p>
-      </section>
-    );
-  }
-
-  const essential = report.items.filter((i) => i.classification === "essential").length;
-  if (report.items.length === 0) {
-    if (!showReady && !fixedAll) return null;
-    return (
-      <section className="prq prq-ready" data-testid="prerequisites" data-state="ok" aria-live="polite">
-        <span className="prq-avatar" data-mascot="doctor" data-state="ok" aria-hidden="true">
-          <Icon name="check" />
-        </span>
-        <div className="grow">
-          <strong>{t("prq_ready_title")}</strong>
-          <p className="small">{t("prq_ready_text")}</p>
-        </div>
-      </section>
-    );
-  }
+  // On the Overview the all-clear line is a moment, not a fixture: the Doctor celebrates, then the bar leaves.
+  const [celebrated, setCelebrated] = useState(false);
+  useEffect(() => {
+    if (!fixedAll || showReady) return;
+    const id = setTimeout(() => setCelebrated(true), READY_LINGER_MS);
+    return () => clearTimeout(id);
+  }, [fixedAll, showReady]);
 
   const done = (r: FixResponse) => {
     setConfirm(null);
@@ -265,44 +248,61 @@ export function PrerequisitesBar({ showReady = false, inEnvironment = false, onC
     onChanged?.();
   };
 
-  const recheck = async () => {
-    loaded.reload();
-  };
-
-  return (
-    <section className="prq" data-testid="prerequisites" data-state="needs-you" aria-labelledby="prq-title">
-      <div className="prq-head">
-        <span className="prq-avatar" data-mascot="doctor" data-state="needs-you" aria-hidden="true">
-          <Icon name="tools" />
-        </span>
-        <div className="grow">
-          <span className="eyebrow">{t("prq_eyebrow").toUpperCase()}</span>
-          <h2 id="prq-title">
-            {essential > 0
-              ? essential === 1
-                ? t("prq_title_one")
-                : t("prq_title", { count: essential })
-              : t("prq_title_optional")}
-          </h2>
+  let state: DoctorState;
+  let className = "prq";
+  let body: ReactNode;
+  if (!report && loaded.error) {
+    state = "error";
+    className = "prq prq-slim prq-error";
+    body = <ErrorNotice error={loaded.error} onRetry={loaded.reload} />;
+  } else if (!report) {
+    // The diagnosis probes Docker, Git and every tool: say so while it runs instead of leaving a gap.
+    state = "checking";
+    className = "prq prq-slim prq-checking";
+    body = <p className="small">{t("prq_checking")}</p>;
+  } else if (report.items.length === 0) {
+    if (!showReady && (!fixedAll || celebrated)) return null;
+    state = "ok";
+    className = "prq prq-slim prq-ready";
+    body = (
+      <>
+        <strong>{t("prq_ready_title")}</strong>
+        <p className="small">{t("prq_ready_text")}</p>
+      </>
+    );
+  } else {
+    const essential = report.items.filter((i) => i.classification === "essential").length;
+    state = "needs-you";
+    body = (
+      <>
+        <span className="eyebrow">{t("prq_eyebrow").toUpperCase()}</span>
+        <h2 id="prq-title">{essential > 0 ? (essential === 1 ? t("prq_title_one") : t("prq_title", { count: essential })) : t("prq_title_optional")}</h2>
+        <ul className="prq-list">
+          {report.items.map((item) => (
+            <Row key={item.id} item={item} platform={report.platform} onRun={() => setConfirm(item)} waiting={item.id === "docker" && dockerSince !== null} inEnvironment={inEnvironment} />
+          ))}
+        </ul>
+        <div className="between wrap prq-foot">
+          {inEnvironment ? (
+            <span />
+          ) : (
+            <button type="button" className="btn" onClick={loaded.reload} disabled={loaded.loading}>
+              <Icon name="refresh" />
+              {t("prq_recheck")}
+            </button>
+          )}
+          <span className="small muted">{t("prq_consent")}</span>
         </div>
-      </div>
-      <ul className="prq-list">
-        {report.items.map((item) => (
-          <Row key={item.id} item={item} platform={report.platform} onRun={() => setConfirm(item)} waiting={item.id === "docker" && dockerSince !== null} inEnvironment={inEnvironment} />
-        ))}
-      </ul>
-      <div className="between wrap prq-foot">
-        {inEnvironment ? (
-          <span />
-        ) : (
-          <button type="button" className="btn" onClick={() => void recheck()} disabled={loaded.loading}>
-            <Icon name="refresh" />
-            {t("prq_recheck")}
-          </button>
-        )}
-        <span className="small muted">{t("prq_consent")}</span>
-      </div>
-      {confirm ? <ConfirmDialog item={confirm} platform={report.platform} onClose={() => setConfirm(null)} onDone={done} /> : null}
+        {confirm ? <ConfirmDialog item={confirm} platform={report.platform} onClose={() => setConfirm(null)} onDone={done} /> : null}
+      </>
+    );
+  }
+
+  // One section and one Doctor for every state, so the mascot stays mounted and plays the change between states.
+  return (
+    <section className={className} data-testid="prerequisites" data-state={state} aria-live="polite" {...(state === "needs-you" ? { "aria-labelledby": "prq-title" } : {})}>
+      <DoctorAvatar state={state} />
+      <div className="grow prq-body">{body}</div>
     </section>
   );
 }

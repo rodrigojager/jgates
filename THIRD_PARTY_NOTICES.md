@@ -31,6 +31,7 @@ Runtime (`dependencies`):
 | `react` | 19.3.1 | MIT | Keep the MIT notice (Meta Platforms, Inc.). |
 | `react-dom` | 19.3.1 | MIT | Keep the MIT notice (Meta Platforms, Inc.). |
 | `recast` | 0.24.0 | MIT | Keep the MIT notice. |
+| `three` | 0.187.0 | MIT | Keep the MIT notice (`jgates/ui/public/licenses/three.txt`). |
 | `yaml` | 2.9.1 | ISC | Keep the ISC notice. |
 
 Development and build (`devDependencies`, not shipped in `dist/`, except what Vite bundles from the runtime list):
@@ -110,4 +111,4 @@ here; their licenses are inside the MegaLinter image.
 
 ## Three.js
 
-The Quality Gate mascots use Three.js 0.187.0, copyright Three.js authors, under the MIT license. The full license is included at `jgates/ui/public/licenses/three.txt`. Character geometry and animations are procedural local assets.
+The Quality Gate mascots and the Doctor of the prerequisites bar use Three.js 0.187.0, copyright Three.js authors, under the MIT license. The full license is included at `jgates/ui/public/licenses/three.txt`. Character geometry and animations are procedural local assets.

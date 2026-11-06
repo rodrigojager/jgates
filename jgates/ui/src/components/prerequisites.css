@@ -1,15 +1,19 @@
-/* The prerequisites bar: what has to be in place before a validation, shown only while something is missing. */
-.prq { border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); background: var(--gold-bg); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
-.prq-ready { display: flex; gap: 14px; align-items: center; border-color: var(--line); background: var(--mint); }
-.prq-ready p { margin: 2px 0 0; }
-.prq-checking { display: flex; gap: 14px; align-items: center; border-color: var(--line); background: var(--surface); padding: 12px 16px; }
-.prq-checking p { margin: 0; }
-.prq-avatar[data-state="checking"] { color: var(--muted); }
-.prq-head { display: flex; gap: 14px; align-items: center; }
-.prq-head h2 { margin: 2px 0 0; font-size: 18px; letter-spacing: -0.3px; }
-/* The slot the doctor mascot will take; until then, a round badge with the tool icon. */
-.prq-avatar { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: var(--surface); color: var(--gold); border: 1px solid var(--line); }
-.prq-avatar[data-state="ok"] { color: var(--accent); }
+/* The prerequisites bar: what has to be in place before a validation, shown only while something is missing. The
+   Doctor stands on the left in every state; the content changes beside him. */
+.prq { display: flex; gap: 16px; align-items: flex-start; border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line)); background: var(--gold-bg); border-radius: 14px; padding: 16px 20px; margin-bottom: 18px; }
+.prq h2 { margin: 2px 0 0; font-size: 18px; letter-spacing: -0.3px; }
+.prq-body p { margin: 2px 0 0; }
+.prq-slim { align-items: center; padding: 10px 16px; }
+.prq-checking { border-color: var(--line); background: var(--surface); }
+.prq-ready { border-color: var(--line); background: var(--mint); }
+.prq-error { border-color: var(--line); background: var(--surface); }
+/* The Doctor's slot: a transparent square the Three.js canvas fills; an icon in a circle when WebGL is unavailable. */
+.prq-avatar { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 104px; height: 104px; margin: -6px 0 -6px -6px; }
+.prq-slim .prq-avatar { width: 64px; height: 64px; margin: -6px 0; }
+.prq-avatar.fallback { width: 48px; height: 48px; margin: 0; border-radius: 50%; background: var(--surface); color: var(--gold); border: 1px solid var(--line); }
+.prq-avatar.fallback[data-state="ok"] { color: var(--accent); }
+.prq-avatar.fallback[data-state="checking"] { color: var(--muted); }
+.prq-avatar.fallback[data-state="error"] { color: var(--red); }
 .prq-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .prq-row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
 .prq-row p { margin: 2px 0 0; }
@@ -23,6 +27,9 @@
 .prq-commands pre, .prq-pre { margin: 6px 0 0; padding: 8px 10px; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--line); font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .prq-foot { margin-top: 12px; }
 @media (max-width: 720px) {
+  .prq:not(.prq-slim) { flex-direction: column; }
+  .prq:not(.prq-slim) .prq-avatar { width: 88px; height: 88px; margin: -6px 0 -10px; }
+  .prq-body { width: 100%; }
   .prq-row { flex-direction: column; }
   .prq-actions { align-items: stretch; width: 100%; }
 }
