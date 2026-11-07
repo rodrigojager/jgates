@@ -8,7 +8,7 @@ export const screen: ScreenMeta = { id: "help", path: "/help", area: "help", ord
 
 // The commands are catalog messages (help_cmd_*), so a test can check each one against the real command line.
 const STEPS = ["init", "ui", "plan", "run"] as const;
-const MORE = ["history", "baseline", "gc", "doctor", "no_cache", "waiver", "preserve"] as const;
+const MORE = ["history", "baseline", "gc", "doctor", "update", "no_cache", "waiver", "preserve"] as const;
 const FAQ = ["profile", "architecture", "cache", "waiver", "governed"] as const;
 
 function Command({ command }: { command: string }) {

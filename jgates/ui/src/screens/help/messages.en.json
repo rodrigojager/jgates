@@ -26,6 +26,8 @@
   "help_cmd_gc": "jgates gc --dry-run",
   "help_more_doctor": "Checks the runtimes and tools of the machine.",
   "help_cmd_doctor": "jgates doctor --cwd ./my-project",
+  "help_more_update": "Checks whether a newer JGates is available and, if you confirm, installs it. Only goes online when you run it.",
+  "help_cmd_update": "jgates update --check",
   "help_more_no_cache": "Runs everything again, without reusing results from earlier runs.",
   "help_cmd_no_cache": "jgates run --no-cache --json",
   "help_more_waiver": "Waives a finding only in this run, with a reason and an expiry.",

@@ -64,6 +64,8 @@ jgates doctor
 
 `jgates --version` prints the version and, on stderr, the build and its folder: use it to check which installation a terminal runs (a terminal opened before an install keeps its old `PATH`).
 
+To update, run `jgates update`: it asks the repository on GitHub for the newest commit of `main`, says whether there is an update and, after you confirm, installs it the same way this JGates was installed (`--check` only checks, `--yes` installs without asking, `--ref` picks another branch or tag). The interface does the same in About > Updates. JGates never checks on its own: this is the only time it goes online, and only when you ask.
+
 ### Getting started
 
 The quickest path is the interface. In the project folder:
@@ -227,6 +229,8 @@ jgates doctor
 O `npm install --global git+https://github.com/rodrigojager/jgates` **não funciona**: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga em seguida, e os comandos ficam apontando para nada. Use uma das formas acima (veja [limitações](docs/jgates/limitations.pt-BR.md)).
 
 O `jgates --version` mostra a versão e, no stderr, a build e a pasta dela: use para conferir qual instalação um terminal está rodando (um terminal aberto antes de uma instalação mantém o `PATH` antigo).
+
+Para atualizar, rode `jgates update`: ele pergunta ao repositório no GitHub qual é o commit mais novo da `main`, diz se há atualização e, depois que você confirma, instala do mesmo jeito que este JGates foi instalado (`--check` só verifica, `--yes` instala sem perguntar, `--ref` escolhe outra branch ou tag). A interface faz o mesmo em Sobre > Atualizações. O JGates nunca verifica sozinho: é o único momento em que ele acessa a internet, e só quando você pede.
 
 ### Primeiros passos
 

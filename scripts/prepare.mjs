@@ -7,6 +7,7 @@
 // too, and the build tools (tsc, vite) would never land in the clone. `--allow-scripts` also leaks, and npm refuses it in
 // a project-scoped install.
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,4 +36,12 @@ for (const args of steps) {
     console.error(`prepare: npm ${args.join(" ")} failed`);
     process.exit(result.status ?? 1);
   }
+}
+
+// The commit this build comes from, for `jgates update` to compare with the repository. Absent when there is no git.
+const git = (args) => spawnSync("git", args, { cwd: root, encoding: "utf8", windowsHide: true });
+const head = git(["rev-parse", "HEAD"]);
+if (head.status === 0 && /^[0-9a-f]{40}$/.test(head.stdout.trim())) {
+  const dirty = git(["status", "--porcelain", "--untracked-files=no"]).stdout.trim() !== "";
+  fs.writeFileSync(path.join(root, "jgates", "dist", "build-info.json"), `${JSON.stringify({ commit: head.stdout.trim(), dirty }, null, 2)}\n`);
 }

@@ -1,0 +1,2 @@
+/* The last lines of the npm output while an update installs. */
+.update-log { margin: 0; padding: 10px 12px; max-height: 30vh; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
