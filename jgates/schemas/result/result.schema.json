@@ -556,7 +556,10 @@
       "required": ["requested", "state", "separateFromDecision"],
       "properties": {
         "requested": { "const": true },
-        "state": { "enum": ["completed", "not-configured", "unavailable", "timeout", "budget-exhausted", "blocked"] },
+        "state": {
+          "enum": ["completed", "not-configured", "unavailable", "timeout", "budget-exhausted", "blocked", "invalid"],
+          "description": "invalid: the provider answered but its output was empty, malformed or failed validation (conclusion.status INVALID with conclusion.reasonCode); never favorable."
+        },
         "separateFromDecision": { "const": true },
         "provider": { "type": ["string", "null"] },
         "model": { "type": ["string", "null"] },
@@ -583,6 +586,43 @@
             "apiKeyEnv": { "$ref": "#/$defs/semanticFieldValue" },
             "headers": { "type": "array", "items": { "type": "string" } },
             "allowInsecureHttp": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "semanticRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Independent Semantic runs only (gate semantic): the review behind the decision, the source judged and the Quality report attached, with its freshness. enforcement advisory: the decision binds nothing outside this run.",
+      "required": ["schemaVersion", "enforcement", "methods", "outcome", "source", "quality"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "enforcement": { "enum": ["advisory"] },
+        "methods": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "outcome": { "type": ["object", "null"], "description": "The outcome of the review, with the shape of $.semantic." },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "basis", "traceable"],
+          "properties": {
+            "id": { "type": "string" },
+            "basis": { "type": "string" },
+            "traceable": { "type": "boolean" }
+          }
+        },
+        "quality": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["runId", "decision", "complete", "reduced", "freshness", "code", "reason", "currentApproval"],
+          "properties": {
+            "runId": { "type": "string" },
+            "decision": { "type": ["string", "null"] },
+            "complete": { "type": "boolean" },
+            "reduced": { "type": "boolean" },
+            "freshness": { "enum": ["current", "stale", "unknown"] },
+            "code": { "type": "string" },
+            "reason": { "type": "string" },
+            "currentApproval": { "type": "boolean", "description": "true only for a current, passed, complete and not reduced Quality run." }
           }
         }
       }

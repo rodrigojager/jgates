@@ -2,7 +2,10 @@
 // (jgates.yml > extensions.semantic-gate with a provider) AND the run asks for it (`jgates run --semantic`); never by
 // default, never from a template, and `jgates init` writes no provider. Its conclusion is recorded in `result.semantic`,
 // apart from the decision: the hook runs after the decision of the core is computed and cannot change it, so an
-// unavailable provider, a timeout or an exhausted budget never approves nor fails the core.
+// unavailable provider, a timeout or an exhausted budget never approves nor fails the core. A provider that answers with
+// empty, malformed or unvalidated output gives the explicit state `invalid` (conclusion.status INVALID with the
+// package's reasonCode), never `completed` nor `unavailable`. Independent Semantic runs (core/semantic) use the same
+// review and turn its progress (onProgress) into their events.
 // The review context is filtered (sensitive files, excludes, include) and masked before the prompt is built (mask.ts,
 // masking.ts): secrets always, the PII entities and the project's patterns as configured, then the external tools of
 // .jgates/pii.yml (core/mask-tools), fail-closed. The providers and the prompt come from the semantic-gate package
@@ -184,6 +187,8 @@ interface Gate {
   systemPrompt(prompts?: EffectivePrompts): string;
   resolvePrompts(settings?: Record<string, { mode: string; file: string }>): EffectivePrompts;
   parseProviderResult(text: string): unknown;
+  /** Parses and validates raw provider text; unusable text becomes an INVALID result (absent in older packages). */
+  normalizeProviderText?(text: string, context: Record<string, unknown>): any;
   normalizeGateResult(parsed: unknown, context: Record<string, unknown>): any;
   mergeLocalFallbackResult(parts: any[], context: Record<string, unknown>): any;
   callProvider: CallProvider;
@@ -207,6 +212,7 @@ export async function loadGate(env: NodeJS.ProcessEnv = process.env): Promise<Ga
       systemPrompt: prompt.systemPrompt,
       resolvePrompts: prompt.resolvePrompts,
       parseProviderResult: result.parseProviderResult,
+      ...(typeof result.normalizeProviderText === "function" ? { normalizeProviderText: result.normalizeProviderText } : {}),
       normalizeGateResult: result.normalizeGateResult,
       mergeLocalFallbackResult: result.mergeLocalFallbackResult,
       callProvider: providers.callProvider,
@@ -232,6 +238,17 @@ export async function loadModelLister(env: NodeJS.ProcessEnv = process.env): Pro
 }
 
 // ---- the review ---------------------------------------------------------------------------------------------------------
+
+/**
+ * Progress of one review, for a run that reports it (an independent Semantic run turns it into events): the context
+ * is collected and masked, then the review calls the provider once per chunk.
+ */
+export type SemanticProgress = (phase: "context" | "review", status: "started" | "finished" | "call", data: Record<string, unknown>) => void;
+
+/** Whether the semantic-gate package is built where loadGate looks for it (nothing is imported). */
+export function semanticPackageAvailable(env: NodeJS.ProcessEnv = process.env): boolean {
+  return distCandidates(env).some((dir) => fs.existsSync(path.join(dir, "providers.js")));
+}
 
 export interface SemanticDeps {
   /** Replaces the provider call (tests pass a fake). */
@@ -281,11 +298,18 @@ function baseOutcome(state: SemanticState, extra: Partial<ResultSemantic> = {}, 
  */
 export async function runSemanticReview(
   workspacePath: string,
-  options: { env?: NodeJS.ProcessEnv; signal?: AbortSignal; now?: () => Date; configDir?: string; vault?: boolean; preferences?: boolean },
+  options: { env?: NodeJS.ProcessEnv; signal?: AbortSignal; now?: () => Date; configDir?: string; vault?: boolean; preferences?: boolean; onProgress?: SemanticProgress },
   deps: SemanticDeps = {},
 ): Promise<ResultSemantic> {
   const started = Date.now();
   const env = options.env ?? process.env;
+  const progress: SemanticProgress = (phase, status, data) => {
+    try {
+      options.onProgress?.(phase, status, data);
+    } catch {
+      // A progress listener never breaks the review.
+    }
+  };
   // The user key store gives the key a provider declares (apiKeyEnv or its default name) and the names of passEnv of
   // the PII tools, to that process only; a run that must use only the environment (jgates ci) never reads it.
   const vault = options.vault !== false && !vaultBlocked();
@@ -343,6 +367,7 @@ export async function runSemanticReview(
   const rules = s.masking;
   const counts: MaskCounts = emptyCounts(rules);
   let context: any;
+  progress("context", "started", {});
   try {
     context = await gate.collectGitReviewContext(workspacePath, config);
   } catch (error) {
@@ -406,15 +431,21 @@ export async function runSemanticReview(
   const parts: any[] = [];
   let calls = 0;
   const gateContext = { config, objective, gitContext: safe, provider: s.provider, ...(eff.model.value ? { model: eff.model.value } : {}) };
+  progress("context", "finished", { files: kept.length, excluded: excluded.length, masked: totalCount(counts) });
+  progress("review", "started", { chunks: chunks.length });
   for (const chunk of chunks) {
     calls++;
+    let response: { text: string; raw: unknown };
     try {
-      const response = await withTimeout(call({ prompt: chunk.prompt, system: gate.systemPrompt(prompts), config, cwd: workspacePath, chunkLabel: chunk.label }), s.timeoutSeconds * 1000, options.signal);
-      parts.push(gate.normalizeGateResult(gate.parseProviderResult(response.text), gateContext));
+      response = await withTimeout(call({ prompt: chunk.prompt, system: gate.systemPrompt(prompts), config, cwd: workspacePath, chunkLabel: chunk.label }), s.timeoutSeconds * 1000, options.signal);
     } catch (error) {
       const timedOut = error instanceof Timeout || /timed out|timeout/i.test(error instanceof Error ? error.message : "");
       return done(outcome({ state: timedOut ? "timeout" : "unavailable", reason: brief(error instanceof Error ? error.message : String(error)), context: contextInfo(), calls }));
     }
+    // The answer arrived: whatever it holds is judged here. Empty, malformed or unvalidated output is INVALID (never
+    // favorable and never "unavailable": the provider did answer).
+    parts.push(normalizeAnswer(gate, response.text, gateContext));
+    progress("review", "call", { call: calls, of: chunks.length });
   }
   const merged = parts.length === 1 ? parts[0] : gate.mergeLocalFallbackResult(parts, gateContext);
   const findings = (merged.findings as Array<Record<string, unknown>>).map((f) => ({
@@ -422,11 +453,15 @@ export async function runSemanticReview(
     category: String(f.category ?? ""),
     ...(typeof f.path === "string" ? { path: f.path } : {}),
     ...(typeof f.line === "number" ? { line: f.line } : {}),
+    ...(typeof f.confirmation === "string" ? { confirmation: f.confirmation } : {}),
     message: brief(String(f.message ?? "")),
   }));
+  const invalid = String(merged.status) === "INVALID";
+  const reasons = Array.isArray(merged.reasons) ? (merged.reasons as unknown[]).map((r) => brief(String(r))).slice(0, 20) : [];
   return done(
     outcome({
-      state: "completed",
+      state: invalid ? "invalid" : "completed",
+      ...(invalid ? { reason: `The model output is not usable (${String(merged.reasonCode ?? "invalid")}): ${reasons.join("; ") || "no valid verdict"}` } : {}),
       context: contextInfo(),
       calls,
       cost: { reported: s.costPerCall != null, perCall: s.costPerCall, total: s.costPerCall != null ? s.costPerCall * calls : null },
@@ -437,9 +472,35 @@ export async function runSemanticReview(
         summary: brief(String(merged.approvalNotes ?? merged.changesReviewed ?? "")),
         hardBlockers: (merged.hardBlockers as unknown[]).map((b) => brief(String(b))),
         findings,
+        ...(invalid ? { reasonCode: String(merged.reasonCode ?? "malformed-output"), reasons } : {}),
       },
     }),
   );
+}
+
+/**
+ * The validated result of one provider answer. With a package that validates raw text (normalizeProviderText) that is
+ * its verdict; with an older package, text that is not JSON becomes an INVALID result here instead of an error.
+ */
+function normalizeAnswer(gate: Gate, text: string, context: Record<string, unknown>): any {
+  if (gate.normalizeProviderText) return gate.normalizeProviderText(text, context);
+  let parsed: unknown;
+  try {
+    parsed = gate.parseProviderResult(text);
+  } catch {
+    const config = context.config as { threshold?: unknown } | undefined;
+    return {
+      status: "INVALID",
+      score: 0,
+      threshold: Number(config?.threshold ?? 0),
+      findings: [],
+      hardBlockers: [],
+      approvalNotes: "Invalid model output (malformed-output): the provider output is not valid JSON.",
+      reasonCode: text.trim() === "" ? "empty-output" : "malformed-output",
+      reasons: [text.trim() === "" ? "Provider returned no text." : "Provider output is not valid JSON."],
+    };
+  }
+  return gate.normalizeGateResult(parsed, context);
 }
 
 /** The hook of one run: absent when the run did not ask for the semantic gate (then nothing is loaded nor called). */

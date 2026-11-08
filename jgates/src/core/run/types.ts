@@ -227,8 +227,12 @@ export interface WorkspaceChangeEntry {
 /** The semantic review of a run (schemas/result $.semantic). It never feeds the decision. */
 export interface ResultSemantic {
   requested: true;
-  /** blocked: masking.onMatch is block and the masking found something; nothing was sent. */
-  state: "completed" | "not-configured" | "unavailable" | "timeout" | "budget-exhausted" | "blocked";
+  /**
+   * blocked: masking.onMatch is block and the masking found something; nothing was sent. invalid: the provider answered
+   * but its output was empty, malformed or failed validation (conclusion.status INVALID with its reasonCode); never
+   * favorable.
+   */
+  state: "completed" | "not-configured" | "unavailable" | "timeout" | "budget-exhausted" | "blocked" | "invalid";
   separateFromDecision: true;
   provider: string | null;
   model: string | null;
@@ -266,6 +270,37 @@ export interface SemanticEffective {
   /** Names of the extra headers of a connection (never a credential). */
   headers: string[];
   allowInsecureHttp: boolean;
+}
+
+/**
+ * The block of an independent Semantic run (result.json with gate semantic, $.semanticRun). Its decision comes from this
+ * review and binds nothing outside the run (enforcement advisory). A Quality report attached to it is evidence with its
+ * freshness, never a current approval unless it is current, passed, complete and not reduced.
+ */
+export interface ResultSemanticRun {
+  schemaVersion: 1;
+  enforcement: "advisory";
+  /** The methods the run executed, in order. */
+  methods: string[];
+  /** The outcome of the review (the shape of the advisory block of a Quality run); null while nothing was reviewed. */
+  outcome: ResultSemantic | null;
+  /** The source identity the run judged (its full record is the run identity, run.json next to result.json). */
+  source: { id: string; basis: string; traceable: boolean };
+  /** A Quality report attached to the run, with its freshness against the source judged here. */
+  quality: ResultSemanticQualityEvidence | null;
+}
+
+export interface ResultSemanticQualityEvidence {
+  runId: string;
+  decision: string | null;
+  complete: boolean;
+  reduced: boolean;
+  freshness: "current" | "stale" | "unknown";
+  /** SAME_SOURCE, DIFFERENT_SOURCE, SOURCE_UNTRACEABLE, SOURCE_LEGACY or QUALITY_RUN_NOT_FOUND. */
+  code: string;
+  reason: string;
+  /** true only for a current, passed, complete and not reduced Quality run. */
+  currentApproval: boolean;
 }
 
 /** Runs the review after the decision is computed; whatever it returns or throws, the decision stays. */
@@ -323,6 +358,8 @@ export interface RunResult {
   baseline?: BaselineComparison;
   /** Optional semantic review, apart from the decision; present only when the run asked for it. */
   semantic?: ResultSemantic;
+  /** Independent Semantic runs only (gate semantic): the review behind the decision, its source and attached evidence. */
+  semanticRun?: ResultSemanticRun;
   unsatisfied: Array<{ requirementId: string; state: StageState | "missing" }>;
   warnings: Array<{ stageId: string; state: StageState }>;
   blockingViolations: number;

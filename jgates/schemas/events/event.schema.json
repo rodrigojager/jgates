@@ -19,7 +19,8 @@
     },
     "runId": {
       "type": "string",
-      "pattern": "^run_[0-9]{8}T[0-9]{6}Z_[0-9a-f]{8}$"
+      "description": "Quality runs: run_...; independent Semantic runs: sem_... (schemas/gates).",
+      "pattern": "^(run|sem)_[0-9]{8}T[0-9]{6}Z_[0-9a-f]{8}$"
     },
     "sequence": {
       "type": "integer",
