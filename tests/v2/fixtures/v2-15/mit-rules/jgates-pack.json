@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "v2-15-mit-rules",
+  "kind": "rules",
+  "distribution": "shipped",
+  "source": { "url": "https://example.com/jgates-fixtures/mit-rules", "revision": "v1.0.0" },
+  "spdx": "MIT",
+  "notices": ["LICENSE"],
+  "modifications": "none",
+  "dependencies": [],
+  "review": "approved"
+}

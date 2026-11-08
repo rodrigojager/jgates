@@ -4,14 +4,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
-const ids = await import(path.join(dist, "core", "ids", "index.js"));
-const cat = await import(path.join(dist, "core", "catalog", "index.js"));
-const { qualityBridgeManifest } = await import(path.join(dist, "adapters", "quality-bridge", "manifest.js"));
+const ids = await import(pathToFileURL(path.join(dist, "core", "ids", "index.js")).href);
+const cat = await import(pathToFileURL(path.join(dist, "core", "catalog", "index.js")).href);
+const { qualityBridgeManifest } = await import(pathToFileURL(path.join(dist, "adapters", "quality-bridge", "manifest.js")).href);
 
 test("tools list --json prints categories, capabilities and the bridge adapter with subchecks", () => {
   const r = spawnSync(process.execPath, [MAIN, "tools", "list", "--json"], { encoding: "utf8" });
@@ -31,6 +31,20 @@ test("the bridge manifest validates against the manifest schema, and a broken on
   const broken = { ...qualityBridgeManifest, granularity: ["galaxy"] };
   delete broken.license;
   assert.equal(cat.validateManifest(broken).ok, false);
+});
+
+test("every built-in manifest validates with its capability-by-stack rows and distribution metadata; a bad state or mode does not", async () => {
+  const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
+  for (const m of builtinManifests()) {
+    assert.deepEqual(cat.validateManifest(m), { ok: true, errors: [] }, m.id);
+    assert.ok(cat.DISTRIBUTION_MODES.includes(m.distribution.mode), `${m.id} has a distribution mode`);
+    for (const row of m.stackSupport) assert.ok(cat.STACK_SUPPORT_STATES.includes(row.state), `${m.id}#${row.capability}@${row.stack}`);
+  }
+  const ruff = builtinManifests().find((m) => m.id === "ruff");
+  assert.equal(cat.validateManifest({ ...ruff, stackSupport: [{ capability: "lint", stack: "python", state: "probably" }] }).ok, false);
+  assert.equal(cat.validateManifest({ ...ruff, stackSupport: [{ capability: "lint", state: "validated" }] }).ok, false);
+  assert.equal(cat.validateManifest({ ...ruff, distribution: { mode: "bundled-anyway" } }).ok, false);
+  assert.equal(cat.validateManifest({ ...ruff, distribution: { mode: "customer-supplied", acquisition: ["http://insecure.example"] } }).ok, false);
 });
 
 test("workspace id is the same for a symlink and changes for another folder", () => {

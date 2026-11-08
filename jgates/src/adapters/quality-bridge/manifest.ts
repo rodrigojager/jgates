@@ -125,4 +125,22 @@ export const qualityBridgeManifest: AdapterManifest = {
     "full without a required tool gives NEEDS_CHANGES (exit 2)",
     "the sidecar prints human text on stdout today; the bridge reads the JSON report, not the text",
   ],
+  stackSupport: [
+    // The scanners run only in the sidecar image: declared with what they need, not validated.
+    ...(["lint", "sast", "secrets", "dependencies", "duplication", "iac", "coverage", "unit"] as const).map((capability) => ({
+      capability,
+      stack: "any",
+      state: "customer-setup-required" as const,
+      prerequisites: ["Python 3.11+", "Docker and the MegaLinter-based JGates sidecar image"],
+      limitations: ["Not proven by the default suite: the proof needs the Docker smoke of the bridge (the MegaLinter-based sidecar image)."],
+    })),
+    { capability: "file-size", stack: "any", state: "validated", prerequisites: ["Python 3.11+"] },
+  ],
+  distribution: {
+    mode: "prepared-from-authorized-source",
+    sourceUrl: "https://github.com/oxsecurity/megalinter",
+    spdx: "AGPL-3.0-only",
+    acquisition: ["https://megalinter.io/latest/"],
+    setup: ["https://megalinter.io/latest/configuration/"],
+  },
 };

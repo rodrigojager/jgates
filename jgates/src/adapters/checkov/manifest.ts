@@ -57,4 +57,14 @@ export const checkovManifest: AdapterManifest = {
     "offline (--skip-download): no severities from Prisma Cloud, every failed check is MEDIUM",
     "skip comments in the code (checkov:skip) are scanner exceptions, not waivers of the gate",
   ],
+  stackSupport: [
+    { capability: "iac", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)"] },
+  ],
+  distribution: {
+    mode: "prepared-from-authorized-source",
+    sourceUrl: "https://github.com/bridgecrewio/checkov",
+    spdx: "Apache-2.0",
+    acquisition: ["https://www.checkov.io/2.Basics/Installing%20Checkov.html"],
+    setup: ["https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html"],
+  },
 };

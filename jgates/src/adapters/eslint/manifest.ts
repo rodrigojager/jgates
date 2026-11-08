@@ -60,4 +60,15 @@ export const eslintManifest: AdapterManifest = {
     "Needs ESLint installed in the project (or JGATES_ESLINT); a TypeScript project also needs its own parser in the config. Nothing is installed.",
     "Visual editing covers static literals; imports, spreads, functions, process.env and conditionals keep the file in text mode.",
   ],
+  stackSupport: [
+    { capability: "lint", stack: "typescript", state: "validated", prerequisites: ["ESLint 9+ installed in the project", "an eslint.config (typescript-eslint)"] },
+    { capability: "lint", stack: "javascript", state: "customer-setup-required", prerequisites: ["ESLint 9+ installed in the project", "an eslint.config"], limitations: ["No JGates test exercises a JavaScript-only project yet; the TypeScript fixture proves the adapter."] },
+  ],
+  distribution: {
+    mode: "customer-supplied",
+    sourceUrl: "https://github.com/eslint/eslint",
+    spdx: "MIT",
+    acquisition: ["https://eslint.org/docs/latest/use/getting-started"],
+    setup: ["https://eslint.org/docs/latest/use/configure/"],
+  },
 };

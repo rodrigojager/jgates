@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "v2-15-restricted-rules",
+  "kind": "rules",
+  "distribution": "shipped",
+  "source": { "url": "https://example.com/jgates-fixtures/copied-rules", "revision": "v1.0.0" },
+  "spdx": "MIT",
+  "notices": ["LICENSE"],
+  "modifications": "one rule copied from another collection",
+  "dependencies": [],
+  "review": "approved"
+}

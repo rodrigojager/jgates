@@ -6,7 +6,9 @@ import { translator, type Translator } from "../../i18n/index.js";
 import { createCoreCatalog } from "../../core/catalog/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { resolveToolBindings, type ResolvedBinding, type ToolInstance } from "../../core/tools/index.js";
-import { buildMatrix, renderMatrixMarkdown, verifyMatrix } from "../../core/matrix/index.js";
+import { buildMatrix, renderMatrixMarkdown, renderStackMatrixMarkdown, unitApplicability, verifyMatrix } from "../../core/matrix/index.js";
+import { checkDistribution } from "../../core/distribution/index.js";
+import { discoverWorkspace } from "../../core/discovery/index.js";
 import { PrepareError, prepareInstance, previewPrepare } from "../../core/prepare/index.js";
 import { decodeBytes, DocumentError, openDocument, saveDocument, validateDocument, type DocumentValidation } from "../../core/documents/index.js";
 
@@ -57,14 +59,40 @@ function runList(ctx: CommandContext, projectDir: string, t: Translator): number
   return 0;
 }
 
-function runMatrix(ctx: CommandContext): number {
+/** `tools matrix`: adapters, capability-by-stack rows and, with --units, the per-unit applicability of --cwd. */
+function runMatrix(ctx: CommandContext, projectDir: string): number {
   const matrix = buildMatrix();
+  const applicability = ctx.options.units === true ? unitApplicability(discoverWorkspace(projectDir).inventory, matrix) : undefined;
   if (ctx.json) {
-    writeJson(ctx, { schemaVersion: 1, status: "OK", tool: "jgates", version: ctx.version, matrix, problems: verifyMatrix(matrix) });
+    writeJson(ctx, { schemaVersion: 1, status: "OK", tool: "jgates", version: ctx.version, matrix, problems: verifyMatrix(matrix), ...(applicability ? { applicability } : {}) });
     return 0;
   }
   ctx.stdout(renderMatrixMarkdown(matrix, "pt-BR"));
+  ctx.stdout(`\n${renderStackMatrixMarkdown(matrix, "pt-BR")}`);
+  for (const u of applicability ?? []) {
+    ctx.stdout(`${tr("tools_matrix_unit", { unit: u.unit, root: u.componentRoot, language: u.language ?? "-", validated: u.validated.join(", ") || "-", gaps: u.gaps.join(", ") || "-" })}\n`);
+  }
   return 0;
+}
+
+/**
+ * `tools distribution [--packs <dir>[,<dir>...]]`: the distribution metadata of every built-in adapter and, for each
+ * shipping folder given, every pack in it. Exit 1 when anything cannot ship.
+ */
+function runDistribution(ctx: CommandContext, projectDir: string, t: Translator): number {
+  const packs = typeof ctx.options.packs === "string" ? ctx.options.packs.split(",").map((p) => p.trim()).filter(Boolean) : [];
+  const report = checkDistribution({ roots: packs.map((p) => path.resolve(projectDir, p)) });
+  if (ctx.json) {
+    writeJson(ctx, { schemaVersion: 1, status: report.ok ? "OK" : "FAILED", tool: "jgates", version: ctx.version, report });
+    return report.ok ? 0 : 1;
+  }
+  if (report.ok) ctx.stdout(`${t("tools_distribution_ok", { adapters: report.adapters.length, packs: report.packs.length })}\n`);
+  else {
+    ctx.stdout(`${t("tools_distribution_failed", { count: report.problems.length })}\n`);
+    for (const p of report.problems) ctx.stdout(`  ${p.code}  ${p.message}\n`);
+    ctx.stdout(`${t("tools_distribution_fix")}\n`);
+  }
+  return report.ok ? 0 : 1;
 }
 
 function runInspect(ctx: CommandContext, projectDir: string, t: Translator): number {
@@ -335,6 +363,7 @@ const SUBCOMMANDS: Record<string, Subcommand> = {
   list: { run: runList, args: 0 },
   inspect: { run: runInspect, args: 1 },
   matrix: { run: runMatrix, args: 0 },
+  distribution: { run: runDistribution, args: 0 },
   config: { run: runConfig, args: 2 },
 };
 
@@ -353,6 +382,8 @@ export const command: CommandModule = {
     { name: "dry-run", type: "boolean", description: tr("tools_option_dry_run") },
     { name: "allow-version-change", type: "boolean", description: tr("tools_option_allow_version_change") },
     { name: "image", type: "string", description: tr("tools_option_image") },
+    { name: "units", type: "boolean", description: tr("tools_option_units") },
+    { name: "packs", type: "string", description: tr("tools_option_packs") },
   ],
   async run(ctx) {
     const t = tr;

@@ -24,6 +24,12 @@ export interface CapabilityEvidence {
   tests: TestRef[];
   /** Set only when the capability is declared in the manifest but not integrated yet: the reason. */
   notIntegrated?: Bilingual;
+  /**
+   * The stack dimension: per stack id (a discovery language id or "any"), the tests whose fixture proves the
+   * capability on that stack. A manifest row (stackSupport) in state "validated" needs an entry here; its tests carry
+   * `[proves: <adapter>#<capability>]` or the narrower `[proves: <adapter>#<capability>@<stack>]` in the title.
+   */
+  stacks?: Record<string, TestRef[]>;
 }
 
 export interface AdapterEvidence {
@@ -35,7 +41,8 @@ export interface AdapterEvidence {
 }
 
 const t = (file: string, test: string): TestRef => ({ file, test });
-const proven = (...tests: TestRef[]): CapabilityEvidence => ({ tests });
+/** A capability proven by the tests given, on the stacks their fixtures use. */
+const proven = (stacks: string[], ...tests: TestRef[]): CapabilityEvidence => ({ tests, stacks: Object.fromEntries(stacks.map((s) => [s, tests])) });
 
 const TRIVY = t("adapters-security.test.js", "Trivy 0.72.0: vulnerabilities, misconfigurations and secrets");
 
@@ -60,7 +67,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       coverage: bridgeDeclared("the coverage of the project tests"),
       unit: bridgeDeclared("the project tests"),
       // The budget is the sidecar's own Python code: the default suite runs it for real.
-      "file-size": proven(t("core-followups.test.js", "the bridge's file-size budget")),
+      "file-size": proven(["any"], t("core-followups.test.js", "the bridge's file-size budget")),
     },
     limitation: {
       en: "Runs MegaLinter and the scanners through the bridge with the trusted configuration; the project's own linter configs are not used. Only file-size is proven in the default suite: the scanners need the Docker smoke of the bridge (sidecar image).",
@@ -70,7 +77,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     otherTests: [t("run-bridge.test.js", "main fixture: one JSON result, valid, run kept outside the project"), t("run-bridge.test.js", "quick mode turns the external tools off")],
   },
   ruff: {
-    capabilities: { lint: proven(t("adapter-ruff.test.js", "a known violation comes back as a finding")) },
+    capabilities: { lint: proven(["python"], t("adapter-ruff.test.js", "a known violation comes back as a finding")) },
     limitation: {
       en: "Reads the configuration file chosen in tools.yml, else Ruff's own resolution; the container runner uses only the image tools prepare pinned in .jgates/lock.json.",
       ptBR: "Lê o arquivo de configuração escolhido no tools.yml, senão a resolução própria do Ruff; o runner de container usa só a imagem que o tools prepare fixou no .jgates/lock.json.",
@@ -78,7 +85,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "Ruff 0.17.2 (pip) or a container image", ptBR: "Ruff 0.17.2 (pip) ou imagem de container" },
   },
   "builtin-pii": {
-    capabilities: { pii: proven(t("adapter-pii.test.js", "on the PII fixture the run reports CPF, CNPJ and credit-card")) },
+    capabilities: { pii: proven(["any"], t("adapter-pii.test.js", "on the PII fixture the run reports CPF, CNPJ and credit-card")) },
     limitation: {
       en: "Detects CPF, CNPJ and credit card (phone is off by default); findings never carry the raw value.",
       ptBR: "Detecta CPF, CNPJ e cartão (telefone vem desligado); os achados nunca trazem o valor bruto.",
@@ -86,7 +93,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "Python 3.11+ (JGates sidecar)", ptBR: "Python 3.11+ (sidecar do JGates)" },
   },
   eslint: {
-    capabilities: { lint: proven(t("adapters-quality.test.js", "ESLint: the rule violation of the project's eslint.config")) },
+    capabilities: { lint: proven(["typescript"], t("adapters-quality.test.js", "ESLint: the rule violation of the project's eslint.config")) },
     limitation: {
       en: "Enters the plan from the templates only with an eslint.config (typescript-eslint); an instance declared without one is blocked; the run executes project code, so it is never cached.",
       ptBR: "Entra no plano pelos templates só com um eslint.config (typescript-eslint); uma instância declarada sem ele fica bloqueada; a execução roda código do projeto e por isso nunca vem do cache.",
@@ -95,8 +102,8 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
   },
   vitest: {
     capabilities: {
-      unit: proven(t("adapter-vitest.test.js", "a fixture with passing tests returns the tests executed")),
-      coverage: proven(t("adapter-vitest.test.js", "a fixture with passing tests returns the tests executed")),
+      unit: proven(["typescript"], t("adapter-vitest.test.js", "a fixture with passing tests returns the tests executed")),
+      coverage: proven(["typescript"], t("adapter-vitest.test.js", "a fixture with passing tests returns the tests executed")),
     },
     limitation: {
       en: "Only the v8 coverage provider, installed at Vitest's exact version; a run never installs it.",
@@ -105,7 +112,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "Vitest 1+ and @vitest/coverage-v8 in the project", ptBR: "Vitest 1+ e @vitest/coverage-v8 no projeto" },
   },
   semgrep: {
-    capabilities: { sast: proven(t("adapter-semgrep.test.js", "a violation of a local rule comes back")) },
+    capabilities: { sast: proven(["python"], t("adapter-semgrep.test.js", "a violation of a local rule comes back")) },
     limitation: {
       en: "Runs local rules only (no registry at run time); the rules are prepared with tools prepare.",
       ptBR: "Roda só regras locais (sem registry na execução); as regras são preparadas com tools prepare.",
@@ -114,8 +121,8 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
   },
   pytest: {
     capabilities: {
-      unit: proven(t("adapter-pytest.test.js", "a failing test fails the step with the test name")),
-      coverage: proven(t("adapter-pytest.test.js", "on the broken fixture the API coverage comes")),
+      unit: proven(["python"], t("adapter-pytest.test.js", "a failing test fails the step with the test name")),
+      coverage: proven(["python"], t("adapter-pytest.test.js", "on the broken fixture the API coverage comes")),
     },
     limitation: {
       en: "Without pytest-cov the coverage is not measured (incomplete, never 0%); the run executes project code.",
@@ -136,7 +143,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     ],
   },
   "dependency-cruiser": {
-    capabilities: { architecture: proven(t("adapter-dependency-cruiser.test.js", "the shared library importing the web component")) },
+    capabilities: { architecture: proven(["typescript"], t("adapter-dependency-cruiser.test.js", "the shared library importing the web component")) },
     limitation: {
       en: "Reads the import graph; an alias the tool does not resolve is a coverage gap, never a pass. Rules are judged by JGates from architecture.yml.",
       ptBR: "Lê o grafo de imports; um alias que a ferramenta não resolve é lacuna de cobertura, nunca aprovação. As regras são julgadas pelo JGates a partir do architecture.yml.",
@@ -144,7 +151,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "dependency-cruiser 16+ (node_modules or JGates copy)", ptBR: "dependency-cruiser 16+ (node_modules ou cópia do JGates)" },
   },
   "import-linter": {
-    capabilities: { architecture: proven(t("adapter-import-linter.test.js", "the domain importing the infrastructure is a finding of the declared rule")) },
+    capabilities: { architecture: proven(["python"], t("adapter-import-linter.test.js", "the domain importing the infrastructure is a finding of the declared rule")) },
     limitation: {
       en: "Needs a contract (generated from architecture.yml or a native configuration); an import that does not resolve is a coverage gap.",
       ptBR: "Exige um contrato (gerado do architecture.yml ou configuração nativa); um import que não resolve é lacuna de cobertura.",
@@ -153,8 +160,8 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
   },
   gitleaks: {
     capabilities: {
-      secrets: proven(t("adapters-security.test.js", "Gitleaks runs in the container and its finding")),
-      "secrets-history": proven(t("adapters-security.test.js", "Gitleaks: a report that carries the secret anyway")),
+      secrets: proven(["any"], t("adapters-security.test.js", "Gitleaks runs in the container and its finding")),
+      "secrets-history": proven(["any"], t("adapters-security.test.js", "Gitleaks: a report that carries the secret anyway")),
     },
     limitation: {
       en: "Runs in a container only; the value found is masked; a report cut or from another version is an error.",
@@ -164,10 +171,10 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
   },
   trivy: {
     capabilities: {
-      dependencies: proven(TRIVY),
-      iac: proven(TRIVY),
-      secrets: proven(TRIVY),
-      licenses: proven(t("core-followups.test.js", "Trivy licenses: the recorded license report of 0.72.0")),
+      dependencies: proven(["any"], TRIVY),
+      iac: proven(["any"], TRIVY),
+      secrets: proven(["any"], TRIVY),
+      licenses: proven(["any"], t("core-followups.test.js", "Trivy licenses: the recorded license report of 0.72.0")),
     },
     limitation: {
       en: "Runs in a container only; the vulnerability database is cached in the data folder and recorded with source and date.",
@@ -176,7 +183,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "Docker, the security-scanners image and the vulnerability database", ptBR: "Docker, a imagem security-scanners e o banco de vulnerabilidades" },
   },
   "osv-scanner": {
-    capabilities: { dependencies: proven(t("adapters-security.test.js", "OSV-Scanner 2.4.0")) },
+    capabilities: { dependencies: proven(["any"], t("adapters-security.test.js", "OSV-Scanner 2.4.0")) },
     limitation: {
       en: "Runs in a container only; one finding per advisory group.",
       ptBR: "Roda só em container; um achado por grupo de advisory.",
@@ -184,7 +191,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "Docker and the security-scanners image; advisory database", ptBR: "Docker e a imagem security-scanners; banco de advisories" },
   },
   checkov: {
-    capabilities: { iac: proven(t("adapters-security.test.js", "Checkov 3.3.8")) },
+    capabilities: { iac: proven(["any"], t("adapters-security.test.js", "Checkov 3.3.8")) },
     limitation: {
       en: "Runs in a container only; failed checks are reported as MEDIUM findings.",
       ptBR: "Roda só em container; as verificações reprovadas viram achados MEDIUM.",
@@ -192,7 +199,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "Docker and the security-scanners image", ptBR: "Docker e a imagem security-scanners" },
   },
   jscpd: {
-    capabilities: { duplication: proven(t("adapters-quality.test.js", "jscpd: the duplications of a fixture come out")) },
+    capabilities: { duplication: proven(["typescript"], t("adapters-quality.test.js", "jscpd: the duplications of a fixture come out")) },
     limitation: {
       en: "Reads the config chosen by the user (binding or .jscpd.json); a config that is not JSON refuses the plan.",
       ptBR: "Lê a configuração escolhida pelo usuário (binding ou .jscpd.json); uma configuração que não é JSON recusa o plano.",

@@ -52,4 +52,15 @@ export const jscpdManifest: AdapterManifest = {
   license: "MIT",
   kind: "tool",
   limitations: ["The configuration is JSON data; the report is always JSON in the run folder whatever the config asks for."],
+  stackSupport: [
+    { capability: "duplication", stack: "typescript", state: "validated", prerequisites: ["jscpd 4+ in node_modules"] },
+    { capability: "duplication", stack: "any", state: "customer-setup-required", prerequisites: ["jscpd 4+ in node_modules"], limitations: ["Only a TypeScript fixture is proven; other formats rely on jscpd's own language support."] },
+  ],
+  distribution: {
+    mode: "customer-supplied",
+    sourceUrl: "https://github.com/kucherenko/jscpd",
+    spdx: "MIT",
+    acquisition: ["https://github.com/kucherenko/jscpd#installation"],
+    setup: ["https://github.com/kucherenko/jscpd#options"],
+  },
 };

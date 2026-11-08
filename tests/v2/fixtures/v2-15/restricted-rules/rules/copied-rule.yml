@@ -1,0 +1,9 @@
+rules:
+  - id: copied-insecure-eval
+    languages: [python]
+    severity: ERROR
+    message: Detected the use of eval()
+    pattern: eval(...)
+    metadata:
+      category: security
+      license: Semgrep Rules License v1.0. For more details, visit semgrep.dev/legal/rules-license

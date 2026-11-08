@@ -1,7 +1,7 @@
 {
   "tools_description": "Shows the catalog of categories, capabilities and adapters.",
   "tools_unknown_action": "Unknown action for tools: {name}",
-  "tools_unknown_action_fix": "Use: jgates tools list [--json], jgates tools inspect <instance> [--json], jgates tools matrix [--json], jgates tools prepare --instance <id> [--image <ref>] [--dry-run] or jgates tools config read|validate|write <instance> --file <binding>",
+  "tools_unknown_action_fix": "Use: jgates tools list [--json], jgates tools inspect <instance> [--json], jgates tools matrix [--units] [--json], jgates tools distribution [--packs <dir>] [--json], jgates tools prepare --instance <id> [--image <ref>] [--dry-run] or jgates tools config read|validate|write <instance> --file <binding>",
   "tools_categories": "Categories:",
   "tools_capabilities": "Capabilities:",
   "tools_adapters": "Adapters:",
@@ -78,5 +78,11 @@
   "tools_prepare_image_no_network": "Network: none.",
   "tools_prepare_image_done": "Image {image} pinned as {pinned} ({version}) in {lock}.",
   "tools_prepare_image_unchanged": "The image {image} was already pinned as {pinned} ({version}) in {lock}.",
-  "tools_prepare_failed": "Preparation failed"
+  "tools_prepare_failed": "Preparation failed",
+  "tools_option_units": "With tools matrix: adds the per-unit applicability of the project (--cwd) to the matrix.",
+  "tools_option_packs": "With tools distribution: a shipping folder to check (each subfolder is a pack with jgates-pack.json); repeat with commas.",
+  "tools_distribution_ok": "Distribution check passed: {adapters} adapters, {packs} packs.",
+  "tools_distribution_failed": "Distribution check failed with {count} problems.",
+  "tools_distribution_fix": "Record the provenance (jgates-pack.json with source, revision, SPDX, notices and review) and remove restricted material before shipping.",
+  "tools_matrix_unit": "{unit} ({root}, {language}): validated {validated}; gaps {gaps}"
 }

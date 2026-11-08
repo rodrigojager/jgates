@@ -64,4 +64,15 @@ export const gitleaksManifest: AdapterManifest = {
     "runs only on the container runner, in the image `jgates tools prepare` pins in .jgates/lock.json (the sidecar image by default)",
     "the project's ignore file and gitleaks:allow comments are scanner exceptions, not waivers of the gate",
   ],
+  stackSupport: [
+    { capability: "secrets", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)"] },
+    { capability: "secrets-history", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)", "the Git history of the project"] },
+  ],
+  distribution: {
+    mode: "prepared-from-authorized-source",
+    sourceUrl: "https://github.com/gitleaks/gitleaks",
+    spdx: "MIT",
+    acquisition: ["https://github.com/gitleaks/gitleaks#installing"],
+    setup: ["https://github.com/gitleaks/gitleaks#configuration"],
+  },
 };

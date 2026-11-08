@@ -54,4 +54,17 @@ export const trivyManifest: AdapterManifest = {
     "runs only on the container runner, in the image `jgates tools prepare` pins in .jgates/lock.json (the sidecar image by default)",
     "the vulnerability database is cached in the data folder (tools/cache/trivy-db) and reused while its NextUpdate is in the future (--skip-db-update); the checks bundle and the Java database are still downloaded on every run",
   ],
+  stackSupport: [
+    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)", "the Trivy vulnerability database"] },
+    { capability: "iac", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)"] },
+    { capability: "secrets", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)"] },
+    { capability: "licenses", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)"] },
+  ],
+  distribution: {
+    mode: "prepared-from-authorized-source",
+    sourceUrl: "https://github.com/aquasecurity/trivy",
+    spdx: "Apache-2.0",
+    acquisition: ["https://trivy.dev/latest/getting-started/installation/"],
+    setup: ["https://trivy.dev/latest/docs/configuration/"],
+  },
 };

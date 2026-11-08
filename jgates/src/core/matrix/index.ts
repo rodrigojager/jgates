@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AdapterManifest } from "../catalog/index.js";
+import { ANY_STACK, type AdapterManifest, type DistributionMode, type StackSupportState, type ToolDistribution } from "../catalog/index.js";
+import type { ClassificationStatus, Inventory } from "../discovery/types.js";
+import { translator } from "../../i18n/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { supportLevelFor } from "../tools/index.js";
 import { ADAPTER_EVIDENCE, OS_STATUS, type Bilingual, type TestRef } from "./evidence.js";
@@ -33,6 +35,26 @@ export interface MatrixAdapter {
   manifestLimitations: string[];
   external: Bilingual;
   otherTests: TestRef[];
+  /** How the external tool reaches the customer (manifest distribution), or null when the manifest has none. */
+  distribution: ToolDistribution | null;
+}
+
+/** One row of the capability-by-stack matrix: what an adapter declares for a capability on a stack, and its proof. */
+export interface MatrixRow {
+  /** `<adapter>#<capability>@<stack>`. */
+  key: string;
+  adapter: string;
+  capability: string;
+  /** A discovery language id or "any". */
+  stack: string;
+  state: StackSupportState;
+  /** Supported tool versions for the combination (the row's, else the manifest's range). */
+  toolVersions: string;
+  prerequisites: string[];
+  limitations: string[];
+  /** The proving tests for this stack (evidence.ts); note: why the capability is declared but not proven. */
+  evidence: { tests: TestRef[]; note: Bilingual | null };
+  distribution: DistributionMode | null;
 }
 
 export interface MatrixStack {
@@ -45,6 +67,8 @@ export interface MatrixStack {
 export interface Matrix {
   schemaVersion: 1;
   adapters: MatrixAdapter[];
+  /** The capability-by-stack rows, in manifest order. */
+  rows: MatrixRow[];
   stacks: MatrixStack[];
   notes: { macos: Bilingual };
 }
@@ -93,9 +117,67 @@ export function buildMatrix(manifests: AdapterManifest[] = builtinManifests()): 
       manifestLimitations: [...(m.limitations ?? [])],
       external: ev?.external ?? { en: "", ptBR: "" },
       otherTests: ev?.otherTests ?? [],
+      distribution: m.distribution ?? null,
     };
   });
-  return { schemaVersion: 1, adapters, stacks: stacks(), notes: { macos: OS_STATUS.darwin } };
+  const rows: MatrixRow[] = manifests.flatMap((m) =>
+    (m.stackSupport ?? []).map((s) => {
+      const c = ADAPTER_EVIDENCE[m.id]?.capabilities[s.capability];
+      return {
+        key: rowKey(m.id, s.capability, s.stack),
+        adapter: m.id,
+        capability: s.capability,
+        stack: s.stack,
+        state: s.state,
+        toolVersions: s.toolVersions ?? m.toolVersionRange,
+        prerequisites: [...(s.prerequisites ?? [])],
+        limitations: [...(s.limitations ?? [])],
+        evidence: { tests: [...(c?.stacks?.[s.stack] ?? [])], note: c?.notIntegrated ?? null },
+        distribution: m.distribution?.mode ?? null,
+      };
+    }),
+  );
+  return { schemaVersion: 1, adapters, rows, stacks: stacks(), notes: { macos: OS_STATUS.darwin } };
+}
+
+export function rowKey(adapter: string, capability: string, stack: string): string {
+  return `${adapter}#${capability}@${stack}`;
+}
+
+/** What one unit (component) of a mixed repository can get: the rows of its language plus the "any" rows. */
+export interface UnitApplicability {
+  unit: string;
+  componentRoot: string;
+  language: string | null;
+  classificationStatus: ClassificationStatus;
+  rows: Array<Pick<MatrixRow, "key" | "adapter" | "capability" | "stack" | "state">>;
+  /** Capabilities with at least one validated row for the unit. */
+  validated: string[];
+  /** Capabilities the matrix knows that have no validated row for the unit: its visible coverage gaps. */
+  gaps: string[];
+}
+
+/**
+ * Per-unit applicability for a discovered inventory: each classified unit (ignored ones excepted) gets the rows whose
+ * stack is its language or "any". Deterministic: same inventory and matrix, same answer.
+ */
+export function unitApplicability(inventory: Inventory, matrix: Matrix): UnitApplicability[] {
+  const known = [...new Set(matrix.rows.map((r) => r.capability))].sort();
+  return inventory.classifications
+    .filter((c) => c.classificationStatus !== "ignored")
+    .map((c) => {
+      const rows = matrix.rows.filter((r) => r.stack === ANY_STACK || (c.language !== null && r.stack === c.language));
+      const validated = [...new Set(rows.filter((r) => r.state === "validated").map((r) => r.capability))].sort();
+      return {
+        unit: c.id,
+        componentRoot: c.componentRoot,
+        language: c.language,
+        classificationStatus: c.classificationStatus,
+        rows: rows.map((r) => ({ key: r.key, adapter: r.adapter, capability: r.capability, stack: r.stack, state: r.state })),
+        validated,
+        gaps: known.filter((id) => !validated.includes(id)),
+      };
+    });
 }
 
 /** The marker a test title carries for each capability it proves: `[proves: trivy#licenses, trivy#iac]`. */
@@ -134,7 +216,8 @@ export function verifyMatrix(matrix: Matrix): string[] {
     }
     return cache.get(file) ?? null;
   };
-  const checkRef = (where: string, ref: TestRef, capability: string | null) => {
+  /** `accepted`: the markers that count as proof (the first is the one named in the problem); null: any test. */
+  const checkRef = (where: string, ref: TestRef, accepted: string[] | null) => {
     const list = titles(ref.file);
     if (list === null) {
       problems.push(`${where}: test file ${ref.file} does not exist`);
@@ -142,19 +225,36 @@ export function verifyMatrix(matrix: Matrix): string[] {
     }
     const found = list.filter((title) => title.includes(ref.test));
     if (found.length === 0) problems.push(`${where}: no test titled "${ref.test}" in ${ref.file}`);
-    else if (capability !== null && !found.some((title) => provedBy(title).includes(capability))) {
+    else if (accepted !== null && !found.some((title) => provedBy(title).some((m) => accepted.includes(m)))) {
+      const capability = accepted[0] as string;
       problems.push(`${where}: the test "${ref.test}" in ${ref.file} does not say it exercises ${capability} (no [proves: ${capability}] in its title)`);
     }
   };
   for (const a of matrix.adapters) {
     if (!ADAPTER_EVIDENCE[a.id]) problems.push(`${a.id}: no evidence entry`);
     if (!a.limitation.en.trim() || !a.limitation.ptBR.trim()) problems.push(`${a.id}: no limitation described`);
+    if (!a.distribution) problems.push(`${a.id}: no distribution metadata (shipped, prepared-from-authorized-source or customer-supplied)`);
     for (const c of a.capabilities) {
       const where = `${a.id}#${c.id}`;
-      if (c.status === "integrated") for (const ref of c.tests) checkRef(where, ref, where);
+      if (c.status === "integrated") for (const ref of c.tests) checkRef(where, ref, [where]);
       else if (!c.note) problems.push(`${where}: capability announced without a test reference and without a stated reason`);
+      if (!matrix.rows.some((r) => r.adapter === a.id && r.capability === c.id)) problems.push(`${where}: no capability-by-stack row (stackSupport in the manifest)`);
     }
     for (const ref of a.otherTests) checkRef(a.id, ref, null);
+  }
+  const seen = new Set<string>();
+  for (const r of matrix.rows) {
+    const where = r.key;
+    if (seen.has(where)) problems.push(`${where}: declared twice`);
+    seen.add(where);
+    const adapter = matrix.adapters.find((a) => a.id === r.adapter);
+    if (!adapter || !adapter.capabilities.some((c) => c.id === r.capability)) problems.push(`${where}: the adapter does not announce the capability ${r.capability}`);
+    if (r.state === "validated") {
+      if (r.evidence.tests.length === 0) problems.push(`${where}: validated without an evidence test (add one for the stack in core/matrix/evidence.ts)`);
+      const capability = `${r.adapter}#${r.capability}`;
+      for (const ref of r.evidence.tests) checkRef(where, ref, [capability, where]);
+    } else if (r.limitations.length === 0) problems.push(`${where}: state ${r.state} without a stated limitation`);
+    if (r.state === "customer-setup-required" && r.prerequisites.length === 0) problems.push(`${where}: customer-setup-required without prerequisites`);
   }
   return problems;
 }
@@ -235,6 +335,19 @@ export function renderMatrixMarkdown(matrix: Matrix, lang: MatrixLang): string {
   const stackRows = [`| ${[L.stack, L.level, L.uncovered].join(" | ")} |`, "| --- | --- | --- |"];
   for (const s of matrix.stacks) stackRows.push(`| ${esc(`${s.label} (\`${s.id}\`)`)} | ${L[s.support]} | ${esc(s.uncovered.join("; ") || "-")} |`);
   return `${rows.join("\n")}\n\n${stackRows.join("\n")}\n`;
+}
+
+/** The capability-by-stack table as Markdown (state labels from the catalog area of the language). */
+export function renderStackMatrixMarkdown(matrix: Matrix, lang: MatrixLang): string {
+  const t = translator("catalog", lang);
+  const head = ["adapter", "capability", "stack", "state", "versions", "evidence", "prerequisites", "limitations"].map((k) => t(`stack_matrix_${k}`));
+  const rows = [`| ${head.join(" | ")} |`, `| ${head.map(() => "---").join(" | ")} |`];
+  for (const r of matrix.rows) {
+    const evidence = r.evidence.tests.length > 0 ? [...new Set(r.evidence.tests.map((x) => x.file))].join(", ") : "-";
+    const cells = [r.adapter, r.capability, r.stack, t(`stack_state_${r.state}`), r.toolVersions || "-", evidence, r.prerequisites.join("; ") || "-", r.limitations.join("; ") || "-"];
+    rows.push(`| ${cells.map(esc).join(" | ")} |`);
+  }
+  return `${rows.join("\n")}\n`;
 }
 
 export const MATRIX_START = "<!-- matrix:start -->";

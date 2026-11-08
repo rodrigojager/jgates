@@ -1,4 +1,5 @@
 // Tool instances of the workspace with their bindings (the ids the document routes accept), the catalog of adapters,
+// the capability-by-stack matrix with the per-unit applicability of the project,
 // the area of a tool (effective configuration, rendered command), and the changes of tools.yml: create, rename and
 // remove an instance, select the file of a binding, make a local override, template of a missing file.
 import { toolCatalog, instanceAvailability } from "../../core/tools/catalog.js";
@@ -7,6 +8,8 @@ import { renderExecution } from "../../core/tools/execution.js";
 import { createInstance, createLocalOverride, InstanceError, removeInstance, renameInstance, setBindingPath, templateFor, type InstanceErrorCode } from "../../core/tools/instances.js";
 import { DocumentError } from "../../core/documents/index.js";
 import { resolveToolBindings } from "../../core/tools/index.js";
+import { buildMatrix, unitApplicability, verifyMatrix } from "../../core/matrix/index.js";
+import { discoverWorkspace } from "../../core/discovery/index.js";
 import { HttpError, refuse } from "../http.js";
 import type { RouteDefinition } from "../types.js";
 
@@ -69,6 +72,18 @@ export const routes: RouteDefinition[] = [
     path: "/api/tool-catalog",
     handler() {
       return { status: 200, json: { schemaVersion: 1, status: "OK", adapters: toolCatalog() } };
+    },
+  },
+  {
+    // The capability-by-stack matrix (same document as `jgates tools matrix --json`) and the per-unit applicability
+    // of the served project.
+    method: "GET",
+    path: "/api/tool-matrix",
+    timeoutMs: 30_000,
+    handler({ server }) {
+      const matrix = buildMatrix();
+      const applicability = unitApplicability(discoverWorkspace(server.projectDir).inventory, matrix);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", matrix, problems: verifyMatrix(matrix), applicability } };
     },
   },
   {

@@ -1,7 +1,7 @@
 {
   "tools_description": "Mostra o catálogo de categorias, capacidades e adaptadores.",
   "tools_unknown_action": "Ação desconhecida para tools: {name}",
-  "tools_unknown_action_fix": "Use: jgates tools list [--json], jgates tools inspect <instância> [--json], jgates tools matrix [--json], jgates tools prepare --instance <id> [--image <ref>] [--dry-run] ou jgates tools config read|validate|write <instância> --file <binding>",
+  "tools_unknown_action_fix": "Use: jgates tools list [--json], jgates tools inspect <instância> [--json], jgates tools matrix [--units] [--json], jgates tools distribution [--packs <dir>] [--json], jgates tools prepare --instance <id> [--image <ref>] [--dry-run] ou jgates tools config read|validate|write <instância> --file <binding>",
   "tools_categories": "Categorias:",
   "tools_capabilities": "Capacidades:",
   "tools_adapters": "Adaptadores:",
@@ -78,5 +78,11 @@
   "tools_prepare_image_no_network": "Rede: nenhuma.",
   "tools_prepare_image_done": "Imagem {image} fixada como {pinned} ({version}) no {lock}.",
   "tools_prepare_image_unchanged": "A imagem {image} já estava fixada como {pinned} ({version}) no {lock}.",
-  "tools_prepare_failed": "Preparação falhou"
+  "tools_prepare_failed": "Preparação falhou",
+  "tools_option_units": "Com tools matrix: acrescenta à matriz a aplicabilidade por unidade do projeto (--cwd).",
+  "tools_option_packs": "Com tools distribution: uma pasta de distribuição a verificar (cada subpasta é um pacote com jgates-pack.json); várias separadas por vírgula.",
+  "tools_distribution_ok": "Verificação de distribuição aprovada: {adapters} adaptadores, {packs} pacotes.",
+  "tools_distribution_failed": "Verificação de distribuição reprovada com {count} problemas.",
+  "tools_distribution_fix": "Registre a proveniência (jgates-pack.json com fonte, revisão, SPDX, avisos e revisão) e retire o material restrito antes de distribuir.",
+  "tools_matrix_unit": "{unit} ({root}, {language}): validado {validated}; lacunas {gaps}"
 }

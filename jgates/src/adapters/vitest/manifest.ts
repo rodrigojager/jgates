@@ -63,4 +63,17 @@ export const vitestManifest: AdapterManifest = {
     "The tests and the project's configuration and setup files execute project code.",
     "Visual editing covers static literals; imports, mergeConfig, functions and conditionals keep the file in text mode.",
   ],
+  stackSupport: [
+    { capability: "unit", stack: "typescript", state: "validated", prerequisites: ["Vitest 1+ installed in the project"] },
+    { capability: "coverage", stack: "typescript", state: "validated", prerequisites: ["Vitest 1+ and @vitest/coverage-v8 at the same version in the project"] },
+    { capability: "unit", stack: "javascript", state: "customer-setup-required", prerequisites: ["Vitest 1+ installed in the project"], limitations: ["No JGates test exercises a JavaScript-only project yet; the TypeScript fixture proves the adapter."] },
+    { capability: "coverage", stack: "javascript", state: "customer-setup-required", prerequisites: ["Vitest 1+ and @vitest/coverage-v8 at the same version in the project"], limitations: ["No JGates test exercises a JavaScript-only project yet; the TypeScript fixture proves the adapter."] },
+  ],
+  distribution: {
+    mode: "customer-supplied",
+    sourceUrl: "https://github.com/vitest-dev/vitest",
+    spdx: "MIT",
+    acquisition: ["https://vitest.dev/guide/"],
+    setup: ["https://vitest.dev/config/", "https://vitest.dev/guide/coverage"],
+  },
 };

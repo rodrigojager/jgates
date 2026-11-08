@@ -58,4 +58,15 @@ export const dependencyCruiserManifest: AdapterManifest = {
     "Reads the dependency graph only: the contract of .jgates/architecture.yml is evaluated by JGates on the normalized graph.",
     "An import the tool cannot resolve (an alias without a matching tsconfig path, a package that is not installed) is a gap of coverage, not a pass.",
   ],
+  stackSupport: [
+    { capability: "architecture", stack: "typescript", state: "validated", prerequisites: ["dependency-cruiser 16+ in node_modules", "rules in .jgates/architecture.yml"] },
+    { capability: "architecture", stack: "javascript", state: "customer-setup-required", prerequisites: ["dependency-cruiser 16+ in node_modules", "rules in .jgates/architecture.yml"], limitations: ["No JGates test exercises a JavaScript-only project yet; the TypeScript fixture proves the adapter."] },
+  ],
+  distribution: {
+    mode: "customer-supplied",
+    sourceUrl: "https://github.com/sverweij/dependency-cruiser",
+    spdx: "MIT",
+    acquisition: ["https://github.com/sverweij/dependency-cruiser#readme"],
+    setup: ["https://github.com/sverweij/dependency-cruiser/blob/main/doc/rules-reference.md"],
+  },
 };

@@ -60,4 +60,14 @@ export const ruffManifest: AdapterManifest = {
   origin: "builtin",
   license: "MIT",
   kind: "tool",
+  stackSupport: [
+    { capability: "lint", stack: "python", state: "validated", prerequisites: ["Ruff on PATH (pip) or a container image pinned by tools prepare"] },
+  ],
+  distribution: {
+    mode: "customer-supplied",
+    sourceUrl: "https://github.com/astral-sh/ruff",
+    spdx: "MIT",
+    acquisition: ["https://docs.astral.sh/ruff/installation/"],
+    setup: ["https://docs.astral.sh/ruff/configuration/"],
+  },
 };

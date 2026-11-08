@@ -62,4 +62,15 @@ export const pytestManifest: AdapterManifest = {
     "Runs the project's tests and conftest.py (executes project code); line coverage needs the pytest-cov plugin, which is never installed during a run.",
     "Coverage is by lines of the measured source (src/ when it exists, else the component, or what the component's coverage configuration declares).",
   ],
+  stackSupport: [
+    { capability: "unit", stack: "python", state: "validated", prerequisites: ["pytest 7+ in the project environment"] },
+    { capability: "coverage", stack: "python", state: "validated", prerequisites: ["pytest 7+ and pytest-cov in the project environment"] },
+  ],
+  distribution: {
+    mode: "customer-supplied",
+    sourceUrl: "https://github.com/pytest-dev/pytest",
+    spdx: "MIT",
+    acquisition: ["https://docs.pytest.org/en/stable/getting-started.html", "https://pytest-cov.readthedocs.io/en/latest/readme.html#installation"],
+    setup: ["https://docs.pytest.org/en/stable/reference/customize.html"],
+  },
 };

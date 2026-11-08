@@ -36,6 +36,62 @@ export interface OutputPath {
   env?: string[];
 }
 
+/**
+ * Support state of one capability of an adapter on one stack (a language id of the discovery, or "any" for a check
+ * that does not depend on the language):
+ * - validated: a JGates test (cited in core/matrix/evidence.ts) proves the combination end to end;
+ * - customer-setup-required: the adapter handles the combination once the customer supplies what the prerequisites
+ *   name (tool, rules, image, account), but no JGates test proves it;
+ * - unsupported: the adapter does not handle this stack;
+ * - not-applicable: the capability has no meaning for this stack.
+ */
+export type StackSupportState = "validated" | "customer-setup-required" | "unsupported" | "not-applicable";
+
+export const STACK_SUPPORT_STATES: readonly StackSupportState[] = ["validated", "customer-setup-required", "unsupported", "not-applicable"];
+
+/** The stack id of a check that does not depend on the language of the code it reads. */
+export const ANY_STACK = "any";
+
+/** One row of the capability-by-stack support an adapter declares. */
+export interface StackSupport {
+  capability: string;
+  /** A discovery language id (python, typescript, javascript, go, rust, csharp...) or "any". */
+  stack: string;
+  state: StackSupportState;
+  /** What must exist outside JGates for the combination to run (tool, configuration, image...). */
+  prerequisites?: string[];
+  /** Supported tool versions for this combination; default: the manifest's toolVersionRange. */
+  toolVersions?: string;
+  /** What the combination does not cover; required for a state other than validated. */
+  limitations?: string[];
+}
+
+/**
+ * How the external tool (or material) an adapter drives reaches the customer:
+ * - shipped: JGates distributes it, with its terms satisfied (SPDX and notices recorded);
+ * - prepared-from-authorized-source: an explicit user step (tools prepare, setup) fetches it from its official source;
+ * - customer-supplied: the customer obtains the tool, rules, account and entitlement; JGates ships only the adapter.
+ */
+export type DistributionMode = "shipped" | "prepared-from-authorized-source" | "customer-supplied";
+
+export const DISTRIBUTION_MODES: readonly DistributionMode[] = ["shipped", "prepared-from-authorized-source", "customer-supplied"];
+
+export interface ToolDistribution {
+  mode: DistributionMode;
+  /** Official source of the tool or material (repository or project page). */
+  sourceUrl?: string;
+  /** Pinned revision of what is shipped or prepared (tag, commit or digest). */
+  revision?: string;
+  /** SPDX license expression of the tool or material. */
+  spdx?: string;
+  /** Notice files or texts that must travel with what is shipped. */
+  notices?: string[];
+  /** Official acquisition, download or installation links. */
+  acquisition?: string[];
+  /** Official setup and configuration links. */
+  setup?: string[];
+}
+
 /** Adapter manifest; validated against schemas/catalog/adapter-manifest.schema.json. */
 export interface AdapterManifest {
   schemaVersion: 1;
@@ -68,6 +124,10 @@ export interface AdapterManifest {
   kind?: "tool" | "composite";
   subchecks?: Subcheck[];
   limitations?: string[];
+  /** Capability-by-stack support; every capability needs at least one row (checked by verifyMatrix). */
+  stackSupport?: StackSupport[];
+  /** How the external tool reaches the customer (checked by the distribution check). */
+  distribution?: ToolDistribution;
   [key: string]: unknown;
 }
 

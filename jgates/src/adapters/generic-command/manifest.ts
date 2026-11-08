@@ -48,4 +48,10 @@ export const genericCommandManifest: AdapterManifest = {
   origin: "builtin",
   license: "MIT",
   kind: "tool",
+  stackSupport: [],
+  distribution: {
+    mode: "shipped",
+    spdx: "MIT",
+    notices: ["LICENSE"],
+  },
 };

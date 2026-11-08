@@ -60,4 +60,14 @@ export const osvScannerManifest: AdapterManifest = {
     "runs only on the container runner, in the image `jgates tools prepare` pins in .jgates/lock.json (the sidecar image by default)",
     "online mode: queries the osv.dev API, which reports no database date",
   ],
+  stackSupport: [
+    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)", "the osv.dev advisory database"] },
+  ],
+  distribution: {
+    mode: "prepared-from-authorized-source",
+    sourceUrl: "https://github.com/google/osv-scanner",
+    spdx: "Apache-2.0",
+    acquisition: ["https://google.github.io/osv-scanner/installation/"],
+    setup: ["https://google.github.io/osv-scanner/configuration/"],
+  },
 };

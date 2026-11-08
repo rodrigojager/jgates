@@ -146,7 +146,39 @@
         }
       }
     },
-    "limitations": { "type": "array", "items": { "type": "string" } }
+    "limitations": { "type": "array", "items": { "type": "string" } },
+    "stackSupport": {
+      "description": "Capability-by-stack support: one row per capability and stack (a discovery language id or \"any\"). A validated row needs a proving test in core/matrix/evidence.ts.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["capability", "stack", "state"],
+        "additionalProperties": false,
+        "properties": {
+          "capability": { "$ref": "#/$defs/id" },
+          "stack": { "type": "string", "pattern": "^[a-z][a-z0-9+#.-]*$" },
+          "state": { "enum": ["validated", "customer-setup-required", "unsupported", "not-applicable"] },
+          "prerequisites": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "toolVersions": { "type": "string", "minLength": 1 },
+          "limitations": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "distribution": {
+      "description": "How the external tool or material reaches the customer.",
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["shipped", "prepared-from-authorized-source", "customer-supplied"] },
+        "sourceUrl": { "type": "string", "pattern": "^https://" },
+        "revision": { "type": "string", "minLength": 1 },
+        "spdx": { "type": "string", "minLength": 1 },
+        "notices": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "acquisition": { "type": "array", "items": { "type": "string", "pattern": "^https://" } },
+        "setup": { "type": "array", "items": { "type": "string", "pattern": "^https://" } }
+      }
+    }
   },
   "$defs": {
     "id": {

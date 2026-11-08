@@ -59,4 +59,15 @@ export const semgrepManifest: AdapterManifest = {
   origin: "builtin",
   license: "LGPL-2.1",
   kind: "tool",
+  stackSupport: [
+    { capability: "sast", stack: "python", state: "validated", prerequisites: ["Semgrep 1.100+ (pip)", "local rules in the project or prepared with tools prepare"] },
+    { capability: "sast", stack: "any", state: "customer-setup-required", prerequisites: ["Semgrep 1.100+ (pip)", "local rules for the language, supplied by the customer or prepared with tools prepare"], limitations: ["Only a Python fixture is proven; other languages depend on the rules the customer supplies.", "Official semgrep-rules are never shipped: tools prepare fetches registry rules for the customer's own use."] },
+  ],
+  distribution: {
+    mode: "customer-supplied",
+    sourceUrl: "https://github.com/semgrep/semgrep",
+    spdx: "LGPL-2.1-only",
+    acquisition: ["https://semgrep.dev/docs/getting-started/cli"],
+    setup: ["https://semgrep.dev/docs/writing-rules/overview"],
+  },
 };

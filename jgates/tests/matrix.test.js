@@ -1,16 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
 const repo = path.resolve(here, "..", "..");
-const mx = await import(path.join(dist, "core", "matrix", "index.js"));
-const { builtinManifests } = await import(path.join(dist, "adapters", "manifests.js"));
+const mx = await import(pathToFileURL(path.join(dist, "core", "matrix", "index.js")).href);
+const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
 
 function cliMatrix() {
   const r = spawnSync(process.execPath, [MAIN, "tools", "matrix", "--json"], { encoding: "utf8" });
@@ -84,6 +85,119 @@ test("an adapter without a described limitation fails the verification", () => {
   const matrix = mx.buildMatrix();
   matrix.adapters.find((a) => a.id === "jscpd").limitation = { en: "", ptBR: "" };
   assert.ok(mx.verifyMatrix(matrix).some((p) => p.startsWith("jscpd: no limitation")));
+});
+
+const STATES = ["validated", "customer-setup-required", "unsupported", "not-applicable"];
+
+test("tools matrix --json lists capability-by-stack rows keyed by adapter, capability and stack, each with a state and an evidence reference", () => {
+  const doc = cliMatrix();
+  const rows = doc.matrix.rows;
+  assert.ok(rows.length > 0);
+  assert.equal(new Set(rows.map((r) => r.key)).size, rows.length, "row keys are unique");
+  for (const r of rows) {
+    assert.equal(r.key, `${r.adapter}#${r.capability}@${r.stack}`);
+    assert.ok(STATES.includes(r.state), r.key);
+    assert.ok(Array.isArray(r.evidence.tests), `${r.key} has an evidence reference`);
+    if (r.state === "validated") assert.ok(r.evidence.tests.length > 0, `${r.key} is validated by a test`);
+    else assert.ok(r.limitations.length > 0, `${r.key} states what it does not cover`);
+  }
+  const row = (key) => rows.find((r) => r.key === key);
+  assert.equal(row("ruff#lint@python").state, "validated");
+  assert.deepEqual(row("ruff#lint@python").evidence.tests.map((x) => x.file), ["adapter-ruff.test.js"]);
+  assert.equal(row("ruff#lint@python").distribution, "customer-supplied");
+  assert.equal(row("eslint#lint@typescript").state, "validated");
+  assert.equal(row("eslint#lint@javascript").state, "customer-setup-required");
+  assert.equal(row("gitleaks#secrets@any").state, "validated");
+  const bridgeLint = row("quality-bridge#lint@any");
+  assert.equal(bridgeLint.state, "customer-setup-required");
+  assert.deepEqual(bridgeLint.evidence.tests, []);
+  assert.match(bridgeLint.evidence.note.en, /Docker smoke of the bridge/);
+  // Every capability a manifest announces has at least one row.
+  for (const a of doc.matrix.adapters) for (const c of a.capabilities) assert.ok(rows.some((r) => r.adapter === a.id && r.capability === c.id), `${a.id}#${c.id} has a row`);
+  for (const a of doc.matrix.adapters) assert.ok(a.distribution && a.distribution.mode, `${a.id} has distribution metadata`);
+});
+
+test("a row claiming validated support without an evidence test makes verifyMatrix fail", () => {
+  // A manifest that claims Ruff lint is validated on Go, with no test for that stack in the evidence table.
+  const manifests = builtinManifests().map((m) => (m.id === "ruff" ? { ...m, stackSupport: [...m.stackSupport, { capability: "lint", stack: "go", state: "validated" }] } : m));
+  const problems = mx.verifyMatrix(mx.buildMatrix(manifests));
+  assert.ok(problems.some((p) => p.startsWith("ruff#lint@go: validated without an evidence test")), problems.join("\n"));
+
+  // The same row with its evidence removed from the matrix document.
+  const matrix = mx.buildMatrix();
+  matrix.rows.find((r) => r.key === "pytest#unit@python").evidence.tests = [];
+  assert.ok(mx.verifyMatrix(matrix).some((p) => p.startsWith("pytest#unit@python: validated without an evidence test")));
+
+  // Evidence that cites a test whose title does not say it proves the capability does not count.
+  const cited = mx.buildMatrix();
+  cited.rows.find((r) => r.key === "ruff#lint@python").evidence.tests = [{ file: "adapters-security.test.js", test: "Checkov 3.3.8" }];
+  assert.ok(mx.verifyMatrix(cited).some((p) => p.startsWith("ruff#lint@python") && p.includes("[proves: ruff#lint]")));
+});
+
+test("a capability without a stack row, a non-validated row without a limitation and an adapter without distribution metadata fail the verification", () => {
+  const manifests = builtinManifests().map((m) => {
+    if (m.id === "ruff") return { ...m, stackSupport: [] };
+    if (m.id === "eslint") return { ...m, stackSupport: m.stackSupport.map((r) => ({ ...r, limitations: [] })) };
+    if (m.id === "jscpd") {
+      const { distribution, ...rest } = m;
+      return rest;
+    }
+    return m;
+  });
+  const problems = mx.verifyMatrix(mx.buildMatrix(manifests));
+  assert.ok(problems.some((p) => p.startsWith("ruff#lint: no capability-by-stack row")), problems.join("\n"));
+  assert.ok(problems.some((p) => p.startsWith("eslint#lint@javascript: state customer-setup-required without a stated limitation")), problems.join("\n"));
+  assert.ok(problems.some((p) => p.startsWith("jscpd: no distribution metadata")), problems.join("\n"));
+});
+
+test("tools matrix --units gives each unit of a mixed repository the rows of its own stack plus the stack-independent ones", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-matrix-units-"));
+  try {
+    const write = (rel, text) => {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), text);
+    };
+    write("api/pyproject.toml", '[project]\nname = "api"\nversion = "0.1.0"\n');
+    write("api/app.py", "print('api')\n");
+    write("web/package.json", JSON.stringify({ name: "web", private: true, devDependencies: { typescript: "^5.0.0" } }) + "\n");
+    write("web/tsconfig.json", "{}\n");
+    write("web/src/index.ts", "export const x = 1;\n");
+    const r = spawnSync(process.execPath, [MAIN, "tools", "matrix", "--units", "--json", "--cwd", dir], { encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    const doc = JSON.parse(r.stdout);
+    const api = doc.applicability.find((u) => u.componentRoot === "api");
+    const web = doc.applicability.find((u) => u.componentRoot === "web");
+    assert.ok(api && web, JSON.stringify(doc.applicability.map((u) => [u.componentRoot, u.language])));
+    assert.equal(api.language, "python");
+    assert.equal(web.language, "typescript");
+    const keys = (u) => u.rows.map((x) => x.key);
+    assert.ok(keys(api).includes("ruff#lint@python") && !keys(api).includes("eslint#lint@typescript"));
+    assert.ok(keys(web).includes("eslint#lint@typescript") && !keys(web).includes("ruff#lint@python"));
+    for (const u of [api, web]) assert.ok(keys(u).includes("gitleaks#secrets@any"), `${u.componentRoot} gets the stack-independent rows`);
+    assert.ok(api.validated.includes("architecture") && web.validated.includes("architecture"));
+    for (const u of [api, web]) for (const gap of u.gaps) assert.ok(!u.validated.includes(gap));
+    // Without --units the document has no applicability (the matrix alone stays machine-independent).
+    assert.equal(cliMatrix().applicability, undefined);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the tools API returns the same capability-by-stack matrix and the applicability of the served project", async () => {
+  const { routes } = await import(pathToFileURL(path.join(dist, "server", "routes", "tools.js")).href);
+  const route = routes.find((r) => r.method === "GET" && r.path === "/api/tool-matrix");
+  assert.ok(route, "GET /api/tool-matrix exists");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-matrix-api-"));
+  try {
+    fs.writeFileSync(path.join(dir, "pyproject.toml"), '[project]\nname = "x"\nversion = "0.1.0"\n');
+    const res = await route.handler({ server: { projectDir: dir, log() {} }, params: {}, query: {}, body: undefined });
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.json.problems, []);
+    assert.deepEqual(res.json.matrix.rows, cliMatrix().matrix.rows);
+    assert.ok(res.json.applicability.some((u) => u.language === "python" && u.rows.some((x) => x.key === "pytest#unit@python")));
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("the stacks table declares Go, Rust and .NET as partial support", () => {

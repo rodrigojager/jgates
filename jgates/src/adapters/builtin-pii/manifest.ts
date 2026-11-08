@@ -51,4 +51,12 @@ export const builtinPiiManifest: AdapterManifest = {
   origin: "builtin",
   license: "MIT",
   kind: "tool",
+  stackSupport: [
+    { capability: "pii", stack: "any", state: "validated", prerequisites: ["Python 3.11+ (JGates sidecar)"] },
+  ],
+  distribution: {
+    mode: "shipped",
+    spdx: "MIT",
+    notices: ["LICENSE"],
+  },
 };
