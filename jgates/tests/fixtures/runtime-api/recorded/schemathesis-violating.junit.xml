@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites errors="0" failures="1" skipped="0" tests="1" time="0.131392">
+  <testsuite name="schemathesis" hostname="fixture-host" errors="0" failures="1" skipped="0" tests="1" time="0.131392">
+    <testcase name="GET /users/{id}" time="0.131392">
+      <failure type="failure" message="ST101, ST103">1. Test Case ID: XSdhtk
+
+- ST101 Server error
+
+- ST103 Undocumented status code
+
+    Received: 500
+    Documented: 200, 400, 404
+
+[500] Internal Server Error:
+
+    `{"error":"internal error"}`
+
+Reproduce with:
+
+    curl -X GET http://127.0.0.1:58096/users/999999</failure>
+      <failure type="failure" message="ST108">1. Test Case ID: UeHNCy
+
+- ST108 Response violates schema
+
+    Additional properties are not allowed ('password' was unexpected)
+
+    Validated against the response schema for status code 200.
+
+    Schema:
+
+        {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        }
+
+    Value:
+
+        {
+            "id": 1,
+            "name": "user 1",
+            "password": "hunter2"
+        }
+
+[200] OK:
+
+    `{"id":1,"name":"user 1","password":"hunter2"}`
+
+Reproduce with:
+
+    curl -X GET http://127.0.0.1:58096/users/1</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

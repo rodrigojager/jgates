@@ -1,0 +1,110 @@
+{
+  "schemathesis_version": "4.33.1",
+  "command": "st run openapi.yaml --url http://127.0.0.1:58096 --checks not_a_server_error,status_code_conformance,content_type_conformance,response_schema_conformance --max-examples 30 --seed 42 --report json,ndjson,junit --report-dir reports --workers 1 --no-color",
+  "seed": 42,
+  "started_at": "2026-11-08T18:15:34.547769+00:00",
+  "running_time": 0.22522439999738708,
+  "stop_reason": "completed",
+  "complete": true,
+  "exit_code": 1,
+  "operations": {
+    "total": 1,
+    "selected": 1,
+    "tested": 1,
+    "errored": 0,
+    "skipped": 0,
+    "skip_reasons": []
+  },
+  "phases": {
+    "examples": {
+      "status": "skip",
+      "skip_reason": null
+    },
+    "coverage": {
+      "status": "failure",
+      "skip_reason": null
+    },
+    "fuzzing": {
+      "status": "failure",
+      "skip_reason": null
+    },
+    "stateful": {
+      "status": "skip",
+      "skip_reason": "not_applicable"
+    }
+  },
+  "test_cases": {
+    "generated": 17,
+    "with_failures": 2,
+    "unique_failures": 3,
+    "without_checks": 0,
+    "errored": 0
+  },
+  "failures": [
+    {
+      "type": "ServerError",
+      "code": "ST101",
+      "title": "Server error",
+      "severity": "critical",
+      "count": 1,
+      "operations": [
+        "GET /users/{id}"
+      ]
+    },
+    {
+      "type": "JsonSchemaError",
+      "code": "ST108",
+      "title": "Response violates schema",
+      "severity": "high",
+      "count": 1,
+      "operations": [
+        "GET /users/{id}"
+      ]
+    },
+    {
+      "type": "UndefinedStatusCode",
+      "code": "ST103",
+      "title": "Undocumented status code",
+      "severity": "medium",
+      "count": 1,
+      "operations": [
+        "GET /users/{id}"
+      ]
+    }
+  ],
+  "errors": [],
+  "baseline": null,
+  "filtered": 0,
+  "warnings": {
+    "missing_auth": [],
+    "base_url_mismatch": [],
+    "missing_test_data": [],
+    "validation_mismatch": [],
+    "missing_deserializer": [],
+    "unused_openapi_auth": [],
+    "unsupported_regex": [],
+    "method_not_allowed": [],
+    "constants_extraction": [],
+    "unmatched_filter": [],
+    "unresolvable_reference": [],
+    "unsupported_field": [],
+    "low_valid_rate": [],
+    "rate_limited": [],
+    "not_served": [],
+    "dictionary_mismatch": []
+  },
+  "valid_rates": {
+    "GET /users/{id}": {
+      "fuzzing": {
+        "accepted": 1,
+        "unreachable": 0,
+        "conflicts": 0,
+        "rejected": 0
+      }
+    }
+  },
+  "auth": {
+    "reauth_count": 0,
+    "reauth_broke": false
+  }
+}

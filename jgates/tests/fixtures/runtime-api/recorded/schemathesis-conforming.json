@@ -1,0 +1,85 @@
+{
+  "schemathesis_version": "4.33.1",
+  "command": "st run openapi.yaml --url http://127.0.0.1:59446 --checks not_a_server_error,status_code_conformance,content_type_conformance,response_schema_conformance --max-examples 30 --seed 42 --report json,junit --report-json-path recorded\\schemathesis-conforming.json --report-junit-path recorded\\schemathesis-conforming.junit.xml --workers 1 --no-color",
+  "seed": 42,
+  "started_at": "2026-11-08T18:18:24.790646+00:00",
+  "running_time": 0.4574225000105798,
+  "stop_reason": "completed",
+  "complete": true,
+  "exit_code": 0,
+  "operations": {
+    "total": 1,
+    "selected": 1,
+    "tested": 1,
+    "errored": 0,
+    "skipped": 0,
+    "skip_reasons": []
+  },
+  "phases": {
+    "examples": {
+      "status": "skip",
+      "skip_reason": null
+    },
+    "coverage": {
+      "status": "success",
+      "skip_reason": null
+    },
+    "fuzzing": {
+      "status": "success",
+      "skip_reason": null
+    },
+    "stateful": {
+      "status": "skip",
+      "skip_reason": "not_applicable"
+    }
+  },
+  "test_cases": {
+    "generated": 50,
+    "with_failures": 0,
+    "unique_failures": 0,
+    "without_checks": 0,
+    "errored": 0
+  },
+  "failures": [],
+  "errors": [],
+  "baseline": null,
+  "filtered": 0,
+  "warnings": {
+    "missing_auth": [],
+    "base_url_mismatch": [],
+    "missing_test_data": [],
+    "validation_mismatch": [],
+    "missing_deserializer": [],
+    "unused_openapi_auth": [],
+    "unsupported_regex": [],
+    "method_not_allowed": [],
+    "constants_extraction": [],
+    "unmatched_filter": [],
+    "unresolvable_reference": [],
+    "unsupported_field": [],
+    "low_valid_rate": [],
+    "rate_limited": [],
+    "not_served": [],
+    "dictionary_mismatch": []
+  },
+  "valid_rates": {
+    "GET /users/{id}": {
+      "coverage": {
+        "accepted": 4,
+        "unreachable": 0,
+        "conflicts": 0,
+        "rejected": 0
+      },
+      "fuzzing": {
+        "accepted": 29,
+        "unreachable": 0,
+        "conflicts": 0,
+        "rejected": 0
+      }
+    }
+  },
+  "auth": {
+    "reauth_count": 0,
+    "reauth_broke": false
+  }
+}

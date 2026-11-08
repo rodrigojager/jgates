@@ -12,6 +12,8 @@ import { probeSemgrep } from "../../adapters/semgrep/probe.js";
 import { probeZizmor } from "../../adapters/zizmor/probe.js";
 import { probeCodeql } from "../../adapters/codeql/probe.js";
 import { probeOasdiff } from "../../adapters/oasdiff/probe.js";
+import { probeSchemathesis } from "../../adapters/schemathesis/probe.js";
+import { probeZap } from "../../adapters/zap/probe.js";
 import { findOnPath, resolvePython, resolveSidecarDir } from "../bridge/index.js";
 import { probeEnv } from "../runner/probe-env.js";
 import type { AdapterManifest } from "../catalog/index.js";
@@ -122,6 +124,12 @@ function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, project
   if (manifest.id === "semgrep") return probeSemgrep(env);
   if (manifest.id === "zizmor") return probeZizmor(env);
   if (manifest.id === "oasdiff") return probeOasdiff(env);
+  if (manifest.id === "schemathesis") return probeSchemathesis(env);
+  if (manifest.id === "zap") {
+    // The default image; an instance that names another one is checked when it is planned.
+    const p = probeZap(env);
+    return { executable: p.runtime, version: null, problem: p.problem === null ? null : "not_found", detail: p.problem === null ? "" : p.detail };
+  }
   if (manifest.id === "codeql") return probeCodeql(env);
   if (manifest.id === "import-linter") {
     const p = probeImportLinter(env);
@@ -152,11 +160,12 @@ function containerProbe(image: LockedImageProbe): ToolProbe {
 }
 
 function fixFor(manifest: AdapterManifest): string | null {
-  if (manifest.id === "ruff" || manifest.id === "semgrep" || manifest.id === "import-linter" || manifest.id === "zizmor" || manifest.id === "quality-bridge") return INSTALL_FIX;
+  if (manifest.id === "ruff" || manifest.id === "semgrep" || manifest.id === "import-linter" || manifest.id === "zizmor" || manifest.id === "schemathesis" || manifest.id === "quality-bridge") return INSTALL_FIX;
   if (manifest.id === "pytest") return translator("prepare")("prepare_fix_pytest");
   // A customer-supplied binary: the guidance names the official release and where JGates looks for it.
   if (manifest.id === "oasdiff") return translator("oasdiff")("oasdiff_fix");
   if (manifest.id === "codeql") return translator("codeql")("codeql_fix");
+  if (manifest.id === "zap") return translator("zap")("zap_fix");
   return null;
 }
 

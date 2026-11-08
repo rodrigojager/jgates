@@ -195,6 +195,26 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     },
     external: { en: "oasdiff 1.10+ (customer-supplied binary: release, go install or package manager)", ptBR: "oasdiff 1.10+ (binário fornecido pelo cliente: release, go install ou gerenciador de pacotes)" },
   },
+  schemathesis: {
+    capabilities: {
+      "api-contract": proven(["any"], t("adapter-runtime-api.test.js", "schemathesis: a target violating its OpenAPI schema yields findings with a reproduction and the conforming twin none [proves: schemathesis#api-contract]")),
+    },
+    limitation: {
+      en: "Runs only against a configured running target (local or disposable, never production); without a target the stage is blocked, never passed; OpenAPI HTTP APIs only.",
+      ptBR: "Roda só contra um alvo em execução configurado (local ou descartável, nunca produção); sem alvo a etapa fica bloqueada, nunca aprovada; só APIs HTTP descritas em OpenAPI.",
+    },
+    external: { en: "schemathesis 4.x (pip, prepared by jgates doctor --fix) and a running target", ptBR: "schemathesis 4.x (pip, preparado por jgates doctor --fix) e um alvo em execução" },
+  },
+  zap: {
+    capabilities: {
+      dast: proven(["any"], t("adapter-runtime-api.test.js", "zap: the passive API scan of a target missing security headers yields alerts and the hardened twin none [proves: zap#dast]")),
+    },
+    limitation: {
+      en: "Runs only against a configured running target; passive by default, active only when the instance sets mode: active and allowActive: true; without a target the stage is blocked, never passed.",
+      ptBR: "Roda só contra um alvo em execução configurado; passivo por padrão, ativo só quando a instância define mode: active e allowActive: true; sem alvo a etapa fica bloqueada, nunca aprovada.",
+    },
+    external: { en: "Docker and the ZAP image ghcr.io/zaproxy/zaproxy (customer-supplied, never pulled during a run)", ptBR: "Docker e a imagem do ZAP ghcr.io/zaproxy/zaproxy (fornecidos pelo cliente, nunca baixados durante uma execução)" },
+  },
   codeql: {
     capabilities: {
       dataflow: proven(["any"], t("adapter-codeql.test.js", "codeql: a CodeQL SARIF with a path-problem is a normalized dataflow finding and a clean one none [proves: codeql#dataflow]")),

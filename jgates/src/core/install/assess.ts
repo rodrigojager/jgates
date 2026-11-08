@@ -75,11 +75,11 @@ export interface AssessOptions {
 /** Adapters whose tool JGates installs with pip into its own environment, with the pip package name. */
 // Import Linter reads the source only (grimp never imports the project), so it can live in JGates's environment like
 // Ruff; pytest cannot: it runs the project's code and needs the project's own environment and dependencies.
-export const PYTHON_PACKAGES: Readonly<Record<string, string>> = { ruff: "ruff", semgrep: "semgrep", "import-linter": "import-linter", zizmor: "zizmor" };
+export const PYTHON_PACKAGES: Readonly<Record<string, string>> = { ruff: "ruff", semgrep: "semgrep", "import-linter": "import-linter", zizmor: "zizmor", schemathesis: "schemathesis" };
 /** Adapters that need a Python interpreter on the host. */
 const NEEDS_PYTHON = new Set(["quality-bridge", "builtin-pii", "pytest", "import-linter"]);
 /** The variable that chooses the executable of an adapter: when it is set, JGates does not install another one. */
-const CHOSEN_BY: Readonly<Record<string, string>> = { ruff: "JGATES_RUFF", semgrep: "JGATES_SEMGREP", "import-linter": "JGATES_IMPORT_LINTER", zizmor: "JGATES_ZIZMOR", "quality-bridge": "JGATES_PYTHON" };
+const CHOSEN_BY: Readonly<Record<string, string>> = { ruff: "JGATES_RUFF", semgrep: "JGATES_SEMGREP", "import-linter": "JGATES_IMPORT_LINTER", zizmor: "JGATES_ZIZMOR", schemathesis: "JGATES_SCHEMATHESIS", "quality-bridge": "JGATES_PYTHON" };
 
 function toolMissing(x: ToolStatus): boolean {
   if (x.state === "absent" || x.state === "incompatible") return true;

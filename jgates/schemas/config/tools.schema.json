@@ -82,8 +82,72 @@
             "type": "boolean"
           },
           "spec": {
-            "description": "oasdiff: the OpenAPI specification to check, relative to the scan root (default: openapi.yaml, openapi.json, swagger.* or the same under api/, docs/, spec/).",
+            "description": "oasdiff, schemathesis, zap: the OpenAPI specification, relative to the scan root (oasdiff and schemathesis default: openapi.yaml, openapi.json, swagger.* or the same under api/, docs/, spec/; zap: when set, the API scan replaces the baseline).",
             "$ref": "#/$defs/pathText"
+          },
+          "target": {
+            "description": "schemathesis, zap: the base URL (http:// or https://, no credentials, query or fragment) of the running local or disposable environment to test. Without it the stage is blocked, never passed.",
+            "type": "string",
+            "pattern": "^https?://[^\\s@?#]+$"
+          },
+          "auth": {
+            "description": "schemathesis, zap: the authentication header sent to the target. The value is read at run time from the environment variable valueEnv; the secret itself is never written here.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["header", "valueEnv"],
+            "properties": {
+              "header": { "type": "string", "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]+$" },
+              "valueEnv": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" }
+            }
+          },
+          "seed": {
+            "description": "schemathesis: the random seed of the generated test cases (default 1), so a run can be reproduced.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "maxExamples": {
+            "description": "schemathesis: the maximum number of test cases per API operation (default 50).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "requestTimeoutSeconds": {
+            "description": "schemathesis: the timeout of each request sent to the target (default 10 s); timeoutSeconds bounds the whole stage.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 300
+          },
+          "checks": {
+            "description": "schemathesis: the checks applied to every response (default: not_a_server_error, status_code_conformance, content_type_conformance, response_schema_conformance).",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": ["not_a_server_error", "status_code_conformance", "content_type_conformance", "response_schema_conformance", "response_headers_conformance", "negative_data_rejection", "positive_data_acceptance", "missing_required_header", "unsupported_method", "allow_header_conformance", "use_after_free", "ensure_resource_availability", "ignored_auth"]
+            }
+          },
+          "mode": {
+            "description": "zap: passive (default: baseline or API scan with passive rules only) or active (attack payloads; refused unless allowActive is true).",
+            "enum": ["passive", "active"]
+          },
+          "allowActive": {
+            "description": "zap: the explicit permission for mode: active. The plan then lists the effects of the active scan on the target.",
+            "type": "boolean"
+          },
+          "image": {
+            "description": "zap: the ZAP image to run (default ghcr.io/zaproxy/zaproxy:stable); it must be present locally, it is never pulled during a run.",
+            "type": "string",
+            "minLength": 1
+          },
+          "blockingRisk": {
+            "description": "zap: the lowest alert risk that blocks (default medium).",
+            "enum": ["informational", "low", "medium", "high"]
+          },
+          "spiderMinutes": {
+            "description": "zap: how long the spider of the baseline or full scan may crawl (default 1 minute).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
           },
           "baseRef": {
             "description": "oasdiff: the git revision (branch, tag, commit) whose copy of the specification is the reference. Without baseRef or baseSpec the stage is blocked.",

@@ -22,6 +22,8 @@ import { zizmorAdapter } from "../../adapters/zizmor/index.js";
 import { oasdiffAdapter } from "../../adapters/oasdiff/index.js";
 import { codeqlAdapter } from "../../adapters/codeql/index.js";
 import { buildCheckAdapter } from "../../adapters/build-check/index.js";
+import { schemathesisAdapter } from "../../adapters/schemathesis/index.js";
+import { zapAdapter } from "../../adapters/zap/index.js";
 
 export interface ExternalPlanInput {
   /** Workspace directory (absolute). */
@@ -93,6 +95,8 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [oasdiffAdapter.manifest.id, oasdiffAdapter],
   [codeqlAdapter.manifest.id, codeqlAdapter],
   [buildCheckAdapter.manifest.id, buildCheckAdapter],
+  [schemathesisAdapter.manifest.id, schemathesisAdapter],
+  [zapAdapter.manifest.id, zapAdapter],
 ]);
 
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {
