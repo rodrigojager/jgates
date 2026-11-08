@@ -20,6 +20,7 @@ import { eslintAdapter } from "../../adapters/eslint/index.js";
 import { jscpdAdapter } from "../../adapters/jscpd/index.js";
 import { zizmorAdapter } from "../../adapters/zizmor/index.js";
 import { oasdiffAdapter } from "../../adapters/oasdiff/index.js";
+import { buildCheckAdapter } from "../../adapters/build-check/index.js";
 
 export interface ExternalPlanInput {
   /** Workspace directory (absolute). */
@@ -89,6 +90,7 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [jscpdAdapter.manifest.id, jscpdAdapter],
   [zizmorAdapter.manifest.id, zizmorAdapter],
   [oasdiffAdapter.manifest.id, oasdiffAdapter],
+  [buildCheckAdapter.manifest.id, buildCheckAdapter],
 ]);
 
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {

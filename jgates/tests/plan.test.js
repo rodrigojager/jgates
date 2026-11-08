@@ -82,7 +82,7 @@ test("plan --json on the main fixture: items of the three components with origin
       assert.ok(item.origin.kind !== "none", item.id);
       // Included by a template: the base template, reached by the python and typescript entries the discovery activated.
       const entries = item.includedBy.filter((i) => i.kind === "template").map((i) => `${i.entry}:${i.reason}`).sort();
-      assert.deepEqual(entries, ["base:ALWAYS", "python:DETECTED", "typescript:DETECTED"], item.id);
+      assert.deepEqual(entries, ["base:ALWAYS", "python:DETECTED", "typescript-tsc:DETECTED", "typescript:DETECTED"], item.id);
       assert.ok(item.category && item.capabilities.length === 1, item.id);
     }
     const ruffItem = p.groups.willRun.find((i) => i.id === "ruff#lint");
@@ -217,7 +217,7 @@ test("a plan whose selected requirements all lack an executable check is blocked
         "  sem-ferramenta:",
         "    label: Sem ferramenta",
         "    checks:",
-        ...["file-size", "lint", "secrets", "sast", "dependencies", "duplication", "iac", "unit", "coverage", "pii", "architecture"].map((c) => `      capability:${c}: { enabled: false }`),
+        ...["file-size", "lint", "secrets", "sast", "dependencies", "duplication", "iac", "unit", "coverage", "pii", "architecture", "typecheck"].map((c) => `      capability:${c}: { enabled: false }`),
         "      capability:mutation: { enabled: true }",
         "",
       ].join("\n"),
@@ -236,7 +236,7 @@ test("a plan whose selected requirements all lack an executable check is blocked
     assert.deepEqual(p.groups.uncoveredRequirements.map((u) => `${u.selector}:${u.reason}`).sort(), ["capability:mutation:NO_EXECUTABLE_CHECK"]);
 
     // Turning every check off for one run is blocked the same way.
-    const skipped = plan("--skip", "tool:quality-bridge,tool:ruff,tool:builtin-pii", "--json");
+    const skipped = plan("--skip", "tool:quality-bridge,tool:ruff,tool:builtin-pii,tool:tsc", "--json");
     assert.equal(skipped.code, 3, skipped.out);
     assert.equal(json(skipped).plan.blocked.code, "PLAN_EMPTY");
     assert.ok(json(skipped).plan.groups.uncoveredRequirements.every((u) => u.reason === "DISABLED_FOR_RUN"));

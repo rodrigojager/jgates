@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet-build",
+  "label": ".NET build",
+  "description": "Runs dotnet build on the project file of C# components. Compiler errors are located findings. The .NET SDK is supplied by you; analyzers and MSBuild targets of the project run.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "csharp"
+    ]
+  },
+  "config": {
+    "tools": {
+      "dotnet-build": {
+        "adapter": "build-check",
+        "enabled": true,
+        "capabilities": [
+          "typecheck"
+        ],
+        "config": {
+          "checker": "dotnet"
+        }
+      }
+    }
+  }
+}

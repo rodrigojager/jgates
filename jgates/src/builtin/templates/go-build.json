@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "go-build",
+  "label": "Go build and vet",
+  "description": "Runs go build ./... and go vet ./... in Go components (go.mod), offline. Type and build errors are located findings. The Go toolchain is supplied by you and is never installed during a run.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "go"
+    ]
+  },
+  "config": {
+    "tools": {
+      "go-build": {
+        "adapter": "build-check",
+        "enabled": true,
+        "capabilities": [
+          "typecheck"
+        ],
+        "config": {
+          "checker": "go"
+        }
+      }
+    }
+  }
+}

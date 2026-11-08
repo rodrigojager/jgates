@@ -46,6 +46,13 @@ const proven = (stacks: string[], ...tests: TestRef[]): CapabilityEvidence => ({
 
 const TRIVY = t("adapters-security.test.js", "Trivy 0.72.0: vulnerabilities, misconfigurations and secrets");
 
+const BC_TS = t("adapter-build-check.test.js", "build-check typescript: tsc reports the type error with its location and the clean twin none");
+const BC_MYPY = t("adapter-build-check.test.js", "build-check python (mypy): the type error is a located finding and the clean twin none");
+const BC_PYRIGHT = t("adapter-build-check.test.js", "build-check python (pyright): the type error is a located finding and the clean twin none");
+const BC_GO = t("adapter-build-check.test.js", "build-check go: go build reports the type error with its location and the clean twin none");
+const BC_RUST = t("adapter-build-check.test.js", "build-check rust: cargo check reports the type error with its location and the clean twin none");
+const BC_CSHARP = t("adapter-build-check.test.js", "build-check csharp: dotnet build reports the type error with its location and the clean twin none");
+
 /** A bridge capability that runs only in the sidecar image: no test of the default suite exercises its scanner. */
 const bridgeDeclared = (scanners: string): CapabilityEvidence => ({
   tests: [],
@@ -187,6 +194,23 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       ptBR: "Arquivos OpenAPI 3 comparados com uma revisão git ou arquivo de referência; sem referência a etapa fica bloqueada, nunca aprovada; o binário é fornecido pelo cliente.",
     },
     external: { en: "oasdiff 1.10+ (customer-supplied binary: release, go install or package manager)", ptBR: "oasdiff 1.10+ (binário fornecido pelo cliente: release, go install ou gerenciador de pacotes)" },
+  },
+  "build-check": {
+    capabilities: {
+      typecheck: {
+        tests: [BC_TS, BC_MYPY, BC_PYRIGHT, BC_GO, BC_RUST, BC_CSHARP],
+        stacks: { typescript: [BC_TS], python: [BC_MYPY, BC_PYRIGHT], go: [BC_GO], rust: [BC_RUST], csharp: [BC_CSHARP] },
+      },
+    },
+    limitation: {
+      en: "Runs the project's own checker with the project's own configuration; a component without that configuration is skipped and reported, never passed; cargo, dotnet and mypy plugins run project code; the toolchains are customer-supplied.",
+      ptBR: "Roda o verificador do próprio projeto com a configuração dele; um componente sem essa configuração é ignorado e informado, nunca aprovado; cargo, dotnet e plugins do mypy executam código do projeto; os toolchains são do cliente.",
+    },
+    external: {
+      en: "tsc 4.5+, mypy 1.0+ or pyright 1.1.300+, Go 1.18+, cargo 1.60+, .NET SDK 6+ (customer-supplied; never installed during a run)",
+      ptBR: "tsc 4.5+, mypy 1.0+ ou pyright 1.1.300+, Go 1.18+, cargo 1.60+, SDK .NET 6+ (do cliente; nunca instalados durante uma execução)",
+    },
+    otherTests: [t("adapter-build-check.test.js", "build-check: a stack whose checker is missing is blocked with the way to get it and never passed")],
   },
   gitleaks: {
     capabilities: {

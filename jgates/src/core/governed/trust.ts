@@ -56,6 +56,11 @@ export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
     config: "Vitest loads the project's configuration and setup files: the project decides the result",
     suppressions: "honored: .skip, .todo and the project's configuration",
   },
+  "build-check": {
+    treatment: "self-reported",
+    config: "the project's own compiler or type checker configuration (tsconfig.json, mypy.ini, go.mod, Cargo.toml, the .NET project): the project decides the result",
+    suppressions: "honored: @ts-ignore, # type: ignore and the compiler's own suppressions; build scripts and analyzers of the project run",
+  },
   gitleaks: {
     treatment: "excluded",
     config: "Gitleaks reads .gitleaks.toml and .gitleaksignore from the scanned folder by itself",

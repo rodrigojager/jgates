@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript-tsc",
+  "label": "TypeScript with tsc",
+  "description": "Type checks TypeScript components with tsc --noEmit and the project tsconfig.json. Comes in by evidence: only when a tsconfig.json exists at the root of a component or of the workspace. The type errors are located findings; TypeScript is supplied by the project (its node_modules or PATH) and is never installed during a run.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript"
+    ],
+    "files": [
+      "tsconfig.json"
+    ]
+  },
+  "config": {
+    "tools": {
+      "tsc": {
+        "adapter": "build-check",
+        "enabled": true,
+        "capabilities": [
+          "typecheck"
+        ],
+        "config": {
+          "checker": "tsc"
+        }
+      }
+    }
+  }
+}

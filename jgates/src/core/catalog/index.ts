@@ -261,6 +261,7 @@ export const CORE_CAPABILITIES: CatalogEntry[] = [
   cap("mutation", "tests", "Mutação", "Mede a força dos testes por mutação.", { unit: "percent" }),
   cap("architecture", "architecture", "Arquitetura", "Satisfação dos contratos de arquitetura configurados."),
   cap("api-compatibility", "architecture", "Compatibilidade de API", "Compatibilidade de contratos de API entre versões."),
+  cap("typecheck", "quality", "Tipos e build", "O compilador ou verificador de tipos do próprio projeto: erros de tipo e falhas de build, localizados no código."),
   cap("migration", "infrastructure", "Migrações", "Segurança e ordem de migrações."),
   cap("performance", "quality", "Desempenho", "Orçamentos e regressões de desempenho."),
   cap("iac", "infrastructure", "Infraestrutura como código", "Más configurações em Terraform, Kubernetes e similares."),

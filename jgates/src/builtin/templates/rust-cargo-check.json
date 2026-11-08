@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "rust-cargo-check",
+  "label": "Rust with cargo check",
+  "description": "Runs cargo check --offline in Rust components (Cargo.toml). Compiler errors are located findings. The Rust toolchain is supplied by you; build scripts and procedural macros of the project run.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "rust"
+    ]
+  },
+  "config": {
+    "tools": {
+      "cargo-check": {
+        "adapter": "build-check",
+        "enabled": true,
+        "capabilities": [
+          "typecheck"
+        ],
+        "config": {
+          "checker": "cargo"
+        }
+      }
+    }
+  }
+}

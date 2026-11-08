@@ -98,6 +98,14 @@
             "description": "oasdiff: the lowest level of change that blocks (ERR: breaking; WARN: also potentially breaking).",
             "enum": ["ERR", "WARN"]
           },
+          "checker": {
+            "description": "build-check: which compiler or type checker the instance runs (tsc, mypy, pyright, go, cargo, dotnet). It checks every unit of its stack that carries the project's configuration for it.",
+            "enum": ["tsc", "mypy", "pyright", "go", "cargo", "dotnet"]
+          },
+          "tsconfig": {
+            "description": "build-check (tsc): the tsconfig file to pass to tsc -p, relative to the component (default: tsconfig.json).",
+            "$ref": "#/$defs/pathText"
+          },
           "rulePack": {
             "description": "A rule pack shipped with JGates that the instance runs next to its own rules (semgrep: jgates).",
             "enum": [

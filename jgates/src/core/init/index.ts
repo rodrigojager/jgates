@@ -36,14 +36,23 @@ const PYTHON: TemplateEntry[] = [
   { id: "python", source: "builtin:python", languages: ["python"] },
   { id: "python-import-linter", source: "builtin:python-import-linter", evidence: true },
   { id: "python-pytest", source: "builtin:python-pytest", evidence: true },
+  { id: "python-mypy", source: "builtin:python-mypy", evidence: true },
+  { id: "python-pyright", source: "builtin:python-pyright", evidence: true },
 ];
 const TYPESCRIPT: TemplateEntry[] = [
   { id: "typescript", source: "builtin:typescript", languages: TS_LANGUAGES },
   { id: "typescript-dependency-cruiser", source: "builtin:typescript-dependency-cruiser", evidence: true },
   { id: "typescript-eslint", source: "builtin:typescript-eslint", evidence: true },
   { id: "typescript-vitest", source: "builtin:typescript-vitest", evidence: true },
+  { id: "typescript-tsc", source: "builtin:typescript-tsc", evidence: true },
 ];
-const DOTNET: TemplateEntry[] = [{ id: "dotnet", source: "builtin:dotnet", languages: DOTNET_LANGUAGES }];
+const DOTNET: TemplateEntry[] = [
+  { id: "dotnet", source: "builtin:dotnet", languages: DOTNET_LANGUAGES },
+  { id: "dotnet-build", source: "builtin:dotnet-build", evidence: true },
+];
+/** Go and Rust have no stack template in init yet; the build check comes in by the language of the component. */
+const GO: TemplateEntry[] = [{ id: "go-build", source: "builtin:go-build", evidence: true }];
+const RUST: TemplateEntry[] = [{ id: "rust-cargo-check", source: "builtin:rust-cargo-check", evidence: true }];
 
 /**
  * Language of a component -> the built-in templates that cover it. The stack template comes by language; ESLint,
@@ -54,6 +63,8 @@ const TEMPLATE_BY_LANGUAGE: Record<string, TemplateEntry[]> = {
   python: PYTHON,
   typescript: TYPESCRIPT,
   javascript: TYPESCRIPT,
+  go: GO,
+  rust: RUST,
   csharp: DOTNET,
   fsharp: DOTNET,
   visualbasic: DOTNET,

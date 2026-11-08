@@ -34,21 +34,28 @@ Go e Rust têm suporte parcial: descoberta, configuração explícita e o comand
 | jscpd (duplication) (`jscpd`) | jscpd >=4.0.0 | - | duplication (adapters-quality.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Lê a configuração escolhida pelo usuário (binding ou .jscpd.json); uma configuração que não é JSON recusa o plano. | jscpd 5.3.3 (dependência do JGates) |
 | zizmor (GitHub Actions security) (`zizmor`) | zizmor >=1.32.0 <2.0.0 | - | ci-cd (adapter-zizmor.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Só workflows do GitHub Actions; offline por padrão, então as auditorias que exigem a API do GitHub ficam de fora; comentários de ignorar são exceções do scanner. | zizmor 1.32+ (pip, preparado por jgates doctor --fix) |
 | oasdiff (OpenAPI compatibility) (`oasdiff`) | oasdiff >=1.10.0 <2.0.0 | - | api-compatibility (adapter-oasdiff.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Arquivos OpenAPI 3 comparados com uma revisão git ou arquivo de referência; sem referência a etapa fica bloqueada, nunca aprovada; o binário é fornecido pelo cliente. | oasdiff 1.10+ (binário fornecido pelo cliente: release, go install ou gerenciador de pacotes) |
+| Build and type check (tsc, mypy, pyright, go, cargo, dotnet) (`build-check`) | compiler >=1.0.0 | - | typecheck (adapter-build-check.test.js, adapter-build-check.test.js, adapter-build-check.test.js, adapter-build-check.test.js, adapter-build-check.test.js, adapter-build-check.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Roda o verificador do próprio projeto com a configuração dele; um componente sem essa configuração é ignorado e informado, nunca aprovado; cargo, dotnet e plugins do mypy executam código do projeto; os toolchains são do cliente. | tsc 4.5+, mypy 1.0+ ou pyright 1.1.300+, Go 1.18+, cargo 1.60+, SDK .NET 6+ (do cliente; nunca instalados durante uma execução) |
 
 | Stack | Suporte | Não coberto |
 | --- | --- | --- |
 | Base (`base`) | completo | - |
-| .NET (`dotnet`) | parcial | Build do projeto (dotnet build); Testes do projeto (dotnet test); Cobertura de testes; Analisadores Roslyn e regras do .editorconfig; Typecheck do compilador |
+| .NET build (`dotnet-build`) | completo | - |
+| .NET (`dotnet`) | parcial | Testes do projeto (dotnet test); Cobertura de testes; Analisadores Roslyn e regras do .editorconfig |
 | GitHub Actions with zizmor (`github-actions-zizmor`) | completo | - |
-| Go (`go`) | parcial | Build e go vet; Cobertura de testes; Análise de dependências (go.sum); Linters (staticcheck, golangci-lint) |
+| Go build and vet (`go-build`) | completo | - |
+| Go (`go`) | parcial | Cobertura de testes; Análise de dependências (go.sum); Linters (staticcheck, golangci-lint) |
 | OpenAPI with oasdiff (`openapi-oasdiff`) | completo | - |
 | Python com Import Linter (`python-import-linter`) | completo | - |
+| Python with mypy (`python-mypy`) | completo | - |
+| Python with pyright (`python-pyright`) | completo | - |
 | Python com pytest (`python-pytest`) | completo | - |
 | Python e TypeScript (`python-typescript`) | completo | - |
 | Python (`python`) | completo | - |
-| Rust (`rust`) | parcial | Build (cargo build); clippy; Cobertura de testes; Análise de dependências (cargo audit, cargo deny) |
+| Rust with cargo check (`rust-cargo-check`) | completo | - |
+| Rust (`rust`) | parcial | clippy; Cobertura de testes; Análise de dependências (cargo audit, cargo deny) |
 | TypeScript com dependency-cruiser (`typescript-dependency-cruiser`) | completo | - |
 | TypeScript com ESLint (`typescript-eslint`) | completo | - |
+| TypeScript with tsc (`typescript-tsc`) | completo | - |
 | TypeScript com Vitest (`typescript-vitest`) | completo | - |
 | TypeScript (`typescript`) | completo | - |
 <!-- matrix:end -->
