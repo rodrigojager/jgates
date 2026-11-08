@@ -36,6 +36,8 @@
     "semantic-gate/package.json",
     "jgates/dist/",
     "jgates/schemas/",
+    "jgates/packs/",
+    "jgates/vendor/",
     "jgates/package.json",
     "jgates/skill/",
     "quality-gate/bin/",

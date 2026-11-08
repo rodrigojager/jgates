@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "supply-chain",
+  "label": "Supply chain of the lockfiles",
+  "description": "Reads the npm and Python lockfiles offline for provenance and package-execution signals (install scripts, missing integrity hashes, registries that are not public or not pinned, git sources without a pinned commit, deprecated packages). Comes in by evidence: only when package-lock.json, npm-shrinkwrap.json, poetry.lock or Pipfile.lock exists at the root of the workspace or of a component. What the offline read cannot decide is reported as unknown, never as clean. Nothing is installed or downloaded.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "files": [
+      "package-lock.json",
+      "npm-shrinkwrap.json",
+      "poetry.lock",
+      "Pipfile.lock"
+    ]
+  },
+  "config": {
+    "tools": {
+      "supply-chain": {
+        "adapter": "supply-chain",
+        "enabled": true,
+        "capabilities": [
+          "supply-chain"
+        ]
+      }
+    }
+  }
+}

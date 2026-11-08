@@ -21,6 +21,7 @@ import { codeqlManifest } from "./codeql/manifest.js";
 import { buildCheckManifest } from "./build-check/manifest.js";
 import { schemathesisManifest } from "./schemathesis/manifest.js";
 import { zapManifest } from "./zap/manifest.js";
+import { supplyChainManifest } from "./supply-chain/manifest.js";
 
 /**
  * Manifests of the built-in adapters, in one place that only imports manifests (no adapter code, no cycles), so the
@@ -29,5 +30,5 @@ import { zapManifest } from "./zap/manifest.js";
  * binding) is unchanged.
  */
 export function builtinManifests(): AdapterManifest[] {
-  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest];
+  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest, supplyChainManifest];
 }

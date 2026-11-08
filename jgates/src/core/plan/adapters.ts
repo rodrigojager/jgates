@@ -25,6 +25,7 @@ import { codeqlAdapter } from "../../adapters/codeql/index.js";
 import { buildCheckAdapter } from "../../adapters/build-check/index.js";
 import { schemathesisAdapter } from "../../adapters/schemathesis/index.js";
 import { zapAdapter } from "../../adapters/zap/index.js";
+import { supplyChainAdapter } from "../../adapters/supply-chain/index.js";
 
 export interface ExternalPlanInput {
   /** Workspace directory (absolute). */
@@ -99,6 +100,7 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [schemathesisAdapter.manifest.id, schemathesisAdapter],
   [zapAdapter.manifest.id, zapAdapter],
   [mutationAdapter.manifest.id, mutationAdapter],
+  [supplyChainAdapter.manifest.id, supplyChainAdapter],
 ]);
 
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {

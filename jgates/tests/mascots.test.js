@@ -42,13 +42,35 @@ test("partial findings keep processing while another selected check is active", 
     events: [event(1, "step-started", { step: "b" })] });
   assert.equal(q.status, "processing"); assert.equal(q.hasFindings, true); assert.deepEqual(q.progress, { completed: 1, total: 2 });
 });
-test("bridge aliases bind shared Trivy evidence to two domains, excluding composite count", () => {
+test("a bridge stage shared by two capabilities counts once, in one primary domain, the other capability is a tag", () => {
   const common = { tool: "quality-bridge.trivy", adapter: "quality-bridge", command: { invocation: "quality-bridge" } };
   const p = plan([item("quality-bridge.trivy#dependencies", "dependencies", common), item("quality-bridge.trivy#iac", "infrastructure", common)]);
   const s = projectMascots({ plan: p, result: result([stage("quality-bridge", { kind: "composite", blockingViolations: 9 }), stage("quality-bridge.trivy")]) });
-  for (const d of s.domains.filter((d) => ["dependencies", "infrastructure"].includes(d.domain))) {
-    assert.equal(d.status, "passed"); assert.deepEqual(d.progress, { completed: 1, total: 1 });
-  }
+  const dependencies = s.domains.find((d) => d.domain === "dependencies");
+  const infrastructure = s.domains.find((d) => d.domain === "infrastructure");
+  assert.equal(dependencies.status, "passed"); assert.deepEqual(dependencies.progress, { completed: 1, total: 1 });
+  assert.deepEqual(dependencies.checks[0].tags, ["iac"]);
+  assert.equal(infrastructure.checks.length, 0); assert.equal(infrastructure.progress, null);
+  assert.equal(s.domains.flatMap((d) => d.checks).length, 1);
+});
+test("every domain carries its coverage subdimensions; a subdimension without a check is not covered, never passed", () => {
+  const s = projectMascots({ plan: plan([item("ruff#lint"), item("sc#supply-chain", "dependencies"), item("zizmor#ci-cd", "infrastructure")]), result: result([stage("ruff#lint"), stage("sc#supply-chain", { blockingViolations: 1 }), stage("zizmor#ci-cd")]) });
+  assert.equal(s.domains.length, 6);
+  for (const d of s.domains) assert.ok(d.subdimensions.length >= 3, d.domain);
+  const sub = (domain, id) => s.domains.find((d) => d.domain === domain).subdimensions.find((x) => x.id === id);
+  assert.deepEqual(sub("quality", "lint"), { id: "lint", covered: true, status: "passed", hasFindings: false, checks: ["ruff#lint"] });
+  assert.equal(sub("quality", "types").status, "not_covered"); assert.equal(sub("quality", "types").covered, false);
+  assert.equal(sub("dependencies", "supply-chain").status, "failed");
+  assert.equal(sub("dependencies", "vulnerabilities").status, "not_covered");
+  assert.equal(sub("infrastructure", "ci-cd").status, "passed");
+  // no check is in two subdimensions or two domains
+  const placed = s.domains.flatMap((d) => d.subdimensions.flatMap((x) => x.checks));
+  assert.equal(new Set(placed).size, placed.length); assert.equal(placed.length, 3);
+});
+test("API compatibility is placed under Quality per the plan table, whatever the catalog category", () => {
+  const s = projectMascots({ plan: plan([item("oasdiff#api-compatibility", "architecture")]) });
+  assert.equal(s.domains.find((d) => d.domain === "quality").subdimensions.find((x) => x.id === "api-compatibility").covered, true);
+  assert.equal(s.domains.find((d) => d.domain === "architecture").checks.length, 0);
 });
 test("completion without evidence is neutral, untrusted evidence stays incomplete", () => {
   const p = plan([item("a#lint")]);

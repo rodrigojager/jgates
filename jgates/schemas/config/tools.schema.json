@@ -178,6 +178,33 @@
             "description": "oasdiff: the lowest level of change that blocks (ERR: breaking; WARN: also potentially breaking).",
             "enum": ["ERR", "WARN"]
           },
+          "blockOn": {
+            "description": "supply-chain: the lowest severity of a lockfile finding that blocks (default high; none: findings are reported and never block).",
+            "enum": ["none", "low", "medium", "high"]
+          },
+          "allowInstallScripts": {
+            "description": "supply-chain: true (the default) reports install scripts without blocking; false makes them findings of high severity that follow blockOn.",
+            "type": "boolean"
+          },
+          "trustedHosts": {
+            "description": "supply-chain: registry hosts accepted as public (default: registry.npmjs.org, registry.yarnpkg.com, pypi.org, files.pythonhosted.org).",
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "lockfiles": {
+            "description": "supply-chain: the lockfiles to read, relative to the workspace (default: the npm and Python lockfiles found in the workspace; list requirements.txt here to read it).",
+            "type": "array",
+            "items": { "$ref": "#/$defs/pathText" }
+          },
+          "imageRef": {
+            "description": "trivy: the reference of a final container image to scan (trivy image) instead of the filesystem. It must already be present in the local daemon or reachable by Trivy; JGates never builds or pulls it. Set only one of imageRef and imageTarball.",
+            "type": "string",
+            "minLength": 1
+          },
+          "imageTarball": {
+            "description": "trivy: a saved image tarball (docker save) to scan with trivy image --input, relative to the workspace or absolute, instead of the filesystem. Set only one of imageRef and imageTarball.",
+            "$ref": "#/$defs/pathText"
+          },
           "language": {
             "description": "codeql: the language of the database the instance creates (required; python, javascript-typescript, java-kotlin, go, csharp, ruby, swift, rust, c-cpp, actions).",
             "enum": ["python", "javascript-typescript", "java-kotlin", "go", "csharp", "ruby", "swift", "rust", "c-cpp", "actions"]

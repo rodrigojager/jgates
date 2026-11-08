@@ -9,6 +9,11 @@
 .quality-mascot-status[data-status="passed"] { color: var(--green, #32815e); }
 .quality-mascot-status[data-status="failed"], .quality-mascot-status[data-status="error"] { color: var(--red, #c84f43); }
 .quality-mascot-status[data-status="disabled"], .quality-mascot-status[data-status="not_applicable"] { opacity: .65; }
+.quality-mascot-subs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 11px; width: 100%; }
+.quality-mascot-subs li { overflow-wrap: anywhere; }
+.quality-mascot-subs li[data-covered="false"] { opacity: .55; }
+.quality-mascot-subs li[data-status="failed"] { color: var(--red, #c84f43); }
+.quality-mascot-subs li[data-status="passed"] { color: var(--green, #32815e); }
 .quality-mascot-details { font: inherit; font-size: 11px; color: inherit; background: transparent; border: 0; text-decoration: underline; cursor: pointer; padding: 5px; }
 .quality-mascot-details:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .quality-mascot-evidence { padding-top: 16px; }

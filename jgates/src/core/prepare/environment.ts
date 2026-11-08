@@ -149,6 +149,8 @@ function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, project
     if (!sidecarDependenciesPresent(python.interpreter, env)) return { executable: python.interpreter, version: null, problem: "not_found", detail: `${SIDECAR_IMPORTS.join(", ")} (${python.interpreter})` };
     return { executable: python.interpreter, version: null, problem: null, detail: "" };
   }
+  // The supply-chain check reads the lockfiles in-process: nothing to prepare.
+  if (manifest.id === "supply-chain") return { executable: "builtin", version: null, problem: null, detail: "" };
   if (manifest.id === "builtin-pii") return { executable: "builtin", version: null, problem: null, detail: "" };
   return null;
 }

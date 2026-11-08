@@ -268,6 +268,7 @@ export const CORE_CAPABILITIES: CatalogEntry[] = [
   cap("iac", "infrastructure", "Infraestrutura como código", "Más configurações em Terraform, Kubernetes e similares."),
   cap("ci-cd", "infrastructure", "Segurança de CI/CD", "Más configurações e injeções em pipelines de CI/CD, como os workflows do GitHub Actions."),
   cap("api-contract", "tests", "Contrato de API em execução", "Testes de propriedade gerados da especificação OpenAPI contra um alvo em execução configurado: respostas fora do contrato, erros de servidor."),
+  cap("supply-chain", "dependencies", "Cadeia de suprimentos", "Procedência e execução de pacotes nos lockfiles: scripts de instalação, hashes de integridade ausentes, registros não públicos ou não fixados, fontes git sem commit fixo e pacotes descontinuados. O que exige rede fica desconhecido, nunca limpo."),
   cap("dast", "security", "Segurança em execução (DAST)", "Evidência de segurança obtida de um alvo em execução configurado: varredura passiva por padrão, ativa só quando permitida explicitamente."),
   cap("file-size", "quality", "Tamanho de arquivo", "Limite de linhas por arquivo.", { unit: "lines" }),
 ];

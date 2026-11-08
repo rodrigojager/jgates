@@ -11,5 +11,19 @@
   "sc_unreadable": "{file} não pôde ser lido: {detail}. Nada é concluído sobre ele.",
   "sc_no_packages": "{file} não lista pacotes; nada é concluído sobre ele.",
   "sc_no_lockfile": "Nenhum lockfile npm ou Python foi encontrado; a cadeia de suprimentos é desconhecida, não limpa.",
-  "sc_unknown_python_deprecation": "A obsolescência de pacotes Python exige o índice de pacotes (rede); esta checagem offline a marca como desconhecida."
+  "sc_unknown_python_deprecation": "A obsolescência de pacotes Python exige o índice de pacotes (rede); esta checagem offline a marca como desconhecida.",
+  "sc_label": "Cadeia de suprimentos (procedência dos lockfiles)",
+  "sc_blocked": "A verificação da cadeia de suprimentos não pôde rodar.",
+  "sc_no_invocation": "O plano não tem invocação de supply-chain para a instância {tool}.",
+  "sc_analysis_failed": "A análise da cadeia de suprimentos falhou: {detail}",
+  "sc_reason_completed": "{count} achado(s) de cadeia de suprimentos em {lockfiles} lockfile(s); {unknown} sinal(is) desconhecido(s) (leitura offline, nunca contado como limpo).",
+  "sc_limitation_offline": "Cadeia de suprimentos: lê lockfiles npm e Python offline; a descontinuação de pacotes Python e a idade de versões exigem um registro e ficam desconhecidas, nunca limpas.",
+  "sc_condition_fail_on": "Achados de severidade {level} ou maior bloqueiam (none: só são informados).",
+  "sc_condition_install_scripts_allowed": "Scripts de instalação são informados mas não bloqueiam.",
+  "sc_condition_install_scripts_blocked": "Scripts de instalação são achados de severidade alta e seguem o blockOn.",
+  "sc_condition_lockfiles": "{count} lockfile(s) analisado(s).",
+  "sc_setting_fail_on": "{tool}: blockOn {value} não é válido (permitidos: {allowed}).",
+  "sc_setting_allow_install_scripts": "{tool}: allowInstallScripts deve ser true ou false, não {value}.",
+  "sc_setting_list": "{tool}: {setting} deve ser uma lista de textos não vazios.",
+  "sc_setting_lockfile_path": "{tool}: lockfiles devem ser caminhos dentro do workspace (sem caminho absoluto, sem ..)."
 }

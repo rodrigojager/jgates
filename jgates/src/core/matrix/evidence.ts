@@ -287,6 +287,25 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       ptBR: "Roda só em container; o banco de vulnerabilidades fica em cache na pasta de dados e é registrado com fonte e data.",
     },
     external: { en: "Docker, the security-scanners image and the vulnerability database", ptBR: "Docker, a imagem security-scanners e o banco de vulnerabilidades" },
+    otherTests: [
+      t("adapter-trivy-image.test.js", "trivy image: a tarball scan yields normalized findings"),
+      t("adapter-trivy-image.test.js", "trivy final-image setting: imageRef and imageTarball select the image mode in the plan"),
+      t("adapter-trivy-image.test.js", "trivy final-image run: a missing Trivy and container runtime is a blocked stage, never a clean image"),
+    ],
+  },
+  "supply-chain": {
+    capabilities: {
+      "supply-chain": proven(["any"], t("adapter-supply-chain.test.js", "supply-chain: a postinstall dependency without integrity is a finding and a clean lockfile none [proves: supply-chain#supply-chain]")),
+    },
+    limitation: {
+      en: "Reads npm and Python lockfiles offline; the deprecation of Python packages needs a registry and stays unknown (never clean); an unreadable lockfile leaves the stage not interpreted instead of passed; requirements.txt is read only through the lockfiles setting.",
+      ptBR: "Lê lockfiles npm e Python offline; a descontinuação de pacotes Python exige um registro e fica desconhecida (nunca limpa); um lockfile ilegível deixa a etapa não interpretada em vez de aprovada; requirements.txt só é lido pela configuração lockfiles.",
+    },
+    external: { en: "None: shipped with JGates (reads the lockfiles in-process, no network)", ptBR: "Nenhuma: vem com o JGates (lê os lockfiles no processo, sem rede)" },
+    otherTests: [
+      t("adapter-supply-chain.test.js", "supply-chain plan and run: the risky lockfile is a normalized finding"),
+      t("adapter-supply-chain.test.js", "supply-chain run: an unknown is never counted as clean"),
+    ],
   },
   "osv-scanner": {
     capabilities: { dependencies: proven(["any"], t("adapters-security.test.js", "OSV-Scanner 2.4.0")) },

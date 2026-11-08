@@ -39,6 +39,7 @@ Go e Rust têm suporte parcial: descoberta, configuração explícita e o comand
 | Schemathesis (API contract tests) (`schemathesis`) | schemathesis >=4.0.0 <5.0.0 | - | api-contract (adapter-runtime-api.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Roda só contra um alvo em execução configurado (local ou descartável, nunca produção); sem alvo a etapa fica bloqueada, nunca aprovada; só APIs HTTP descritas em OpenAPI. | schemathesis 4.x (pip, preparado por jgates doctor --fix) e um alvo em execução |
 | ZAP (runtime security scan) (`zap`) | zap >=2.14.0 <3.0.0 | - | dast (adapter-runtime-api.test.js) | text | editable-file | container | testado / ainda não testado / não testado em máquina real | Roda só contra um alvo em execução configurado; passivo por padrão, ativo só quando a instância define mode: active e allowActive: true; sem alvo a etapa fica bloqueada, nunca aprovada. | Docker e a imagem do ZAP ghcr.io/zaproxy/zaproxy (fornecidos pelo cliente, nunca baixados durante uma execução) |
 | Mutation testing (Stryker, mutmut) (`mutation`) | stryker >=8.0.0 <11.0.0 | javascript, typescript, python | mutation (adapter-mutation.test.js, adapter-mutation.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Roda o StrykerJS ou o mutmut numa cópia isolada do componente e reexecuta os testes do projeto por mutante (código do projeto executa, nunca vem do cache); o limite de tempo é o timeout da etapa; o mutmut não roda nativamente no Windows (a etapa fica bloqueada com o motivo); mutantes equivalentes contam como sobreviventes. | @stryker-mutator/core 8+ no projeto, ou mutmut 3.x no Python do projeto (Linux, macOS, WSL) |
+| Supply chain (lockfile provenance) (`supply-chain`) | jgates-supply-chain | - | supply-chain (adapter-supply-chain.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Lê lockfiles npm e Python offline; a descontinuação de pacotes Python exige um registro e fica desconhecida (nunca limpa); um lockfile ilegível deixa a etapa não interpretada em vez de aprovada; requirements.txt só é lido pela configuração lockfiles. | Nenhuma: vem com o JGates (lê os lockfiles no processo, sem rede) |
 
 | Stack | Suporte | Não coberto |
 | --- | --- | --- |
@@ -57,6 +58,7 @@ Go e Rust têm suporte parcial: descoberta, configuração explícita e o comand
 | Python (`python`) | completo | - |
 | Rust with cargo check (`rust-cargo-check`) | completo | - |
 | Rust (`rust`) | parcial | clippy; Cobertura de testes; Análise de dependências (cargo audit, cargo deny) |
+| Supply chain of the lockfiles (`supply-chain`) | completo | - |
 | TypeScript com dependency-cruiser (`typescript-dependency-cruiser`) | completo | - |
 | TypeScript com ESLint (`typescript-eslint`) | completo | - |
 | TypeScript with tsc (`typescript-tsc`) | completo | - |

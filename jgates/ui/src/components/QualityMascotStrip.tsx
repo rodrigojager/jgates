@@ -171,6 +171,9 @@ export function QualityMascotStrip({ snapshot, onSelect }: { snapshot: MascotSna
             {d.excluded ? <small>{t("mascot_excluded", { count: d.excluded })}</small> : null}
             {d.runOnlyExcluded ? <small>{t("mascot_run_excluded", { count: d.runOnlyExcluded })}</small> : null}
             {d.coverageGap ? <small>{t("mascot_gap")}</small> : null}
+            <ul className="quality-mascot-subs" aria-label={t("mascot_subdimensions")} data-testid={`quality-mascot-subs-${d.domain}`}>
+              {d.subdimensions.map((s) => <li key={s.id} data-sub={s.id} data-covered={s.covered} data-status={s.status}>{t(`mascot_sub_${s.id}`)}{s.covered ? "" : ` · ${t("mascot_sub_not_covered")}`}</li>)}
+            </ul>
             <button type="button" className="quality-mascot-details" aria-expanded={open === d.domain} aria-controls={`${id}-${d.domain}`} onClick={() => {
               setOpen(open === d.domain ? null : d.domain);
               onSelect?.(d.domain, d.checks.map((c) => c.id));
@@ -180,7 +183,7 @@ export function QualityMascotStrip({ snapshot, onSelect }: { snapshot: MascotSna
       </div>
       {snapshot.domains.map((d) => open === d.domain ? <div key={d.domain} id={`${id}-${d.domain}`} className="quality-mascot-evidence">
         <strong>{t(`mascot_domain_${d.domain}`)}</strong>
-        {d.checks.length ? <ul>{d.checks.map((c) => <li key={c.id}>{c.label} · {t(`mascot_status_${c.status}`)}{c.origin ? ` · ${c.origin}` : ""}<p className="small muted">{c.reason}</p></li>)}</ul> : <p>{t("mascot_evidence_unavailable")}</p>}
+        {d.checks.length ? <ul>{d.checks.map((c) => <li key={c.id}>{c.label} · {t(`mascot_status_${c.status}`)}{c.subdimension ? ` · ${t(`mascot_sub_${c.subdimension}`)}` : ""}{c.tags.length ? ` · ${c.tags.join(", ")}` : ""}{c.origin ? ` · ${c.origin}` : ""}<p className="small muted">{c.reason}</p></li>)}</ul> : <p>{t("mascot_evidence_unavailable")}</p>}
       </div> : null)}
       {snapshot.evidenceUnavailable ? <p className="small muted">{t("mascot_evidence_unavailable")}</p> : null}
       {snapshot.reduced ? <p className="small muted">{t("mascot_reduced")}</p> : null}

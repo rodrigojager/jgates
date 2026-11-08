@@ -39,6 +39,7 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | Schemathesis (API contract tests) (`schemathesis`) | schemathesis >=4.0.0 <5.0.0 | - | api-contract (adapter-runtime-api.test.js) | text | editable-file | local | tested / not tested yet / not tested on real hardware | Runs only against a configured running target (local or disposable, never production); without a target the stage is blocked, never passed; OpenAPI HTTP APIs only. | schemathesis 4.x (pip, prepared by jgates doctor --fix) and a running target |
 | ZAP (runtime security scan) (`zap`) | zap >=2.14.0 <3.0.0 | - | dast (adapter-runtime-api.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Runs only against a configured running target; passive by default, active only when the instance sets mode: active and allowActive: true; without a target the stage is blocked, never passed. | Docker and the ZAP image ghcr.io/zaproxy/zaproxy (customer-supplied, never pulled during a run) |
 | Mutation testing (Stryker, mutmut) (`mutation`) | stryker >=8.0.0 <11.0.0 | javascript, typescript, python | mutation (adapter-mutation.test.js, adapter-mutation.test.js) | text | editable-file | local | tested / not tested yet / not tested on real hardware | Runs StrykerJS or mutmut in an isolated copy of the component and re-runs the project's tests per mutant (project code executes, never cached); the time bound is the stage timeout; mutmut does not run natively on Windows (the stage is blocked with the reason); equivalent mutants count as survivors. | @stryker-mutator/core 8+ in the project, or mutmut 3.x in the project's Python (Linux, macOS, WSL) |
+| Supply chain (lockfile provenance) (`supply-chain`) | jgates-supply-chain | - | supply-chain (adapter-supply-chain.test.js) | text | editable-file | local | tested / not tested yet / not tested on real hardware | Reads npm and Python lockfiles offline; the deprecation of Python packages needs a registry and stays unknown (never clean); an unreadable lockfile leaves the stage not interpreted instead of passed; requirements.txt is read only through the lockfiles setting. | None: shipped with JGates (reads the lockfiles in-process, no network) |
 
 | Stack | Support | Not covered |
 | --- | --- | --- |
@@ -57,6 +58,7 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | Python (`python`) | full | - |
 | Rust with cargo check (`rust-cargo-check`) | full | - |
 | Rust (`rust`) | partial | clippy; Cobertura de testes; Análise de dependências (cargo audit, cargo deny) |
+| Supply chain of the lockfiles (`supply-chain`) | full | - |
 | TypeScript com dependency-cruiser (`typescript-dependency-cruiser`) | full | - |
 | TypeScript com ESLint (`typescript-eslint`) | full | - |
 | TypeScript with tsc (`typescript-tsc`) | full | - |
