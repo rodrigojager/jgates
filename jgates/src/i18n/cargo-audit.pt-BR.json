@@ -1,0 +1,17 @@
+{
+  "cargo-audit_label": "cargo-audit (avisos do Rust)",
+  "cargo-audit_missing": "O cargo-audit não está instalado ({detail}). Instale com: cargo install cargo-audit --locked (https://crates.io/crates/cargo-audit), coloque no PATH ou em <JGATES_HOME>/tools/bin, ou aponte JGATES_CARGO_AUDIT para ele. O JGates nunca o instala durante uma execução.",
+  "cargo-audit_fix": "O cargo-audit é fornecido por você: rode cargo install cargo-audit --locked (precisa do Rust, https://www.rust-lang.org/tools/install), coloque o binário no PATH ou em <JGATES_HOME>/tools/bin, ou defina JGATES_CARGO_AUDIT, e rode o doctor de novo.",
+  "cargo-audit_probe_failed": "O cargo-audit em {path} não respondeu a --version. Reinstale com: cargo install cargo-audit --locked.",
+  "cargo-audit_no_lockfile": "Nenhum Cargo.lock foi encontrado na raiz da análise, então não há o que auditar. Rode cargo generate-lockfile e versione o arquivo de lock.",
+  "cargo-audit_blocked": "O cargo-audit não pôde rodar: {detail}",
+  "cargo-audit_exit_error": "O cargo-audit terminou com o código {code} sem um relatório válido: {detail}",
+  "cargo-audit_timeout": "O cargo-audit excedeu o limite de {seconds} s e foi encerrado.",
+  "cargo-audit_cancelled": "A execução foi cancelada; o cargo-audit foi interrompido e a saída parcial ficou nos logs.",
+  "cargo-audit_invalid_output": "A saída do cargo-audit não é o JSON de auditoria esperado: {detail}",
+  "cargo-audit_no_invocation": "O plano não tem invocação do cargo-audit para a instância {tool}.",
+  "cargo-audit_reason_completed": "cargo-audit {version}: {count} achado(s) de avisos em {packages} pacote(s) travado(s)",
+  "cargo-audit_warnings": "{count} deles são avisos que não bloqueiam (sem manutenção, inseguro ou removido)",
+  "cargo-audit_limitation_matching": "Os avisos são casados com as versões travadas dos pacotes, não com o grafo de chamadas; a lista de ignorados de .cargo/audit.toml é exceção do scanner, não dispensa do gate.",
+  "cargo-audit_condition_network": "Rede: o banco de avisos do RustSec (github.com/RustSec/advisory-db) é clonado na pasta da execução."
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "rust-cargo-audit",
+  "label": "Rust with cargo-audit",
+  "description": "Runs cargo-audit in Rust components (Cargo.toml with a Cargo.lock): the RustSec advisories that affect the locked packages. Needs the network (the advisory database is cloned into the run folder) and cargo-audit, which is supplied by you and never installed during a run.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "rust"
+    ]
+  },
+  "config": {
+    "tools": {
+      "cargo-audit": {
+        "adapter": "cargo-audit",
+        "enabled": true,
+        "capabilities": [
+          "dependencies"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "go-govulncheck",
+  "label": "Go with govulncheck",
+  "description": "Runs govulncheck in Go components (go.mod): the known vulnerabilities in the dependencies and the standard library that the code actually reaches. Needs the Go toolchain, the network for vuln.go.dev and govulncheck, which is supplied by you and never installed during a run.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "go"
+    ]
+  },
+  "config": {
+    "tools": {
+      "govulncheck": {
+        "adapter": "govulncheck",
+        "enabled": true,
+        "capabilities": [
+          "dependencies"
+        ]
+      }
+    }
+  }
+}

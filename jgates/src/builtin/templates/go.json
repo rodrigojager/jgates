@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "go",
   "label": "Go",
-  "description": "Componentes Go (go.mod): suporte parcial. Descoberta, configuração explícita e o comando genérico com go test; cobertura e dependências ficam para depois. Build e go vet entram pelo template go-build.",
+  "description": "Componentes Go (go.mod): suporte parcial. Descoberta, configuração explícita e o comando genérico com go test; cobertura fica para depois. Build e go vet entram pelo template go-build.",
   "extends": [
     "builtin:base"
   ],
@@ -15,7 +15,7 @@
     "level": "partial",
     "uncovered": [
       "Cobertura de testes",
-      "Análise de dependências (go.sum)",
+      "Licenças e integridade de dependências (as vulnerabilidades entram pelo template go-govulncheck)",
       "Linters (staticcheck, golangci-lint)"
     ]
   },

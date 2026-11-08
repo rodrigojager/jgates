@@ -51,8 +51,14 @@ const DOTNET: TemplateEntry[] = [
   { id: "dotnet-build", source: "builtin:dotnet-build", evidence: true },
 ];
 /** Go and Rust have no stack template in init yet; the build check comes in by the language of the component. */
-const GO: TemplateEntry[] = [{ id: "go-build", source: "builtin:go-build", evidence: true }];
-const RUST: TemplateEntry[] = [{ id: "rust-cargo-check", source: "builtin:rust-cargo-check", evidence: true }];
+const GO: TemplateEntry[] = [
+  { id: "go-build", source: "builtin:go-build", evidence: true },
+  { id: "go-govulncheck", source: "builtin:go-govulncheck", evidence: true },
+];
+const RUST: TemplateEntry[] = [
+  { id: "rust-cargo-check", source: "builtin:rust-cargo-check", evidence: true },
+  { id: "rust-cargo-audit", source: "builtin:rust-cargo-audit", evidence: true },
+];
 
 /**
  * Language of a component -> the built-in templates that cover it. The stack template comes by language; ESLint,

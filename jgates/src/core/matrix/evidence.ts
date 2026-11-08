@@ -323,6 +323,28 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     },
     external: { en: "Docker and the security-scanners image", ptBR: "Docker e a imagem security-scanners" },
   },
+  govulncheck: {
+    capabilities: {
+      dependencies: proven(["go"], t("adapter-stack-extensions.test.js", "govulncheck: a vulnerable yaml.v2 the code calls is a normalized finding and the patched twin none [proves: govulncheck#dependencies]")),
+    },
+    otherTests: [t("adapter-stack-extensions.test.js", "govulncheck recorded output (1.9.0)")],
+    limitation: {
+      en: "Customer-supplied binary (BSD-3-Clause), source mode: only vulnerabilities whose symbol the code reaches are findings, with an unknown severity because the Go database has none; needs the Go toolchain, a complete go.sum and the network for vuln.go.dev. Proven on a Go module fixture with govulncheck 1.9.0.",
+      ptBR: "Binário fornecido pelo cliente (BSD-3-Clause), modo código-fonte: só as vulnerabilidades cujo símbolo o código alcança são achados, com severidade desconhecida porque o banco do Go não tem; precisa do toolchain Go, de um go.sum completo e de rede para vuln.go.dev. Provado em um módulo Go de teste com govulncheck 1.9.0.",
+    },
+    external: { en: "govulncheck 1.0+ (go install; customer-supplied), the Go toolchain, network to vuln.go.dev", ptBR: "govulncheck 1.0+ (go install; do cliente), toolchain Go, rede para vuln.go.dev" },
+  },
+  "cargo-audit": {
+    capabilities: {
+      dependencies: proven(["rust"], t("adapter-stack-extensions.test.js", "cargo-audit: a RustSec-advised crate in Cargo.lock is a normalized finding and the clean twin none [proves: cargo-audit#dependencies]")),
+    },
+    otherTests: [t("adapter-stack-extensions.test.js", "cargo-audit recorded output (0.22.2)")],
+    limitation: {
+      en: "Customer-supplied binary (Apache-2.0 OR MIT): advisories are matched on the versions locked in Cargo.lock, not on the call graph; the RustSec database is cloned on every run (network); unmaintained, unsound and yanked packages are non-blocking findings. Proven on a Cargo.lock fixture with cargo-audit 0.22.2.",
+      ptBR: "Binário fornecido pelo cliente (Apache-2.0 OR MIT): os avisos são casados com as versões travadas no Cargo.lock, não com o grafo de chamadas; o banco do RustSec é clonado a cada execução (rede); pacotes sem manutenção, inseguros ou removidos são achados que não bloqueiam. Provado em um Cargo.lock de teste com cargo-audit 0.22.2.",
+    },
+    external: { en: "cargo-audit 0.20+ (cargo install; customer-supplied), network to github.com", ptBR: "cargo-audit 0.20+ (cargo install; do cliente), rede para github.com" },
+  },
   jscpd: {
     capabilities: { duplication: proven(["typescript"], t("adapters-quality.test.js", "jscpd: the duplications of a fixture come out")) },
     limitation: {

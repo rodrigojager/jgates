@@ -1,0 +1,17 @@
+{
+  "cargo-audit_label": "cargo-audit (Rust advisories)",
+  "cargo-audit_missing": "cargo-audit is not installed ({detail}). Install it with: cargo install cargo-audit --locked (https://crates.io/crates/cargo-audit), put it on the PATH or in <JGATES_HOME>/tools/bin, or point JGATES_CARGO_AUDIT to it. JGates never installs it during a run.",
+  "cargo-audit_fix": "cargo-audit is supplied by you: run cargo install cargo-audit --locked (needs Rust, https://www.rust-lang.org/tools/install), put the binary on the PATH or in <JGATES_HOME>/tools/bin, or set JGATES_CARGO_AUDIT, then run doctor again.",
+  "cargo-audit_probe_failed": "cargo-audit at {path} did not answer --version. Reinstall it with: cargo install cargo-audit --locked.",
+  "cargo-audit_no_lockfile": "No Cargo.lock was found in the scan root, so there is nothing to audit. Run cargo generate-lockfile and commit the lock file.",
+  "cargo-audit_blocked": "cargo-audit could not run: {detail}",
+  "cargo-audit_exit_error": "cargo-audit ended with code {code} without a valid report: {detail}",
+  "cargo-audit_timeout": "cargo-audit exceeded the limit of {seconds} s and was ended.",
+  "cargo-audit_cancelled": "The run was cancelled; cargo-audit was stopped and its partial output was kept in the logs.",
+  "cargo-audit_invalid_output": "The cargo-audit output is not the expected audit JSON: {detail}",
+  "cargo-audit_no_invocation": "The plan has no cargo-audit invocation for the instance {tool}.",
+  "cargo-audit_reason_completed": "cargo-audit {version}: {count} advisory finding(s) in {packages} locked package(s)",
+  "cargo-audit_warnings": "{count} of them are non-blocking warnings (unmaintained, unsound or yanked)",
+  "cargo-audit_limitation_matching": "Advisories are matched on the locked package versions, not on the call graph; the ignore list of .cargo/audit.toml is a scanner exception, not a waiver of the gate.",
+  "cargo-audit_condition_network": "Network: the RustSec advisory database (github.com/RustSec/advisory-db) is cloned into the run folder."
+}

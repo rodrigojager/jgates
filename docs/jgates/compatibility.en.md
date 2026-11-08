@@ -40,6 +40,8 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | ZAP (runtime security scan) (`zap`) | zap >=2.14.0 <3.0.0 | - | dast (adapter-runtime-api.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Runs only against a configured running target; passive by default, active only when the instance sets mode: active and allowActive: true; without a target the stage is blocked, never passed. | Docker and the ZAP image ghcr.io/zaproxy/zaproxy (customer-supplied, never pulled during a run) |
 | Mutation testing (Stryker, mutmut) (`mutation`) | stryker >=8.0.0 <11.0.0 | javascript, typescript, python | mutation (adapter-mutation.test.js, adapter-mutation.test.js) | text | editable-file | local | tested / not tested yet / not tested on real hardware | Runs StrykerJS or mutmut in an isolated copy of the component and re-runs the project's tests per mutant (project code executes, never cached); the time bound is the stage timeout; mutmut does not run natively on Windows (the stage is blocked with the reason); equivalent mutants count as survivors. | @stryker-mutator/core 8+ in the project, or mutmut 3.x in the project's Python (Linux, macOS, WSL) |
 | Supply chain (lockfile provenance) (`supply-chain`) | jgates-supply-chain | - | supply-chain (adapter-supply-chain.test.js) | text | editable-file | local | tested / not tested yet / not tested on real hardware | Reads npm and Python lockfiles offline; the deprecation of Python packages needs a registry and stays unknown (never clean); an unreadable lockfile leaves the stage not interpreted instead of passed; requirements.txt is read only through the lockfiles setting. | None: shipped with JGates (reads the lockfiles in-process, no network) |
+| govulncheck (Go dependency vulnerabilities) (`govulncheck`) | govulncheck >=1.0.0 <2.0.0 | - | dependencies (adapter-stack-extensions.test.js) | text | editable-file | local | tested / not tested yet / not tested on real hardware | Customer-supplied binary (BSD-3-Clause), source mode: only vulnerabilities whose symbol the code reaches are findings, with an unknown severity because the Go database has none; needs the Go toolchain, a complete go.sum and the network for vuln.go.dev. Proven on a Go module fixture with govulncheck 1.9.0. | govulncheck 1.0+ (go install; customer-supplied), the Go toolchain, network to vuln.go.dev |
+| cargo-audit (Rust advisories) (`cargo-audit`) | cargo-audit >=0.20.0 <1.0.0 | - | dependencies (adapter-stack-extensions.test.js) | text | editable-file | local | tested / not tested yet / not tested on real hardware | Customer-supplied binary (Apache-2.0 OR MIT): advisories are matched on the versions locked in Cargo.lock, not on the call graph; the RustSec database is cloned on every run (network); unmaintained, unsound and yanked packages are non-blocking findings. Proven on a Cargo.lock fixture with cargo-audit 0.22.2. | cargo-audit 0.20+ (cargo install; customer-supplied), network to github.com |
 
 | Stack | Support | Not covered |
 | --- | --- | --- |
@@ -48,7 +50,8 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | .NET (`dotnet`) | partial | Testes do projeto (dotnet test); Cobertura de testes; Analisadores Roslyn e regras do .editorconfig |
 | GitHub Actions with zizmor (`github-actions-zizmor`) | full | - |
 | Go build and vet (`go-build`) | full | - |
-| Go (`go`) | partial | Cobertura de testes; Análise de dependências (go.sum); Linters (staticcheck, golangci-lint) |
+| Go with govulncheck (`go-govulncheck`) | full | - |
+| Go (`go`) | partial | Cobertura de testes; Licenças e integridade de dependências (as vulnerabilidades entram pelo template go-govulncheck); Linters (staticcheck, golangci-lint) |
 | OpenAPI with oasdiff (`openapi-oasdiff`) | full | - |
 | Python com Import Linter (`python-import-linter`) | full | - |
 | Python with mypy (`python-mypy`) | full | - |
@@ -56,8 +59,9 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | Python com pytest (`python-pytest`) | full | - |
 | Python e TypeScript (`python-typescript`) | full | - |
 | Python (`python`) | full | - |
+| Rust with cargo-audit (`rust-cargo-audit`) | full | - |
 | Rust with cargo check (`rust-cargo-check`) | full | - |
-| Rust (`rust`) | partial | clippy; Cobertura de testes; Análise de dependências (cargo audit, cargo deny) |
+| Rust (`rust`) | partial | clippy; Cobertura de testes; Licenças e políticas de dependências (cargo deny; os avisos do RustSec entram pelo template rust-cargo-audit) |
 | Supply chain of the lockfiles (`supply-chain`) | full | - |
 | TypeScript com dependency-cruiser (`typescript-dependency-cruiser`) | full | - |
 | TypeScript com ESLint (`typescript-eslint`) | full | - |

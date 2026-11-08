@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "rust",
   "label": "Rust",
-  "description": "Componentes Rust (Cargo.toml): suporte parcial. Descoberta, configuração explícita e o comando genérico com cargo test; clippy, cobertura e dependências ficam para depois. A verificação do compilador (cargo check) entra pelo template rust-cargo-check.",
+  "description": "Componentes Rust (Cargo.toml): suporte parcial. Descoberta, configuração explícita e o comando genérico com cargo test; clippy e cobertura ficam para depois. A verificação do compilador (cargo check) entra pelo template rust-cargo-check.",
   "extends": [
     "builtin:base"
   ],
@@ -16,7 +16,7 @@
     "uncovered": [
       "clippy",
       "Cobertura de testes",
-      "Análise de dependências (cargo audit, cargo deny)"
+      "Licenças e políticas de dependências (cargo deny; os avisos do RustSec entram pelo template rust-cargo-audit)"
     ]
   },
   "config": {

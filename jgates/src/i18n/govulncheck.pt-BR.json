@@ -1,0 +1,18 @@
+{
+  "govulncheck_label": "govulncheck (vulnerabilidades de dependências Go)",
+  "govulncheck_missing": "O govulncheck não está instalado ({detail}). Instale com: go install golang.org/x/vuln/cmd/govulncheck@latest (https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck), coloque no PATH ou em <JGATES_HOME>/tools/bin, ou aponte JGATES_GOVULNCHECK para ele. O JGates nunca o instala durante uma execução.",
+  "govulncheck_fix": "O govulncheck é fornecido por você: rode go install golang.org/x/vuln/cmd/govulncheck@latest (precisa do Go, https://go.dev/dl/), coloque o binário no PATH ou em <JGATES_HOME>/tools/bin, ou defina JGATES_GOVULNCHECK, e rode o doctor de novo.",
+  "govulncheck_probe_failed": "O govulncheck em {path} não respondeu a -version. Reinstale com: go install golang.org/x/vuln/cmd/govulncheck@latest.",
+  "govulncheck_no_go": "O govulncheck precisa do toolchain Go no PATH para carregar o módulo ({detail}). Instale o Go em https://go.dev/dl/.",
+  "govulncheck_no_module": "Nenhum go.mod foi encontrado na raiz da análise, então não há módulo Go para analisar.",
+  "govulncheck_blocked": "O govulncheck não pôde rodar: {detail}",
+  "govulncheck_exit_error": "O govulncheck terminou com o código {code}: {detail}",
+  "govulncheck_timeout": "O govulncheck excedeu o limite de {seconds} s e foi encerrado.",
+  "govulncheck_cancelled": "A execução foi cancelada; o govulncheck foi interrompido e a saída parcial ficou nos logs.",
+  "govulncheck_invalid_output": "A saída do govulncheck não é o fluxo JSON esperado: {detail}",
+  "govulncheck_no_invocation": "O plano não tem invocação do govulncheck para a instância {tool}.",
+  "govulncheck_reason_completed": "govulncheck {version}: {count} vulnerabilidade(s) alcançável(is)",
+  "govulncheck_not_called": "mais {count} em código requerido ou importado que nunca é chamado (não são achados)",
+  "govulncheck_limitation_reachable": "Só são achados as vulnerabilidades cujo símbolo o código alcança; o banco de vulnerabilidades do Go não tem severidade, então uma alcançável bloqueia com severidade desconhecida.",
+  "govulncheck_condition_network": "Rede: o banco de vulnerabilidades do Go (vuln.go.dev) é consultado e os módulos que faltam no cache de módulos são baixados."
+}
