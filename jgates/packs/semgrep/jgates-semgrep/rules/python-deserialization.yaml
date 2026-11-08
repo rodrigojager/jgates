@@ -1,0 +1,30 @@
+rules:
+  - id: jgates.python.unsafe-deserialization
+    message: pickle, marshal and shelve execute code while loading. Never load data from an untrusted source; use JSON.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: deserialization
+      cwe: "CWE-502"
+      author: JGates
+    pattern-either:
+      - pattern: pickle.load(...)
+      - pattern: pickle.loads(...)
+      - pattern: cPickle.loads(...)
+      - pattern: marshal.loads(...)
+      - pattern: dill.loads(...)
+
+  - id: jgates.python.unsafe-yaml-load
+    message: yaml.load with a full loader builds arbitrary objects. Use yaml.safe_load.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: deserialization
+      cwe: "CWE-502"
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: yaml.load($X)
+          - pattern: yaml.load($X, Loader=yaml.Loader)
+          - pattern: yaml.load($X, Loader=yaml.UnsafeLoader)
+          - pattern: yaml.load($X, Loader=yaml.FullLoader)

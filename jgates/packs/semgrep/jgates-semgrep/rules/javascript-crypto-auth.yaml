@@ -1,0 +1,63 @@
+rules:
+  - id: jgates.js.weak-hash
+    message: MD5 and SHA-1 are broken for security use. Use SHA-256 or a password hashing function.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+    pattern-either:
+      - pattern: crypto.createHash("md5", ...)
+      - pattern: crypto.createHash("sha1", ...)
+
+  - id: jgates.js.weak-cipher
+    message: DES, 3DES and RC4 are weak ciphers. Use AES-GCM or ChaCha20-Poly1305.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: crypto.createCipheriv($ALG, ...)
+          - metavariable-regex:
+              metavariable: $ALG
+              regex: ^["'](des|rc4|bf|rc2)
+      - pattern: crypto.createCipher(...)
+
+  - id: jgates.js.tls-verification-disabled
+    message: TLS certificate verification is turned off. Keep verification on and trust a private CA through a bundle.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-295"
+      author: JGates
+    pattern-either:
+      - pattern: "{..., rejectUnauthorized: false, ...}"
+
+  - id: jgates.js.jwt-signature-not-verified
+    message: A token is decoded or accepted without verifying its signature, so any caller can forge claims.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+    pattern-either:
+      - pattern: jwt.decode(...)
+      - pattern: 'jwt.verify($T, $K, {..., algorithms: [..., "none", ...], ...})'
+
+  - id: jgates.js.cors-any-origin-with-credentials
+    message: Any origin is allowed together with credentials, so a hostile site can act as the signed-in user.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-942"
+      author: JGates
+    pattern-either:
+      - pattern: 'cors({..., origin: "*", ..., credentials: true, ...})'
+      - pattern: 'cors({..., credentials: true, ..., origin: "*", ...})'

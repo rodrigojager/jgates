@@ -1,0 +1,80 @@
+rules:
+  - id: jgates.python.weak-hash
+    message: MD5 and SHA-1 are broken for security use. Use SHA-256 or a password hashing function.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+    pattern-either:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+      - pattern: hashlib.new("md5", ...)
+      - pattern: hashlib.new("sha1", ...)
+
+  - id: jgates.python.weak-cipher
+    message: DES, 3DES and RC4 are weak ciphers. Use AES-GCM or ChaCha20-Poly1305.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+    pattern-either:
+      - pattern: DES.new(...)
+      - pattern: DES3.new(...)
+      - pattern: ARC4.new(...)
+
+  - id: jgates.python.tls-verification-disabled
+    message: TLS certificate verification is turned off. Keep verification on and trust a private CA through a bundle.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-295"
+      author: JGates
+    pattern-either:
+      - pattern: requests.$M(..., verify=False, ...)
+      - pattern: ssl._create_unverified_context(...)
+
+  - id: jgates.python.jwt-signature-not-verified
+    message: A token is decoded without verifying its signature, so any caller can forge claims.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+    pattern-either:
+      - pattern: 'jwt.decode(..., options={"verify_signature": False, ...}, ...)'
+      - pattern: jwt.decode(..., verify=False, ...)
+
+  - id: jgates.python.csrf-protection-disabled
+    message: csrf_exempt removes the cross-site request protection of a state-changing view.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+    pattern: |
+      @csrf_exempt
+      def $F(...):
+        ...
+
+  - id: jgates.python.client-controlled-privilege
+    message: A privilege decision is read from the request. Derive the role from the authenticated session.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-639"
+      author: JGates
+    pattern-either:
+      - pattern: |
+          if request.args.get("is_admin"):
+            ...
+      - pattern: |
+          if request.headers.get("X-Is-Admin"):
+            ...

@@ -320,3 +320,160 @@ test("the rules routes list the files with their validation and rename through t
     p.cleanup();
   }
 });
+
+// ---- Bundled JGates rule pack -------------------------------------------------------------------------------------
+// The pack's rule tests and its vulnerable/clean fixtures run on a real Semgrep: a local one (JGATES_SEMGREP, the
+// repository .venv, PATH) or the quality sidecar image through Docker. With neither, the tests fail and say so.
+
+const PACK_ROOT = path.resolve(here, "..", "packs", "semgrep");
+const PACK_RULES = path.join(PACK_ROOT, "jgates-semgrep", "rules");
+const PACK_FIXTURES = path.join(here, "fixtures", "semgrep-pack");
+const SIDECAR_IMAGE = process.env.JGATES_SEMGREP_IMAGE || "jgates/quality-sidecar:latest";
+
+function localSemgrep() {
+  const candidates = [process.env.JGATES_SEMGREP, path.join(VENV_BIN, process.platform === "win32" ? "semgrep.exe" : "semgrep")].filter(Boolean);
+  for (const c of candidates) if (fs.existsSync(c)) return c;
+  const probe = spawnSync(process.platform === "win32" ? "where" : "which", ["semgrep"], { encoding: "utf8" });
+  return probe.status === 0 ? probe.stdout.split(/\r?\n/)[0].trim() : null;
+}
+
+/** A real engine or a thrown explanation; never a silent pass. `mounts` map host folders to container paths. */
+function engine() {
+  const local = localSemgrep();
+  if (local) return { kind: "local", run: (args) => spawnSync(local, args, { encoding: "utf8", timeout: 240_000, env: { ...process.env, SEMGREP_SEND_METRICS: "off", SEMGREP_ENABLE_VERSION_CHECK: "0" } }) };
+  const docker = spawnSync("docker", ["image", "inspect", SIDECAR_IMAGE], { encoding: "utf8" });
+  if (docker.status === 0) {
+    return {
+      kind: "docker",
+      run: (args, mounts = {}) => {
+        const volumes = Object.entries(mounts).flatMap(([host, inside]) => ["-v", `${host}:${inside.path}${inside.writable ? "" : ":ro"}`]);
+        return spawnSync("docker", ["run", "--rm", "--label", "jproject.project=jgates", ...volumes, "--entrypoint", "semgrep", SIDECAR_IMAGE, ...args], { encoding: "utf8", timeout: 240_000 });
+      },
+    };
+  }
+  throw new assert.AssertionError({ message: `no Semgrep engine available: install semgrep (JGATES_SEMGREP, .venv or PATH) or build the Docker image ${SIDECAR_IMAGE}; the pack tests cannot pass without one` });
+}
+
+const packWorkspace = (variant) => {
+  const dir = tmp("jgates-pack-ws-");
+  fs.cpSync(path.join(PACK_FIXTURES, variant), dir, { recursive: true });
+  return dir;
+};
+const PACK_TOOLS = "schemaVersion: 1\ntools:\n  semgrep:\n    adapter: semgrep\n    capabilities: [sast]\n    rulePack: jgates\n";
+
+function packCli(dir, home) {
+  const env = { ...process.env, JGATES_HOME: home };
+  return (...args) => spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", env, timeout: 240_000 });
+}
+
+/** Plans through the CLI, runs the planned semgrep arguments on the engine and normalizes the output with the adapter. */
+function scanWithPack(variant) {
+  const eng = engine();
+  const dir = packWorkspace(variant);
+  const out = tmp("jgates-pack-out-");
+  const home = tmp("jgates-pack-home-");
+  try {
+    const cli = packCli(dir, home);
+    const init = cli("init", "--cwd", dir, "--profile", "minimal", "--no-interactive", "--json");
+    assert.equal(init.status, 0, init.stdout + init.stderr);
+    fs.writeFileSync(path.join(dir, ".jgates", "tools.yml"), PACK_TOOLS);
+    const planned = cli("plan", "--cwd", dir, "--only", "tool:semgrep", "--json");
+    const doc = JSON.parse(planned.stdout);
+    const item = doc.plan.groups.willRun.find((i) => i.id === "semgrep#sast");
+    assert.ok(item, planned.stdout.slice(0, 600));
+    const args = item.command.args;
+    const configs = args.flatMap((a, i) => (a === "--config" ? [args[i + 1]] : []));
+    assert.ok(configs.some((c) => path.resolve(c) === PACK_RULES), `the plan uses the bundled pack: ${configs.join(", ")}`);
+    const outFile = path.join(out, "semgrep.json");
+    const docker = eng.kind === "docker";
+    const real = args
+      .filter((a) => a !== "--quiet")
+      .map((a) => {
+        if (path.resolve(a) === PACK_RULES) return docker ? "/pack" : a;
+        if (/^\{runDir\}.*semgrep\.json$/.test(a)) return docker ? "/out/semgrep.json" : outFile;
+        if (a === ".") return docker ? "/ws" : dir;
+        return a.replace("{workspace}", docker ? "/ws" : dir);
+      });
+    const run = eng.run(real, { [dir]: { path: "/ws" }, [PACK_RULES]: { path: "/pack" }, [out]: { path: "/out", writable: true } });
+    assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
+    const root = docker ? "/ws" : dir;
+    const parsed = semgrepAdapter.parseSemgrepOutput(fs.readFileSync(outFile, "utf8"), { stageId: "semgrep#sast", version: eng.kind, workspace: root, cwd: root });
+    assert.equal(parsed.ok, true, parsed.problem);
+    return { findings: parsed.findings, configs, item };
+  } finally {
+    for (const d of [dir, out, home]) fs.rmSync(d, { recursive: true, force: true });
+  }
+}
+
+test("the rule tests of the bundled pack pass on a real Semgrep (ruleid/ok annotations of every rule file) [proves: semgrep#sast]", () => {
+  const eng = engine();
+  const docker = eng.kind === "docker";
+  const run = eng.run(["--test", "--metrics=off", "--disable-version-check", docker ? "/rules" : PACK_RULES], { [PACK_RULES]: { path: "/rules" } });
+  const text = `${run.stdout}\n${run.stderr}`;
+  assert.equal(run.status, 0, text);
+  assert.match(text, /All tests passed/, text);
+  const files = fs.readdirSync(PACK_RULES);
+  const yamls = files.filter((f) => f.endsWith(".yaml"));
+  assert.ok(yamls.length >= 8, "the pack covers injection, SSRF, path traversal, crypto, deserialization and authorization for Python and JavaScript");
+  for (const y of yamls) {
+    const stem = y.replace(/\.yaml$/, "");
+    assert.ok(files.some((f) => f.startsWith(`${stem}.`) && !f.endsWith(".yaml")), `${y} has a test file`);
+  }
+});
+
+test("the bundled pack flags the vulnerable fixture and its clean twin none, with normalized findings [proves: semgrep#sast]", () => {
+  const bad = scanWithPack("vulnerable");
+  const ids = new Set(bad.findings.map((f) => f.ruleId));
+  for (const id of [
+    "jgates.python.sql-string-building",
+    "jgates.python.os-command-injection",
+    "jgates.python.weak-hash",
+    "jgates.python.unsafe-deserialization",
+    "jgates.js.path-traversal",
+    "jgates.js.ssrf",
+    "jgates.js.weak-hash",
+    "jgates.js.os-command-injection",
+    "jgates.js.jwt-signature-not-verified",
+  ]) assert.ok(ids.has(id), `${id} missing in ${[...ids].join(", ")}`);
+  for (const f of bad.findings) {
+    assert.equal(f.tool, "semgrep");
+    assert.ok(f.location.path && f.location.line > 0, JSON.stringify(f));
+  }
+  assert.deepEqual([...new Set(bad.findings.map((f) => f.location.path))].sort(), ["app.py", "server.js", "server.ts"]);
+  const clean = scanWithPack("clean");
+  assert.deepEqual(clean.findings.map((f) => f.ruleId), []);
+});
+
+test("the pack runs next to the customer's own rules, and an unknown pack id is refused", () => {
+  const dir = packWorkspace("clean");
+  const home = tmp("jgates-pack-home-");
+  try {
+    const cli = packCli(dir, home);
+    assert.equal(cli("init", "--cwd", dir, "--profile", "minimal", "--no-interactive", "--json").status, 0);
+    fs.mkdirSync(path.join(dir, ".jgates", "rules"), { recursive: true });
+    fs.writeFileSync(path.join(dir, ".jgates", "rules", "no-eval.yml"), RULE("eval(...)"));
+    fs.writeFileSync(path.join(dir, ".jgates", "tools.yml"), `${PACK_TOOLS}    config:\n      path: .jgates/rules\n      kind: directory\n      role: rules\n`);
+    const both = JSON.parse(cli("plan", "--cwd", dir, "--only", "tool:semgrep", "--json").stdout).plan.groups.willRun.find((i) => i.id === "semgrep#sast");
+    const configs = both.command.args.flatMap((a, i) => (a === "--config" ? [both.command.args[i + 1]] : []));
+    assert.equal(configs.length, 2);
+    assert.ok(configs.includes("{workspace}/.jgates/rules/no-eval.yml"));
+    assert.ok(configs.some((c) => path.resolve(c) === PACK_RULES));
+    assert.ok(both.configFiles.some((f) => f.file.endsWith("python-injection.yaml") && /^sha256:/.test(f.sha256)));
+    assert.equal(both.network, false);
+    fs.writeFileSync(path.join(dir, ".jgates", "tools.yml"), PACK_TOOLS.replace("rulePack: jgates", "rulePack: vendor-x"));
+    const bad = cli("plan", "--cwd", dir, "--only", "tool:semgrep", "--json");
+    const verdict = JSON.parse(bad.stdout || "{}");
+    assert.ok(bad.status !== 0 || verdict.plan?.approvable === false, "an unknown pack id is refused: " + bad.stdout.slice(0, 300));
+  } finally {
+    for (const d of [dir, home]) fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test("the pack passes the distribution check", () => {
+  const result = spawnSync(process.execPath, [MAIN, "tools", "distribution", "--packs", PACK_ROOT, "--json"], { encoding: "utf8", timeout: 120_000 });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  const doc = JSON.parse(result.stdout);
+  const pack = (doc.report?.packs ?? []).find((p) => p.id === "jgates-semgrep-rules");
+  assert.ok(pack, result.stdout.slice(0, 500));
+  assert.equal(pack.ok, true, JSON.stringify(pack.problems));
+});

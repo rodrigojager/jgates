@@ -61,6 +61,8 @@ export const semgrepManifest: AdapterManifest = {
   kind: "tool",
   stackSupport: [
     { capability: "sast", stack: "python", state: "validated", prerequisites: ["Semgrep 1.100+ (pip)", "local rules in the project or prepared with tools prepare"] },
+    { capability: "sast", stack: "javascript", state: "validated", prerequisites: ["Semgrep 1.100+ (pip)", "tools.<id>.rulePack: jgates (bundled JGates pack) or local rules"] },
+    { capability: "sast", stack: "typescript", state: "validated", prerequisites: ["Semgrep 1.100+ (pip)", "tools.<id>.rulePack: jgates (bundled JGates pack) or local rules"] },
     { capability: "sast", stack: "any", state: "customer-setup-required", prerequisites: ["Semgrep 1.100+ (pip)", "local rules for the language, supplied by the customer or prepared with tools prepare"], limitations: ["Only a Python fixture is proven; other languages depend on the rules the customer supplies.", "Official semgrep-rules are never shipped: tools prepare fetches registry rules for the customer's own use."] },
   ],
   distribution: {

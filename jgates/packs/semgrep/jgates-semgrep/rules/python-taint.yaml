@@ -1,0 +1,54 @@
+rules:
+  - id: jgates.python.ssrf
+    message: A request URL comes from the incoming request. Validate the host against an allow-list before fetching.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+    pattern-sanitizers:
+      - pattern: validate_url(...)
+    pattern-sinks:
+      - pattern: requests.$M($URL, ...)
+        focus-metavariable: $URL
+      - pattern: urllib.request.urlopen($URL, ...)
+        focus-metavariable: $URL
+      - pattern: httpx.$M($URL, ...)
+        focus-metavariable: $URL
+
+  - id: jgates.python.path-traversal
+    message: A file path comes from the incoming request. Reduce it with a safe base-name helper and check it stays under the intended folder.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      author: JGates
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.view_args[...]
+    pattern-sanitizers:
+      - pattern: os.path.basename(...)
+      - pattern: secure_filename(...)
+    pattern-sinks:
+      - pattern: open($P, ...)
+        focus-metavariable: $P
+      - pattern: send_file($P, ...)
+        focus-metavariable: $P
+      - pattern: os.remove($P)
+        focus-metavariable: $P
+      - pattern: os.path.join($BASE, $P, ...)
+        focus-metavariable: $P

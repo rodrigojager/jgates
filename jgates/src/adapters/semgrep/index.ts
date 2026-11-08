@@ -2,8 +2,10 @@
 // binding (a rule file or a directory of rule files), with metrics and the version check off and the JSON output in
 // the run folder. Its home (settings, log, caches) is the throwaway folder the manifest declares in the run folder.
 // Nothing is downloaded and nothing is written in the workspace.
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { translator } from "../../i18n/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
@@ -22,6 +24,33 @@ import { probeSemgrep, scannerPath } from "./probe.js";
 export { semgrepManifest } from "./manifest.js";
 export { parseSemgrepOutput } from "./normalize.js";
 export { findSemgrep, probeSemgrep, scannerPath } from "./probe.js";
+
+/** Ids of the rule packs that ship with JGates (tools.<id>.rulePack), mapped to their pack folder under packs/semgrep. */
+export const BUNDLED_RULE_PACKS: Readonly<Record<string, string>> = { jgates: "jgates-semgrep" };
+
+/** The rules folder of a bundled pack, resolved from the installed package (src/ and dist/ sit at the same depth). */
+export function bundledPackRulesDir(packId: string): string | null {
+  const folder = BUNDLED_RULE_PACKS[packId];
+  if (!folder) return null;
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(here, "..", "..", "..", "packs", "semgrep", folder, "rules");
+}
+
+/** The pack the instance selects in its settings, if any. */
+function selectedPack(input: ExternalPlanInput): string | null {
+  const tools = input.config?.tools;
+  const body = tools && typeof tools === "object" ? (tools as Record<string, unknown>)[input.tool] : null;
+  const value = body && typeof body === "object" ? (body as Record<string, unknown>).rulePack : undefined;
+  return typeof value === "string" ? value : null;
+}
+
+const sha256Of = (file: string): string | null => {
+  try {
+    return `sha256:${crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex")}`;
+  } catch {
+    return null;
+  }
+};
 
 const ADAPTER_ID = semgrepManifest.id;
 const RUN_DIR = "{runDir}";
@@ -65,12 +94,20 @@ function planSemgrep(input: ExternalPlanInput): ExternalPlan {
   const prepared = preparedRulesOf(lockRead.lock, input.tool, home);
   const usePrepared = prepared.state === "ready";
   const nothingLocal = source.problem?.code === "NO_BINDING" || source.problem?.code === "NO_RULE_FILES" || source.problem?.code === "BINDING_MISSING";
-  const rulesProblem = usePrepared && nothingLocal ? null : unusableReason(source, input.tool);
+  // A bundled pack chosen in the settings (UI/CLI) runs next to the customer's own rules; it is the package's, never the project's.
+  const packId = selectedPack(input);
+  const packDir = packId ? bundledPackRulesDir(packId) : null;
+  const packRules = packDir && fs.existsSync(packDir) ? fs.readdirSync(packDir).filter((n) => n.endsWith(".yaml")).sort() : [];
+  const packProblem = packId && packRules.length === 0 ? t("semgrep_pack_unknown", { tool: input.tool, pack: packId }) : null;
+  const usePack = packId !== null && packProblem === null;
+  const rulesProblem = packProblem ?? ((usePrepared || usePack) && nothingLocal ? null : unusableReason(source, input.tool));
   const root = input.componentRoot && input.componentRoot !== "." ? input.componentRoot : null;
   const configArgs = [
     ...source.files.flatMap((f) => ["--config", f.path && !governed ? `${WORKSPACE}/${f.path}` : f.abs]),
     ...(usePrepared && prepared.abs ? ["--config", prepared.abs] : []),
+    ...(usePack && packDir ? ["--config", packDir] : []),
   ];
+  const packFiles = usePack && packDir ? packRules.map((n) => ({ file: path.join(packDir, n), sha256: sha256Of(path.join(packDir, n)) })) : [];
   const args = [
     "scan",
     ...configArgs,
@@ -115,6 +152,7 @@ function planSemgrep(input: ExternalPlanInput): ExternalPlan {
     configFiles: [
       ...(governed ? source.files.map((f) => ({ file: f.abs, sha256: f.sha256 })) : source.files.filter((f) => f.path !== null).map((f) => ({ file: f.path as string, sha256: f.sha256 }))),
       ...(governed ? preparedFiles.map((f) => ({ ...f, file: path.join(configDir, f.file) })) : preparedFiles),
+      ...packFiles,
     ],
     availability,
     blocksPlan,
@@ -122,6 +160,7 @@ function planSemgrep(input: ExternalPlanInput): ExternalPlan {
     limitations: [],
     conditions: [
       usePrepared && prepared.entry ? t("semgrep_condition_prepared", { ref: prepared.entry.ref, hash: prepared.entry.hash.slice(0, 12), source: prepared.entry.source }) : t("semgrep_condition_local"),
+      ...(usePack && packId ? [t("semgrep_condition_pack", { pack: packId, count: packRules.length })] : []),
       ...(governed ? [translator("governed")("governed_semgrep_condition")] : []),
     ],
     output: { format: "json", schema: null },

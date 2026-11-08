@@ -1,0 +1,17 @@
+rules:
+  - id: jgates.js.unsafe-deserialization
+    message: node-serialize and unsafe YAML types execute code while loading. Parse untrusted data as JSON.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: deserialization
+      cwe: "CWE-502"
+      author: JGates
+    pattern-either:
+      - pattern: require("node-serialize").unserialize(...)
+      - patterns:
+          - pattern: $S.unserialize(...)
+          - pattern-inside: |
+              $S = require("node-serialize");
+              ...
+      - pattern: 'yaml.load($X, {..., schema: yaml.DEFAULT_FULL_SCHEMA, ...})'

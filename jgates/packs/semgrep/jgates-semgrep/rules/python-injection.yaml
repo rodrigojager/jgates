@@ -1,0 +1,46 @@
+rules:
+  - id: jgates.python.sql-string-building
+    message: An SQL statement is built with string formatting or concatenation. Pass the values as bound parameters instead.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+      author: JGates
+    pattern-either:
+      - pattern: $C.execute(f"...{...}...", ...)
+      - pattern: $C.execute("..." % ..., ...)
+      - pattern: $C.execute(<... "..." + $X ...>, ...)
+      - pattern: $C.execute("...".format(...), ...)
+
+  - id: jgates.python.os-command-injection
+    message: A shell command is built from a non-literal value. Pass an argument list without shell=True.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.$F($CMD, ..., shell=True, ...)
+          - pattern: os.system($CMD)
+          - pattern: os.popen($CMD)
+      - pattern-not: subprocess.$F("...", ..., shell=True, ...)
+      - pattern-not: os.system("...")
+      - pattern-not: os.popen("...")
+
+  - id: jgates.python.dynamic-code-execution
+    message: eval/exec of a non-literal value runs attacker-controlled code. Parse the data instead.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: injection
+      cwe: "CWE-95"
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: eval($X)
+          - pattern: exec($X)
+      - pattern-not: eval("...")
+      - pattern-not: exec("...")

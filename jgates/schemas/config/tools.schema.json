@@ -69,6 +69,12 @@
           "required": {
             "type": "boolean"
           },
+          "rulePack": {
+            "description": "A rule pack shipped with JGates that the instance runs next to its own rules (semgrep: jgates).",
+            "enum": [
+              "jgates"
+            ]
+          },
           "runner": {
             "enum": [
               "local",

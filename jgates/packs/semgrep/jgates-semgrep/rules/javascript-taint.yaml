@@ -1,0 +1,58 @@
+rules:
+  - id: jgates.js.ssrf
+    message: A request URL comes from the incoming request. Validate the host against an allow-list before fetching.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+    pattern-sanitizers:
+      - pattern: validateUrl(...)
+    pattern-sinks:
+      - pattern: fetch($URL, ...)
+        focus-metavariable: $URL
+      - pattern: axios.$M($URL, ...)
+        focus-metavariable: $URL
+      - pattern: axios($URL, ...)
+        focus-metavariable: $URL
+      - pattern: http.get($URL, ...)
+        focus-metavariable: $URL
+      - pattern: got($URL, ...)
+        focus-metavariable: $URL
+
+  - id: jgates.js.path-traversal
+    message: A file path comes from the incoming request. Reduce it with path.basename and check it stays under the intended folder.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      author: JGates
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+    pattern-sanitizers:
+      - pattern: path.basename(...)
+    pattern-sinks:
+      - pattern: fs.readFile($P, ...)
+        focus-metavariable: $P
+      - pattern: fs.readFileSync($P, ...)
+        focus-metavariable: $P
+      - pattern: fs.createReadStream($P, ...)
+        focus-metavariable: $P
+      - pattern: fs.writeFile($P, ...)
+        focus-metavariable: $P
+      - pattern: fs.unlink($P, ...)
+        focus-metavariable: $P
+      - pattern: $RES.sendFile($P, ...)
+        focus-metavariable: $P
+      - pattern: path.join($BASE, $P, ...)
+        focus-metavariable: $P

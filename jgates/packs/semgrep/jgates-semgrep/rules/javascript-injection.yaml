@@ -1,0 +1,46 @@
+rules:
+  - id: jgates.js.sql-string-building
+    message: An SQL statement is built with a template string or concatenation. Pass the values as bound parameters instead.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+      author: JGates
+    pattern-either:
+      - pattern: $DB.query(`...${...}...`, ...)
+      - pattern: $DB.query(<... "..." + $X ...>, ...)
+      - pattern: $DB.execute(`...${...}...`, ...)
+
+  - id: jgates.js.os-command-injection
+    message: A shell command is built from a non-literal value. Use execFile with an argument array.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: child_process.exec($CMD, ...)
+          - pattern: child_process.execSync($CMD, ...)
+          - pattern: exec($CMD, ...)
+          - pattern: execSync($CMD, ...)
+      - pattern-not: child_process.exec("...", ...)
+      - pattern-not: child_process.execSync("...", ...)
+      - pattern-not: exec("...", ...)
+      - pattern-not: execSync("...", ...)
+
+  - id: jgates.js.dynamic-code-execution
+    message: eval and new Function run attacker-controlled code when fed a non-literal value.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: injection
+      cwe: "CWE-95"
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: eval($X)
+          - pattern: new Function(...)
+      - pattern-not: eval("...")

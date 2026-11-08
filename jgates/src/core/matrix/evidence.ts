@@ -112,7 +112,17 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "Vitest 1+ and @vitest/coverage-v8 in the project", ptBR: "Vitest 1+ e @vitest/coverage-v8 no projeto" },
   },
   semgrep: {
-    capabilities: { sast: proven(["python"], t("adapter-semgrep.test.js", "a violation of a local rule comes back")) },
+    capabilities: {
+      sast: {
+        // The bundled JGates pack: its vulnerable fixture (Python, JavaScript, TypeScript) yields findings, its clean twin none.
+        stacks: {
+          python: [t("adapter-semgrep.test.js", "a violation of a local rule comes back"), t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
+          javascript: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
+          typescript: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
+        },
+        tests: [t("adapter-semgrep.test.js", "a violation of a local rule comes back"), t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
+      },
+    },
     limitation: {
       en: "Runs local rules only (no registry at run time); the rules are prepared with tools prepare.",
       ptBR: "Roda só regras locais (sem registry na execução); as regras são preparadas com tools prepare.",

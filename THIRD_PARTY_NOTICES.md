@@ -115,6 +115,12 @@ here; their licenses are inside the MegaLinter image.
 Brazilian Portuguese words. It is derived from the VERO pt-BR Hunspell dictionary (LibreOffice dictionaries,
 LGPLv3 or MPL), by `quality-gate/scripts/build-codespell-pt-br.py`; keep that notice with the file.
 
+## JGates Semgrep rule pack
+
+`jgates/packs/semgrep/jgates-semgrep` is original JGates work under the MIT license (its `LICENSE` and `NOTICE.md`
+travel with it; provenance in `jgates-pack.json`). No rule is copied from another collection, and the official
+Semgrep registry rules are never bundled. Semgrep itself (LGPL-2.1) is customer-supplied.
+
 ## Three.js
 
 The Quality Gate mascots and the Doctor of the prerequisites bar use Three.js 0.187.0, copyright Three.js authors, under the MIT license. The full license is included at `jgates/ui/public/licenses/three.txt`. Character geometry and animations are procedural local assets.
