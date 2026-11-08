@@ -121,6 +121,24 @@ LGPLv3 or MPL), by `quality-gate/scripts/build-codespell-pt-br.py`; keep that no
 travel with it; provenance in `jgates-pack.json`). No rule is copied from another collection, and the official
 Semgrep registry rules are never bundled. Semgrep itself (LGPL-2.1) is customer-supplied.
 
+## Quality integrations added in V2
+
+None of these tools is bundled in the npm package. They are customer-supplied or prepared by `jgates doctor --fix` from
+the official source into the user's data folder (never during a run); the source, SPDX and official acquisition links are
+recorded in each adapter's distribution record (`jgates tools distribution`).
+
+| Tool | License | Mode | Required notice and limit |
+| --- | --- | --- | --- |
+| zizmor | MIT | prepared from an authorized source | Keep the MIT notice if a copy is redistributed. |
+| oasdiff | Apache-2.0 | customer-supplied | Keep the license and `NOTICE`. |
+| CodeQL CLI | GitHub CodeQL Terms and Conditions | customer-supplied | Limit: JGates does not ship, bundle or install CodeQL; the customer holds the entitlement for the repository. |
+| Schemathesis | MIT | prepared from an authorized source | Keep the MIT notice. |
+| OWASP ZAP | Apache-2.0 | customer-supplied (Docker image) | Keep the license. Active scans attack the target; use them only on systems you own. |
+| StrykerJS, mutmut | Apache-2.0 (StrykerJS), BSD-3-Clause (mutmut) | customer-supplied | Keep the licenses. |
+| govulncheck | BSD-3-Clause | customer-supplied | Limit: it queries the Go vulnerability database, which has its own terms. |
+| cargo-audit | Apache-2.0 | customer-supplied | Limit: it reads the RustSec advisory database, which has its own terms. |
+| TypeScript, mypy, pyright (build check) | Apache-2.0, MIT, MIT | customer-supplied | Keep the licenses. |
+
 ## Three.js
 
 The Quality Gate mascots and the Doctor of the prerequisites bar use Three.js 0.187.0, copyright Three.js authors, under the MIT license. The full license is included at `jgates/ui/public/licenses/three.txt`. Character geometry and animations are procedural local assets.

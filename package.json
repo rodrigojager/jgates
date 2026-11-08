@@ -18,6 +18,8 @@
   },
   "files": [
     "README.md",
+    "THIRD_PARTY_NOTICES.md",
+    "docs/jgates/",
     ".jgates.ignore",
     ".quality-gate.ignore",
     ".semantic-gate.ignore",

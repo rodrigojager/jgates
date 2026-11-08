@@ -110,6 +110,20 @@ const pages = fs
 const help = JSON.parse(jgates(["help", "--json"], { home: os.tmpdir() }).out);
 const OPTIONS = new Map(help.commands.map((c) => [c.name, new Set(c.options.map((o) => o.name.replace(/^--/, "")))]));
 
+/** True when `text` appears in a file under jgates/src or jgates/ui/src (portable replacement for `grep -rlF`). */
+function isReadInSources(text) {
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (walk(full)) return true;
+      } else if (fs.readFileSync(full, "utf8").includes(text)) return true;
+    }
+    return false;
+  };
+  return [path.join(ROOT, "jgates", "src"), path.join(ROOT, "jgates", "ui", "src")].some((dir) => fs.existsSync(dir) && walk(dir));
+}
+
 const isTemplate = (words) => words.some((w) => /<[^>]+>/.test(w));
 
 function makeProject(kind) {
@@ -198,8 +212,7 @@ for (const file of pages) {
     const fenced = (text.match(/^```[a-z]*\n[\s\S]*?^```/gm) ?? []).join("\n");
     assert.ok(!/npm (publish|i(nstall)? -g jgates)\b/.test(fenced), `${file}: the package is not published`);
     for (const name of new Set(text.match(/\bJGATES_[A-Z_]+\b/g) ?? [])) {
-      const used = spawnSync("grep", ["-rlF", name, path.join(ROOT, "jgates", "src"), path.join(ROOT, "jgates", "ui", "src")], { encoding: "utf8" });
-      assert.ok(used.stdout.trim() !== "", `${file}: ${name} is not read anywhere in jgates/src`);
+      assert.ok(isReadInSources(name), `${file}: ${name} is not read anywhere in jgates/src`);
     }
     for (const route of new Set(text.match(/#\/[a-z][a-z/-]*/g) ?? [])) {
       const screens = path.join(ROOT, "jgates", "ui", "src", "screens");
@@ -282,7 +295,7 @@ test("the documentation carries no company, pilot, hosting or old-name material"
   const retiredQuality = "quality[-_ ]?" + "check";
   const oldProject = "cyber" + "vinci";
   const banned = new RegExp(
-    `${oldProject}|corporat|empresa|company|piloto|pilot\\b|\\bvps\\b|máquina do dono|revisão do dono|code-approval|quality-ci|${retiredQuality}|use-quality-gate|use-semantic-gate|ghcr\\.io\\/rodrigojager`,
+    `${oldProject}|(?<!in)corporat|empresa|company|piloto|pilot\\b|\\bvps\\b|máquina do dono|revisão do dono|code-approval|quality-ci|${retiredQuality}|use-quality-gate|use-semantic-gate|ghcr\\.io\\/rodrigojager`,
     "i"
   );
   for (const file of files) {

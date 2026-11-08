@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 // The message catalog has the same keys in Portuguese and in English, for the CLI (src/i18n) and for the UI
 // (ui/src, one messages file per screen folder). The CLI picks the language with --locale or JGATES_LOCALE; the JSON
@@ -192,7 +192,7 @@ test("a command module translates through the chosen language (its own catalog a
 });
 
 test("both locales are listed for every CLI area through listAreas", async () => {
-  const mod = await import(path.join(root, "dist", "i18n", "index.js"));
+  const mod = await import(pathToFileURL(path.join(root, "dist", "i18n", "index.js")).href);
   for (const locale of LOCALES) assert.ok(mod.listAreas(locale).length >= 40);
   assert.deepEqual(mod.listAreas("en"), mod.listAreas("pt-BR"));
   assert.equal(mod.normalizeLocale("en-US"), "en");

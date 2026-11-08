@@ -46,3 +46,23 @@ test('license limits are noted', () => {
   assert.match(notices, /Semgrep Registry rules[^\n]*Limit:/);
   assert.match(notices, /MegaLinter[^\n]*Limit:/);
 });
+
+test('every vendored pack and the shipped Semgrep pack are in THIRD_PARTY_NOTICES.md with pin and license', () => {
+  assert.match(notices, /c1c8a8c1471069fb0e188eeaff69b8e8db6564a8/);
+  assert.match(notices, /e4dd0bb5b15535f7c5a0834187dffba6ac37e4ff/);
+  assert.match(notices, /CC BY-SA 4\.0|CC-BY-SA-4\.0/);
+  assert.match(notices, /jgates\/packs\/semgrep\/jgates-semgrep/);
+  assert.match(notices, /registry rules are never bundled/);
+  for (const dir of ['jgates/vendor/cloudflare-security-audit', 'jgates/vendor/trailofbits-skills', 'jgates/packs/semgrep/jgates-semgrep']) {
+    assert.ok(notices.includes('`' + dir + '`'), `${dir} is listed`);
+    for (const f of ['LICENSE', 'NOTICE.md', 'jgates-pack.json']) assert.ok(fs.existsSync(path.join(root, dir, f)), `${dir}/${f} exists`);
+  }
+});
+
+test('every Quality integration of V2 has a row in THIRD_PARTY_NOTICES.md', () => {
+  for (const tool of ['zizmor', 'oasdiff', 'CodeQL', 'Schemathesis', 'ZAP', 'StrykerJS', 'govulncheck', 'cargo-audit']) {
+    const row = notices.split('\n').find((l) => l.startsWith('|') && l.includes(tool));
+    assert.ok(row, `${tool} has a row`);
+    assert.match(row, /MIT|Apache-2\.0|BSD|CodeQL Terms/, `${tool} row names a license`);
+  }
+});
