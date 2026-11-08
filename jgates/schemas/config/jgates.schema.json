@@ -20,7 +20,25 @@
         "profile": { "type": "string", "minLength": 1 },
         "scope": { "enum": ["changed", "full", "paths"] },
         "paths": { "type": "array", "items": { "type": "string", "minLength": 1 } },
-        "intensity": { "type": "string", "minLength": 1 }
+        "intensity": { "type": "string", "minLength": 1 },
+        "gates": {
+          "description": "The gates a run selects: quality, semantic or both (Quality always runs first; Semantic starts only after a complete, current, non-reduced Quality approval). Default: quality.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "enum": ["quality", "semantic"] }
+        },
+        "sequence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "qualityCoverage": {
+              "description": "declared-scope (default): a fully completed scoped Quality run approves the scope it declared when it covers the Semantic subjects. repository: only a Quality run that covered the whole repository approves.",
+              "enum": ["declared-scope", "repository"]
+            }
+          }
+        }
       }
     },
     "templates": {

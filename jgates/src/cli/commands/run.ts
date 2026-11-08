@@ -17,6 +17,23 @@ import { encodePointer, resolveConfig } from "../../core/config/resolve/index.js
 import { loadWaiverFile, parseWaiverFlag, WAIVERS_FILE, type Waiver } from "../../core/results/index.js";
 import { assessEnvironment, lineTerminal, NO_TERMINAL, isYes, offerInstall, type InstallExecutor, type InstallTerminal } from "../../core/install/index.js";
 import { buildPlan, readPlanFile, validatePlanAgainstWorkspace, type Plan, type PlanScopeKind } from "../../core/plan/index.js";
+import type { BridgeSelection } from "../../adapters/quality-bridge/requirements.js";
+import type { GateKind } from "../../core/gates/types.js";
+import { SEMANTIC_PURPOSES, SEMANTIC_RIGORS, type SemanticPurpose, type SemanticRigor } from "../../core/semantic-scope/index.js";
+import { executeSemanticRun, SemanticRunError } from "../../core/semantic/index.js";
+import {
+  SequenceError,
+  advanceSequence,
+  buildGatePlan,
+  executeSequence,
+  parseGatesFlag,
+  resolveGateSelection,
+  type GatePlan,
+  type QualityPlanRequest,
+  type SemanticPlanChoices,
+  type SequenceOutcome,
+  type SequenceRequest,
+} from "../../core/sequence/index.js";
 
 function summarize(t: Translator, r: RunResult): string {
   const notes = r.analyzed?.stale ? t("run_summary_stale") : r.analyzed?.dirty === true ? t("run_summary_dirty") : "";
@@ -43,6 +60,87 @@ function decisionSummary(t: Translator, r: RunResult): string {
 const PLAN_OPTIONS = ["profile", "scope", "path", "base", "head", "skip", "only", "template"] as const;
 /** Flags of the option-driven bridge run (valid only while the project has no JGates configuration). */
 const LEGACY_OPTIONS = ["bridge-mode", "enable-pii", "enable-secrets", "disable-iac", "run-project-tests", "enable-coverage"] as const;
+/** Flags of a gate selection that includes Semantic (or of its dry run); none of them applies to a Quality-only run. */
+const SEQUENCE_OPTIONS = ["dry-run", "sequence-id", "advance", "manual-advance", "reuse-quality", "quality", "purpose", "rigor"] as const;
+/** Quality plan flags that mean nothing to a Semantic-only run. */
+const SEMANTIC_ONLY_REJECTS = ["skip", "only", "template", "plan", ...LEGACY_OPTIONS] as const;
+
+/** The Quality plan flags as a plan request (the same request the server route receives). */
+function qualityFlags(ctx: CommandContext): QualityPlanRequest {
+  const scope = str(ctx, "scope");
+  const base = str(ctx, "base");
+  const head = str(ctx, "head");
+  return {
+    ...(scope !== undefined ? { scope: scope as PlanScopeKind } : {}),
+    ...(base !== undefined ? { base } : {}),
+    ...(head !== undefined ? { head } : {}),
+    paths: many(ctx, "path"),
+    skip: many(ctx, "skip"),
+    only: many(ctx, "only"),
+    templates: many(ctx, "template"),
+  };
+}
+
+/** --purpose and --rigor of the Semantic gate, validated. */
+function semanticFlags(ctx: CommandContext): { ok: true; value: SemanticPlanChoices } | { ok: false; code: string; key: string; params: Record<string, string> } {
+  const purpose = str(ctx, "purpose");
+  if (purpose !== undefined && !(SEMANTIC_PURPOSES as readonly string[]).includes(purpose)) return { ok: false, code: "BAD_PURPOSE", key: "run_bad_purpose", params: { value: purpose, allowed: SEMANTIC_PURPOSES.join(", ") } };
+  const rigor = str(ctx, "rigor");
+  if (rigor !== undefined && !(SEMANTIC_RIGORS as readonly string[]).includes(rigor)) return { ok: false, code: "BAD_RIGOR", key: "run_bad_rigor", params: { value: rigor, allowed: SEMANTIC_RIGORS.join(", ") } };
+  return { ok: true, value: { ...(purpose !== undefined ? { purpose: purpose as SemanticPurpose } : {}), ...(rigor !== undefined ? { rigor: rigor as SemanticRigor } : {}) } };
+}
+
+/** The run options of an option-driven (legacy) plan: the bridge request and requirement table of that run. */
+function legacyRunOptions(workspacePath: string, version: string, plan: Plan, selection: BridgeSelection, failFast: boolean, summarizeResult: (r: RunResult) => string): RunOptions {
+  const options: Record<string, string | boolean> = { bridgeMode: selection.mode };
+  for (const key of ["pii", "secrets", "iac", "projectTests", "coverage"] as const) options[key] = selection[key];
+  if (failFast) options.failFast = true;
+  options.planHash = plan.planHash;
+  options.planSource = "options";
+  return {
+    workspacePath,
+    version,
+    adapter: ADAPTER_ID,
+    options,
+    selection: {
+      planHash: plan.planHash,
+      planSource: "options",
+      profile: null,
+      scope: plan.scope.requested,
+      request: plan.selection.request as unknown as Record<string, unknown>,
+      planOverrides: [],
+    },
+    runFiles: { "plan.json": `${JSON.stringify(plan, null, 2)}\n` },
+    plan,
+    steps: (context) => legacySteps(context, plan),
+    summarize: summarizeResult,
+  };
+}
+
+/** The run options of a plan assembled now or received with --plan: the run executes exactly that plan. */
+function plannedRunOptions(workspacePath: string, version: string, plan: Plan, source: "built" | "file", failFast: boolean, summarizeResult: (r: RunResult) => string): RunOptions {
+  const request = plan.selection.request;
+  return {
+    workspacePath,
+    version,
+    adapter: ADAPTER_ID,
+    options: { planHash: plan.planHash, planSource: source, profile: request.profile ?? plan.profile?.id ?? "", scope: request.scope, ...(failFast ? { failFast: true } : {}) },
+    selection: {
+      planHash: plan.planHash,
+      planSource: source,
+      profile: plan.profile?.id ?? request.profile,
+      scope: plan.scope.requested,
+      request: request as unknown as Record<string, unknown>,
+      planOverrides: plan.selection.overrides as unknown as Array<Record<string, unknown>>,
+    },
+    runFiles: { "plan.json": `${JSON.stringify(plan, null, 2)}\n` },
+    plan,
+    // A plan assembled from the option flags keeps the step that built it (no jgates.yml to plan from).
+    steps: (context) => (isLegacyPlan(plan) ? legacySteps(context, plan) : planSteps(context, plan)),
+    ...(isLegacyPlan(plan) ? {} : { disabled: planDisabled(plan) }),
+    summarize: summarizeResult,
+  };
+}
 
 function many(ctx: CommandContext, name: string): string[] {
   const list = ctx.lists?.[name];
@@ -160,6 +258,15 @@ export const command: CommandModule = {
     { name: "no-interactive", type: "boolean", description: tr("run_option_no_interactive") },
     { name: "plain", type: "boolean", description: tr("run_option_plain") },
     { name: "pretty", type: "boolean", description: tr("run_option_pretty") },
+    { name: "gates", type: "string", description: tr("run_option_gates") },
+    { name: "dry-run", type: "boolean", description: tr("run_option_dry_run") },
+    { name: "manual-advance", type: "boolean", description: tr("run_option_manual_advance") },
+    { name: "advance", type: "string", description: tr("run_option_advance") },
+    { name: "reuse-quality", type: "boolean", description: tr("run_option_reuse_quality") },
+    { name: "sequence-id", type: "string", description: tr("run_option_sequence_id") },
+    { name: "quality", type: "string", description: tr("run_option_quality") },
+    { name: "purpose", type: "string", description: tr("run_option_purpose") },
+    { name: "rigor", type: "string", description: tr("run_option_rigor") },
   ],
   async run(ctx) {
     // A run that ended for lack of a tool offers to install it and, when it did, to run again (D7).
@@ -272,6 +379,98 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
       }
     };
 
+    // Gate selection (V2): Quality only (the default and every legacy invocation), Semantic only, or both in sequence.
+    const gateValues = many(ctx, "gates");
+    let gatesOverride: GateKind[] | undefined;
+    if (gateValues.length > 0) {
+      const parsed = parseGatesFlag(gateValues);
+      if (!parsed.ok) return usage("BAD_GATES", "run_bad_gates", { value: parsed.problem.value });
+      gatesOverride = parsed.gates;
+    }
+    const sequenceFlags = SEQUENCE_OPTIONS.filter((name) => ctx.options[name] !== undefined);
+    const advanceId = str(ctx, "advance");
+    if (advanceId !== undefined) {
+      const other = [...sequenceFlags.filter((n) => n !== "advance"), ...PLAN_OPTIONS.filter((n) => ctx.options[n] !== undefined), ...(planFile !== undefined ? ["plan"] : []), ...(gateValues.length > 0 ? ["gates"] : [])];
+      if (other.length > 0) return usage("OPTION_NOT_SUPPORTED", "run_option_with_advance", { name: `--${other[0]}` });
+      return runAdvance(ctx, workspacePath, advanceId, style);
+    }
+    const choseGates = gatesOverride !== undefined || sequenceFlags.length > 0 || fs.existsSync(path.join(workspacePath, ROOT_FILE));
+    const selection = choseGates ? resolveGateSelection(workspacePath, { ...(str(ctx, "profile") !== undefined ? { profile: str(ctx, "profile") as string } : {}), ...(gatesOverride ? { gates: gatesOverride } : {}) }) : null;
+    const gates: GateKind[] = selection?.gates ?? ["quality"];
+    if (ctx.options["dry-run"] === true || gates.includes("semantic")) {
+      if (ctx.options.semantic === true) return usage("OPTION_NOT_SUPPORTED", "run_semantic_flag_with_gates", { name: "--semantic" });
+      const semanticChoices = semanticFlags(ctx);
+      if (!semanticChoices.ok) return usage(semanticChoices.code, semanticChoices.key, semanticChoices.params);
+      const combined = gates.includes("quality") && gates.includes("semantic");
+      const misplaced = combined
+        ? sequenceFlags.filter((n) => n === "quality")
+        : gates.includes("semantic")
+          ? [...sequenceFlags.filter((n) => ["manual-advance", "reuse-quality", "sequence-id"].includes(n)), ...SEMANTIC_ONLY_REJECTS.filter((n) => ctx.options[n] !== undefined)]
+          : sequenceFlags.filter((n) => n !== "dry-run");
+      if (misplaced.length > 0) return usage("OPTION_NOT_SUPPORTED", "run_option_not_for_gates", { name: `--${misplaced[0]}`, gates: gates.join(",") });
+      let receivedPlan: Plan | undefined;
+      if (planFile !== undefined) {
+        if (planFlags.length > 0) return usage("PLAN_WITH_FLAGS", "run_plan_with_flags", { name: `--${planFlags[0]}` });
+        let doc: unknown;
+        try {
+          doc = readPlanFile(planFile);
+        } catch (error) {
+          return usage("PLAN_UNREADABLE", "run_plan_unreadable", { path: path.resolve(planFile), detail: error instanceof Error ? error.message : String(error) });
+        }
+        const check = validateLegacyPlan(doc, workspacePath, { version: ctx.version }) ?? validatePlanAgainstWorkspace(doc, workspacePath, { version: ctx.version });
+        if (!check.ok) return usage(check.code ?? "PLAN_INVALID", "run_plan_unreadable", { path: path.resolve(planFile), detail: check.message ?? "" });
+        receivedPlan = doc as Plan;
+      }
+      const legacySelection = selectionFromOptions(ctx.options);
+      if ("kind" in legacySelection) return usage("INVALID_VALUE", "run_invalid_value", { name: legacySelection.name, value: legacySelection.value, allowed: legacySelection.allowed });
+      const gatePlan = buildGatePlan({
+        workspacePath,
+        version: ctx.version,
+        ...(gatesOverride ? { gates: gatesOverride } : {}),
+        ...(str(ctx, "profile") !== undefined ? { profile: str(ctx, "profile") as string } : {}),
+        quality: qualityFlags(ctx),
+        ...(receivedPlan ? { qualityPlan: receivedPlan } : {}),
+        legacySelection,
+        semantic: semanticChoices.value,
+        attachQuality: str(ctx, "quality") ?? null,
+      });
+      if (ctx.options["dry-run"] === true) {
+        if (ctx.json) writeJson(ctx, { schemaVersion: 1, status: "OK", tool: "jgates", version: ctx.version, plan: gatePlan });
+        else gatePlanText(ctx, gatePlan);
+        return 0;
+      }
+      if (!combined) return runSemanticOnly(ctx, gatePlan, eventsFile, style);
+      return runCombined(ctx, {
+        gatePlan,
+        workspacePath,
+        failFast,
+        eventsFile,
+        progress,
+        style,
+        noCache,
+        waivers,
+        summarize: (r) => summarize(t, r),
+        legacySelection,
+        request: {
+          quality: {
+            source: receivedPlan ? "file" : "built",
+            profile: str(ctx, "profile") ?? null,
+            scope: str(ctx, "scope") ?? null,
+            paths: many(ctx, "path"),
+            base: str(ctx, "base") ?? null,
+            head: str(ctx, "head") ?? null,
+            skip: many(ctx, "skip"),
+            only: many(ctx, "only"),
+            templates: many(ctx, "template"),
+          },
+          semantic: { purpose: gatePlan.semanticRequest?.purpose ?? null, rigor: gatePlan.semanticRequest?.rigor ?? null, scope: gatePlan.semanticRequest?.scope ?? null },
+          manualAdvance: ctx.options["manual-advance"] === true,
+          reuseQuality: ctx.options["reuse-quality"] === true,
+        },
+      });
+    }
+    if (sequenceFlags.length > 0) return usage("OPTION_NOT_SUPPORTED", "run_option_not_for_gates", { name: `--${sequenceFlags[0]}`, gates: gates.join(",") });
+
     let outcome: RunResult | number;
     if (!plannedRun) {
       // No JGates configuration and no plan flag: the option flags become an equivalent plan, which the run
@@ -280,30 +479,8 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
       if ("kind" in selection) {
         return usage("INVALID_VALUE", "run_invalid_value", { name: selection.name, value: selection.value, allowed: selection.allowed });
       }
-      const options: Record<string, string | boolean> = { bridgeMode: selection.mode };
-      for (const key of ["pii", "secrets", "iac", "projectTests", "coverage"] as const) options[key] = selection[key];
-      if (failFast) options.failFast = true;
       const plan = legacyPlan(workspacePath, selection, { version: ctx.version });
-      options.planHash = plan.planHash;
-      options.planSource = "options";
-      outcome = await execute({
-        workspacePath,
-        version: ctx.version,
-        adapter: ADAPTER_ID,
-        options,
-        selection: {
-          planHash: plan.planHash,
-          planSource: "options",
-          profile: null,
-          scope: plan.scope.requested,
-          request: plan.selection.request as unknown as Record<string, unknown>,
-          planOverrides: [],
-        },
-        runFiles: { "plan.json": `${JSON.stringify(plan, null, 2)}\n` },
-        plan,
-        steps: (context) => legacySteps(context, plan),
-        summarize: (r) => summarize(t, r),
-      });
+      outcome = await execute(legacyRunOptions(workspacePath, ctx.version, plan, selection, failFast, (r) => summarize(t, r)));
     } else {
       // The run executes exactly one plan: the one assembled now or the one received with --plan.
       if (legacyFlags.length > 0) return usage("OPTION_NOT_SUPPORTED", "run_legacy_option_with_plan", { name: `--${legacyFlags[0]}` });
@@ -377,28 +554,7 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
         return EXIT_USAGE;
       }
 
-      const request = plan.selection.request;
-      const reviewed = plan;
-      outcome = await execute({
-        workspacePath,
-        version: ctx.version,
-        adapter: ADAPTER_ID,
-        options: { planHash: plan.planHash, planSource: source, profile: request.profile ?? plan.profile?.id ?? "", scope: request.scope, ...(failFast ? { failFast: true } : {}) },
-        selection: {
-          planHash: plan.planHash,
-          planSource: source,
-          profile: plan.profile?.id ?? request.profile,
-          scope: plan.scope.requested,
-          request: request as unknown as Record<string, unknown>,
-          planOverrides: plan.selection.overrides as unknown as Array<Record<string, unknown>>,
-        },
-        runFiles: { "plan.json": `${JSON.stringify(plan, null, 2)}\n` },
-        plan: reviewed,
-        // A plan assembled from the option flags keeps the step that built it (no jgates.yml to plan from).
-        steps: (context) => (isLegacyPlan(reviewed) ? legacySteps(context, reviewed) : planSteps(context, reviewed)),
-        ...(isLegacyPlan(reviewed) ? {} : { disabled: planDisabled(reviewed) }),
-        summarize: (r) => summarize(t, r),
-      });
+      outcome = await execute(plannedRunOptions(workspacePath, ctx.version, plan, source, failFast, (r) => summarize(t, r)));
     }
     progress?.stop();
     if (typeof outcome === "number") return outcome;
@@ -440,4 +596,189 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
     }
     return result.exitCode;
   }
+}
+
+/** The plan of a gate selection in text: the gates and their origin, each gate's plan in short, the blockers. */
+function gatePlanText(ctx: CommandContext, plan: GatePlan): void {
+  const t = tr;
+  const o = plan.selection.origin;
+  ctx.stdout(`${t("run_text_gates", { gates: plan.selection.gates.join(", "), origin: `${o.layer}${o.source ? ` (${o.source})` : ""}`, scope: o.runOnly ? t("run_text_run_only") : t("run_text_saved") })}\n`);
+  if (o.runOnly) {
+    const s = plan.selection.saved;
+    ctx.stdout(`  ${t("run_text_gates_saved", { gates: s.gates.join(", "), origin: `${s.origin.layer} (${s.origin.source})` })}\n`);
+  }
+  if (plan.quality) ctx.stdout(`  quality: ${plan.quality.planHash}  ${plan.quality.groups.willRun.map((i) => i.id).join(", ")}\n`);
+  if (plan.semantic) ctx.stdout(`  semantic: ${plan.semantic.planHash}  ${plan.semantic.methods.map((m) => m.id).join(", ")}\n`);
+  if (plan.advancement.condition === "quality-approved") ctx.stdout(`  ${t("run_text_advancement", { policy: plan.advancement.qualityCoverage })}\n`);
+  for (const b of plan.blockers) ctx.stdout(`  -- ${b.gate} ${b.code}: ${b.message}\n`);
+  ctx.stdout(`${plan.ready ? t("run_text_gates_ready") : t("run_text_gates_not_ready")}\n`);
+}
+
+/** A Semantic-only selection through `jgates run`: the independent Semantic service, as `jgates semantic run`. */
+async function runSemanticOnly(ctx: CommandContext, gatePlan: GatePlan, eventsFile: string | undefined, style: TerminalStyle): Promise<number> {
+  const t = tr;
+  const plan = gatePlan.semantic;
+  if (!plan || !plan.ready) {
+    const first = gatePlan.blockers[0];
+    return reportError(ctx, ctx.json, first?.code ?? "SEMANTIC_NOT_READY", gatePlan.blockers.map((b) => b.message).join(" "), t("run_gates_not_ready_fix"), EXIT_USAGE);
+  }
+  const progress = ctx.json
+    ? undefined
+    : (event: RunEvent): void => {
+        if (event.type === "stage") ctx.stderr(`  ${String(event.data.state).padEnd(10)} ${String(event.data.stageId)}\n`);
+      };
+  let result: RunResult;
+  try {
+    result = await withCancellation((signal) =>
+      executeSemanticRun({
+        workspacePath: gatePlan.workspace.path,
+        version: ctx.version,
+        plan,
+        signal,
+        ownsProcess: true,
+        ...(eventsFile !== undefined ? { eventsFile } : {}),
+        ...(progress ? { onEvent: progress } : {}),
+      }),
+    );
+  } catch (error) {
+    if (error instanceof SemanticRunError) return reportError(ctx, ctx.json, error.code, error.message, t("run_gates_not_ready_fix"), EXIT_USAGE);
+    throw error;
+  }
+  if (ctx.json) writeJson(ctx, result);
+  else {
+    ctx.stdout(`${t("run_text_decision", { decision: paint(style, DECISION_COLOR[result.decision] ?? "yellow", result.decision), summary: result.summary ?? "" })}\n`);
+    const q = result.semanticRun?.quality;
+    if (q) ctx.stdout(`${t("run_text_quality_evidence", { runId: q.runId, decision: q.decision ?? "-", freshness: q.freshness })}\n`);
+    ctx.stdout(`${t("run_text_run", { runId: result.runId })}\n${t("run_text_folder", { path: result.runDir })}\n`);
+  }
+  return result.exitCode;
+}
+
+interface CombinedInput {
+  gatePlan: GatePlan;
+  workspacePath: string;
+  failFast: boolean;
+  eventsFile: string | undefined;
+  progress: RunProgress | null;
+  style: TerminalStyle;
+  noCache: boolean;
+  waivers: Waiver[] | undefined;
+  summarize: (r: RunResult) => string;
+  legacySelection: BridgeSelection;
+  request: SequenceRequest;
+}
+
+/** The progress of a sequence on stderr: each status change once, with its reason. */
+function sequenceProgress(ctx: CommandContext): (record: { sequenceId: string; status: string; reason?: { code: string } }) => void {
+  let last = "";
+  return (record) => {
+    const line = `${record.status}${record.reason ? ` (${record.reason.code})` : ""}`;
+    if (line === last) return;
+    last = line;
+    ctx.stderr(`${tr("run_text_sequence_status", { id: record.sequenceId, status: line })}\n`);
+  };
+}
+
+/** Both gates: Quality, then Semantic only after the core decision approves the Quality run (core/sequence). */
+async function runCombined(ctx: CommandContext, input: CombinedInput): Promise<number> {
+  const { gatePlan, progress } = input;
+  const sequenceId = str(ctx, "sequence-id");
+  const onUpdate = ctx.json ? undefined : sequenceProgress(ctx);
+  let outcome: SequenceOutcome;
+  try {
+    outcome = await withCancellation((signal) =>
+      executeSequence({
+        workspacePath: input.workspacePath,
+        version: ctx.version,
+        ...(sequenceId !== undefined ? { sequenceId } : {}),
+        plan: gatePlan,
+        request: input.request,
+        signal,
+        ownsProcess: true,
+        ...(onUpdate ? { onUpdate: (record) => onUpdate(record) } : {}),
+        ...(ctx.json ? {} : { semantic: { onEvent: (event: RunEvent) => void (event.type === "stage" ? ctx.stderr(`  ${String(event.data.state).padEnd(10)} ${String(event.data.stageId)}\n`) : undefined) } }),
+        runQuality: async ({ plan, signal: runSignal, onRunStarted }) => {
+          const source = gatePlan.qualitySource ?? "built";
+          const options = source === "options" ? legacyRunOptions(input.workspacePath, ctx.version, plan, input.legacySelection, input.failFast, input.summarize) : plannedRunOptions(input.workspacePath, ctx.version, plan, source, input.failFast, input.summarize);
+          try {
+            const result = await executeRun({
+              ...options,
+              ...(input.noCache ? { cache: false } : {}),
+              ...(input.waivers ? { waivers: input.waivers } : {}),
+              ...runControls(runSignal, input.failFast, input.eventsFile, progress),
+              onEvent: (event: RunEvent) => {
+                if (event.type === "run-started") onRunStarted(event.runId);
+                progress?.onEvent(event);
+              },
+            });
+            progress?.stop();
+            writeAgentContext(result);
+            return result;
+          } catch (error) {
+            progress?.stop();
+            if (!(error instanceof SnapshotError)) throw error;
+            return { error: { code: error.code, message: tr("run_snapshot_failed", { commit: plan.scope.head ?? "-", detail: error.message }), exitCode: EXIT_USAGE } };
+          }
+        },
+      }),
+    );
+  } catch (error) {
+    if (error instanceof SequenceError) return reportError(ctx, ctx.json, error.code, error.message, null, EXIT_USAGE);
+    throw error;
+  }
+  return reportSequence(ctx, outcome, input.style);
+}
+
+/** `jgates run --advance <seq_...>`: continues a sequence that waits after its Quality approval. */
+async function runAdvance(ctx: CommandContext, workspacePath: string, sequenceId: string, style: TerminalStyle): Promise<number> {
+  const onUpdate = ctx.json ? undefined : sequenceProgress(ctx);
+  let outcome: SequenceOutcome;
+  try {
+    outcome = await withCancellation((signal) =>
+      advanceSequence({
+        workspacePath,
+        version: ctx.version,
+        sequenceId,
+        signal,
+        ownsProcess: true,
+        ...(onUpdate ? { onUpdate: (record) => onUpdate(record) } : {}),
+      }),
+    );
+  } catch (error) {
+    if (error instanceof SequenceError) return reportError(ctx, ctx.json, error.code, error.message, tr("run_advance_fix"), EXIT_USAGE);
+    throw error;
+  }
+  return reportSequence(ctx, outcome, style);
+}
+
+/** One JSON document for the sequence (stdout), or its text summary: both runs stay separate, each with its decision. */
+function reportSequence(ctx: CommandContext, outcome: SequenceOutcome, style: TerminalStyle): number {
+  const t = tr;
+  if (ctx.json) {
+    writeJson(ctx, {
+      schemaVersion: 1,
+      status: "OK",
+      tool: "jgates",
+      version: ctx.version,
+      kind: "jgates-sequence",
+      sequenceId: outcome.sequenceId,
+      sequenceDir: outcome.dir,
+      sequence: outcome.record,
+      details: outcome.details,
+      quality: outcome.quality,
+      semantic: outcome.semantic,
+      exitCode: outcome.exitCode,
+    });
+    return outcome.exitCode;
+  }
+  const q = outcome.quality;
+  if (q) ctx.stdout(`${t("run_text_gate_result", { gate: "quality", runId: q.runId, decision: paint(style, DECISION_COLOR[q.decision] ?? "yellow", q.decision), summary: q.summary ?? "" })}\n`);
+  const a = outcome.details.assessment;
+  if (a) ctx.stdout(`${t("run_text_transition", { code: a.code, message: a.message })}\n`);
+  const s = outcome.semantic;
+  if (s) ctx.stdout(`${t("run_text_gate_result", { gate: "semantic", runId: s.runId, decision: paint(style, DECISION_COLOR[s.decision] ?? "yellow", s.decision), summary: s.summary ?? "" })}\n`);
+  const r = outcome.record;
+  ctx.stdout(`${t("run_text_sequence", { id: r.sequenceId, status: r.status, reason: r.reason ? `${r.reason.code}: ${r.reason.message}` : "-" })}\n${t("run_text_sequence_folder", { path: outcome.dir })}\n`);
+  for (const p of outcome.details.preflight) ctx.stdout(`  -- ${p.gate} ${p.code}: ${p.message}\n`);
+  return outcome.exitCode;
 }

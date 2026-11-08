@@ -40,6 +40,31 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "selection": {
+          "description": "The gates this template selects and the sequence policy of a combined selection (a profile, jgates.yml or the call may override them).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "gates": {
+              "description": "quality, semantic or both, in any order (Quality always runs first).",
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": { "enum": ["quality", "semantic"] }
+            },
+            "sequence": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "qualityCoverage": {
+                  "description": "declared-scope: a fully completed scoped Quality run approves the scope it declared when it covers the Semantic subjects. repository: only a Quality run that covered the whole repository approves.",
+                  "enum": ["declared-scope", "repository"]
+                }
+              }
+            }
+          }
+        },
         "execution": {
           "type": "object",
           "additionalProperties": false,

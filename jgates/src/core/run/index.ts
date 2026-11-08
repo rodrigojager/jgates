@@ -19,6 +19,9 @@ import { describeAnalysis, planOutputs, prepareAnalysis, verifyInputs, type Prep
 import type { AdapterContext, AdapterOutput, CacheableStep, ResultDisabled, ResultPolicy, RunResult, SemanticHook } from "./types.js";
 import { ChangeAttribution, compareGitStatus, diffManifests, takeGitStatus, takeManifest } from "./workspace-state.js";
 import { startHeartbeat } from "./heartbeat.js";
+import { readResultAsGateRun, writeGateRecord } from "../gates/read.js";
+import { sourceIdentityOf } from "../gates/source.js";
+import type { SourceIdentity } from "../gates/types.js";
 
 export * from "./types.js";
 export { compareGitStatus, diffManifests, takeGitStatus, takeManifest } from "./workspace-state.js";
@@ -27,6 +30,23 @@ export * from "./heartbeat.js";
 export { isLegacyPlan, legacyPlan, legacySteps, legacySelection, validateLegacyPlan } from "./legacy-plan.js";
 
 export const RESULT_FILE = "result.json";
+/**
+ * The run identity of a Quality run (schemas/gates/run-identity), next to result.json: gate, run ID, configuration,
+ * the source identity of the analyzed state, plan, stages and outcome. A combined sequence and an attached Quality report
+ * read it to tell whether the run judged the current source.
+ */
+export const RUN_IDENTITY_FILE = "run.json";
+
+/** Writes run.json from the result and the source identity taken before the steps; a failure leaves the result alone. */
+function writeRunIdentity(runDir: string, result: RunResult, source: SourceIdentity | null): void {
+  if (!source) return;
+  try {
+    const { migratedFrom: _migrated, ...identity } = readResultAsGateRun(result, { source });
+    writeGateRecord("run-identity", path.join(runDir, RUN_IDENTITY_FILE), identity);
+  } catch {
+    // Without its identity the run reads as legacy evidence (unknown freshness); its result is unaffected.
+  }
+}
 
 export interface RunOptions {
   workspacePath: string;
@@ -125,6 +145,13 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     // The commit could not be written as a snapshot: nothing ran, no run is left behind.
     fs.rmSync(runDir, { recursive: true, force: true });
     throw error;
+  }
+  // The source this run judges (repository, commit, dirty contents), from the same analysis; kept in run.json.
+  let source: SourceIdentity | null = null;
+  try {
+    source = sourceIdentityOf(prep);
+  } catch {
+    source = null;
   }
   const logsDir = path.join(runDir, "logs");
   const outputsDir = path.join(runDir, "outputs");
@@ -270,7 +297,9 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
   const checkpoint = (outputs: AdapterOutput[]): void => {
     const merged = mergeOutputs(outputs);
     merged.disabled.push(...extraDisabled);
-    writePrivateFileAtomic(path.join(runDir, RESULT_FILE), JSON.stringify(assemble(merged, true, null, false, pending), null, 2) + "\n");
+    const partialResult = assemble(merged, true, null, false, pending);
+    writePrivateFileAtomic(path.join(runDir, RESULT_FILE), JSON.stringify(partialResult, null, 2) + "\n");
+    writeRunIdentity(runDir, partialResult, source);
   };
   checkpoint([]);
   // While the steps run, heartbeat.json tells a working run from one whose process died (both are `partial`).
@@ -372,6 +401,7 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     }
   }
   writePrivateFileAtomic(path.join(runDir, RESULT_FILE), JSON.stringify(result, null, 2) + "\n");
+  writeRunIdentity(runDir, result, source);
   heartbeat.stop();
   events.emit("run-finished", { decision: result.decision, exitCode: result.exitCode, complete: result.complete, reduced: result.reduced, ...(stopped ? { stopped } : {}) });
   events.close();

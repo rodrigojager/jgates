@@ -20,6 +20,21 @@
           "extends": { "type": "string", "minLength": 1 },
           "intensity": { "type": "string", "minLength": 1 },
           "scope": { "enum": ["changed", "full", "paths"] },
+          "gates": {
+            "description": "The gates this profile selects: quality, semantic or both (Quality always runs first).",
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "uniqueItems": true,
+            "items": { "enum": ["quality", "semantic"] }
+          },
+          "sequence": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "qualityCoverage": { "enum": ["declared-scope", "repository"] }
+            }
+          },
           "checks": {
             "type": "object",
             "propertyNames": { "pattern": "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/-]+$" },

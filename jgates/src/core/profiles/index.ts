@@ -6,6 +6,8 @@ import { DEFAULT_PROFILE, resolveConfig } from "../config/resolve/index.js";
 import { hashBytes, patchYamlText, patchYamlFile, readRevision, YamlPatchError, type YamlEdit } from "../codecs/yaml/index.js";
 import { parseYamlText } from "../config/load/yaml.js";
 import { knownSelectors, parseSelector, parseSkipList, resolveSelection, skipOverrides } from "../selection/index.js";
+import type { GateKind } from "../gates/types.js";
+import { normalizeGates } from "../sequence/selection.js";
 
 /** Project profiles: list, create, set the default and delete, by patch on .jgates/profiles.yml and jgates.yml. */
 
@@ -50,6 +52,8 @@ export interface ProfileInfo {
   extends: string | null;
   /** The selectors the profile itself sets, with their value. */
   checks: Record<string, { enabled?: boolean; intensity?: string }>;
+  /** The gates the profile itself selects (quality, semantic or both); null when it leaves them to the other layers. */
+  gates: GateKind[] | null;
   isDefault: boolean;
   /** Profiles that extend this one. */
   usedBy: string[];
@@ -121,6 +125,7 @@ export function listProfiles(dir: string): ProfileList {
       : { label: typeof body.label === "string" ? body.label : null, description: typeof body.description === "string" ? body.description : null }),
     extends: typeof body.extends === "string" ? body.extends : null,
     checks: asRecord(body.checks) as ProfileInfo["checks"],
+    gates: Array.isArray(body.gates) ? normalizeGates(body.gates) : null,
     isDefault: def === ref,
     usedBy: [],
     file: where,
@@ -202,12 +207,15 @@ export interface CreateOptions extends WriteOptions {
   description?: string;
   /** Replace an existing profile with the same id (recreate). */
   replace?: boolean;
+  /** The gates the new profile selects (saved in the profile; absent: inherited from the other layers). */
+  gates?: GateKind[];
 }
 
 export interface CreateResult extends WriteResult {
   id: string;
   extends: string;
   checks: Record<string, { enabled: boolean }>;
+  gates: GateKind[] | null;
 }
 
 function chainOf(start: string, map: Record<string, Record<string, unknown>>): string[] {
@@ -250,13 +258,37 @@ export function createProfile(dir: string, id: string, options: CreateOptions): 
   if (options.description) body.description = options.description;
   body.extends = from;
   if (skip.length > 0) body.checks = checks;
+  const gates = options.gates !== undefined ? normalizeGates(options.gates) : null;
+  if (options.gates !== undefined && gates === null) throw new ProfileError("SELECTION_REJECTED", translator("sequence")("sequence_profile_gates_invalid", { gates: options.gates.join(",") }), translator("sequence")("sequence_profile_gates_invalid_fix"));
+  if (gates) body.gates = gates;
 
   const file = existingFile ?? PROFILES_FILE;
   const result = applyEdits(projectDir, file, "profiles", [{ op: "set", path: ["profiles", id], value: body }], {
     expectedHash: options.expectedHash,
     createWith: "schemaVersion: 1\n",
   });
-  return { id, extends: from, checks, file, ...result };
+  return { id, extends: from, checks, gates, file, ...result };
+}
+
+/**
+ * Saves the gates a project profile selects (`profiles.<id>.gates`), or removes the choice (null) so the profile
+ * inherits it. A run-only choice (--gates, the API's `gates`) never goes through here: it is never saved.
+ */
+export function setProfileGates(dir: string, id: string, gates: GateKind[] | null, options: WriteOptions = {}): WriteResult & { id: string; gates: GateKind[] | null } {
+  const t = translator("profiles");
+  const projectDir = path.resolve(dir);
+  const load = loadValid(projectDir);
+  const { file, map } = projectProfiles(load);
+  if (!Object.hasOwn(map, id) || file === null) {
+    if (builtinRef(id) !== undefined) throw new ProfileError("PROFILE_READONLY", translator("config-profiles")("cfgp_profile_readonly", { id }), translator("config-profiles")("cfgp_profile_readonly_fix", { id }));
+    const suggestion = suggestName(id, Object.keys(map));
+    throw new ProfileError("PROFILE_NOT_FOUND", t("profiles_not_found", { id }), suggestion ? t("profiles_suggest", { suggestion }) : t("profiles_not_found_fix"), suggestion ? { suggestion } : {});
+  }
+  const normalized = gates === null ? null : normalizeGates(gates);
+  if (gates !== null && normalized === null) throw new ProfileError("SELECTION_REJECTED", translator("sequence")("sequence_profile_gates_invalid", { gates: gates.join(",") }), translator("sequence")("sequence_profile_gates_invalid_fix"));
+  const edits: YamlEdit[] = normalized ? [{ op: "set", path: ["profiles", id, "gates"], value: normalized }] : [{ op: "delete", path: ["profiles", id, "gates"] }];
+  const result = applyEdits(projectDir, file, "profiles", edits, { expectedHash: options.expectedHash });
+  return { id, gates: normalized, file, ...result };
 }
 
 /** Selectors the new profile would turn off must exist and must not touch a locked requirement. */

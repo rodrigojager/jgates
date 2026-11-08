@@ -99,12 +99,17 @@ export function templateOps(value: Record<string, unknown>): LayerOp[] {
   return out;
 }
 
-/** Operations of one profile body: checks, and the intensity and scope of the selection. */
+/**
+ * Operations of one profile body: checks, the intensity and scope of the selection, the gates it selects (quality,
+ * semantic or both, written to selection.gates) and the sequence policy of a combined selection (selection.sequence).
+ */
 export function profileOps(body: Record<string, unknown>, fileSegments: string[]): LayerOp[] {
   const out: LayerOp[] = [];
   if (body.checks !== undefined) flatten(body.checks, ["checks"], [...fileSegments, "checks"], out);
   if (body.intensity !== undefined) flatten(body.intensity, ["selection", "intensity"], [...fileSegments, "intensity"], out);
   if (body.scope !== undefined) flatten(body.scope, ["selection", "scope"], [...fileSegments, "scope"], out);
+  if (body.gates !== undefined) flatten(body.gates, ["selection", "gates"], [...fileSegments, "gates"], out);
+  if (body.sequence !== undefined) flatten(body.sequence, ["selection", "sequence"], [...fileSegments, "sequence"], out);
   return out;
 }
 
