@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "cloudflare-security-audit",
+  "kind": "skills",
+  "distribution": "shipped",
+  "source": {
+    "url": "https://github.com/cloudflare/security-audit-skill",
+    "revision": "c1c8a8c1471069fb0e188eeaff69b8e8db6564a8"
+  },
+  "artifact": {
+    "sha256": "sha256:438856eadb1a72937f20cb9a7f2acef51e96052c44e9d9863c6f94b292b6a2f1"
+  },
+  "spdx": "MIT",
+  "notices": ["LICENSE", "NOTICE.md"],
+  "modifications": "attack-classes/ copied verbatim from skills/security-audit; prompts/ adapted from SKILL.md, RECONNAISSANCE.md, HUNTING.md and VALIDATION-AND-REPORTING.md for the JGates bounded executor (source-only host tools, bounded separate contexts, host-side ledger, validators and reports). See NOTICE.md.",
+  "review": "approved"
+}

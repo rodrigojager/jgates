@@ -15,13 +15,13 @@ import { emptyCounts, maskText, strictMaskRules, totalCount, type MaskCounts } f
 import { readSemanticState, type SemanticProgress, type SemanticState } from "../../adapters/semantic-gate/index.js";
 import { publicResolution, userPreferencesBlocked, type ProviderResolution } from "../providers/index.js";
 import { vaultBlocked } from "../secrets/index.js";
-import { toRepositoryPath, type ScopeRunPreparation, type SemanticRigor } from "../semantic-scope/index.js";
+import { normalizeScopePath, toRepositoryPath, type ScopeRunPreparation, type SemanticRigor } from "../semantic-scope/index.js";
 import type { ResultSemantic } from "../run/types.js";
 import { artifactShape, parseArtifactText, validateArtifact, type ExplorationArtifact, type VerdictArtifact } from "./artifacts.js";
 import { agentCliBackend, providerToolBackend, type AgentCliGate, type CallTurn, type ContextRunResult, type InvestigationBackend, type TranscriptEntry } from "./backends.js";
 import { BudgetMeter, budgetLimits, DEFAULT_TURNS, reserveFor, type UsageSnapshot } from "./budget.js";
 import { HostTools, LIMITING_REFUSALS, type CandidateInput, type ContextState } from "./host-tools.js";
-import type { BudgetDimension, Candidate, InvestigationModule, InvestigationStageSpec, Limitation } from "./types.js";
+import type { ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation } from "./types.js";
 
 export const INVESTIGATION_RECORD = "evidence/investigation.json";
 export const CONTEXTS_DIR = "evidence/contexts";
@@ -143,8 +143,16 @@ interface StageRecord {
   limitations: Limitation[];
 }
 
+/** The canonical ID of a context: lowercase, safe as an agent ID ("refute:C1" -> "refute-c1"). */
+export function contextAgentId(label: string): string {
+  const id = label.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^[^a-z0-9]+/, "").slice(0, 64);
+  if (id === "") return "context";
+  return /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/.test(id) ? `${id}-context` : id;
+}
+
 interface ContextRecord {
   label: string;
+  agentId: string;
   candidate: string | null;
   status: ContextRunResult["status"] | "not-run";
   turns: number;
@@ -228,7 +236,21 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
   const claimed = new Set<string>();
   const declaredGaps: Array<{ path?: string; reason: string; stage: string }> = [];
   let exhausted: { dimension: BudgetDimension | string; stage: string; message: string } | null = null;
-  const addCandidate = (input: CandidateInput, ctx: ContextState): { id: string } | { problems: string[] } => {
+  // The accepted artifacts of the one-context stages, by stage ID (later stages and the module's reporting use them).
+  const accepted: Record<string, Record<string, unknown>> = {};
+  const moduleGaps: Array<{ code: string; reason: string; path?: string }> = [];
+  let moduleReport: Record<string, unknown> | null = null;
+  const moduleFiles: string[] = [];
+  // Host-only reads for a module (hashes, line checks, prior records); never sent to a model.
+  const hostRead = (p: string): string | null => {
+    try {
+      return tools.readable(p) ? prep.guard.read(p) : null;
+    } catch {
+      return null;
+    }
+  };
+  const runFacts = { runDir: options.runDir, scope: prep, rigor: options.rigor, readFile: hostRead };
+  const addCandidate = (input: CandidateInput & { details?: Record<string, unknown> }, ctx: ContextState): { id: string } | { problems: string[] } => {
     const same = candidates.find((c) => c.path === input.path && c.line === input.line && c.title.toLowerCase() === input.title.toLowerCase());
     if (same) return { id: same.id };
     if (candidates.length >= MAX_CANDIDATES) return { problems: [`the investigation keeps at most ${MAX_CANDIDATES} candidates`] };
@@ -283,7 +305,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
   const recordDoc = (): Record<string, unknown> => ({
     schemaVersion: 1,
     kind: "semantic-investigation",
-    module: { id: module.id, version: module.version, title: module.title, promptSha256: sha256(module.stages.map((st) => systemPrompt(module, st)).join("\u0000")) },
+    module: { id: module.id, version: module.version, title: module.title, promptSha256: sha256(module.stages.map((st) => systemPrompt(module, st)).join("\u0000")), ...(module.provenance ? { provenance: module.provenance } : {}) },
     backend: backend.describe,
     rigor: options.rigor,
     stages,
@@ -293,6 +315,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     usage: usageOf(),
     budget: { limits, reserve, exhausted },
     masked: { total: totalCount(counts), ...counts },
+    ...(moduleReport ? { report: moduleReport } : {}),
   });
   const coverageOf = (): Record<string, unknown> => {
     const read = new Set(readPaths());
@@ -305,6 +328,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       ...[...refused.entries()].map(([p, code]) => ({ code: "CONTEXT_REFUSED", path: p, refusal: code, reason: `the host refused it (${code}); claims that needed it are limited` })),
       ...stages.filter((st) => st.state !== "completed").map((st) => ({ code: "STAGE_INCOMPLETE", stage: st.id, state: st.state, reason: st.reason ?? st.state })),
       ...declaredGaps.map((g) => ({ code: "DECLARED_BY_MODEL", ...(g.path ? { path: g.path } : {}), stage: g.stage, reason: g.reason })),
+      ...moduleGaps.map((g) => ({ ...g, source: "module" })),
     ];
     return {
       basis: backend.kind === "provider-tools" ? "host-observed-reads" : "agent-cli-validated-claims",
@@ -339,9 +363,22 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
   let stopAll: "cancelled" | "error" | "timeout" | null = null;
   let stopReason = "";
   let invalid: { code: string; problems: string[] } | null = null;
+  // The module's budget gate: when the limits cannot fund its minimum, no context starts (nothing is thinned silently).
+  const min = module.minimum;
+  const budgetGate =
+    min && (limits.maxCalls - reserve.calls < min.exploreCalls || reserve.calls < min.reserveCalls)
+      ? `the budget cannot fund the ${module.id} minimum before any work starts (${min.exploreCalls} exploration call(s) and ${min.reserveCalls} reserved validation call(s); ${limits.maxCalls - reserve.calls} and ${reserve.calls} available)`
+      : null;
+  if (budgetGate) exhausted = { dimension: "calls", stage: module.stages[0]?.id ?? "-", message: budgetGate };
   for (let si = 0; si < module.stages.length; si++) {
     const spec = module.stages[si] as InvestigationStageSpec;
     const rec = stages[si] as StageRecord;
+    if (budgetGate) {
+      rec.state = "budget-exhausted";
+      rec.reason = budgetGate;
+      emit("stage", { step: REVIEW_STEP, stageId: `${module.id}/${spec.id}`, state: rec.state, role: spec.role, contexts: 0, reason: budgetGate });
+      continue;
+    }
     if (stopAll) {
       rec.state = "not-run";
       rec.reason = stopAll === "cancelled" ? "cancelled" : `not run: ${stopReason}`;
@@ -349,13 +386,16 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     }
     rec.state = "running";
     emit("stage", { step: REVIEW_STEP, stageId: `${module.id}/${spec.id}`, state: "running", role: spec.role });
-    const targets: Array<Candidate | null> = spec.contexts === "once" ? [null] : candidates.filter((c) => c.status === "open");
+    // A verification stage re-checks the decided records (confirmed or needs-validation); a deciding stage the open ones.
+    const targets: Array<Candidate | null> =
+      spec.contexts === "once" ? [null] : spec.verify ? candidates.filter((c) => c.status === "confirmed" || c.status === "needs-validation") : candidates.filter((c) => c.status === "open");
     const maxTurns = spec.maxTurns ?? DEFAULT_TURNS[spec.role][options.rigor];
     let budgetHit: { dimension: string; message: string } | null = null;
+    const notDone = spec.verify ? "not verified" : "not validated";
     for (const candidate of targets) {
       const label = candidate ? `${spec.id}:${candidate.id}` : spec.id;
       const ctx: ContextState = { stage: spec.id, label, seen: new Set(), refused: [] };
-      const ctxRec: ContextRecord = { label, candidate: candidate?.id ?? null, status: "not-run", turns: 0, artifact: null, refused: ctx.refused, notes: [], transcript: null };
+      const ctxRec: ContextRecord = { label, agentId: contextAgentId(label), candidate: candidate?.id ?? null, status: "not-run", turns: 0, artifact: null, refused: ctx.refused, notes: [], transcript: null };
       rec.contexts.push(ctxRec);
       if (options.signal.aborted) {
         stopAll = "cancelled";
@@ -367,13 +407,30 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
         ctxRec.budget = budgetHit;
         if (candidate) {
           candidate.status = "unresolved";
-          candidate.reason = `not validated: ${budgetHit.message}`;
+          candidate.reason = `${notDone}: ${budgetHit.message}`;
         }
         continue;
       }
       contextsSeen.push(ctx.seen);
       const transcript: TranscriptEntry[] = [];
-      const briefText = buildBrief(module, spec, prep, tools, ctx, candidate, meter, policy);
+      let extra: string | null = null;
+      if (module.brief) {
+        try {
+          extra = module.brief({ stage: spec, candidate, accepted, candidates, scope: prep, rigor: options.rigor, runDir: options.runDir, readable: (p) => tools.readable(p), readFile: hostRead });
+        } catch (error) {
+          // The module could not give this context its material: the context does not start.
+          stopAll = "error";
+          stopReason = `the ${module.id} module could not brief ${label}: ${error instanceof Error ? error.message : String(error)}`;
+          ctxRec.status = "error";
+          ctxRec.error = brief(stopReason);
+          if (candidate) {
+            candidate.status = "unresolved";
+            candidate.reason = `${notDone}: ${brief(stopReason)}`;
+          }
+          break;
+        }
+      }
+      const briefText = buildBrief(module, spec, prep, tools, ctx, candidate, meter, policy, extra);
       const result = await backend.runContext({
         stage: spec,
         label,
@@ -410,7 +467,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
         stopAll = "cancelled";
         if (candidate) {
           candidate.status = "unresolved";
-          candidate.reason = "not validated: the run was cancelled";
+          candidate.reason = `${notDone}: the run was cancelled`;
         }
         break;
       }
@@ -419,7 +476,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
         stopReason = result.error ?? result.status;
         if (candidate) {
           candidate.status = "unresolved";
-          candidate.reason = `not validated: ${brief(stopReason)}`;
+          candidate.reason = `${notDone}: ${brief(stopReason)}`;
         }
         break;
       }
@@ -429,7 +486,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
         exhausted ??= { dimension: budgetHit.dimension, stage: spec.id, message: budgetHit.message };
         if (candidate) {
           candidate.status = "unresolved";
-          candidate.reason = `not validated: ${budgetHit.message}`;
+          candidate.reason = `${notDone}: ${budgetHit.message}`;
         }
         continue;
       }
@@ -438,19 +495,23 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       if (!("value" in parsed)) {
         ctxRec.artifact = { valid: false, code: parsed.code, problems: [parsed.problem] };
       } else {
-        const check = validateArtifact(spec.artifact, parsed.value, { seen: ctx.seen, candidate, readable: (p) => tools.readable(p), lines: (p) => tools.lines(p) });
+        const check = validateArtifact(spec.artifact, parsed.value, { seen: ctx.seen, candidate, readable: (p) => tools.readable(p), lines: (p) => tools.lines(p), accepted, agentId: ctxRec.agentId, run: runFacts });
         ctxRec.artifact = { valid: check.ok, ...(check.ok ? {} : { code: "invalid-field" }), problems: check.problems.map(brief) };
         if (check.ok && check.value) {
-          // A custom artifact's claims are the module's own: the executor keeps the accepted value in the record.
-          if (spec.artifact.kind === "custom") ctxRec.accepted = check.value;
-          else applyArtifact(spec, check.value, ctx, candidate);
+          if (spec.contexts === "once") accepted[spec.id] = check.value;
+          // A custom artifact's claims are the module's own: the executor keeps the accepted value in the record and
+          // applies the candidates, examined files, gaps and verdict it contributes.
+          if (spec.artifact.kind === "custom") {
+            ctxRec.accepted = check.value;
+            applyCustom(spec, check, ctx, candidate, ctxRec);
+          } else applyArtifact(spec, check.value, ctx, candidate);
         }
       }
       if (ctxRec.artifact && !ctxRec.artifact.valid) {
         if (spec.required) invalid ??= { code: ctxRec.artifact.code ?? "invalid-field", problems: [`${label}: ${ctxRec.artifact.problems.join("; ")}`] };
-        if (candidate && candidate.status === "open") {
+        if (candidate && (candidate.status === "open" || spec.verify)) {
           candidate.status = "unresolved";
-          candidate.reason = "not validated: the validation context gave no valid verdict";
+          candidate.reason = `${notDone}: the ${spec.verify ? "verification" : "validation"} context gave no valid verdict`;
         }
       }
       checkpoint();
@@ -498,19 +559,105 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     }
     if (spec.artifact.kind === "verdict" && candidate) {
       const v = value as unknown as VerdictArtifact;
-      for (const e of v.evidence) claimed.add(e.path);
-      claimed.add(candidate.path);
-      let confirmation = v.confirmation;
-      // A verdict reached while the host refused workspace context this validation asked for cannot be firmer than
-      // needs-validation: the refused file might have decided it.
-      const limiting = ctx.refused.filter((r) => LIMITING_REFUSALS.has(r.code));
-      if (limiting.length > 0 && confirmation !== "needs-validation") {
-        candidate.limitations.push({ code: "REQUIRED_CONTEXT_REFUSED", message: `the validation asked for context the host refused; its ${confirmation} verdict is limited to needs-validation`, paths: [...new Set(limiting.map((r) => r.path))] });
-        confirmation = "needs-validation";
+      applyVerdict(spec, { confirmation: v.confirmation, reason: v.reason, evidence: v.evidence }, ctx, candidate);
+    }
+  }
+
+  function applyCustom(spec: InvestigationStageSpec, check: ArtifactCheck, ctx: ContextState, candidate: Candidate | null, ctxRec: ContextRecord): void {
+    const problems = ctxRec.artifact?.problems ?? [];
+    for (const raw of check.examined ?? []) {
+      const p = normalizeScopePath(raw);
+      if (p && ctx.seen.has(p)) claimed.add(p);
+    }
+    for (const g of check.gaps ?? []) if (g && typeof g.reason === "string" && g.reason.trim() !== "") declaredGaps.push({ ...(g.path ? { path: g.path } : {}), reason: g.reason, stage: spec.id });
+    for (const c of check.candidates ?? []) {
+      const p = normalizeScopePath(c.path);
+      if (!p || !tools.readable(p)) {
+        problems.push(brief(`the candidate at ${String(c.path)} is dropped: the file cannot be read in this scope`));
+        continue;
       }
+      if (c.line !== null && (tools.lines(p) ?? Infinity) < c.line) {
+        problems.push(brief(`the candidate at ${p}:${c.line} is dropped: the file has no such line`));
+        continue;
+      }
+      const r = addCandidate({ title: c.title, path: p, line: c.line, severity: c.severity, category: c.category, rationale: c.rationale, ...(c.details ? { details: c.details } : {}) }, ctx);
+      if ("problems" in r) problems.push(brief(`a candidate is dropped: ${r.problems.join("; ")}`));
+      else claimed.add(p);
+    }
+    if (candidate) {
+      if (check.verdict) applyVerdict(spec, check.verdict, ctx, candidate);
+      else {
+        candidate.status = "unresolved";
+        candidate.reason = `${spec.verify ? "not verified" : "not validated"}: the context's artifact carried no verdict`;
+      }
+    }
+  }
+
+  function applyVerdict(spec: InvestigationStageSpec, v: ArtifactVerdict, ctx: ContextState, candidate: Candidate): void {
+    for (const e of v.evidence) claimed.add(e.path);
+    claimed.add(candidate.path);
+    let confirmation = v.confirmation;
+    // A verdict reached while the host refused workspace context this validation asked for cannot be firmer than
+    // needs-validation: the refused file might have decided it.
+    const limiting = ctx.refused.filter((r) => LIMITING_REFUSALS.has(r.code));
+    if (limiting.length > 0 && confirmation !== "needs-validation") {
+      candidate.limitations.push({ code: "REQUIRED_CONTEXT_REFUSED", message: `the ${spec.verify ? "verification" : "validation"} asked for context the host refused; its ${confirmation} verdict is limited to needs-validation`, paths: [...new Set(limiting.map((r) => r.path))] });
+      confirmation = "needs-validation";
+    }
+    if (!spec.verify) {
       candidate.confirmation = confirmation;
       candidate.status = confirmation;
       candidate.validation = { stage: spec.id, context: ctx.label, reason: v.reason, evidence: v.evidence };
+      if (v.severity) candidate.severity = v.severity;
+      if (v.details) candidate.details = v.details;
+      return;
+    }
+    // Fresh verification of a decided record: it stands, it is demoted, or the change waits for another verification.
+    const before: Confirmation = candidate.confirmation ?? (candidate.status === "confirmed" ? "confirmed" : "needs-validation");
+    const outcome = v.disputes ? "disputed" : confirmation === before ? "verified" : before === "confirmed" && confirmation === "needs-validation" ? "demoted" : "disputed";
+    candidate.verification = { stage: spec.id, context: ctx.label, outcome, confirmation, reason: v.reason, evidence: v.evidence };
+    if (outcome === "verified") {
+      // A non-material correction of the wording replaces the record.
+      if (v.details) candidate.details = v.details;
+    } else if (outcome === "demoted") {
+      candidate.confirmation = "needs-validation";
+      candidate.status = "needs-validation";
+      if (v.details) candidate.details = v.details;
+      candidate.limitations.push({ code: "DEMOTED_BY_VERIFICATION", message: "the fresh verification demoted the confirmed record to needs-validation" });
+    } else {
+      candidate.status = "unresolved";
+      candidate.reason = brief(`not verified: the fresh verification disputed the ${before} record (${v.disputes ?? `it answered ${confirmation}`}); a further independent verification must settle it before the record can change`);
+    }
+  }
+
+  // ---- reporting (the module's own records, written by the host) ----
+  let finalizeError: string | null = null;
+  if (module.finalize && stopAll !== "cancelled") {
+    try {
+      const out = module.finalize({
+        stages: stages.map((st) => ({ id: st.id, state: st.state, required: st.required, ...(st.reason ? { reason: st.reason } : {}), contexts: st.contexts.map((c) => ({ label: c.label, agentId: c.agentId, candidate: c.candidate, status: c.status, ...(c.accepted ? { accepted: c.accepted } : {}) })) })),
+        accepted,
+        candidates,
+        scope: prep,
+        rigor: options.rigor,
+        runDir: options.runDir,
+        budget: { limits, reserve, exhausted },
+        usage: { calls: meter.snapshot().calls },
+        read: readPaths(),
+        readable: (p) => tools.readable(p),
+        readFile: hostRead,
+        now: now(),
+      });
+      for (const f of out.files) {
+        const rel = normalizeScopePath(f.path);
+        if (!rel || !rel.startsWith("evidence/") || rel.split("/").includes("..")) throw new Error(`the module may only write under evidence/ (${String(f.path).slice(0, 120)})`);
+        writeAtomic(path.join(options.runDir, rel), f.content);
+        moduleFiles.push(rel);
+      }
+      for (const g of out.gaps ?? []) moduleGaps.push(g);
+      if (out.report) moduleReport = out.report;
+    } catch (error) {
+      finalizeError = brief(error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -532,6 +679,9 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
   } else if (invalid) {
     outcomeState = "invalid";
     reason = `The model output is not usable (${invalid.code}): ${invalid.problems.join("; ").slice(0, 280)}`;
+  } else if (finalizeError) {
+    outcomeState = "unavailable";
+    reason = `The ${module.id} report could not be produced: ${finalizeError}`;
   } else if (exhausted || unresolved.length > 0 || required.some((st) => st.state !== "completed")) {
     outcomeState = "budget-exhausted";
     reason = `The investigation is incomplete: ${exhausted ? `${exhausted.message} during ${exhausted.stage}` : "required work did not finish"}; ${unresolved.length} candidate(s) unresolved.`;
@@ -567,7 +717,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
   const investigation = recordDoc();
   investigation.complete = complete;
   if (incomplete) investigation.incomplete = incomplete;
-  investigation.artifacts = { record: INVESTIGATION_RECORD, contexts: transcripts };
+  investigation.artifacts = { record: INVESTIGATION_RECORD, contexts: transcripts, ...(moduleFiles.length > 0 ? { module: moduleFiles } : {}) };
   try {
     writeAtomic(path.join(options.runDir, INVESTIGATION_RECORD), `${JSON.stringify(investigation, null, 2)}\n`);
   } catch (error) {
@@ -606,6 +756,7 @@ function buildBrief(
   candidate: Candidate | null,
   meter: BudgetMeter,
   policy: ScopeRunPreparation["resolution"]["policy"],
+  extra: string | null = null,
 ): string {
   const list = (items: string[], max: number): string => (items.length === 0 ? "  (none)" : [...items.slice(0, max).map((p) => `  - ${p}`), ...(items.length > max ? [`  ... and ${items.length - max} more (use list_files)`] : [])].join("\n"));
   const readable = new Set(tools.readableFiles());
@@ -621,8 +772,18 @@ function buildBrief(
   } else {
     lines.push(
       `Candidate ${candidate.id} (reported by another context; judge it independently):`,
-      JSON.stringify({ candidateId: candidate.id, title: candidate.title, path: candidate.path, line: candidate.line, severity: candidate.severity, category: candidate.category, rationale: candidate.rationale }, null, 2),
+      JSON.stringify(
+        { candidateId: candidate.id, title: candidate.title, path: candidate.path, line: candidate.line, severity: candidate.severity, category: candidate.category, rationale: candidate.rationale, ...(candidate.details ? { record: candidate.details } : {}) },
+        null,
+        2,
+      ),
     );
+    if (spec.verify) {
+      lines.push(
+        `Record to verify (decided by an independent validation you did not perform; verify it with fresh eyes):`,
+        JSON.stringify({ confirmation: candidate.confirmation, reason: candidate.validation?.reason ?? null, evidence: candidate.validation?.evidence ?? [] }, null, 2),
+      );
+    }
     const excerpt = tools.readForBrief(candidate.path, ctx);
     if ("text" in excerpt) {
       const all = excerpt.text.split(/\r?\n/);
@@ -635,5 +796,6 @@ function buildBrief(
       lines.push(`The host could not read the candidate's file: ${excerpt.refused}`);
     }
   }
+  if (extra) lines.push(extra);
   return lines.join("\n");
 }

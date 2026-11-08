@@ -231,6 +231,8 @@ test("scope controls are identical for every purpose and scope resolution ignore
   assert.equal(a.scope.resolution.scopeHash, b.scope.resolution.scopeHash);
   assert.notEqual(a.planHash, b.planHash);
   const sec = semantic.buildSemanticPlan({ workspacePath: r.dir, home: r.home, env: r.env, purpose: "security" });
-  assert.ok(sec.blockers.some((x) => x.code === "SEMANTIC_METHOD_UNAVAILABLE"));
+  // The security-audit module is registered: the security purpose is no longer blocked as unavailable.
+  assert.deepEqual(sec.methods.map((m) => m.id), ["security-audit"]);
+  assert.equal(sec.blockers.some((x) => x.code === "SEMANTIC_METHOD_UNAVAILABLE"), false);
   assert.equal(sec.scope.resolution.scopeHash, a.scope.resolution.scopeHash);
 });

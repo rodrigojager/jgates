@@ -9,6 +9,8 @@ import { resolveHome } from "../home/index.js";
 import { contentHash, workspaceId } from "../ids/index.js";
 import { readSemanticState, semanticPackageAvailable } from "../../adapters/semantic-gate/index.js";
 import { translator } from "../../i18n/index.js";
+// The registry of investigation modules (importing it registers every built-in module, the security-audit baseline too).
+import { investigationModuleFor } from "../semantic-modules/index.js";
 import { resolveSemanticScope, scopeControls, type ScopeControls, type ScopeRequest, type SemanticPurpose, type SemanticRigor, type SemanticScopeResolution } from "../semantic-scope/index.js";
 
 const t = translator("semantic");
@@ -21,10 +23,14 @@ export const SECURITY_AUDIT = "security-audit";
 
 /** The methods each purpose plans; the scope controls are the same for all of them. */
 export const PURPOSE_METHODS: Readonly<Record<SemanticPurpose, readonly string[]>> = { "general-review": [GENERAL_REVIEW], security: [SECURITY_AUDIT] };
-/** Methods this build can execute. */
+/** Methods this build can execute as a context-only review (the investigation modules register their own). */
 export const AVAILABLE_METHODS: ReadonlySet<string> = new Set([GENERAL_REVIEW]);
-/** Methods that read the review context from the working tree (a context-only provider call). */
-const WORKING_TREE_METHODS: ReadonlySet<string> = new Set([GENERAL_REVIEW]);
+/** Whether this build can execute a method: a context-only review or a registered investigation module. */
+export function methodAvailable(id: string): boolean {
+  return AVAILABLE_METHODS.has(id) || investigationModuleFor([id]) !== null;
+}
+/** Methods that read the review context from the working tree (a context-only call, or a module's host tools). */
+const WORKING_TREE_METHODS: ReadonlySet<string> = new Set([GENERAL_REVIEW, SECURITY_AUDIT]);
 
 export interface SemanticBudget {
   maxCalls: number | null;
@@ -137,7 +143,7 @@ export function buildSemanticPlan(request: SemanticPlanRequest): SemanticPlan {
   const methodIds = [...(PURPOSE_METHODS[purpose] ?? [GENERAL_REVIEW])];
   const methods = methodIds.map((id) => ({ id }));
   for (const id of methodIds) {
-    if (!AVAILABLE_METHODS.has(id)) blockers.push({ code: "SEMANTIC_METHOD_UNAVAILABLE", message: ts("scope_plan_method_unavailable", { method: id, purpose }) });
+    if (!methodAvailable(id)) blockers.push({ code: "SEMANTIC_METHOD_UNAVAILABLE", message: ts("scope_plan_method_unavailable", { method: id, purpose }) });
   }
   // The scope is resolved from the scope request alone: purpose, rigor and budget never enter it.
   const resolution = resolveSemanticScope({ workspacePath, request: request.scope ?? null, home, env, methods: methodIds });

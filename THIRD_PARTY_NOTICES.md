@@ -124,3 +124,13 @@ Semgrep registry rules are never bundled. Semgrep itself (LGPL-2.1) is customer-
 ## Three.js
 
 The Quality Gate mascots and the Doctor of the prerequisites bar use Three.js 0.187.0, copyright Three.js authors, under the MIT license. The full license is included at `jgates/ui/public/licenses/three.txt`. Character geometry and animations are procedural local assets.
+
+## Cloudflare security-audit skill (adapted)
+
+`jgates/vendor/cloudflare-security-audit` adapts the security-audit skill of
+[cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill) at commit
+`c1c8a8c1471069fb0e188eeaff69b8e8db6564a8` (`skills/security-audit`), Copyright (c) 2025-2026 Cloudflare, Inc., under
+the MIT license. Its `LICENSE` (the upstream MIT text), `NOTICE.md` (what was kept verbatim and what was adapted) and
+`jgates-pack.json` (source, revision, SPDX) travel with it. The Semantic `security-audit` method
+(`jgates/src/core/semantic-modules/cloudflare`) is built from that material; the upstream validators and tests are not
+shipped (their checks are reimplemented in the module).

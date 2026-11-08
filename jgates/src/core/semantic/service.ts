@@ -563,9 +563,14 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
     opts.signal?.removeEventListener("abort", onCallerAbort);
   }
   // The evidence an investigation wrote (its record and the transcript of each context), as outputs of the run.
-  const investigationArtifacts = (outcome.investigation as { artifacts?: { record?: unknown; contexts?: unknown } } | undefined)?.artifacts;
+  const investigationArtifacts = (outcome.investigation as { artifacts?: { record?: unknown; contexts?: unknown; module?: unknown } } | undefined)?.artifacts;
   if (investigationArtifacts) {
-    reviewFiles = [investigationArtifacts.record, ...(Array.isArray(investigationArtifacts.contexts) ? investigationArtifacts.contexts : [])].filter((f): f is string => typeof f === "string");
+    reviewFiles = [
+      investigationArtifacts.record,
+      ...(Array.isArray(investigationArtifacts.contexts) ? investigationArtifacts.contexts : []),
+      // The module's own records (a structured report, a readable result, an agent context).
+      ...(Array.isArray(investigationArtifacts.module) ? investigationArtifacts.module : []),
+    ].filter((f): f is string => typeof f === "string");
   }
   // A request that arrived while the last answer was being judged still cancels the run.
   watchCancelFile();

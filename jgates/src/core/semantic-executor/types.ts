@@ -1,6 +1,8 @@
 // Types of the bounded investigation executor. JGates owns the stages, the budgets, the lifecycle, the events, the
 // artifacts and their validation; a backend (a provider tool loop or a wrapped agent CLI) only talks to the model
 // inside those limits. A Semantic module is a list of stages, each a responsibility with its own fresh context(s).
+import type { ScopeRunPreparation, SemanticRigor } from "../semantic-scope/index.js";
+
 export type FindingSeverity = "blocking" | "important" | "suggestion" | "nit";
 export const FINDING_SEVERITIES: readonly FindingSeverity[] = ["blocking", "important", "suggestion", "nit"];
 
@@ -33,6 +35,47 @@ export interface ArtifactCheckContext {
   readable(path: string): boolean;
   /** Line count of a readable file (null when unknown). */
   lines(path: string): number | null;
+  /** The accepted artifacts of the earlier one-context stages, by stage ID (absent in a direct validation call). */
+  accepted?: Readonly<Record<string, Record<string, unknown>>>;
+  /** The canonical ID of the context (lowercase, safe as an agent ID). */
+  agentId?: string;
+  /** Host facts of the run (absent in a direct validation call). */
+  run?: ModuleRunFacts;
+}
+
+/** What the host gives a module about the run: its folder, its resolved scope and rigor, host-only reads. */
+export interface ModuleRunFacts {
+  runDir: string;
+  scope: ScopeRunPreparation;
+  rigor: SemanticRigor;
+  /** Reads a readable workspace file for the host (null when it cannot be read); never sent to a model. */
+  readFile(path: string): string | null;
+}
+
+/** A candidate a custom artifact contributes (the executor applies it like a reported one). */
+export interface ArtifactCandidate {
+  title: string;
+  /** Workspace-relative. */
+  path: string;
+  line: number | null;
+  severity: FindingSeverity;
+  category: string;
+  rationale: string;
+  /** The module's structured record of the candidate (kept with the candidate, shown to its validators). */
+  details?: Record<string, unknown>;
+}
+
+/** A verdict a custom per-candidate artifact contributes (the executor applies it like a built-in verdict). */
+export interface ArtifactVerdict {
+  confirmation: Confirmation;
+  reason: string;
+  evidence: Evidence[];
+  /** The validator's corrected severity (applied by a deciding stage only). */
+  severity?: FindingSeverity;
+  /** The validator's corrected record (replaces the candidate's details when the verdict is applied). */
+  details?: Record<string, unknown>;
+  /** Verification stage: a material change that a further independent verification must settle before it applies. */
+  disputes?: string;
 }
 
 export interface ArtifactCheck {
@@ -40,6 +83,14 @@ export interface ArtifactCheck {
   problems: string[];
   /** The accepted value (claims that failed their checks are dropped and listed in `problems`). */
   value?: Record<string, unknown>;
+  /** Custom artifacts: candidates to add (their paths must be readable, their lines must exist). */
+  candidates?: ArtifactCandidate[];
+  /** Custom artifacts: workspace-relative files the context examined (only files it saw count). */
+  examined?: string[];
+  /** Custom artifacts: what the context could not examine. */
+  gaps?: Array<{ path?: string; reason: string }>;
+  /** Custom artifacts of a per-candidate stage: the verdict on the candidate. */
+  verdict?: ArtifactVerdict;
 }
 
 export interface InvestigationStageSpec {
@@ -57,6 +108,53 @@ export interface InvestigationStageSpec {
   artifact: ArtifactContract;
   /** Largest number of model turns of one context (rigor default when absent). */
   maxTurns?: number;
+  /**
+   * Fresh verification of decided records (per-candidate only): one fresh context per confirmed or needs-validation
+   * candidate. A verdict equal to the record verifies it; a demotion of confirmed to needs-validation applies; any
+   * other change (or a verdict that disputes it) leaves the candidate unresolved until a further verification.
+   */
+  verify?: boolean;
+}
+
+/** What a module may add to the brief of one context (host-validated material of earlier stages, prior runs). */
+export interface ModuleBriefInput {
+  stage: InvestigationStageSpec;
+  candidate: Candidate | null;
+  accepted: Readonly<Record<string, Record<string, unknown>>>;
+  candidates: readonly Candidate[];
+  scope: ScopeRunPreparation;
+  rigor: SemanticRigor;
+  runDir: string;
+  /** Whether a workspace-relative path may be read (the guard's answer, never recorded). */
+  readable(path: string): boolean;
+  /** Reads a readable workspace file for the host (null when it cannot be read); never sent to a model. */
+  readFile(path: string): string | null;
+}
+
+export interface ModuleFinalizeInput {
+  stages: ReadonlyArray<{ id: string; state: string; required: boolean; reason?: string; contexts: ReadonlyArray<{ label: string; agentId: string; candidate: string | null; status: string; accepted?: Record<string, unknown> }> }>;
+  accepted: Readonly<Record<string, Record<string, unknown>>>;
+  candidates: readonly Candidate[];
+  scope: ScopeRunPreparation;
+  rigor: SemanticRigor;
+  runDir: string;
+  budget: { limits: BudgetLimits; reserve: BudgetReserve; exhausted: { dimension: string; stage: string; message: string } | null };
+  usage: { calls: number };
+  /** Workspace-relative files the investigation read. */
+  read: readonly string[];
+  readable(path: string): boolean;
+  /** Reads a readable workspace file for the host (masked like any read; null when it cannot be read). */
+  readFile(path: string): string | null;
+  now: Date;
+}
+
+export interface ModuleFinalizeOutput {
+  /** Files written under the run folder (relative paths under evidence/). */
+  files: Array<{ path: string; content: string }>;
+  /** Coverage gaps the module's own records show (added to the investigation's coverage). */
+  gaps?: Array<{ code: string; reason: string; path?: string }>;
+  /** A summary kept in the investigation record (module.report). */
+  report?: Record<string, unknown>;
 }
 
 export interface InvestigationModule {
@@ -66,6 +164,14 @@ export interface InvestigationModule {
   /** What the investigation looks for (the module part of the system prompt). */
   objective: string;
   stages: InvestigationStageSpec[];
+  /** Pinned upstream material the module adapts (kept in the investigation record). */
+  provenance?: Record<string, unknown>;
+  /** The least the budget must fund before any context starts: exploration calls and reserved validation calls. */
+  minimum?: { exploreCalls: number; reserveCalls: number };
+  /** Extra brief text for one context (null: nothing to add). */
+  brief?(input: ModuleBriefInput): string | null;
+  /** Host-side reporting after every stage: structured records, readable report, agent context. */
+  finalize?(input: ModuleFinalizeInput): ModuleFinalizeOutput;
 }
 
 export interface Evidence {
@@ -96,6 +202,10 @@ export interface Candidate {
   /** Only set by a validated verdict (possibly limited to needs-validation by the host). */
   confirmation: Confirmation | null;
   validation: { stage: string; context: string; reason: string; evidence: Evidence[] } | null;
+  /** The fresh verification of the decided record (a verify stage). */
+  verification?: { stage: string; context: string; outcome: "verified" | "demoted" | "disputed"; confirmation: Confirmation; reason: string; evidence: Evidence[] } | null;
+  /** The module's structured record of the candidate (a custom artifact's details). */
+  details?: Record<string, unknown>;
   limitations: Limitation[];
   /** Why the candidate stayed open (unresolved) or what limited it. */
   reason?: string;
