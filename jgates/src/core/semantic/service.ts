@@ -524,21 +524,29 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
         });
       }
     : null;
+  const contextReview: SemanticReviewer = (ctx) =>
+    runSemanticReview(
+      ctx.workspacePath,
+      {
+        env: ctx.env,
+        signal: ctx.signal,
+        onProgress: ctx.onProgress,
+        // Only the subjects to examine and the allowed context reach the provider; the guard decides each file.
+        ...(ctx.scope ? { scope: { paths: ctx.scope.sendPaths, allow: (p: string) => ctx.scope!.allow(p) } } : {}),
+      },
+      opts.deps ?? {},
+    );
+  // A module whose method is also a context-only review (the general review) falls back to it when the provider has
+  // no tool-enabled backend, so providers that only answer one prompt keep their advisory review.
   const review: SemanticReviewer =
     opts.review ??
-    investigate ??
-    ((ctx) =>
-      runSemanticReview(
-        ctx.workspacePath,
-        {
-          env: ctx.env,
-          signal: ctx.signal,
-          onProgress: ctx.onProgress,
-          // Only the subjects to examine and the allowed context reach the provider; the guard decides each file.
-          ...(ctx.scope ? { scope: { paths: ctx.scope.sendPaths, allow: (p: string) => ctx.scope!.allow(p) } } : {}),
-        },
-        opts.deps ?? {},
-      ));
+    (investigate && module?.contextReviewFallback
+      ? async (ctx) => {
+          const outcome = await investigate(ctx);
+          return outcome.code === "NO_TOOL_BACKEND" ? contextReview(ctx) : outcome;
+        }
+      : investigate) ??
+    contextReview;
   let outcome: ResultSemantic;
   try {
     outcome = controller.signal.aborted

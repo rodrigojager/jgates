@@ -4,6 +4,7 @@
 // stays unavailable (the plan blocks it with SEMANTIC_METHOD_UNAVAILABLE) instead of running without its method.
 import { investigationModuleFor, registerInvestigationModule, registeredInvestigationModules, type InvestigationModule } from "../semantic-executor/index.js";
 import { SECURITY_AUDIT_METHOD, securityAuditModule } from "./cloudflare/index.js";
+import { GENERAL_REVIEW_METHOD, generalReviewModule } from "./general-review/index.js";
 
 export interface SemanticModuleEntry {
   method: string;
@@ -12,7 +13,10 @@ export interface SemanticModuleEntry {
 }
 
 /** The built-in modules, by method. */
-export const SEMANTIC_MODULES: readonly SemanticModuleEntry[] = [{ method: SECURITY_AUDIT_METHOD, create: () => securityAuditModule() }];
+export const SEMANTIC_MODULES: readonly SemanticModuleEntry[] = [
+  { method: GENERAL_REVIEW_METHOD, create: () => generalReviewModule() },
+  { method: SECURITY_AUDIT_METHOD, create: () => securityAuditModule() },
+];
 
 /** Methods whose module could not be built, with the reason. */
 export const unavailableModules: Array<{ method: string; reason: string }> = [];
@@ -27,3 +31,4 @@ for (const entry of SEMANTIC_MODULES) {
 
 export { investigationModuleFor, registerInvestigationModule, registeredInvestigationModules };
 export * as securityAudit from "./cloudflare/index.js";
+export * as generalReview from "./general-review/index.js";

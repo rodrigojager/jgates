@@ -164,6 +164,11 @@ export interface InvestigationModule {
   /** What the investigation looks for (the module part of the system prompt). */
   objective: string;
   stages: InvestigationStageSpec[];
+  /**
+   * The method also exists as a context-only review: a provider without a tool-enabled backend (a command provider)
+   * keeps running that review, with its advisory behavior, instead of ending unavailable.
+   */
+  contextReviewFallback?: boolean;
   /** Pinned upstream material the module adapts (kept in the investigation record). */
   provenance?: Record<string, unknown>;
   /** The least the budget must fund before any context starts: exploration calls and reserved validation calls. */

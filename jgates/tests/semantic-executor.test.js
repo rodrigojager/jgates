@@ -308,10 +308,12 @@ test("invalid artifacts leave the work invalid and incomplete; providers without
 });
 
 test("modules: the run service picks the module registered for the plan's method", () => {
-  assert.equal(exec.investigationModuleFor(["general-review"]), null, "the general review stays a context-only review");
+  const review = exec.investigationModuleFor(["general-review"]);
+  assert.equal(review.id, "general-review", "the general review runs as a module, with a context-only fallback for providers without tools");
+  assert.equal(review.contextReviewFallback, true);
   assert.equal(exec.investigationModuleFor(["investigation"]).id, "investigation");
   const custom = { ...exec.INVESTIGATION_MODULE, id: "custom-test", stages: exec.INVESTIGATION_MODULE.stages.slice(0, 1) };
   exec.registerInvestigationModule("custom-method-test", custom);
-  assert.equal(exec.investigationModuleFor(["general-review", "custom-method-test"]).id, "custom-test");
+  assert.equal(exec.investigationModuleFor(["unregistered-method", "custom-method-test"]).id, "custom-test");
   assert.ok(exec.registeredInvestigationModules().some((m) => m.methodId === "custom-method-test"));
 });
