@@ -10,7 +10,7 @@ export interface ScreenMeta {
    * Area of the navigation the screen belongs to (see app/areas.ts). The area's link highlights while one of its screens
    * is open; a screen with a navLabel is also listed as a sub-link of its area.
    */
-  area?: "overview" | "workspace" | "config" | "validations" | "help" | "preferences";
+  area?: "overview" | "workspace" | "config" | "validations" | "semantic" | "help" | "preferences";
   /** Catalog key of the navigation label; screens without one are not in the navigation. */
   navLabel?: string;
   /** Route the navigation link points to and highlights by prefix. */

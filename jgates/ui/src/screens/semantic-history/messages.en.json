@@ -1,0 +1,20 @@
+{
+  "semhist_nav": "Semantic history",
+  "semhist_title": "Semantic reviews of this workspace.",
+  "semhist_lead": "AI review runs, each with its own sem_ ID, kept apart from the Quality validations.",
+  "semhist_config": "Configure",
+  "semhist_new_run": "New semantic review",
+  "semhist_empty": "This workspace has no semantic review yet. Set one up to create the first.",
+  "semhist_table": "Semantic reviews of the workspace",
+  "semhist_col_run": "Review",
+  "semhist_col_result": "Result",
+  "semhist_col_backend": "Backend and model",
+  "semhist_col_actions": "Actions",
+  "semhist_running": "Running",
+  "semhist_interrupted": "Interrupted",
+  "semhist_cancel_requested": "Cancel requested",
+  "semhist_follow": "Follow the run",
+  "semhist_open_results": "Open the results",
+  "semhist_separate_title": "A separate gate.",
+  "semhist_separate_body": "Semantic reviews never change a Quality result, and Quality history never lists them. Their decision is advisory."
+}

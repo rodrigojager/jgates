@@ -125,5 +125,7 @@
   "pulse_dead_detail": "the validation's process stopped before it finished",
   "pulse_elapsed": "running for {time}",
   "pulse_activity": "last output: {file}, {ago} ago",
-  "pulse_connection_lost": "no contact with the JGates server"
+  "pulse_connection_lost": "no contact with the JGates server",
+  "nav_semantic": "Semantic review",
+  "nav_section_semantic": "Semantic (AI)"
 }

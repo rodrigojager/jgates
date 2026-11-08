@@ -1,0 +1,20 @@
+{
+  "semhist_nav": "Histórico semântico",
+  "semhist_title": "Revisões semânticas deste workspace.",
+  "semhist_lead": "Execuções de revisão por IA, cada uma com seu ID sem_, separadas das validações de Qualidade.",
+  "semhist_config": "Configurar",
+  "semhist_new_run": "Nova revisão semântica",
+  "semhist_empty": "Este workspace ainda não tem revisão semântica. Prepare uma para criar a primeira.",
+  "semhist_table": "Revisões semânticas do workspace",
+  "semhist_col_run": "Revisão",
+  "semhist_col_result": "Resultado",
+  "semhist_col_backend": "Backend e modelo",
+  "semhist_col_actions": "Ações",
+  "semhist_running": "Em execução",
+  "semhist_interrupted": "Interrompida",
+  "semhist_cancel_requested": "Cancelamento pedido",
+  "semhist_follow": "Acompanhar a execução",
+  "semhist_open_results": "Abrir os resultados",
+  "semhist_separate_title": "Um gate separado.",
+  "semhist_separate_body": "Revisões semânticas nunca alteram um resultado de Qualidade, e o histórico de Qualidade nunca as lista. A decisão delas é consultiva."
+}

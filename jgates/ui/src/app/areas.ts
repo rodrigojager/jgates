@@ -6,14 +6,17 @@ import type { IconName } from "../components/icons";
  * `area` in its own `screen` export (see registry.ts). A new screen never edits this file.
  */
 export interface Area {
-  id: "overview" | "workspace" | "config" | "validations" | "help" | "preferences";
+  id: "overview" | "workspace" | "config" | "validations" | "semantic" | "help" | "preferences";
   /** Hash route the link points to. */
   path: string;
   /** Catalog key of the label. */
   label: string;
   icon: IconName;
-  /** Where the link sits: the "workspace" block, the "quality" block or the foot of the sidebar. */
-  block: "workspace" | "quality" | "foot";
+  /**
+   * Where the link sits: the "workspace" block, the "quality" block, the separate "semantic" (AI) block or the foot of the
+   * sidebar. Quality and Semantic are separate gates with separate runs, so each has its own block.
+   */
+  block: "workspace" | "quality" | "semantic" | "foot";
 }
 
 export const AREAS: Area[] = [
@@ -21,6 +24,7 @@ export const AREAS: Area[] = [
   { id: "workspace", path: "/workspace", label: "nav_workspace", icon: "folder", block: "workspace" },
   { id: "config", path: "/config", label: "nav_config", icon: "sliders", block: "workspace" },
   { id: "validations", path: "/validations", label: "nav_validations", icon: "check-circle", block: "quality" },
+  { id: "semantic", path: "/semantic", label: "nav_semantic", icon: "plan", block: "semantic" },
   { id: "help", path: "/help", label: "nav_help", icon: "terminal", block: "foot" },
   { id: "preferences", path: "/preferences", label: "nav_preferences", icon: "settings", block: "foot" },
 ];

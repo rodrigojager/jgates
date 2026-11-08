@@ -65,7 +65,7 @@ export const Sidebar = forwardRef<HTMLElement, { path: string; open: boolean; on
   const governed = info?.mode === "governed";
   const policyMode = info?.policyMode === true;
 
-  const group = (name: "workspace" | "quality", label: string) => (
+  const group = (name: "workspace" | "quality" | "semantic", label: string) => (
     <>
       <div className="nav-label" id={`nav-${name}`}>
         {label}
@@ -97,6 +97,7 @@ export const Sidebar = forwardRef<HTMLElement, { path: string; open: boolean; on
       <nav className="nav" aria-label={t("nav_label")}>
         {group("workspace", t("nav_section_workspace"))}
         {group("quality", t("nav_section_quality"))}
+        {group("semantic", t("nav_section_semantic"))}
         {legacy.length > 0 ? (
           <>
             <div className="nav-label" id="nav-other">
