@@ -428,7 +428,7 @@ test("config get and resolve refuse a bad pointer, an unknown pointer and an unk
 
 test("the starter profiles and the built-in templates are valid and select bridge subchecks and catalog capabilities", () => {
   const templates = builtin.listBuiltinTemplates().map((i) => i.ref);
-  assert.deepEqual(templates, ["builtin:base", "builtin:dotnet", "builtin:go", "builtin:python-import-linter", "builtin:python-pytest", "builtin:python-typescript", "builtin:python", "builtin:rust", "builtin:typescript-dependency-cruiser", "builtin:typescript-eslint", "builtin:typescript-vitest", "builtin:typescript"]);
+  assert.deepEqual(templates, ["builtin:base", "builtin:dotnet", "builtin:github-actions-zizmor", "builtin:go", "builtin:python-import-linter", "builtin:python-pytest", "builtin:python-typescript", "builtin:python", "builtin:rust", "builtin:typescript-dependency-cruiser", "builtin:typescript-eslint", "builtin:typescript-vitest", "builtin:typescript"]);
   const profiles = builtin.listBuiltinProfiles().map((i) => i.ref);
   assert.deepEqual(profiles, ["builtin:minimal", "builtin:standard", "builtin:strict"]);
 

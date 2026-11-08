@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "github-actions-zizmor",
+  "label": "GitHub Actions with zizmor",
+  "description": "Audits the GitHub Actions workflows with zizmor (template injection, excessive permissions, unpinned actions). Comes in by evidence: only when .github/workflows has a workflow (.yml or .yaml); without workflows, zizmor is not in the plan. The tool is prepared by jgates doctor --fix, never during a run.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "files": [
+      ".github/workflows/*.yml",
+      ".github/workflows/*.yaml"
+    ]
+  },
+  "config": {
+    "tools": {
+      "zizmor": {
+        "adapter": "zizmor",
+        "enabled": true,
+        "capabilities": [
+          "ci-cd"
+        ]
+      }
+    }
+  }
+}

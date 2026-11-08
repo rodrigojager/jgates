@@ -1,0 +1,22 @@
+{
+  "zizmor_label": "zizmor (GitHub Actions security)",
+  "zizmor_missing": "zizmor is not installed ({detail}). Run: jgates doctor --fix (it installs zizmor from PyPI into the JGates environment), or pip install zizmor.",
+  "zizmor_probe_failed": "zizmor at {path} did not answer --version. Reinstall with: jgates doctor --fix.",
+  "zizmor_blocked": "zizmor could not run: {detail}",
+  "zizmor_exit_error": "zizmor ended with code {code}: {detail}",
+  "zizmor_timeout": "zizmor exceeded the limit of {seconds} s and was ended.",
+  "zizmor_cancelled": "The run was cancelled; zizmor was stopped and its partial output was kept in the logs.",
+  "zizmor_invalid_output": "The zizmor output is not the expected json-v1 JSON: {detail}",
+  "zizmor_no_invocation": "The plan has no zizmor invocation for the instance {tool}.",
+  "zizmor_reason_completed": "zizmor {version}: {count} finding(s)",
+  "zizmor_ignored": "{count} finding(s) ignored by zizmor comments or zizmor.yml (scanner exceptions)",
+  "zizmor_no_minimum": "none",
+  "zizmor_condition_persona": "Persona {persona}, minimum severity {minimum}.",
+  "zizmor_condition_offline": "Offline: no GitHub API call; the audits that need it (impostor commits, known vulnerable actions) are left out.",
+  "zizmor_condition_online": "Online: the audits that ask the GitHub API run too and need a GH_TOKEN or GITHUB_TOKEN in the environment of the run.",
+  "zizmor_condition_governed": "jgates ci: zizmor.yml and ignore comments of the analyzed project are not honored.",
+  "zizmor_limitation_exceptions": "zizmor: ignore comments and the ignore rules of zizmor.yml are scanner exceptions, not waivers of the gate.",
+  "zizmor_setting_persona": "The persona of the instance {tool} is {value}; use one of: {allowed}.",
+  "zizmor_setting_min_severity": "The minSeverity of the instance {tool} is {value}; use one of: {allowed}.",
+  "zizmor_setting_offline": "The offline setting of the instance {tool} is {value}; use true or false."
+}

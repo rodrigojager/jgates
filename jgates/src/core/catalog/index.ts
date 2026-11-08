@@ -264,6 +264,7 @@ export const CORE_CAPABILITIES: CatalogEntry[] = [
   cap("migration", "infrastructure", "Migrações", "Segurança e ordem de migrações."),
   cap("performance", "quality", "Desempenho", "Orçamentos e regressões de desempenho."),
   cap("iac", "infrastructure", "Infraestrutura como código", "Más configurações em Terraform, Kubernetes e similares."),
+  cap("ci-cd", "infrastructure", "Segurança de CI/CD", "Más configurações e injeções em pipelines de CI/CD, como os workflows do GitHub Actions."),
   cap("file-size", "quality", "Tamanho de arquivo", "Limite de linhas por arquivo.", { unit: "lines" }),
 ];
 

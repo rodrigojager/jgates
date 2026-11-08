@@ -14,6 +14,7 @@ import { trivyManifest } from "./trivy/manifest.js";
 import { osvScannerManifest } from "./osv-scanner/manifest.js";
 import { checkovManifest } from "./checkov/manifest.js";
 import { jscpdManifest } from "./jscpd/manifest.js";
+import { zizmorManifest } from "./zizmor/manifest.js";
 
 /**
  * Manifests of the built-in adapters, in one place that only imports manifests (no adapter code, no cycles), so the
@@ -22,5 +23,5 @@ import { jscpdManifest } from "./jscpd/manifest.js";
  * binding) is unchanged.
  */
 export function builtinManifests(): AdapterManifest[] {
-  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest];
+  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest];
 }

@@ -9,6 +9,7 @@ import { probeImportLinter } from "../../adapters/import-linter/probe.js";
 import { probePytest } from "../../adapters/pytest/probe.js";
 import { probeRuff } from "../../adapters/ruff/probe.js";
 import { probeSemgrep } from "../../adapters/semgrep/probe.js";
+import { probeZizmor } from "../../adapters/zizmor/probe.js";
 import { findOnPath, resolvePython, resolveSidecarDir } from "../bridge/index.js";
 import { probeEnv } from "../runner/probe-env.js";
 import type { AdapterManifest } from "../catalog/index.js";
@@ -117,6 +118,7 @@ export function sidecarDependenciesPresent(interpreter: string, env: NodeJS.Proc
 function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, projectDir: string): ToolProbe | null {
   if (manifest.id === "ruff") return probeRuff(env);
   if (manifest.id === "semgrep") return probeSemgrep(env);
+  if (manifest.id === "zizmor") return probeZizmor(env);
   if (manifest.id === "import-linter") {
     const p = probeImportLinter(env);
     return { executable: p.executable, version: p.version, problem: p.problem, detail: p.detail };
@@ -146,7 +148,7 @@ function containerProbe(image: LockedImageProbe): ToolProbe {
 }
 
 function fixFor(manifest: AdapterManifest): string | null {
-  if (manifest.id === "ruff" || manifest.id === "semgrep" || manifest.id === "import-linter" || manifest.id === "quality-bridge") return INSTALL_FIX;
+  if (manifest.id === "ruff" || manifest.id === "semgrep" || manifest.id === "import-linter" || manifest.id === "zizmor" || manifest.id === "quality-bridge") return INSTALL_FIX;
   if (manifest.id === "pytest") return translator("prepare")("prepare_fix_pytest");
   return null;
 }

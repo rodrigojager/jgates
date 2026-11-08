@@ -168,6 +168,16 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     },
     external: { en: "import-linter 2.15 (pip) in the project environment", ptBR: "import-linter 2.15 (pip) no ambiente do projeto" },
   },
+  zizmor: {
+    capabilities: {
+      "ci-cd": proven(["any"], t("adapter-zizmor.test.js", "zizmor: a template injection in a workflow is a normalized finding and the clean workflow none [proves: zizmor#ci-cd]")),
+    },
+    limitation: {
+      en: "GitHub Actions workflows only; offline by default, so the audits that need the GitHub API are left out; ignore comments are scanner exceptions.",
+      ptBR: "Só workflows do GitHub Actions; offline por padrão, então as auditorias que exigem a API do GitHub ficam de fora; comentários de ignorar são exceções do scanner.",
+    },
+    external: { en: "zizmor 1.32+ (pip, prepared by jgates doctor --fix)", ptBR: "zizmor 1.32+ (pip, preparado por jgates doctor --fix)" },
+  },
   gitleaks: {
     capabilities: {
       secrets: proven(["any"], t("adapters-security.test.js", "Gitleaks runs in the container and its finding")),

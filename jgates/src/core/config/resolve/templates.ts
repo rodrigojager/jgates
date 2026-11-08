@@ -86,6 +86,20 @@ export class TemplateGraph {
    * `contains` is given, has a line that starts with that text after spaces. Only reads, at most 1 MiB.
    */
   hasEvidence(rel: string, contains: string | null): boolean {
+    // A `*` in the last segment (".github/workflows/*.yml") asks for any file of that folder that fits the name.
+    const slash = rel.lastIndexOf("/");
+    const leaf = rel.slice(slash + 1);
+    if (leaf.includes("*")) {
+      const folder = slash < 0 ? "" : rel.slice(0, slash);
+      const matcher = new RegExp(`^${leaf.split("*").map((p) => p.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*")}$`);
+      let names: string[];
+      try {
+        names = fs.readdirSync(path.join(this.projectDir, ...folder.split("/").filter(Boolean)));
+      } catch {
+        return false;
+      }
+      return names.sort().some((name) => matcher.test(name) && this.hasEvidence(folder === "" ? name : `${folder}/${name}`, contains));
+    }
     let real: string;
     try {
       real = fs.realpathSync(path.join(this.projectDir, ...rel.split("/")));

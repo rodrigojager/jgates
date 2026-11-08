@@ -102,6 +102,15 @@ function rootText(profile: string, templates: TemplateEntry[]): string {
   return `${header(translator("init")("init_file_header_root"))}\n${doc}`;
 }
 
+/** Whether .github/workflows holds at least one workflow file (.yml or .yaml). */
+function hasWorkflows(projectDir: string): boolean {
+  try {
+    return fs.readdirSync(path.join(projectDir, ".github", "workflows"), { withFileTypes: true }).some((e) => e.isFile() && /\.ya?ml$/i.test(e.name));
+  } catch {
+    return false;
+  }
+}
+
 /** Builds the files init would create from what discovery finds; touches nothing. */
 export function planInit(projectDir: string, profile: string): InitPlan {
   const { inventory } = discoverWorkspace(projectDir);
@@ -119,6 +128,8 @@ export function planInit(projectDir: string, profile: string): InitPlan {
       templates.push(template);
     }
   }
+  // GitHub Actions workflows are CI evidence, not a language: the zizmor template comes in when one exists.
+  if (hasWorkflows(projectDir)) templates.push({ id: "github-actions-zizmor", source: "builtin:github-actions-zizmor", evidence: true });
   return {
     profile,
     templates: templates.map((t) => t.id),

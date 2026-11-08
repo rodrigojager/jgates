@@ -69,6 +69,18 @@
           "required": {
             "type": "boolean"
           },
+          "persona": {
+            "description": "zizmor: how strict the audit is (regular: few false positives; pedantic: code smells too; auditor: false positives accepted).",
+            "enum": ["regular", "pedantic", "auditor"]
+          },
+          "minSeverity": {
+            "description": "zizmor: the lowest severity that is reported.",
+            "enum": ["informational", "low", "medium", "high"]
+          },
+          "offline": {
+            "description": "zizmor: true (the default) never calls the GitHub API; false also runs the audits that need it (a GH_TOKEN is required).",
+            "type": "boolean"
+          },
           "rulePack": {
             "description": "A rule pack shipped with JGates that the instance runs next to its own rules (semgrep: jgates).",
             "enum": [

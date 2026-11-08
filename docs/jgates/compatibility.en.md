@@ -32,11 +32,13 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | OSV-Scanner (`osv-scanner`) | osv-scanner >=2.0.0 <3.0.0 | - | dependencies (adapters-security.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Runs in a container only; one finding per advisory group. | Docker and the security-scanners image; advisory database |
 | Checkov (`checkov`) | checkov >=3.0.0 <4.0.0 | - | iac (adapters-security.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Runs in a container only; failed checks are reported as MEDIUM findings. | Docker and the security-scanners image |
 | jscpd (duplication) (`jscpd`) | jscpd >=4.0.0 | - | duplication (adapters-quality.test.js) | text | editable-file | local | tested / not tested yet / not tested on real hardware | Reads the config chosen by the user (binding or .jscpd.json); a config that is not JSON refuses the plan. | jscpd 5.3.3 (JGates dependency) |
+| zizmor (GitHub Actions security) (`zizmor`) | zizmor >=1.32.0 <2.0.0 | - | ci-cd (adapter-zizmor.test.js) | text | editable-file | local | tested / not tested yet / not tested on real hardware | GitHub Actions workflows only; offline by default, so the audits that need the GitHub API are left out; ignore comments are scanner exceptions. | zizmor 1.32+ (pip, prepared by jgates doctor --fix) |
 
 | Stack | Support | Not covered |
 | --- | --- | --- |
 | Base (`base`) | full | - |
 | .NET (`dotnet`) | partial | Build do projeto (dotnet build); Testes do projeto (dotnet test); Cobertura de testes; Analisadores Roslyn e regras do .editorconfig; Typecheck do compilador |
+| GitHub Actions with zizmor (`github-actions-zizmor`) | full | - |
 | Go (`go`) | partial | Build e go vet; Cobertura de testes; Análise de dependências (go.sum); Linters (staticcheck, golangci-lint) |
 | Python com Import Linter (`python-import-linter`) | full | - |
 | Python com pytest (`python-pytest`) | full | - |

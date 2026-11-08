@@ -1,0 +1,22 @@
+{
+  "zizmor_label": "zizmor (segurança do GitHub Actions)",
+  "zizmor_missing": "O zizmor não está instalado ({detail}). Rode: jgates doctor --fix (instala o zizmor do PyPI no ambiente do JGates) ou pip install zizmor.",
+  "zizmor_probe_failed": "O zizmor em {path} não respondeu a --version. Reinstale com: jgates doctor --fix.",
+  "zizmor_blocked": "O zizmor não pôde rodar: {detail}",
+  "zizmor_exit_error": "O zizmor terminou com o código {code}: {detail}",
+  "zizmor_timeout": "O zizmor passou do limite de {seconds} s e foi encerrado.",
+  "zizmor_cancelled": "A execução foi cancelada; o zizmor foi interrompido e a saída parcial ficou nos logs.",
+  "zizmor_invalid_output": "A saída do zizmor não é o JSON json-v1 esperado: {detail}",
+  "zizmor_no_invocation": "O plano não tem invocação do zizmor para a instância {tool}.",
+  "zizmor_reason_completed": "zizmor {version}: {count} achado(s)",
+  "zizmor_ignored": "{count} achado(s) ignorado(s) por comentários do zizmor ou pelo zizmor.yml (exceções do scanner)",
+  "zizmor_no_minimum": "nenhuma",
+  "zizmor_condition_persona": "Persona {persona}, severidade mínima {minimum}.",
+  "zizmor_condition_offline": "Offline: nenhuma chamada à API do GitHub; as auditorias que a exigem (commits impostores, actions com vulnerabilidade conhecida) ficam de fora.",
+  "zizmor_condition_online": "Online: as auditorias que consultam a API do GitHub também rodam e precisam de GH_TOKEN ou GITHUB_TOKEN no ambiente da execução.",
+  "zizmor_condition_governed": "jgates ci: o zizmor.yml e os comentários de ignorar do projeto analisado não são honrados.",
+  "zizmor_limitation_exceptions": "Comentários zizmor: ignore e as regras de ignore do zizmor.yml são exceções do scanner, não dispensas do gate.",
+  "zizmor_setting_persona": "A persona da instância {tool} é {value}; use uma de: {allowed}.",
+  "zizmor_setting_min_severity": "O minSeverity da instância {tool} é {value}; use um de: {allowed}.",
+  "zizmor_setting_offline": "A configuração offline da instância {tool} é {value}; use true ou false."
+}

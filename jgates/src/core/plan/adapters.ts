@@ -18,6 +18,7 @@ import { osvScannerAdapter } from "../../adapters/osv-scanner/index.js";
 import { checkovAdapter } from "../../adapters/checkov/index.js";
 import { eslintAdapter } from "../../adapters/eslint/index.js";
 import { jscpdAdapter } from "../../adapters/jscpd/index.js";
+import { zizmorAdapter } from "../../adapters/zizmor/index.js";
 
 export interface ExternalPlanInput {
   /** Workspace directory (absolute). */
@@ -85,6 +86,7 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [checkovAdapter.manifest.id, checkovAdapter],
   [eslintAdapter.manifest.id, eslintAdapter],
   [jscpdAdapter.manifest.id, jscpdAdapter],
+  [zizmorAdapter.manifest.id, zizmorAdapter],
 ]);
 
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {
