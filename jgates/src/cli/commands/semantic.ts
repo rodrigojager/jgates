@@ -11,6 +11,7 @@ import { resolveHome } from "../../core/home/index.js";
 import { workspaceId } from "../../core/ids/index.js";
 import type { RunEvent } from "../../core/events/index.js";
 import {
+  METHOD_ID_PATTERN,
   SemanticRunError,
   buildSemanticPlan,
   executeSemanticRun,
@@ -18,14 +19,30 @@ import {
   listSemanticRuns,
   readSemanticRun,
   requestSemanticCancel,
+  semanticMethodCatalog,
   type SemanticPlan,
   type SemanticPlanRequest,
 } from "../../core/semantic/index.js";
+import type { RunResult } from "../../core/run/types.js";
 import { CONTEXT_POLICIES, SEMANTIC_PURPOSES, SEMANTIC_RIGORS, type ScopeRequest, type SemanticPurpose, type SemanticRigor } from "../../core/semantic-scope/index.js";
 
 const t = translator("semantic");
 const ts = translator("semantic-scope");
-const SUBCOMMANDS = ["plan", "run", "status", "cancel", "history"] as const;
+const SUBCOMMANDS = ["plan", "run", "status", "cancel", "history", "methods"] as const;
+const METHOD_ID = new RegExp(METHOD_ID_PATTERN);
+
+/** The methods named with --method (comma-separated, the option may repeat), or the first malformed value. */
+export function methodFlags(ctx: CommandContext): { ok: true; value: string[] } | { ok: false; value: string } {
+  const raw = ctx.lists.method ?? (typeof ctx.options.method === "string" ? [ctx.options.method as string] : []);
+  const out: string[] = [];
+  for (const part of raw.flatMap((r) => r.split(","))) {
+    const id = part.trim();
+    if (id === "") continue;
+    if (!METHOD_ID.test(id)) return { ok: false, value: id };
+    if (!out.includes(id)) out.push(id);
+  }
+  return { ok: true, value: out };
+}
 const SCOPE_MODES = ["full", "selected", "incremental"] as const;
 
 const str = (ctx: CommandContext, name: string): string | undefined => (typeof ctx.options[name] === "string" ? (ctx.options[name] as string) : undefined);
@@ -119,6 +136,11 @@ async function withCancellation<T>(work: (signal: AbortSignal) => Promise<T>): P
 function planText(ctx: CommandContext, plan: SemanticPlan): void {
   ctx.stdout(`${t("semantic_text_plan_header", { path: plan.workspace.path })}\n`);
   ctx.stdout(`  ${t("semantic_text_methods", { methods: plan.methods.map((m) => m.id).join(", ") })}\n`);
+  for (const m of plan.methods) {
+    const a = m.applicability;
+    const label = t(`semantic_text_applicability_${a.state}`);
+    ctx.stdout(`    ${t("semantic_text_method_line", { id: m.id, title: m.title, applicability: a.reason ? `${label} (${a.code ? `${a.code}: ` : ""}${a.reason})` : label })}\n`);
+  }
   ctx.stdout(`  ${t("semantic_text_provider", { provider: plan.settings.provider ?? "-", model: plan.settings.model ?? "-", scope: plan.settings.scope ?? "-" })}\n`);
   for (const p of plan.prerequisites) ctx.stdout(`  ${p.ok ? "ok " : "-- "} ${p.id}: ${p.message}\n`);
   if (plan.quality.attached) ctx.stdout(`  ${t("semantic_text_quality_attached", { runId: plan.quality.attached })}\n`);
@@ -162,6 +184,7 @@ export const command: CommandModule = {
     { name: "rigor", type: "string", description: ts("scope_option_rigor") },
     { name: "budget-calls", type: "string", description: ts("scope_option_budget_calls") },
     { name: "budget-tokens", type: "string", description: ts("scope_option_budget_tokens") },
+    { name: "method", type: "string", description: t("semantic_option_method") },
   ],
   async run(ctx) {
     const usage = (code: string, key: string, params: Record<string, string> = {}): number => reportError(ctx, ctx.json, code, t(key, params), t(`${key}_fix`, params), EXIT_USAGE);
@@ -176,10 +199,28 @@ export const command: CommandModule = {
 
     const scoped = scopeFlags(ctx);
     if (!scoped.ok) return reportError(ctx, ctx.json, scoped.code, ts(scoped.key, scoped.params), ts("scope_cli_fix"), EXIT_USAGE);
+    const methodsFlag = methodFlags(ctx);
+    if (!methodsFlag.ok) return usage("BAD_METHOD", "semantic_bad_method", { value: methodsFlag.value });
+    const methods = methodsFlag.value;
+
+    if (sub === "methods") {
+      if (ctx.args[1] !== undefined) return usage("UNEXPECTED_ARGUMENT", "semantic_unexpected_argument", { name: ctx.args[1] });
+      const catalog = semanticMethodCatalog();
+      if (ctx.json) {
+        writeJson(ctx, { ...base, methods: catalog });
+        return 0;
+      }
+      ctx.stdout(`${t("semantic_text_methods_header")}\n`);
+      for (const m of catalog) {
+        const purposes = m.purposes.length > 0 ? t("semantic_text_method_purposes", { purposes: m.purposes.join(", ") }) : "";
+        ctx.stdout(`  ${t("semantic_text_method_catalog_line", { id: m.id, title: m.title, state: t(m.available ? "semantic_text_method_available" : "semantic_text_method_unavailable"), purposes })}\n`);
+      }
+      return 0;
+    }
 
     if (sub === "plan") {
       if (ctx.args[1] !== undefined) return usage("UNEXPECTED_ARGUMENT", "semantic_unexpected_argument", { name: ctx.args[1] });
-      const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value });
+      const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value, methods });
       if (ctx.json) writeJson(ctx, { ...base, plan });
       else planText(ctx, plan);
       return 0;
@@ -234,10 +275,21 @@ export const command: CommandModule = {
     if (eventsFile !== undefined && !isDirectory(path.dirname(eventsFile))) return usage("BAD_EVENTS_PATH", "semantic_bad_events_path", { path: eventsFile });
     const runId = str(ctx, "run-id");
     if (runId !== undefined && !isSemanticRunId(runId)) return usage("BAD_RUN_ID", "semantic_bad_run_id", { runId });
-    const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value });
+    const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value, methods });
     if (!plan.ready) {
       const code = plan.blockers[0]?.code ?? "SEMANTIC_NOT_READY";
       return reportError(ctx, ctx.json, code, plan.blockers.map((b) => b.message).join(" "), t("semantic_not_ready_fix"), EXIT_USAGE);
+    }
+    // One Semantic run per method, in order: each has its own sem_ ID, folder, plan (narrowed to its method) and result.
+    // A single method keeps the plan as built; --run-id names the first run (the local server answers with it).
+    const plans =
+      plan.methods.length <= 1
+        ? [plan]
+        : plan.methods.map((m) => buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value, methods: [m.id] }));
+    const notReady = plans.find((p) => !p.ready);
+    if (notReady) {
+      const code = notReady.blockers[0]?.code ?? "SEMANTIC_NOT_READY";
+      return reportError(ctx, ctx.json, code, notReady.blockers.map((b) => b.message).join(" "), t("semantic_not_ready_fix"), EXIT_USAGE);
     }
     const progress = ctx.json
       ? undefined
@@ -246,32 +298,59 @@ export const command: CommandModule = {
           else if (event.type === "run-started") ctx.stderr(`${t("semantic_text_started", { runId: event.runId })}\n`);
           else if (event.type === "cancel-requested") ctx.stderr(`${t("semantic_text_cancelling")}\n`);
         };
-    let result;
+    const results: RunResult[] = [];
+    let stopped = null as string | null;
     try {
-      result = await withCancellation((signal) =>
-        executeSemanticRun({
-          workspacePath,
-          home,
-          version: ctx.version,
-          plan,
-          signal,
-          ownsProcess: true,
-          ...(eventsFile !== undefined ? { eventsFile } : {}),
-          ...(runId !== undefined ? { runId } : {}),
-          ...(progress ? { onEvent: progress } : {}),
-        }),
-      );
+      await withCancellation(async (signal) => {
+        for (const [index, p] of plans.entries()) {
+          if (signal.aborted) {
+            stopped = "cancelled";
+            break;
+          }
+          const result = await executeSemanticRun({
+            workspacePath,
+            home,
+            version: ctx.version,
+            plan: p,
+            signal,
+            ownsProcess: true,
+            ...(eventsFile !== undefined && index === 0 ? { eventsFile } : {}),
+            ...(runId !== undefined && index === 0 ? { runId } : {}),
+            ...(progress ? { onEvent: progress } : {}),
+          });
+          results.push(result);
+          // A cancelled run stops the selection: the methods after it are not started.
+          if (result.decision === "cancelled") {
+            if (index < plans.length - 1) stopped = "cancelled";
+            break;
+          }
+        }
+      });
     } catch (error) {
-      if (error instanceof SemanticRunError) return reportError(ctx, ctx.json, error.code, error.message, t("semantic_not_ready_fix"), EXIT_USAGE);
-      throw error;
+      if (error instanceof SemanticRunError && results.length === 0) return reportError(ctx, ctx.json, error.code, error.message, t("semantic_not_ready_fix"), EXIT_USAGE);
+      if (!(error instanceof SemanticRunError)) throw error;
+      stopped = error.message;
     }
-    if (ctx.json) writeJson(ctx, result);
-    else {
+    const printed = (result: RunResult): void => {
       ctx.stdout(`${result.summary ?? result.decision}\n`);
       const q = result.semanticRun?.quality;
       if (q) ctx.stdout(`${t("semantic_text_quality_evidence", { runId: q.runId, freshness: q.freshness, reason: q.reason })}\n`);
       ctx.stdout(`${t("semantic_text_run_dir", { runId: result.runId, dir: result.runDir })}\n`);
+    };
+    if (plans.length === 1) {
+      const result = results[0] as RunResult;
+      if (ctx.json) writeJson(ctx, result);
+      else printed(result);
+      return result.exitCode;
     }
-    return result.exitCode;
+    // Several methods: every run's result, and the worst exit code (a run that did not pass is never hidden).
+    const exitCode = results.reduce((worst, r) => Math.max(worst, r.exitCode), 0);
+    const notStarted = plans.slice(results.length).map((p) => p.methods[0]?.id ?? "-");
+    if (ctx.json) writeJson(ctx, { ...base, methods: plans.map((p) => p.methods[0]?.id), runs: results, notStarted, ...(stopped ? { stopped } : {}), exitCode });
+    else {
+      for (const r of results) printed(r);
+      if (notStarted.length > 0) ctx.stdout(`${t("semantic_text_sequence_stopped", { reason: `${stopped ?? "-"} (${notStarted.join(", ")})` })}\n`);
+    }
+    return notStarted.length > 0 && exitCode === 0 ? EXIT_USAGE : exitCode;
   },
 };

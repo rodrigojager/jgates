@@ -9,6 +9,9 @@ import { DIFFERENTIAL_METHOD, differentialReviewModule } from "./differential/in
 import { VARIANT_ANALYSIS_METHOD, variantAnalysisModule } from "./variant/index.js";
 import { INSECURE_DEFAULTS_METHOD, insecureDefaultsModule } from "./insecure-defaults/index.js";
 import { CROSS_COMPONENT_METHOD, crossComponentModule } from "./cross-component/index.js";
+import { PROPERTY_METHOD, propertyReasoningModule } from "./property/index.js";
+import { POST_PATCH_METHOD, postPatchModule } from "./post-patch/index.js";
+import { SUPPLY_CHAIN_METHOD, supplyChainModule } from "./supply-chain/index.js";
 
 export interface SemanticModuleEntry {
   method: string;
@@ -25,6 +28,11 @@ export const SEMANTIC_MODULES: readonly SemanticModuleEntry[] = [
   { method: VARIANT_ANALYSIS_METHOD, create: () => variantAnalysisModule() },
   { method: INSECURE_DEFAULTS_METHOD, create: () => insecureDefaultsModule() },
   { method: CROSS_COMPONENT_METHOD, create: () => crossComponentModule() },
+  // Property reasoning proposes invariants and tests; post-patch validation executes a reproducer in isolated fixtures;
+  // supply-chain assessment interprets the lockfile signals of the deterministic check (see the module headers).
+  { method: PROPERTY_METHOD, create: () => propertyReasoningModule() },
+  { method: POST_PATCH_METHOD, create: () => postPatchModule() },
+  { method: SUPPLY_CHAIN_METHOD, create: () => supplyChainModule() },
 ];
 
 /** Methods whose module could not be built, with the reason. */
@@ -46,3 +54,6 @@ export * as variantAnalysis from "./variant/index.js";
 export * as insecureDefaults from "./insecure-defaults/index.js";
 export * as crossComponent from "./cross-component/index.js";
 export * as complementaryVendor from "./complementary/vendor.js";
+export * as propertyReasoning from "./property/index.js";
+export * as postPatch from "./post-patch/index.js";
+export * as supplyChain from "./supply-chain/index.js";

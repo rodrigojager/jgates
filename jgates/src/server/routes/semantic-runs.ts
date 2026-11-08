@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 import { readEvents } from "../../core/events/index.js";
 import { newGateRunId } from "../../core/gates/ids.js";
 import {
+  MAX_SELECTED_METHODS,
+  METHOD_ID_PATTERN,
   SEMANTIC_EVENTS_FILE,
   SEMANTIC_RUN_ID_PATTERN,
   buildSemanticPlan,
@@ -28,6 +30,8 @@ const MAX_WAIT_MS = 25_000;
 /** After a cancel request, the child gets this long to stop by itself before it is killed. */
 const CANCEL_GRACE_MS = 15_000;
 const QUALITY_REF = "^(latest|run_[0-9]{8}T[0-9]{6}Z_[0-9a-f]{8})$";
+/** A comma-separated list of method IDs (METHOD_ID_PATTERN each). */
+const METHOD_LIST = `^${METHOD_ID_PATTERN.slice(1, -1)}(,${METHOD_ID_PATTERN.slice(1, -1)}){0,${MAX_SELECTED_METHODS - 1}}$`;
 
 const fail = (status: number, code: string, params: Record<string, string> = {}, details: Record<string, unknown> = {}): HttpError => {
   const key = `semantic_api_${code.toLowerCase()}`;
@@ -70,9 +74,15 @@ export const routes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/api/semantic/plan",
-    query: { type: "object", properties: { quality: { type: "string", pattern: QUALITY_REF } }, additionalProperties: false },
+    query: {
+      type: "object",
+      // methods: comma-separated method IDs (the purpose's methods when absent).
+      properties: { quality: { type: "string", pattern: QUALITY_REF }, methods: { type: "string", pattern: METHOD_LIST } },
+      additionalProperties: false,
+    },
     handler({ query, server }) {
-      const plan = buildSemanticPlan({ workspacePath: server.workspace.path, home: server.home, quality: query.quality ?? null });
+      const methods = typeof query.methods === "string" ? query.methods.split(",") : [];
+      const plan = buildSemanticPlan({ workspacePath: server.workspace.path, home: server.home, quality: query.quality ?? null, methods });
       return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", plan } };
     },
   },
@@ -92,7 +102,7 @@ export const routes: RouteDefinition[] = [
     // The same choices as `jgates semantic run`: the Quality evidence, the purpose, rigor and budget, and the scope.
     body: { type: "object", properties: { quality: { type: "string", pattern: QUALITY_REF }, ...choiceProperties }, additionalProperties: false },
     handler({ body, server }) {
-      const choices = (body ?? {}) as { quality?: string; purpose?: SemanticPurpose; rigor?: SemanticRigor; budget?: { maxCalls?: number; maxTokens?: number }; scope?: ScopeRequest };
+      const choices = (body ?? {}) as { quality?: string; purpose?: SemanticPurpose; methods?: string[]; rigor?: SemanticRigor; budget?: { maxCalls?: number; maxTokens?: number }; scope?: ScopeRequest };
       const { quality } = choices;
       // A policy folder being edited is not a project: there is nothing to review.
       if (server.policyMode) throw fail(409, "SEMANTIC_POLICY_MODE");
@@ -105,6 +115,7 @@ export const routes: RouteDefinition[] = [
         ...(choices.purpose ? { purpose: choices.purpose } : {}),
         ...(choices.rigor ? { rigor: choices.rigor } : {}),
         ...(choices.budget ? { budget: choices.budget } : {}),
+        ...(choices.methods ? { methods: choices.methods } : {}),
         scope: choices.scope ?? null,
       });
       if (!plan.ready) throw fail(422, "SEMANTIC_NOT_READY", { detail: plan.blockers.map((b) => b.message).join(" ") }, { blockers: plan.blockers, plan });
@@ -123,6 +134,8 @@ export const routes: RouteDefinition[] = [
         getLocale(),
         ...(quality ? ["--quality", quality] : []),
         ...semanticChoiceArgs(choices),
+        // Several methods: the child runs them in order, one Semantic run each; runId names the first one.
+        ...(plan.methodSelection === "explicit" ? [`--method=${plan.methods.map((m) => m.id).join(",")}`] : []),
       ];
       const child = spawn(process.execPath, args, {
         cwd: server.workspace.path,
@@ -138,7 +151,17 @@ export const routes: RouteDefinition[] = [
       child.once("exit", release);
       child.once("error", release);
       server.log(`semantic run ${runId} started`);
-      return { status: 202, json: { schemaVersion: 1, status: "OK", gate: "semantic", run: { runId, lifecycle: "running", planHash: plan.planHash, scopeHash: plan.scope.resolution.scopeHash } } };
+      return {
+        status: 202,
+        json: {
+          schemaVersion: 1,
+          status: "OK",
+          gate: "semantic",
+          run: { runId, lifecycle: "running", planHash: plan.planHash, scopeHash: plan.scope.resolution.scopeHash },
+          // The methods in the order they run; only the first run's ID is known now (the others get theirs when they start).
+          methods: plan.methods.map((m) => ({ id: m.id, applicability: m.applicability })),
+        },
+      };
     },
   },
   {

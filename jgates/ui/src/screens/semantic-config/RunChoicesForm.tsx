@@ -1,12 +1,61 @@
 import { t, tOr } from "../../i18n";
 import type { Purpose, Rigor, RunChoices } from "../semantic-setup/choices";
 
+/** One selectable method of the catalog (core/semantic semanticMethodCatalog). */
+export interface SemanticMethodInfo {
+  id: string;
+  title: string;
+  available: boolean;
+  reason: string | null;
+  purposes: Purpose[];
+  checksApplicability: boolean;
+}
+
+/** The applicability preview of a planned method (the run checks it again before any context starts). */
+export interface MethodApplicability {
+  state: "applicable" | "not-applicable" | "always" | "unchecked" | "error";
+  code?: string;
+  missing?: string;
+  reason?: string;
+}
+
+/** The label of a method: the UI catalog's, or the title the server gave. */
+export const methodLabel = (m: { id: string; title?: string }): string => tOr(`semcfg_method_${m.id}`, m.title ?? m.id);
+
+/** The methods selector: none checked means the purpose's methods; each checked one runs as its own semantic run. */
+export function MethodsField({ catalog, selected, purpose, onChange }: { catalog: SemanticMethodInfo[]; selected: string[]; purpose: Purpose; onChange: (next: string[]) => void }) {
+  const toggle = (id: string, on: boolean) => onChange(on ? [...selected.filter((m) => m !== id), id] : selected.filter((m) => m !== id));
+  const defaults = catalog.filter((m) => m.purposes.includes(purpose)).map(methodLabel);
+  return (
+    <fieldset className="stack" style={{ gap: 8, border: 0, padding: 0, margin: 0 }} data-testid="semcfg-methods">
+      <legend>
+        <strong>{t("semcfg_methods")}</strong>
+      </legend>
+      <p className="small muted">{selected.length === 0 ? t("semcfg_methods_none", { methods: defaults.join(", ") || "-" }) : t("semcfg_methods_selected", { count: selected.length })}</p>
+      {catalog.map((m) => (
+        <label key={m.id} className="row" style={{ gap: 8, alignItems: "flex-start" }} data-method={m.id}>
+          <input type="checkbox" value={m.id} checked={selected.includes(m.id)} disabled={!m.available && !selected.includes(m.id)} onChange={(e) => toggle(m.id, e.target.checked)} />
+          <span>
+            <strong>{methodLabel(m)}</strong> <code className="small">{m.id}</code>
+            <span className="muted small"> · {tOr(`semcfg_method_${m.id}_hint`, m.title)}</span>
+            {m.purposes.length > 0 ? <span className="muted small"> · {t("semcfg_method_default_for", { purposes: m.purposes.map((p) => tOr(`semres_purpose_${p}`, p)).join(", ") })}</span> : null}
+            {m.checksApplicability ? <span className="muted small"> · {t("semcfg_method_checks_applicability")}</span> : null}
+            {!m.available ? <span className="small"> · {t("semcfg_method_unavailable", { reason: m.reason ?? "-" })}</span> : null}
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
 /** GET /api/semantic/options (server/routes/semantic-views.ts). */
 export interface SemanticOptions {
   purpose: Purpose;
   purposes: Purpose[];
   rigors: Array<{ id: Rigor; reserve: number; defaultCalls: number }>;
   methods: Array<{ id: string }>;
+  /** Every method this build knows, for an explicit selection. */
+  catalog: SemanticMethodInfo[];
   settings: {
     state: "off" | "configured" | "invalid";
     provider: string | null;
@@ -34,7 +83,7 @@ export function NumberField({ label, hint, value, placeholder, onChange, testId 
   );
 }
 
-/** The run-only choices (purpose, rigor, budget, context limits), shared by this screen and the setup screen. */
+/** The run-only choices (purpose, methods, rigor, budget, context limits), shared by this screen and the setup screen. */
 export function RunChoicesForm({ options, choices, onChange }: { options: SemanticOptions; choices: RunChoices; onChange: (next: RunChoices) => void }) {
   const set = (patch: Partial<RunChoices>) => onChange({ ...choices, ...patch });
   const limits = options.controls.context.limits;
@@ -55,6 +104,7 @@ export function RunChoicesForm({ options, choices, onChange }: { options: Semant
           </label>
         ))}
       </fieldset>
+      {options.catalog ? <MethodsField catalog={options.catalog} selected={choices.methods} purpose={choices.purpose} onChange={(methods) => set({ methods })} /> : null}
       <fieldset className="stack" style={{ gap: 8, border: 0, padding: 0, margin: 0 }}>
         <legend>
           <strong>{t("semcfg_rigor")}</strong>

@@ -5,7 +5,7 @@ import { ErrorNotice, Loading, Pill, Spinner, useAsync } from "../../components/
 import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
-import { RunChoicesForm, type SemanticOptions } from "../semantic-config/RunChoicesForm";
+import { RunChoicesForm, methodLabel, type MethodApplicability, type SemanticOptions } from "../semantic-config/RunChoicesForm";
 import { problemsOf, readChoices, readScope, requestBody, writeChoices, writeScope, type RunChoices, type ScopeChoices, type ScopeMode } from "./choices";
 import "./setup.css";
 
@@ -24,6 +24,8 @@ interface Reason {
 /** POST /api/semantic/scope/preview: the plan a run with these choices would get, nothing started. */
 interface Preview {
   purpose: string;
+  methods?: Array<{ id: string; title: string; available: boolean; selectedBy: "purpose" | "explicit"; applicability: MethodApplicability }>;
+  methodSelection?: "purpose" | "explicit";
   rigor: string;
   budget: { maxCalls?: number | null; maxTokens?: number | null } | null;
   resolution: {
@@ -169,6 +171,22 @@ function PreviewStep({ preview, options, choices }: { preview: Preview; options:
         </dl>
         {r.completion.claim === "scope-only" ? <p className="small muted">{t("semres_claim_scope_only")}</p> : null}
       </section>
+      {preview.methods && preview.methods.length > 0 ? (
+        <section className="card flat stack" aria-labelledby="semsetup-methods" data-testid="semsetup-methods">
+          <h2 id="semsetup-methods">{t("semsetup_pv_methods")}</h2>
+          {preview.methods.length > 1 ? <p className="small muted">{t("semsetup_pv_methods_separate")}</p> : null}
+          <ul className="small sem-method-list">
+            {preview.methods.map((m) => (
+              <li key={m.id} data-method={m.id} data-applicability={m.applicability.state}>
+                <strong>{methodLabel(m)}</strong> <code>{m.id}</code>{" "}
+                <Pill tone={m.applicability.state === "not-applicable" || m.applicability.state === "error" ? "gold" : m.applicability.state === "unchecked" ? "blue" : "green"}>{t(`semsetup_applicability_${m.applicability.state}`)}</Pill>
+                {m.applicability.reason ? <span className="muted"> · {m.applicability.reason}</span> : null}
+              </li>
+            ))}
+          </ul>
+          {preview.methods.some((m) => m.applicability.state === "not-applicable") ? <p className="small muted">{t("semsetup_pv_not_applicable_hint")}</p> : null}
+        </section>
+      ) : null}
       <div className="sem-preview-grid">
         <PreviewList id="semsetup-subjects" title={t("semsetup_pv_subjects")} count={r.subjects.length}>
           <ul className="small">

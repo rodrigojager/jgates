@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { INVESTIGATION_RECORD, RESERVE_FRACTION, DEFAULT_CALLS } from "../../core/semantic-executor/index.js";
 import { projectSemanticMascots, type SemanticMascotSnapshot, type SemanticStageInput } from "../../core/semantic-mascots/index.js";
-import { SEMANTIC_RUN_ID_PATTERN, buildSemanticPlan, readSemanticRun, resolveQualityRun, type SemanticRunView } from "../../core/semantic/index.js";
+import { SEMANTIC_RUN_ID_PATTERN, buildSemanticPlan, readSemanticRun, resolveQualityRun, semanticMethodCatalog, type SemanticRunView } from "../../core/semantic/index.js";
 import { SCOPE_LEDGER_FILE, SCOPE_RECORD_FILE, SEMANTIC_PURPOSES, SEMANTIC_RIGORS, type SemanticPurpose } from "../../core/semantic-scope/index.js";
 import { SEQUENCE_ID_PATTERN, readSequence } from "../../core/sequence/index.js";
 import type { RunResult } from "../../core/run/types.js";
@@ -220,6 +220,8 @@ export const routes: RouteDefinition[] = [
           purposes: [...SEMANTIC_PURPOSES],
           rigors: SEMANTIC_RIGORS.map((id) => ({ id, reserve: RESERVE_FRACTION[id], defaultCalls: DEFAULT_CALLS[id] })),
           methods: plan.methods,
+          // Every method this build knows (the setup offers them for an explicit selection), with availability.
+          catalog: semanticMethodCatalog(),
           settings: plan.settings,
           controls: plan.scope.controls,
           prerequisites: plan.prerequisites,

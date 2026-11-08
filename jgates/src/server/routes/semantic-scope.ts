@@ -3,7 +3,7 @@
 // recommended expansion, reuse of prior evidence, inherited coverage, completion counts and blockers). It drives the
 // same service as `jgates semantic plan --scope ...` (core/semantic buildSemanticPlan) and never starts a run, calls a
 // provider or writes anything.
-import { buildSemanticPlan } from "../../core/semantic/index.js";
+import { MAX_SELECTED_METHODS, METHOD_ID_PATTERN, buildSemanticPlan } from "../../core/semantic/index.js";
 import { CONTEXT_POLICIES, SEMANTIC_PURPOSES, SEMANTIC_RIGORS, scopeControls, type ScopeRequest, type SemanticPurpose, type SemanticRigor } from "../../core/semantic-scope/index.js";
 import { translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
@@ -43,6 +43,8 @@ export const scopeSchema = {
 /** The run choices that never change the scope, plus the scope itself (also accepted by POST /api/semantic/runs). */
 export const choiceProperties = {
   purpose: { enum: [...SEMANTIC_PURPOSES] },
+  // Methods named explicitly, in order (empty or absent: the purpose's methods); each one runs as its own Semantic run.
+  methods: { type: "array", maxItems: MAX_SELECTED_METHODS, uniqueItems: true, items: { type: "string", pattern: METHOD_ID_PATTERN } },
   rigor: { enum: [...SEMANTIC_RIGORS] },
   budget: { type: "object", additionalProperties: false, properties: { maxCalls: count, maxTokens: count } },
   scope: scopeSchema,
@@ -52,6 +54,7 @@ const previewBody = { type: "object", additionalProperties: false, properties: c
 
 interface PreviewBody {
   purpose?: SemanticPurpose;
+  methods?: string[];
   rigor?: SemanticRigor;
   budget?: { maxCalls?: number; maxTokens?: number };
   scope?: ScopeRequest;
@@ -81,6 +84,7 @@ export const routes: RouteDefinition[] = [
         ...(request.purpose ? { purpose: request.purpose } : {}),
         ...(request.rigor ? { rigor: request.rigor } : {}),
         ...(request.budget ? { budget: request.budget } : {}),
+        ...(request.methods ? { methods: request.methods } : {}),
         scope: request.scope ?? null,
       });
       return {
@@ -90,6 +94,9 @@ export const routes: RouteDefinition[] = [
           status: "OK",
           gate: "semantic",
           purpose: plan.purpose,
+          // The methods to run with their applicability preview (each runs as its own Semantic run).
+          methods: plan.methods,
+          methodSelection: plan.methodSelection,
           rigor: plan.rigor,
           budget: plan.budget,
           controls: plan.scope.controls,

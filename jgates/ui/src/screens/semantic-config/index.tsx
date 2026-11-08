@@ -6,7 +6,7 @@ import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { DEFAULT_CHOICES, readChoices, writeChoices, type RunChoices } from "../semantic-setup/choices";
-import { RunChoicesForm, type SemanticOptions } from "./RunChoicesForm";
+import { RunChoicesForm, methodLabel, type SemanticOptions } from "./RunChoicesForm";
 
 export const screen: ScreenMeta = { id: "semantic-config", path: "/semantic/config", area: "semantic", navLabel: "semcfg_nav", navPath: "/semantic/config", order: 51, icon: "sliders" };
 
@@ -58,7 +58,13 @@ export default function SemanticConfigScreen() {
               <dt>{t("semcfg_cost")}</dt>
               <dd>{data.settings.costPerCall !== null ? String(data.settings.costPerCall) : t("semres_usage_cost_unreported")}</dd>
               <dt>{t("semcfg_modules")}</dt>
-              <dd data-testid="semcfg-modules">{data.methods.length > 0 ? data.methods.map((m) => m.id).join(", ") : "-"}</dd>
+              <dd data-testid="semcfg-modules">
+                {choices.methods.length > 0
+                  ? t("semcfg_modules_explicit", { methods: choices.methods.map((id) => methodLabel(data.catalog?.find((m) => m.id === id) ?? { id })).join(", ") })
+                  : data.methods.length > 0
+                    ? data.methods.map((m) => methodLabel(data.catalog?.find((c) => c.id === m.id) ?? m)).join(", ")
+                    : "-"}
+              </dd>
             </dl>
             {data.settings.problems.length > 0 ? (
               <div className="notice error" role="alert">

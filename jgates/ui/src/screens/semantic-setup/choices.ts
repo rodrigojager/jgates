@@ -1,4 +1,4 @@
-// The run-only choices of a Semantic run: purpose, rigor, budget and context limits (configuration screen) plus the scope
+// The run-only choices of a Semantic run: purpose or explicit methods, rigor, budget and context limits (configuration screen) plus the scope
 // (setup screen). None of them is written to jgates.yml: the saved settings (provider, model, limits) are edited in the
 // semantic gate card. They are kept in this browser's localStorage only as the defaults of the next setup, and travel
 // as the body of POST /api/semantic/scope/preview and POST /api/semantic/runs.
@@ -10,6 +10,8 @@ export type DirtyMode = "none" | "all" | "paths";
 
 export interface RunChoices {
   purpose: Purpose;
+  /** Methods named explicitly, in order; empty: the purpose's methods. Each one runs as its own Semantic run. */
+  methods: string[];
   rigor: Rigor;
   /** Empty: the saved settings' limit applies. */
   maxCalls: string;
@@ -36,7 +38,7 @@ export interface ScopeChoices {
   baseline: boolean;
 }
 
-export const DEFAULT_CHOICES: RunChoices = { purpose: "general-review", rigor: "standard", maxCalls: "", maxTokens: "", contextPolicy: "strict", maxFiles: "", maxDepth: "", maxBytes: "" };
+export const DEFAULT_CHOICES: RunChoices = { purpose: "general-review", methods: [], rigor: "standard", maxCalls: "", maxTokens: "", contextPolicy: "strict", maxFiles: "", maxDepth: "", maxBytes: "" };
 export const DEFAULT_SCOPE: ScopeChoices = { mode: "full", subjects: "", subsystems: "", exclusions: "", base: "", target: "", dirty: "none", dirtyPaths: "", baseline: false };
 
 const CHOICES_KEY = "jgates.semantic.choices";
@@ -60,7 +62,11 @@ function write(key: string, value: unknown): void {
   }
 }
 
-export const readChoices = (): RunChoices => read(CHOICES_KEY, DEFAULT_CHOICES);
+export const readChoices = (): RunChoices => {
+  const c = read(CHOICES_KEY, DEFAULT_CHOICES);
+  // Choices kept by an earlier version have no methods; anything that is not a list of IDs is dropped.
+  return { ...c, methods: Array.isArray(c.methods) ? c.methods.filter((m): m is string => typeof m === "string" && /^[a-z][a-z0-9-]{1,63}$/.test(m)) : [] };
+};
 export const writeChoices = (c: RunChoices): void => write(CHOICES_KEY, c);
 export const readScope = (): ScopeChoices => read(SCOPE_KEY, DEFAULT_SCOPE);
 export const writeScope = (s: ScopeChoices): void => write(SCOPE_KEY, s);
@@ -113,5 +119,5 @@ export function requestBody(choices: RunChoices, scope: ScopeChoices): Record<st
     request.dirty = scope.dirty === "paths" ? lines(scope.dirtyPaths) : scope.dirty;
   }
   if (scope.baseline) request.baseline = "latest";
-  return { purpose: choices.purpose, rigor: choices.rigor, ...(Object.keys(budget).length > 0 ? { budget } : {}), scope: request };
+  return { purpose: choices.purpose, ...(choices.methods.length > 0 ? { methods: choices.methods } : {}), rigor: choices.rigor, ...(Object.keys(budget).length > 0 ? { budget } : {}), scope: request };
 }
