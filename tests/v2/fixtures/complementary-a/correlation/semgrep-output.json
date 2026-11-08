@@ -1,0 +1,38 @@
+{
+  "version": "1.168.0",
+  "results": [
+    {
+      "check_id": "project.raw-sql-concatenation",
+      "path": "src/routes.js",
+      "start": { "line": 5, "col": 16, "offset": 112 },
+      "end": { "line": 5, "col": 72, "offset": 168 },
+      "extra": {
+        "message": "SQL text is concatenated with a value and sent through db.raw, which executes it as written. Bind the value as a parameter instead.",
+        "metadata": { "category": "injection", "cwe": "CWE-89" },
+        "severity": "ERROR",
+        "fingerprint": "requires login",
+        "lines": "requires login",
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    },
+    {
+      "check_id": "project.weak-hash",
+      "path": "tools/digest.js",
+      "start": { "line": 4, "col": 27, "offset": 93 },
+      "end": { "line": 4, "col": 51, "offset": 117 },
+      "extra": {
+        "message": "MD5 is broken for security use. Use SHA-256 or a password hashing function.",
+        "metadata": { "category": "weak-crypto", "cwe": "CWE-327" },
+        "severity": "WARNING",
+        "fingerprint": "requires login",
+        "lines": "requires login",
+        "validation_state": "NO_VALIDATOR",
+        "engine_kind": "OSS"
+      }
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["src/db.js", "src/driver.js", "src/routes.js", "tools/digest.js"] },
+  "skipped_rules": []
+}

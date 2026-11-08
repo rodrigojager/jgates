@@ -5,6 +5,10 @@
 import { investigationModuleFor, registerInvestigationModule, registeredInvestigationModules, type InvestigationModule } from "../semantic-executor/index.js";
 import { SECURITY_AUDIT_METHOD, securityAuditModule } from "./cloudflare/index.js";
 import { GENERAL_REVIEW_METHOD, generalReviewModule } from "./general-review/index.js";
+import { DIFFERENTIAL_METHOD, differentialReviewModule } from "./differential/index.js";
+import { VARIANT_ANALYSIS_METHOD, variantAnalysisModule } from "./variant/index.js";
+import { INSECURE_DEFAULTS_METHOD, insecureDefaultsModule } from "./insecure-defaults/index.js";
+import { CROSS_COMPONENT_METHOD, crossComponentModule } from "./cross-component/index.js";
 
 export interface SemanticModuleEntry {
   method: string;
@@ -16,6 +20,11 @@ export interface SemanticModuleEntry {
 export const SEMANTIC_MODULES: readonly SemanticModuleEntry[] = [
   { method: GENERAL_REVIEW_METHOD, create: () => generalReviewModule() },
   { method: SECURITY_AUDIT_METHOD, create: () => securityAuditModule() },
+  // Complementary methods: each checks its own applicability before any context starts (see the module headers).
+  { method: DIFFERENTIAL_METHOD, create: () => differentialReviewModule() },
+  { method: VARIANT_ANALYSIS_METHOD, create: () => variantAnalysisModule() },
+  { method: INSECURE_DEFAULTS_METHOD, create: () => insecureDefaultsModule() },
+  { method: CROSS_COMPONENT_METHOD, create: () => crossComponentModule() },
 ];
 
 /** Methods whose module could not be built, with the reason. */
@@ -32,3 +41,8 @@ for (const entry of SEMANTIC_MODULES) {
 export { investigationModuleFor, registerInvestigationModule, registeredInvestigationModules };
 export * as securityAudit from "./cloudflare/index.js";
 export * as generalReview from "./general-review/index.js";
+export * as differentialReview from "./differential/index.js";
+export * as variantAnalysis from "./variant/index.js";
+export * as insecureDefaults from "./insecure-defaults/index.js";
+export * as crossComponent from "./cross-component/index.js";
+export * as complementaryVendor from "./complementary/vendor.js";

@@ -26,6 +26,14 @@ export const ELIGIBLE_SPDX: ReadonlySet<string> = new Set([
 
 const SPDX_ID = /^[A-Za-z0-9.+-]+$/;
 
+/** ShareAlike licenses: eligible only when the pack record states its modifications and how attribution and ShareAlike are met. */
+const SHARE_ALIKE = /^CC-BY-SA-/;
+
+/** Whether an SPDX expression names a ShareAlike license anywhere (the stricter reading). */
+export function requiresShareAlike(expression: string): boolean {
+  return expression.replace(/[()]/g, " ").split(/\s+/).some((id) => SHARE_ALIKE.test(id));
+}
+
 /**
  * Whether an SPDX expression is eligible: `A OR B` needs one eligible side, `A AND B` needs both, and a `WITH`
  * exception keeps the license on its left. Parentheses are flattened, which can only make the answer stricter

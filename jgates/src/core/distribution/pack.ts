@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { DISTRIBUTION_MODES, type DistributionMode } from "../catalog/index.js";
-import { isRestrictedSource, restrictedMarkersIn, spdxEligible } from "./license.js";
+import { isRestrictedSource, requiresShareAlike, restrictedMarkersIn, spdxEligible } from "./license.js";
 import { problem, type DistributionProblem, type DistributionProblemCode, type ProblemExtra } from "./problems.js";
 
 /** File name of the provenance record of a pack. */
@@ -30,6 +30,11 @@ export interface PackRecord {
   /** Notice files of the pack (paths relative to the pack folder) that travel with it. */
   notices: string[];
   modifications?: string;
+  /**
+   * How the license's obligations are met. Required for ShareAlike licenses (CC-BY-SA-*): how attribution is given and
+   * which adapted files carry the same license, next to a non-empty `modifications`.
+   */
+  obligations?: { attribution?: string; shareAlike?: string };
   dependencies?: Array<{ name: string; spdx: string; sourceUrl?: string }>;
   review: PackReview;
 }
@@ -131,6 +136,15 @@ function checkRecord(record: PackRecord, files: Set<string>, push: Push): void {
 
   if (isString(record.source?.url) && isRestrictedSource(record.source.url)) push("RESTRICTED_SOURCE", { detail: record.source.url });
   if (isString(record.spdx) && !spdxEligible(record.spdx)) push("LICENSE_NOT_ELIGIBLE", { detail: record.spdx });
+  // A ShareAlike license is eligible only with its obligations recorded: what was modified, how attribution is given and
+  // that the adaptations carry the same license.
+  if (isString(record.spdx) && requiresShareAlike(record.spdx)) {
+    const unmet: string[] = [];
+    if (!isString(record.modifications)) unmet.push("modifications");
+    if (!isString(record.obligations?.attribution)) unmet.push("obligations.attribution");
+    if (!isString(record.obligations?.shareAlike)) unmet.push("obligations.shareAlike");
+    if (unmet.length > 0) push("PROVENANCE_INCOMPLETE", { file: PACK_RECORD_FILE, detail: `${record.spdx} (ShareAlike) needs ${unmet.join(", ")}` });
+  }
   for (const dep of Array.isArray(record.dependencies) ? record.dependencies : []) {
     const name = isString(dep?.name) ? dep.name : "?";
     if (!isString(dep?.spdx) || !spdxEligible(dep.spdx)) push("LICENSE_NOT_ELIGIBLE", { detail: `${name}: ${isString(dep?.spdx) ? dep.spdx : "no SPDX"}` });

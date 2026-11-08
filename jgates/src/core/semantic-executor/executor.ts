@@ -21,7 +21,7 @@ import { artifactShape, parseArtifactText, validateArtifact, type ExplorationArt
 import { agentCliBackend, providerToolBackend, type AgentCliGate, type CallTurn, type ContextRunResult, type InvestigationBackend, type TranscriptEntry } from "./backends.js";
 import { BudgetMeter, budgetLimits, DEFAULT_TURNS, reserveFor, type UsageSnapshot } from "./budget.js";
 import { HostTools, LIMITING_REFUSALS, type CandidateInput, type ContextState } from "./host-tools.js";
-import type { ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation } from "./types.js";
+import type { ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation, ModuleApplicability } from "./types.js";
 
 export const INVESTIGATION_RECORD = "evidence/investigation.json";
 export const CONTEXTS_DIR = "evidence/contexts";
@@ -249,7 +249,10 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       return null;
     }
   };
-  const runFacts = { runDir: options.runDir, scope: prep, rigor: options.rigor, readFile: hostRead };
+  // The inputs the module's applicability check established (set before any context starts).
+  let applied: Record<string, unknown> | undefined;
+  let applicability: Record<string, unknown> | null = null;
+  const runFacts = { runDir: options.runDir, scope: prep, rigor: options.rigor, readFile: hostRead, get inputs() { return applied; } };
   const addCandidate = (input: CandidateInput & { details?: Record<string, unknown> }, ctx: ContextState): { id: string } | { problems: string[] } => {
     const same = candidates.find((c) => c.path === input.path && c.line === input.line && c.title.toLowerCase() === input.title.toLowerCase());
     if (same) return { id: same.id };
@@ -308,6 +311,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     module: { id: module.id, version: module.version, title: module.title, promptSha256: sha256(module.stages.map((st) => systemPrompt(module, st)).join("\u0000")), ...(module.provenance ? { provenance: module.provenance } : {}) },
     backend: backend.describe,
     rigor: options.rigor,
+    ...(applicability ? { applicability } : {}),
     stages,
     candidates,
     coverage: coverageOf(),
@@ -346,6 +350,38 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       // The final write reports a failure; a checkpoint never stops the work.
     }
   };
+
+  // The module's applicability check: a method whose required input is missing never starts a context.
+  if (module.applicability) {
+    let answer: ModuleApplicability;
+    try {
+      answer = module.applicability({ scope: prep, rigor: options.rigor, runDir: options.runDir, workspacePath: options.workspacePath, env, readableFiles: () => tools.readableFiles(), readable: (p) => tools.readable(p), readFile: hostRead });
+    } catch (error) {
+      answer = { applicable: false, code: "APPLICABILITY_CHECK_FAILED", missing: "applicability", reason: `the applicability check failed: ${error instanceof Error ? error.message : String(error)}` };
+    }
+    if (answer.applicable) {
+      applied = answer.inputs ?? {};
+      applicability = { state: "applicable", ...(answer.record ?? {}) };
+    } else {
+      const reason = brief(answer.reason);
+      applicability = { state: "not-applicable", code: answer.code, missing: answer.missing, reason };
+      for (const [si, rec] of stages.entries()) {
+        rec.state = "not-run";
+        rec.reason = `not applicable: ${reason}`;
+        emit("stage", { step: REVIEW_STEP, stageId: `${module.id}/${module.stages[si]?.id ?? rec.id}`, state: rec.state, role: rec.role, contexts: 0, reason: rec.reason });
+      }
+      backend.dispose?.();
+      const record = recordDoc();
+      record.complete = false;
+      record.artifacts = { record: INVESTIGATION_RECORD, contexts: [] };
+      try {
+        writeAtomic(path.join(options.runDir, INVESTIGATION_RECORD), `${JSON.stringify(record, null, 2)}\n`);
+      } catch {
+        // The outcome below still carries the record.
+      }
+      return base({ state: "unavailable", code: "METHOD_NOT_APPLICABLE", reason: `${module.title} is not applicable to this run: ${reason}`, investigation: record });
+    }
+  }
 
   progress("context", "started", {});
   progress("context", "finished", { files: tools.readableFiles().length, policy: policy.context });
@@ -416,7 +452,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       let extra: string | null = null;
       if (module.brief) {
         try {
-          extra = module.brief({ stage: spec, candidate, accepted, candidates, scope: prep, rigor: options.rigor, runDir: options.runDir, readable: (p) => tools.readable(p), readFile: hostRead });
+          extra = module.brief({ stage: spec, candidate, accepted, candidates, scope: prep, rigor: options.rigor, runDir: options.runDir, readable: (p) => tools.readable(p), readFile: hostRead, ...(applied ? { inputs: applied } : {}) });
         } catch (error) {
           // The module could not give this context its material: the context does not start.
           stopAll = "error";
@@ -647,6 +683,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
         readable: (p) => tools.readable(p),
         readFile: hostRead,
         now: now(),
+        ...(applied ? { inputs: applied } : {}),
       });
       for (const f of out.files) {
         const rel = normalizeScopePath(f.path);

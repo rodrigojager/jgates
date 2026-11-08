@@ -50,7 +50,32 @@ export interface ModuleRunFacts {
   rigor: SemanticRigor;
   /** Reads a readable workspace file for the host (null when it cannot be read); never sent to a model. */
   readFile(path: string): string | null;
+  /** The inputs the module's applicability check established for this run (absent when the module has no check). */
+  inputs?: Readonly<Record<string, unknown>> | undefined;
 }
+
+/** What a module's applicability check may look at before any context starts (host-only; nothing is sent). */
+export interface ModuleApplicabilityInput {
+  scope: ScopeRunPreparation;
+  rigor: SemanticRigor;
+  runDir: string;
+  workspacePath: string;
+  env: NodeJS.ProcessEnv;
+  /** Workspace-relative files the run may read. */
+  readableFiles(): string[];
+  readable(path: string): boolean;
+  /** Reads a readable workspace file for the host (masked like any read; null when it cannot be read). */
+  readFile(path: string): string | null;
+}
+
+/**
+ * The answer of an applicability check. applicable: the inputs the stages need (given back to brief, validation and
+ * finalize) and an optional summary kept in the investigation record. Not applicable: the input that is missing and why;
+ * no context starts, nothing is sent, and the outcome is unavailable (never favorable) with code METHOD_NOT_APPLICABLE.
+ */
+export type ModuleApplicability =
+  | { applicable: true; inputs?: Record<string, unknown>; record?: Record<string, unknown> }
+  | { applicable: false; code: string; missing: string; reason: string };
 
 /** A candidate a custom artifact contributes (the executor applies it like a reported one). */
 export interface ArtifactCandidate {
@@ -129,6 +154,8 @@ export interface ModuleBriefInput {
   readable(path: string): boolean;
   /** Reads a readable workspace file for the host (null when it cannot be read); never sent to a model. */
   readFile(path: string): string | null;
+  /** The inputs the module's applicability check established for this run. */
+  inputs?: Readonly<Record<string, unknown>>;
 }
 
 export interface ModuleFinalizeInput {
@@ -146,6 +173,8 @@ export interface ModuleFinalizeInput {
   /** Reads a readable workspace file for the host (masked like any read; null when it cannot be read). */
   readFile(path: string): string | null;
   now: Date;
+  /** The inputs the module's applicability check established for this run. */
+  inputs?: Readonly<Record<string, unknown>>;
 }
 
 export interface ModuleFinalizeOutput {
@@ -173,6 +202,11 @@ export interface InvestigationModule {
   provenance?: Record<string, unknown>;
   /** The least the budget must fund before any context starts: exploration calls and reserved validation calls. */
   minimum?: { exploreCalls: number; reserveCalls: number };
+  /**
+   * Whether the method applies to this run, decided by the host before any context starts (a comparison baseline, a
+   * confirmed root cause, configuration files...). Absent: the module always applies.
+   */
+  applicability?(input: ModuleApplicabilityInput): ModuleApplicability;
   /** Extra brief text for one context (null: nothing to add). */
   brief?(input: ModuleBriefInput): string | null;
   /** Host-side reporting after every stage: structured records, readable report, agent context. */

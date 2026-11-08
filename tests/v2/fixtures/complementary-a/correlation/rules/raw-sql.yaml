@@ -1,0 +1,17 @@
+rules:
+  - id: project.raw-sql-concatenation
+    message: SQL text is concatenated with a value and sent through db.raw, which executes it as written. Bind the value as a parameter instead.
+    severity: ERROR
+    languages: [javascript]
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+    pattern: $DB.raw("..." + $X)
+  - id: project.weak-hash
+    message: MD5 is broken for security use. Use SHA-256 or a password hashing function.
+    severity: WARNING
+    languages: [javascript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+    pattern: crypto.createHash("md5")

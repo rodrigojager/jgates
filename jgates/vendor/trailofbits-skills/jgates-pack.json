@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "trailofbits-skills",
+  "kind": "skills",
+  "distribution": "shipped",
+  "source": {
+    "url": "https://github.com/trailofbits/skills",
+    "revision": "e4dd0bb5b15535f7c5a0834187dffba6ac37e4ff"
+  },
+  "artifact": {
+    "sha256": "sha256:26c9ca8bb9585b6b4bc824d9887841c6186871ca2724ee50413b7d7a434e0a8d"
+  },
+  "spdx": "CC-BY-SA-4.0",
+  "notices": ["LICENSE", "NOTICE.md"],
+  "modifications": "insecure-defaults/categories/ copied verbatim from plugins/insecure-defaults/references (fallback-secrets, default-credentials, fail-open-security, permissive-access, debug-features: .md and .json); differential-review/method.md adapted from plugins/differential-review/skills/differential-review/SKILL.md and methodology.md; variant-analysis/method.md adapted from plugins/variant-analysis/skills/variant-analysis/SKILL.md and references/root-cause.md, searching.md, triage.md, reporting.md; insecure-defaults/method.md adapted from plugins/insecure-defaults/README.md, commands/audit.md and workflows/audit.js. Shell commands replaced by host code, phases mapped to bounded executor stages with fresh contexts, incomplete traces become needs-validation, applicability checks, JSON evidence instead of markdown reports, weak-crypto consolidated with the baseline. See NOTICE.md.",
+  "obligations": {
+    "attribution": "NOTICE.md names Trail of Bits and the plugin authors, the source URL, the pinned commit and the CC BY-SA 4.0 license, and states every modification; LICENSE carries the full license text and travels with the folder.",
+    "shareAlike": "The adapted files (differential-review/method.md, variant-analysis/method.md, insecure-defaults/method.md) are licensed CC BY-SA 4.0; no additional terms or technological measures restrict them. The JGates modules read them as data and keep their own license."
+  },
+  "review": "approved"
+}

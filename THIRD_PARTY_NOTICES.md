@@ -134,3 +134,16 @@ the MIT license. Its `LICENSE` (the upstream MIT text), `NOTICE.md` (what was ke
 `jgates-pack.json` (source, revision, SPDX) travel with it. The Semantic `security-audit` method
 (`jgates/src/core/semantic-modules/cloudflare`) is built from that material; the upstream validators and tests are not
 shipped (their checks are reimplemented in the module).
+
+## Trail of Bits skills (adapted, CC BY-SA 4.0)
+
+`jgates/vendor/trailofbits-skills` adapts parts of [trailofbits/skills](https://github.com/trailofbits/skills) at commit
+`e4dd0bb5b15535f7c5a0834187dffba6ac37e4ff`, made by Trail of Bits, under the Creative Commons Attribution-ShareAlike 4.0
+International license (CC-BY-SA-4.0). The `insecure-defaults/categories/` corpora and seed patterns are unchanged; the
+three `method.md` files are adaptations of the differential-review, variant-analysis and insecure-defaults plugins and
+are licensed CC BY-SA 4.0 as well (ShareAlike). Its `LICENSE` (the full license text), `NOTICE.md` (attribution, the exact
+upstream files, every modification and how the ShareAlike and attribution obligations are met) and `jgates-pack.json`
+(source, revision, SPDX, modifications, obligations) travel with it; the distribution check refuses a ShareAlike pack
+whose record does not state its modifications and obligations. The Semantic methods `differential-review`,
+`variant-analysis` and `insecure-defaults` (`jgates/src/core/semantic-modules/`) read this material as data at run time;
+the `cross-component` method and the root-cause correlation are original JGates work.
