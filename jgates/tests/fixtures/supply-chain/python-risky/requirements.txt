@@ -1,0 +1,3 @@
+--extra-index-url http://packages.internal.example/simple
+requests==2.31.0
+flask==3.0.0 --hash=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

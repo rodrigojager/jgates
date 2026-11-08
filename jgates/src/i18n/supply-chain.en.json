@@ -1,0 +1,15 @@
+{
+  "sc_install_script": "{package} runs code at install time ({scripts}).",
+  "sc_missing_integrity": "{package} has no integrity hash in the lockfile, so the downloaded artifact is not verified.",
+  "sc_missing_hash": "{package} has no hash pinned in the lockfile, so the downloaded artifact is not verified.",
+  "sc_registry_not-https": "{package} is resolved from a non-HTTPS source ({source}).",
+  "sc_registry_untrusted-host": "{package} is resolved from a registry that is not a trusted public one ({source}).",
+  "sc_registry_git-source": "{package} is resolved from a git source ({source}), not from a registry artifact.",
+  "sc_deprecated": "{package} is deprecated: {notice}",
+  "sc_unpinned_source": "{package} comes from {source} without a pinned commit.",
+  "sc_unpinned_version": "{package} is not pinned to an exact version.",
+  "sc_unreadable": "{file} could not be read: {detail}. Nothing is concluded about it.",
+  "sc_no_packages": "{file} lists no packages; nothing is concluded about it.",
+  "sc_no_lockfile": "No npm or Python lockfile was found; the supply chain is unknown, not clean.",
+  "sc_unknown_python_deprecation": "Deprecation of Python packages needs the package index (network); this offline check marks it unknown."
+}

@@ -1,0 +1,15 @@
+{
+  "sc_install_script": "{package} executa código na instalação ({scripts}).",
+  "sc_missing_integrity": "{package} não tem hash de integridade no lockfile, então o artefato baixado não é verificado.",
+  "sc_missing_hash": "{package} não tem hash fixado no lockfile, então o artefato baixado não é verificado.",
+  "sc_registry_not-https": "{package} é resolvido de uma origem sem HTTPS ({source}).",
+  "sc_registry_untrusted-host": "{package} é resolvido de um registro que não é um público confiável ({source}).",
+  "sc_registry_git-source": "{package} é resolvido de uma origem git ({source}), não de um artefato de registro.",
+  "sc_deprecated": "{package} está obsoleto: {notice}",
+  "sc_unpinned_source": "{package} vem de {source} sem commit fixado.",
+  "sc_unpinned_version": "{package} não está fixado em uma versão exata.",
+  "sc_unreadable": "{file} não pôde ser lido: {detail}. Nada é concluído sobre ele.",
+  "sc_no_packages": "{file} não lista pacotes; nada é concluído sobre ele.",
+  "sc_no_lockfile": "Nenhum lockfile npm ou Python foi encontrado; a cadeia de suprimentos é desconhecida, não limpa.",
+  "sc_unknown_python_deprecation": "A obsolescência de pacotes Python exige o índice de pacotes (rede); esta checagem offline a marca como desconhecida."
+}

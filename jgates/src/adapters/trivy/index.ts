@@ -106,3 +106,4 @@ export const trivyAdapter: ExternalAdapter = {
   plan: (input) => planScanner(trivyScanner, input),
   run: (context, plan, tool) => runScanner(trivyScanner, context, plan, tool),
 };
+export { scanImage, trivyImageArgs, type TrivyImageState, type TrivyImageTarget } from "./image.js";
