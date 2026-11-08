@@ -81,6 +81,22 @@
             "description": "zizmor: true (the default) never calls the GitHub API; false also runs the audits that need it (a GH_TOKEN is required).",
             "type": "boolean"
           },
+          "engine": {
+            "description": "mutation: the mutation engine (stryker for JavaScript/TypeScript, mutmut for Python). Without it the engine is detected from the component.",
+            "enum": ["stryker", "mutmut"]
+          },
+          "mutate": {
+            "description": "mutation: the scope of the run. Stryker: relative globs of the files to mutate. mutmut: mutant-name patterns. Without it the engine's own configuration decides.",
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "minimumScore": {
+            "description": "mutation: the lowest mutation score (percent of detected mutants) that passes; below it the stage has a blocking finding. The policy rule mutation.minimum applies when this is not set.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
           "spec": {
             "description": "oasdiff, schemathesis, zap: the OpenAPI specification, relative to the scan root (oasdiff and schemathesis default: openapi.yaml, openapi.json, swagger.* or the same under api/, docs/, spec/; zap: when set, the API scan replaces the baseline).",
             "$ref": "#/$defs/pathText"

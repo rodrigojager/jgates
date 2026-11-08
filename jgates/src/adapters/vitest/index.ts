@@ -16,7 +16,9 @@ import type { AdapterContext, AdapterOutput, ResultFinding, ResultStage } from "
 import { vitestManifest } from "./manifest.js";
 import { parseLineCoverage, parseVitestReport, thresholdMessage, type VitestReport } from "./normalize.js";
 import { COVERAGE_PROVIDER, findCoverageProvider, findVitest } from "./probe.js";
+import { scanProperties } from "./properties.js";
 
+export { propertyTitles, scanProperties } from "./properties.js";
 export { vitestManifest } from "./manifest.js";
 export { parseLineCoverage, parseVitestReport } from "./normalize.js";
 export { findCoverageProvider, findVitest } from "./probe.js";
@@ -254,12 +256,18 @@ async function runVitest(context: AdapterContext, plan: Plan, tool: string): Pro
   const metrics: NonNullable<AdapterOutput["metrics"]> = [];
   const failedStage = testItem as PlanItem;
   const baseFinding = { tool: ADAPTER_ID, ...(version ? { toolVersion: version } : {}), category: "tests", severity: "error", normalizedSeverity: "high" as const, origin: ADAPTER_ID, blocking: true, blockingReason: "blocking-tool" as const, waived: false };
+  // Property tests (fast-check) are told apart by reading the test files that ran; the report does not say.
+  const scan = scanProperties(report.tests.map((r) => r.abs).filter((a) => a !== ""));
+  const propertyTests = report.tests.filter((r) => scan.byFile.get(r.abs)?.has(r.title) ?? false);
+  const propertyFailed = propertyTests.filter((r) => r.status === "failed");
+  const isPropertyFailure = (f: (typeof report.failures)[number]): boolean => !f.suite && propertyFailed.some((r) => r.file === f.file && f.name.endsWith(r.title));
   for (const f of report.failures) {
+    const property = isPropertyFailure(f);
     findings.push({
       ...baseFinding,
       stageId: failedStage.id,
-      ruleId: f.suite ? "vitest.suite-failed" : "vitest.test-failed",
-      message: t(f.suite ? "vitest_finding_suite" : "vitest_finding_test", { name: f.name, message: f.message || "-" }),
+      ruleId: f.suite ? "vitest.suite-failed" : property ? "vitest.property-failed" : "vitest.test-failed",
+      message: t(f.suite ? "vitest_finding_suite" : property ? "vitest_finding_property" : "vitest_finding_test", { name: f.name, message: f.message || "-" }),
       ...(f.file ? { location: { path: f.file, ...(f.line !== null ? { line: f.line } : {}), ...(f.column !== null ? { column: f.column } : {}) } } : {}),
     });
   }
@@ -270,6 +278,13 @@ async function runVitest(context: AdapterContext, plan: Plan, tool: string): Pro
     { id: "tests.failed", label: t("vitest_metric_failed"), unit: "count", value: counts.failed, scope: "workspace", origin: ADAPTER_ID },
     { id: "tests.skipped", label: t("vitest_metric_skipped"), unit: "count", value: counts.skipped, scope: "workspace", origin: ADAPTER_ID },
   );
+  // No property metric for a project that does not use fast-check; one that does gets it even at zero.
+  if (scan.usesFastCheck || propertyTests.length > 0) {
+    metrics.push(
+      { id: "tests.property.total", label: t("vitest_metric_property_total"), unit: "count", value: propertyTests.length, scope: "workspace", origin: ADAPTER_ID },
+      { id: "tests.property.failed", label: t("vitest_metric_property_failed"), unit: "count", value: propertyFailed.length, scope: "workspace", origin: ADAPTER_ID },
+    );
+  }
 
   // The coverage threshold is checked by Vitest itself: the exit code says it failed although every test passed.
   const thresholdFailed = collected && report.success && result.exitCode !== 0;

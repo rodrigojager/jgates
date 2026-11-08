@@ -22,12 +22,23 @@ export interface VitestFailure {
   suite: boolean;
 }
 
+/** One test of the JSON report, whatever its outcome. */
+export interface VitestTestRecord {
+  /** Absolute path of the test file as Vitest reports it. */
+  abs: string;
+  file: string | null;
+  title: string;
+  status: string;
+}
+
 export interface VitestReport {
   ok: boolean;
   problem?: string;
   success: boolean;
   counts: VitestTestCounts;
   failures: VitestFailure[];
+  /** Every test of the report (the property-test scan reads their files). */
+  tests: VitestTestRecord[];
 }
 
 export interface LineCoverage {
@@ -70,7 +81,7 @@ function locate(messages: string[], absFile: string): { line: number | null; col
 
 /** Parses the JSON reporter file; `workspace` makes the file paths relative. Never throws. */
 export function parseVitestReport(text: string, workspace: string): VitestReport {
-  const empty: VitestReport = { ok: false, success: false, counts: { total: 0, passed: 0, failed: 0, skipped: 0 }, failures: [] };
+  const empty: VitestReport = { ok: false, success: false, counts: { total: 0, passed: 0, failed: 0, skipped: 0 }, failures: [], tests: [] };
   let doc: unknown;
   try {
     doc = JSON.parse(text);
@@ -79,6 +90,7 @@ export function parseVitestReport(text: string, workspace: string): VitestReport
   }
   if (!isRec(doc) || !Array.isArray(doc.testResults)) return { ...empty, problem: "no testResults list" };
   const failures: VitestFailure[] = [];
+  const tests: VitestTestRecord[] = [];
   const counts: VitestTestCounts = {
     total: num(doc.numTotalTests),
     passed: num(doc.numPassedTests),
@@ -92,6 +104,7 @@ export function parseVitestReport(text: string, workspace: string): VitestReport
     const results = Array.isArray(file.assertionResults) ? file.assertionResults : [];
     let any = false;
     for (const t of results) {
+      if (isRec(t) && typeof t.title === "string") tests.push({ abs, file: rel, title: t.title, status: typeof t.status === "string" ? t.status : "" });
       if (!isRec(t) || t.status !== "failed") continue;
       any = true;
       const messages = Array.isArray(t.failureMessages) ? t.failureMessages.filter((m): m is string => typeof m === "string") : [];
@@ -117,7 +130,7 @@ export function parseVitestReport(text: string, workspace: string): VitestReport
       });
     }
   }
-  return { ok: true, success: doc.success === true, counts, failures };
+  return { ok: true, success: doc.success === true, counts, failures, tests };
 }
 
 /** The `lines` total of a coverage json-summary file. */

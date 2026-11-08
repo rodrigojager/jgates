@@ -77,8 +77,19 @@ function ancestors(from: string, top: string): string[] {
 }
 
 function describe(entry: string, source: NonNullable<VitestProbe["source"]>): VitestProbe {
-  const real = fs.realpathSync(entry);
-  const pkg = packageOf(real, "vitest");
+  let real = fs.realpathSync(entry);
+  let pkg = packageOf(real, "vitest");
+  // Windows: node_modules/.bin/vitest.cmd is a launcher shim, not a link into the package. The package sits next to
+  // .bin, and Node runs its entry script directly.
+  if (!pkg && /[\\/]\.bin[\\/]vitest(?:\.cmd|\.exe)?$/i.test(real)) {
+    const dir = path.join(path.dirname(path.dirname(real)), "vitest");
+    const found = packageOf(path.join(dir, "package.json"), "vitest");
+    const script = path.join(dir, "vitest.mjs");
+    if (found && isFile(script)) {
+      real = script;
+      pkg = found;
+    }
+  }
   // A script is run by the Node that runs JGates; anything else (a native launcher) is the executable itself.
   const script = /\.(mjs|cjs|js)$/i.test(real);
   const base = { entry: real, packageDir: pkg?.dir ?? null, source };

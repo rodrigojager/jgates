@@ -18,6 +18,7 @@ import { choosePytestConfig } from "./config.js";
 import { findCoverageConfig, findNativeMinimum, parseCoverageJson } from "./coverage.js";
 import { caseFile, parseJunit } from "./junit.js";
 import { pytestManifest } from "./manifest.js";
+import { baseTestName, scanProperties } from "./properties.js";
 import { probePytest } from "./probe.js";
 
 const ADAPTER_ID = pytestManifest.id;
@@ -111,6 +112,8 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
   const env: Record<string, string> = {
     PYTHONDONTWRITEBYTECODE: "1",
     COVERAGE_FILE: `${out}/.coverage`,
+    // Hypothesis keeps its example database in .hypothesis of the working folder unless told otherwise.
+    HYPOTHESIS_STORAGE_DIRECTORY: `${out}/hypothesis`,
     ...(hasSrc ? { PYTHONPATH: `${WORKSPACE}/${root ? `${root}/` : ""}src` } : {}),
   };
 
@@ -281,21 +284,38 @@ async function runPytest(context: AdapterContext, plan: Plan, tool: string): Pro
       } else if (result.exitCode === 1 && bad === 0) {
         stages.push(stageFor(unitItem, "completed", t("pytest_exit_mismatch"), { interpreted: false, nativeStatus: "exit 1" }));
       } else {
+        // Property tests (Hypothesis `@given`) are told apart by reading the test files that ran; JUnit does not say.
+        const files = new Map(junit.cases.map((c) => [c, caseFile(c.classname, cwd, context.workspacePath)] as const));
+        const scan = scanProperties(
+          [...files.values()].filter((f): f is string => f !== null),
+          (f) => path.join(context.workspacePath, ...f.split("/")),
+        );
+        const isProperty = (c: (typeof junit.cases)[number]): boolean => {
+          const f = files.get(c);
+          return f != null && (scan.byFile.get(f)?.has(baseTestName(c.name)) ?? false);
+        };
+        let propertyTotal = 0;
+        let propertyFailed = 0;
         for (const c of junit.cases) {
+          const property = isProperty(c);
+          if (property) {
+            propertyTotal++;
+            if (c.outcome === "failed" || c.outcome === "error") propertyFailed++;
+          }
           if (c.outcome !== "failed" && c.outcome !== "error") continue;
           const test = `${c.classname}::${c.name}`;
-          const file = caseFile(c.classname, cwd, context.workspacePath);
+          const file = files.get(c) ?? null;
           findings.push({
             stageId: unitItem.id,
             tool: ADAPTER_ID,
             ...(version ? { toolVersion: version } : {}),
-            ruleId: c.outcome === "failed" ? "test-failed" : "test-error",
+            ruleId: property ? "property-test-failed" : c.outcome === "failed" ? "test-failed" : "test-error",
             category: "tests",
             severity: "error",
             normalizedSeverity: "high",
-            message: t(c.outcome === "failed" ? "pytest_test_failed" : "pytest_test_error", { test, message: c.message || "-" }),
+            message: t(property ? "pytest_property_failed" : c.outcome === "failed" ? "pytest_test_failed" : "pytest_test_error", { test, message: c.message || "-" }),
             ...(file ? { location: { path: file } } : {}),
-            fingerprint: contentHash({ tool: ADAPTER_ID, rule: c.outcome, test }),
+            fingerprint: contentHash({ tool: ADAPTER_ID, rule: property ? "property" : c.outcome, test }),
             origin: ADAPTER_ID,
             blocking: true,
             blockingReason: "blocking-tool",
@@ -311,6 +331,11 @@ async function runPytest(context: AdapterContext, plan: Plan, tool: string): Pro
         );
         const count = (id: string, key: string, value: number): ResultMetric => ({ id, label: t(key), unit: "count", value, ...withComponent, scope, origin: ADAPTER_ID });
         metrics.push(count("tests.total", "pytest_metric_tests_total", junit.total), count("tests.failed", "pytest_metric_tests_failed", bad), count("tests.skipped", "pytest_metric_tests_skipped", junit.skipped));
+        // A project that does not use Hypothesis gets no property metric (nothing to count); one that does gets it
+        // even at zero (the file imports hypothesis but no collected test is a property test).
+        if (scan.usesHypothesis || propertyTotal > 0) {
+          metrics.push(count("tests.property.total", "pytest_metric_property_total", propertyTotal), count("tests.property.failed", "pytest_metric_property_failed", propertyFailed));
+        }
       }
     }
   }

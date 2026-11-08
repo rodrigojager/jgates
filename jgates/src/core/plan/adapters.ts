@@ -19,6 +19,7 @@ import { checkovAdapter } from "../../adapters/checkov/index.js";
 import { eslintAdapter } from "../../adapters/eslint/index.js";
 import { jscpdAdapter } from "../../adapters/jscpd/index.js";
 import { zizmorAdapter } from "../../adapters/zizmor/index.js";
+import { mutationAdapter } from "../../adapters/mutation/index.js";
 import { oasdiffAdapter } from "../../adapters/oasdiff/index.js";
 import { codeqlAdapter } from "../../adapters/codeql/index.js";
 import { buildCheckAdapter } from "../../adapters/build-check/index.js";
@@ -97,6 +98,7 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [buildCheckAdapter.manifest.id, buildCheckAdapter],
   [schemathesisAdapter.manifest.id, schemathesisAdapter],
   [zapAdapter.manifest.id, zapAdapter],
+  [mutationAdapter.manifest.id, mutationAdapter],
 ]);
 
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {

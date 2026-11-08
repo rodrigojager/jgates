@@ -3,5 +3,6 @@ export { pytestManifest } from "./manifest.js";
 export { choosePytestConfig, type PytestConfigChoice } from "./config.js";
 export { parseJunit } from "./junit.js";
 export { parseCoverageJson } from "./coverage.js";
+export { givenFunctions, scanProperties } from "./properties.js";
 export { probePytest } from "./probe.js";
 export { pytestAdapter } from "./adapter.js";

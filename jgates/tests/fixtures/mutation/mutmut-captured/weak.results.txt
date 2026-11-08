@@ -1,0 +1,4 @@
+    pkg.age.x_is_adult__mutmut_1: survived
+    pkg.age.x_is_adult__mutmut_2: survived
+    pkg.age.x_price__mutmut_1: survived
+    pkg.age.x_price__mutmut_2: survived

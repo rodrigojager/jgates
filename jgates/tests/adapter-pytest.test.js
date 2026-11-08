@@ -271,3 +271,85 @@ test("a pytest run is never served from the cache (it executes project code)", (
     p.cleanup();
   }
 });
+
+const HYP_TESTS = `from hypothesis import given, strategies as st
+
+
+def test_example():
+    assert sorted([2, 1]) == [1, 2]
+
+
+@given(st.lists(st.integers()))
+def test_sort_is_idempotent(xs):
+    assert sorted(sorted(xs)) == sorted(xs)
+
+
+@given(
+    st.integers(),
+    st.integers(),
+)
+def test_addition_commutes(a, b):
+    assert a + b == b + a
+`;
+
+test("a Hypothesis property test is reported as its own metric, distinct from the unit tests", () => {
+  // Static detection on its own (no Python needed).
+  assert.deepEqual(pytestAdapter.givenFunctions(HYP_TESTS), ["test_sort_is_idempotent", "test_addition_commutes"]);
+  assert.deepEqual(pytestAdapter.givenFunctions("def test_a():\n    pass\n"), []);
+
+  const python = process.env.JGATES_PYTHON ?? PYTHON;
+  const has = spawnSync(python, ["-c", "import pytest, hypothesis"], { encoding: "utf8" });
+  if (has.status !== 0) {
+    // pytest and Hypothesis are not installed in this Python: the end-to-end proof needs JGATES_PYTHON with both.
+    assert.notEqual(has.status, 0);
+    return;
+  }
+  const make = (source) => {
+    const dir = tmp("jgates-hyp-");
+    const home = tmp("jgates-hyp-home-");
+    fs.mkdirSync(path.join(dir, "tests"));
+    fs.writeFileSync(path.join(dir, "tests", "test_props.py"), source);
+    const system = process.platform === "win32" ? [path.join(process.env.SystemRoot ?? "C:\\Windows", "System32")] : ["/usr/bin", "/bin"];
+    const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: python, JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", PATH: system.join(path.delimiter), DOCKER_HOST: "tcp://127.0.0.1:1" };
+    const cli = (args) => {
+      const r = spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", env, timeout: 300_000 });
+      let doc = null;
+      try {
+        doc = JSON.parse(r.stdout);
+      } catch {
+        doc = null;
+      }
+      return { code: r.status, out: r.stdout, err: r.stderr, doc };
+    };
+    const init = cli(["init", "--cwd", dir, "--profile", "strict", "--no-interactive", "--json"]);
+    assert.equal(init.code, 0, init.out + init.err);
+    fs.writeFileSync(path.join(dir, ".jgates", "tools.yml"), "schemaVersion: 1\ntools:\n  pytest:\n    adapter: pytest\n    capabilities: [unit]\n");
+    const run = () => cli(["run", "--cwd", dir, "--only", "tool:pytest", "--no-interactive", "--json"]);
+    return { dir, run, cleanup: () => [dir, home].forEach((d) => fs.rmSync(d, { recursive: true, force: true })) };
+  };
+  const good = make(HYP_TESTS);
+  const bad = make(HYP_TESTS.replace("a + b == b + a", "a + b == a - b"));
+  const plain = make("def test_one():\n    assert True\n");
+  try {
+    const ran = good.run();
+    assert.equal(ran.code, 0, ran.out + ran.err);
+    assert.deepEqual(ran.doc.workspaceChanges.added, [], "Hypothesis keeps its example database in the run folder, not in the workspace");
+    assert.ok(!fs.existsSync(path.join(good.dir, ".hypothesis")));
+    assert.equal(metric(ran.doc, "tests.total").value, 3, "the example test and the two property tests");
+    assert.equal(metric(ran.doc, "tests.property.total").value, 2, "only the @given tests count as property tests");
+    assert.equal(metric(ran.doc, "tests.property.failed").value, 0);
+    const failed = bad.run();
+    assert.equal(failed.code, 1, failed.out + failed.err);
+    assert.equal(metric(failed.doc, "tests.property.failed").value, 1);
+    assert.equal(metric(failed.doc, "tests.failed").value, 1);
+    const finding = pytestFindings(failed.doc).find((f) => f.ruleId === "property-test-failed");
+    assert.ok(finding, JSON.stringify(pytestFindings(failed.doc).map((f) => f.ruleId)));
+    assert.match(finding.message, /test_addition_commutes/);
+    // A project that does not use Hypothesis gets no property metric.
+    assert.equal(metric(plain.run().doc, "tests.property.total"), undefined);
+  } finally {
+    good.cleanup();
+    bad.cleanup();
+    plain.cleanup();
+  }
+});

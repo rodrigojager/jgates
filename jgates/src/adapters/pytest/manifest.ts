@@ -52,7 +52,7 @@ export const pytestManifest: AdapterManifest = {
     needsLicense: false,
   },
   // Without these pytest writes .pytest_cache, __pycache__ and .coverage in the project.
-  redirection: { flags: ["-p no:cacheprovider", "--junitxml", "--cov-report"], env: ["PYTHONDONTWRITEBYTECODE", "COVERAGE_FILE"], unavoidableWorkspaceWrites: [] },
+  redirection: { flags: ["-p no:cacheprovider", "--junitxml", "--cov-report"], env: ["PYTHONDONTWRITEBYTECODE", "COVERAGE_FILE", "HYPOTHESIS_STORAGE_DIRECTORY"], unavoidableWorkspaceWrites: [] },
   toggles: { togglable: [], perRunByFlag: false },
   relativeCost: "medium",
   origin: "builtin",

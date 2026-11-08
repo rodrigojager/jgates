@@ -48,7 +48,25 @@ function linkModules(dir, { withProvider }) {
   fs.symlinkSync(path.join("..", "vitest", "vitest.mjs"), path.join(target, ".bin", "vitest"));
 }
 
-function project({ testSource = PASSING, withProvider = true, capabilities = "unit, coverage", extraEnv = {} } = {}) {
+/** The repository node_modules plus fast-check (and what it needs) from `fastCheckModules`, as a real folder of links. */
+function linkWithFastCheck(dir, fastCheckModules) {
+  const target = path.join(dir, "node_modules");
+  fs.mkdirSync(target);
+  const link = (from, to) => fs.symlinkSync(from, to, process.platform === "win32" ? "junction" : "dir");
+  for (const name of fs.readdirSync(REPO_MODULES)) link(path.join(REPO_MODULES, name), path.join(target, name));
+  for (const name of fs.readdirSync(fastCheckModules)) {
+    if (name.startsWith(".") || fs.existsSync(path.join(target, name))) continue;
+    link(path.join(fastCheckModules, name), path.join(target, name));
+  }
+}
+
+/** Where fast-check is installed (JGATES_FAST_CHECK_MODULES, or the repository node_modules), else null. */
+const FAST_CHECK_MODULES = (() => {
+  const candidates = [process.env.JGATES_FAST_CHECK_MODULES, REPO_MODULES].filter(Boolean);
+  return candidates.find((c) => fs.existsSync(path.join(c, "fast-check", "package.json"))) ?? null;
+})();
+
+function project({ testSource = PASSING, withProvider = true, capabilities = "unit, coverage", extraEnv = {}, fastCheck = false } = {}) {
   assert.ok(HAS_VITEST, "vitest is not installed in the repository node_modules: run `npm install` at the repository root");
   const dir = tmp("jgates-vt-ws-");
   const home = tmp("jgates-vt-home-");
@@ -58,7 +76,8 @@ function project({ testSource = PASSING, withProvider = true, capabilities = "un
   fs.writeFileSync(path.join(dir, "vitest.config.ts"), 'export default { test: { include: ["src/**/*.test.ts"] }, coverage: { include: ["src/**/*.ts"], exclude: ["src/**/*.test.ts"] } };\n');
   fs.writeFileSync(path.join(dir, "src", "math.ts"), SOURCE);
   fs.writeFileSync(path.join(dir, "src", "math.test.ts"), testSource);
-  linkModules(dir, { withProvider });
+  if (fastCheck) linkWithFastCheck(dir, FAST_CHECK_MODULES);
+  else linkModules(dir, { withProvider });
   const env = { ...process.env, JGATES_HOME: home, PATH: emptyBin, ...extraEnv };
   const cli = (args) => {
     const r = spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", env, input: "", timeout: 240_000 });
@@ -253,4 +272,45 @@ test("the report parsers read failures, load errors and the coverage summary", (
   const cov = adapter.parseLineCoverage('{"total":{"lines":{"total":10,"covered":4,"skipped":0,"pct":40}}}');
   assert.deepEqual(cov, { ok: true, lines: { covered: 4, total: 10 } });
   assert.equal(adapter.parseLineCoverage("{}").ok, false);
+});
+
+const FC_SOURCE = 'import { expect, test } from "vitest";\nimport fc from "fast-check";\nimport { add } from "./math.js";\n\ntest("adds two numbers", () => {\n  expect(add(1, 2)).toBe(3);\n});\n\ntest("addition is commutative", () => {\n  fc.assert(fc.property(fc.integer(), fc.integer(), (a, b) => add(a, b) === add(b, a)));\n});\n';
+
+test("a fast-check property test is reported as its own metric, distinct from the example tests", () => {
+  // The static scan alone, on a file that also uses assert() from node:assert, which is not fast-check.
+  const titles = adapter.propertyTitles(FC_SOURCE);
+  assert.deepEqual(titles, ["addition is commutative"]);
+  assert.deepEqual(adapter.propertyTitles('import assert from "node:assert";\nimport { test } from "vitest";\ntest("plain", () => { assert(true); });\n'), []);
+  assert.deepEqual(adapter.propertyTitles('import { test, fc } from "@fast-check/vitest";\ntest.prop([fc.string()])("never throws", (s) => { s.length; });\n'), ["never throws"]);
+  if (!FAST_CHECK_MODULES) {
+    // fast-check is not installed here: the end-to-end proof needs it (JGATES_FAST_CHECK_MODULES or the repository node_modules).
+    assert.equal(FAST_CHECK_MODULES, null);
+    return;
+  }
+  const p = project({ testSource: FC_SOURCE, capabilities: "unit", fastCheck: true, extraEnv: { JGATES_NO_CACHE: "1" } });
+  const bad = project({ testSource: FC_SOURCE.replace("add(a, b) === add(b, a)", "add(a, b) === a - b"), capabilities: "unit", fastCheck: true, extraEnv: { JGATES_NO_CACHE: "1" } });
+  try {
+    const ran = p.run();
+    assert.equal(ran.code, 0, ran.out + ran.err);
+    assert.equal(metric(ran.doc, "tests.executed").value, 2);
+    assert.equal(metric(ran.doc, "tests.property.total").value, 1, "one of the two tests is a property test");
+    assert.equal(metric(ran.doc, "tests.property.failed").value, 0);
+    const failed = bad.run();
+    assert.equal(failed.code, 1, failed.out + failed.err);
+    assert.equal(metric(failed.doc, "tests.property.failed").value, 1);
+    const finding = failed.doc.findings.find((f) => f.ruleId === "vitest.property-failed");
+    assert.ok(finding, JSON.stringify(failed.doc.findings.map((f) => f.ruleId)));
+    assert.match(finding.message, /addition is commutative/);
+    // A project that does not use fast-check gets no property metric.
+    const plain = project({ capabilities: "unit", extraEnv: { JGATES_NO_CACHE: "1" } });
+    try {
+      const r = plain.run();
+      assert.equal(metric(r.doc, "tests.property.total"), undefined);
+    } finally {
+      plain.cleanup();
+    }
+  } finally {
+    p.cleanup();
+    bad.cleanup();
+  }
 });

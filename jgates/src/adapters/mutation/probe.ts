@@ -1,0 +1,120 @@
+// Finds the mutation testing engines on disk without installing or changing anything: Stryker (JS/TS) from the
+// project's node_modules (or JGATES_STRYKER), mutmut (Python) from the project's Python (JGATES_PYTHON or PATH).
+// The versions come from package.json / importlib.metadata, never from a mutation run.
+import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { findOnPath, resolveProjectPython } from "../../core/bridge/index.js";
+import { probeEnv } from "../../core/runner/probe-env.js";
+
+export const STRYKER_PACKAGE = "@stryker-mutator/core";
+
+export interface StrykerProbe {
+  /** What runs: Node plus the entry script, or the executable itself. */
+  executable: string | null;
+  prefix: string[];
+  version: string | null;
+  source: "env" | "workspace" | "path" | null;
+  problem: "not_found" | "no_version" | null;
+  detail: string;
+}
+
+export interface MutmutProbe {
+  python: string | null;
+  version: string | null;
+  problem: "python_missing" | "no_mutmut" | "windows" | null;
+  detail: string;
+}
+
+function readJson(p: string): Record<string, unknown> | null {
+  try {
+    const doc = JSON.parse(fs.readFileSync(p, "utf8")) as unknown;
+    return typeof doc === "object" && doc !== null && !Array.isArray(doc) ? (doc as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function ancestors(from: string, top: string): string[] {
+  const out: string[] = [];
+  let dir = path.resolve(from);
+  const stop = path.resolve(top);
+  for (let i = 0; i < 32; i++) {
+    out.push(dir);
+    if (dir === stop) break;
+    const parent = path.dirname(dir);
+    if (parent === dir || path.relative(stop, parent).startsWith("..")) break;
+    dir = parent;
+  }
+  return out;
+}
+
+/** Stryker's entry script and version from a node_modules folder that has the package. */
+function fromNodeModules(nodeModules: string, source: "workspace" | "path"): StrykerProbe | null {
+  const dir = path.join(nodeModules, ...STRYKER_PACKAGE.split("/"));
+  const pkg = readJson(path.join(dir, "package.json"));
+  if (!pkg || pkg.name !== STRYKER_PACKAGE) return null;
+  const bin = pkg.bin;
+  const rel = typeof bin === "string" ? bin : typeof bin === "object" && bin !== null ? ((bin as Record<string, unknown>).stryker as string | undefined) : undefined;
+  const entry = rel ? path.join(dir, rel) : null;
+  const version = typeof pkg.version === "string" ? pkg.version : null;
+  if (!entry || !fs.existsSync(entry)) return { executable: null, prefix: [], version, source, problem: "not_found", detail: dir };
+  return { executable: process.execPath, prefix: [entry], version, source, problem: version ? null : "no_version", detail: version ? "" : dir };
+}
+
+/** JGATES_STRYKER (a file), then node_modules/@stryker-mutator/core from the component folder up to the workspace root, then PATH. */
+export function findStryker(workspace: string, componentRoot: string | null, env: NodeJS.ProcessEnv): StrykerProbe {
+  const tried: string[] = [];
+  if (env.JGATES_STRYKER) {
+    tried.push(env.JGATES_STRYKER);
+    const abs = findOnPath(env.JGATES_STRYKER, env);
+    if (!abs) return { executable: null, prefix: [], version: null, source: null, problem: "not_found", detail: tried.join(", ") };
+    const script = /\.(mjs|cjs|js)$/i.test(abs);
+    const r = spawnSync(script ? process.execPath : abs, [...(script ? [abs] : []), "--version"], { encoding: "utf8", timeout: 30_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }), windowsHide: true, shell: !script && /\.(cmd|bat)$/i.test(abs) });
+    const version = r.status === 0 ? (/(\d+\.\d+\.\d+\S*)/.exec(r.stdout)?.[1] ?? null) : null;
+    return { executable: script ? process.execPath : abs, prefix: script ? [abs] : [], version, source: "env", problem: version ? null : "no_version", detail: version ? "" : abs };
+  }
+  const start = componentRoot && componentRoot !== "." ? path.join(workspace, componentRoot) : workspace;
+  for (const dir of ancestors(start, workspace)) {
+    const nodeModules = path.join(dir, "node_modules");
+    tried.push(path.join(nodeModules, STRYKER_PACKAGE));
+    const hit = fromNodeModules(nodeModules, "workspace");
+    if (hit) return hit;
+  }
+  const onPath = findOnPath("stryker", env);
+  tried.push("stryker on PATH");
+  if (onPath) {
+    // A global install keeps its package next to the launcher: <prefix>/node_modules/@stryker-mutator/core.
+    const hit = fromNodeModules(path.join(path.dirname(onPath), "node_modules"), "path");
+    if (hit) return hit;
+  }
+  return { executable: null, prefix: [], version: null, source: null, problem: "not_found", detail: tried.join(", ") };
+}
+
+const known = new Map<string, { mtimeMs: number; version: string | null }>();
+
+export function findMutmut(env: NodeJS.ProcessEnv): MutmutProbe {
+  const { interpreter, tried } = resolveProjectPython(env);
+  if (!interpreter) return { python: null, version: null, problem: "python_missing", detail: tried.join(", ") };
+  let mtimeMs = 0;
+  try {
+    mtimeMs = fs.statSync(interpreter).mtimeMs;
+  } catch {
+    mtimeMs = 0;
+  }
+  let hit = known.get(interpreter);
+  if (!hit || hit.mtimeMs !== mtimeMs) {
+    const r = spawnSync(interpreter, ["-c", "import importlib.metadata as m; print(m.version('mutmut'))"], {
+      encoding: "utf8",
+      timeout: 30_000,
+      env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "", PYTHONDONTWRITEBYTECODE: "1", PYTHONIOENCODING: "utf-8" }),
+      windowsHide: true,
+    });
+    hit = { mtimeMs, version: r.status === 0 ? (/(\d+\.\d+\.\d+\S*)/.exec(r.stdout)?.[1] ?? null) : null };
+    known.set(interpreter, hit);
+  }
+  if (!hit.version) return { python: interpreter, version: null, problem: "no_mutmut", detail: interpreter };
+  // mutmut 3 forks worker processes: it refuses to run natively on Windows.
+  if (process.platform === "win32") return { python: interpreter, version: hit.version, problem: "windows", detail: interpreter };
+  return { python: interpreter, version: hit.version, problem: null, detail: "" };
+}

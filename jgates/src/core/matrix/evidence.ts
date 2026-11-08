@@ -117,6 +117,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       ptBR: "Só o provedor de cobertura v8, instalado na versão exata do Vitest; o run nunca o instala.",
     },
     external: { en: "Vitest 1+ and @vitest/coverage-v8 in the project", ptBR: "Vitest 1+ e @vitest/coverage-v8 no projeto" },
+    otherTests: [t("adapter-vitest.test.js", "a fast-check property test is reported as its own metric")],
   },
   semgrep: {
     capabilities: {
@@ -146,6 +147,27 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       ptBR: "Sem pytest-cov a cobertura não é medida (incompleto, nunca 0%); a execução roda código do projeto.",
     },
     external: { en: "pytest 7+ and pytest-cov in the project environment", ptBR: "pytest 7+ e pytest-cov no ambiente do projeto" },
+    otherTests: [t("adapter-pytest.test.js", "a Hypothesis property test is reported as its own metric")],
+  },
+  mutation: {
+    capabilities: {
+      mutation: {
+        tests: [
+          t("adapter-mutation.test.js", "mutation javascript: the weak suite leaves surviving mutants"),
+          t("adapter-mutation.test.js", "mutation python: the mutmut results"),
+        ],
+        stacks: {
+          javascript: [t("adapter-mutation.test.js", "mutation javascript: the weak suite leaves surviving mutants")],
+          python: [t("adapter-mutation.test.js", "mutation python: the mutmut results")],
+        },
+      },
+    },
+    limitation: {
+      en: "Runs StrykerJS or mutmut in an isolated copy of the component and re-runs the project's tests per mutant (project code executes, never cached); the time bound is the stage timeout; mutmut does not run natively on Windows (the stage is blocked with the reason); equivalent mutants count as survivors.",
+      ptBR: "Roda o StrykerJS ou o mutmut numa cópia isolada do componente e reexecuta os testes do projeto por mutante (código do projeto executa, nunca vem do cache); o limite de tempo é o timeout da etapa; o mutmut não roda nativamente no Windows (a etapa fica bloqueada com o motivo); mutantes equivalentes contam como sobreviventes.",
+    },
+    external: { en: "@stryker-mutator/core 8+ in the project, or mutmut 3.x in the project's Python (Linux, macOS, WSL)", ptBR: "@stryker-mutator/core 8+ no projeto, ou mutmut 3.x no Python do projeto (Linux, macOS, WSL)" },
+    otherTests: [t("adapter-mutation.test.js", "parseStrykerReport")],
   },
   "generic-command": {
     capabilities: {},
