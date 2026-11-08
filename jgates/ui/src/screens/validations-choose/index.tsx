@@ -8,11 +8,12 @@ import { navigate } from "../../app/route";
 import { useShell } from "../../app/shell-context";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
-import { readRequest, writeRequest, type TargetKind, type ValidationRequest } from "../validations-review/request";
+import { readRequest, writeRequest, type GateChoice, type TargetKind, type ValidationRequest } from "../validations-review/request";
 
 export const screen: ScreenMeta = { id: "validations-choose", path: "/validations/choose", area: "validations", navLabel: "vch_nav", navPath: "/validations/choose", order: 31, icon: "sliders" };
 
 const TARGETS: TargetKind[] = ["changed", "full", "paths", "commit", "compare"];
+const GATES: GateChoice[] = ["quality", "semantic", "both"];
 
 const capLabel = (cap: string): string => tOr(`vrev_cap_${cap.replace(/[^a-z0-9]+/gi, "_")}`, cap);
 const catLabel = (cat: string | null): string => (cat ? tOr(`vrev_cat_${cat}`, cat) : t("vrev_cat_none"));
@@ -186,7 +187,8 @@ export default function ChooseScreen() {
 
   function review() {
     writeRequest(request);
-    navigate("/validations/review");
+    // Semantic only has its own setup (scope, purpose, rigor) and needs no Quality profile or history.
+    navigate(request.gates === "semantic" ? "/semantic/setup" : "/validations/review");
   }
 
   return (
@@ -213,6 +215,31 @@ export default function ChooseScreen() {
             <Icon name="alert" />
             <span>{t("vch_dirty")}</span>
           </div>
+        ) : null}
+      </section>
+
+      <section className="card flat stack" aria-labelledby="vch-gates" data-testid="gate-choice">
+        <h2 id="vch-gates">{t("vch_gates_title")}</h2>
+        <p className="muted small">{t("vch_gates_lead")}</p>
+        <div role="radiogroup" aria-labelledby="vch-gates" className="stack" style={{ gap: 8 }}>
+          {GATES.map((gates) => (
+            <label key={gates} className="row" style={{ gap: 8, alignItems: "flex-start" }}>
+              <input type="radio" name="vch-gates" value={gates} checked={request.gates === gates} onChange={() => set({ gates })} />
+              <span>
+                <strong>{t(`vch_gates_${gates}`)}</strong>
+                <span className="muted small"> · {t(`vch_gates_${gates}_hint`)}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        {request.gates === "both" ? (
+          <label className="row" style={{ gap: 8, alignItems: "flex-start" }}>
+            <input type="checkbox" checked={request.manualAdvance} onChange={(e) => set({ manualAdvance: e.target.checked })} />
+            <span>
+              {t("vch_gates_manual")}
+              <span className="muted small"> · {t("vch_gates_manual_hint")}</span>
+            </span>
+          </label>
         ) : null}
       </section>
 
@@ -316,7 +343,7 @@ export default function ChooseScreen() {
       <div className="row wrap">
         <button type="button" className="btn primary" onClick={review} disabled={!selected}>
           <Icon name="plan" />
-          {t("vch_review")}
+          {t(request.gates === "semantic" ? "vch_review_semantic" : "vch_review")}
         </button>
         {request.skip.length > 0 ? <span className="muted small">{t("vch_skip_count", { count: request.skip.length })}</span> : null}
       </div>

@@ -55,5 +55,16 @@
   "vch_saved_new": "Profile {id} created in .jgates/profiles.yml.",
   "vch_saved_current": "Profile {id} updated in .jgates/profiles.yml.",
   "vch_review": "Review the plan",
+  "vch_review_semantic": "Set up the semantic review",
+  "vch_gates_title": "Which checks to run",
+  "vch_gates_lead": "Quality is deterministic and spends no tokens. Semantic is an AI review with its own run, history and decision. Choosing both creates two separate runs, one after the other.",
+  "vch_gates_quality": "Quality",
+  "vch_gates_quality_hint": "deterministic tools only, no model",
+  "vch_gates_semantic": "Semantic",
+  "vch_gates_semantic_hint": "AI review on its own; it needs no Quality history",
+  "vch_gates_both": "Quality, then Semantic",
+  "vch_gates_both_hint": "Semantic starts only after a complete, current and non-reduced Quality approval",
+  "vch_gates_manual": "Pause after the Quality approval",
+  "vch_gates_manual_hint": "Semantic waits until you advance it from the sequence overview",
   "vch_skip_count": "{count} check(s) turned off for this run only"
 }

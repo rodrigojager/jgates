@@ -1,5 +1,12 @@
 {
   "vrev_nav": "Revisar",
+  "vrev_seq_title": "Dois gates, duas execuções",
+  "vrev_seq_lead": "Quality e Semantic mantêm execuções, decisões e históricos separados. A sequência apenas os liga.",
+  "vrev_seq_step_quality": "Quality executa primeiro (o plano abaixo).",
+  "vrev_seq_step_semantic": "Semantic começa sozinho só se Quality estiver completo, atual, não reduzido e aprovado.",
+  "vrev_seq_step_semantic_manual": "Semantic espera você avançar após a aprovação de Quality.",
+  "vrev_seq_gate_quality": "Quality",
+  "vrev_seq_gate_semantic": "Semantic",
   "vrev_title": "Revisar a validação",
   "vrev_lead": "Veja o que vai rodar, o que fica de fora e o que impede a execução, antes de executar. O plano é montado quando a tela abre.",
   "vrev_back": "Voltar a Escolher",

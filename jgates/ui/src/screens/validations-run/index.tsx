@@ -1,3 +1,4 @@
+import { SequenceBanner } from "../sequence/SequenceBanner";
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import type { MascotSnapshot } from "../../../../src/core/mascots/index";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -386,6 +387,7 @@ export default function RunScreen({ params }: { params: Record<string, string> }
           </div>
         </div>
       ) : null}
+      {runId ? <SequenceBanner runId={runId} /> : null}
       <QualityMascotStrip snapshot={mascots} onSelect={(domain, ids) => setSelectedDomain({ domain, ids })} />
       {job && rows.length > 0 ? (
         <section className="stack" aria-labelledby="vrun-steps">

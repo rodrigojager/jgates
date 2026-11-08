@@ -9,7 +9,7 @@ import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { PendingDrafts } from "../tool-area/editbar/pending";
 import { blockersOf, unavailableItems, type Blocker } from "./blockers";
-import { equivalentCommand, planBody, readRequest } from "./request";
+import { equivalentCommand, planBody, readRequest, sequenceBody } from "./request";
 
 export const screen: ScreenMeta = { id: "validations-review", path: "/validations/review", area: "validations", navLabel: "vrev_nav", navPath: "/validations/review", order: 32, icon: "plan" };
 
@@ -120,14 +120,26 @@ export default function ReviewScreen() {
   const [runError, setRunError] = useState<unknown>(null);
   const [unresolved, setUnresolved] = useState(0);
 
+  const both = request.gates === "both";
+  // With both gates the selection is planned as a whole (the CLI's `--gates quality,semantic --dry-run`).
+  const sequencePlan = useAsync(() => (both ? api("POST", "/api/sequence/plan", sequenceBody(request)) : Promise.resolve(null)), `review-sequence:${both}:${version}`);
+  const gatePlan = (sequencePlan.data as any)?.plan ?? null;
+  const gateBlockers: any[] = gatePlan?.blockers ?? [];
+
   async function execute(planHash: string) {
     setStarting(true);
     setRunError(null);
     try {
+      if (both) {
+        const r = await api("POST", "/api/sequences", { ...sequenceBody(request), ...(request.manualAdvance ? { manualAdvance: true } : {}) });
+        window.location.hash = `#/sequence/${r.sequence.sequenceId}`;
+        return;
+      }
       const r = await api("POST", "/api/runs", { planHash });
       window.location.hash = `#/runs/${r.run.id}`;
     } catch (e) {
       if (e instanceof ApiError && e.code === "RUN_ACTIVE" && e.body.run?.id) window.location.hash = `#/runs/${e.body.run.id}`;
+      else if (e instanceof ApiError && e.code === "SEQUENCE_ACTIVE" && e.body.sequenceId) window.location.hash = `#/sequence/${e.body.sequenceId}`;
       else setRunError(e);
     } finally {
       setStarting(false);
@@ -141,8 +153,8 @@ export default function ReviewScreen() {
   const unavailable = plan ? unavailableItems(plan) : [];
   // TOOL_UNAVAILABLE is shown per instance below, with the way to resolve it.
   const otherWarnings: any[] = plan ? (plan.warnings as any[]).filter((w) => w.code !== "TOOL_UNAVAILABLE") : [];
-  const canStart = Boolean(plan) && blockers.length === 0 && !built.loading;
-  const command = equivalentCommand(body, info?.workspace.path ?? ".");
+  const canStart = Boolean(plan) && blockers.length === 0 && !built.loading && (!both || (gatePlan?.ready === true && !sequencePlan.loading));
+  const command = equivalentCommand(both ? { ...body, gates: ["quality", "semantic"], ...(request.manualAdvance ? { manualAdvance: true } : {}) } : body, info?.workspace.path ?? ".");
   const runner = plan
     ? (() => {
         const items = [...plan.groups.willRun] as any[];
@@ -203,6 +215,35 @@ export default function ReviewScreen() {
               ))}
             </ul>
           </div>
+        </section>
+      ) : null}
+
+      {both ? (
+        <section className="card flat stack" aria-labelledby="vrev-sequence" data-testid="sequence-plan">
+          <h2 id="vrev-sequence">{t("vrev_seq_title")}</h2>
+          <p className="muted">{t("vrev_seq_lead")}</p>
+          {sequencePlan.loading ? <p className="spinner-text" role="status">{t("plan_building")}</p> : null}
+          {sequencePlan.error ? <ErrorNotice error={sequencePlan.error} onRetry={sequencePlan.reload} /> : null}
+          {gatePlan ? (
+            <>
+              <ol className="stack" style={{ margin: 0, paddingLeft: 18, gap: 4 }}>
+                <li data-gate="quality">{t("vrev_seq_step_quality")}</li>
+                <li data-gate="semantic">{t(request.manualAdvance ? "vrev_seq_step_semantic_manual" : "vrev_seq_step_semantic")}</li>
+              </ol>
+              {gateBlockers.length > 0 ? (
+                <div className="notice error" role="alert" data-testid="sequence-blockers">
+                  <Icon name="alert" />
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {gateBlockers.map((b, i) => (
+                      <li key={`${b.gate}-${b.code}-${i}`} data-blocker={b.code}>
+                        <strong>{tOr(`vrev_seq_gate_${b.gate}`, b.gate)}</strong>: {b.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </>
+          ) : null}
         </section>
       ) : null}
 

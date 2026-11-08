@@ -1,5 +1,12 @@
 {
   "vrev_nav": "Review",
+  "vrev_seq_title": "Two gates, two runs",
+  "vrev_seq_lead": "Quality and Semantic keep separate runs, decisions and histories. The sequence only links them.",
+  "vrev_seq_step_quality": "Quality runs first (the plan below).",
+  "vrev_seq_step_semantic": "Semantic starts by itself only if Quality is complete, current, not reduced and approved.",
+  "vrev_seq_step_semantic_manual": "Semantic waits for your advance after the Quality approval.",
+  "vrev_seq_gate_quality": "Quality",
+  "vrev_seq_gate_semantic": "Semantic",
   "vrev_title": "Review the validation",
   "vrev_lead": "See what will run, what stays out and what prevents the run, before running. The plan is built when the screen opens.",
   "vrev_back": "Back to Choose",

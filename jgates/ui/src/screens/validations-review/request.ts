@@ -3,7 +3,14 @@
 
 export type TargetKind = "changed" | "full" | "paths" | "commit" | "compare";
 
+/** Which gate(s) the user chose: Quality (deterministic), Semantic (AI review) or both, one run each. */
+export type GateChoice = "quality" | "semantic" | "both";
+
 export interface ValidationRequest {
+  /** The gates to run; "both" is two separate runs, Semantic after an approved Quality. */
+  gates: GateChoice;
+  /** With both gates: stop after the Quality approval and wait for an explicit advance. */
+  manualAdvance: boolean;
   profile: string | null;
   target: TargetKind;
   /** Directory (target "paths"). */
@@ -16,7 +23,7 @@ export interface ValidationRequest {
   skip: string[];
 }
 
-export const EMPTY_REQUEST: ValidationRequest = { profile: null, target: "full", path: "", head: "", base: "", skip: [] };
+export const EMPTY_REQUEST: ValidationRequest = { gates: "quality", manualAdvance: false, profile: null, target: "full", path: "", head: "", base: "", skip: [] };
 
 const KEY = "jgates.validation.request";
 let memory: ValidationRequest = EMPTY_REQUEST;
@@ -69,12 +76,19 @@ export function planBody(request: ValidationRequest): Record<string, unknown> {
   return body;
 }
 
-const SAFE = /^[A-Za-z0-9_@%+=:,./-]+$/;
+/** The body of POST /api/sequence/plan for a request that selects both gates (POST /api/sequences adds manualAdvance). */
+export function sequenceBody(request: ValidationRequest): Record<string, unknown> {
+  return { ...planBody(request), gates: ["quality", "semantic"] };
+}
+
+const SAFE =/^[A-Za-z0-9_@%+=:,./-]+$/;
 const quote = (value: string): string => (SAFE.test(value) ? value : `'${value.replace(/'/g, `'\\''`)}'`);
 
 /** The command that runs exactly this validation from a terminal; its plan has the same hash. */
 export function equivalentCommand(body: Record<string, unknown>, workspacePath: string): string {
   const parts = ["jgates", "run", "--cwd", quote(workspacePath)];
+  if (Array.isArray(body.gates)) parts.push("--gates", (body.gates as string[]).join(","));
+  if (body.manualAdvance === true) parts.push("--manual-advance");
   if (typeof body.profile === "string") parts.push("--profile", quote(body.profile));
   if (typeof body.scope === "string") parts.push("--scope", body.scope);
   for (const p of (body.paths as string[] | undefined) ?? []) parts.push("--path", quote(p));
