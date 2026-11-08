@@ -1,4 +1,16 @@
-export type GateStatus = "APPROVED" | "NEEDS_CHANGES" | "REJECTED";
+/** INVALID: the model output was missing, malformed or unusable; never favorable. */
+export type GateStatus = "APPROVED" | "NEEDS_CHANGES" | "REJECTED" | "INVALID";
+
+export type FindingConfirmation = "confirmed" | "needs-validation" | "rejected";
+
+export type InvalidReasonCode =
+  | "not-an-object"
+  | "empty-output"
+  | "malformed-output"
+  | "missing-field"
+  | "invalid-field"
+  | "unknown-evidence"
+  | "incomplete-chunk";
 
 export type FindingSeverity = "blocking" | "important" | "suggestion" | "nit";
 
@@ -142,6 +154,8 @@ export interface SemanticFinding {
   line?: number;
   message: string;
   requiredFix?: string;
+  /** Distinct from severity: how well the finding is established. */
+  confirmation?: FindingConfirmation;
 }
 
 export interface GateResult {
@@ -164,6 +178,9 @@ export interface GateResult {
   contextWarnings: string[];
   provider: string;
   model?: string;
+  /** Present only when status is INVALID. */
+  reasonCode?: InvalidReasonCode;
+  reasons?: string[];
 }
 
 export interface ProviderRequest {

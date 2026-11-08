@@ -28,7 +28,14 @@
       "const": "semantic"
     },
     "status": {
-      "enum": ["APPROVED", "NEEDS_CHANGES", "REJECTED"]
+      "enum": ["APPROVED", "NEEDS_CHANGES", "REJECTED", "INVALID"]
+    },
+    "reasonCode": {
+      "enum": ["not-an-object", "empty-output", "malformed-output", "missing-field", "invalid-field", "unknown-evidence", "incomplete-chunk"]
+    },
+    "reasons": {
+      "type": "array",
+      "items": { "type": "string" }
     },
     "score": {
       "type": "integer",
@@ -109,6 +116,9 @@
           },
           "requiredFix": {
             "type": "string"
+          },
+          "confirmation": {
+            "enum": ["confirmed", "needs-validation", "rejected"]
           }
         },
         "additionalProperties": true
@@ -151,5 +161,7 @@
       "type": "object"
     }
   },
+  "if": { "properties": { "status": { "const": "INVALID" } }, "required": ["status"] },
+  "then": { "required": ["reasonCode", "reasons"] },
   "additionalProperties": true
 }

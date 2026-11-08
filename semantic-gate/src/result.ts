@@ -4,6 +4,7 @@ import type {
   GateResult,
   GateStatus,
   GitReviewContext,
+  InvalidReasonCode,
   ObjectiveInput,
   SemanticFinding,
   SemanticGateConfig,
@@ -27,20 +28,150 @@ export function parseProviderResult(text: string): unknown {
   throw new SemanticGateError("Provider did not return valid JSON.", "parse", text.slice(0, 1000));
 }
 
-export function normalizeGateResult(
-  parsed: unknown,
-  context: {
-    config: SemanticGateConfig;
-    objective: ObjectiveInput;
-    gitContext: GitReviewContext;
-    provider: string;
-    model?: string;
-  },
-): GateResult {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new SemanticGateError("Provider JSON result must be an object.", "parse", parsed);
+export interface NormalizeContext {
+  config: SemanticGateConfig;
+  objective: ObjectiveInput;
+  gitContext: GitReviewContext;
+  provider: string;
+  model?: string;
+}
+
+/** Parses and normalizes raw provider text; unusable text becomes an INVALID result instead of throwing. */
+export function normalizeProviderText(text: string, context: NormalizeContext): GateResult {
+  if (!text || !text.trim()) {
+    return invalidGateResult("empty-output", ["Provider returned no text."], context);
   }
-  const raw = parsed as Record<string, unknown>;
+  let parsed: unknown;
+  try {
+    parsed = parseProviderResult(text);
+  } catch {
+    return invalidGateResult("malformed-output", ["Provider output is not valid JSON."], context);
+  }
+  return normalizeGateResult(parsed, context);
+}
+
+/** A result that can never be favorable: status INVALID, score 0, with a machine-readable reason code. */
+export function invalidGateResult(
+  reasonCode: InvalidReasonCode,
+  reasons: string[],
+  context: NormalizeContext,
+  findings: SemanticFinding[] = [],
+): GateResult {
+  const result: GateResult = {
+    gate: "semantic",
+    status: "INVALID",
+    score: 0,
+    threshold: context.config.threshold,
+    deterministicSummaryUsed: false,
+    objectiveSource: context.objective.source,
+    changesReviewed: summarizeChanges(context.gitContext),
+    scoreAppliesTo: scoreAppliesToForScope(context.config.scope),
+    hardBlockers: [],
+    scoreBreakdown: defaultBreakdown(),
+    commandsExecuted: context.gitContext.commandsExecuted,
+    findings,
+    requiredFixPlan: ["Rerun the semantic review; the model output could not be validated."],
+    rerunCommands: [
+      "semantic-gate run --scope changed --objective-file <objective-file> --json",
+      "quality-gate . --scope changed --json --no-interactive",
+    ],
+    approvalNotes: `Invalid model output (${reasonCode}): ${reasons.join("; ")}`,
+    residualRisks: ["The semantic review did not produce a valid verdict; the change is unreviewed."],
+    contextWarnings: [...context.gitContext.warnings],
+    provider: context.provider,
+    reasonCode,
+    reasons,
+  };
+  if (context.model !== undefined) {
+    result.model = context.model;
+  }
+  return result;
+}
+
+const STATUSES = ["APPROVED", "NEEDS_CHANGES", "REJECTED"];
+const SEVERITIES = ["blocking", "important", "suggestion", "nit"];
+const CONFIRMATIONS = ["confirmed", "needs-validation", "rejected"];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizePath(value: string): string {
+  return value.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+/** Strict check of the raw model object. Returns null when usable. */
+function validateRaw(raw: Record<string, unknown>, context: NormalizeContext): { code: InvalidReasonCode; reasons: string[] } | null {
+  if (Object.keys(raw).length === 0) {
+    return { code: "empty-output", reasons: ["Provider returned an empty object."] };
+  }
+  const missing = ["status", "score", "findings"].filter((key) => raw[key] === undefined);
+  if (missing.length > 0) {
+    return { code: "missing-field", reasons: missing.map((key) => `Missing required field: ${key}.`) };
+  }
+  const invalid: string[] = [];
+  if (typeof raw.status !== "string" || !STATUSES.includes(raw.status)) {
+    invalid.push("status must be APPROVED, NEEDS_CHANGES or REJECTED.");
+  }
+  if (typeof raw.score !== "number" || !Number.isFinite(raw.score) || raw.score < 0 || raw.score > 100) {
+    invalid.push("score must be a number between 0 and 100.");
+  }
+  if (!Array.isArray(raw.findings)) {
+    invalid.push("findings must be an array.");
+  }
+  if (raw.scoreBreakdown !== undefined && (!Array.isArray(raw.scoreBreakdown) || !raw.scoreBreakdown.every(isRecord))) {
+    invalid.push("scoreBreakdown must be an array of objects.");
+  }
+  for (const key of ["hardBlockers", "requiredFixPlan", "residualRisks", "contextWarnings", "rerunCommands"]) {
+    if (raw[key] !== undefined && !Array.isArray(raw[key])) {
+      invalid.push(`${key} must be an array.`);
+    }
+  }
+  if (Array.isArray(raw.findings)) {
+    raw.findings.forEach((item, index) => {
+      if (!isRecord(item)) {
+        invalid.push(`findings[${index}] must be an object.`);
+        return;
+      }
+      if (typeof item.severity !== "string" || !SEVERITIES.includes(item.severity)) {
+        invalid.push(`findings[${index}].severity is missing or unknown.`);
+      }
+      if (typeof item.message !== "string" || !item.message.trim()) {
+        invalid.push(`findings[${index}].message is missing.`);
+      }
+      if (item.path !== undefined && typeof item.path !== "string") {
+        invalid.push(`findings[${index}].path must be a string.`);
+      }
+      if (item.confirmation !== undefined && (typeof item.confirmation !== "string" || !CONFIRMATIONS.includes(item.confirmation))) {
+        invalid.push(`findings[${index}].confirmation must be confirmed, needs-validation or rejected.`);
+      }
+    });
+  }
+  if (invalid.length > 0) {
+    return { code: "invalid-field", reasons: invalid };
+  }
+  const known = new Set(context.gitContext.changedFiles.map((file) => normalizePath(file.path)));
+  const unknown: string[] = [];
+  (raw.findings as Array<Record<string, unknown>>).forEach((item, index) => {
+    if (typeof item.path === "string" && !known.has(normalizePath(item.path))) {
+      unknown.push(`findings[${index}] cites a file that was not in the review context: ${item.path}`);
+    }
+  });
+  if (unknown.length > 0) {
+    return { code: "unknown-evidence", reasons: unknown };
+  }
+  return null;
+}
+
+export function normalizeGateResult(parsed: unknown, context: NormalizeContext): GateResult {
+  if (!isRecord(parsed)) {
+    return invalidGateResult("not-an-object", ["Provider JSON result must be an object."], context);
+  }
+  const raw = parsed;
+  const problem = validateRaw(raw, context);
+  if (problem) {
+    return invalidGateResult(problem.code, problem.reasons, context, problem.code === "unknown-evidence" ? normalizeFindings(raw.findings) : []);
+  }
   const findings = normalizeFindings(raw.findings);
   const hardBlockers = normalizeStringArray(raw.hardBlockers);
   const blockingFindings = findings.filter((finding) => finding.severity === "blocking");
@@ -99,6 +230,15 @@ export function mergeLocalFallbackResult(
     model?: string;
   },
 ): GateResult {
+  const invalid = partials.filter((partial) => partial.status === "INVALID");
+  if (invalid.length > 0) {
+    return invalidGateResult(
+      "incomplete-chunk",
+      invalid.flatMap((partial) => partial.reasons ?? [partial.approvalNotes]),
+      context as NormalizeContext,
+      partials.flatMap((partial) => partial.findings),
+    );
+  }
   const findings = partials.flatMap((partial) => partial.findings);
   const hardBlockers = partials.flatMap((partial) => partial.hardBlockers);
   const minScore = partials.reduce((lowest, partial) => Math.min(lowest, partial.score), 100);
@@ -178,6 +318,10 @@ function normalizeFindings(value: unknown): SemanticFinding[] {
       if (typeof item.requiredFix === "string") {
         finding.requiredFix = item.requiredFix;
       }
+      finding.confirmation =
+        item.confirmation === "confirmed" || item.confirmation === "needs-validation" || item.confirmation === "rejected"
+          ? item.confirmation
+          : "needs-validation";
       return finding;
     });
 }

@@ -3,7 +3,7 @@ import { collectGitReviewContext } from "./context.js";
 import { callProvider } from "./providers.js";
 import { buildPromptChunks, buildSynthesisPrompt, resolvePrompts, systemPrompt } from "./prompt.js";
 import { writeReports } from "./report.js";
-import { mergeLocalFallbackResult, normalizeGateResult, parseProviderResult } from "./result.js";
+import { mergeLocalFallbackResult, normalizeProviderText } from "./result.js";
 import type { GateResult, ObjectiveInput, ProviderResponse, SemanticGateConfig } from "./types.js";
 
 export interface RunSemanticGateOptions {
@@ -84,7 +84,7 @@ export async function runSemanticGate(options: RunSemanticGateOptions): Promise<
     });
     providerResponses.push(response);
     partialResults.push(
-      normalizeGateResult(parseProviderResult(response.text), optionalModelContext({
+      normalizeProviderText(response.text, optionalModelContext({
         config: options.config,
         objective: options.objective,
         gitContext,
@@ -96,6 +96,14 @@ export async function runSemanticGate(options: RunSemanticGateOptions): Promise<
   let result: GateResult;
   if (partialResults.length === 1) {
     result = partialResults[0]!;
+  } else if (partialResults.some((partial) => partial.status === "INVALID")) {
+    // A chunk without a valid verdict makes the whole review incomplete; synthesis must not paper over it.
+    result = mergeLocalFallbackResult(partialResults, optionalModelContext({
+      config: options.config,
+      objective: options.objective,
+      gitContext,
+      provider,
+    }, options.config.model));
   } else {
     try {
       const synthesis = await callProvider({
@@ -106,12 +114,16 @@ export async function runSemanticGate(options: RunSemanticGateOptions): Promise<
         chunkLabel: "final-synthesis",
       });
       providerResponses.push(synthesis);
-      result = normalizeGateResult(parseProviderResult(synthesis.text), optionalModelContext({
+      result = normalizeProviderText(synthesis.text, optionalModelContext({
         config: options.config,
         objective: options.objective,
         gitContext,
         provider,
       }, options.config.model));
+      if (result.status === "INVALID") {
+        // Unusable synthesis: the valid chunk verdicts are merged locally, as for a failed synthesis call.
+        throw new Error("Invalid synthesis output.");
+      }
     } catch {
       result = mergeLocalFallbackResult(partialResults, optionalModelContext({
         config: options.config,

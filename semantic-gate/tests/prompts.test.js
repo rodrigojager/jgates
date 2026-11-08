@@ -9,13 +9,14 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 
 const CLI = path.resolve("dist/cli.js");
 const FIXTURES = path.resolve("tests/fixtures/prompts");
 const { buildPromptChunks, buildSynthesisPrompt, systemPrompt, resolvePrompts, defaultPromptPaths, SYSTEM_FORMAT_LINE } = await import(
-  path.resolve("dist/prompt.js")
+  pathToFileURL(path.resolve("dist/prompt.js")).href
 );
-const { defaultConfig } = await import(path.resolve("dist/config.js"));
+const { defaultConfig } = await import(pathToFileURL(path.resolve("dist/config.js")).href);
 
 const sha256 = (text) => crypto.createHash("sha256").update(text, "utf8").digest("hex");
 
@@ -200,7 +201,7 @@ test("semantic-gate run sends the project prompts to the provider, the output co
       'import fs from "node:fs";',
       'let input = ""; process.stdin.on("data", (c) => (input += c)); process.stdin.on("end", () => {',
       `  fs.writeFileSync(${JSON.stringify(received)}, input);`,
-      '  process.stdout.write(JSON.stringify({ status: "APPROVED", score: 95, hardBlockers: [], findings: [] }));',
+      '  process.stdout.write(JSON.stringify({ status: "APPROVED", score: 95, hardBlockers: [], findings: [], scoreBreakdown: [{ category: "functional", weight: 25, score: 24, observations: "ok" }] }));',
       "});",
     ].join("\n"),
   );
