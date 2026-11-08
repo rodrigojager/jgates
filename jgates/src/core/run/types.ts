@@ -3,6 +3,7 @@ import type { CacheSubject } from "../cache/index.js";
 import type { RunStep } from "../runner/executor.js";
 import type { Provenance, SemanticPromptsProvenance } from "../provenance/index.js";
 import type { AnalyzedState } from "./analysis.js";
+import type { GateKind } from "../gates/types.js";
 
 /** A step that can be served from the cache of results: it says what its result depends on. */
 export type CacheableStep = RunStep & { cacheSubject?: CacheSubject };
@@ -287,6 +288,8 @@ export interface ResultPolicy {
 export interface RunResult {
   schemaVersion: 1;
   runId: string;
+  /** The gate that produced the run; absent (results written before V2) means quality. Read it with gateOfResult. */
+  gate?: GateKind;
   tool: "jgates";
   version: string;
   startedAt: string;

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/gates/source-identity/1.json",
+  "title": "JGates source identity",
+  "description": "Repository + commit + dirty-content identity of the source a run judged. Taken from a real Git checkout, dirty and untracked files included.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "basis", "repository", "commit", "dirty", "dirtyContentHash", "dirtyPaths", "inputsHash", "traceable"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "#/$defs/hash" },
+    "basis": { "enum": ["git-working-tree", "git-commit", "directory", "legacy-analyzed"] },
+    "repository": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "idBasis", "root", "prefix"],
+          "properties": {
+            "id": { "$ref": "#/$defs/hash" },
+            "idBasis": { "enum": ["root-commits", "path"] },
+            "root": { "type": "string" },
+            "prefix": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "commit": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9a-f]{40,64}$" }] },
+    "dirty": { "oneOf": [{ "type": "null" }, { "type": "boolean" }] },
+    "dirtyContentHash": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hash" }] },
+    "dirtyPaths": { "type": "integer", "minimum": 0 },
+    "inputsHash": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/hash" }] },
+    "traceable": { "type": "boolean" }
+  },
+  "allOf": [
+    {
+      "description": "A Git working tree has a repository and knows whether it is dirty; a dirty one names its dirty contents.",
+      "if": { "properties": { "basis": { "const": "git-working-tree" } } },
+      "then": {
+        "properties": { "repository": { "type": "object" }, "dirty": { "type": "boolean" }, "inputsHash": { "type": "string" } },
+        "if": { "properties": { "dirty": { "const": true } } },
+        "then": { "properties": { "dirtyContentHash": { "type": "string" } } },
+        "else": { "properties": { "dirtyContentHash": { "type": "null" }, "dirtyPaths": { "const": 0 } } }
+      }
+    },
+    {
+      "description": "A commit alone is clean and has a commit.",
+      "if": { "properties": { "basis": { "const": "git-commit" } } },
+      "then": {
+        "properties": {
+          "repository": { "type": "object" },
+          "commit": { "type": "string" },
+          "dirty": { "const": false },
+          "dirtyContentHash": { "type": "null" },
+          "dirtyPaths": { "const": 0 }
+        }
+      }
+    },
+    {
+      "description": "A folder without Git is identified by its input manifest only.",
+      "if": { "properties": { "basis": { "const": "directory" } } },
+      "then": {
+        "properties": {
+          "repository": { "type": "null" },
+          "commit": { "type": "null" },
+          "dirty": { "type": "null" },
+          "dirtyContentHash": { "type": "null" },
+          "dirtyPaths": { "const": 0 },
+          "inputsHash": { "type": "string" }
+        }
+      }
+    },
+    {
+      "description": "A legacy identity never knows the dirty contents.",
+      "if": { "properties": { "basis": { "const": "legacy-analyzed" } } },
+      "then": { "properties": { "dirtyContentHash": { "type": "null" } } }
+    }
+  ],
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

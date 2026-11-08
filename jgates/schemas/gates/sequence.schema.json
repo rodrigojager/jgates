@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/gates/sequence/1.json",
+  "title": "JGates gate sequence",
+  "description": "Coordination record of a selection of gates: selected gates, ordered run references, advancement condition and coordination status. It links runs and never carries or rewrites their decisions. Each gate has its own run ID namespace (run_ for Quality, sem_ for Semantic), so a record reusing one run ID for both gates is invalid.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sequenceId", "createdAt", "selectedGates", "runs", "advancement", "status"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sequenceId": { "type": "string", "pattern": "^seq_[A-Za-z0-9][A-Za-z0-9_.-]*$" },
+    "createdAt": { "type": "string", "minLength": 1, "description": "ISO 8601 UTC timestamp." },
+    "updatedAt": { "type": "string", "minLength": 1, "description": "ISO 8601 UTC timestamp." },
+    "selectedGates": {
+      "description": "The gates selected, in execution order: Quality always before Semantic.",
+      "enum": [["quality"], ["semantic"], ["quality", "semantic"]]
+    },
+    "runs": {
+      "type": "array",
+      "maxItems": 2,
+      "items": { "oneOf": [{ "$ref": "#/$defs/qualityRef" }, { "$ref": "#/$defs/semanticRef" }] }
+    },
+    "advancement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition"],
+      "properties": {
+        "condition": { "enum": ["quality-approved", "none"] },
+        "sourceId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "Source identity the Quality approval must match." }
+      }
+    },
+    "status": { "enum": ["pending", "running", "awaiting-advancement", "advanced", "paused", "stopped", "completed", "cancelled"] },
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "Both gates: Quality runs first, Semantic second, each at most once, and Semantic waits for a Quality approval.",
+      "if": { "properties": { "selectedGates": { "const": ["quality", "semantic"] } } },
+      "then": {
+        "properties": {
+          "advancement": { "type": "object", "properties": { "condition": { "const": "quality-approved" } } },
+          "runs": {
+            "type": "array",
+            "allOf": [
+              { "if": { "type": "array", "maxItems": 1 }, "then": { "type": "array", "items": { "$ref": "#/$defs/qualityRef" } } },
+              { "if": { "type": "array", "minItems": 2 }, "then": { "type": "array", "prefixItems": [{ "$ref": "#/$defs/qualityRef" }, { "$ref": "#/$defs/semanticRef" }], "minItems": 2, "maxItems": 2 } }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "selectedGates": { "const": ["quality"] } } },
+      "then": { "properties": { "advancement": { "type": "object", "properties": { "condition": { "const": "none" } } }, "runs": { "type": "array", "maxItems": 1, "items": { "$ref": "#/$defs/qualityRef" } } } }
+    },
+    {
+      "if": { "properties": { "selectedGates": { "const": ["semantic"] } } },
+      "then": { "properties": { "advancement": { "type": "object", "properties": { "condition": { "const": "none" } } }, "runs": { "type": "array", "maxItems": 1, "items": { "$ref": "#/$defs/semanticRef" } } } }
+    },
+    {
+      "description": "Advancing needs both runs.",
+      "if": { "properties": { "status": { "const": "advanced" } } },
+      "then": { "properties": { "runs": { "type": "array", "minItems": 2 } } }
+    },
+    {
+      "description": "A paused, stopped or cancelled sequence says why.",
+      "if": { "properties": { "status": { "enum": ["paused", "stopped", "cancelled"] } } },
+      "then": { "type": "object", "properties": { "reason": true }, "required": ["reason"] }
+    }
+  ],
+  "$defs": {
+    "qualityRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate", "runId"],
+      "properties": {
+        "gate": { "const": "quality" },
+        "runId": { "type": "string", "pattern": "^run_[A-Za-z0-9][A-Za-z0-9_.-]*$" }
+      }
+    },
+    "semanticRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate", "runId"],
+      "properties": {
+        "gate": { "const": "semantic" },
+        "runId": { "type": "string", "pattern": "^sem_[A-Za-z0-9][A-Za-z0-9_.-]*$" }
+      }
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/gates/evidence-binding/1.json",
+  "title": "JGates evidence binding",
+  "description": "Binds attached or reused evidence to its origin run and to the source, configuration, dependency, method, backend and policy identities it depends on, with its freshness. Historical evidence never asserts current coverage silently: freshness is stated, never assumed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "origin", "identities", "freshness"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate", "runId", "producedAt", "kind"],
+      "properties": {
+        "gate": { "enum": ["quality", "semantic"] },
+        "runId": { "type": "string", "pattern": "^(run|sem)_[A-Za-z0-9][A-Za-z0-9_.-]*$" },
+        "producedAt": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] },
+        "kind": { "type": "string", "minLength": 1, "description": "What the evidence is: result, finding, coverage, report..." }
+      },
+      "allOf": [
+        { "if": { "properties": { "gate": { "const": "quality" } } }, "then": { "properties": { "runId": { "type": "string", "pattern": "^run_" } } } },
+        { "if": { "properties": { "gate": { "const": "semantic" } } }, "then": { "properties": { "runId": { "type": "string", "pattern": "^sem_" } } } }
+      ]
+    },
+    "identities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "config", "dependency", "method", "backend", "policy"],
+      "properties": {
+        "source": { "$ref": "https://jgates.dev/schemas/gates/source-identity/1.json" },
+        "config": { "$ref": "#/$defs/optionalHash" },
+        "dependency": { "$ref": "#/$defs/optionalHash" },
+        "method": { "$ref": "#/$defs/optionalHash" },
+        "backend": { "$ref": "#/$defs/optionalHash" },
+        "policy": { "$ref": "#/$defs/optionalHash" }
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "checkedAt"],
+      "properties": {
+        "state": { "enum": ["current", "stale", "unknown"] },
+        "checkedAt": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "description": "Stale or unknown evidence says why.",
+          "if": { "properties": { "state": { "enum": ["stale", "unknown"] } } },
+          "then": { "type": "object", "properties": { "reason": true }, "required": ["reason"] }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "description": "Only a traceable, non-legacy source identity can make evidence current.",
+      "if": { "properties": { "freshness": { "type": "object", "properties": { "state": { "const": "current" } } } } },
+      "then": {
+        "properties": {
+          "identities": {
+            "type": "object",
+            "properties": {
+              "source": { "type": "object", "properties": { "traceable": { "const": true }, "basis": { "enum": ["git-working-tree", "git-commit", "directory"] } } }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "optionalHash": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }] }
+  }
+}

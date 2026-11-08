@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/gates/scope/1.json",
+  "title": "JGates scope specification",
+  "description": "What a run was asked to examine and what it examined, independent of rigor, purpose and budget: mode, requested subjects and exclusions, resolved base/target identities with dirty inputs, optional baseline run, allowed supporting context and expansion limits, and the effective, examined, reused and omitted units with their reasons. Never a silent widening: a whole-project review is mode full, stated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "mode", "subjects", "exclusions", "resolved", "baselineRunId", "context", "units"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "mode": { "enum": ["full", "selected", "incremental"] },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "value"],
+        "properties": {
+          "kind": { "enum": ["path", "subsystem"] },
+          "value": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "exclusions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "resolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base", "target", "dirtyInputs"],
+      "properties": {
+        "base": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/end" }] },
+        "target": { "$ref": "#/$defs/end" },
+        "dirtyInputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "change", "sha256"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "change": { "enum": ["added", "modified", "removed", "untracked"] },
+              "sha256": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] }
+            }
+          }
+        }
+      }
+    },
+    "baselineRunId": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^(run|sem)_[A-Za-z0-9][A-Za-z0-9_.-]*$" }] },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed", "expansion"],
+      "properties": {
+        "allowed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "value", "reason"],
+            "properties": {
+              "kind": { "enum": ["path", "subsystem", "symbol"] },
+              "value": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "expansion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maxFiles", "maxDepth"],
+          "properties": {
+            "maxFiles": { "type": "integer", "minimum": 0 },
+            "maxDepth": { "type": "integer", "minimum": 0 },
+            "maxBytes": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effective", "examined", "reused", "omitted"],
+      "properties": {
+        "effective": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+        "examined": { "type": "array", "items": { "$ref": "#/$defs/unit" } },
+        "reused": { "type": "array", "items": { "$ref": "#/$defs/reusedUnit" } },
+        "omitted": { "type": "array", "items": { "$ref": "#/$defs/unit" } }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "A selected scope names at least one subject.",
+      "if": { "properties": { "mode": { "const": "selected" } } },
+      "then": { "properties": { "subjects": { "type": "array", "minItems": 1 } } }
+    },
+    {
+      "description": "An incremental scope compares two explicit identities: the base is resolved.",
+      "if": { "properties": { "mode": { "const": "incremental" } } },
+      "then": { "properties": { "resolved": { "type": "object", "properties": { "base": { "$ref": "#/$defs/end" } } } } }
+    }
+  ],
+  "$defs": {
+    "end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "commit", "sourceId"],
+      "properties": {
+        "ref": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] },
+        "commit": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9a-f]{40,64}$" }] },
+        "sourceId": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }] }
+      }
+    },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "reason"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "reusedUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "reason", "evidence"],
+      "description": "A reused unit always names the run its evidence came from.",
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "gate"],
+          "properties": {
+            "runId": { "type": "string", "pattern": "^(run|sem)_[A-Za-z0-9][A-Za-z0-9_.-]*$" },
+            "gate": { "enum": ["quality", "semantic"] }
+          }
+        }
+      }
+    }
+  }
+}

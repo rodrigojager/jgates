@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/gates/run-identity/1.json",
+  "title": "JGates gate run identity",
+  "description": "What identifies one run of one gate: gate kind, run ID, configuration hash, source identity, plan, stages, outcome and artifact references. Quality run IDs start with run_ and Semantic run IDs with sem_, so one ID never names runs of both gates.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "gate", "runId", "configHash", "source", "plan", "stages", "outcome", "artifacts"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "gate": { "enum": ["quality", "semantic"] },
+    "runId": { "type": "string", "pattern": "^(run|sem)_[A-Za-z0-9][A-Za-z0-9_.-]*$" },
+    "configHash": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }] },
+    "source": { "$ref": "https://jgates.dev/schemas/gates/source-identity/1.json" },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hash", "source"],
+      "properties": {
+        "hash": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] },
+        "source": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "state"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "state": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "complete", "reduced", "exitCode", "partial"],
+      "properties": {
+        "decision": { "enum": ["passed", "failed", "incomplete", "invalid", "cancelled"] },
+        "complete": { "type": "boolean" },
+        "reduced": { "type": "boolean" },
+        "exitCode": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 0 }] },
+        "partial": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "description": "A passed outcome is complete and final (never a partial copy).",
+          "if": { "properties": { "decision": { "const": "passed" } } },
+          "then": { "properties": { "complete": { "const": true }, "partial": { "const": false } } }
+        }
+      ]
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "logs", "outputs"],
+      "description": "Paths relative to the run folder.",
+      "properties": {
+        "result": { "oneOf": [{ "type": "null" }, { "type": "string", "minLength": 1 }] },
+        "logs": { "type": "array", "items": { "type": "string" } },
+        "outputs": { "type": "array", "items": { "type": "string" } },
+        "plan": { "type": "string" },
+        "events": { "type": "string" }
+      }
+    },
+    "migratedFrom": { "const": "result-v1-without-gate" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "gate": { "const": "quality" } } },
+      "then": { "properties": { "runId": { "type": "string", "pattern": "^run_" } } }
+    },
+    {
+      "if": { "properties": { "gate": { "const": "semantic" } } },
+      "then": { "properties": { "runId": { "type": "string", "pattern": "^sem_" }, "migratedFrom": false } }
+    }
+  ]
+}
