@@ -130,6 +130,8 @@ export function planInit(projectDir: string, profile: string): InitPlan {
   }
   // GitHub Actions workflows are CI evidence, not a language: the zizmor template comes in when one exists.
   if (hasWorkflows(projectDir)) templates.push({ id: "github-actions-zizmor", source: "builtin:github-actions-zizmor", evidence: true });
+  // An OpenAPI specification at the root is API-contract evidence: the oasdiff template comes in when one exists.
+  if (["openapi.yaml", "openapi.yml", "openapi.json"].some((f) => fs.existsSync(path.join(projectDir, f)))) templates.push({ id: "openapi-oasdiff", source: "builtin:openapi-oasdiff", evidence: true });
   return {
     profile,
     templates: templates.map((t) => t.id),

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "openapi-oasdiff",
+  "label": "OpenAPI with oasdiff",
+  "description": "Checks the compatibility of the OpenAPI specification with a reference revision using oasdiff. Comes in by evidence: only when the workspace has an OpenAPI specification (openapi.yaml, openapi.yml or openapi.json). The reference is the baseRef (or baseSpec) of the oasdiff instance in .jgates/tools.yml; until it is set, or when it does not resolve, the stage is blocked, never passed. The tool is supplied by you (jgates doctor says where to get it).",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "files": [
+      "openapi.yaml",
+      "openapi.yml",
+      "openapi.json"
+    ]
+  },
+  "config": {
+    "tools": {
+      "oasdiff": {
+        "adapter": "oasdiff",
+        "enabled": true,
+        "capabilities": [
+          "api-compatibility"
+        ]
+      }
+    }
+  }
+}

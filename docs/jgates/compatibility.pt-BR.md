@@ -33,6 +33,7 @@ Go e Rust têm suporte parcial: descoberta, configuração explícita e o comand
 | Checkov (`checkov`) | checkov >=3.0.0 <4.0.0 | - | iac (adapters-security.test.js) | text | editable-file | container | testado / ainda não testado / não testado em máquina real | Roda só em container; as verificações reprovadas viram achados MEDIUM. | Docker e a imagem security-scanners |
 | jscpd (duplication) (`jscpd`) | jscpd >=4.0.0 | - | duplication (adapters-quality.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Lê a configuração escolhida pelo usuário (binding ou .jscpd.json); uma configuração que não é JSON recusa o plano. | jscpd 5.3.3 (dependência do JGates) |
 | zizmor (GitHub Actions security) (`zizmor`) | zizmor >=1.32.0 <2.0.0 | - | ci-cd (adapter-zizmor.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Só workflows do GitHub Actions; offline por padrão, então as auditorias que exigem a API do GitHub ficam de fora; comentários de ignorar são exceções do scanner. | zizmor 1.32+ (pip, preparado por jgates doctor --fix) |
+| oasdiff (OpenAPI compatibility) (`oasdiff`) | oasdiff >=1.10.0 <2.0.0 | - | api-compatibility (adapter-oasdiff.test.js) | text | editable-file | local | testado / ainda não testado / não testado em máquina real | Arquivos OpenAPI 3 comparados com uma revisão git ou arquivo de referência; sem referência a etapa fica bloqueada, nunca aprovada; o binário é fornecido pelo cliente. | oasdiff 1.10+ (binário fornecido pelo cliente: release, go install ou gerenciador de pacotes) |
 
 | Stack | Suporte | Não coberto |
 | --- | --- | --- |
@@ -40,6 +41,7 @@ Go e Rust têm suporte parcial: descoberta, configuração explícita e o comand
 | .NET (`dotnet`) | parcial | Build do projeto (dotnet build); Testes do projeto (dotnet test); Cobertura de testes; Analisadores Roslyn e regras do .editorconfig; Typecheck do compilador |
 | GitHub Actions with zizmor (`github-actions-zizmor`) | completo | - |
 | Go (`go`) | parcial | Build e go vet; Cobertura de testes; Análise de dependências (go.sum); Linters (staticcheck, golangci-lint) |
+| OpenAPI with oasdiff (`openapi-oasdiff`) | completo | - |
 | Python com Import Linter (`python-import-linter`) | completo | - |
 | Python com pytest (`python-pytest`) | completo | - |
 | Python e TypeScript (`python-typescript`) | completo | - |

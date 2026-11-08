@@ -1,0 +1,1 @@
+[{"id":"response-required-property-removed","text":"removed the required property `email` from the response with the `200` status","level":3,"operation":"GET","operationId":"getUser","path":"/users/{id}","section":"paths","baseSource":{"file":"base/openapi.yaml","line":28,"column":19,"endLine":29,"endColumn":33},"fingerprint":"92d0428d5532"}]

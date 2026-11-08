@@ -178,6 +178,16 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     },
     external: { en: "zizmor 1.32+ (pip, prepared by jgates doctor --fix)", ptBR: "zizmor 1.32+ (pip, preparado por jgates doctor --fix)" },
   },
+  oasdiff: {
+    capabilities: {
+      "api-compatibility": proven(["any"], t("adapter-oasdiff.test.js", "oasdiff: a removed required response field is a breaking-change finding and an additive change none [proves: oasdiff#api-compatibility]")),
+    },
+    limitation: {
+      en: "OpenAPI 3 files compared with a reference git revision or file; without a reference the stage is blocked, never passed; the binary is customer-supplied.",
+      ptBR: "Arquivos OpenAPI 3 comparados com uma revisão git ou arquivo de referência; sem referência a etapa fica bloqueada, nunca aprovada; o binário é fornecido pelo cliente.",
+    },
+    external: { en: "oasdiff 1.10+ (customer-supplied binary: release, go install or package manager)", ptBR: "oasdiff 1.10+ (binário fornecido pelo cliente: release, go install ou gerenciador de pacotes)" },
+  },
   gitleaks: {
     capabilities: {
       secrets: proven(["any"], t("adapters-security.test.js", "Gitleaks runs in the container and its finding")),

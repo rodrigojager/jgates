@@ -64,6 +64,8 @@
   "template_dotnet_description": "Componentes .NET (csproj, fsproj, vbproj): encaixa a cadeia atual do flavor dotnetweb pela ponte, que vem do template base. Suporte parcial: não há integração própria com build, testes, cobertura nem analisadores Roslyn.",
   "template_github-actions-zizmor_label": "GitHub Actions com zizmor",
   "template_github-actions-zizmor_description": "Audita os workflows do GitHub Actions com o zizmor. Entra por evidência: só quando .github/workflows tem um workflow (.yml ou .yaml); sem workflows, o zizmor não aparece no plano.",
+  "template_openapi-oasdiff_label": "OpenAPI com oasdiff",
+  "template_openapi-oasdiff_description": "Verifica a compatibilidade da especificação OpenAPI com uma revisão de referência usando o oasdiff. Entra por evidência: só quando o workspace tem openapi.yaml, openapi.yml ou openapi.json. A referência é o baseRef (ou baseSpec) da instância oasdiff em .jgates/tools.yml; enquanto não for definida, ou quando não resolve, a etapa fica bloqueada, nunca aprovada. A ferramenta é fornecida por você; o jgates doctor diz onde obtê-la.",
   "template_go_label": "Go",
   "template_go_description": "Componentes Go (go.mod): suporte parcial. Descoberta, configuração explícita e o comando genérico com go test; build, vet, cobertura e dependências ficam para depois.",
   "template_python-import-linter_label": "Python com Import Linter",
