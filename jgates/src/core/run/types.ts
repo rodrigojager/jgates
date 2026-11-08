@@ -253,6 +253,12 @@ export interface ResultSemantic {
    * (a provider's preference or a named connection; never read by jgates ci) or the provider's default.
    */
   effective?: SemanticEffective;
+  /**
+   * A tool-enabled investigation (core/semantic-executor): module, backend, stages and their contexts, candidates with
+   * their validation, coverage and gaps, boundary refusals and expansions, real usage and the budget outcome. Its full
+   * record is the run's evidence/investigation.json.
+   */
+  investigation?: Record<string, unknown>;
 }
 
 export interface SemanticFieldValue {

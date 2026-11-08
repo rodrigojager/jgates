@@ -28,6 +28,7 @@ import { listDescendants, treeStopper } from "../runner/tree.js";
 import { runSemanticReview, type SemanticDeps, type SemanticProgress } from "../../adapters/semantic-gate/index.js";
 import { translator } from "../../i18n/index.js";
 import { finishScopeRun, prepareScopeRun, type ScopeRunPreparation } from "../semantic-scope/index.js";
+import { investigationModuleFor, runInvestigation, type InvestigationDeps, type InvestigationEventType, type InvestigationModule } from "../semantic-executor/index.js";
 import { buildSemanticPlan, resolveQualityRun, type SemanticPlan } from "./plan.js";
 import { attachQuality, type AttachedQuality } from "./quality.js";
 import {
@@ -74,6 +75,22 @@ export interface SemanticReviewContext {
    * allowed context and the paths a context-only review collects. null only for a plan written before scopes.
    */
   scope: ScopeRunPreparation | null;
+  /** The plan of the run (purpose, rigor, budget, methods). */
+  plan: SemanticPlan;
+  /** Stage and process events of the work inside the review step (an investigation's stages, its owned processes). */
+  emit: (type: InvestigationEventType, data: Record<string, unknown>) => void;
+}
+
+/** A tool-enabled investigation of the run (core/semantic-executor) instead of the context-only general review. */
+export interface SemanticInvestigationOptions {
+  /** The module to run; otherwise the module registered for the plan's method (when there is one). */
+  module?: InvestigationModule;
+  /** Seams of the executor (a scripted model in tests). */
+  deps?: InvestigationDeps;
+  /** An agent CLI wrapper's executable and the arguments put before its restricted ones. */
+  agentCli?: { command?: string; prefixArgs?: string[] };
+  /** Time budget of the investigation in seconds (otherwise the per-call timeout times the call budget). */
+  maxSeconds?: number;
 }
 
 /** A review method: the general review by default; tests (and later executors) pass their own. */
@@ -103,6 +120,8 @@ export interface SemanticRunOptions {
   review?: SemanticReviewer;
   /** Seams of the general review (a fake provider in tests). */
   deps?: SemanticDeps;
+  /** Runs the plan's method as a tool-enabled investigation (also when a module is registered for the method). */
+  investigation?: SemanticInvestigationOptions;
   /** How often the cancel request file is looked for (ms). */
   cancelPollMs?: number;
 }
@@ -165,6 +184,13 @@ function stagesOf(outcome: ResultSemantic | null, reached: Reached, cancelled: b
     const contextDone = reached.contextFinished || outcome.context !== undefined;
     switch (outcome.state) {
       case "completed": {
+        const investigation = outcome.investigation as { complete?: unknown; incomplete?: unknown } | undefined;
+        if (investigation && investigation.complete === false) {
+          // The investigation finished its stages but left required work undone (subjects never read): incomplete.
+          context = stage(CONTEXT_STAGE, contextLabel, "completed");
+          review = stage(REVIEW_STAGE, reviewLabel, "blocked", { reason: typeof investigation.incomplete === "string" ? investigation.incomplete : t("semantic_reason_budget") });
+          break;
+        }
         const blocking = blockingOf(outcome);
         context = stage(CONTEXT_STAGE, contextLabel, "completed");
         const found = outcome.conclusion?.findings;
@@ -317,10 +343,11 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
   const configHash = contentHash({ settings: plan.settings, methods: plan.methods });
   const reached: Reached = { contextStarted: false, contextFinished: false, reviewStarted: false };
   let scopeFiles: string[] = [];
+  let reviewFiles: string[] = [];
   const artifacts = (outcomeWritten: boolean): RunResult["artifacts"] => ({
     result: SEMANTIC_RESULT_FILE,
     logs: [],
-    outputs: [...(outcomeWritten ? [REVIEW_OUTPUT] : []), ...(attached?.bindingFile ? [attached.bindingFile] : []), ...scopeFiles],
+    outputs: [...(outcomeWritten ? [REVIEW_OUTPUT] : []), ...(attached?.bindingFile ? [attached.bindingFile] : []), ...scopeFiles, ...reviewFiles],
     events: SEMANTIC_EVENTS_FILE,
     plan: SEMANTIC_PLAN_FILE,
   });
@@ -464,8 +491,42 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
     checkpoint();
   };
 
+  // Events of the work inside the review step, in the same ordered stream; each one also refreshes the partial result.
+  let reviewOpen = true;
+  const emitReviewEvent = (type: InvestigationEventType, data: Record<string, unknown>): void => {
+    if (!reviewOpen) return;
+    events.emit(type, { step: REVIEW_STAGE, ...data });
+    if (type === "stage") checkpoint();
+  };
+
+  // A tool-enabled investigation when the caller asks for one or a module is registered for the plan's method; it
+  // needs the resolved scope (its guard decides every read).
+  const module = opts.investigation?.module ?? investigationModuleFor(plan.methods.map((m) => m.id));
+  const investigate: SemanticReviewer | null = module
+    ? async (ctx) => {
+        if (!ctx.scope) {
+          return { requested: true, state: "unavailable", separateFromDecision: true, provider: plan.settings.provider, model: plan.settings.model, scope: plan.settings.scope, limits: plan.settings.limits, cost: { reported: false, perCall: null, total: null }, calls: 0, reason: "An investigation needs a resolved scope; this plan has none." };
+        }
+        return runInvestigation({
+          module,
+          workspacePath: ctx.workspacePath,
+          runDir: ctx.runDir,
+          env: ctx.env,
+          signal: ctx.signal,
+          scope: ctx.scope,
+          rigor: ctx.plan.rigor,
+          budget: { maxCalls: ctx.plan.budget.maxCalls, maxTokens: ctx.plan.budget.maxTokens, maxSeconds: opts.investigation?.maxSeconds ?? null },
+          onProgress: ctx.onProgress,
+          emit: ctx.emit,
+          ...(opts.investigation?.deps ? { deps: opts.investigation.deps } : {}),
+          ...(opts.investigation?.agentCli ? { agentCli: opts.investigation.agentCli } : {}),
+          now,
+        });
+      }
+    : null;
   const review: SemanticReviewer =
     opts.review ??
+    investigate ??
     ((ctx) =>
       runSemanticReview(
         ctx.workspacePath,
@@ -482,7 +543,7 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
   try {
     outcome = controller.signal.aborted
       ? { requested: true, state: "unavailable", separateFromDecision: true, provider: plan.settings.provider, model: plan.settings.model, scope: plan.settings.scope, limits: plan.settings.limits, cost: { reported: false, perCall: null, total: null }, calls: 0, reason: "cancelled before the review started" }
-      : await review({ workspacePath: workspace.path, runDir, outputsDir, env, signal: controller.signal, onProgress, scope: scopePrep });
+      : await review({ workspacePath: workspace.path, runDir, outputsDir, env, signal: controller.signal, onProgress, scope: scopePrep, plan, emit: emitReviewEvent });
   } catch (error) {
     outcome = {
       requested: true,
@@ -497,8 +558,14 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
       reason: error instanceof Error ? error.message.slice(0, 300) : "the semantic review failed",
     };
   } finally {
+    reviewOpen = false;
     clearInterval(poll);
     opts.signal?.removeEventListener("abort", onCallerAbort);
+  }
+  // The evidence an investigation wrote (its record and the transcript of each context), as outputs of the run.
+  const investigationArtifacts = (outcome.investigation as { artifacts?: { record?: unknown; contexts?: unknown } } | undefined)?.artifacts;
+  if (investigationArtifacts) {
+    reviewFiles = [investigationArtifacts.record, ...(Array.isArray(investigationArtifacts.contexts) ? investigationArtifacts.contexts : [])].filter((f): f is string => typeof f === "string");
   }
   // A request that arrived while the last answer was being judged still cancels the run.
   watchCancelFile();

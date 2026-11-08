@@ -2,7 +2,183 @@ import { SemanticGateError } from "./errors.js";
 import { runCommand } from "./shell.js";
 import { readStoredSecret, resolveApiKey, secretNameForProvider } from "./credentials.js";
 import { baseUrlProblem, headerProblem } from "./config.js";
+import {
+  fromAnthropicResponse,
+  fromOpenAiResponse,
+  loadToolScript,
+  scriptedTurn,
+  toAnthropicMessages,
+  toAnthropicTools,
+  toOpenAiMessages,
+  toOpenAiTools,
+  type ToolTurnRequest,
+  type ToolTurnResponse,
+  type TurnUsage,
+} from "./tools.js";
 import type { ProviderModel, ProviderRequest, ProviderResponse, SemanticGateConfig } from "./types.js";
+
+// ---- tool-enabled turns (bounded investigation) ------------------------------------------------------------------------
+
+/** Providers whose HTTP API takes tools: the Anthropic Messages kind, the OpenAI-compatible kind and the scripted mock. */
+const ANTHROPIC_KINDS = new Set(["anthropic", "claude", "claude-api"]);
+const OPENAI_KINDS = new Set(["openai", "openrouter", "openai-compatible", "opencode-api"]);
+
+/** Whether a provider can run a tool loop (a named connection is OpenAI-compatible). */
+export function supportsToolCalling(provider: string | undefined, connection?: string): boolean {
+  if (connection) return true;
+  return provider === "mock" || (provider !== undefined && (ANTHROPIC_KINDS.has(provider) || OPENAI_KINDS.has(provider)));
+}
+
+/**
+ * One turn of a tool conversation: the model answers with text and/or tool calls, and the usage it reported. The
+ * tools are only offered; the caller (the host) decides and executes every call. A provider without tool support is
+ * refused before anything is sent.
+ */
+export async function callProviderTurn(request: ToolTurnRequest): Promise<ToolTurnResponse> {
+  const provider = request.config.provider;
+  if (!provider) throw new SemanticGateError("No provider configured.", "provider");
+  if (request.config.connection) return openAiToolTurn(request, connectionTarget(request.config));
+  if (provider === "mock") {
+    const source = request.script ?? process.env.SEMANTIC_GATE_MOCK_TOOL_SCRIPT;
+    if (!source) throw new SemanticGateError("The mock provider needs a tool script for a tool loop (SEMANTIC_GATE_MOCK_TOOL_SCRIPT).", "provider");
+    return scriptedTurn(typeof source === "string" ? loadToolScript(source) : source, request);
+  }
+  if (ANTHROPIC_KINDS.has(provider)) return anthropicToolTurn(request);
+  switch (provider) {
+    case "openrouter":
+      return openAiToolTurn(request, { provider, baseUrl: request.config.baseUrl ?? "https://openrouter.ai/api/v1", apiKeyEnv: request.config.apiKeyEnv ?? "OPENROUTER_API_KEY" });
+    case "openai":
+      return openAiToolTurn(request, { provider, baseUrl: request.config.baseUrl ?? "https://api.openai.com/v1", apiKeyEnv: request.config.apiKeyEnv ?? "OPENAI_API_KEY" });
+    case "openai-compatible":
+      return openAiToolTurn(
+        request,
+        request.config.baseUrl === undefined
+          ? { provider, apiKeyEnv: request.config.apiKeyEnv ?? "SEMANTIC_GATE_API_KEY" }
+          : { provider, baseUrl: request.config.baseUrl, apiKeyEnv: request.config.apiKeyEnv ?? "SEMANTIC_GATE_API_KEY" },
+      );
+    case "opencode-api":
+      return openAiToolTurn(request, { provider, baseUrl: request.config.baseUrl ?? OPENCODE_ZEN_CHAT_BASE_URL, apiKeyEnv: request.config.apiKeyEnv ?? "OPENCODE_API_KEY" });
+    default:
+      throw new SemanticGateError(`The ${provider} provider does not support tool calling; a tool-enabled investigation needs an Anthropic, OpenAI-compatible or agent CLI backend.`, "provider");
+  }
+}
+
+async function openAiToolTurn(request: ToolTurnRequest, target: OpenAiCompatibleTarget): Promise<ToolTurnResponse> {
+  if (!target.baseUrl) throw new SemanticGateError(`${target.provider} provider requires baseUrl or SEMANTIC_GATE_BASE_URL.`, "provider");
+  const apiKey = target.keyOptional ? readOptionalApiKey(target.provider, target.apiKeyEnv, request.config) : readApiKey(target.provider, target.apiKeyEnv, request.config);
+  const response = await fetch(`${target.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+    method: "POST",
+    headers: { ...(target.headers ?? {}), "content-type": "application/json", ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}) },
+    body: JSON.stringify({
+      model: requireModel(request.config),
+      ...temperatureField(request.config),
+      ...(request.maxOutputTokens ? { max_tokens: request.maxOutputTokens } : {}),
+      messages: toOpenAiMessages(request.system, request.messages),
+      ...(request.tools.length > 0 ? { tools: toOpenAiTools(request.tools), tool_choice: request.toolChoice ?? "auto" } : {}),
+    }),
+    ...(request.signal ? { signal: request.signal } : {}),
+  });
+  return fromOpenAiResponse(await parseHttpJson(response));
+}
+
+async function anthropicToolTurn(request: ToolTurnRequest): Promise<ToolTurnResponse> {
+  const apiKey = readApiKey("anthropic", request.config.apiKeyEnv ?? "ANTHROPIC_API_KEY", request.config);
+  const response = await fetch(`${anthropicBaseUrl(request.config)}/v1/messages`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": ANTHROPIC_VERSION },
+    body: JSON.stringify({
+      model: requireModel(request.config),
+      max_tokens: request.maxOutputTokens ?? ANTHROPIC_MAX_TOKENS,
+      system: request.system,
+      messages: toAnthropicMessages(request.messages),
+      ...(request.tools.length > 0 ? { tools: toAnthropicTools(request.tools), tool_choice: { type: request.toolChoice ?? "auto" } } : {}),
+    }),
+    ...(request.signal ? { signal: request.signal } : {}),
+  });
+  return fromAnthropicResponse(await parseHttpJson(response));
+}
+
+// ---- agent CLI wrapper (bounded investigation) -------------------------------------------------------------------------
+
+/** Agent CLIs a bounded investigation can wrap: launched per stage with read-only tools, in a staged copy of the scope. */
+export const AGENT_CLI_BACKENDS = ["claude-code", "codex-cli"] as const;
+export type AgentCliBackend = (typeof AGENT_CLI_BACKENDS)[number];
+
+export function isAgentCliBackend(provider: string | undefined): provider is AgentCliBackend {
+  return provider === "claude-code" || provider === "codex-cli";
+}
+
+/** Built-in tools the wrapped Claude Code may use: read-only ones; editing, shell and network tools are never offered. */
+export const CLAUDE_CODE_INVESTIGATION_TOOLS = "Read,Grep,Glob";
+export const CLAUDE_CODE_DENIED_TOOLS = "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task";
+
+/**
+ * How one stage of an investigation launches an agent CLI: its default command and the restricted arguments (the
+ * prompt goes on stdin). Claude Code gets only read-only built-in tools, no MCP server and a JSON result with its
+ * usage; Codex runs `exec` in its read-only sandbox inside the staged folder. Arguments a caller puts before these
+ * (a script path for a wrapper) can never remove them.
+ */
+export function agentCliInvocation(
+  provider: AgentCliBackend,
+  options: { model?: string; workdir: string; reasoningEffort?: string },
+): { command: string; args: string[]; output: "claude-json" | "text" } {
+  if (provider === "claude-code") {
+    return {
+      command: "claude",
+      args: [
+        "--print",
+        "--output-format",
+        "json",
+        ...(options.model ? ["--model", options.model] : []),
+        "--tools",
+        CLAUDE_CODE_INVESTIGATION_TOOLS,
+        "--disallowedTools",
+        CLAUDE_CODE_DENIED_TOOLS,
+        "--strict-mcp-config",
+        "--permission-mode",
+        "default",
+      ],
+      output: "claude-json",
+    };
+  }
+  return {
+    command: "codex",
+    args: [
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--skip-git-repo-check",
+      "--cd",
+      options.workdir,
+      ...(options.model ? ["-m", options.model] : []),
+      ...(options.reasoningEffort ? ["-c", `model_reasoning_effort="${options.reasoningEffort}"`] : []),
+      "-",
+    ],
+    output: "text",
+  };
+}
+
+/**
+ * The final text and the usage of one agent CLI invocation. Claude Code's JSON result carries both; a plain text
+ * output carries no usage (reported as null, never estimated here). Progress lines a CLI prints are not parsed: only
+ * the final artifact counts.
+ */
+export function parseAgentCliOutput(output: "claude-json" | "text", stdout: string): { text: string; usage: TurnUsage | null; isError: boolean; costUsd: number | null } {
+  if (output === "claude-json") {
+    try {
+      const doc = JSON.parse(stdout.trim()) as Record<string, unknown>;
+      if (doc && typeof doc === "object" && typeof doc.result === "string") {
+        const u = doc.usage && typeof doc.usage === "object" ? (doc.usage as Record<string, unknown>) : null;
+        const n = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : 0);
+        const usage = u && typeof u.input_tokens === "number" && typeof u.output_tokens === "number" ? { inputTokens: n(u.input_tokens) + n(u.cache_creation_input_tokens) + n(u.cache_read_input_tokens), outputTokens: n(u.output_tokens) } : null;
+        return { text: doc.result, usage, isError: doc.is_error === true, costUsd: typeof doc.total_cost_usd === "number" ? doc.total_cost_usd : null };
+      }
+    } catch {
+      // Not the JSON result: the text is judged as it is (and fails validation if it is not an artifact).
+    }
+  }
+  return { text: stdout.trim(), usage: null, isError: false, costUsd: null };
+}
 
 export async function callProvider(request: ProviderRequest): Promise<ProviderResponse> {
   const provider = request.config.provider;
