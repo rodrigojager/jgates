@@ -17,9 +17,11 @@ import {
   readSemanticRun,
   requestSemanticCancel,
 } from "../../core/semantic/index.js";
+import { semanticChoiceArgs, type ScopeRequest, type SemanticPurpose, type SemanticRigor } from "../../core/semantic-scope/index.js";
 import { getLocale, translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
+import { choiceProperties } from "./semantic-scope.js";
 
 const t = translator("semantic");
 const MAX_WAIT_MS = 25_000;
@@ -87,17 +89,41 @@ export const routes: RouteDefinition[] = [
   {
     method: "POST",
     path: "/api/semantic/runs",
-    body: { type: "object", properties: { quality: { type: "string", pattern: QUALITY_REF } }, additionalProperties: false },
+    // The same choices as `jgates semantic run`: the Quality evidence, the purpose, rigor and budget, and the scope.
+    body: { type: "object", properties: { quality: { type: "string", pattern: QUALITY_REF }, ...choiceProperties }, additionalProperties: false },
     handler({ body, server }) {
-      const { quality } = (body ?? {}) as { quality?: string };
+      const choices = (body ?? {}) as { quality?: string; purpose?: SemanticPurpose; rigor?: SemanticRigor; budget?: { maxCalls?: number; maxTokens?: number }; scope?: ScopeRequest };
+      const { quality } = choices;
       // A policy folder being edited is not a project: there is nothing to review.
       if (server.policyMode) throw fail(409, "SEMANTIC_POLICY_MODE");
       const active = [...childrenOf(server).keys()][0];
       if (active) throw fail(409, "SEMANTIC_RUN_ACTIVE", { runId: active }, { runId: active });
-      const plan = buildSemanticPlan({ workspacePath: server.workspace.path, home: server.home, quality: quality ?? null });
+      const plan = buildSemanticPlan({
+        workspacePath: server.workspace.path,
+        home: server.home,
+        quality: quality ?? null,
+        ...(choices.purpose ? { purpose: choices.purpose } : {}),
+        ...(choices.rigor ? { rigor: choices.rigor } : {}),
+        ...(choices.budget ? { budget: choices.budget } : {}),
+        scope: choices.scope ?? null,
+      });
       if (!plan.ready) throw fail(422, "SEMANTIC_NOT_READY", { detail: plan.blockers.map((b) => b.message).join(" ") }, { blockers: plan.blockers, plan });
       const runId = newGateRunId("semantic");
-      const args = [cliMain(), "semantic", "run", "--cwd", server.workspace.path, "--run-id", runId, "--json", "--no-interactive", "--locale", getLocale(), ...(quality ? ["--quality", quality] : [])];
+      const args = [
+        cliMain(),
+        "semantic",
+        "run",
+        "--cwd",
+        server.workspace.path,
+        "--run-id",
+        runId,
+        "--json",
+        "--no-interactive",
+        "--locale",
+        getLocale(),
+        ...(quality ? ["--quality", quality] : []),
+        ...semanticChoiceArgs(choices),
+      ];
       const child = spawn(process.execPath, args, {
         cwd: server.workspace.path,
         env: process.env,
@@ -112,7 +138,7 @@ export const routes: RouteDefinition[] = [
       child.once("exit", release);
       child.once("error", release);
       server.log(`semantic run ${runId} started`);
-      return { status: 202, json: { schemaVersion: 1, status: "OK", gate: "semantic", run: { runId, lifecycle: "running", planHash: plan.planHash } } };
+      return { status: 202, json: { schemaVersion: 1, status: "OK", gate: "semantic", run: { runId, lifecycle: "running", planHash: plan.planHash, scopeHash: plan.scope.resolution.scopeHash } } };
     },
   },
   {

@@ -298,7 +298,22 @@ function baseOutcome(state: SemanticState, extra: Partial<ResultSemantic> = {}, 
  */
 export async function runSemanticReview(
   workspacePath: string,
-  options: { env?: NodeJS.ProcessEnv; signal?: AbortSignal; now?: () => Date; configDir?: string; vault?: boolean; preferences?: boolean; onProgress?: SemanticProgress },
+  options: {
+    env?: NodeJS.ProcessEnv;
+    signal?: AbortSignal;
+    now?: () => Date;
+    configDir?: string;
+    vault?: boolean;
+    preferences?: boolean;
+    onProgress?: SemanticProgress;
+    /**
+     * The resolved scope of an independent Semantic run (core/semantic-scope): the repository-relative paths to collect
+     * (null: the whole project) and the host guard that decides each collected file. It replaces the `scope` and
+     * `paths` settings; the project's excludes, include list and masking still apply. The paths actually sent are
+     * reported in the outcome (context.paths).
+     */
+    scope?: { paths: string[] | null; allow: (repositoryPath: string) => boolean };
+  },
   deps: SemanticDeps = {},
 ): Promise<ResultSemantic> {
   const started = Date.now();
@@ -341,12 +356,17 @@ export async function runSemanticReview(
     return done(baseOutcome(state, { state: "unavailable", reason: `${brief(error instanceof Error ? error.message : String(error))}; nothing was sent.` }));
   }
   const outcome = (extra: Partial<ResultSemantic>): ResultSemantic => baseOutcome(state, extra, promptsInfo);
+  const scoped = options.scope;
+  // An empty path list would collect the whole project: a resolved scope with nothing to send sends nothing.
+  if (scoped && scoped.paths !== null && scoped.paths.length === 0) {
+    return done(outcome({ state: "unavailable", reason: "No file of the resolved scope is to be sent; nothing was sent.", context: { files: 0, excluded: [], paths: [] } }));
+  }
   const config: Record<string, unknown> = {
     ...gate.defaultConfig,
-    scope: s.scope,
+    scope: scoped ? (scoped.paths ? "paths" : "full") : s.scope,
     provider: s.provider,
     threshold: s.threshold,
-    paths: s.paths,
+    paths: scoped ? (scoped.paths ?? []) : s.paths,
     excludes: s.excludes,
     maxContextChars: s.maxContextChars,
     timeoutMs: s.timeoutSeconds * 1000,
@@ -375,6 +395,7 @@ export async function runSemanticReview(
   }
   const excluded: Array<{ path: string; reason: string }> = [];
   const kept = (context.changedFiles as Array<{ path: string }>).filter((f) => {
+    if (scoped && !scoped.allow(f.path)) return excluded.push({ path: f.path, reason: "outside-scope" }), false;
     if (isSensitivePath(f.path)) return excluded.push({ path: f.path, reason: "sensitive-file" }), false;
     if (isExcluded(f.path, s.excludes)) return excluded.push({ path: f.path, reason: "excluded" }), false;
     if (s.include.length > 0 && !isExcluded(f.path, s.include)) return excluded.push({ path: f.path, reason: "not-included" }), false;
@@ -385,6 +406,7 @@ export async function runSemanticReview(
   let tools: Array<Record<string, unknown>> | undefined;
   const contextInfo = (): Record<string, unknown> => ({
     files: kept.length,
+    ...(scoped ? { paths: kept.map((f) => f.path) } : {}),
     excluded,
     masked: { total: totalCount(counts), ...counts },
     ...(tools ? { tools } : {}),

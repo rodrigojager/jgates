@@ -9,11 +9,27 @@ import { resolveHome } from "../home/index.js";
 import { contentHash, workspaceId } from "../ids/index.js";
 import { readSemanticState, semanticPackageAvailable } from "../../adapters/semantic-gate/index.js";
 import { translator } from "../../i18n/index.js";
+import { resolveSemanticScope, scopeControls, type ScopeControls, type ScopeRequest, type SemanticPurpose, type SemanticRigor, type SemanticScopeResolution } from "../semantic-scope/index.js";
 
 const t = translator("semantic");
+const ts = translator("semantic-scope");
 
 /** The one method of this version: the general review of the semantic-gate package (T15+ add the investigation). */
 export const GENERAL_REVIEW = "general-review";
+/** The security-audit baseline (its module arrives with the security baseline; until then a plan names it as unavailable). */
+export const SECURITY_AUDIT = "security-audit";
+
+/** The methods each purpose plans; the scope controls are the same for all of them. */
+export const PURPOSE_METHODS: Readonly<Record<SemanticPurpose, readonly string[]>> = { "general-review": [GENERAL_REVIEW], security: [SECURITY_AUDIT] };
+/** Methods this build can execute. */
+export const AVAILABLE_METHODS: ReadonlySet<string> = new Set([GENERAL_REVIEW]);
+/** Methods that read the review context from the working tree (a context-only provider call). */
+const WORKING_TREE_METHODS: ReadonlySet<string> = new Set([GENERAL_REVIEW]);
+
+export interface SemanticBudget {
+  maxCalls: number | null;
+  maxTokens: number | null;
+}
 
 export interface SemanticPrerequisite {
   id: "provider" | "package" | "quality-history";
@@ -30,6 +46,14 @@ export interface SemanticPlan {
   planHash: string;
   createdAt: string;
   workspace: { id: string; path: string };
+  /** What the run is for; it decides the methods, never the scope. */
+  purpose: SemanticPurpose;
+  /** Depth of the examination; independent of the scope. */
+  rigor: SemanticRigor;
+  /** Consumption limits asked for this run (null: the settings' limits apply); independent of the scope. */
+  budget: SemanticBudget;
+  /** The resolved scope (subjects, context, impact, reuse, inherited coverage) and the controls that produced it. */
+  scope: { controls: ScopeControls; resolution: SemanticScopeResolution };
   methods: Array<{ id: string }>;
   settings: {
     state: "off" | "configured" | "invalid";
@@ -54,6 +78,11 @@ export interface SemanticPlanRequest {
   now?: () => Date;
   /** A Quality run to attach as evidence: its run ID, or "latest" for the newest finished Quality run. */
   quality?: string | null;
+  purpose?: SemanticPurpose;
+  rigor?: SemanticRigor;
+  budget?: Partial<SemanticBudget> | null;
+  /** The scope to resolve (full, the recommended default, when absent). */
+  scope?: ScopeRequest | null;
 }
 
 /** Resolves a Quality run reference ("latest" or a run_ ID) in the Quality history; null when there is none. */
@@ -102,14 +131,32 @@ export function buildSemanticPlan(request: SemanticPlanRequest): SemanticPlan {
     { id: "package", ok: packageOk, required: true, message: t(packageOk ? "semantic_prereq_package_ok" : "semantic_blocker_package") },
     { id: "quality-history", ok: true, required: false, message: t("semantic_prereq_quality_none") },
   ];
-  const methods = [{ id: GENERAL_REVIEW }];
-  const planHash = contentHash({ v: 1, gate: "semantic", workspace: workspacePath, methods, settings, quality: attached });
+  const purpose: SemanticPurpose = request.purpose ?? "general-review";
+  const rigor: SemanticRigor = request.rigor ?? "standard";
+  const budget: SemanticBudget = { maxCalls: request.budget?.maxCalls ?? null, maxTokens: request.budget?.maxTokens ?? null };
+  const methodIds = [...(PURPOSE_METHODS[purpose] ?? [GENERAL_REVIEW])];
+  const methods = methodIds.map((id) => ({ id }));
+  for (const id of methodIds) {
+    if (!AVAILABLE_METHODS.has(id)) blockers.push({ code: "SEMANTIC_METHOD_UNAVAILABLE", message: ts("scope_plan_method_unavailable", { method: id, purpose }) });
+  }
+  // The scope is resolved from the scope request alone: purpose, rigor and budget never enter it.
+  const resolution = resolveSemanticScope({ workspacePath, request: request.scope ?? null, home, env, methods: methodIds });
+  for (const b of resolution.blockers) blockers.push(b);
+  if (resolution.blockers.length === 0 && !resolution.workingTreeMatchesTarget && methodIds.some((id) => WORKING_TREE_METHODS.has(id))) {
+    blockers.push({ code: "SCOPE_TARGET_NOT_CHECKED_OUT", message: ts("scope_plan_target_not_checked_out") });
+  }
+  const scope = { controls: scopeControls(purpose), resolution };
+  const planHash = contentHash({ v: 2, gate: "semantic", workspace: workspacePath, methods, settings, quality: attached, purpose, rigor, budget, scopeHash: resolution.scopeHash });
   return {
     schemaVersion: 1,
     gate: "semantic",
     planHash,
     createdAt: (request.now ?? (() => new Date()))().toISOString(),
     workspace: { id: wsId, path: workspacePath },
+    purpose,
+    rigor,
+    budget,
+    scope,
     methods,
     settings,
     prerequisites,

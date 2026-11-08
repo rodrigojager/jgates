@@ -27,6 +27,7 @@ import type { NormalizedSeverity, ResultFinding, ResultSemantic, ResultStage, Ru
 import { listDescendants, treeStopper } from "../runner/tree.js";
 import { runSemanticReview, type SemanticDeps, type SemanticProgress } from "../../adapters/semantic-gate/index.js";
 import { translator } from "../../i18n/index.js";
+import { finishScopeRun, prepareScopeRun, type ScopeRunPreparation } from "../semantic-scope/index.js";
 import { buildSemanticPlan, resolveQualityRun, type SemanticPlan } from "./plan.js";
 import { attachQuality, type AttachedQuality } from "./quality.js";
 import {
@@ -68,6 +69,11 @@ export interface SemanticReviewContext {
   env: NodeJS.ProcessEnv;
   signal: AbortSignal;
   onProgress: SemanticProgress;
+  /**
+   * The resolved scope of the run: its guard (every read of a module goes through it), the subjects to examine, the
+   * allowed context and the paths a context-only review collects. null only for a plan written before scopes.
+   */
+  scope: ScopeRunPreparation | null;
 }
 
 /** A review method: the general review by default; tests (and later executors) pass their own. */
@@ -265,6 +271,10 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
 
   // The source this run judges, taken before anything is reviewed.
   const source: SourceIdentity = computeSourceIdentity(workspace.path, { env });
+  // The resolved scope: its guard and the fingerprints of what is examined, taken before the review too.
+  const scopePrep: ScopeRunPreparation | null = plan.scope?.resolution
+    ? prepareScopeRun({ workspacePath: workspace.path, resolution: plan.scope.resolution, methods: plan.methods.map((m) => m.id), env })
+    : null;
   let attached: AttachedQuality | null = null;
   if (plan.quality.attached) {
     const found = resolveQualityRun(home, workspace.id, plan.quality.attached);
@@ -306,10 +316,11 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
 
   const configHash = contentHash({ settings: plan.settings, methods: plan.methods });
   const reached: Reached = { contextStarted: false, contextFinished: false, reviewStarted: false };
+  let scopeFiles: string[] = [];
   const artifacts = (outcomeWritten: boolean): RunResult["artifacts"] => ({
     result: SEMANTIC_RESULT_FILE,
     logs: [],
-    outputs: [...(outcomeWritten ? [REVIEW_OUTPUT] : []), ...(attached?.bindingFile ? [attached.bindingFile] : [])],
+    outputs: [...(outcomeWritten ? [REVIEW_OUTPUT] : []), ...(attached?.bindingFile ? [attached.bindingFile] : []), ...scopeFiles],
     events: SEMANTIC_EVENTS_FILE,
     plan: SEMANTIC_PLAN_FILE,
   });
@@ -415,6 +426,18 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
     methods: plan.methods.map((m) => m.id),
     sourceId: source.id,
     ...(attached ? { quality: { runId: attached.evidence.runId, freshness: attached.evidence.freshness } } : {}),
+    ...(scopePrep
+      ? {
+          scope: {
+            mode: scopePrep.resolution.mode,
+            scopeHash: scopePrep.resolution.scopeHash,
+            toExamine: scopePrep.toExamine.length,
+            reused: scopePrep.resolution.completion.reused,
+            context: scopePrep.resolution.context.length,
+            inheritedCoverage: scopePrep.resolution.inheritedCoverage.state,
+          },
+        }
+      : {}),
   });
   if (opts.signal?.aborted) onCallerAbort();
   else opts.signal?.addEventListener("abort", onCallerAbort, { once: true });
@@ -443,12 +466,23 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
 
   const review: SemanticReviewer =
     opts.review ??
-    ((ctx) => runSemanticReview(ctx.workspacePath, { env: ctx.env, signal: ctx.signal, onProgress: ctx.onProgress }, opts.deps ?? {}));
+    ((ctx) =>
+      runSemanticReview(
+        ctx.workspacePath,
+        {
+          env: ctx.env,
+          signal: ctx.signal,
+          onProgress: ctx.onProgress,
+          // Only the subjects to examine and the allowed context reach the provider; the guard decides each file.
+          ...(ctx.scope ? { scope: { paths: ctx.scope.sendPaths, allow: (p: string) => ctx.scope!.allow(p) } } : {}),
+        },
+        opts.deps ?? {},
+      ));
   let outcome: ResultSemantic;
   try {
     outcome = controller.signal.aborted
       ? { requested: true, state: "unavailable", separateFromDecision: true, provider: plan.settings.provider, model: plan.settings.model, scope: plan.settings.scope, limits: plan.settings.limits, cost: { reported: false, perCall: null, total: null }, calls: 0, reason: "cancelled before the review started" }
-      : await review({ workspacePath: workspace.path, runDir, outputsDir, env, signal: controller.signal, onProgress });
+      : await review({ workspacePath: workspace.path, runDir, outputsDir, env, signal: controller.signal, onProgress, scope: scopePrep });
   } catch (error) {
     outcome = {
       requested: true,
@@ -470,6 +504,27 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
   watchCancelFile();
   const cancelled = controller.signal.aborted;
   writeAtomic(path.join(runDir, REVIEW_OUTPUT), `${JSON.stringify(outcome, null, 2)}\n`);
+  if (scopePrep) {
+    // The units actually examined and the ledger a later run may reuse after its own checks. A review that did not
+    // complete leaves every examined unit unresolved: nothing of it can be carried as covered.
+    const sentPaths = (outcome.context as { paths?: unknown } | undefined)?.paths;
+    const findings = outcome.state === "completed" && Array.isArray(outcome.conclusion?.findings) ? (outcome.conclusion.findings as Array<{ path?: unknown; confirmation?: unknown }>) : [];
+    try {
+      scopeFiles = finishScopeRun(runDir, scopePrep, {
+        runId,
+        now: now(),
+        completed: outcome.state === "completed" && !cancelled,
+        findings,
+        sentRepositoryPaths: Array.isArray(sentPaths) ? sentPaths.filter((p): p is string => typeof p === "string") : null,
+      });
+    } catch (error) {
+      // Without its scope record the run cannot say what it examined: it is never favorable.
+      if (outcome.state === "completed") {
+        outcome = { ...outcome, state: "unavailable", reason: `The scope record could not be written: ${error instanceof Error ? error.message.slice(0, 200) : String(error)}` };
+        writeAtomic(path.join(runDir, REVIEW_OUTPUT), `${JSON.stringify(outcome, null, 2)}\n`);
+      }
+    }
+  }
   const result = assemble(outcome, false, cancelled, true);
   // The final state of each stage, unless the progress already announced it.
   for (const s of result.stages) {

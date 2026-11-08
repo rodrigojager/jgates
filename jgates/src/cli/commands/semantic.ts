@@ -19,12 +19,78 @@ import {
   readSemanticRun,
   requestSemanticCancel,
   type SemanticPlan,
+  type SemanticPlanRequest,
 } from "../../core/semantic/index.js";
+import { CONTEXT_POLICIES, SEMANTIC_PURPOSES, SEMANTIC_RIGORS, type ScopeRequest, type SemanticPurpose, type SemanticRigor } from "../../core/semantic-scope/index.js";
 
 const t = translator("semantic");
+const ts = translator("semantic-scope");
 const SUBCOMMANDS = ["plan", "run", "status", "cancel", "history"] as const;
+const SCOPE_MODES = ["full", "selected", "incremental"] as const;
 
 const str = (ctx: CommandContext, name: string): string | undefined => (typeof ctx.options[name] === "string" ? (ctx.options[name] as string) : undefined);
+const list = (ctx: CommandContext, name: string): string[] => ctx.lists[name] ?? (typeof ctx.options[name] === "string" ? [ctx.options[name] as string] : []);
+
+type ScopeFlags = Pick<SemanticPlanRequest, "purpose" | "rigor" | "budget" | "scope">;
+
+/** The scope, purpose, rigor and budget flags as a plan request, or the usage problem they have. */
+export function scopeFlags(ctx: CommandContext): { ok: true; value: ScopeFlags } | { ok: false; code: string; key: string; params: Record<string, string> } {
+  const bad = (code: string, key: string, params: Record<string, string>) => ({ ok: false as const, code, key, params });
+  const mode = str(ctx, "scope");
+  if (mode !== undefined && !(SCOPE_MODES as readonly string[]).includes(mode)) return bad("BAD_SCOPE", "scope_cli_bad_scope", { value: mode });
+  const purpose = str(ctx, "purpose");
+  if (purpose !== undefined && !(SEMANTIC_PURPOSES as readonly string[]).includes(purpose)) return bad("BAD_PURPOSE", "scope_cli_bad_purpose", { value: purpose });
+  const rigor = str(ctx, "rigor");
+  if (rigor !== undefined && !(SEMANTIC_RIGORS as readonly string[]).includes(rigor)) return bad("BAD_RIGOR", "scope_cli_bad_rigor", { value: rigor });
+  const policy = str(ctx, "context-policy");
+  if (policy !== undefined && !(CONTEXT_POLICIES as readonly string[]).includes(policy)) return bad("BAD_CONTEXT_POLICY", "scope_cli_bad_context_policy", { value: policy });
+  const numbers: Record<string, number | undefined> = {};
+  for (const name of ["context-max-files", "context-max-depth", "context-max-bytes", "budget-calls", "budget-tokens"]) {
+    const raw = str(ctx, name);
+    if (raw === undefined) continue;
+    const n = Number(raw);
+    if (!/^[0-9]+$/.test(raw) || !Number.isSafeInteger(n)) return bad("BAD_NUMBER", "scope_cli_bad_number", { name, value: raw });
+    numbers[name] = n;
+  }
+  const dirtyValues = list(ctx, "dirty");
+  let dirty: ScopeRequest["dirty"] | undefined;
+  if (dirtyValues.length === 1 && (dirtyValues[0] === "none" || dirtyValues[0] === "all")) dirty = dirtyValues[0];
+  else if (dirtyValues.length > 0) {
+    if (dirtyValues.includes("none") || dirtyValues.includes("all")) return bad("BAD_DIRTY", "scope_cli_bad_dirty", {});
+    dirty = dirtyValues;
+  }
+  const subjects = [...list(ctx, "path").map((value) => ({ kind: "path" as const, value })), ...list(ctx, "subsystem").map((value) => ({ kind: "subsystem" as const, value }))];
+  const context: NonNullable<ScopeRequest["context"]> = {
+    ...(policy !== undefined ? { policy: policy as (typeof CONTEXT_POLICIES)[number] } : {}),
+    ...(numbers["context-max-files"] !== undefined ? { maxFiles: numbers["context-max-files"] } : {}),
+    ...(numbers["context-max-depth"] !== undefined ? { maxDepth: numbers["context-max-depth"] } : {}),
+    ...(numbers["context-max-bytes"] !== undefined ? { maxBytes: numbers["context-max-bytes"] } : {}),
+    ...(list(ctx, "allow-context").length > 0 ? { allow: list(ctx, "allow-context") } : {}),
+  };
+  const scope: ScopeRequest = {
+    mode: (mode as ScopeRequest["mode"]) ?? (subjects.length > 0 ? "selected" : str(ctx, "base") !== undefined ? "incremental" : "full"),
+    ...(subjects.length > 0 ? { subjects } : {}),
+    ...(list(ctx, "exclude").length > 0 ? { exclusions: list(ctx, "exclude") } : {}),
+    ...(str(ctx, "base") !== undefined ? { base: str(ctx, "base") as string } : {}),
+    ...(str(ctx, "target") !== undefined ? { target: str(ctx, "target") as string } : {}),
+    ...(dirty !== undefined ? { dirty } : {}),
+    ...(str(ctx, "baseline") !== undefined ? { baseline: str(ctx, "baseline") as string } : {}),
+    ...(Object.keys(context).length > 0 ? { context } : {}),
+  };
+  const budget = {
+    ...(numbers["budget-calls"] !== undefined ? { maxCalls: numbers["budget-calls"] } : {}),
+    ...(numbers["budget-tokens"] !== undefined ? { maxTokens: numbers["budget-tokens"] } : {}),
+  };
+  return {
+    ok: true,
+    value: {
+      scope,
+      ...(purpose !== undefined ? { purpose: purpose as SemanticPurpose } : {}),
+      ...(rigor !== undefined ? { rigor: rigor as SemanticRigor } : {}),
+      ...(Object.keys(budget).length > 0 ? { budget } : {}),
+    },
+  };
+}
 
 function isDirectory(p: string): boolean {
   try {
@@ -56,6 +122,16 @@ function planText(ctx: CommandContext, plan: SemanticPlan): void {
   ctx.stdout(`  ${t("semantic_text_provider", { provider: plan.settings.provider ?? "-", model: plan.settings.model ?? "-", scope: plan.settings.scope ?? "-" })}\n`);
   for (const p of plan.prerequisites) ctx.stdout(`  ${p.ok ? "ok " : "-- "} ${p.id}: ${p.message}\n`);
   if (plan.quality.attached) ctx.stdout(`  ${t("semantic_text_quality_attached", { runId: plan.quality.attached })}\n`);
+  const r = plan.scope.resolution;
+  ctx.stdout(`  ${ts("scope_text_summary", { mode: r.mode, purpose: plan.purpose, rigor: plan.rigor, examine: r.completion.toExamine, reused: r.completion.reused, context: r.completion.context, excluded: r.completion.excluded })}\n`);
+  ctx.stdout(`  ${ts("scope_text_inherited", { message: r.inheritedCoverage.message })}\n`);
+  for (const s of r.subjects.slice(0, 40)) ctx.stdout(`    ${s.disposition === "reused" ? "reuse" : "exam "} ${s.path}  (${s.reasons.map((x) => x.message).join("; ")})\n`);
+  if (r.subjects.length > 40) ctx.stdout(`    ${ts("scope_text_more", { count: r.subjects.length - 40 })}\n`);
+  for (const c of r.context) ctx.stdout(`    ctx   ${c.path}  (${c.reasons.map((x) => x.message).join("; ")})\n`);
+  for (const u of r.impact.unknowns.slice(0, 20)) ctx.stdout(`    ?     ${u.message}\n`);
+  for (const e of r.impact.recommendedExpansion.slice(0, 20)) ctx.stdout(`    +     ${ts("scope_text_recommended", { path: e.path })}\n`);
+  for (const b of plan.blockers) ctx.stdout(`  -- ${b.code}: ${b.message}\n`);
+  for (const w of r.warnings) ctx.stdout(`  !  ${w.message}\n`);
   ctx.stdout(`${plan.ready ? t("semantic_text_ready") : t("semantic_text_not_ready")}\n`);
 }
 
@@ -69,6 +145,23 @@ export const command: CommandModule = {
     { name: "run-id", type: "string", description: t("semantic_option_run_id") },
     { name: "limit", type: "string", description: t("semantic_option_limit") },
     { name: "no-interactive", type: "boolean", description: t("semantic_option_no_interactive") },
+    { name: "scope", type: "string", description: ts("scope_option_scope") },
+    { name: "path", type: "string", description: ts("scope_option_path") },
+    { name: "subsystem", type: "string", description: ts("scope_option_subsystem") },
+    { name: "exclude", type: "string", description: ts("scope_option_exclude") },
+    { name: "base", type: "string", description: ts("scope_option_base") },
+    { name: "target", type: "string", description: ts("scope_option_target") },
+    { name: "dirty", type: "string", description: ts("scope_option_dirty") },
+    { name: "baseline", type: "string", description: ts("scope_option_baseline") },
+    { name: "context-policy", type: "string", description: ts("scope_option_context_policy") },
+    { name: "context-max-files", type: "string", description: ts("scope_option_context_max_files") },
+    { name: "context-max-depth", type: "string", description: ts("scope_option_context_max_depth") },
+    { name: "context-max-bytes", type: "string", description: ts("scope_option_context_max_bytes") },
+    { name: "allow-context", type: "string", description: ts("scope_option_allow_context") },
+    { name: "purpose", type: "string", description: ts("scope_option_purpose") },
+    { name: "rigor", type: "string", description: ts("scope_option_rigor") },
+    { name: "budget-calls", type: "string", description: ts("scope_option_budget_calls") },
+    { name: "budget-tokens", type: "string", description: ts("scope_option_budget_tokens") },
   ],
   async run(ctx) {
     const usage = (code: string, key: string, params: Record<string, string> = {}): number => reportError(ctx, ctx.json, code, t(key, params), t(`${key}_fix`, params), EXIT_USAGE);
@@ -81,9 +174,12 @@ export const command: CommandModule = {
     const wsId = workspaceId(workspacePath);
     const base = { schemaVersion: 1 as const, status: "OK" as const, tool: "jgates", version: ctx.version, gate: "semantic" as const, workspace: { id: wsId, path: workspacePath } };
 
+    const scoped = scopeFlags(ctx);
+    if (!scoped.ok) return reportError(ctx, ctx.json, scoped.code, ts(scoped.key, scoped.params), ts("scope_cli_fix"), EXIT_USAGE);
+
     if (sub === "plan") {
       if (ctx.args[1] !== undefined) return usage("UNEXPECTED_ARGUMENT", "semantic_unexpected_argument", { name: ctx.args[1] });
-      const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null });
+      const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value });
       if (ctx.json) writeJson(ctx, { ...base, plan });
       else planText(ctx, plan);
       return 0;
@@ -138,7 +234,7 @@ export const command: CommandModule = {
     if (eventsFile !== undefined && !isDirectory(path.dirname(eventsFile))) return usage("BAD_EVENTS_PATH", "semantic_bad_events_path", { path: eventsFile });
     const runId = str(ctx, "run-id");
     if (runId !== undefined && !isSemanticRunId(runId)) return usage("BAD_RUN_ID", "semantic_bad_run_id", { runId });
-    const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null });
+    const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value });
     if (!plan.ready) {
       const code = plan.blockers[0]?.code ?? "SEMANTIC_NOT_READY";
       return reportError(ctx, ctx.json, code, plan.blockers.map((b) => b.message).join(" "), t("semantic_not_ready_fix"), EXIT_USAGE);
