@@ -37,6 +37,8 @@ One row per folder (and relevant subfolder) of this repository. Keep it portable
 - `docs/jgates/security.en.md`
 - `docs/jgates/security.pt-BR.md`
 - `docs/jgates/semantic-gate.en.md`
+- `docs/jgates/semantic-mascots.en.md`
+- `docs/jgates/semantic-mascots.pt-BR.md`
 - `docs/jgates/semantic-gate.pt-BR.md`
 - `docs/jgates/templates-and-profiles.en.md`
 - `docs/jgates/templates-and-profiles.pt-BR.md`
