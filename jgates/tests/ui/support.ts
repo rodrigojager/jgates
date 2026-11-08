@@ -128,3 +128,165 @@ export function tomlSection(text: string, header: string): string {
   const next = rest.search(/^\[/m);
   return text.slice(start, next < 0 ? undefined : start + header.length + next);
 }
+
+// ---- Gate-flow fixture (Quality + Semantic) -----------------------------------------------------------------------------
+// A Git workspace whose Quality gate is one controllable generic-command check (the check.mjs of the V2 sequence cases:
+// its mode file decides pass / fail / hang) and whose Semantic provider is the scripted mock of semantic-gate. Nothing
+// here spends model tokens: the mock answers from a JSON tool script, and the "hanging" reviewer is a local command.
+
+const CHECK = path.join(REPO, "tests", "v2", "fixtures", "sequence", "check.mjs");
+/** Every file of the fixture: the subjects of a whole-repository Semantic review. */
+export const GATE_FILES = [".jgates/profiles.yml", ".jgates/templates/seq.yml", "evidence.schema.json", "jgates.yml", "src/core/a.js", "src/other/b.js"];
+const DIMENSIONS = ["functional-correctness", "tests", "maintainability", "architecture", "performance-reliability", "security"];
+
+function reviewerScript(subjects: string[]) {
+  const read = { toolCalls: subjects.map((p) => ({ name: "read_file", arguments: { path: p } })) };
+  const plan = { summary: "Fixture modules and their configuration.", dimensions: DIMENSIONS.map((id) => ({ id, files: subjects, hypotheses: [`${id}: nothing suspicious in the fixture`] })) };
+  const hunt = { summary: "Every dimension examined; nothing to report.", dimensions: DIMENSIONS.map((id) => ({ id, state: "examined", reviewed_paths: subjects, checks: [`checked ${id}`] })), candidates: [], gaps: [] };
+  const answer = (value: unknown) => ({ text: JSON.stringify(value), usage: { inputTokens: 100, outputTokens: 50 } });
+  return { contexts: { "evidence-planning": [read, answer(plan)], hunting: [read, answer(hunt)] } };
+}
+
+export interface GateFixture {
+  dir: string;
+  home: string;
+  store: string;
+  env: NodeJS.ProcessEnv;
+  cleanup(): void;
+  /** The mode of the Quality check. */
+  setMode(mode: "pass" | "fail" | "hang"): void;
+  /** True once the hanging Quality check or the hanging reviewer started. */
+  qualityStarted(): boolean;
+  reviewerStarted(): boolean;
+  /** The files the scripted reviewer reads and examines (default: every file). */
+  setReviewSubjects(paths: string[]): void;
+  /** Replaces the scripted reviewer by a local command that starts and then never answers (for cancellation). */
+  useHangingReviewer(): void;
+  /** Names of the run folders under <home>/workspaces/<id>/<kind>. */
+  runFolders(kind: "runs" | "semantic-runs" | "sequences"): string[];
+  /** Provider calls recorded by the Semantic runs (0 means the model was never invoked). */
+  providerCalls(): number;
+  git(...args: string[]): string;
+  write(rel: string, text: string): void;
+}
+
+export function createGateFixture(): GateFixture {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-gates-ws-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-gates-home-"));
+  const aux = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-gates-aux-"));
+  const store = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-gates-store-"));
+  const modeFile = path.join(aux, "mode.txt");
+  const script = path.join(aux, "reviewer-script.json");
+  const hangFlag = path.join(aux, "reviewer-started.txt");
+  const hangScript = path.join(aux, "hang-reviewer.mjs");
+  const write = (rel: string, text: string) => {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), text);
+  };
+  const yamlList = (values: string[]) => `[${values.map((v) => JSON.stringify(v)).join(", ")}]`;
+  const rootConfig = (provider: string[]) =>
+    ["schemaVersion: 1", "selection:", "  profile: seq", "templates:", "  - id: seq", "    source: .jgates/templates/seq.yml", "    activation: always", "extensions:", "  semantic-gate:", ...provider.map((l) => `    ${l}`), "    timeoutSeconds: 120", ""].join("\n");
+  write("jgates.yml", rootConfig(["provider: mock", "model: scripted-model"]));
+  write(
+    ".jgates/templates/seq.yml",
+    [
+      "schemaVersion: 1",
+      "id: seq",
+      "config:",
+      "  execution:",
+      "    timeoutSeconds: 120",
+      "  tools:",
+      "    seq-check:",
+      "      adapter: generic-command",
+      "      enabled: true",
+      "      capabilities: [lint]",
+      `      command: ${JSON.stringify(process.execPath)}`,
+      `      args: ${yamlList([CHECK, "{outputDir}", modeFile, "{workspace}"])}`,
+      "      config:",
+      "        effects: { readsCode: true, writesOutputs: true, mayChangeCode: false, executesProjectCode: true, usesNetwork: false }",
+      "        evidence: { kind: json-file, file: evidence.json, schema: evidence.schema.json }",
+      "",
+    ].join("\n"),
+  );
+  write(".jgates/profiles.yml", ["schemaVersion: 1", "profiles:", "  seq:", "    label: Sequence", "    checks:", '      "capability:lint": { enabled: true }', '      "tool:quality-bridge": { enabled: false }', ""].join("\n"));
+  write("evidence.schema.json", JSON.stringify({ type: "object", required: ["ok"], properties: { ok: { const: true } } }));
+  write("src/core/a.js", "exports.a = () => 1;\n");
+  write("src/other/b.js", "exports.b = () => 2;\n");
+  fs.writeFileSync(modeFile, "pass");
+  fs.writeFileSync(script, JSON.stringify(reviewerScript(GATE_FILES)));
+  fs.writeFileSync(hangScript, `import fs from "node:fs";\nfs.writeFileSync(${JSON.stringify(hangFlag)}, String(process.pid));\nsetInterval(() => {}, 1000);\n`);
+
+  const git = (...args: string[]): string => {
+    const r = spawnSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", ...args], { cwd: dir, encoding: "utf8" });
+    if (r.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${r.stderr}`);
+    return r.stdout.trim();
+  };
+  git("init", "-q", "-b", "main");
+  git("add", "-A");
+  git("commit", "-q", "-m", "fixture");
+
+  // The real PATH stays (the Quality check and git need it); keys of the machine never reach the server.
+  const env: NodeJS.ProcessEnv = { ...process.env, JGATES_HOME: home, SEMANTIC_GATE_HOME: store, JGATES_NO_CACHE: "1", NO_COLOR: "1", SEMANTIC_GATE_MOCK_TOOL_SCRIPT: script };
+  for (const name of Object.keys(env)) if (/_API_KEY$|^SEMANTIC_GATE_(?!HOME$|MOCK_TOOL_SCRIPT$)/.test(name)) delete env[name];
+
+  const workspaces = path.join(home, "workspaces");
+  const folders = (kind: string): string[] => {
+    if (!fs.existsSync(workspaces)) return [];
+    return fs.readdirSync(workspaces).flatMap((ws) => {
+      const d = path.join(workspaces, ws, kind);
+      return fs.existsSync(d) ? fs.readdirSync(d).filter((n) => fs.statSync(path.join(d, n)).isDirectory()) : [];
+    });
+  };
+  return {
+    dir,
+    home,
+    store,
+    env,
+    write,
+    git,
+    setMode: (mode) => fs.writeFileSync(modeFile, mode),
+    qualityStarted: () => fs.existsSync(`${modeFile}.started`),
+    reviewerStarted: () => fs.existsSync(hangFlag),
+    setReviewSubjects: (paths) => fs.writeFileSync(script, JSON.stringify(reviewerScript(paths))),
+    useHangingReviewer() {
+      write("jgates.yml", rootConfig(["provider: command", `command: ${JSON.stringify(process.execPath)}`, `commandArgs: ${yamlList([hangScript])}`, "commandPromptMode: stdin"]));
+    },
+    runFolders: folders,
+    providerCalls() {
+      let total = 0;
+      if (!fs.existsSync(workspaces)) return 0;
+      for (const ws of fs.readdirSync(workspaces)) {
+        const d = path.join(workspaces, ws, "semantic-runs");
+        if (!fs.existsSync(d)) continue;
+        for (const run of fs.readdirSync(d)) {
+          try {
+            total += Number(JSON.parse(fs.readFileSync(path.join(d, run, "result.json"), "utf8")).semanticRun?.outcome?.calls ?? 0);
+          } catch {
+            total += 1; // A run without a readable result cannot prove it made no call.
+          }
+        }
+      }
+      return total;
+    },
+    cleanup() {
+      for (const d of [dir, home, aux, store]) fs.rmSync(d, { recursive: true, force: true });
+    },
+  };
+}
+
+/** A started server for a gate fixture (the fixture is not a `Fixture`: it keeps the real PATH). */
+export function startGateServer(fixture: GateFixture): Promise<UiServer> {
+  return startServer({ ...fixture, pyproject: "" } as unknown as Fixture);
+}
+
+/** Opens the application through the bootstrap link and returns the base URL without the hash. */
+export async function openApp(page: import("@playwright/test").Page, server: UiServer): Promise<string> {
+  await page.goto(server.bootstrapUrl);
+  await page.waitForURL((u) => !u.pathname.startsWith("/session"));
+  return page.url().split("#")[0] as string;
+}
+
+/** GET of a server route from the page (same origin, with the session cookie). */
+export async function pageGet<T = any>(page: import("@playwright/test").Page, route: string): Promise<T> {
+  return page.evaluate(async (r) => (await fetch(r, { headers: { accept: "application/json" } })).json(), route) as Promise<T>;
+}

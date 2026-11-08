@@ -18,7 +18,7 @@ export default function SemanticResultsScreen({ params }: { params: Record<strin
         <div className="crumbs">
           <a href="#/semantic">{t("semres_back")}</a>
         </div>
-        <h1>{t("semres_title", { runId: id })}</h1>
+        <h1 style={{ overflowWrap: "anywhere" }}>{t("semres_title", { runId: id })}</h1>
       </div>
       {loaded.loading && !loaded.data ? <Loading /> : null}
       {notFound ? <p>{t("semres_not_found")}</p> : loaded.error ? <ErrorNotice error={loaded.error} onRetry={loaded.reload} /> : null}

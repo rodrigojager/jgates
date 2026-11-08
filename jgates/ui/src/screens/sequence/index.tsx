@@ -80,6 +80,7 @@ export default function SequenceScreen({ params }: { params: Record<string, stri
     setSemanticMascots(null);
     setError(null);
     setNotFound(false);
+    let missing = 0;
     async function follow() {
       for (;;) {
         try {
@@ -90,14 +91,16 @@ export default function SequenceScreen({ params }: { params: Record<string, stri
           const m = await api<{ semantic: { mascots: SemanticMascotSnapshot } | null }>("GET", `/api/sequences/${encodeURIComponent(id)}/mascots`, undefined, abort.signal).catch(() => null);
           if (stopped) return;
           setSemanticMascots(m?.semantic?.mascots ?? null);
-          if (r.sequence.lifecycle !== "running") return;
+          // A sequence waiting for the user's advance keeps being followed: the advance starts Semantic from another request.
+          if (r.sequence.lifecycle !== "running" && r.sequence.lifecycle !== "waiting") return;
         } catch (e) {
           if (stopped) return;
-          if (e instanceof ApiError && e.status === 404) {
+          // A sequence that was just created may not be on disk yet: only a repeated 404 means it does not exist.
+          if (e instanceof ApiError && e.status === 404 && ++missing > 5) {
             setNotFound(true);
             return;
           }
-          if (e instanceof ApiError) {
+          if (e instanceof ApiError && e.status !== 404) {
             setError(e);
             return;
           }
@@ -117,7 +120,7 @@ export default function SequenceScreen({ params }: { params: Record<string, stri
     setBusy(true);
     setActionError(null);
     try {
-      await api("POST", `/api/sequences/${encodeURIComponent(id)}/${path}`, {});
+      await api("POST", `/api/sequences/${encodeURIComponent(id)}/${path}`);
       setVersion((n) => n + 1);
     } catch (e) {
       setActionError(e);
@@ -137,7 +140,8 @@ export default function SequenceScreen({ params }: { params: Record<string, stri
       </div>
     );
   }
-  if (!sequence) return error ? <ErrorNotice error={error} onRetry={() => setVersion((n) => n + 1)} /> : <Loading />;
+  // A sequence whose process has not written its record yet (the server answers `record: null`) is still starting.
+  if (!sequence || !sequence.record) return error ? <ErrorNotice error={error} onRetry={() => setVersion((n) => n + 1)} /> : <Loading />;
 
   const quality = gateState(sequence, "quality");
   const semantic = gateState(sequence, "semantic");
