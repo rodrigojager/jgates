@@ -53,6 +53,8 @@
   "capability_performance_description": "Performance budgets and regressions.",
   "capability_iac_label": "Infrastructure as code",
   "capability_iac_description": "Misconfigurations in Terraform, Kubernetes and similar.",
+  "capability_dataflow_label": "Dataflow",
+  "capability_dataflow_description": "Cross-file, interprocedural dataflow analysis: paths from untrusted input to dangerous operations.",
   "capability_ci-cd_label": "CI/CD security",
   "capability_ci-cd_description": "Misconfigurations and injections in CI/CD pipelines, such as GitHub Actions workflows.",
   "capability_file-size_label": "File size",

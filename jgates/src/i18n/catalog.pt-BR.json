@@ -53,6 +53,8 @@
   "capability_performance_description": "Orçamentos e regressões de desempenho.",
   "capability_iac_label": "Infraestrutura como código",
   "capability_iac_description": "Más configurações em Terraform, Kubernetes e similares.",
+  "capability_dataflow_label": "Fluxo de dados",
+  "capability_dataflow_description": "Análise de fluxo de dados entre arquivos e funções: caminhos de entrada não confiável até operações perigosas.",
   "capability_ci-cd_label": "Segurança de CI/CD",
   "capability_ci-cd_description": "Más configurações e injeções em pipelines de CI/CD, como os workflows do GitHub Actions.",
   "capability_file-size_label": "Tamanho de arquivo",

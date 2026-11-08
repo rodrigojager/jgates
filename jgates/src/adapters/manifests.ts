@@ -16,6 +16,7 @@ import { checkovManifest } from "./checkov/manifest.js";
 import { jscpdManifest } from "./jscpd/manifest.js";
 import { zizmorManifest } from "./zizmor/manifest.js";
 import { oasdiffManifest } from "./oasdiff/manifest.js";
+import { codeqlManifest } from "./codeql/manifest.js";
 import { buildCheckManifest } from "./build-check/manifest.js";
 
 /**
@@ -25,5 +26,5 @@ import { buildCheckManifest } from "./build-check/manifest.js";
  * binding) is unchanged.
  */
 export function builtinManifests(): AdapterManifest[] {
-  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, buildCheckManifest];
+  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest];
 }

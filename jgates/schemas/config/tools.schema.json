@@ -98,6 +98,19 @@
             "description": "oasdiff: the lowest level of change that blocks (ERR: breaking; WARN: also potentially breaking).",
             "enum": ["ERR", "WARN"]
           },
+          "language": {
+            "description": "codeql: the language of the database the instance creates (required; python, javascript-typescript, java-kotlin, go, csharp, ruby, swift, rust, c-cpp, actions).",
+            "enum": ["python", "javascript-typescript", "java-kotlin", "go", "csharp", "ruby", "swift", "rust", "c-cpp", "actions"]
+          },
+          "suite": {
+            "description": "codeql: the query suite to run (default: security-extended).",
+            "enum": ["code-scanning", "security-extended", "security-and-quality"]
+          },
+          "buildCommand": {
+            "description": "codeql: the command that builds the project for a compiled language (default: CodeQL's autobuild).",
+            "type": "string",
+            "minLength": 1
+          },
           "checker": {
             "description": "build-check: which compiler or type checker the instance runs (tsc, mypy, pyright, go, cargo, dotnet). It checks every unit of its stack that carries the project's configuration for it.",
             "enum": ["tsc", "mypy", "pyright", "go", "cargo", "dotnet"]

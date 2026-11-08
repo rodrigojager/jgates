@@ -10,6 +10,7 @@ import { probePytest } from "../../adapters/pytest/probe.js";
 import { probeRuff } from "../../adapters/ruff/probe.js";
 import { probeSemgrep } from "../../adapters/semgrep/probe.js";
 import { probeZizmor } from "../../adapters/zizmor/probe.js";
+import { probeCodeql } from "../../adapters/codeql/probe.js";
 import { probeOasdiff } from "../../adapters/oasdiff/probe.js";
 import { findOnPath, resolvePython, resolveSidecarDir } from "../bridge/index.js";
 import { probeEnv } from "../runner/probe-env.js";
@@ -121,6 +122,7 @@ function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, project
   if (manifest.id === "semgrep") return probeSemgrep(env);
   if (manifest.id === "zizmor") return probeZizmor(env);
   if (manifest.id === "oasdiff") return probeOasdiff(env);
+  if (manifest.id === "codeql") return probeCodeql(env);
   if (manifest.id === "import-linter") {
     const p = probeImportLinter(env);
     return { executable: p.executable, version: p.version, problem: p.problem, detail: p.detail };
@@ -154,6 +156,7 @@ function fixFor(manifest: AdapterManifest): string | null {
   if (manifest.id === "pytest") return translator("prepare")("prepare_fix_pytest");
   // A customer-supplied binary: the guidance names the official release and where JGates looks for it.
   if (manifest.id === "oasdiff") return translator("oasdiff")("oasdiff_fix");
+  if (manifest.id === "codeql") return translator("codeql")("codeql_fix");
   return null;
 }
 

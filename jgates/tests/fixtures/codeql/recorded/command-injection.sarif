@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "CodeQL",
+          "organization": "GitHub",
+          "semanticVersion": "2.18.4",
+          "notifications": [
+            {
+              "id": "py/diagnostics/successfully-extracted-files",
+              "name": "py/diagnostics/successfully-extracted-files",
+              "shortDescription": { "text": "Extracted files" },
+              "fullDescription": { "text": "Files extracted successfully." },
+              "defaultConfiguration": { "enabled": true },
+              "properties": { "tags": ["successfully-extracted-files"], "description": "Files extracted successfully.", "id": "py/diagnostics/successfully-extracted-files", "kind": "diagnostic", "name": "Extracted files" }
+            }
+          ],
+          "rules": [
+            {
+              "id": "py/command-line-injection",
+              "name": "py/command-line-injection",
+              "shortDescription": { "text": "Uncontrolled command line" },
+              "fullDescription": { "text": "Using externally controlled strings in a command line may allow a malicious user to change the meaning of the command." },
+              "defaultConfiguration": { "level": "error" },
+              "help": {
+                "text": "# Uncontrolled command line\nCode that passes user input directly to `exec`, `eval`, or some other library routine that executes a command, allows the user to execute malicious code.\n\n\n## Recommendation\nIf possible, use hard-coded string literals to specify the command to run or the library to load. Instead of passing the user input directly to the process or library function, examine the input and then choose among hard-coded string literals.\n\nIf the applicable libraries or commands cannot be determined at compile time, then add code to verify that the user input string is safe before using it.\n",
+                "markdown": "# Uncontrolled command line\nCode that passes user input directly to `exec`, `eval`, or some other library routine that executes a command, allows the user to execute malicious code.\n\n\n## Recommendation\nIf possible, use hard-coded string literals to specify the command to run or the library to load. Instead of passing the user input directly to the process or library function, examine the input and then choose among hard-coded string literals.\n\nIf the applicable libraries or commands cannot be determined at compile time, then add code to verify that the user input string is safe before using it.\n"
+              },
+              "properties": {
+                "tags": ["correctness", "security", "external/cwe/cwe-078", "external/cwe/cwe-088"],
+                "description": "Using externally controlled strings in a command line may allow a malicious user to change the meaning of the command.",
+                "id": "py/command-line-injection",
+                "kind": "path-problem",
+                "name": "Uncontrolled command line",
+                "precision": "high",
+                "problem.severity": "error",
+                "security-severity": "9.8"
+              }
+            }
+          ]
+        }
+      },
+      "artifacts": [{ "location": { "uri": "app.py", "uriBaseId": "%SRCROOT%", "index": 0 } }],
+      "results": [
+        {
+          "ruleId": "py/command-line-injection",
+          "ruleIndex": 0,
+          "rule": { "id": "py/command-line-injection", "index": 0 },
+          "message": { "text": "This command line depends on a [user-provided value](1)." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "app.py", "uriBaseId": "%SRCROOT%", "index": 0 },
+                "region": { "startLine": 10, "startColumn": 15, "endColumn": 36 }
+              }
+            }
+          ],
+          "partialFingerprints": { "primaryLocationLineHash": "5d1f2c0a8e3b7c41:1", "primaryLocationStartColumnFingerprint": "10" },
+          "codeFlows": [
+            {
+              "threadFlows": [
+                {
+                  "locations": [
+                    { "location": { "physicalLocation": { "artifactLocation": { "uri": "app.py", "uriBaseId": "%SRCROOT%", "index": 0 }, "region": { "startLine": 2, "startColumn": 26, "endColumn": 33 } }, "message": { "text": "ControlFlowNode for ImportMember" } } },
+                    { "location": { "physicalLocation": { "artifactLocation": { "uri": "app.py", "uriBaseId": "%SRCROOT%", "index": 0 }, "region": { "startLine": 9, "startColumn": 12, "endColumn": 19 } }, "message": { "text": "ControlFlowNode for request" } } },
+                    { "location": { "physicalLocation": { "artifactLocation": { "uri": "app.py", "uriBaseId": "%SRCROOT%", "index": 0 }, "region": { "startLine": 9, "startColumn": 12, "endColumn": 56 } }, "message": { "text": "ControlFlowNode for host" } } },
+                    { "location": { "physicalLocation": { "artifactLocation": { "uri": "app.py", "uriBaseId": "%SRCROOT%", "index": 0 }, "region": { "startLine": 10, "startColumn": 15, "endColumn": 36 } }, "message": { "text": "ControlFlowNode for BinaryExpr" } } }
+                  ]
+                }
+              ]
+            }
+          ],
+          "relatedLocations": [
+            { "id": 1, "physicalLocation": { "artifactLocation": { "uri": "app.py", "uriBaseId": "%SRCROOT%", "index": 0 }, "region": { "startLine": 2, "startColumn": 26, "endColumn": 33 } }, "message": { "text": "user-provided value" } }
+          ]
+        }
+      ],
+      "columnKind": "utf16CodeUnits",
+      "properties": { "semmle.formatSpecifier": "sarif-latest" }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "codeql_label": "CodeQL (dataflow, customer-supplied)",
+  "codeql_missing": "Setup required: CodeQL CLI is not available ({detail}). Tool: CodeQL CLI; supported versions: {range}. CodeQL is customer-supplied (its terms restrict use to public repositories and licensed organizational private use), so JGates never installs, downloads or bundles it, and no CodeQL coverage is claimed until it is set up. Download: {download}. Setup guide: {docs}. Then put codeql on the PATH or in <JGATES_HOME>/tools/bin, or set JGATES_CODEQL to the executable, and run doctor again.",
+  "codeql_probe_failed": "The CodeQL executable at {path} did not answer `codeql version`. Supported versions: {range}. Reinstall it from https://github.com/github/codeql-action/releases.",
+  "codeql_blocked": "CodeQL could not run: {detail}",
+  "codeql_exit_error": "CodeQL {step} ended with code {code}: {detail}",
+  "codeql_timeout": "CodeQL exceeded the limit of {seconds} s and was ended.",
+  "codeql_cancelled": "The run was cancelled; CodeQL was stopped and its partial output was kept in the logs.",
+  "codeql_invalid_output": "The CodeQL output is not the expected SARIF 2.1.0 of a CodeQL analysis: {detail}",
+  "codeql_no_invocation": "The plan has no CodeQL invocation for the instance {tool}.",
+  "codeql_reason_completed": "CodeQL {version}: {count} finding(s)",
+  "codeql_limitation_customer": "CodeQL is customer-supplied: without the CLI, its query packs and an entitlement under the CodeQL terms the stage is blocked with setup guidance, never passed.",
+  "codeql_condition_scope": "Database of the language {language}, query suite {suite}; query packs are not downloaded.",
+  "codeql_condition_build": "The database build runs the command: {command}",
+  "codeql_condition_autobuild": "Compiled languages are built by CodeQL itself (autobuild); interpreted languages need no build.",
+  "codeql_condition_license": "Use is subject to the CodeQL terms: public repositories or a licensed organizational private use that the customer holds.",
+  "codeql_setting_language_required": "The instance {tool} must set language; use one of: {allowed}.",
+  "codeql_setting_language": "The language of the instance {tool} is {value}; use one of: {allowed}.",
+  "codeql_setting_suite": "The suite of the instance {tool} is {value}; use one of: {allowed}.",
+  "codeql_setting_build_command": "The buildCommand of the instance {tool} must be a single-line command.",
+  "codeql_fix": "CodeQL is supplied by you: download the CodeQL CLI bundle from https://github.com/github/codeql-action/releases (setup: https://docs.github.com/en/code-security/codeql-cli), check that your use is covered by the CodeQL terms, put codeql on the PATH or in <JGATES_HOME>/tools/bin, or set JGATES_CODEQL, then run doctor again."
+}

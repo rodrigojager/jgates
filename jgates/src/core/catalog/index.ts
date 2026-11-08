@@ -252,6 +252,7 @@ export const CORE_CAPABILITIES: CatalogEntry[] = [
   cap("secrets-history", "security", "Segredos no histórico Git", "Procura credenciais e chaves nos commits do histórico Git, não só na árvore atual."),
   cap("pii", "security", "Dados pessoais", "Procura dados pessoais em código e dados."),
   cap("sast", "security", "SAST", "Análise estática de segurança do código."),
+  cap("dataflow", "security", "Fluxo de dados", "Análise de fluxo de dados entre arquivos e funções para achar caminhos de entrada não confiável até operações perigosas."),
   cap("dependencies", "dependencies", "Dependências", "Vulnerabilidades conhecidas em dependências."),
   cap("licenses", "dependencies", "Licenças", "Licenças das dependências e do código distribuído."),
   cap("unit", "tests", "Testes unitários", "Executa os testes unitários."),

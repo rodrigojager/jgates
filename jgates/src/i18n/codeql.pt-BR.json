@@ -1,0 +1,22 @@
+{
+  "codeql_label": "CodeQL (fluxo de dados, fornecido pelo cliente)",
+  "codeql_missing": "Configuração necessária: o CodeQL CLI não está disponível ({detail}). Ferramenta: CodeQL CLI; versões suportadas: {range}. O CodeQL é fornecido pelo cliente (os termos restringem o uso a repositórios públicos e ao uso privado organizacional licenciado); por isso o JGates nunca o instala, baixa nem embute, e nenhuma cobertura do CodeQL é declarada até a configuração. Download: {download}. Guia de configuração: {docs}. Depois coloque o codeql no PATH ou em <JGATES_HOME>/tools/bin, ou defina JGATES_CODEQL com o executável, e rode o doctor de novo.",
+  "codeql_probe_failed": "O executável do CodeQL em {path} não respondeu a `codeql version`. Versões suportadas: {range}. Reinstale em https://github.com/github/codeql-action/releases.",
+  "codeql_blocked": "O CodeQL não pôde rodar: {detail}",
+  "codeql_exit_error": "O CodeQL ({step}) terminou com o código {code}: {detail}",
+  "codeql_timeout": "O CodeQL excedeu o limite de {seconds} s e foi encerrado.",
+  "codeql_cancelled": "A execução foi cancelada; o CodeQL foi interrompido e a saída parcial ficou nos logs.",
+  "codeql_invalid_output": "A saída do CodeQL não é o SARIF 2.1.0 esperado de uma análise do CodeQL: {detail}",
+  "codeql_no_invocation": "O plano não tem invocação do CodeQL para a instância {tool}.",
+  "codeql_reason_completed": "CodeQL {version}: {count} achado(s)",
+  "codeql_limitation_customer": "O CodeQL é fornecido pelo cliente: sem o CLI, os pacotes de consultas e um direito de uso pelos termos do CodeQL, a etapa fica bloqueada com orientação de configuração, nunca aprovada.",
+  "codeql_condition_scope": "Banco de dados da linguagem {language}, suíte de consultas {suite}; os pacotes de consultas não são baixados.",
+  "codeql_condition_build": "A construção do banco roda o comando: {command}",
+  "codeql_condition_autobuild": "Linguagens compiladas são construídas pelo próprio CodeQL (autobuild); linguagens interpretadas não precisam de build.",
+  "codeql_condition_license": "O uso está sujeito aos termos do CodeQL: repositórios públicos ou uso privado organizacional licenciado que o cliente possui.",
+  "codeql_setting_language_required": "A instância {tool} precisa definir language; use um de: {allowed}.",
+  "codeql_setting_language": "A linguagem da instância {tool} é {value}; use um de: {allowed}.",
+  "codeql_setting_suite": "A suíte da instância {tool} é {value}; use um de: {allowed}.",
+  "codeql_setting_build_command": "O buildCommand da instância {tool} deve ser um comando de uma linha.",
+  "codeql_fix": "O CodeQL é fornecido por você: baixe o bundle do CodeQL CLI em https://github.com/github/codeql-action/releases (configuração: https://docs.github.com/en/code-security/codeql-cli), confirme que seu uso é coberto pelos termos do CodeQL, coloque o codeql no PATH ou em <JGATES_HOME>/tools/bin, ou defina JGATES_CODEQL, e rode o doctor de novo."
+}

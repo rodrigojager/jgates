@@ -195,6 +195,16 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     },
     external: { en: "oasdiff 1.10+ (customer-supplied binary: release, go install or package manager)", ptBR: "oasdiff 1.10+ (binário fornecido pelo cliente: release, go install ou gerenciador de pacotes)" },
   },
+  codeql: {
+    capabilities: {
+      dataflow: proven(["any"], t("adapter-codeql.test.js", "codeql: a CodeQL SARIF with a path-problem is a normalized dataflow finding and a clean one none [proves: codeql#dataflow]")),
+    },
+    limitation: {
+      en: "Customer-supplied: the CodeQL CLI, its query packs and the entitlement under the CodeQL terms are the customer's; without them the stage is blocked with setup guidance, never passed. Every CodeQL row is customer-setup-required (no real CodeQL runs in JGates tests).",
+      ptBR: "Fornecido pelo cliente: o CodeQL CLI, os pacotes de consultas e o direito de uso pelos termos do CodeQL são do cliente; sem eles a etapa fica bloqueada com orientação de configuração, nunca aprovada. Toda linha do CodeQL é exige-configuração-do-cliente (nenhum CodeQL real roda nos testes do JGates).",
+    },
+    external: { en: "CodeQL CLI 2.15+ (customer-supplied; never installed by JGates)", ptBR: "CodeQL CLI 2.15+ (fornecido pelo cliente; nunca instalado pelo JGates)" },
+  },
   "build-check": {
     capabilities: {
       typecheck: {
