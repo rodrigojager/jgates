@@ -177,6 +177,62 @@ test("Semantic only: a full run with no Quality history is followed, finishes, a
   });
 });
 
+test("methods are the only choice: General review is checked by default, none selected is an error, only Security audit shows its own label", async ({ page }) => {
+  test.setTimeout(300_000);
+  await withGates(
+    page,
+    async ({ base }) => {
+      // The setup has no purpose control; the methods are checkboxes with the general review checked.
+      await page.goto(`${base}#/semantic/setup`);
+      await page.getByRole("button", { name: "Avançar" }).click();
+      const methods = page.getByTestId("semcfg-methods");
+      await expect(methods).toBeVisible();
+      await expect(page.getByText("Propósito", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("Módulos para este propósito")).toHaveCount(0);
+      await expect(methods.locator('[data-method="general-review"] input')).toBeChecked();
+      await expect(methods.locator('[data-method="security-audit"] input')).not.toBeChecked();
+
+      // None selected: an inline error and no way forward.
+      await methods.locator('[data-method="general-review"] input').uncheck();
+      await expect(page.getByTestId("semcfg-methods-error")).toContainText("Escolha ao menos um método");
+      await expect(page.getByTestId("semsetup-show-preview")).toBeDisabled();
+      const problems = await serious(page, "setup, no method");
+
+      // The configuration screen says the same and refuses to keep an empty selection.
+      await page.goto(`${base}#/semantic/config`);
+      await expect(page.getByTestId("semcfg-methods")).toBeVisible();
+      await expect(page.getByText("Propósito", { exact: true })).toHaveCount(0);
+      await page.getByTestId("semcfg-methods").locator('[data-method="general-review"] input').uncheck();
+      await expect(page.getByTestId("semcfg-methods-error")).toBeVisible();
+      await expect(page.getByRole("button", { name: /Guardar|Manter/ }).first()).toBeDisabled();
+      for (const scheme of ["light", "dark"] as const) {
+        await page.emulateMedia({ colorScheme: scheme });
+        await page.evaluate((s) => document.documentElement.setAttribute("data-theme", s), scheme);
+        problems.push(...(await serious(page, `config, no method, ${scheme}`)));
+      }
+      expect(problems).toEqual([]);
+
+      // Only the Security audit: that is the one method of the run, and results and history say so.
+      await page.goto(`${base}#/semantic/setup`);
+      await page.getByRole("button", { name: "Avançar" }).click();
+      await page.getByTestId("semcfg-methods").locator('[data-method="security-audit"] input').check();
+      await page.getByTestId("semcfg-methods").locator('[data-method="general-review"] input').uncheck();
+      await page.getByTestId("semsetup-show-preview").click();
+      await expect(page.getByTestId("semsetup-methods").locator("[data-method]")).toHaveCount(1);
+      await expect(page.getByTestId("semsetup-methods").locator('[data-method="security-audit"]')).toBeVisible();
+      await page.getByTestId("semsetup-start").click();
+      await page.waitForURL(/#\/semantic\/runs\/sem_/);
+      const runId = decodeURIComponent(page.url().split("/runs/")[1] as string);
+      await expect(page.getByTestId("semantic-run-state")).not.toHaveAttribute("data-state", "running", { timeout: 180_000 });
+      await page.goto(`${base}#/semantic/results/${runId}`);
+      await expect(page.getByTestId("semres-methods")).toHaveText("Auditoria de segurança");
+      await expect(page.getByTestId("semantic-results")).not.toContainText("Revisão geral");
+      await page.goto(`${base}#/semantic`);
+      await expect(page.locator(`tr[data-run="${runId}"] [data-testid="semhist-methods"]`)).toHaveText("Auditoria de segurança");
+    },
+  );
+});
+
 test("cancelling a running Semantic review stops it, keeps partial evidence, and the AI mascots do not animate under reduced motion", async ({ page }) => {
   await withGates(
     page,

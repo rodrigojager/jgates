@@ -65,6 +65,7 @@
   "semsetup_applicability_error": "a verificação falhou",
   "semsetup_disposition_examine": "examinar agora",
   "semsetup_disposition_reused": "reaproveitado",
+  "semsetup_problem_methods": "Escolha ao menos um método.",
   "semsetup_problem_subjects": "Indique ao menos um caminho ou subsistema para um escopo selecionado.",
   "semsetup_problem_base": "Uma revisão incremental precisa de uma referência base.",
   "semsetup_problem_dirty": "Indique os caminhos não commitados a incluir, ou escolha outra opção.",

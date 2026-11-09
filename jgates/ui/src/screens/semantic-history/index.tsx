@@ -20,6 +20,7 @@ interface SemanticRunRow {
   provider: string | null;
   model: string | null;
   reviewState: string | null;
+  methods?: string[];
 }
 
 /** The Semantic history of the workspace: its own runs, apart from the Quality history. */
@@ -58,6 +59,7 @@ export default function SemanticHistoryScreen() {
             <thead>
               <tr>
                 <th scope="col">{t("semhist_col_run")}</th>
+                <th scope="col">{t("semhist_col_methods")}</th>
                 <th scope="col">{t("semhist_col_result")}</th>
                 <th scope="col">{t("semhist_col_backend")}</th>
                 <th scope="col">{t("semhist_col_actions")}</th>
@@ -74,6 +76,9 @@ export default function SemanticHistoryScreen() {
                       <a href={`#/semantic/runs/${encodeURIComponent(r.runId)}`}>{r.runId}</a>
                       <div className="small muted">{formatWhen(r.startedAt)}</div>
                     </th>
+                    <td className="small" data-testid="semhist-methods">
+                      {r.methods && r.methods.length > 0 ? r.methods.map((m) => tOr(`semres_method_${m}`, m)).join(", ") : "-"}
+                    </td>
                     <td>
                       <div className="row wrap" style={{ gap: 6 }}>
                         <Pill tone={running ? "blue" : interrupted ? "gold" : (DECISION_TONE[r.decision ?? ""] ?? "blue")}>{label}</Pill>

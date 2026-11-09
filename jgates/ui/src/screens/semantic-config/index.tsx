@@ -14,7 +14,7 @@ export const screen: ScreenMeta = { id: "semantic-config", path: "/semantic/conf
 export default function SemanticConfigScreen() {
   const toast = useToast();
   const [choices, setChoices] = useState<RunChoices>(() => readChoices());
-  const options = useAsync(() => api<SemanticOptions>("GET", `/api/semantic/options?purpose=${encodeURIComponent(choices.purpose)}`), `semantic-options:${choices.purpose}`);
+  const options = useAsync(() => api<SemanticOptions>("GET", "/api/semantic/options"), "semantic-options");
   const data = options.data;
 
   function keep() {
@@ -59,11 +59,7 @@ export default function SemanticConfigScreen() {
               <dd>{data.settings.costPerCall !== null ? String(data.settings.costPerCall) : t("semres_usage_cost_unreported")}</dd>
               <dt>{t("semcfg_modules")}</dt>
               <dd data-testid="semcfg-modules">
-                {choices.methods.length > 0
-                  ? t("semcfg_modules_explicit", { methods: choices.methods.map((id) => methodLabel(data.catalog?.find((m) => m.id === id) ?? { id })).join(", ") })
-                  : data.methods.length > 0
-                    ? data.methods.map((m) => methodLabel(data.catalog?.find((c) => c.id === m.id) ?? m)).join(", ")
-                    : "-"}
+                {choices.methods.length > 0 ? choices.methods.map((id) => methodLabel(data.catalog?.find((m) => m.id === id) ?? { id })).join(", ") : "-"}
               </dd>
             </dl>
             {data.settings.problems.length > 0 ? (
@@ -96,7 +92,7 @@ export default function SemanticConfigScreen() {
             <p className="muted small">{t("semcfg_run_lead")}</p>
             <RunChoicesForm options={data} choices={choices} onChange={setChoices} />
             <div className="row wrap">
-              <button type="button" className="btn primary" onClick={keep}>
+              <button type="button" className="btn primary" onClick={keep} disabled={choices.methods.length === 0}>
                 <Icon name="check" />
                 {t("semcfg_keep")}
               </button>

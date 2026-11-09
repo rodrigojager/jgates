@@ -65,6 +65,7 @@
   "semsetup_applicability_error": "check failed",
   "semsetup_disposition_examine": "examine now",
   "semsetup_disposition_reused": "reused",
+  "semsetup_problem_methods": "Select at least one method.",
   "semsetup_problem_subjects": "Name at least one path or subsystem for a selected scope.",
   "semsetup_problem_base": "An incremental review needs a base reference.",
   "semsetup_problem_dirty": "Name the uncommitted paths to include, or choose another option.",

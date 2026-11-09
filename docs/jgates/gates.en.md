@@ -50,8 +50,8 @@ jgates run --gates quality,semantic --reuse-quality
 
 ```bash
 jgates semantic methods
-jgates semantic plan --purpose general-review --rigor standard
-jgates semantic run --scope selected --path <path> --purpose security --rigor deep
+jgates semantic plan --method general-review --rigor standard
+jgates semantic run --scope selected --path <path> --method security-audit --rigor deep
 jgates semantic status <run_id>
 jgates semantic history
 jgates semantic cancel <run_id>
@@ -77,13 +77,15 @@ silently widened.
 Without `--baseline`, inherited coverage is reported as `NO_BASELINE`. Scope completion is reported separately from
 repository coverage.
 
-### Context, purpose, rigor and budget
+### Context, methods, rigor and budget
 
 - Context: `--context-policy`, `--context-max-files`, `--context-max-depth`, `--context-max-bytes` and
   `--allow-context <path>` control how far the review may read beyond the subjects. Every refusal and expansion is
   recorded.
-- `--purpose general-review|security` picks the default method; `--method <id>` picks one explicitly (see
-  [the Semantic methods](semantic-methods.en.md)).
+- The methods are the only choice of what runs: `--method <id>[,<id>]` (see [the Semantic methods](semantic-methods.en.md)).
+  The screens offer them as checkboxes, General review checked by default, at least one required; each selected method
+  runs as its own review, in order. `--purpose general-review|security` is only a shortcut that selects that purpose's
+  methods (`--purpose security` is `--method security-audit`); when both are given, the methods win.
 - `--rigor quick|standard|deep` sets how much of the budget is reserved for validation before hunting.
 - `--budget-calls` and `--budget-tokens` cap the calls and tokens. A budget exhausted before the required validation
   makes the run incomplete, never favorable.

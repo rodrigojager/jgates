@@ -12,7 +12,6 @@ export interface SemanticReport {
   reviewState: string | null;
   reason: string | null;
   summary: string | null;
-  purpose: string | null;
   rigor: string | null;
   methods: string[];
   provider: string | null;
@@ -94,12 +93,10 @@ export function SemanticResultsView({ report }: { report: SemanticReport }) {
         {report.summary ? <p>{report.summary}</p> : null}
         {report.reason ? <p className="small muted">{report.reason}</p> : null}
         <dl className="kv">
-          <dt>{t("semres_purpose")}</dt>
-          <dd>{report.purpose ? tOr(`semres_purpose_${report.purpose}`, report.purpose) : "-"}</dd>
           <dt>{t("semres_rigor")}</dt>
           <dd>{report.rigor ? tOr(`semres_rigor_${report.rigor}`, report.rigor) : "-"}</dd>
           <dt>{t("semres_methods")}</dt>
-          <dd>{report.methods.length > 0 ? report.methods.join(", ") : "-"}</dd>
+          <dd data-testid="semres-methods">{report.methods.length > 0 ? report.methods.map((m) => tOr(`semres_method_${m}`, m)).join(", ") : "-"}</dd>
           <dt>{t("semres_backend")}</dt>
           <dd>{[report.provider, report.model].filter(Boolean).join(" · ") || "-"}</dd>
           <dt>{t("semres_mode")}</dt>

@@ -65,13 +65,14 @@ test("V2-31: the Semantic/AI area has its own screens and runs, and Quality masc
     const { MASCOT_DOMAINS } = await importDist("core", "mascots", "index.js");
 
     // Configuration and setup screens: options, then the impact/context preview (nothing started, nothing written).
-    const options = (await call("GET", "/api/semantic/options", { query: { purpose: "general-review" } })).json;
+    const options = (await call("GET", "/api/semantic/options", { query: {} })).json;
     assert.equal(options.settings.state, "configured");
     assert.equal(options.settings.provider, "mock");
-    assert.ok(options.methods.length > 0, "the purpose plans its modules");
+    assert.ok(options.methods.length > 0, "the default selection plans the general review");
+    assert.ok(options.catalog.some((m) => m.id === "general-review") && options.catalog.some((m) => m.id === "security-audit"), "the methods are the choices");
     assert.deepEqual(options.rigors.map((r) => r.id), ["quick", "standard", "deep"]);
     assert.ok(options.rigors.every((r) => r.reserve > 0 && r.reserve < 1), "each rigor has a validation reserve");
-    const choices = { purpose: "general-review", rigor: "quick", scope: { mode: "full", context: { policy: "strict" } } };
+    const choices = { methods: ["general-review"], rigor: "quick", scope: { mode: "full", context: { policy: "strict" } } };
     const preview = (await call("POST", "/api/semantic/scope/preview", { body: choices })).json;
     assert.equal(preview.ready, true, JSON.stringify(preview.blockers));
     assert.equal(preview.resolution.mode, "full");

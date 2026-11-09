@@ -107,8 +107,8 @@ export interface SemanticPlan {
   planHash: string;
   createdAt: string;
   workspace: { id: string; path: string };
-  /** What the run is for; it decides the methods, never the scope. */
-  purpose: SemanticPurpose;
+  /** The purpose shortcut that picked the methods (CLI --purpose / API purpose); null when methods were named, and for the UI. */
+  purpose: SemanticPurpose | null;
   /** Depth of the examination; independent of the scope. */
   rigor: SemanticRigor;
   /** Consumption limits asked for this run (null: the settings' limits apply); independent of the scope. */
@@ -253,7 +253,7 @@ export function buildSemanticPlan(request: SemanticPlanRequest): SemanticPlan {
   if (methodIds.length > MAX_SELECTED_METHODS) blockers.push({ code: "SEMANTIC_TOO_MANY_METHODS", message: t("semantic_blocker_too_many_methods", { count: methodIds.length, max: MAX_SELECTED_METHODS }) });
   for (const id of methodIds) {
     if (!catalog.some((m) => m.id === id) && !AVAILABLE_METHODS.has(id)) blockers.push({ code: "SEMANTIC_METHOD_UNKNOWN", message: t("semantic_blocker_method_unknown", { method: id, known: catalog.map((m) => m.id).join(", ") }) });
-    else if (!methodAvailable(id)) blockers.push({ code: "SEMANTIC_METHOD_UNAVAILABLE", message: ts("scope_plan_method_unavailable", { method: id, purpose }) });
+    else if (!methodAvailable(id)) blockers.push({ code: "SEMANTIC_METHOD_UNAVAILABLE", message: ts("scope_plan_method_unavailable", { method: id }) });
   }
   // The scope is resolved from the scope request alone: purpose, rigor and budget never enter it.
   const resolution = resolveSemanticScope({ workspacePath, request: request.scope ?? null, home, env, methods: methodIds });
@@ -268,14 +268,15 @@ export function buildSemanticPlan(request: SemanticPlanRequest): SemanticPlan {
   });
   const scope = { controls: scopeControls(purpose), resolution };
   // The hash covers what decides the run: the method IDs, never the applicability preview (the run checks it again).
-  const planHash = contentHash({ v: 2, gate: "semantic", workspace: workspacePath, methods: methodIds.map((id) => ({ id })), settings, quality: attached, purpose, rigor, budget, scopeHash: resolution.scopeHash });
+  // The purpose is only a shortcut for a method list, so it never enters the hash: `--purpose security` and `--method security-audit` plan the same run.
+  const planHash = contentHash({ v: 2, gate: "semantic", workspace: workspacePath, methods: methodIds.map((id) => ({ id })), settings, quality: attached, rigor, budget, scopeHash: resolution.scopeHash });
   return {
     schemaVersion: 1,
     gate: "semantic",
     planHash,
     createdAt: (request.now ?? (() => new Date()))().toISOString(),
     workspace: { id: wsId, path: workspacePath },
-    purpose,
+    purpose: methodSelection === "explicit" || !request.purpose ? null : purpose,
     rigor,
     budget,
     scope,

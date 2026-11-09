@@ -7,6 +7,7 @@
   "semhist_empty": "This workspace has no semantic review yet. Set one up to create the first.",
   "semhist_table": "Semantic reviews of the workspace",
   "semhist_col_run": "Review",
+  "semhist_col_methods": "Methods",
   "semhist_col_result": "Result",
   "semhist_col_backend": "Backend and model",
   "semhist_col_actions": "Actions",

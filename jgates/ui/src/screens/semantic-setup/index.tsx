@@ -23,7 +23,6 @@ interface Reason {
 
 /** POST /api/semantic/scope/preview: the plan a run with these choices would get, nothing started. */
 interface Preview {
-  purpose: string;
   methods?: Array<{ id: string; title: string; available: boolean; selectedBy: "purpose" | "explicit"; applicability: MethodApplicability }>;
   methodSelection?: "purpose" | "explicit";
   rigor: string;
@@ -253,7 +252,7 @@ export default function SemanticSetupScreen() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState<"preview" | "start" | null>(null);
   const [failure, setFailure] = useState<unknown>(null);
-  const options = useAsync(() => api<SemanticOptions>("GET", `/api/semantic/options?purpose=${encodeURIComponent(choices.purpose)}`), `semantic-options:${choices.purpose}`);
+  const options = useAsync(() => api<SemanticOptions>("GET", "/api/semantic/options"), "semantic-options");
   const problems = problemsOf(choices, scope);
 
   async function showPreview() {
@@ -312,11 +311,11 @@ export default function SemanticSetupScreen() {
       {options.loading && !options.data ? <Loading /> : null}
       {options.error ? <ErrorNotice error={options.error} onRetry={options.reload} /> : null}
       {failure ? <ErrorNotice error={failure} /> : null}
-      {problems.length > 0 && step !== "preview" ? (
+      {problems.filter((p) => !(step === "choices" && p === "semsetup_problem_methods")).length > 0 && step !== "preview" ? (
         <div className="notice warn" role="status">
           <Icon name="alert" />
           <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {problems.map((p) => (
+            {problems.filter((p) => !(step === "choices" && p === "semsetup_problem_methods")).map((p) => (
               <li key={p}>{t(p)}</li>
             ))}
           </ul>

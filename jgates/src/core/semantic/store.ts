@@ -67,6 +67,8 @@ export interface SemanticRunInfo {
   model: string | null;
   /** The review state of the outcome (completed, invalid, timeout...), when the run got that far. */
   reviewState: string | null;
+  /** The method IDs the run executed (a stored purpose is never shown). */
+  methods: string[];
   /** Milliseconds since epoch, for ordering: startedAt, else the folder's modification time. */
   time: number;
 }
@@ -114,6 +116,7 @@ function infoOf(workspaceId: string, runId: string, dir: string, mtimeMs: number
     provider: typeof outcome?.provider === "string" ? outcome.provider : null,
     model: typeof outcome?.model === "string" ? outcome.model : null,
     reviewState: typeof outcome?.state === "string" ? outcome.state : null,
+    methods: Array.isArray(result?.semanticRun?.methods) ? (result.semanticRun.methods as unknown[]).filter((m): m is string => typeof m === "string") : [],
     time: Number.isFinite(parsed) ? parsed : mtimeMs,
   };
 }

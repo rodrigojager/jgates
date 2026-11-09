@@ -7,16 +7,17 @@ jgates semantic methods
 jgates semantic plan --method general-review
 ```
 
-`--method <id>` picks one; `--purpose general-review` and `--purpose security` pick the default method for that purpose.
-A method that needs an input the run does not have (a patch, a lockfile) is reported `unavailable` with a reason code
+`--method <id>` picks one (several, comma-separated, each runs as its own review). The screens offer the same choice as
+checkboxes, General review checked by default. `--purpose general-review` and `--purpose security` remain as a shortcut
+for `--method general-review` and `--method security-audit`; with both, the methods win. A method that needs an input the run does not have (a patch, a lockfile) is reported `unavailable` with a reason code
 (`METHOD_NOT_APPLICABLE` and the method's own code), spends no model call and is never shown as favorable.
 
 ## The nine methods
 
-| Method | Purpose | What it does |
+| Method | Selected | What it does |
 | --- | --- | --- |
-| `general-review` | general | Six dimensions (correctness, tests, security, maintainability, architecture, performance): evidence planning, hunting and a challenge stage; the host decides what was examined and what is pending. |
-| `security-audit` | security | The Cloudflare security-audit baseline: reconnaissance, coverage planning, hunting, coverage critic, per-candidate refutation and verification. |
+| `general-review` | by default | Six dimensions (correctness, tests, security, maintainability, architecture, performance): evidence planning, hunting and a challenge stage; the host decides what was examined and what is pending. |
+| `security-audit` | on request | The Cloudflare security-audit baseline: reconnaissance, coverage planning, hunting, coverage critic, per-candidate refutation and verification. |
 | `differential-review` | on request | Reviews a change (an incremental scope) for what it breaks. Adapted from Trail of Bits. |
 | `variant-analysis` | on request | Starts from a known finding and looks for the same root cause elsewhere. Adapted from Trail of Bits. |
 | `insecure-defaults` | on request | Looks for fail-open and insecure default configurations. Adapted from Trail of Bits. |

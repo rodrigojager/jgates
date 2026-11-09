@@ -53,8 +53,8 @@ jgates run --gates quality,semantic --reuse-quality
 
 ```bash
 jgates semantic methods
-jgates semantic plan --purpose general-review --rigor standard
-jgates semantic run --scope selected --path <path> --purpose security --rigor deep
+jgates semantic plan --method general-review --rigor standard
+jgates semantic run --scope selected --path <path> --method security-audit --rigor deep
 jgates semantic status <run_id>
 jgates semantic history
 jgates semantic cancel <run_id>
@@ -80,12 +80,15 @@ silêncio.
 Sem `--baseline`, a cobertura herdada aparece como `NO_BASELINE`. A conclusão do escopo é informada separadamente da
 cobertura do repositório.
 
-### Contexto, propósito, rigor e orçamento
+### Contexto, métodos, rigor e orçamento
 
 - Contexto: `--context-policy`, `--context-max-files`, `--context-max-depth`, `--context-max-bytes` e
   `--allow-context <path>` controlam até onde a revisão pode ler além dos assuntos. Toda recusa e expansão é registrada.
-- `--purpose general-review|security` escolhe o método padrão; `--method <id>` escolhe um explicitamente (veja
-  [os métodos Semantic](semantic-methods.pt-BR.md)).
+- Os métodos são a única escolha do que roda: `--method <id>[,<id>]` (veja [os métodos Semantic](semantic-methods.pt-BR.md)).
+  As telas os oferecem como caixas de seleção, com Revisão geral marcada por padrão e ao menos um obrigatório; cada
+  método escolhido roda como sua própria revisão, em ordem. `--purpose general-review|security` é apenas um atalho que
+  seleciona os métodos desse propósito (`--purpose security` equivale a `--method security-audit`); com os dois, os
+  métodos vencem.
 - `--rigor quick|standard|deep` define quanto do orçamento é reservado à validação antes da caça.
 - `--budget-calls` e `--budget-tokens` limitam chamadas e tokens. Um orçamento esgotado antes da validação necessária
   deixa a execução incompleta, nunca favorável.

@@ -187,7 +187,7 @@ export default function ChooseScreen() {
 
   function review() {
     writeRequest(request);
-    // Semantic only has its own setup (scope, purpose, rigor) and needs no Quality profile or history.
+    // Semantic only has its own setup (scope, methods, rigor) and needs no Quality profile or history.
     navigate(request.gates === "semantic" ? "/semantic/setup" : "/validations/review");
   }
 

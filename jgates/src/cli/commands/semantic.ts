@@ -145,7 +145,7 @@ function planText(ctx: CommandContext, plan: SemanticPlan): void {
   for (const p of plan.prerequisites) ctx.stdout(`  ${p.ok ? "ok " : "-- "} ${p.id}: ${p.message}\n`);
   if (plan.quality.attached) ctx.stdout(`  ${t("semantic_text_quality_attached", { runId: plan.quality.attached })}\n`);
   const r = plan.scope.resolution;
-  ctx.stdout(`  ${ts("scope_text_summary", { mode: r.mode, purpose: plan.purpose, rigor: plan.rigor, examine: r.completion.toExamine, reused: r.completion.reused, context: r.completion.context, excluded: r.completion.excluded })}\n`);
+  ctx.stdout(`  ${ts("scope_text_summary", { mode: r.mode, methods: plan.methods.map((m) => m.id).join(", "), rigor: plan.rigor, examine: r.completion.toExamine, reused: r.completion.reused, context: r.completion.context, excluded: r.completion.excluded })}\n`);
   ctx.stdout(`  ${ts("scope_text_inherited", { message: r.inheritedCoverage.message })}\n`);
   for (const s of r.subjects.slice(0, 40)) ctx.stdout(`    ${s.disposition === "reused" ? "reuse" : "exam "} ${s.path}  (${s.reasons.map((x) => x.message).join("; ")})\n`);
   if (r.subjects.length > 40) ctx.stdout(`    ${ts("scope_text_more", { count: r.subjects.length - 40 })}\n`);

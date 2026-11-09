@@ -236,3 +236,18 @@ test("scope controls are identical for every purpose and scope resolution ignore
   assert.equal(sec.blockers.some((x) => x.code === "SEMANTIC_METHOD_UNAVAILABLE"), false);
   assert.equal(sec.scope.resolution.scopeHash, a.scope.resolution.scopeHash);
 });
+
+test("purpose is only a shortcut for a method list: same plan hash as the methods, methods win, no purpose label", () => {
+  const r = repo(APP);
+  const plan = (extra) => semantic.buildSemanticPlan({ workspacePath: r.dir, home: r.home, env: r.env, ...extra });
+  const viaPurpose = plan({ purpose: "security" });
+  const viaMethod = plan({ methods: ["security-audit"] });
+  assert.equal(viaPurpose.planHash, viaMethod.planHash, "--purpose security plans the same run as --method security-audit");
+  const both = plan({ purpose: "general-review", methods: ["security-audit"] });
+  assert.deepEqual(both.methods.map((m) => m.id), ["security-audit"], "with both, the methods win");
+  assert.equal(both.purpose, null, "no purpose label when methods are named");
+  assert.equal(both.planHash, viaMethod.planHash);
+  assert.equal(viaMethod.purpose, null);
+  assert.equal(plan({}).purpose, null, "no purpose given, none shown");
+  assert.deepEqual(plan({ methods: ["general-review", "security-audit"] }).methods.map((m) => m.id), ["general-review", "security-audit"], "two methods keep their order");
+});

@@ -34,7 +34,7 @@
   "semantic_blocker_quality_not_found": "No finished Quality run matches {ref}.",
   "semantic_blocker_method_unknown": "Unknown Semantic method: {method}. Known methods: {known}.",
   "semantic_blocker_too_many_methods": "{count} methods were selected; at most {max} can be selected at once.",
-  "semantic_option_method": "Run these Semantic methods instead of the purpose's default (comma-separated IDs, in order; each one becomes its own Semantic run). See jgates semantic methods.",
+  "semantic_option_method": "Run these Semantic methods (comma-separated IDs, in order; each one becomes its own Semantic run). See jgates semantic methods.",
   "semantic_bad_method": "Not a Semantic method ID: {value}",
   "semantic_bad_method_fix": "List the methods with jgates semantic methods and pass their IDs separated by commas.",
   "semantic_text_method_line": "{id} ({title}): {applicability}",

@@ -1,16 +1,14 @@
-// The run-only choices of a Semantic run: purpose or explicit methods, rigor, budget and context limits (configuration screen) plus the scope
+// The run-only choices of a Semantic run: the methods (at least one), rigor, budget and context limits (configuration screen) plus the scope
 // (setup screen). None of them is written to jgates.yml: the saved settings (provider, model, limits) are edited in the
 // semantic gate card. They are kept in this browser's localStorage only as the defaults of the next setup, and travel
 // as the body of POST /api/semantic/scope/preview and POST /api/semantic/runs.
 
-export type Purpose = "general-review" | "security";
 export type Rigor = "quick" | "standard" | "deep";
 export type ScopeMode = "full" | "selected" | "incremental";
 export type DirtyMode = "none" | "all" | "paths";
 
 export interface RunChoices {
-  purpose: Purpose;
-  /** Methods named explicitly, in order; empty: the purpose's methods. Each one runs as its own Semantic run. */
+  /** The methods to run, in order (at least one). Each one runs as its own Semantic run. */
   methods: string[];
   rigor: Rigor;
   /** Empty: the saved settings' limit applies. */
@@ -38,7 +36,7 @@ export interface ScopeChoices {
   baseline: boolean;
 }
 
-export const DEFAULT_CHOICES: RunChoices = { purpose: "general-review", methods: [], rigor: "standard", maxCalls: "", maxTokens: "", contextPolicy: "strict", maxFiles: "", maxDepth: "", maxBytes: "" };
+export const DEFAULT_CHOICES: RunChoices = { methods: ["general-review"], rigor: "standard", maxCalls: "", maxTokens: "", contextPolicy: "strict", maxFiles: "", maxDepth: "", maxBytes: "" };
 export const DEFAULT_SCOPE: ScopeChoices = { mode: "full", subjects: "", subsystems: "", exclusions: "", base: "", target: "", dirty: "none", dirtyPaths: "", baseline: false };
 
 const CHOICES_KEY = "jgates.semantic.choices";
@@ -64,8 +62,10 @@ function write(key: string, value: unknown): void {
 
 export const readChoices = (): RunChoices => {
   const c = read(CHOICES_KEY, DEFAULT_CHOICES);
-  // Choices kept by an earlier version have no methods; anything that is not a list of IDs is dropped.
-  return { ...c, methods: Array.isArray(c.methods) ? c.methods.filter((m): m is string => typeof m === "string" && /^[a-z][a-z0-9-]{1,63}$/.test(m)) : [] };
+  // Choices kept by an earlier version may have no methods (the purpose decided) or a purpose; anything that is not a list of IDs is dropped.
+  const methods = Array.isArray(c.methods) ? c.methods.filter((m): m is string => typeof m === "string" && /^[a-z][a-z0-9-]{1,63}$/.test(m)) : [];
+  const { purpose: _legacyPurpose, ...rest } = c as RunChoices & { purpose?: unknown };
+  return { ...rest, methods: methods.length > 0 ? methods : DEFAULT_CHOICES.methods };
 };
 export const writeChoices = (c: RunChoices): void => write(CHOICES_KEY, c);
 export const readScope = (): ScopeChoices => read(SCOPE_KEY, DEFAULT_SCOPE);
@@ -86,6 +86,7 @@ const int = (text: string): number | undefined => {
 /** Problems the server would refuse, said before asking it (keys of the setup screen's catalog). */
 export function problemsOf(choices: RunChoices, scope: ScopeChoices): string[] {
   const out: string[] = [];
+  if (choices.methods.length === 0) out.push("semsetup_problem_methods");
   for (const [field, value] of [["maxCalls", choices.maxCalls], ["maxTokens", choices.maxTokens], ["maxFiles", choices.maxFiles], ["maxDepth", choices.maxDepth], ["maxBytes", choices.maxBytes]] as const) {
     if (value.trim() !== "" && int(value) === undefined) out.push(`semsetup_problem_number_${field}`);
   }
@@ -119,5 +120,5 @@ export function requestBody(choices: RunChoices, scope: ScopeChoices): Record<st
     request.dirty = scope.dirty === "paths" ? lines(scope.dirtyPaths) : scope.dirty;
   }
   if (scope.baseline) request.baseline = "latest";
-  return { purpose: choices.purpose, ...(choices.methods.length > 0 ? { methods: choices.methods } : {}), rigor: choices.rigor, ...(Object.keys(budget).length > 0 ? { budget } : {}), scope: request };
+  return { methods: choices.methods, rigor: choices.rigor, ...(Object.keys(budget).length > 0 ? { budget } : {}), scope: request };
 }

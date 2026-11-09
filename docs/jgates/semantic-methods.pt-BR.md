@@ -7,17 +7,19 @@ jgates semantic methods
 jgates semantic plan --method general-review
 ```
 
-`--method <id>` escolhe um; `--purpose general-review` e `--purpose security` escolhem o método padrão do propósito. Um
-método que precisa de uma entrada que a execução não tem (um patch, um lockfile) é informado como `unavailable` com um
+`--method <id>` escolhe um (vários, separados por vírgula, cada um roda como sua própria revisão). As telas oferecem a
+mesma escolha como caixas de seleção, com Revisão geral marcada por padrão. `--purpose general-review` e
+`--purpose security` continuam como atalho para `--method general-review` e `--method security-audit`; com os dois, os
+métodos vencem. Um método que precisa de uma entrada que a execução não tem (um patch, um lockfile) é informado como `unavailable` com um
 código de motivo (`METHOD_NOT_APPLICABLE` e o código do próprio método), não gasta nenhuma chamada ao modelo e nunca
 aparece como favorável.
 
 ## Os nove métodos
 
-| Método | Propósito | O que faz |
+| Método | Escolhido | O que faz |
 | --- | --- | --- |
-| `general-review` | geral | Seis dimensões (correção, testes, segurança, manutenibilidade, arquitetura, desempenho): planejamento de evidência, caça e uma etapa de contestação; o host decide o que foi examinado e o que está pendente. |
-| `security-audit` | segurança | A base de auditoria de segurança da Cloudflare: reconhecimento, planejamento de cobertura, caça, crítico de cobertura, refutação por candidato e verificação. |
+| `general-review` | por padrão | Seis dimensões (correção, testes, segurança, manutenibilidade, arquitetura, desempenho): planejamento de evidência, caça e uma etapa de contestação; o host decide o que foi examinado e o que está pendente. |
+| `security-audit` | sob demanda | A base de auditoria de segurança da Cloudflare: reconhecimento, planejamento de cobertura, caça, crítico de cobertura, refutação por candidato e verificação. |
 | `differential-review` | sob demanda | Revisa uma mudança (escopo incremental) pelo que ela quebra. Adaptado da Trail of Bits. |
 | `variant-analysis` | sob demanda | Parte de um achado conhecido e procura a mesma causa raiz em outros lugares. Adaptado da Trail of Bits. |
 | `insecure-defaults` | sob demanda | Procura configurações padrão inseguras que falham aberto. Adaptado da Trail of Bits. |

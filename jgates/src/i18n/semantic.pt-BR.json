@@ -34,7 +34,7 @@
   "semantic_blocker_quality_not_found": "Nenhuma execução Quality terminada corresponde a {ref}.",
   "semantic_blocker_method_unknown": "Método Semantic desconhecido: {method}. Métodos conhecidos: {known}.",
   "semantic_blocker_too_many_methods": "{count} métodos foram escolhidos; no máximo {max} podem ser escolhidos de uma vez.",
-  "semantic_option_method": "Executa estes métodos Semantic no lugar do padrão do propósito (IDs separados por vírgula, em ordem; cada um vira sua própria execução Semantic). Veja jgates semantic methods.",
+  "semantic_option_method": "Executa estes métodos Semantic (IDs separados por vírgula, em ordem; cada um vira sua própria execução Semantic). Veja jgates semantic methods.",
   "semantic_bad_method": "Não é um ID de método Semantic: {value}",
   "semantic_bad_method_fix": "Liste os métodos com jgates semantic methods e passe os IDs separados por vírgula.",
   "semantic_text_method_line": "{id} ({title}): {applicability}",
