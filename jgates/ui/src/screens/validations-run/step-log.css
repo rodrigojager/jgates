@@ -11,8 +11,9 @@
 .log-block-body { display: grid; gap: 12px; padding: 0 12px 12px; min-width: 0; }
 .log-command > summary { cursor: pointer; font-size: 13px; color: var(--muted); width: fit-content; min-height: 28px; display: flex; align-items: center; gap: 6px; padding: 2px 0; }
 /* The summaries are flex boxes (which drops the native marker), so the open/closed arrow is drawn here. */
-.log-command > summary::before, .log-block > summary::before { content: "▸"; color: var(--muted); font-weight: 400; }
-.log-command[open] > summary::before, .log-block[open] > summary::before { content: "▾"; }
+.log-command > summary::before, .log-block > summary::before { content: ""; width: 0; height: 0; border-style: solid; border-width: 4px 0 4px 6px; border-color: transparent transparent transparent var(--muted); transition: transform 0.15s ease; flex: none; }
+.log-command[open] > summary::before, .log-block[open] > summary::before { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .log-command > summary::before, .log-block > summary::before { transition: none; } }
 .log-command > summary::-webkit-details-marker, .log-block > summary::-webkit-details-marker { display: none; }
 .log-block > summary { min-height: 40px; }
 .log-command[open] { display: grid; gap: 6px; }
