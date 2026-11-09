@@ -160,5 +160,6 @@
   "pulse_activity": "last output: {file}, {ago} ago",
   "pulse_connection_lost": "no contact with the JGates server",
   "nav_semantic": "Semantic review",
-  "nav_section_semantic": "Semantic (AI)"
+  "nav_section_semantic": "Semantic (AI)",
+  "provider_fix_link": "Choose the provider"
 }

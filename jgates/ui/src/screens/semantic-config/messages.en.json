@@ -5,12 +5,12 @@
   "semcfg_to_setup": "Set up a review",
   "semcfg_saved_title": "Saved settings",
   "semcfg_saved_badge": "Saved in jgates.yml",
-  "semcfg_saved_lead": "Shared with the CLI and CI. Edit them in the semantic gate card of the tools screen.",
+  "semcfg_saved_lead": "Shared with the CLI and CI. The provider and model are chosen here; limits and scope in the semantic gate card on the tools screen.",
   "semcfg_state": "State",
   "semcfg_state_configured": "Configured",
   "semcfg_state_off": "Off",
   "semcfg_state_invalid": "Invalid settings",
-  "semcfg_backend": "Backend / provider",
+  "semcfg_backend": "Provider and model",
   "semcfg_model": "Model",
   "semcfg_limits": "Saved limits",
   "semcfg_limits_value": "{calls} calls, {seconds} s per call, {chars} context characters",
@@ -66,5 +66,8 @@
   "semcfg_max_bytes": "Context bytes",
   "semcfg_keep": "Keep as defaults",
   "semcfg_kept": "The run choices are the defaults of the next setup in this browser.",
-  "semcfg_reset": "Back to the defaults"
+  "semcfg_reset": "Back to the defaults",
+  "semcfg_provider_none": "None yet",
+  "semcfg_provider_change": "Change",
+  "semcfg_provider_choose": "Choose the provider"
 }

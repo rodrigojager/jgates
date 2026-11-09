@@ -1,18 +1,20 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../../api";
-import { navigate } from "../../app/route";
+import { currentQuery, navigate } from "../../app/route";
 import { ErrorNotice, Loading, Pill, Spinner, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { RunChoicesForm, methodLabel, type MethodApplicability, type SemanticOptions } from "../semantic-config/RunChoicesForm";
 import { problemsOf, readChoices, readScope, requestBody, writeChoices, writeScope, type RunChoices, type ScopeChoices, type ScopeMode } from "./choices";
+import { PROVIDER_BLOCKERS, providerSummary, useSemanticInfo, type SemanticInfo } from "./provider-model";
+import { ProviderPicker } from "./provider-step";
 import "./setup.css";
 
 export const screen: ScreenMeta = { id: "semantic-setup", path: "/semantic/setup", area: "semantic", navLabel: "semsetup_nav", navPath: "/semantic/setup", order: 52, icon: "play" };
 
-type Step = "scope" | "choices" | "preview";
-const STEPS: Step[] = ["scope", "choices", "preview"];
+type Step = "provider" | "scope" | "choices" | "preview";
+const STEPS: Step[] = ["provider", "scope", "choices", "preview"];
 const MODES: ScopeMode[] = ["full", "selected", "incremental"];
 
 interface Reason {
@@ -134,7 +136,22 @@ function ScopeStep({ scope, onChange }: { scope: ScopeChoices; onChange: (next: 
   );
 }
 
-function PreviewStep({ preview, options, choices }: { preview: Preview; options: SemanticOptions; choices: RunChoices }) {
+/** "Provedor: Codex CLI · modelo X" with "trocar": the saved provider, always visible after the provider step. */
+function ProviderBar({ semantic, onChange }: { semantic: SemanticInfo; onChange: () => void }) {
+  return (
+    <div className="notice semprov-bar" data-testid="semprov-summary">
+      <Icon name="check-circle" />
+      <p className="small grow">
+        <strong>{providerSummary(semantic)}</strong>
+      </p>
+      <button type="button" className="semprov-linkbtn" data-testid="semprov-change" onClick={onChange}>
+        {t("semprov_change")}
+      </button>
+    </div>
+  );
+}
+
+function PreviewStep({ preview, options, choices, onProvider }: { preview: Preview; options: SemanticOptions; choices: RunChoices; onProvider: () => void }) {
   const r = preview.resolution;
   const rigor = options.rigors.find((x) => x.id === choices.rigor);
   const calls = preview.budget?.maxCalls ?? rigor?.defaultCalls ?? options.settings.limits?.maxCalls ?? 0;
@@ -149,7 +166,18 @@ function PreviewStep({ preview, options, choices }: { preview: Preview; options:
           <Icon name="alert" />
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {preview.blockers.map((b) => (
-              <li key={b.code}>{b.message}</li>
+              <li key={b.code} data-blocker={b.code}>
+                {PROVIDER_BLOCKERS.has(b.code) ? (
+                  <>
+                    {t("semprov_blocker")}{" "}
+                    <button type="button" className="semprov-linkbtn" data-testid="semsetup-blocker-provider" onClick={onProvider}>
+                      {t("semprov_blocker_action")}
+                    </button>
+                  </>
+                ) : (
+                  b.message
+                )}
+              </li>
             ))}
           </ul>
         </div>
@@ -245,7 +273,15 @@ function PreviewStep({ preview, options, choices }: { preview: Preview; options:
 
 /** Setup of a Semantic run: the scope, the run-only choices, then the impact and context preview before starting. */
 export default function SemanticSetupScreen() {
-  const [step, setStep] = useState<Step>("scope");
+  const semantic = useSemanticInfo();
+  // ?step=provider (the link of every "no provider" message) opens the provider step; otherwise it opens by itself
+  // when the project has no provider yet.
+  const [step, setStep] = useState<Step | null>(() => (currentQuery().get("step") === "provider" ? "provider" : null));
+  const sem = semantic.data;
+  const configured = sem !== null && sem.provider !== null && sem.state !== "off";
+  useEffect(() => {
+    if (step === null && sem) setStep(configured ? "scope" : "provider");
+  }, [step, sem, configured]);
   const [scope, setScope] = useState<ScopeChoices>(() => readScope());
   const [choices, setChoices] = useState<RunChoices>(() => readChoices());
   const [attachQuality, setAttachQuality] = useState(false);
@@ -301,17 +337,46 @@ export default function SemanticSetupScreen() {
         <ol className="sem-steps">
           {STEPS.map((s) => (
             <li key={s}>
-              <button type="button" onClick={() => go(s)} disabled={busy !== null || (s === "preview" && problems.length > 0)} {...(step === s ? { "aria-current": "step" as const } : {})}>
+              <button type="button" onClick={() => go(s)} disabled={busy !== null || (s !== "provider" && !configured) || (s === "preview" && problems.length > 0)} {...(step === s ? { "aria-current": "step" as const } : {})}>
                 {t(`semsetup_step_${s}`)}
               </button>
             </li>
           ))}
         </ol>
       </nav>
-      {options.loading && !options.data ? <Loading /> : null}
+      {(options.loading && !options.data) || (!sem && !semantic.error) ? <Loading /> : null}
       {options.error ? <ErrorNotice error={options.error} onRetry={options.reload} /> : null}
+      {semantic.error ? <ErrorNotice error={semantic.error} onRetry={semantic.reload} /> : null}
       {failure ? <ErrorNotice error={failure} /> : null}
-      {problems.filter((p) => !(step === "choices" && p === "semsetup_problem_methods")).length > 0 && step !== "preview" ? (
+      {step === "provider" && sem ? (
+        <ProviderPicker
+          semantic={sem}
+          saveLabel={t("semprov_save_continue")}
+          onReload={semantic.reload}
+          {...(configured ? { onCancel: () => setStep("scope") } : {})}
+          onSaved={(next) => {
+            semantic.replace(next);
+            options.reload();
+            setPreview(null);
+            setStep("scope");
+          }}
+        />
+      ) : null}
+      {step !== null && step !== "provider" && sem && configured ? <ProviderBar semantic={sem} onChange={() => setStep("provider")} /> : null}
+      {step !== null && step !== "provider" && sem && sem.problems.length > 0 ? (
+        <div className="notice warn" role="status" data-testid="semsetup-settings-problems">
+          <Icon name="alert" />
+          <div className="stack tight">
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {sem.problems.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+            <a href="#/tools">{t("semprov_settings_fix")}</a>
+          </div>
+        </div>
+      ) : null}
+      {problems.filter((p) => !(step === "choices" && p === "semsetup_problem_methods")).length > 0 && step !== "preview" && step !== "provider" && step !== null ? (
         <div className="notice warn" role="status">
           <Icon name="alert" />
           <ul style={{ margin: 0, paddingLeft: 18 }}>
@@ -340,7 +405,8 @@ export default function SemanticSetupScreen() {
           ) : null}
         </section>
       ) : null}
-      {step === "preview" && preview && options.data ? <PreviewStep preview={preview} options={options.data} choices={choices} /> : null}
+      {step === "preview" && preview && options.data ? <PreviewStep preview={preview} options={options.data} choices={choices} onProvider={() => setStep("provider")} /> : null}
+      {step !== null && step !== "provider" ? (
       <div className="row wrap">
         {step !== "scope" ? (
           <button type="button" className="btn" onClick={() => setStep(step === "preview" ? "choices" : "scope")} disabled={busy !== null}>
@@ -365,6 +431,7 @@ export default function SemanticSetupScreen() {
           </button>
         ) : null}
       </div>
+      ) : null}
     </div>
   );
 }

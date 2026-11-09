@@ -296,3 +296,203 @@ test("cancelling a running Semantic review stops it, keeps partial evidence, and
     (fixture) => fixture.useHangingReviewer(),
   );
 });
+
+// ---- The provider step ----------------------------------------------------------------------------------------------------
+// GET /api/providers/cli-status and POST /api/providers/:name/login are stubbed in the browser: no real CLI runs and no
+// terminal opens. Saving goes to the real server and writes the fixture's jgates.yml.
+
+const NO_PROVIDER = "schemaVersion: 1\nselection:\n  profile: seq\ntemplates:\n  - id: seq\n    source: .jgates/templates/seq.yml\n    activation: always\n";
+const OPENCODE_MODELS = Array.from({ length: 120 }, (_, i) => `provider-${i % 4}/model-${String(i).padStart(3, "0")}`);
+
+interface CliStub {
+  claudeLoggedIn: boolean;
+  logins: string[];
+  statusCalls: string[];
+}
+
+function cliEntry(id: string, name: string, command: string, installed: boolean, login: "logged-in" | "not-logged-in" | "unknown", models: { source: string; list: string[]; configured: string | null; suggestedDefault: string | null } | null, withModels: boolean) {
+  return {
+    id,
+    name,
+    command,
+    installed,
+    path: installed ? `C:/stub/${command}.cmd` : null,
+    version: installed ? "1.0.0" : null,
+    login: { state: installed ? login : "unknown", reason: installed ? "STATUS_COMMAND" : "NOT_INSTALLED", method: login === "logged-in" ? "stub" : null, checkedWith: `${command} status` },
+    models: withModels && models ? { truncated: false, configuredIn: models.configured ? "~/.stub" : null, problem: null, ...models } : null,
+    loginCommand: { command, args: ["login"], display: `${command} login` },
+    install: `npm install -g ${command}-stub`,
+  };
+}
+
+async function stubCli(page: Page): Promise<CliStub> {
+  const stub: CliStub = { claudeLoggedIn: false, logins: [], statusCalls: [] };
+  await page.route("**/api/providers/cli-status**", async (route) => {
+    const url = new URL(route.request().url());
+    stub.statusCalls.push(url.search);
+    const withModels = url.searchParams.get("models") !== "0";
+    const only = url.searchParams.get("only");
+    const all = [
+      cliEntry("claude-code", "Claude Code", "claude", true, stub.claudeLoggedIn ? "logged-in" : "not-logged-in", { source: "suggested", list: ["sonnet", "opus", "haiku"], configured: null, suggestedDefault: "sonnet" }, withModels),
+      cliEntry("codex-cli", "Codex CLI", "codex", true, "logged-in", { source: "cli", list: ["gpt-5.5", "gpt-5.5-mini", "gpt-5.4"], configured: "gpt-5.5-mini", suggestedDefault: "gpt-5.5-mini" }, withModels),
+      cliEntry("opencode", "OpenCode", "opencode", true, "logged-in", { source: "cli", list: OPENCODE_MODELS, configured: null, suggestedDefault: null }, withModels),
+      cliEntry("gemini-cli", "Gemini CLI", "gemini", false, "unknown", null, withModels),
+    ];
+    const providers = only ? all.filter((p) => p.id === only) : all;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ schemaVersion: 1, status: "OK", checkedAt: new Date().toISOString(), timeoutMs: 8000, providers }) });
+  });
+  await page.route("**/api/providers/*/login", async (route) => {
+    const name = decodeURIComponent(new URL(route.request().url()).pathname.split("/")[3] as string);
+    stub.logins.push(name);
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ schemaVersion: 1, status: "OK", opened: true, method: "terminal", command: { display: "claude auth login" }, reason: null }) });
+  });
+  return stub;
+}
+
+const card = (page: Page, id: string) => page.locator(`[data-testid="semprov-step"] .semprov-card[data-provider="${id}"]`);
+
+test("without a provider the setup opens on 'Quem vai fazer a revisão por IA?': CLI cards with their states, Entrar re-checks on focus, Codex CLI + a model is saved and the setup goes on", async ({ page }) => {
+  await withGates(
+    page,
+    async ({ base, fixture }) => {
+      const stub = await stubCli(page);
+      await page.goto(`${base}#/semantic/setup`);
+      const step = page.getByTestId("semprov-step");
+      await expect(step.getByRole("heading", { name: "Quem vai fazer a revisão por IA?" })).toBeVisible();
+      // The later steps wait for a provider.
+      await expect(page.getByRole("button", { name: "Escopo", exact: true })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Provedor", exact: true })).toHaveAttribute("aria-current", "step");
+
+      // The four agent CLIs with what was detected.
+      await expect(card(page, "claude-code")).toHaveAttribute("data-state", "login");
+      await expect(card(page, "claude-code")).toContainText("Falta entrar");
+      await expect(card(page, "codex-cli")).toHaveAttribute("data-state", "ready");
+      await expect(card(page, "codex-cli")).toContainText("Pronto");
+      await expect(card(page, "opencode")).toHaveAttribute("data-state", "ready");
+      await expect(card(page, "gemini-cli")).toHaveAttribute("data-state", "missing");
+      await expect(card(page, "gemini-cli")).toContainText("Não instalado");
+      // Not installed: how to install, with a copy button and Verificar de novo.
+      await expect(card(page, "gemini-cli").getByText("npm install -g gemini-stub")).toBeVisible();
+      await expect(page.getByTestId("semprov-install-copy-gemini-cli")).toBeVisible();
+      await expect(page.getByRole("button", { name: "Verificar de novo o Gemini CLI" })).toBeVisible();
+      // The first ready CLI is preselected, with the model its own configuration names.
+      await expect(step.getByRole("radio", { name: /Codex CLI/ })).toBeChecked();
+      const model = page.getByTestId("semprov-model");
+      await expect(model.getByLabel("Modelo", { exact: true })).toHaveValue("gpt-5.5-mini");
+      await expect(model).toContainText("Configurado no Codex CLI: gpt-5.5-mini.");
+
+      // Choosing a CLI that is not installed says why it cannot be saved yet.
+      await step.getByRole("radio", { name: /Gemini CLI/ }).check();
+      await expect(page.getByTestId("semprov-why")).toHaveText("Instale o Gemini CLI primeiro (veja como no cartão).");
+      await expect(page.getByTestId("semprov-save")).toBeDisabled();
+
+      // Entrar opens the CLI's own login (stubbed) and the card is checked again when the window gets the focus back.
+      await step.getByRole("radio", { name: /Claude Code/ }).check();
+      await expect(page.getByTestId("semprov-why")).toContainText("Entre no Claude Code primeiro");
+      await page.getByRole("button", { name: "Entrar no Claude Code" }).click();
+      await expect(page.getByTestId("semprov-login-note-claude-code")).toContainText("Abrimos um terminal com claude auth login");
+      expect(stub.logins).toEqual(["claude-code"]);
+      stub.claudeLoggedIn = true;
+      await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await expect(card(page, "claude-code")).toHaveAttribute("data-state", "ready");
+      expect(stub.statusCalls.some((q) => q.includes("only=claude-code") && q.includes("refresh=1"))).toBe(true);
+      await expect(page.getByTestId("semprov-save")).toBeEnabled();
+
+      // Keyboard: the cards are one radio group (arrows move the choice).
+      await step.getByRole("radio", { name: /Claude Code/ }).focus();
+      await page.keyboard.press("ArrowRight");
+      await expect(step.getByRole("radio", { name: /Codex CLI/ })).toBeChecked();
+      await expect(step.getByRole("radio", { name: /Codex CLI/ })).toBeFocused();
+      await page.keyboard.press("ArrowRight");
+      await expect(step.getByRole("radio", { name: /OpenCode/ })).toBeChecked();
+      // OpenCode lists many models: a combobox that filters as you type; Esc closes the list only.
+      const combo = model.getByRole("combobox", { name: "Modelo" });
+      await combo.fill("model-11");
+      await expect(page.getByRole("listbox")).toBeVisible();
+      await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(10);
+      await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("Enter");
+      await expect(combo).toHaveValue("provider-3/model-111");
+      await combo.fill("model-0");
+      await expect(page.getByRole("listbox")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("listbox")).toHaveCount(0);
+      await expect(page.getByTestId("semprov-step")).toBeVisible();
+      // A name outside the list is accepted as typed.
+      await combo.fill("my-own/model");
+      await expect(page.getByRole("listbox")).toContainText("“my-own/model” será usado como está");
+      await page.keyboard.press("Escape");
+
+      // Back to Codex CLI with the keyboard; the model is a labelled select with "Outro…".
+      await step.getByRole("radio", { name: /OpenCode/ }).focus();
+      await page.keyboard.press("ArrowLeft");
+      await expect(step.getByRole("radio", { name: /Codex CLI/ })).toBeChecked();
+      const select = model.getByLabel("Modelo", { exact: true });
+      await select.selectOption({ label: "Outro…" });
+      await expect(model.getByLabel("Nome do modelo")).toBeVisible();
+      await select.selectOption("gpt-5.5");
+      await expect(model.getByLabel("Nome do modelo")).toHaveCount(0);
+
+      // 375 px: nothing wider than the screen.
+      await page.setViewportSize({ width: 375, height: 800 });
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow).toBeLessThanOrEqual(0);
+      await page.setViewportSize({ width: 1280, height: 900 });
+      expect(await serious(page, "provider step")).toEqual([]);
+
+      // Save: jgates.yml gets the provider and model, and the setup goes on with the summary and "trocar".
+      await page.getByTestId("semprov-save").click();
+      await expect(page.getByTestId("semprov-summary")).toContainText("Provedor: Codex CLI · modelo gpt-5.5");
+      await expect(page.getByRole("button", { name: "Escopo", exact: true })).toHaveAttribute("aria-current", "step");
+      const yml = fs.readFileSync(path.join(fixture.dir, "jgates.yml"), "utf8");
+      expect(yml).toContain("semantic-gate:");
+      expect(yml).toContain("provider: codex-cli");
+      expect(yml).toContain("model: gpt-5.5");
+      expect(yml).toContain("selection:\n  profile: seq");
+      // The preview no longer says nobody is set to review.
+      await toPreview(page);
+      await expect(page.locator('[data-blocker="SEMANTIC_NOT_CONFIGURED"]')).toHaveCount(0);
+      await expect(page.getByTestId("semsetup-preview")).not.toContainText("Nenhum provedor está configurado");
+
+      // "trocar" goes back to the provider step with the saved choice; "Manter o atual" returns.
+      await page.getByTestId("semprov-change").click();
+      await expect(page.getByTestId("semprov-step").getByRole("radio", { name: /Codex CLI/ })).toBeChecked();
+      await page.getByTestId("semprov-cancel").click();
+      await expect(page.getByTestId("semprov-summary")).toBeVisible();
+      expect(fixture.providerCalls()).toBe(0);
+    },
+    (fixture) => fixture.write("jgates.yml", NO_PROVIDER),
+  );
+});
+
+test("every 'no provider' message leads to the provider step: the configuration screen and ?step=provider", async ({ page }) => {
+  await withGates(
+    page,
+    async ({ base }) => {
+      await stubCli(page);
+      // Configuration: the provider is a control, not "-", and the missing prerequisite opens the same step.
+      await page.goto(`${base}#/semantic/config`);
+      await expect(page.getByTestId("semcfg-provider")).toContainText("Nenhum ainda");
+      await expect(page.locator('[data-prerequisite="provider"]')).toContainText("Ainda não há quem faça a revisão.");
+      await page.getByTestId("semcfg-prereq-provider").click();
+      await expect(page.getByTestId("semprov-step")).toBeVisible();
+      await expect(card(page, "codex-cli")).toHaveAttribute("data-state", "ready");
+      await page.getByTestId("semprov-step").getByRole("radio", { name: /Claude Code/ }).check();
+      await page.getByTestId("semprov-cancel").click();
+      await expect(page.getByTestId("semprov-step")).toHaveCount(0);
+      await page.getByTestId("semcfg-provider-change").click();
+      await page.getByTestId("semprov-step").getByRole("radio", { name: /Codex CLI/ }).check();
+      await page.getByTestId("semprov-save").click();
+      await expect(page.getByTestId("semcfg-provider")).toContainText("Codex CLI · modelo gpt-5.5-mini");
+      await expect(page.getByTestId("semcfg-saved")).toContainText("Configurado");
+
+      // ?step=provider (the link of the tools card and of the Providers screen) opens the step even with a provider.
+      await page.goto(`${base}#/semantic/setup?step=provider`);
+      await expect(page.getByTestId("semprov-step")).toBeVisible();
+      await expect(page.getByTestId("semprov-step").getByRole("radio", { name: /Codex CLI/ })).toBeChecked();
+      await expect(page.getByRole("navigation", { name: "Navegação principal" }).getByRole("link", { name: "Nova revisão" })).toHaveAttribute("aria-current", "page");
+    },
+    (fixture) => fixture.write("jgates.yml", NO_PROVIDER),
+  );
+});
+

@@ -74,7 +74,7 @@ export default function PreferencesScreen() {
         <h2 id="prefs-providers">{t("prefs_providers")}</h2>
         <p>{t("prefs_providers_note")}</p>
         <div>
-          <a className="btn" href="#/preferences/providers" data-testid="prefs-providers-link">
+          <a className="btn" href="#/semantic/providers" data-testid="prefs-providers-link">
             <Icon name="lock" />
             {t("prefs_providers_link")}
           </a>

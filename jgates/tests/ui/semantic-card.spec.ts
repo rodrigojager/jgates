@@ -27,6 +27,10 @@ test("the semantic gate card says Desligado in a workspace that was just initial
     await expect(card.getByTestId("semantic-provider")).toHaveText("Não definido");
     const results = await new AxeBuilder({ page }).include('[data-testid="semantic-card"]').analyze();
     expect(results.violations).toEqual([]);
+    // No provider: the card leads straight to the provider step of the Semantic setup.
+    await card.getByTestId("semantic-choose-provider").click();
+    await expect.poll(() => new URL(page.url()).hash).toBe("#/semantic/setup?step=provider");
+    await expect(page.getByRole("heading", { name: "Quem vai fazer a revisão por IA?" })).toBeVisible();
   } finally {
     await server.stop();
     fixture.cleanup();

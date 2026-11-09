@@ -11,7 +11,7 @@
   "prefs_more": "What is not a personal preference",
   "prefs_network_note": "Network access is a run policy of the repository: it is edited in Configuration and shows up in the plan review. Run retention belongs to your data folder and lives in Storage.",
   "prefs_storage_link": "Open Storage",
-  "prefs_providers": "Providers and keys",
-  "prefs_providers_note": "The AI providers of the semantic gate, the connections to a gateway and the API keys live outside the project, in the user's key store. The screen saves and changes a key, but never shows the stored value.",
+  "prefs_providers": "AI providers and keys",
+  "prefs_providers_note": "They moved to the Semantic (AI) area. That is where the defaults for every project (API keys, default models, connections) and each project's provider choice live.",
   "prefs_providers_link": "Open Providers and keys"
 }

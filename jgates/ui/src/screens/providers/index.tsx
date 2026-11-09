@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from "react";
 import { api, ApiError } from "../../api";
-import { ErrorNotice, Loading, useAsync, Spinner } from "../../components/common";
+import { ErrorNotice, Loading, Pill, useAsync, Spinner } from "../../components/common";
+import { PROVIDER_STEP_HREF } from "../semantic-setup/provider-model";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
@@ -10,9 +11,11 @@ import { KeyControl } from "./key";
 import { CONNECTION_NAME, insecureHttp, KEY_NAME, parseHeaders, secretPath, type ModelsAnswer, type ProvidersData, type SecretsData, type SecretView } from "./model";
 import "./providers.css";
 
-// Preferências > Providers e chaves (D9, D10): the user's provider preferences and the key store, outside every project.
+// Semântica (IA) > Provedores e chaves (D9, D10): the user's provider preferences and the key store, outside every
+// project: the defaults of every project. The project's own provider is chosen in the provider step of the setup.
 // The screen never shows a stored value: a key is ******** with its date, or the environment, or absent.
-export const screen: ScreenMeta = { id: "providers", path: "/preferences/providers", area: "preferences", order: 92, icon: "lock" };
+// The old address #/preferences/providers redirects here (app/route.ts).
+export const screen: ScreenMeta = { id: "providers", path: "/semantic/providers", area: "semantic", navLabel: "pk_nav", navPath: "/semantic/providers", order: 54, icon: "lock" };
 
 /** Acrescentar conexão: name, base URL, default model, key name and extra headers of an openai-compatible gateway. */
 function AddConnection({ revision, reserved, onDone, onCancel }: { revision: string | null; reserved: string[]; onDone: (revision: string | null, name: string) => void; onCancel: () => void }) {
@@ -246,8 +249,17 @@ export default function ProvidersScreen() {
   return (
     <div className="stack" data-testid="providers-screen">
       <div>
-        <h1>{t("pk_title")}</h1>
+        <div className="row wrap">
+          <h1>{t("pk_title")}</h1>
+          <Pill tone="blue">{t("pk_defaults_badge")}</Pill>
+        </div>
         <p>{t("pk_lead")}</p>
+      </div>
+      <div className="notice" data-testid="providers-project">
+        <Icon name="info" />
+        <p className="small">
+          {t("pk_project_note")} <a href={PROVIDER_STEP_HREF} data-testid="providers-project-link">{t("pk_project_link")}</a>
+        </p>
       </div>
       {lockText ? (
         <div className="notice warn" role="status" data-testid="providers-locked">

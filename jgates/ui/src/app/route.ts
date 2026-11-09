@@ -17,10 +17,33 @@ export function useRoute(): string {
   return path;
 }
 
+/** The query of the hash route (`#/semantic/setup?step=provider` gives step=provider); a screen reads it itself. */
+export function currentQuery(): URLSearchParams {
+  const hash = currentPath();
+  const at = hash.indexOf("?");
+  return new URLSearchParams(at < 0 ? "" : hash.slice(at + 1));
+}
+
+/** The route without its query. */
+export const routeOnly = (path: string): string => path.split("?")[0] as string;
+
+/**
+ * Routes that moved: the old address keeps working and is replaced by the new one (the browser history keeps no
+ * entry for the old one).
+ */
+export const REDIRECTS: Record<string, string> = {
+  "/preferences/providers": "/semantic/providers",
+};
+
+export function redirectOf(path: string): string | null {
+  return REDIRECTS[routeOnly(path)] ?? null;
+}
+
 /** The screen that answers a route and its parameters. */
 export function resolveScreen(path: string): { mod: ScreenModule; params: Record<string, string> } | null {
+  const bare = routeOnly(path);
   for (const mod of screens) {
-    const params = matchRoute(mod.screen.path, path);
+    const params = matchRoute(mod.screen.path, bare);
     if (params) return { mod, params };
   }
   return null;

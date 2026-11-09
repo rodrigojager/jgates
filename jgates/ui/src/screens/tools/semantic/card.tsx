@@ -6,6 +6,7 @@ import { useToast } from "../../../components/Toast";
 import { FormRenderer } from "../../../forms/FormRenderer";
 import { intentsOf, withPending, type FieldView, type FormView, type Pending } from "../../../forms/model";
 import { t } from "../../../i18n";
+import { PROVIDER_STEP_HREF } from "../../semantic-setup/provider-model";
 
 type Origin = "project" | "user" | "default" | "unset";
 interface FieldValue {
@@ -158,7 +159,7 @@ function SemanticForm({ info, onSaved, onClose }: { info: SemanticInfo; onSaved:
     >
       <p className="small muted">{t("semantic_form_lead", { file: info.form.file, key: info.form.section.join(".") })}</p>
       <p className="small muted" data-testid="semantic-connections">
-        {connections.length > 0 ? t("semantic_connections", { names: connections.join(", ") }) : t("semantic_connections_none")} <a href="#/preferences/providers">{t("semantic_providers_link")}</a>
+        {connections.length > 0 ? t("semantic_connections", { names: connections.join(", ") }) : t("semantic_connections_none")} <a href="#/semantic/providers">{t("semantic_providers_link")}</a>
       </p>
       <FormRenderer view={view} pending={pending} query="" readOnly={busy || conflict} onPending={(field, next) => setPending((p) => withPending(p, field, next))} openAt={() => (window.location.hash = "#/config/yaml")} />
       <div className="notice" data-testid="semantic-advanced">
@@ -275,11 +276,17 @@ export function SemanticCard() {
         />
       ) : (
         <div className="row wrap">
+          {d.provider === null ? (
+            <a className="btn primary" href={PROVIDER_STEP_HREF} data-testid="semantic-choose-provider">
+              <Icon name="play" />
+              {t("semantic_choose_provider")}
+            </a>
+          ) : null}
           <button type="button" className="btn" data-testid="semantic-edit" onClick={() => setEditing(true)}>
             <Icon name="settings" />
             {t("semantic_edit")}
           </button>
-          <a className="btn" href="#/preferences/providers">
+          <a className="btn" href="#/semantic/providers">
             <Icon name="lock" />
             {t("semantic_providers_link")}
           </a>

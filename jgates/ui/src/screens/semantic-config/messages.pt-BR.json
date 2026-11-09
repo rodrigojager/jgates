@@ -5,12 +5,12 @@
   "semcfg_to_setup": "Preparar uma revisão",
   "semcfg_saved_title": "Configurações salvas",
   "semcfg_saved_badge": "Salvo no jgates.yml",
-  "semcfg_saved_lead": "Compartilhadas com a CLI e o CI. Edite-as no card do semantic gate na tela de ferramentas.",
+  "semcfg_saved_lead": "Compartilhadas com a CLI e o CI. O provedor e o modelo se escolhem aqui; limites e escopo, no card do semantic gate na tela de ferramentas.",
   "semcfg_state": "Estado",
   "semcfg_state_configured": "Configurado",
   "semcfg_state_off": "Desligado",
   "semcfg_state_invalid": "Configuração inválida",
-  "semcfg_backend": "Backend / provedor",
+  "semcfg_backend": "Provedor e modelo",
   "semcfg_model": "Modelo",
   "semcfg_limits": "Limites salvos",
   "semcfg_limits_value": "{calls} chamadas, {seconds} s por chamada, {chars} caracteres de contexto",
@@ -66,5 +66,8 @@
   "semcfg_max_bytes": "Bytes de contexto",
   "semcfg_keep": "Guardar como padrão",
   "semcfg_kept": "As escolhas de execução são o padrão da próxima preparação neste navegador.",
-  "semcfg_reset": "Voltar aos padrões"
+  "semcfg_reset": "Voltar aos padrões",
+  "semcfg_provider_none": "Nenhum ainda",
+  "semcfg_provider_change": "Trocar",
+  "semcfg_provider_choose": "Escolher o provedor"
 }

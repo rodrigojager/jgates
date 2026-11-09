@@ -3,7 +3,7 @@ import { Icon } from "../components/icons";
 import { t } from "../i18n";
 import { screens } from "../registry";
 import { AREAS, areaOfPath, type Area } from "./areas";
-import { resolveScreen } from "./route";
+import { resolveScreen, routeOnly } from "./route";
 import { useShell } from "./shell-context";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
@@ -27,11 +27,18 @@ function AreaLink({ area, current, onNavigate }: { area: Area; current: boolean;
 function SubLinks({ areaId, path, onNavigate }: { areaId: string; path: string; onNavigate: () => void }) {
   const items = screens.filter((s) => s.screen.area === areaId && s.screen.navLabel);
   if (items.length === 0) return null;
+  const bare = routeOnly(path);
+  const matches = (target: string) => bare === target || bare.startsWith(`${target}/`);
+  // Only the most specific link is current (/semantic/setup, not also /semantic).
+  const current = items
+    .map((mod) => mod.screen.navPath ?? mod.screen.path)
+    .filter(matches)
+    .sort((a, b) => b.length - a.length)[0];
   return (
     <ul className="nav-sub">
       {items.map((mod) => {
         const target = mod.screen.navPath ?? mod.screen.path;
-        const active = path === target || path.startsWith(`${target}/`);
+        const active = target === current;
         return (
           <li key={mod.screen.id}>
             <a href={`#${target}`} onClick={onNavigate} {...(active ? { "aria-current": "page" as const } : {})}>

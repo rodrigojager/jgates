@@ -66,5 +66,6 @@
   "semantic_f_baseUrl": "Project base URL",
   "semantic_h_baseUrl": "Optional: a team gateway for the whole project. Inherited, the one of your preferences or of the provider applies.",
   "semantic_unit_seconds": "seconds",
-  "semantic_unit_chars": "characters"
+  "semantic_unit_chars": "characters",
+  "semantic_choose_provider": "Choose the provider"
 }

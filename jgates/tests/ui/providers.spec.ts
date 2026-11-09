@@ -38,7 +38,7 @@ async function openProviders(page: Page, server: UiServer): Promise<void> {
   await page.goto(server.bootstrapUrl);
   await page.waitForURL((u) => !u.pathname.startsWith("/session"));
   await page.goto(`${page.url().split("#")[0]}#/preferences/providers`);
-  await expect(page.getByRole("heading", { name: "Providers e chaves", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Provedores e chaves", level: 1 })).toBeVisible();
 }
 
 async function serious(page: Page, include?: string): Promise<string[]> {
@@ -247,7 +247,7 @@ test("in the governed mode the screen is read-only and says why", async ({ page 
   }
 });
 
-test("Preferências links to Providers e chaves and the screen speaks English", async ({ page }) => {
+test("Preferências links to Provedores e chaves, now under Semântica (IA); the old address redirects and the screen speaks English", async ({ page }) => {
   const fixture = createFixture();
   const server = await startServer(fixture);
   try {
@@ -255,7 +255,21 @@ test("Preferências links to Providers e chaves and the screen speaks English", 
     await page.waitForURL((u) => !u.pathname.startsWith("/session"));
     await page.goto(`${page.url().split("#")[0]}#/preferences`);
     await page.getByTestId("prefs-providers-link").click();
-    await expect(page.getByRole("heading", { name: "Providers e chaves", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Provedores e chaves", level: 1 })).toBeVisible();
+    // The screen lives in the Semantic (AI) area now, says it holds the defaults of every project and links to the
+    // project's own choice.
+    await expect.poll(() => new URL(page.url()).hash).toBe("#/semantic/providers");
+    const nav = page.getByRole("navigation", { name: "Navegação principal" });
+    await expect(nav.getByRole("link", { name: "Provedores e chaves" })).toHaveAttribute("aria-current", "page");
+    await expect(nav.getByRole("link", { name: "Revisão semântica" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByText("Padrões para todos os projetos", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("providers-project-link")).toHaveAttribute("href", "#/semantic/setup?step=provider");
+    // The old address redirects (replacing it in the history).
+    await page.goto(`${page.url().split("#")[0]}#/preferences/providers`);
+    await expect.poll(() => new URL(page.url()).hash).toBe("#/semantic/providers");
+    await expect(page.getByRole("heading", { name: "Provedores e chaves", level: 1 })).toBeVisible();
+    await page.getByTestId("providers-project-link").click();
+    await expect(page.getByRole("heading", { name: "Quem vai fazer a revisão por IA?" })).toBeVisible();
     await page.goto(`${page.url().split("#")[0]}#/preferences`);
     await page.getByTestId("prefs-language").selectOption("en");
     await expect(page.getByRole("heading", { name: "Preferences", level: 1 })).toBeVisible();

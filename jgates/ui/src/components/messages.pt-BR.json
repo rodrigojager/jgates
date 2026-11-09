@@ -160,5 +160,6 @@
   "pulse_activity": "última saída: {file}, há {ago}",
   "pulse_connection_lost": "sem contato com o servidor do JGates",
   "nav_semantic": "Revisão semântica",
-  "nav_section_semantic": "Semântica (IA)"
+  "nav_section_semantic": "Semântica (IA)",
+  "provider_fix_link": "Escolher o provedor"
 }

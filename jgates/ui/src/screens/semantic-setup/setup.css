@@ -57,3 +57,25 @@
   display: grid;
   gap: 6px;
 }
+/* The provider step: agent CLIs and APIs as one radio group of cards, then the model. */
+.semprov-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); align-items: start; }
+.semprov-card { min-width: 0; gap: 8px; }
+.semprov-card[data-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.semprov-pick { gap: 8px; cursor: pointer; align-items: center; flex-wrap: wrap; }
+.semprov-pick strong { overflow-wrap: anywhere; }
+.semprov-card p { overflow-wrap: anywhere; }
+.semprov-command { gap: 8px; align-items: center; min-width: 0; }
+.semprov-command code { overflow-wrap: anywhere; min-width: 0; flex: 1 1 160px; }
+.semprov-model { max-width: 520px; display: grid; gap: 6px; }
+.semprov-model .input { width: 100%; }
+.semprov-combo { position: relative; }
+.semprov-options { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); max-height: 260px; overflow: auto; margin: 0; padding: 4px 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 8px 24px rgb(0 0 0 / 0.12); }
+.semprov-options li { padding: 6px 12px; font-family: var(--mono); font-size: 12px; cursor: pointer; overflow-wrap: anywhere; }
+.semprov-options li.active, .semprov-options li:hover { background: var(--mint); }
+.semprov-options li[aria-disabled="true"] { cursor: default; font-family: inherit; background: none; }
+.semprov-bar { align-items: center; flex-wrap: wrap; }
+.semprov-linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.semprov-linkbtn:hover { color: var(--accent-hover); }
+.semprov-api > summary { cursor: pointer; padding: 4px 0; }
+.semprov-api-title { font-weight: 620; font-size: 14px; }
+.semprov-api[open] > summary { margin-bottom: 8px; }

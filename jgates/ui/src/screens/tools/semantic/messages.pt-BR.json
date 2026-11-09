@@ -27,7 +27,7 @@
   "semantic_origin_default": "padrão do provider",
   "semantic_origin_unset": "não definido",
   "semantic_edit": "Editar o semantic gate",
-  "semantic_providers_link": "Providers e chaves",
+  "semantic_providers_link": "Provedores e chaves",
   "semantic_locked": "Modo governado: a política {policy} fixa a configuração, e o card só mostra os valores.",
   "semantic_form_label": "Configuração do semantic gate",
   "semantic_form_lead": "Os campos essenciais de {key} no {file}. Cada alteração vira um patch mínimo do arquivo: comentários e o resto ficam como estão.",
@@ -66,5 +66,6 @@
   "semantic_f_baseUrl": "Base URL do projeto",
   "semantic_h_baseUrl": "Opcional: um gateway do time para todo o projeto. Herdada, vale a das suas preferências ou a do provider.",
   "semantic_unit_seconds": "segundos",
-  "semantic_unit_chars": "caracteres"
+  "semantic_unit_chars": "caracteres",
+  "semantic_choose_provider": "Escolher o provedor"
 }

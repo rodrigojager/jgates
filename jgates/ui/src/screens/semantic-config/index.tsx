@@ -6,6 +6,8 @@ import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { DEFAULT_CHOICES, readChoices, writeChoices, type RunChoices } from "../semantic-setup/choices";
+import { providerChoice, useSemanticInfo } from "../semantic-setup/provider-model";
+import { ProviderPicker } from "../semantic-setup/provider-step";
 import { RunChoicesForm, methodLabel, type SemanticOptions } from "./RunChoicesForm";
 
 export const screen: ScreenMeta = { id: "semantic-config", path: "/semantic/config", area: "semantic", navLabel: "semcfg_nav", navPath: "/semantic/config", order: 51, icon: "sliders" };
@@ -16,6 +18,9 @@ export default function SemanticConfigScreen() {
   const [choices, setChoices] = useState<RunChoices>(() => readChoices());
   const options = useAsync(() => api<SemanticOptions>("GET", "/api/semantic/options"), "semantic-options");
   const data = options.data;
+  const semantic = useSemanticInfo();
+  const sem = semantic.data;
+  const [picking, setPicking] = useState(false);
 
   function keep() {
     writeChoices(choices);
@@ -49,10 +54,16 @@ export default function SemanticConfigScreen() {
               <dd>
                 <Pill tone={data.settings.state === "configured" ? "green" : data.settings.state === "invalid" ? "red" : "gold"}>{t(`semcfg_state_${data.settings.state}`)}</Pill>
               </dd>
-              <dt>{t("semcfg_backend")}</dt>
-              <dd>{data.settings.provider ?? "-"}</dd>
-              <dt>{t("semcfg_model")}</dt>
-              <dd>{data.settings.model ?? "-"}</dd>
+              <dt id="semcfg-provider-label">{t("semcfg_backend")}</dt>
+              <dd className="row wrap" data-testid="semcfg-provider">
+                <span>{sem ? (sem.provider ? providerChoice(sem) : t("semcfg_provider_none")) : (data.settings.provider ?? t("semcfg_provider_none"))}</span>
+                {sem && !picking && sem.form.editable ? (
+                  <button type="button" className={`btn${sem.provider ? "" : " primary"}`} aria-describedby="semcfg-provider-label" data-testid="semcfg-provider-change" onClick={() => setPicking(true)}>
+                    <Icon name={sem.provider ? "settings" : "play"} />
+                    {t(sem.provider ? "semcfg_provider_change" : "semcfg_provider_choose")}
+                  </button>
+                ) : null}
+              </dd>
               <dt>{t("semcfg_limits")}</dt>
               <dd>{data.settings.limits ? t("semcfg_limits_value", { calls: data.settings.limits.maxCalls, seconds: data.settings.limits.timeoutSeconds, chars: data.settings.limits.maxContextChars }) : "-"}</dd>
               <dt>{t("semcfg_cost")}</dt>
@@ -72,10 +83,31 @@ export default function SemanticConfigScreen() {
                 </ul>
               </div>
             ) : null}
+            {picking && sem ? (
+              <ProviderPicker
+                semantic={sem}
+                saveLabel={t("semprov_save")}
+                onReload={semantic.reload}
+                onCancel={() => setPicking(false)}
+                onSaved={(next) => {
+                  semantic.replace(next);
+                  setPicking(false);
+                  options.reload();
+                }}
+              />
+            ) : null}
             <ul className="small" style={{ margin: 0, paddingLeft: 18 }} aria-label={t("semcfg_prerequisites")}>
               {data.prerequisites.map((p) => (
                 <li key={p.id} data-prerequisite={p.id} data-ok={p.ok}>
-                  {p.ok ? t("semcfg_prereq_ok") : p.required ? t("semcfg_prereq_missing") : t("semcfg_prereq_optional")} · {p.message}
+                  {p.ok ? t("semcfg_prereq_ok") : p.required ? t("semcfg_prereq_missing") : t("semcfg_prereq_optional")} · {p.id === "provider" && !p.ok && sem && !sem.provider ? t("semprov_blocker") : p.message}
+                  {p.id === "provider" && !p.ok && !picking && sem?.form.editable ? (
+                    <>
+                      {" "}
+                      <button type="button" className="semprov-linkbtn" data-testid="semcfg-prereq-provider" onClick={() => setPicking(true)}>
+                        {t("semprov_blocker_action")}
+                      </button>
+                    </>
+                  ) : null}
                 </li>
               ))}
             </ul>

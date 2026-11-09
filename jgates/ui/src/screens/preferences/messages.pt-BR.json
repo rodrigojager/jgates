@@ -11,7 +11,7 @@
   "prefs_more": "O que não é preferência pessoal",
   "prefs_network_note": "O acesso à rede é política de execução do repositório: ele é editado na Configuração e aparece na revisão do plano. A retenção dos runs é da sua pasta de dados e fica em Armazenamento.",
   "prefs_storage_link": "Abrir Armazenamento",
-  "prefs_providers": "Providers e chaves",
-  "prefs_providers_note": "Os providers de IA do semantic gate, as conexões com um gateway e as chaves de API ficam fora do projeto, no cofre do usuário. A tela grava e troca uma chave, mas nunca mostra o valor guardado.",
-  "prefs_providers_link": "Abrir Providers e chaves"
+  "prefs_providers": "Provedores de IA e chaves",
+  "prefs_providers_note": "Mudaram para a área Semântica (IA). Lá ficam os padrões para todos os projetos (chaves de API, modelos padrão, conexões) e a escolha do provedor de cada projeto.",
+  "prefs_providers_link": "Abrir Provedores e chaves"
 }

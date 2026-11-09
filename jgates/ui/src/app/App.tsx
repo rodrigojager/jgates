@@ -2,7 +2,7 @@ import { Suspense, useCallback, useEffect, useRef, useState, type MouseEvent } f
 import { useFocusTrap } from "../components/useFocusTrap";
 import { t } from "../i18n";
 import { areaOfPath } from "./areas";
-import { currentPath, navigate, resolveScreen, startPath, useRoute } from "./route";
+import { currentPath, navigate, redirectOf, resolveScreen, startPath, useRoute } from "./route";
 import { useShell } from "./shell-context";
 import { Sidebar } from "./Sidebar";
 import { ActiveRunBanner, AreaUnavailable, FirstAccess, ServerStopped, SessionExpired } from "./states";
@@ -46,7 +46,12 @@ export function App() {
     // was still loading), and the start screen must never override a route the visitor already chose.
     if (route === "" && info && currentPath() === "") navigate(start);
   }, [route, info, start]);
-  const path = route === "" ? start : route;
+  // A route that moved is replaced in the address and resolved to its new place at once (no flash of "unavailable").
+  const moved = redirectOf(route);
+  useEffect(() => {
+    if (moved) window.location.replace(`#${moved}`);
+  }, [moved]);
+  const path = route === "" ? start : (moved ?? route);
 
   // After the user moves to another screen, focus goes to the content (not at first load, and not while typing in a screen
   // that only changes its own hash).
