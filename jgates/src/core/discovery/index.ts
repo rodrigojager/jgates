@@ -18,6 +18,7 @@ import {
 
 export * from "./types.js";
 export { matchesPathOrParent, matchesExactly } from "./glob.js";
+export { DETECTOR_TABLES, buildVocabulary, labelOf, type DetectorTables, type DiscoveryVocabulary, type VocabularyFramework, type VocabularyLanguage } from "./vocabulary.js";
 
 export const WORKSPACE_FILE = ".jgates/workspace.yml";
 

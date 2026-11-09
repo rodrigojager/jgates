@@ -20,4 +20,8 @@
 .ws-files code { overflow-wrap: anywhere; }
 .ws-form-grid { display: grid; gap: 12px; }
 .ws-form-grid label { display: grid; gap: 4px; font-weight: 600; }
-.ws-form-grid input[type="text"] { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: transparent; }
+.ws-form-grid input[type="text"], .ws-form-grid select { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.ws-form-grid input[type="text"] { background: transparent; }
+.ws-field { display: grid; gap: 4px; min-width: 0; }
+.ws-field > label:not(:first-child) { margin-top: 6px; }
+.ws-help { margin: 0; color: var(--muted); font-size: 13px; }

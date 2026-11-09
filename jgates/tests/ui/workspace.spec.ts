@@ -139,6 +139,111 @@ test("Workspace shows the components, the scope preview, the mode by patch and t
   }
 });
 
+test("Declarar componente offers languages, frameworks and folders as choices, keyboard first", async ({ page }) => {
+  const fixture = mainFixture();
+  const file = path.join(fixture.dir, ".jgates", "workspace.yml");
+  // A declared component with the "kind" field the dialog no longer shows: a correction must keep it.
+  const declared = `${WORKSPACE_YML}components:\n  - id: api # the Python API\n    path: api\n    language: python\n    kind: service\n`;
+  fs.writeFileSync(file, declared);
+  let server: Awaited<ReturnType<typeof startServer>> | null = null;
+  try {
+    server = await startServer(fixture);
+    await page.goto(server.bootstrapUrl);
+    await page.getByRole("link", { name: "Workspace" }).first().click();
+    const card = page.locator('article[data-component="api"]');
+    await expect(card.getByTestId("status-badge")).toHaveText("explicit");
+    await card.getByRole("button", { name: "Corrigir" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Corrigir api" });
+    const form = dialog.getByTestId("declare-form");
+    await expect(form).toBeVisible();
+    const pathField = dialog.getByLabel("Caminho");
+    const idField = dialog.getByLabel("Identificador");
+    const language = dialog.getByLabel("Linguagem", { exact: true });
+    const framework = dialog.getByLabel("Framework", { exact: true });
+    // kind left the form; every field explains itself.
+    await expect(dialog.getByLabel("Tipo")).toHaveCount(0);
+    for (const field of [pathField, idField, language, framework]) await expect(field).toHaveAttribute("aria-describedby", /help/);
+    await expect(dialog).toContainText("relativa à raiz do projeto");
+
+    // The supported languages by readable name, then the recognized ones without tools, then Outro….
+    const supported = dialog.locator('#ws-decl-language optgroup[label="Com verificações do JGates"] option');
+    await expect(supported).toHaveText(["Python", "TypeScript", "JavaScript", "Go", "Rust", "C#", "F#", "Visual Basic"]);
+    await expect(dialog.locator('#ws-decl-language optgroup[label="Reconhecidas, sem ferramentas ainda"] option[value="cpp"]')).toHaveText("C++ (sem ferramentas ainda)");
+    await expect(language.locator("option").last()).toHaveText("Outro…");
+    await expect(language).toHaveValue("python");
+    // Python offers only Python frameworks, Nenhum and Outro….
+    await expect(framework.locator("option")).toHaveText(["Nenhum", "Django", "FastAPI", "Flask", "Starlette", "Tornado", "Outro…"]);
+
+    // Keyboard only: the path field has the focus, Tab walks to the language, arrows change it.
+    await expect(pathField).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(idField).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(language).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(language).toHaveValue("typescript");
+    await expect(framework.locator('option[value="next"]')).toHaveText("Next.js");
+    await expect(framework.locator('option[value="fastapi"]')).toHaveCount(0);
+    await page.keyboard.press("ArrowUp");
+    await expect(language).toHaveValue("python");
+
+    // A recognized language without tools says what that means.
+    await language.selectOption("cpp");
+    await expect(dialog.getByTestId("language-notice")).toContainText("O JGates reconhece C++, mas ainda não tem ferramentas");
+    await expect(framework.locator("option")).toHaveText(["Nenhum", "Outro…"]);
+    // Outro… opens a free field with its own label and help.
+    await language.selectOption({ label: "Outro…" });
+    await expect(dialog.getByLabel("Qual linguagem?")).toBeVisible();
+    await dialog.getByLabel("Qual linguagem?").fill("elm");
+    await expect(dialog.getByTestId("language-notice")).toContainText("não conhece essa linguagem");
+    await language.selectOption("python");
+    await expect(dialog.getByLabel("Qual linguagem?")).toHaveCount(0);
+    await expect(dialog.getByTestId("language-notice")).toHaveCount(0);
+    await framework.selectOption({ label: "Outro…" });
+    await expect(dialog.getByLabel("Qual framework?")).toBeVisible();
+    await framework.focus();
+    await page.keyboard.press("Home");
+    await expect(framework).toHaveValue("");
+    await framework.selectOption({ label: "FastAPI" });
+
+    // 375 px: the dialog fits without horizontal scrolling.
+    await page.setViewportSize({ width: 375, height: 800 });
+    const overflow = await page.locator("dialog[open]").evaluate((el) => el.scrollWidth - el.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+    const axe = await new AxeBuilder({ page }).include("dialog[open]").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(axe.violations.map((v) => `${v.id} ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`)).toEqual([]);
+    await page.setViewportSize({ width: 1280, height: 800 });
+
+    await dialog.getByRole("button", { name: "Gravar no workspace.yml" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog).toHaveCount(0);
+    await expect.poll(() => fs.readFileSync(file, "utf8")).toContain("framework: fastapi");
+    const saved = fs.readFileSync(file, "utf8");
+    expect(saved).toContain("language: python");
+    expect(saved).toContain("kind: service");
+    expect(saved).toContain("# Workspace settings: keep this comment");
+
+    // A new declaration: folders are suggested (detected ones first), the id follows the path, Esc closes.
+    await page.getByRole("button", { name: "Declarar componente" }).click();
+    const fresh = page.getByRole("dialog", { name: "Declarar componente" });
+    const folders = fresh.locator("#ws-decl-folders option");
+    await expect(folders.first()).toHaveAttribute("value", "api");
+    await expect(fresh.locator('#ws-decl-folders option[value="web"]')).toHaveText("componente detectado");
+    await expect(fresh.locator('#ws-decl-folders option[value="web/src"]')).toHaveCount(1);
+    await expect(fresh.getByLabel("Linguagem", { exact: true })).toHaveValue("");
+    await expect(fresh.getByLabel("Framework", { exact: true }).locator('option[value="fastapi"]')).toHaveCount(1);
+    await page.keyboard.type("libs/Shared Code");    await expect(fresh.getByLabel("Identificador")).toHaveValue("libs-shared-code");
+    await page.keyboard.press("Escape");
+    await expect(fresh).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Declarar componente" })).toBeFocused();
+    expect(fs.readFileSync(file, "utf8")).toBe(saved);
+  } finally {
+    await server?.stop();
+    fixture.cleanup();
+  }
+});
+
 test("Workspace refuses to overwrite a workspace.yml that changed outside the screen", async ({ page }) => {
   const fixture = mainFixture();
   const file = path.join(fixture.dir, ".jgates", "workspace.yml");

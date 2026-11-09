@@ -127,7 +127,19 @@ const NODE_LOCKFILES: Readonly<Record<string, string>> = {
   "bun.lock": "bun",
   "bun.lockb": "bun",
 };
-const NODE_FRAMEWORKS: ReadonlyArray<readonly [string, string]> = [
+/** A detector's framework table: [needle found in the manifest, canonical framework id]. */
+export type FrameworkTable = ReadonlyArray<readonly [string, string]>;
+
+/** Canonical language ids the detectors write (the vocabulary of the "Declarar componente" dialog comes from here). */
+export const LANGUAGE = {
+  python: "python",
+  typescript: "typescript",
+  javascript: "javascript",
+  go: "go",
+  rust: "rust",
+} as const;
+
+export const NODE_FRAMEWORKS: FrameworkTable = [
   ["next", "next"],
   ["@nestjs/core", "nestjs"],
   ["@angular/core", "angular"],
@@ -230,7 +242,7 @@ export function detectNode(ctx: DetectContext): Candidate[] {
     }
     out.push({
       root: m.dir,
-      language: isTs ? "typescript" : "javascript",
+      language: isTs ? LANGUAGE.typescript : LANGUAGE.javascript,
       framework: firstWord(deps.map((d) => ` ${d} `).join("\n"), NODE_FRAMEWORKS),
       packageManager: managers.length === 1 ? (managers[0] as string) : managers.length === 0 ? field : null,
       kind: null,
@@ -245,7 +257,7 @@ export function detectNode(ctx: DetectContext): Candidate[] {
 
 // ---------------------------------------------------------------- Python
 
-const PY_FRAMEWORKS: ReadonlyArray<readonly [string, string]> = [
+export const PY_FRAMEWORKS: FrameworkTable = [
   ["django", "django"],
   ["fastapi", "fastapi"],
   ["flask", "flask"],
@@ -290,7 +302,7 @@ export function detectPython(ctx: DetectContext): Candidate[] {
     const reqText = namesIn(ctx, dir).includes("requirements.txt") ? (ctx.read(joinPath(dir, "requirements.txt")) ?? "") : "";
     out.push({
       root: dir,
-      language: "python",
+      language: LANGUAGE.python,
       framework: firstWord(`${i.text}\n${reqText}`, PY_FRAMEWORKS),
       packageManager: extra.includes("uv.lock") ? "uv" : extra.includes("poetry.lock") ? "poetry" : null,
       kind: null,
@@ -311,7 +323,7 @@ export function detectPython(ctx: DetectContext): Candidate[] {
     const reqText = manifests.includes("requirements.txt") ? (ctx.read(joinPath(dir, "requirements.txt")) ?? "") : "";
     out.push({
       root: dir,
-      language: "python",
+      language: LANGUAGE.python,
       framework: firstWord(reqText, PY_FRAMEWORKS),
       packageManager: manifests.includes("Pipfile") ? "pipenv" : null,
       kind: null,
@@ -333,7 +345,7 @@ export function detectPython(ctx: DetectContext): Candidate[] {
   for (const [top, group] of groups) {
     out.push({
       root: top,
-      language: "python",
+      language: LANGUAGE.python,
       framework: null,
       packageManager: null,
       kind: null,
@@ -348,7 +360,7 @@ export function detectPython(ctx: DetectContext): Candidate[] {
 
 // ---------------------------------------------------------------- Go
 
-const GO_FRAMEWORKS: ReadonlyArray<readonly [string, string]> = [
+export const GO_FRAMEWORKS: FrameworkTable = [
   ["github.com/gin-gonic/gin", "gin"],
   ["github.com/labstack/echo", "echo"],
   ["github.com/gofiber/fiber", "fiber"],
@@ -381,7 +393,7 @@ export function detectGo(ctx: DetectContext): Candidate[] {
     if (work !== undefined) evidence.push(joinPath(work, "go.work"));
     return {
       root: dir,
-      language: "go",
+      language: LANGUAGE.go,
       framework: firstWord(text, GO_FRAMEWORKS),
       packageManager: null,
       kind: null,
@@ -395,7 +407,7 @@ export function detectGo(ctx: DetectContext): Candidate[] {
 
 // ---------------------------------------------------------------- Cargo
 
-const RUST_FRAMEWORKS: ReadonlyArray<readonly [string, string]> = [
+export const RUST_FRAMEWORKS: FrameworkTable = [
   ["actix-web", "actix-web"],
   ["axum", "axum"],
   ["rocket", "rocket"],
@@ -439,7 +451,7 @@ export function detectCargo(ctx: DetectContext): Candidate[] {
     }
     out.push({
       root: dir,
-      language: "rust",
+      language: LANGUAGE.rust,
       framework: firstWord(tableBody(i.text, "dependencies") ?? "", RUST_FRAMEWORKS),
       packageManager: "cargo",
       kind: null,
@@ -454,7 +466,9 @@ export function detectCargo(ctx: DetectContext): Candidate[] {
 
 // ---------------------------------------------------------------- .NET
 
-const DOTNET_LANGUAGES: Readonly<Record<string, string>> = { ".csproj": "csharp", ".fsproj": "fsharp", ".vbproj": "visualbasic" };
+export const DOTNET_LANGUAGES: Readonly<Record<string, string>> = { ".csproj": "csharp", ".fsproj": "fsharp", ".vbproj": "visualbasic" };
+/** .NET projects on the web SDK (Microsoft.NET.Sdk.Web) are this framework. */
+export const DOTNET_FRAMEWORKS: FrameworkTable = [["Microsoft.NET.Sdk.Web", "aspnet"]];
 
 export function detectDotnet(ctx: DetectContext): Candidate[] {
   const projects = ctx.files.filter((f) => path.posix.extname(f).toLowerCase() in DOTNET_LANGUAGES);
@@ -479,7 +493,7 @@ export function detectDotnet(ctx: DetectContext): Candidate[] {
     return {
       root: dir,
       language: DOTNET_LANGUAGES[path.posix.extname(file).toLowerCase()] as string,
-      framework: /Microsoft\.NET\.Sdk\.Web/.test(text) ? "aspnet" : null,
+      framework: DOTNET_FRAMEWORKS.find(([needle]) => text.includes(needle))?.[1] ?? null,
       packageManager: "nuget",
       kind: null,
       detectedBy: "dotnet-project",
@@ -492,7 +506,7 @@ export function detectDotnet(ctx: DetectContext): Candidate[] {
 
 // ---------------------------------------------------------------- Unsupported languages
 
-const UNSUPPORTED_MANIFESTS: Readonly<Record<string, string>> = {
+export const UNSUPPORTED_MANIFESTS: Readonly<Record<string, string>> = {
   "pom.xml": "java",
   "build.gradle": "java",
   "build.gradle.kts": "kotlin",
@@ -503,7 +517,7 @@ const UNSUPPORTED_MANIFESTS: Readonly<Record<string, string>> = {
   "Package.swift": "swift",
   "CMakeLists.txt": "cpp",
 };
-const UNSUPPORTED_EXTENSIONS: Readonly<Record<string, string>> = {
+export const UNSUPPORTED_EXTENSIONS: Readonly<Record<string, string>> = {
   ".java": "java",
   ".kt": "kotlin",
   ".rb": "ruby",

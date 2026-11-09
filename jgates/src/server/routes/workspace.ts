@@ -7,6 +7,7 @@ import { patchYamlFile, patchYamlText, readRevision, YamlPatchError, type YamlEd
 import {
   DEFAULT_DISCOVERY_LIMITS,
   WORKSPACE_FILE,
+  buildVocabulary,
   discoverWithSettings,
   discoverWorkspace,
   loadWorkspaceSettings,
@@ -123,6 +124,27 @@ function candidate(server: ServerContext, body: Rec): WorkspaceSettings {
   };
 }
 
+const MAX_FOLDERS = 400;
+
+/**
+ * The folders a component can live in: the roots discovery found first (as it found them), then every other folder
+ * of the project in path order. Hidden folders (.jgates, .github...) and the excluded technical ones are left out.
+ */
+function foldersOf(server: ServerContext, inventory: Inventory): Array<{ path: string; detected: boolean }> {
+  const detected = [...new Set(inventory.classifications.filter((c) => c.classificationStatus !== "ignored").map((c) => c.componentRoot))].sort(compareStrings);
+  const tree = walkProject(server.projectDir, defaultReadDir, DEFAULT_DISCOVERY_LIMITS);
+  const others = new Set<string>();
+  for (const file of tree.files) {
+    const parts = file.split("/").slice(0, -1);
+    for (let i = 1; i <= parts.length; i += 1) {
+      if (parts[i - 1]?.startsWith(".")) break;
+      others.add(parts.slice(0, i).join("/"));
+    }
+  }
+  const rest = [...others].filter((d) => !detected.includes(d)).sort(compareStrings);
+  return [...detected.map((p) => ({ path: p, detected: true })), ...rest.map((p) => ({ path: p, detected: false }))].slice(0, MAX_FOLDERS);
+}
+
 const patternList = { type: "array", maxItems: 200, items: { type: "string", minLength: 1, maxLength: 512, pattern: "^[^\\u0000\\n\\r]+$" } };
 const component = {
   type: "object",
@@ -133,6 +155,9 @@ const component = {
     framework: { type: "string", minLength: 1, maxLength: 60 },
     kind: { type: "string", minLength: 1, maxLength: 60 },
     enabled: { type: "boolean" },
+    // Not edited by the screen, but a correction sends the whole entry back and these must survive it.
+    include: patternList,
+    exclude: patternList,
   },
   required: ["id", "path"],
   additionalProperties: false,
@@ -183,6 +208,15 @@ export const routes: RouteDefinition[] = [
       const changes = changesBetween(previous.get(server), inventory);
       previous.set(server, inventory);
       return { status: 200, json: { schemaVersion: 1, status: "OK", inventory, diagnostics, changes, templates: templatesOf(inventory) } };
+    },
+  },
+  {
+    // What the "Declarar componente" dialog offers: languages and frameworks the detectors know, and the folders.
+    method: "GET",
+    path: "/api/workspace/vocabulary",
+    handler({ server }) {
+      const { inventory } = discoverWorkspace(server.projectDir);
+      return { status: 200, json: { ...buildVocabulary(), status: "OK", folders: foldersOf(server, inventory) } };
     },
   },
   {

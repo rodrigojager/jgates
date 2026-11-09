@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { api } from "../../api";
-import { Dialog, ErrorNotice, Pill, Spinner } from "../../components/common";
+import { Dialog, ErrorNotice, Pill } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
+import { DeclareDialog } from "./declare-dialog";
 
 export interface Classification {
   id: string;
@@ -25,8 +26,11 @@ export interface Declared {
   path: string;
   language?: string;
   framework?: string;
+  /** Not edited by the dialog; still accepted in the file and kept when a correction is saved. */
   kind?: string;
   enabled?: boolean;
+  include?: string[];
+  exclude?: string[];
 }
 
 const TONE: Record<string, "green" | "gold" | "red" | "blue"> = { explicit: "blue", detected: "green", ambiguous: "gold", unsupported: "red", ignored: "gold" };
@@ -72,94 +76,6 @@ function WhyDialog({ item, templates, onClose }: { item: Classification; templat
           </ul>
         </div>
       </div>
-    </Dialog>
-  );
-}
-
-/** Declares a component or corrects a declared one; the file is changed by patch and its comments stay. */
-function DeclareDialog({
-  title,
-  initial,
-  declared,
-  revision,
-  onClose,
-  onSaved,
-}: {
-  title: string;
-  initial: Declared;
-  declared: Declared[];
-  revision: string | null;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const toast = useToast();
-  const [form, setForm] = useState({ id: initial.id, path: initial.path, language: initial.language ?? "", framework: initial.framework ?? "", kind: initial.kind ?? "" });
-  const [error, setError] = useState<unknown>(null);
-  const [saving, setSaving] = useState(false);
-  const set = (key: keyof typeof form) => (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value });
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-    const entry: Declared = {
-      id: form.id.trim(),
-      path: form.path.trim(),
-      ...(form.language.trim() ? { language: form.language.trim() } : {}),
-      ...(form.framework.trim() ? { framework: form.framework.trim() } : {}),
-      ...(form.kind.trim() ? { kind: form.kind.trim() } : {}),
-      ...(initial.enabled === false ? { enabled: false } : {}),
-    };
-    const next = declared.some((d) => d.id === initial.id) ? declared.map((d) => (d.id === initial.id ? entry : d)) : [...declared, entry];
-    try {
-      await api("PUT", "/api/workspace/settings", { expectedRevision: revision, components: next });
-      toast(t("ws_saved_toast"), "ok");
-      onSaved();
-      onClose();
-    } catch (err) {
-      setError(err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog title={title} onClose={onClose}>
-      <form className="stack" onSubmit={submit}>
-        <div className="ws-form-grid">
-          <label>
-            {t("ws_field_id")}
-            <input type="text" required value={form.id} onChange={set("id")} pattern="[a-z0-9][a-z0-9._\-]*" />
-          </label>
-          <label>
-            {t("ws_field_path")}
-            <input type="text" required value={form.path} onChange={set("path")} />
-          </label>
-          <label>
-            {t("ws_field_language")}
-            <input type="text" value={form.language} onChange={set("language")} />
-          </label>
-          <label>
-            {t("ws_field_framework")}
-            <input type="text" value={form.framework} onChange={set("framework")} />
-          </label>
-          <label>
-            {t("ws_field_kind")}
-            <input type="text" value={form.kind} onChange={set("kind")} />
-          </label>
-        </div>
-        <p className="small">{t("ws_declare_hint")}</p>
-        {error ? <ErrorNotice error={error} /> : null}
-        <div className="row">
-          <button type="submit" className="btn primary" disabled={saving}>
-            {saving ? <Spinner /> : null}
-            {saving ? t("ws_saving") : t("ws_declare_save")}
-          </button>
-          <button type="button" className="btn" onClick={onClose}>
-            {t("close")}
-          </button>
-        </div>
-      </form>
     </Dialog>
   );
 }
