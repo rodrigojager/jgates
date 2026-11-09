@@ -345,6 +345,18 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     },
     external: { en: "cargo-audit 0.20+ (cargo install; customer-supplied), network to github.com", ptBR: "cargo-audit 0.20+ (cargo install; do cliente), rede para github.com" },
   },
+  "cargo-test": {
+    capabilities: {
+      tests: proven(["rust"], t("adapter-cargo-test.test.js", "cargo-test: an ordinary failing #[test] is cargo-test.test-failed, not a property failure, and a crate without proptest has no property metrics [proves: cargo-test#tests, cargo-test#tests@rust]")),
+      properties: proven(["rust"], t("adapter-cargo-test.test.js", "cargo-test: a failing proptest property is cargo-test.property-failed with the minimal failing input and the clean twin none [proves: cargo-test#properties, cargo-test#properties@rust]")),
+    },
+    otherTests: [t("adapter-cargo-test.test.js", "cargo-test: without cargo on the PATH the stage is blocked with setup guidance, never passed"), t("adapter-cargo-test.test.js", "cargo-test recorded libtest output")],
+    limitation: {
+      en: "Customer-supplied toolchain (cargo, MIT OR Apache-2.0): runs cargo test --offline and parses the stable libtest text output; proptest properties are found statically (proptest! blocks and #[proptest] functions); the tests, build scripts and procedural macros of the project execute, so the result is self-reported and never cached; dependencies must already be in the cargo home. Proven on Rust crate fixtures with the real cargo 1.99.1 and proptest 1.x.",
+      ptBR: "Toolchain fornecido pelo cliente (cargo, MIT OR Apache-2.0): roda cargo test --offline e lê a saída de texto estável do libtest; as propriedades do proptest são achadas de forma estática (blocos proptest! e funções #[proptest]); os testes, build scripts e macros procedurais do projeto executam, então o resultado é autodeclarado e nunca vem do cache; as dependências já precisam estar no cargo home. Provado em crates Rust de teste com o cargo 1.99.1 real e o proptest 1.x.",
+    },
+    external: { en: "cargo and rustc 1.60+ (rustup; customer-supplied), proptest 1.x fetched in the cargo home", ptBR: "cargo e rustc 1.60+ (rustup; do cliente), proptest 1.x baixado no cargo home" },
+  },
   jscpd: {
     capabilities: { duplication: proven(["typescript"], t("adapters-quality.test.js", "jscpd: the duplications of a fixture come out")) },
     limitation: {

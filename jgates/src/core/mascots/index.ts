@@ -42,6 +42,8 @@ const CAPABILITY_PLACEMENT: Readonly<Record<string, { domain: MascotDomain; sub:
   e2e: { domain: "tests", sub: "unit-integration" },
   coverage: { domain: "tests", sub: "unit-integration" },
   "api-contract": { domain: "tests", sub: "contracts" },
+  tests: { domain: "tests", sub: "unit-integration" },
+  properties: { domain: "tests", sub: "properties" },
   mutation: { domain: "tests", sub: "mutation" },
   architecture: { domain: "architecture", sub: "layer-boundaries" },
   iac: { domain: "infrastructure", sub: "iac" },

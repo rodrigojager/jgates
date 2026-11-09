@@ -39,6 +39,7 @@ autorizada ou fornecido pelo cliente) está completo e se cada pacote distribuí
 | Trivy em modo imagem | `dependencies` e `images` | Preparado de fonte autorizada | Examina uma imagem de contêiner, não só o sistema de arquivos. |
 | govulncheck | `dependencies` | Fornecido pelo cliente | Módulos Go. |
 | cargo-audit | `dependencies` | Fornecido pelo cliente | Crates Rust. |
+| cargo test | `tests` e `properties` | Fornecido pelo cliente | Crates Rust. Roda `cargo test --offline` (cargo e rustc são seus; as dependências já precisam estar baixadas) e lê a saída estável do libtest: um teste que falha é `cargo-test.test-failed`; uma propriedade do proptest que falha (função em um bloco `proptest!` ou marcada com `#[proptest]`, achada lendo os fontes) é `cargo-test.property-failed` com a entrada mínima que falha, mais as métricas `tests.property.total` e `tests.property.failed` quando o crate usa proptest. Os artefatos de build ficam na pasta da execução e a persistência de falhas do proptest fica desligada, então o projeto não é alterado. O template `rust-cargo-test` é adicionado pelo `jgates init` aos componentes Rust. Os testes e build scripts executam, então o resultado é autodeclarado no `jgates ci`. |
 
 Para uma ferramenta fornecida pelo cliente, o adaptador, as versões suportadas, os links oficiais de aquisição e preparação
 e uma verificação de prontidão já vêm prontos; `jgates doctor` informa o que falta. Nada é baixado enquanto uma execução

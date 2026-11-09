@@ -14,6 +14,7 @@ import { probeCodeql } from "../../adapters/codeql/probe.js";
 import { probeOasdiff } from "../../adapters/oasdiff/probe.js";
 import { probeGovulncheck } from "../../adapters/govulncheck/probe.js";
 import { probeCargoAudit } from "../../adapters/cargo-audit/probe.js";
+import { probeCargo } from "../../adapters/cargo-test/probe.js";
 import { probeSchemathesis } from "../../adapters/schemathesis/probe.js";
 import { probeZap } from "../../adapters/zap/probe.js";
 import { findOnPath, resolvePython, resolveSidecarDir } from "../bridge/index.js";
@@ -131,6 +132,7 @@ function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, project
     return { executable: p.executable, version: p.version, problem: p.problem === "no_go" ? "not_found" : p.problem, detail: p.detail };
   }
   if (manifest.id === "cargo-audit") return probeCargoAudit(env);
+  if (manifest.id === "cargo-test") return probeCargo(env);
   if (manifest.id === "schemathesis") return probeSchemathesis(env);
   if (manifest.id === "zap") {
     // The default image; an instance that names another one is checked when it is planned.
@@ -175,6 +177,7 @@ function fixFor(manifest: AdapterManifest): string | null {
   if (manifest.id === "oasdiff") return translator("oasdiff")("oasdiff_fix");
   if (manifest.id === "govulncheck") return translator("govulncheck")("govulncheck_fix");
   if (manifest.id === "cargo-audit") return translator("cargo-audit")("cargo-audit_fix");
+  if (manifest.id === "cargo-test") return translator("cargo-test")("cargo-test_fix");
   if (manifest.id === "codeql") return translator("codeql")("codeql_fix");
   if (manifest.id === "zap") return translator("zap")("zap_fix");
   return null;

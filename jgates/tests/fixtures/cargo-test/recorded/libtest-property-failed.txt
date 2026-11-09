@@ -1,0 +1,30 @@
+
+running 3 tests
+test tests::halve_of_ten_is_five ... ok
+test tests::twice_the_half_never_exceeds_the_input ... FAILED
+test tests::half_is_never_larger_than_the_input ... ok
+
+failures:
+
+---- tests::twice_the_half_never_exceeds_the_input stdout ----
+
+thread 'tests::twice_the_half_never_exceeds_the_input' (40120) panicked at src\lib.rs:15:5:
+Test failed: assertion failed: halve(x) * 2 <= x at src\lib.rs:18.
+minimal failing input: x = 100
+	successes: 1
+	local rejects: 0
+	global rejects: 0
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::twice_the_half_never_exceeds_the_input
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

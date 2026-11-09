@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "rust-cargo-test",
+  "label": "Rust with cargo test",
+  "description": "Runs cargo test --offline in Rust components (Cargo.toml): failing tests are findings, and proptest property tests get their own rule and metrics. The Rust toolchain is supplied by you; the project's tests and build scripts execute.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "rust"
+    ]
+  },
+  "config": {
+    "tools": {
+      "cargo-test": {
+        "adapter": "cargo-test",
+        "enabled": true,
+        "capabilities": [
+          "tests",
+          "properties"
+        ]
+      }
+    }
+  }
+}

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "rust",
   "label": "Rust",
-  "description": "Componentes Rust (Cargo.toml): suporte parcial. Descoberta, configuração explícita e o comando genérico com cargo test; clippy e cobertura ficam para depois. A verificação do compilador (cargo check) entra pelo template rust-cargo-check.",
+  "description": "Componentes Rust (Cargo.toml): suporte parcial. Descoberta e configuração explícita; clippy e cobertura ficam para depois. A verificação do compilador (cargo check) entra pelo template rust-cargo-check, os testes (cargo test, com os testes de propriedade do proptest) pelo rust-cargo-test e os avisos do RustSec pelo rust-cargo-audit.",
   "extends": [
     "builtin:base"
   ],
@@ -20,40 +20,6 @@
     ]
   },
   "config": {
-    "tools": {
-      "cargo-test": {
-        "adapter": "generic-command",
-        "enabled": true,
-        "capabilities": [
-          "unit"
-        ],
-        "command": "cargo",
-        "args": [
-          "test",
-          "--locked"
-        ],
-        "config": {
-          "support": "partial",
-          "limitations": [
-            "Roda apenas cargo test --locked no workspace: sem clippy, cobertura ou análise de dependências."
-          ],
-          "effects": {
-            "readsCode": true,
-            "writesOutputs": true,
-            "mayChangeCode": false,
-            "executesProjectCode": true,
-            "usesNetwork": false,
-            "workspaceWrites": [
-              "target"
-            ]
-          },
-          "evidence": {
-            "kind": "test-runner",
-            "runner": "cargo-test"
-          }
-        }
-      }
-    },
     "workspace": {
       "exclude": {
         "add": [

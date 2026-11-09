@@ -23,6 +23,7 @@ import { schemathesisManifest } from "./schemathesis/manifest.js";
 import { zapManifest } from "./zap/manifest.js";
 import { govulncheckManifest } from "./govulncheck/manifest.js";
 import { cargoAuditManifest } from "./cargo-audit/manifest.js";
+import { cargoTestManifest } from "./cargo-test/manifest.js";
 import { supplyChainManifest } from "./supply-chain/manifest.js";
 
 /**
@@ -32,5 +33,5 @@ import { supplyChainManifest } from "./supply-chain/manifest.js";
  * binding) is unchanged.
  */
 export function builtinManifests(): AdapterManifest[] {
-  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest, supplyChainManifest, govulncheckManifest, cargoAuditManifest];
+  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest, supplyChainManifest, govulncheckManifest, cargoAuditManifest, cargoTestManifest];
 }

@@ -58,6 +58,7 @@ const GO: TemplateEntry[] = [
 const RUST: TemplateEntry[] = [
   { id: "rust-cargo-check", source: "builtin:rust-cargo-check", evidence: true },
   { id: "rust-cargo-audit", source: "builtin:rust-cargo-audit", evidence: true },
+  { id: "rust-cargo-test", source: "builtin:rust-cargo-test", evidence: true },
 ];
 
 /**

@@ -56,6 +56,11 @@ export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
     config: "Vitest loads the project's configuration and setup files: the project decides the result",
     suppressions: "honored: .skip, .todo and the project's configuration",
   },
+  "cargo-test": {
+    treatment: "self-reported",
+    config: "cargo test compiles and runs the project's tests, build scripts and procedural macros, and reads Cargo.toml and .cargo/config.toml: the project decides the result",
+    suppressions: "honored: #[ignore], #[should_panic], cfg(test) gates and the project's proptest configuration (failure persistence is disabled by the run)",
+  },
   "build-check": {
     treatment: "self-reported",
     config: "the project's own compiler or type checker configuration (tsconfig.json, mypy.ini, go.mod, Cargo.toml, the .NET project): the project decides the result",

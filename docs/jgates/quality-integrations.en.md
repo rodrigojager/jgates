@@ -38,6 +38,7 @@ complete and that every shipped pack satisfies its license terms.
 | Trivy image mode | `dependencies` and `images` | Prepared from an authorized source | Scans a container image, not only the file system. |
 | govulncheck | `dependencies` | Customer-supplied | Go modules. |
 | cargo-audit | `dependencies` | Customer-supplied | Rust crates. |
+| cargo test | `tests` and `properties` | Customer-supplied | Rust crates. Runs `cargo test --offline` (cargo and rustc are yours; the dependencies must already be fetched) and reads the stable libtest output: a failing test is `cargo-test.test-failed`; a failing proptest property (a function in a `proptest!` block or marked `#[proptest]`, found by reading the sources) is `cargo-test.property-failed` with the minimal failing input, plus the metrics `tests.property.total` and `tests.property.failed` when the crate uses proptest. Build artifacts stay in the run folder and proptest failure persistence is off, so the project is untouched. The `rust-cargo-test` template is added by `jgates init` to Rust components. The tests and build scripts execute, so the result is self-reported in `jgates ci`. |
 
 For a customer-supplied tool the adapter, the supported versions, the official acquisition and setup links and a readiness
 check are built in; `jgates doctor` reports what is missing. Nothing is downloaded while a run is in progress.

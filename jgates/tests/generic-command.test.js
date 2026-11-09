@@ -243,18 +243,17 @@ test("the Go template enters the plan with partial support declared, and without
   }
 });
 
-test("the Rust template declares cargo test with partial support and its target folder as a workspace write", () => {
+test("the Rust test template uses the cargo-test adapter (its target folder is in the run folder, not the workspace)", () => {
   const p = project({ "Cargo.toml": '[package]\nname = "mini"\nversion = "0.1.0"\nedition = "2021"\n', "src/main.rs": "fn main() {}\n" });
   try {
-    fs.appendFileSync(path.join(p.dir, "jgates.yml"), "  - id: rust\n    source: builtin:rust\n    activation: detected\n    match:\n      languages: [rust]\n");
+    // jgates init already added rust-cargo-test for the Rust component.
     const planned = p.plan("--only", "tool:cargo-test");
     assert.equal(planned.code, 0, planned.out + planned.err);
-    const item = p.item(planned, "cargo-test#unit");
+    const item = p.item(planned, "cargo-test#tests");
     assert.ok(item);
-    assert.equal(item.command.executable, "cargo");
-    assert.deepEqual(item.effects.workspaceWrites, ["target"]);
-    assert.ok(item.limitations.some((l) => /Suporte parcial/.test(l)));
-    assert.equal(item.availability.status, "unavailable");
+    assert.equal(item.adapter, "cargo-test");
+    assert.match(item.command.env.CARGO_TARGET_DIR, /^\{runDir\}\//);
+    assert.equal(item.effects.executesProjectCode, true);
   } finally {
     p.cleanup();
   }

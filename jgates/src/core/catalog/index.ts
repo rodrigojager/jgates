@@ -260,6 +260,8 @@ export const CORE_CAPABILITIES: CatalogEntry[] = [
   cap("e2e", "tests", "Testes ponta a ponta", "Executa os testes ponta a ponta."),
   cap("coverage", "tests", "Cobertura", "Mede a cobertura dos testes.", { unit: "percent" }),
   cap("mutation", "tests", "Mutação", "Mede a força dos testes por mutação.", { unit: "percent" }),
+  cap("tests", "tests", "Testes", "Executa os testes do projeto com o executor da própria linguagem e conta os que falham."),
+  cap("properties", "tests", "Testes de propriedade", "Testes baseados em propriedades do projeto (proptest, Hypothesis, fast-check): entradas geradas, com a entrada mínima que falha."),
   cap("architecture", "architecture", "Arquitetura", "Satisfação dos contratos de arquitetura configurados."),
   cap("api-compatibility", "architecture", "Compatibilidade de API", "Compatibilidade de contratos de API entre versões."),
   cap("typecheck", "quality", "Tipos e build", "O compilador ou verificador de tipos do próprio projeto: erros de tipo e falhas de build, localizados no código."),

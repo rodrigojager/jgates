@@ -28,6 +28,7 @@ import { zapAdapter } from "../../adapters/zap/index.js";
 import { supplyChainAdapter } from "../../adapters/supply-chain/index.js";
 import { govulncheckAdapter } from "../../adapters/govulncheck/index.js";
 import { cargoAuditAdapter } from "../../adapters/cargo-audit/index.js";
+import { cargoTestAdapter } from "../../adapters/cargo-test/index.js";
 
 export interface ExternalPlanInput {
   /** Workspace directory (absolute). */
@@ -105,6 +106,7 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [supplyChainAdapter.manifest.id, supplyChainAdapter],
   [govulncheckAdapter.manifest.id, govulncheckAdapter],
   [cargoAuditAdapter.manifest.id, cargoAuditAdapter],
+  [cargoTestAdapter.manifest.id, cargoTestAdapter],
 ]);
 
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {
