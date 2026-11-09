@@ -198,19 +198,32 @@ export interface NotApplicableAdapter {
  * - prepare-tool: prepare or install the tool of `tools` (instances) of `adapter` (prerequisites / doctor screens);
  * - add-files: add one of `files` so the built-in `template` activates (templateState "absent": also add the template
  *   to jgates.yml templates);
- * - configure-tool: declare or configure an instance of `adapter` in .jgates/tools.yml (target URL, reference...), or
- *   add `template` to jgates.yml when it has no evidence files;
+ * - add-template: add the built-in `template` (a "builtin:<id>" reference, templateState "absent") to the templates
+ *   of jgates.yml, as `{ id: <id>, source: <template>, activation: detected }`; nothing else is needed from the
+ *   project: the template needs no evidence file, or its evidence already exists (`files`: the ones found). The
+ *   template brings the instance with sensible defaults; the next plan runs the check, or reports TOOL_MISSING with
+ *   a prepare-tool action when the tool is not installed;
+ * - configure-tool: declare or configure an instance of `adapter` in .jgates/tools.yml with the settings JGates cannot
+ *   guess, named in `settings` (target: the URL of a running application; baseRef: the reference revision of the
+ *   OpenAPI file...). `template` (with its templateState) is the built-in template that declares the instance, when
+ *   one exists, and `files` the evidence it also needs (an OpenAPI file...). Without `settings`, declare an instance;
  * - enable-check: turn on the checks of `tools`, switched off by a saved setting or by this run's flags.
  * Unused fields are null or empty lists, so the shape is the same for every kind.
  */
 export interface NotApplicableAction {
-  kind: "none" | "prepare-tool" | "add-files" | "configure-tool" | "enable-check";
+  kind: "none" | "prepare-tool" | "add-files" | "add-template" | "configure-tool" | "enable-check";
   adapter: string | null;
   tools: string[];
   template: string | null;
   templateState: "active" | "declared" | "absent" | null;
   files: string[];
   docs: string[];
+  /**
+   * configure-tool: the settings of the `adapter` instance (tools.<id>.<setting> in .jgates/tools.yml) that must be
+   * set, for example ["target"] (schemathesis, zap) or ["baseRef"] (oasdiff; baseSpec is the file alternative).
+   * Empty for the other kinds; absent in plans written before it existed, read it as [].
+   */
+  settings?: string[];
 }
 
 /**
@@ -223,11 +236,11 @@ export interface NotApplicableAction {
  *   "requiredBy": { "selector": "capability:mutation", "value": true, "layer": "profile", "source": "builtin:strict", ..., "when": "available" },
  *   "coveredBy": [], "when": "available",
  *   "label": "Mutação", "reasonCode": "SETUP_REQUIRED",
- *   "message": "Não aplicável neste projeto: Mutação precisa de preparo: ... Declare uma instância de mutation em .jgates/tools.yml.",
+ *   "message": "Ainda não se aplica a este projeto: Mutação é verificada por ... pelo template builtin:python-mutmut, que não está nos templates do jgates.yml. ...",
  *   "languages": ["python"],
  *   "adapters": [{ "id": "mutation", "label": "Mutation testing (Stryker, mutmut)", "languages": ["javascript", "typescript", "python"], "applicable": true, "prerequisites": ["mutmut 3.x ..."], "docs": ["https://..."] }],
  *   "candidates": [], "disabledBy": null,
- *   "action": { "kind": "configure-tool", "adapter": "mutation", "tools": [], "template": null, "templateState": null, "files": [], "docs": ["https://..."] }
+ *   "action": { "kind": "add-template", "adapter": "mutation", "tools": [], "template": "builtin:python-mutmut", "templateState": "absent", "files": ["pyproject.toml"], "docs": ["https://..."], "settings": [] }
  * }
  */
 export interface NotApplicableRequirement extends PlanRequirement {

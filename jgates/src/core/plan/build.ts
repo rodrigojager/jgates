@@ -6,7 +6,7 @@ import { readVersion } from "../../cli/version.js";
 import { listBuiltinProfiles, listBuiltinTemplates, getBuiltinTemplate, isBuiltinRef } from "../../builtin/index.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
 import { createCoreCatalog, subcheckLabel } from "../catalog/index.js";
-import { emptyAction, explainMissing } from "./availability.js";
+import { emptyAction, explainMissing, prepareAction } from "./availability.js";
 import { buildRequest } from "../../adapters/quality-bridge/index.js";
 import { bridgeToolConfigs, effectiveCommand, isConfigurable } from "../../adapters/quality-bridge/tool-configs.js";
 import { ADAPTER_ID, planSubchecks, type BridgeSelection, type SubcheckPlan } from "../../adapters/quality-bridge/requirements.js";
@@ -748,10 +748,10 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
           reasonCode: "TOOL_MISSING",
           message: t("plan_na_tool_missing", { label, tools: tools.join(", "), reason: missing.map((i) => i.availability.reason ?? i.tool).join("; ") }),
           adapters: [],
-          action: { ...emptyAction("prepare-tool"), adapter: missing[0]?.adapter ?? null, tools },
+          action: prepareAction(missing[0]?.adapter ?? null, tools),
         });
       } else if (reason === "NO_EXECUTABLE_CHECK") {
-        const explained = explainMissing({ capability, label, languages: projectLanguages, templates: effective.templates }, t);
+        const explained = explainMissing({ capability, label, languages: projectLanguages, templates: effective.templates, dir, roots: componentRefs.map((c) => c.root) }, t);
         notApplicableHere.push({ ...base, ...explained });
       } else {
         const naKey = { DISABLED_FOR_RUN: "plan_na_for_run", CHECKS_DISABLED: "plan_na_checks_disabled", EVIDENCE_MISSING: "plan_na_evidence_missing" }[reason];

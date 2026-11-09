@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "trivy-licenses",
+  "label": "Dependency licenses (Trivy)",
+  "description": "Reads the licenses of the project's dependencies with trivy fs --scanners license. Comes in by evidence: only when a dependency manifest or lockfile exists (requirements.txt, pyproject.toml, package.json, go.mod, Cargo.toml, a .csproj...); runs only where licenses is switched on (the strict profile turns it on when available). Runs in the security-scanners image that jgates tools prepare pins; without it the check is reported as not available here, never passed.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "files": [
+      "requirements.txt",
+      "pyproject.toml",
+      "poetry.lock",
+      "Pipfile.lock",
+      "package.json",
+      "package-lock.json",
+      "yarn.lock",
+      "pnpm-lock.yaml",
+      "go.mod",
+      "Cargo.toml",
+      "Cargo.lock",
+      "pom.xml",
+      "build.gradle",
+      "build.gradle.kts",
+      "composer.lock",
+      "Gemfile.lock",
+      "*.csproj"
+    ]
+  },
+  "config": {
+    "tools": {
+      "trivy-licenses": {
+        "adapter": "trivy",
+        "capabilities": [
+          "licenses"
+        ]
+      }
+    }
+  }
+}

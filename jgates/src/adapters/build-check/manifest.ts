@@ -87,8 +87,8 @@ export const buildCheckManifest: AdapterManifest = {
       stack: "python",
       state: "validated",
       toolVersions: "mypy >=1.0 or pyright >=1.1.300",
-      prerequisites: ["mypy 1.0+ or pyright 1.1.300+ in the project's virtual environment or on PATH", "a mypy or pyright configuration in the component (mypy.ini, [tool.mypy], pyrightconfig.json, [tool.pyright])"],
-      limitations: ["a Python component without a configured checker is not checked"],
+      prerequisites: ["mypy 1.0+ or pyright 1.1.300+ in the project's virtual environment or on PATH", "a mypy or pyright configuration in the component (mypy.ini, [tool.mypy], pyrightconfig.json, [tool.pyright]), or a mypy instance with withoutConfig: defaults (template python-mypy-defaults)"],
+      limitations: ["a Python component without a configured checker is not checked, unless a mypy instance sets withoutConfig: defaults (mypy defaults, missing third-party stubs ignored)"],
     },
     {
       capability: "typecheck",

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "gitleaks-history",
+  "label": "Secrets in the Git history (Gitleaks)",
+  "description": "Scans the whole Git history for secrets with gitleaks git (redacted report). Comes in by evidence: only when the workspace is a Git repository (.git/HEAD); runs only where secrets-history is switched on (the strict profile turns it on when available). Runs in the security-scanners image that jgates tools prepare pins; without it the check is reported as not available here, never passed.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "files": [
+      ".git/HEAD"
+    ]
+  },
+  "config": {
+    "tools": {
+      "gitleaks-history": {
+        "adapter": "gitleaks",
+        "capabilities": [
+          "secrets-history"
+        ]
+      }
+    }
+  }
+}

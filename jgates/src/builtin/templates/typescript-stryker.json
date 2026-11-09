@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript-stryker",
+  "label": "TypeScript and JavaScript mutation testing (Stryker)",
+  "description": "Mutation testing of TypeScript and JavaScript components with StrykerJS and the project's Stryker configuration, in a copy of the component inside the run folder. Comes in by evidence: only when a Stryker configuration (stryker.config.* or stryker.conf.*) exists or @stryker-mutator/core is a dependency; runs only where mutation is switched on (the strict profile turns it on when available). Bounded to 15 minutes (timeoutSeconds 900): a run that exceeds it has no score. Stryker is the project's own dev dependency and is never installed during a run.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ],
+    "files": [
+      "stryker.config.json",
+      "stryker.config.mjs",
+      "stryker.config.js",
+      "stryker.config.cjs",
+      "stryker.conf.json",
+      "stryker.conf.mjs",
+      "stryker.conf.js",
+      "stryker.conf.cjs",
+      {
+        "path": "package.json",
+        "contains": "\"@stryker-mutator/core\""
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "stryker": {
+        "adapter": "mutation",
+        "capabilities": [
+          "mutation"
+        ],
+        "timeoutSeconds": 900,
+        "config": {
+          "engine": "stryker"
+        }
+      }
+    }
+  }
+}

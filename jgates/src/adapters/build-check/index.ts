@@ -33,9 +33,16 @@ const isRec = (v: unknown): v is Record<string, unknown> => typeof v === "object
 export interface BuildCheckSettings {
   checker: Checker | null;
   tsconfig: string | null;
+  /**
+   * mypy only. "skip" (default): a Python component without a mypy configuration is not checked. "defaults": it is
+   * checked with mypy's defaults (missing third-party stubs ignored), unless it configures pyright instead.
+   */
+  withoutConfig: "skip" | "defaults";
   /** What the instance wrote that is not valid; the plan refuses it instead of guessing. */
   problems: string[];
 }
+
+const WITHOUT_CONFIG = ["skip", "defaults"] as const;
 
 /** A relative path that stays inside its root. */
 function safeRelative(value: string): boolean {
@@ -50,7 +57,7 @@ export function buildCheckSettings(input: Pick<ExternalPlanInput, "config" | "to
   const tools = isRec(input.config) && isRec(input.config.tools) ? input.config.tools : {};
   const raw = isRec(tools[input.tool]) ? (tools[input.tool] as Record<string, unknown>) : {};
   // A template carries the settings under `config` (its schema allows nothing else); tools.yml writes them next to the adapter.
-  const body: Record<string, unknown> = { ...(isRec(raw.config) ? raw.config : {}), ...Object.fromEntries(Object.entries(raw).filter(([k]) => k === "checker" || k === "tsconfig")) };
+  const body: Record<string, unknown> = { ...(isRec(raw.config) ? raw.config : {}), ...Object.fromEntries(Object.entries(raw).filter(([k]) => k === "checker" || k === "tsconfig" || k === "withoutConfig")) };
   const problems: string[] = [];
   let checker: Checker | null = null;
   if (typeof body.checker === "string" && (CHECKERS as readonly string[]).includes(body.checker)) checker = body.checker as Checker;
@@ -60,7 +67,12 @@ export function buildCheckSettings(input: Pick<ExternalPlanInput, "config" | "to
     if (typeof body.tsconfig === "string" && safeRelative(body.tsconfig)) tsconfig = body.tsconfig.replace(/\\/g, "/");
     else problems.push(t("build_check_setting_tsconfig", { tool: input.tool, value: String(body.tsconfig) }));
   }
-  return { checker, tsconfig, problems };
+  let withoutConfig: BuildCheckSettings["withoutConfig"] = "skip";
+  if (body.withoutConfig !== undefined) {
+    if (typeof body.withoutConfig === "string" && (WITHOUT_CONFIG as readonly string[]).includes(body.withoutConfig)) withoutConfig = body.withoutConfig as BuildCheckSettings["withoutConfig"];
+    else problems.push(t("build_check_setting_without_config", { tool: input.tool, value: String(body.withoutConfig), allowed: WITHOUT_CONFIG.join(", ") }));
+  }
+  return { checker, tsconfig, withoutConfig, problems };
 }
 
 function sha256File(abs: string): string | null {
@@ -86,7 +98,7 @@ function planBuildCheck(input: ExternalPlanInput): ExternalPlan {
   const settings = buildCheckSettings(input);
   const governed = input.policyDir !== undefined;
   const checker = settings.checker ?? "tsc";
-  const unitSettings: UnitSettings = { checker: settings.checker, tsconfig: settings.tsconfig };
+  const unitSettings: UnitSettings = { checker: settings.checker, tsconfig: settings.tsconfig, withoutConfig: settings.withoutConfig };
   const plan = settings.problems.length > 0 ? { units: [] as BuildUnit[], skipped: [] as SkippedUnit[] } : planUnits({ dir: input.dir, env: input.env, checker, componentRoot: input.componentRoot, settings: unitSettings, skipWorkspace: governed });
 
   let availability: ExternalPlan["availability"];
@@ -121,7 +133,7 @@ function planBuildCheck(input: ExternalPlanInput): ExternalPlan {
     },
     runtime: { name: "native", interpreter: firstStep?.executable ?? null, available: plan.units.length > 0 && missing.length === 0 },
     toolVersion: first?.version ?? null,
-    configFiles: plan.units.map((u) => ({ file: u.config, sha256: sha256File(path.resolve(input.dir, u.config)) })),
+    configFiles: plan.units.filter((u) => u.config !== "").map((u) => ({ file: u.config, sha256: sha256File(path.resolve(input.dir, u.config)) })),
     availability,
     blocksPlan,
     network: false,

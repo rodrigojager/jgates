@@ -45,6 +45,8 @@ export interface MutationSettings {
   mutate: string[];
   minimumScore: number | null;
   component: string | null;
+  /** Time bound of the instance (tools.<id>.timeoutSeconds); the run uses the lower of it and the stage limit. */
+  timeoutSeconds: number | null;
   /** What the instance wrote that is not valid; the plan refuses it instead of guessing. */
   problems: string[];
 }
@@ -52,7 +54,9 @@ export interface MutationSettings {
 export function mutationSettings(input: Pick<ExternalPlanInput, "config" | "tool">): MutationSettings {
   const t = translator("mutation");
   const tools = isRec(input.config) && isRec(input.config.tools) ? input.config.tools : {};
-  const body = isRec(tools[input.tool]) ? (tools[input.tool] as Rec) : {};
+  const raw = isRec(tools[input.tool]) ? (tools[input.tool] as Rec) : {};
+  // A template carries the settings under `config` (its schema allows nothing else); tools.yml writes them next to the adapter.
+  const body: Rec = { ...(isRec(raw.config) ? raw.config : {}), ...raw };
   const problems: string[] = [];
   let engine: MutationEngine | null = null;
   if (body.engine !== undefined) {
@@ -69,7 +73,8 @@ export function mutationSettings(input: Pick<ExternalPlanInput, "config" | "tool
     if (typeof body.minimumScore === "number" && Number.isFinite(body.minimumScore) && body.minimumScore >= 0 && body.minimumScore <= 100) minimumScore = body.minimumScore;
     else problems.push(t("mutation_setting_minimum", { tool: input.tool, value: String(body.minimumScore) }));
   }
-  return { engine, mutate, minimumScore, component: typeof body.component === "string" ? body.component : null, problems };
+  const timeoutSeconds = typeof body.timeoutSeconds === "number" && Number.isInteger(body.timeoutSeconds) && body.timeoutSeconds >= 1 ? body.timeoutSeconds : null;
+  return { engine, mutate, minimumScore, component: typeof body.component === "string" ? body.component : null, timeoutSeconds, problems };
 }
 
 const STRYKER_CONFIG = /^stryker\.(?:conf|config)\.(?:json|js|mjs|cjs)$/;
@@ -134,6 +139,8 @@ interface MutationContract {
   source: string;
   /** The isolated copy the engine runs in, with the {runDir} placeholder. */
   workDir: string;
+  /** tools.<id>.timeoutSeconds; null: only the stage limit bounds the run. */
+  timeoutSeconds?: number | null;
 }
 
 function planMutation(input: ExternalPlanInput): ExternalPlan {
@@ -212,6 +219,7 @@ function planMutation(input: ExternalPlanInput): ExternalPlan {
     }
     conditions.push(t("mutation_condition_mutmut", { scope: settings.mutate.length > 0 ? settings.mutate.join(", ") : t("mutation_scope_config") }));
   }
+  if (settings.timeoutSeconds !== null) conditions.push(t("mutation_condition_timeout", { seconds: Math.min(settings.timeoutSeconds, input.timeoutSeconds) }));
   if (minimum.value !== null) conditions.push(t("mutation_condition_minimum", { minimum: minimum.value, source: minimum.source ?? "-" }));
 
   const contract: MutationContract = {
@@ -223,6 +231,7 @@ function planMutation(input: ExternalPlanInput): ExternalPlan {
     minimumSource: minimum.source,
     source: root ? `${WORKSPACE}/${root}` : WORKSPACE,
     workDir,
+    timeoutSeconds: settings.timeoutSeconds,
   };
   return {
     label: t("mutation_label"),
@@ -255,6 +264,7 @@ function contractOf(invocation: Plan["invocations"][number]): MutationContract {
     minimumSource: c.minimumSource ?? null,
     source: c.source ?? WORKSPACE,
     workDir: c.workDir ?? "",
+    timeoutSeconds: typeof c.timeoutSeconds === "number" ? c.timeoutSeconds : null,
   };
 }
 
@@ -313,7 +323,7 @@ async function runMutation(context: AdapterContext, plan: Plan, tool: string): P
   const args = command.args.map((a) => substituteTokens(a, tokens));
   const env: Record<string, string> = { PATH: context.env.PATH ?? "" };
   for (const [name, value] of Object.entries(command.env)) env[name] = substituteTokens(value, tokens);
-  const timeoutSeconds = Math.min(...items.map((i) => i.limits.timeoutSeconds));
+  const timeoutSeconds = Math.min(...items.map((i) => i.limits.timeoutSeconds), contract.timeoutSeconds ?? Number.POSITIVE_INFINITY);
   const version = item.versions.toolVersion ?? null;
   const engine = contract.engine;
 

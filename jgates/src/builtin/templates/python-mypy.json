@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "id": "python-mypy",
   "label": "Python with mypy",
-  "description": "Type checks Python components with mypy and the project own configuration. Comes in by evidence: only when mypy is configured (mypy.ini, .mypy.ini, [tool.mypy] in pyproject.toml, [mypy] in setup.cfg or tox.ini). mypy is supplied by the project environment and is never installed during a run.",
+  "description": "Type checks Python components with mypy and the project own configuration. Comes in by evidence: only when mypy is configured (mypy.ini, .mypy.ini, [tool.mypy] in pyproject.toml, [mypy] in setup.cfg or tox.ini). mypy is supplied by the project environment and is never installed during a run. Extends python-mypy-defaults (same mypy instance): where both are active, this one wins and the check is required, with the project's configuration only.",
   "extends": [
-    "builtin:base"
+    "builtin:python-mypy-defaults"
   ],
   "match": {
     "languages": [
@@ -36,7 +36,8 @@
           "typecheck"
         ],
         "config": {
-          "checker": "mypy"
+          "checker": "mypy",
+          "withoutConfig": "skip"
         }
       }
     }

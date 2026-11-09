@@ -36,5 +36,6 @@
   "mutation_metric_not_covered": "Mutantes não cobertos",
   "mutation_setting_engine": "O motor da instância {tool} é {value}; use um destes: {allowed}.",
   "mutation_setting_mutate": "A configuração mutate da instância {tool} deve ser uma lista de padrões relativos sem vírgulas, hífen inicial ou '..'.",
-  "mutation_setting_minimum": "O minimumScore da instância {tool} é {value}; use um número de 0 a 100."
+  "mutation_setting_minimum": "O minimumScore da instância {tool} é {value}; use um número de 0 a 100.",
+  "mutation_condition_timeout": "Limitado a {seconds} s; uma execução que passar disso fica sem pontuação."
 }

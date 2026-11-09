@@ -82,7 +82,7 @@ test("plan --json on the main fixture: items of the three components with origin
       assert.ok(item.origin.kind !== "none", item.id);
       // Included by a template: the base template, reached by the python and typescript entries the discovery activated.
       const entries = item.includedBy.filter((i) => i.kind === "template").map((i) => `${i.entry}:${i.reason}`).sort();
-      assert.deepEqual(entries, ["base:ALWAYS", "python:DETECTED", "typescript-tsc:DETECTED", "typescript:DETECTED"], item.id);
+      assert.deepEqual(entries, ["base:ALWAYS", "gitleaks-history:DETECTED", "python-codeql:DETECTED", "python-mypy-defaults:DETECTED", "python:DETECTED", "typescript-codeql:DETECTED", "typescript-tsc:DETECTED", "typescript:DETECTED"], item.id);
       assert.ok(item.category && item.capabilities.length === 1, item.id);
     }
     const ruffItem = p.groups.willRun.find((i) => i.id === "ruff#lint");

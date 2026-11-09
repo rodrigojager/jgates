@@ -36,5 +36,6 @@
   "mutation_metric_not_covered": "Mutants not covered",
   "mutation_setting_engine": "The engine of the instance {tool} is {value}; use one of: {allowed}.",
   "mutation_setting_mutate": "The mutate setting of the instance {tool} must be a list of relative patterns without commas, leading dashes or '..'.",
-  "mutation_setting_minimum": "The minimumScore of the instance {tool} is {value}; use a number from 0 to 100."
+  "mutation_setting_minimum": "The minimumScore of the instance {tool} is {value}; use a number from 0 to 100.",
+  "mutation_condition_timeout": "Bounded to {seconds} s; a run that exceeds it has no score."
 }

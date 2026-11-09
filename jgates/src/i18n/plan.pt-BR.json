@@ -114,5 +114,12 @@
   "plan_ref_unknown": "A referência {ref} não nomeia um commit deste repositório.",
   "plan_ref_unknown_fix": "Confira o nome ou o SHA (git log) e busque o commit, se ele estiver só no remoto.",
   "plan_snapshot_failed": "Não foi possível montar o snapshot do commit {commit}: {detail}",
-  "plan_snapshot_failed_fix": "Confira se a pasta do workspace existe nesse commit e se o git funciona neste repositório."
+  "plan_snapshot_failed_fix": "Confira se a pasta do workspace existe nesse commit e se o git funciona neste repositório.",
+  "plan_na_template_absent": "Ainda não se aplica a este projeto: o template {template}, que liga {label} com {adapter}, não está nos templates do jgates.yml. Adicione-o para ligar a verificação; o projeto não precisa de mais nada.",
+  "plan_na_template_absent_found": "Ainda não se aplica a este projeto: o template {template}, que liga {label} com {adapter}, não está nos templates do jgates.yml. Adicione-o para ligar a verificação; a evidência dele já está aqui ({files}).",
+  "plan_na_hint_settings": "Defina {settings} numa instância do adaptador {adapter} em .jgates/tools.yml: {what}.",
+  "plan_na_hint_settings_files": "Também precisa de um destes arquivos: {files}.",
+  "plan_na_hint_settings_template": "O template {template} declara a instância; adicione-o aos templates do jgates.yml.",
+  "plan_na_setting_target": "target é a URL da aplicação em execução a testar (o JGates não a inicia nem a adivinha)",
+  "plan_na_setting_baseRef": "baseRef é a ref Git da revisão de referência do arquivo OpenAPI (ou baseSpec, um arquivo de referência)"
 }

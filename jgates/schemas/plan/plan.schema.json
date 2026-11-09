@@ -606,7 +606,8 @@
           "additionalProperties": false,
           "required": ["kind", "adapter", "tools", "template", "templateState", "files", "docs"],
           "properties": {
-            "kind": { "enum": ["none", "prepare-tool", "add-files", "configure-tool", "enable-check"] },
+            "kind": { "enum": ["none", "prepare-tool", "add-files", "add-template", "configure-tool", "enable-check"] },
+            "settings": { "$ref": "#/$defs/strings" },
             "adapter": { "type": ["string", "null"] },
             "tools": { "$ref": "#/$defs/strings" },
             "template": { "type": ["string", "null"] },

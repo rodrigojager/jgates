@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "python-mutmut",
+  "label": "Python mutation testing (mutmut)",
+  "description": "Mutation testing of Python components with mutmut 3, in a copy of the component inside the run folder. Comes in by evidence: only when the component has tests configured for pytest (pytest.ini, conftest.py, [tool.pytest.ini_options]...) or a mutmut configuration; runs only where mutation is switched on (the strict profile turns it on when available). Bounded to 15 minutes (timeoutSeconds 900): a run that exceeds it has no score. mutmut is the project's own dev dependency and does not run natively on Windows (use Linux, macOS or WSL).",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "python"
+    ],
+    "files": [
+      "pytest.ini",
+      ".pytest.ini",
+      "conftest.py",
+      {
+        "path": "pyproject.toml",
+        "contains": "[tool.pytest.ini_options]"
+      },
+      {
+        "path": "tox.ini",
+        "contains": "[pytest]"
+      },
+      {
+        "path": "setup.cfg",
+        "contains": "[tool:pytest]"
+      },
+      {
+        "path": "pyproject.toml",
+        "contains": "[tool.mutmut"
+      },
+      {
+        "path": "setup.cfg",
+        "contains": "[mutmut"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "mutmut": {
+        "adapter": "mutation",
+        "capabilities": [
+          "mutation"
+        ],
+        "timeoutSeconds": 900,
+        "config": {
+          "engine": "mutmut"
+        }
+      }
+    }
+  }
+}

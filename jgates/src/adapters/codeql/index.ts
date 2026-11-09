@@ -54,7 +54,9 @@ const isRec = (v: unknown): v is Record<string, unknown> => typeof v === "object
 export function codeqlSettings(input: Pick<ExternalPlanInput, "config" | "tool">): CodeqlSettings {
   const t = translator("codeql");
   const tools = isRec(input.config) && isRec(input.config.tools) ? input.config.tools : {};
-  const body = isRec(tools[input.tool]) ? (tools[input.tool] as Record<string, unknown>) : {};
+  const raw = isRec(tools[input.tool]) ? (tools[input.tool] as Record<string, unknown>) : {};
+  // A template carries the settings under `config` (its schema allows nothing else); tools.yml writes them next to the adapter.
+  const body: Record<string, unknown> = { ...(isRec(raw.config) ? raw.config : {}), ...raw };
   const problems: string[] = [];
   let language: string | null = null;
   if (body.language === undefined) problems.push(t("codeql_setting_language_required", { tool: input.tool, allowed: Object.keys(LANGUAGES).join(", ") }));

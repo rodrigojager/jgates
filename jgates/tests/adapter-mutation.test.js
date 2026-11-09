@@ -260,5 +260,5 @@ test("a mutation instance with an invalid setting is refused, and mutate cannot 
   }
   const settings = mutation.mutationSettings({ tool: "m", config: { tools: { m: { mutate: ["../outside/**"] } } } });
   assert.equal(settings.problems.length, 1);
-  assert.deepEqual(mutation.mutationSettings({ tool: "m", config: { tools: { m: { engine: "stryker", mutate: ["src/**/*.js"], minimumScore: 70 } } } }), { engine: "stryker", mutate: ["src/**/*.js"], minimumScore: 70, component: null, problems: [] });
+  assert.deepEqual(mutation.mutationSettings({ tool: "m", config: { tools: { m: { engine: "stryker", mutate: ["src/**/*.js"], minimumScore: 70 } } } }), { engine: "stryker", mutate: ["src/**/*.js"], minimumScore: 70, component: null, timeoutSeconds: null, problems: [] });
 });

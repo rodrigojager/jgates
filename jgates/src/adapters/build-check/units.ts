@@ -56,7 +56,12 @@ export interface UnitPlan {
 export interface UnitSettings {
   checker: Checker | null;
   tsconfig: string | null;
+  /** mypy: "defaults" checks a component without a mypy configuration with mypy's defaults. Absent: "skip". */
+  withoutConfig?: "skip" | "defaults";
 }
+
+/** mypy's defaults for a component without a configuration: no third-party stub errors, no virtual environments. */
+export const MYPY_DEFAULT_ARGS = ["--ignore-missing-imports", "--exclude", "(^|/)(venv|env|build|dist)/"];
 
 const exists = (abs: string): boolean => {
   try {
@@ -108,7 +113,12 @@ function configFor(checker: Checker, workspace: string, c: Candidate, settings: 
     case "mypy":
     case "pyright": {
       const found = pythonConfig(dir, checker);
-      return found ? { config: joinRel(c.componentRoot, found.file), text: found.text } : { skip: t("build_check_skip_no_python_config", { checker }) };
+      if (found) return { config: joinRel(c.componentRoot, found.file), text: found.text };
+      // mypy with its defaults where the instance asks for it, unless the component chose pyright instead.
+      if (checker === "mypy" && settings.withoutConfig === "defaults") {
+        return pythonConfig(dir, "pyright") ? { skip: t("build_check_skip_pyright_configured") } : { config: "", text: "" };
+      }
+      return { skip: t("build_check_skip_no_python_config", { checker }) };
     }
     case "go":
       return exists(path.join(dir, "go.mod")) ? { config: joinRel(c.componentRoot, "go.mod"), text: "" } : { skip: t("build_check_skip_no_file", { file: "go.mod" }) };
@@ -132,7 +142,9 @@ function stepsFor(checker: Checker, probe: CheckerProbe, unitId: string, config:
     case "mypy": {
       // A configuration that names its own targets (files, packages, modules) is not overridden by ".".
       const ownTargets = /^\s*(files|packages|modules)\s*=/m.test(config.text);
-      return [{ id: "mypy", label: "mypy", executable, args: ["--show-column-numbers", "--no-error-summary", "--no-pretty", "--no-color-output", "--cache-dir", cache, ...(ownTargets ? [] : ["."])], env: { NO_COLOR: "1", PYTHONDONTWRITEBYTECODE: "1" } }];
+      // No configuration file (withoutConfig: defaults): mypy's defaults plus MYPY_DEFAULT_ARGS.
+      const defaults = config.config === "" ? MYPY_DEFAULT_ARGS : [];
+      return [{ id: "mypy", label: defaults.length > 0 ? "mypy (defaults)" : "mypy", executable, args: ["--show-column-numbers", "--no-error-summary", "--no-pretty", "--no-color-output", "--cache-dir", cache, ...defaults, ...(ownTargets ? [] : ["."])], env: { NO_COLOR: "1", PYTHONDONTWRITEBYTECODE: "1" } }];
     }
     case "pyright":
       return [{ id: "pyright", label: "pyright", executable, args: ["--outputjson"], env: { NO_COLOR: "1", PYRIGHT_PYTHON_IGNORE_WARNINGS: "1", PYTHONDONTWRITEBYTECODE: "1" } }];

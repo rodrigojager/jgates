@@ -48,13 +48,19 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | --- | --- | --- |
 | Base (`base`) | full | - |
 | .NET build (`dotnet-build`) | full | - |
+| C# with CodeQL dataflow (`dotnet-codeql`) | full | - |
 | .NET (`dotnet`) | partial | Testes do projeto (dotnet test); Cobertura de testes; Analisadores Roslyn e regras do .editorconfig |
 | GitHub Actions with zizmor (`github-actions-zizmor`) | full | - |
+| Secrets in the Git history (Gitleaks) (`gitleaks-history`) | full | - |
 | Go build and vet (`go-build`) | full | - |
+| Go with CodeQL dataflow (`go-codeql`) | full | - |
 | Go with govulncheck (`go-govulncheck`) | full | - |
 | Go (`go`) | partial | Cobertura de testes; Licenças e integridade de dependências (as vulnerabilidades entram pelo template go-govulncheck); Linters (staticcheck, golangci-lint) |
 | OpenAPI with oasdiff (`openapi-oasdiff`) | full | - |
+| Python with CodeQL dataflow (`python-codeql`) | full | - |
 | Python com Import Linter (`python-import-linter`) | full | - |
+| Python mutation testing (mutmut) (`python-mutmut`) | full | - |
+| Python with mypy (defaults) (`python-mypy-defaults`) | full | - |
 | Python with mypy (`python-mypy`) | full | - |
 | Python with pyright (`python-pyright`) | full | - |
 | Python com pytest (`python-pytest`) | full | - |
@@ -65,8 +71,11 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | Rust with cargo test (`rust-cargo-test`) | full | - |
 | Rust (`rust`) | partial | clippy; Cobertura de testes; Licenças e políticas de dependências (cargo deny; os avisos do RustSec entram pelo template rust-cargo-audit) |
 | Supply chain of the lockfiles (`supply-chain`) | full | - |
+| Dependency licenses (Trivy) (`trivy-licenses`) | full | - |
+| TypeScript and JavaScript with CodeQL dataflow (`typescript-codeql`) | full | - |
 | TypeScript com dependency-cruiser (`typescript-dependency-cruiser`) | full | - |
 | TypeScript com ESLint (`typescript-eslint`) | full | - |
+| TypeScript and JavaScript mutation testing (Stryker) (`typescript-stryker`) | full | - |
 | TypeScript with tsc (`typescript-tsc`) | full | - |
 | TypeScript com Vitest (`typescript-vitest`) | full | - |
 | TypeScript (`typescript`) | full | - |

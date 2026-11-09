@@ -48,13 +48,19 @@ Go e Rust têm suporte parcial: descoberta, configuração explícita e o comand
 | --- | --- | --- |
 | Base (`base`) | completo | - |
 | .NET build (`dotnet-build`) | completo | - |
+| C# with CodeQL dataflow (`dotnet-codeql`) | completo | - |
 | .NET (`dotnet`) | parcial | Testes do projeto (dotnet test); Cobertura de testes; Analisadores Roslyn e regras do .editorconfig |
 | GitHub Actions with zizmor (`github-actions-zizmor`) | completo | - |
+| Secrets in the Git history (Gitleaks) (`gitleaks-history`) | completo | - |
 | Go build and vet (`go-build`) | completo | - |
+| Go with CodeQL dataflow (`go-codeql`) | completo | - |
 | Go with govulncheck (`go-govulncheck`) | completo | - |
 | Go (`go`) | parcial | Cobertura de testes; Licenças e integridade de dependências (as vulnerabilidades entram pelo template go-govulncheck); Linters (staticcheck, golangci-lint) |
 | OpenAPI with oasdiff (`openapi-oasdiff`) | completo | - |
+| Python with CodeQL dataflow (`python-codeql`) | completo | - |
 | Python com Import Linter (`python-import-linter`) | completo | - |
+| Python mutation testing (mutmut) (`python-mutmut`) | completo | - |
+| Python with mypy (defaults) (`python-mypy-defaults`) | completo | - |
 | Python with mypy (`python-mypy`) | completo | - |
 | Python with pyright (`python-pyright`) | completo | - |
 | Python com pytest (`python-pytest`) | completo | - |
@@ -65,8 +71,11 @@ Go e Rust têm suporte parcial: descoberta, configuração explícita e o comand
 | Rust with cargo test (`rust-cargo-test`) | completo | - |
 | Rust (`rust`) | parcial | clippy; Cobertura de testes; Licenças e políticas de dependências (cargo deny; os avisos do RustSec entram pelo template rust-cargo-audit) |
 | Supply chain of the lockfiles (`supply-chain`) | completo | - |
+| Dependency licenses (Trivy) (`trivy-licenses`) | completo | - |
+| TypeScript and JavaScript with CodeQL dataflow (`typescript-codeql`) | completo | - |
 | TypeScript com dependency-cruiser (`typescript-dependency-cruiser`) | completo | - |
 | TypeScript com ESLint (`typescript-eslint`) | completo | - |
+| TypeScript and JavaScript mutation testing (Stryker) (`typescript-stryker`) | completo | - |
 | TypeScript with tsc (`typescript-tsc`) | completo | - |
 | TypeScript com Vitest (`typescript-vitest`) | completo | - |
 | TypeScript (`typescript`) | completo | - |

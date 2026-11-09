@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "go-codeql",
+  "label": "Go with CodeQL dataflow",
+  "description": "Interprocedural dataflow analysis of the Go components with CodeQL (language go, security-extended suite). Comes in by the language of a component and runs only where dataflow is switched on (the strict profile turns it on when available); it never turns the check on by itself. The CodeQL CLI and its query packs are customer-supplied (GitHub CodeQL terms): without them the check is reported as not available here, never passed.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "go"
+    ]
+  },
+  "config": {
+    "tools": {
+      "codeql-go": {
+        "adapter": "codeql",
+        "capabilities": [
+          "dataflow"
+        ],
+        "config": {
+          "language": "go",
+          "suite": "security-extended"
+        }
+      }
+    }
+  }
+}

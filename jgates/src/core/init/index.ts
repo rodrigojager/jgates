@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
-import { builtinProfileBody, getBuiltinProfile } from "../../builtin/index.js";
+import { builtinProfileBody, getBuiltinProfile, getBuiltinTemplate } from "../../builtin/index.js";
 import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE } from "../config/load/index.js";
 import { discoverWorkspace } from "../discovery/index.js";
 import { starterProfileText } from "../profiles/index.js";
@@ -38,6 +38,10 @@ const PYTHON: TemplateEntry[] = [
   { id: "python-pytest", source: "builtin:python-pytest", evidence: true },
   { id: "python-mypy", source: "builtin:python-mypy", evidence: true },
   { id: "python-pyright", source: "builtin:python-pyright", evidence: true },
+  // Checks the strict profile turns on when available: off in the other profiles unless they switch them on.
+  { id: "python-mypy-defaults", source: "builtin:python-mypy-defaults", evidence: true },
+  { id: "python-mutmut", source: "builtin:python-mutmut", evidence: true },
+  { id: "python-codeql", source: "builtin:python-codeql", evidence: true },
 ];
 const TYPESCRIPT: TemplateEntry[] = [
   { id: "typescript", source: "builtin:typescript", languages: TS_LANGUAGES },
@@ -45,15 +49,19 @@ const TYPESCRIPT: TemplateEntry[] = [
   { id: "typescript-eslint", source: "builtin:typescript-eslint", evidence: true },
   { id: "typescript-vitest", source: "builtin:typescript-vitest", evidence: true },
   { id: "typescript-tsc", source: "builtin:typescript-tsc", evidence: true },
+  { id: "typescript-stryker", source: "builtin:typescript-stryker", evidence: true },
+  { id: "typescript-codeql", source: "builtin:typescript-codeql", evidence: true },
 ];
 const DOTNET: TemplateEntry[] = [
   { id: "dotnet", source: "builtin:dotnet", languages: DOTNET_LANGUAGES },
   { id: "dotnet-build", source: "builtin:dotnet-build", evidence: true },
+  { id: "dotnet-codeql", source: "builtin:dotnet-codeql", evidence: true },
 ];
 /** Go and Rust have no stack template in init yet; the build check comes in by the language of the component. */
 const GO: TemplateEntry[] = [
   { id: "go-build", source: "builtin:go-build", evidence: true },
   { id: "go-govulncheck", source: "builtin:go-govulncheck", evidence: true },
+  { id: "go-codeql", source: "builtin:go-codeql", evidence: true },
 ];
 const RUST: TemplateEntry[] = [
   { id: "rust-cargo-check", source: "builtin:rust-cargo-check", evidence: true },
@@ -129,6 +137,22 @@ function hasWorkflows(projectDir: string): boolean {
   }
 }
 
+/** Whether one of the evidence files of a built-in template (plain paths, `*` in the name) exists at the root. */
+function hasEvidenceOf(projectDir: string, id: string): boolean {
+  const match = getBuiltinTemplate(`builtin:${id}`)?.value.match as { files?: unknown[] } | undefined;
+  const files = (match?.files ?? []).filter((f): f is string => typeof f === "string");
+  return files.some((file) => {
+    if (!file.includes("*")) return fs.existsSync(path.join(projectDir, ...file.split("/")));
+    const slash = file.lastIndexOf("/");
+    const pattern = new RegExp(`^${file.slice(slash + 1).split("*").map((p) => p.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*")}$`);
+    try {
+      return fs.readdirSync(path.join(projectDir, ...file.slice(0, Math.max(slash, 0)).split("/").filter(Boolean))).some((n) => pattern.test(n));
+    } catch {
+      return false;
+    }
+  });
+}
+
 /** Builds the files init would create from what discovery finds; touches nothing. */
 export function planInit(projectDir: string, profile: string): InitPlan {
   const { inventory } = discoverWorkspace(projectDir);
@@ -152,6 +176,9 @@ export function planInit(projectDir: string, profile: string): InitPlan {
   if (["openapi.yaml", "openapi.yml", "openapi.json"].some((f) => fs.existsSync(path.join(projectDir, f)))) templates.push({ id: "openapi-oasdiff", source: "builtin:openapi-oasdiff", evidence: true });
   // A npm or Python lockfile at the root is dependency-provenance evidence: the supply-chain template comes in when one exists.
   if (["package-lock.json", "npm-shrinkwrap.json", "poetry.lock", "Pipfile.lock"].some((f) => fs.existsSync(path.join(projectDir, f)))) templates.push({ id: "supply-chain", source: "builtin:supply-chain", evidence: true });
+  // Git history and dependency manifests are evidence of the gitleaks history scan and of the Trivy license scan.
+  if (hasEvidenceOf(projectDir, "gitleaks-history")) templates.push({ id: "gitleaks-history", source: "builtin:gitleaks-history", evidence: true });
+  if (hasEvidenceOf(projectDir, "trivy-licenses")) templates.push({ id: "trivy-licenses", source: "builtin:trivy-licenses", evidence: true });
   return {
     profile,
     templates: templates.map((t) => t.id),
