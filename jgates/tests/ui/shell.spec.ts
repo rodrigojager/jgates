@@ -155,6 +155,29 @@ test("below 700 px the menu is a drawer that traps focus", async ({ page }) => {
     await expect(page.locator("#sidebar")).toBeHidden();
     await expect.poll(() => new URL(page.url()).hash).toBe("#/workspace");
 
+    // At 375 px the header items do not overlap and a plain click on the toggle opens the drawer.
+    await page.setViewportSize({ width: 375, height: 800 });
+    await expect(page.getByTestId("git-info")).toBeVisible();
+    const boxes = await page.evaluate(() =>
+      [".mobile-toggle", ".breadcrumb", "[data-testid=git-info]", ".theme-switch select", ".top-actions a.btn"].map((selector) => {
+        const r = document.querySelector(selector)!.getBoundingClientRect();
+        return { selector, left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      }),
+    );
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i]!;
+        const b = boxes[j]!;
+        const overlap = a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+        expect(overlap, `${a.selector} overlaps ${b.selector}`).toBe(false);
+      }
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+    await toggle.click();
+    await expect(page.locator("#sidebar")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#sidebar")).toBeHidden();
+
     // Wide again: the menu is a column and the toggle is gone.
     await page.setViewportSize({ width: 1100, height: 800 });
     await expect(page.locator("#sidebar")).toBeVisible();

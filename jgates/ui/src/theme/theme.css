@@ -288,6 +288,9 @@ dialog::backdrop { background: var(--scrim); }
   .sidebar[data-open="true"] { visibility: visible; transform: none; }
   .drawer-close, .mobile-toggle { display: inline-flex; }
   .topbar { padding: 10px 16px; }
+  /* The menu button and the breadcrumb take the first line; the actions wrap below instead of overlapping them. */
+  .topbar > .grow { flex-basis: 100%; }
+  .breadcrumb { flex-wrap: wrap; overflow-wrap: anywhere; }
   .main { padding: 20px 16px 32px; }
   .page-footer { padding: 12px 16px 20px; }
   th, td { padding: 10px 8px; }
