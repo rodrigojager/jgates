@@ -139,5 +139,14 @@
   "banner_run_hint": "It keeps running even if this page was reloaded.",
   "banner_run_follow": "Follow run",
   "card_mode_policy": "Editing the CI policy. Nothing here validates a project.",
-  "ws_policy": "CI policy"
+  "ws_policy": "CI policy",
+  "adapter_name_cargo_test": "cargo test (Rust tests and properties)",
+  "adapter_name_zizmor": "zizmor (GitHub Actions security)",
+  "adapter_name_codeql": "CodeQL (data flow)",
+  "adapter_name_supply_chain": "Supply chain (lockfile provenance)",
+  "adapter_name_oasdiff": "oasdiff (OpenAPI compatibility)",
+  "adapter_name_schemathesis": "Schemathesis (API contract tests)",
+  "adapter_name_zap": "ZAP (runtime security scan)",
+  "adapter_name_mutation": "Mutation testing (Stryker, mutmut)",
+  "adapter_name_build_check": "Build and type check (tsc, mypy, pyright, go, cargo, dotnet)"
 }

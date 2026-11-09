@@ -83,6 +83,9 @@ const CHOSEN_BY: Readonly<Record<string, string>> = { ruff: "JGATES_RUFF", semgr
 
 function toolMissing(x: ToolStatus): boolean {
   if (x.state === "absent" || x.state === "incompatible") return true;
+  // On "when available" the plan already found the tool missing here; without an environment check of its own, the
+  // plan is the evidence (offered as a manual step with the official link).
+  if (x.whenAvailable === true && x.state === "not_checked") return true;
   return x.preparation.kind === "rules" && (x.preparation.state === "missing" || x.preparation.state === "corrupt");
 }
 
@@ -123,7 +126,8 @@ export function assessEnvironment(projectDir: string, options: AssessOptions = {
         alternative = { kind: "container", message: t("prepare_alt_container", { tool: manifest?.toolName ?? x.adapter }), command: t("prepare_alt_container_command", { instance: x.instance, file: TOOLS_FILE }) };
       }
     }
-    const classification: Classification = !x.enabled ? "unused" : alternative ? "optional" : "essential";
+    // On "when available" only: offered to prepare, never essential (the plan runs without it).
+    const classification: Classification = !x.enabled ? "unused" : alternative || x.whenAvailable ? "optional" : "essential";
     let recipe: Recipe | null = null;
     if (missing && manifest) {
       const chosenBy = CHOSEN_BY[x.adapter];

@@ -139,5 +139,14 @@
   "banner_run_hint": "Ela continua rodando mesmo que esta página tenha sido recarregada.",
   "banner_run_follow": "Acompanhar execução",
   "card_mode_policy": "Editando a política de CI. Nada aqui valida um projeto.",
-  "ws_policy": "Política de CI"
+  "ws_policy": "Política de CI",
+  "adapter_name_cargo_test": "cargo test (testes e propriedades em Rust)",
+  "adapter_name_zizmor": "zizmor (segurança do GitHub Actions)",
+  "adapter_name_codeql": "CodeQL (fluxo de dados)",
+  "adapter_name_supply_chain": "Cadeia de suprimentos (procedência do lockfile)",
+  "adapter_name_oasdiff": "oasdiff (compatibilidade de OpenAPI)",
+  "adapter_name_schemathesis": "Schemathesis (testes de contrato de API)",
+  "adapter_name_zap": "ZAP (varredura de segurança em execução)",
+  "adapter_name_mutation": "Testes de mutação (Stryker, mutmut)",
+  "adapter_name_build_check": "Tipos e build (tsc, mypy, pyright, go, cargo, dotnet)"
 }

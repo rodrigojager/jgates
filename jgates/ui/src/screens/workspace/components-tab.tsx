@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { Dialog, ErrorNotice, Pill } from "../../components/common";
+import { Dialog, ErrorNotice, Pill, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
-import { DeclareDialog } from "./declare-dialog";
+import { DeclareDialog, type Vocabulary } from "./declare-dialog";
 
 export interface Classification {
   id: string;
@@ -130,7 +130,23 @@ export function ComponentsTab({
   const [declare, setDeclare] = useState<{ title: string; initial: Declared } | null>(null);
   const [error, setError] = useState<unknown>(null);
   const components = classifications.filter((c) => ["explicit", "detected", "ambiguous"].includes(c.classificationStatus));
-  const ignored = classifications.filter((c) => c.classificationStatus === "ignored" || c.classificationStatus === "unsupported");
+  // Readable names of languages and frameworks (the ids stay in the files), and the templates jgates.yml really uses.
+  const vocabulary = useAsync(() => api("GET", "/api/workspace/vocabulary") as Promise<Vocabulary>, "ws-vocabulary");
+  const templateRows = useAsync(() => api("GET", "/api/config/templates") as Promise<{ templates: Array<{ id: string; source: string; declared: boolean; enabled: boolean }> }>, `ws-templates-${classifications.length}-${settings.revision ?? ""}`);
+  const inUse = templateRows.data ? new Set(templateRows.data.templates.filter((r) => r.declared && r.enabled).map((r) => r.source.replace(/^builtin:/, ""))) : null;
+  const languageOf = (id: string | null) => (id ? (vocabulary.data?.languages.find((l) => l.id === id) ?? null) : null);
+  const languageName = (id: string | null) => {
+    const l = languageOf(id);
+    if (!id) return t("ws_card_none");
+    if (!l) return id;
+    return l.supported ? l.label : t("ws_language_unsupported_option", { name: l.label });
+  };
+  const frameworkName = (lang: string | null, id: string | null) => {
+    if (!id) return t("ws_card_none");
+    const all = vocabulary.data?.languages.flatMap((l) => (l.id === lang ? l.frameworks : [])) ?? [];
+    return (all.find((f) => f.id === id) ?? vocabulary.data?.languages.flatMap((l) => l.frameworks).find((f) => f.id === id))?.label ?? id;
+  };
+  const ignored =classifications.filter((c) => c.classificationStatus === "ignored" || c.classificationStatus === "unsupported");
 
   const remove = async (c: Classification) => {
     setError(null);
@@ -163,7 +179,11 @@ export function ComponentsTab({
       {components.length === 0 ? <p>{t("ws_components_empty")}</p> : null}
       <div className="ws-cards">
         {components.map((c) => {
-          const used = templates[c.id] ?? [];
+          const matching = templates[c.id] ?? [];
+          // Until the templates of jgates.yml are known, the matching ones are shown as before.
+          const used = inUse ? matching.filter((x) => inUse.has(x)) : matching;
+          const available = inUse ? matching.filter((x) => !inUse.has(x)) : [];
+          const unsupported = languageOf(c.language)?.supported === false;
           return (
             <article key={`${c.id}:${c.componentRoot}:${c.detectedBy}`} className="card ws-card" data-component={c.id} data-status={c.classificationStatus}>
               <div className="between">
@@ -176,12 +196,18 @@ export function ComponentsTab({
                   <code>{c.componentRoot}</code>
                 </dd>
                 <dt>{t("ws_card_language")}</dt>
-                <dd>{c.language ?? t("ws_card_none")}</dd>
+                <dd data-testid="card-language">{languageName(c.language)}</dd>
                 <dt>{t("ws_card_framework")}</dt>
-                <dd>{c.framework ?? t("ws_card_none")}</dd>
+                <dd data-testid="card-framework">{frameworkName(c.language, c.framework)}</dd>
                 <dt>{t("ws_card_template")}</dt>
                 <dd>{used.length > 0 ? used.map((x) => <code key={x}>{x} </code>) : t("ws_card_template_none")}</dd>
               </dl>
+              {unsupported ? <p className="small muted">{t("ws_card_unsupported")}</p> : null}
+              {available.length > 0 ? (
+                <p className="small muted" data-testid="card-templates-available">
+                  {t("ws_card_template_available", { templates: available.join(", ") })} <a href="#/config/templates">{t("ws_card_template_manage")}</a>
+                </p>
+              ) : null}
               <div className="row">
                 <button type="button" className="btn" onClick={() => setWhy(c)}>
                   <Icon name="info" />

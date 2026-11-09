@@ -355,7 +355,7 @@ export default function ChooseScreen() {
           <Icon name="plan" />
           {t(request.gates === "semantic" ? "vch_review_semantic" : "vch_review")}
         </button>
-        {request.skip.length > 0 ? <span className="muted small">{t("vch_skip_count", { count: request.skip.length })}</span> : null}
+        {request.skip.length > 0 ? <span className="muted small">{t(request.skip.length === 1 ? "vch_skip_count_one" : "vch_skip_count", { count: request.skip.length })}</span> : null}
       </div>
     </div>
   );

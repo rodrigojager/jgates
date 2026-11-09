@@ -65,6 +65,11 @@ export function tOr(key: string, fallback: string): string {
   return lookup(key) ?? fallback;
 }
 
+/** Readable name of an adapter in the current language (manifest names are English); unknown ones as given. */
+export function adapterName(id: string | null | undefined, fallback: string): string {
+  return id ? tOr(`adapter_name_${id.replace(/[^a-z0-9]+/gi, "_")}`, fallback) : fallback;
+}
+
 /** The catalog files that were loaded and how many keys each brought (for the i18n test and for debugging). */
 export function messageSources(locale: Locale = "pt-BR"): Array<{ file: string; keys: number }> {
   return sourcesBy[locale].map(({ file, messages: catalog }) => ({ file, keys: Object.keys(catalog).length }));

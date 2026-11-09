@@ -283,8 +283,14 @@ export function patchYamlText(input: string, edits: readonly YamlEdit[], options
   // Document path.
   const doc = parseDocument(text, PARSE_OPTIONS);
   for (const edit of edits) {
-    if (edit.op === "set") doc.setIn(edit.path, edit.value);
-    else doc.deleteIn(edit.path);
+    if (edit.op === "set") {
+      // An empty `{}` on the way (the start of a new file) becomes a block map once it gets keys, as a person writes it.
+      for (let i = 0; i < edit.path.length; i += 1) {
+        const node = i === 0 ? doc.contents : doc.getIn(edit.path.slice(0, i), true);
+        if (isMap(node) && node.flow && node.items.length === 0) node.flow = false;
+      }
+      doc.setIn(edit.path, edit.value);
+    } else doc.deleteIn(edit.path);
   }
   const out = doc.toString({ lineWidth: 0, indent: 2 });
   let ok = false;

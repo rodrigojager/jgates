@@ -283,7 +283,7 @@ export default function ReviewScreen() {
                 <dt>{t("vrev_runner")}</dt>
                 <dd>{runner}</dd>
                 <dt>{t("vrev_network")}</dt>
-                <dd>{plan.network.required ? t("vrev_network_needed", { policy: plan.network.policy, count: plan.network.items.length }) : t("vrev_network_none")}</dd>
+                <dd>{plan.network.required ? t(plan.network.items.length === 1 ? "vrev_network_needed_one" : "vrev_network_needed", { policy: tOr(`vrev_network_policy_${plan.network.policy}`, plan.network.policy), count: plan.network.items.length }) : t("vrev_network_none")}</dd>
                 <dt>{t("vrev_estimate")}</dt>
                 <dd>{review.estimate ? t("vrev_estimate_value", { time: formatDuration(review.estimate.ms), runs: review.estimate.runs }) : t("vrev_estimate_none")}</dd>
                 <dt>{t("plan_hash")}</dt>

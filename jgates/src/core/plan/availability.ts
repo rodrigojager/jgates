@@ -17,11 +17,24 @@ const NOT_COVERING = new Set(["generic-command"]);
  * Settings of an instance that JGates cannot guess: without them the adapter cannot run in any project, so the
  * action names them (configure-tool). The i18n key plan_na_setting_<setting> says what each one is.
  */
+const isObject = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
+
 export const REQUIRED_SETTINGS: Readonly<Record<string, readonly string[]>> = {
   schemathesis: ["target"],
   zap: ["target"],
   oasdiff: ["baseRef"],
 };
+
+/** Settings that satisfy a required one in its place (oasdiff: a reference file instead of a reference revision). */
+const SETTING_ALTERNATIVES: Readonly<Record<string, readonly string[]>> = { baseRef: ["baseSpec"] };
+
+/** The required settings (REQUIRED_SETTINGS) an instance body of the adapter leaves unset, in declaration order. */
+export function missingSettings(adapterId: string | null, body: unknown): string[] {
+  if (!adapterId) return [];
+  const values = isObject(body) ? body : {};
+  const set = (key: string) => values[key] !== undefined && values[key] !== null && values[key] !== "";
+  return (REQUIRED_SETTINGS[adapterId] ?? []).filter((s) => !set(s) && !(SETTING_ALTERNATIVES[s] ?? []).some(set));
+}
 
 export interface ExplainInput {
   capability: string;
@@ -43,8 +56,6 @@ export interface Explanation {
   adapters: NotApplicableAdapter[];
   action: NotApplicableAction;
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 
 export const emptyAction = (kind: NotApplicableAction["kind"]): NotApplicableAction => ({
   kind,

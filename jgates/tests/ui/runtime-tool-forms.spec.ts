@@ -104,10 +104,14 @@ test("oasdiff from the strict review: template, then its settings form with the 
     await review(page);
     // With an OpenAPI file the built-in template comes first; then the instance still needs its reference.
     await capRow(page, "api-compatibility").getByRole("button", { name: /^Ativar o template/ }).click();
-    // The template declares the oasdiff instance; the binary is missing here, so the row now offers "Preparar".
-    await expect(capRow(page, "api-compatibility").getByRole("button", { name: /^Preparar oasdiff/ })).toBeVisible({ timeout: 60_000 });
+    // The template declares the oasdiff instance without its reference, and the binary is missing here too: the row
+    // links to the settings form first and says the tool is prepared next (configure, then prepare).
+    const configure = capRow(page, "api-compatibility").getByRole("link", { name: /^Configurar oasdiff/ });
+    await expect(configure).toBeVisible({ timeout: 60_000 });
+    await expect(configure).toHaveAttribute("href", "#/tools/oasdiff?focus=baseRef");
+    await expect(capRow(page, "api-compatibility")).toContainText("Depois, prepare");
     // The instance comes from the template (no entry in tools.yml yet): its page still opens the settings form.
-    await page.goto(`${base(page)}#/tools/oasdiff?focus=baseRef`);
+    await configure.click();
     await expect(page.getByTestId("tool-declared")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("settings-form")).toBeVisible();
     const form = page.getByTestId("settings-form");
@@ -142,6 +146,8 @@ test("oasdiff from the strict review: template, then its settings form with the 
 
     await review(page);
     await expect(capRow(page, "api-compatibility")).not.toContainText("(baseRef)");
+    // Configured: what is left is the tool itself.
+    await expect(capRow(page, "api-compatibility").getByRole("button", { name: /^Preparar oasdiff/ })).toBeVisible({ timeout: 60_000 });
   });
 });
 

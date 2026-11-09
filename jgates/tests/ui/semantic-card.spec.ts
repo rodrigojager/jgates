@@ -86,7 +86,7 @@ test("a connection added in Providers e chaves is chosen in the card and written
     await form.getByLabel("Provider ou conexão", { exact: true }).selectOption("litellm-local");
     await form.getByRole("checkbox", { name: "Usar valor herdado (Escopo)" }).uncheck();
     await form.getByRole("combobox", { name: "Escopo", exact: true }).selectOption("full");
-    await expect(form.getByRole("status").filter({ hasText: "alteração" })).toHaveText("2 alteração(ões) não salva(s)");
+    await expect(form.getByRole("status").filter({ hasText: /não salva/ })).toHaveText("2 alterações não salvas");
     expect((await new AxeBuilder({ page }).include('[data-testid="semantic-card"]').analyze()).violations.filter((v) => v.impact === "critical" || v.impact === "serious")).toEqual([]);
     await form.getByRole("button", { name: "Salvar no jgates.yml" }).click();
     await expect(page.getByTestId("toasts")).toContainText("Semantic gate salvo no jgates.yml.");

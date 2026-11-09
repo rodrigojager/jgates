@@ -132,7 +132,7 @@ test("a plain `enabled: true` of a child profile over a parent's `when: availabl
 
 test("when available with the tool missing: the item does not run, the capability is TOOL_MISSING and nothing blocks", () => {
   // oasdiff without an OpenAPI specification (and usually without the binary) is unavailable at planning.
-  const tools = { ...PII, oasdiff: { adapter: "oasdiff", capabilities: ["api-compatibility"] } };
+  const tools = { ...PII, oasdiff: { adapter: "oasdiff", capabilities: ["api-compatibility"], baseRef: "main" } };
   const checks = (when) => ({ "capability:pii": { enabled: true }, "capability:api-compatibility": { enabled: true, ...(when ? { when: "available" } : {}) } });
   withDir({ profiles: { p: { checks: checks(true) } }, tools }, (dir) => {
     const p = plan(dir);
@@ -153,6 +153,70 @@ test("when available with the tool missing: the item does not run, the capabilit
     const p = plan(dir);
     assert.ok(p.groups.willRun.some((i) => i.tool === "oasdiff"));
     assert.equal(notHere(p).length, 0);
+  });
+});
+
+test("when available, a declared instance without a required setting: configure first (the form), then prepare when the tool is missing too", () => {
+  const checks = { "capability:pii": { enabled: true }, "capability:api-compatibility": { enabled: true, when: "available" } };
+  const tools = { ...PII, oasdiff: { adapter: "oasdiff", capabilities: ["api-compatibility"] } };
+  withDir({ profiles: { p: { checks } }, tools }, (dir) => {
+    const p = plan(dir);
+    const item = p.groups.notApplicableOrDisabled.find((i) => i.tool === "oasdiff");
+    const n = notHere(p).find((x) => x.selector === "capability:api-compatibility");
+    assert.equal(n.reasonCode, "SETUP_REQUIRED");
+    assert.equal(n.action.kind, "configure-tool");
+    assert.deepEqual(n.action.tools, ["oasdiff"], "the action points at the declared instance (its options form)");
+    assert.deepEqual(n.action.settings, ["baseRef"]);
+    const binaryMissing = item.runtime !== null && !item.runtime.available;
+    assert.equal(n.action.prepareNext, binaryMissing);
+    if (binaryMissing) assert.match(n.message, /then prepare the tool|depois prepare-a/);
+    assert.ok(!p.blockers.some((b) => (b.items ?? []).some((i) => /oasdiff|api-compatibility/.test(i))));
+    assert.deepEqual(validatePlanDocument(p), []);
+  });
+  // baseSpec stands in for baseRef: nothing left to configure, only the tool (when missing) to prepare.
+  withDir({ profiles: { p: { checks } }, tools: { ...PII, oasdiff: { ...tools.oasdiff, baseSpec: "base.yaml" } } }, (dir) => {
+    const n = notHere(plan(dir)).find((x) => x.selector === "capability:api-compatibility");
+    assert.notEqual(n.action.kind, "configure-tool");
+  });
+});
+
+test("a template tool on 'when available' and missing here is listed to prepare, as optional, never essential", async () => {
+  const { listPrerequisites } = await load("core/prerequisites/index.js");
+  const checks = { "capability:pii": { enabled: true }, "capability:mutation": { enabled: true, when: "available" } };
+  withDir({ profiles: { p: { checks } }, tools: PII }, (dir) => {
+    fs.writeFileSync(path.join(dir, "jgates.yml"), "schemaVersion: 1\nselection:\n  profile: p\ntemplates:\n  - id: python-mutmut\n    source: builtin:python-mutmut\n    activation: detected\n");
+    const p = plan(dir);
+    const item = p.groups.notApplicableOrDisabled.find((i) => i.adapter === "mutation");
+    if (!item || item.reason.code !== "NOT_AVAILABLE_HERE") return; // mutmut installed on this machine: nothing to prepare
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-when-home-"));
+    try {
+      const report = listPrerequisites(dir, { env: { ...process.env, JGATES_HOME: home } });
+      const mine = report.items.find((i) => i.names.includes(item.tool));
+      assert.ok(mine, `the missing ${item.tool} is offered: ${JSON.stringify(report.items.map((i) => i.names))}`);
+      assert.equal(mine.classification, "optional");
+      assert.ok(!report.items.some((i) => i.classification === "essential" && i.names.includes(item.tool)));
+    } finally {
+      fs.rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
+test("a new instance created through the tools route declares the adapter's capability, so a profile selects it", async () => {
+  const { createInstance, defaultCapabilities } = await load("core/tools/instances.js");
+  assert.deepEqual(defaultCapabilities("zap"), ["dast"]);
+  assert.deepEqual(defaultCapabilities("gitleaks"), ["secrets"], "a mode adapter gets only its first capability");
+  assert.deepEqual(defaultCapabilities("generic-command"), []);
+  const checks = { "capability:pii": { enabled: true }, "capability:dast": { enabled: true, when: "available" } };
+  withDir({ profiles: { p: { checks } }, tools: PII }, (dir) => {
+    createInstance(dir, { id: "zap-web", adapter: "zap" });
+    const yml = fs.readFileSync(path.join(dir, ".jgates", "tools.yml"), "utf8");
+    assert.match(yml, /zap-web:[\s\S]*capabilities:[\s\S]*dast/);
+    const p = plan(dir);
+    const n = notHere(p).find((x) => x.selector === "capability:dast");
+    // Selected by the profile: what is left is its target (the URL JGates cannot guess), on that instance.
+    assert.equal(n.action.kind, "configure-tool");
+    assert.deepEqual(n.action.tools, ["zap-web"]);
+    assert.deepEqual(n.action.settings, ["target"]);
   });
 });
 

@@ -224,6 +224,11 @@ export interface NotApplicableAction {
    * Empty for the other kinds; absent in plans written before it existed, read it as [].
    */
   settings?: string[];
+  /**
+   * configure-tool on a declared instance (`tools`): after the settings are set, the tool itself must still be
+   * prepared, because it is not available on this machine either (configure first, then prepare). Absent: false.
+   */
+  prepareNext?: boolean;
 }
 
 /**

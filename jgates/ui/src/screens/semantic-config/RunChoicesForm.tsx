@@ -34,7 +34,7 @@ export function MethodsField({ catalog, selected, onChange }: { catalog: Semanti
           {t("semcfg_methods_none")}
         </div>
       ) : (
-        <p className="small muted">{t("semcfg_methods_selected", { count: selected.length })}</p>
+        <p className="small muted">{t(selected.length === 1 ? "semcfg_methods_selected_one" : "semcfg_methods_selected", { count: selected.length })}</p>
       )}
       {catalog.map((m) => (
         <label key={m.id} className="row" style={{ gap: 8, alignItems: "flex-start" }} data-method={m.id}>

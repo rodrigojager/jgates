@@ -608,6 +608,7 @@
           "properties": {
             "kind": { "enum": ["none", "prepare-tool", "add-files", "add-template", "configure-tool", "enable-check"] },
             "settings": { "$ref": "#/$defs/strings" },
+            "prepareNext": { "type": "boolean" },
             "adapter": { "type": ["string", "null"] },
             "tools": { "$ref": "#/$defs/strings" },
             "template": { "type": ["string", "null"] },

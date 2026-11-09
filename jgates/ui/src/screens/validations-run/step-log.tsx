@@ -148,7 +148,7 @@ function LogBlock({ runId, group, title, startOpen, failed }: { runId: string; g
     >
       <summary>
         <span className="log-block-title">{title}</span>
-        <code className="log-block-id">{group.invocation}</code>
+        {group.invocation.toLowerCase() !== title.toLowerCase() ? <code className="log-block-id">{group.invocation}</code> : null}
       </summary>
       {open ? <BlockBody runId={runId} group={group} title={title} /> : null}
     </details>

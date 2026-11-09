@@ -138,7 +138,10 @@ export function projectMascots(input: {
     if (e.type === "stage" && typeof d.stageId === "string") eventStages.set(d.stageId, { id: d.stageId, state: d.state as ResultStage["state"], ...(typeof d.reason === "string" ? { reason: d.reason } : {}) });
   }
   const stages = new Map((result?.stages ?? []).filter((s) => s.kind !== "composite").map((s) => [s.id, s]));
-  const all = [...(plan?.groups.willRun ?? []), ...(plan?.groups.notApplicableOrDisabled ?? [])];
+  // A check replaced by another one (SUPERSEDED) or on only "when available" without its tool here (NOT_AVAILABLE_HERE)
+  // was not switched off by anyone: counting it as "disabled" would read as a choice the person never made.
+  const notChosenOff = new Set(["SUPERSEDED", "NOT_AVAILABLE_HERE"]);
+  const all = [...(plan?.groups.willRun ?? []), ...(plan?.groups.notApplicableOrDisabled ?? []).filter((i) => !notChosenOff.has(i.reason.code))];
   const trust = result?.policy?.trustSelfReported !== false;
   // One primary domain per check: a stage shared by several capabilities (the bridge) belongs to the first domain, in
   // domain order, among its enabled items (otherwise among all), and its other capabilities become tags.

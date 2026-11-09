@@ -154,6 +154,19 @@ function defaultConfigFor(dir: string, adapter: string, componentRoot: string | 
   return folder ? `${folder}/${pick}` : pick;
 }
 
+/**
+ * Adapters whose capabilities are alternative modes of one instance (the first capability picks the mode): a new
+ * instance gets only the first one (gitleaks: `dir` for secrets; the history scan is its own instance).
+ */
+const MODE_ADAPTERS = new Set(["gitleaks"]);
+
+/** The capabilities a new instance of the adapter declares: its manifest's (only the first for a mode adapter). */
+export function defaultCapabilities(adapter: string): string[] {
+  const manifest = builtinManifests().find((m) => m.id === adapter);
+  const all = [...(manifest?.capabilities ?? [])];
+  return MODE_ADAPTERS.has(adapter) ? all.slice(0, 1) : all;
+}
+
 /** Adds an instance to tools.yml with the default configuration file of its adapter in the component folder. */
 export function createInstance(dir: string, request: CreateInstanceRequest, expectedHash?: string | null): InstanceChange {
   if (!ID_RE.test(request.id)) throw new InstanceError("INSTANCE_ID_INVALID", `Invalid instance id: ${request.id}`);
@@ -166,6 +179,9 @@ export function createInstance(dir: string, request: CreateInstanceRequest, expe
   const config = defaultConfigFor(dir, request.adapter, component ? (roots.get(component) ?? null) : null);
   const body: Record<string, unknown> = { adapter: request.adapter };
   if (component) body.component = component;
+  // A profile turns checks on by capability: without them the new instance would never be selected.
+  const capabilities = defaultCapabilities(request.adapter);
+  if (capabilities.length > 0) body.capabilities = capabilities;
   if (config) body.config = config;
   applyEdits(dir, [{ op: "set", path: ["tools", request.id], value: body }], expectedHash === undefined ? hash : expectedHash);
   return { id: request.id, references: [], config };

@@ -28,6 +28,8 @@ interface Row {
   state: "pending" | "running" | "completed" | "blocked" | "error" | "timeout" | "cancelled";
   cause?: string;
   reasons: string[];
+  /** Why parts of the step were switched off (a superseded subcheck): shown folded, they are not a problem. */
+  offReasons?: string[];
   durationMs?: number;
 }
 
@@ -79,7 +81,10 @@ function rowsFrom(steps: Array<{ id: string; label: string }>, events: StepEvent
       const list = states.get(id) ?? [];
       list.push(String(e.data.state));
       states.set(id, list);
-      if (typeof e.data.reason === "string" && e.data.reason !== "" && !r.reasons.includes(e.data.reason)) r.reasons.push(e.data.reason);
+      if (typeof e.data.reason === "string" && e.data.reason !== "") {
+        const into = e.data.state === "disabled" ? (r.offReasons ??= []) : r.reasons;
+        if (!into.includes(e.data.reason)) into.push(e.data.reason);
+      }
     } else if (e.type === "step-skipped") {
       r.state = "blocked";
       r.cause = typeof e.data.cause === "string" ? e.data.cause : "skipped";
@@ -145,6 +150,14 @@ function StepRow({ row: r, runId }: { row: Row; runId: string | null }) {
               {reason}
             </div>
           ))}
+          {r.offReasons && r.offReasons.length > 0 ? (
+            <details className="small muted" data-testid="step-off-parts">
+              <summary>{t(r.offReasons.length === 1 ? "vrun_step_off_parts_one" : "vrun_step_off_parts", { count: r.offReasons.length })}</summary>
+              {r.offReasons.map((reason) => (
+                <div key={reason}>{reason}</div>
+              ))}
+            </details>
+          ) : null}
         </td>
         <td>{formatDuration(r.durationMs)}</td>
         <td>

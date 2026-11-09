@@ -60,7 +60,7 @@ test("Workspace shows the components, the scope preview, the mode by patch and t
     for (const [id, manifest] of Object.entries(expected)) {
       const card = page.locator(`article[data-component="${id}"]`);
       await expect(card).toBeVisible();
-      await expect(card.getByTestId("status-badge")).toHaveText("detected");
+      await expect(card.getByTestId("status-badge")).toHaveText("detectado");
       await card.getByRole("button", { name: "Por que foi detectado?" }).click();
       const dialog = page.getByTestId("why-dialog");
       await expect(dialog.getByTestId("why-evidence")).toContainText(manifest);
@@ -151,7 +151,7 @@ test("Declarar componente offers languages, frameworks and folders as choices, k
     await page.goto(server.bootstrapUrl);
     await page.getByRole("link", { name: "Workspace" }).first().click();
     const card = page.locator('article[data-component="api"]');
-    await expect(card.getByTestId("status-badge")).toHaveText("explicit");
+    await expect(card.getByTestId("status-badge")).toHaveText("declarado");
     await card.getByRole("button", { name: "Corrigir" }).click();
 
     const dialog = page.getByRole("dialog", { name: "Corrigir api" });
@@ -173,7 +173,7 @@ test("Declarar componente offers languages, frameworks and folders as choices, k
     await expect(language.locator("option").last()).toHaveText("Outro…");
     await expect(language).toHaveValue("python");
     // Python offers only Python frameworks, Nenhum and Outro….
-    await expect(framework.locator("option")).toHaveText(["Nenhum", "Django", "FastAPI", "Flask", "Starlette", "Tornado", "Outro…"]);
+    await expect(framework.locator("option")).toHaveText(["Nenhum (usar o detectado)", "Django", "FastAPI", "Flask", "Starlette", "Tornado", "Outro…"]);
 
     // Keyboard only: the path field has the focus, Tab walks to the language, arrows change it.
     await expect(pathField).toBeFocused();
@@ -191,7 +191,7 @@ test("Declarar componente offers languages, frameworks and folders as choices, k
     // A recognized language without tools says what that means.
     await language.selectOption("cpp");
     await expect(dialog.getByTestId("language-notice")).toContainText("O JGates reconhece C++, mas ainda não tem ferramentas");
-    await expect(framework.locator("option")).toHaveText(["Nenhum", "Outro…"]);
+    await expect(framework.locator("option")).toHaveText(["Nenhum (usar o detectado)", "Outro…"]);
     // Outro… opens a free field with its own label and help.
     await language.selectOption({ label: "Outro…" });
     await expect(dialog.getByLabel("Qual linguagem?")).toBeVisible();

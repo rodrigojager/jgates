@@ -82,7 +82,8 @@ test("a second ESLint instance for another component is written to tools.yml and
 
     // Written to tools.yml, the first instance untouched.
     const tools = toolsYml(fixture).tools;
-    expect(tools["eslint-ui"]).toEqual({ adapter: "eslint", component: "ui", config: "ui/eslint.config.js" });
+    // With the adapter's capability, so a profile selects the new instance (capability:lint) without another step.
+    expect(tools["eslint-ui"]).toEqual({ adapter: "eslint", component: "ui", capabilities: ["lint"], config: "ui/eslint.config.js" });
     expect(tools["eslint-web"]).toEqual({ adapter: "eslint", component: "web", config: "web/eslint.config.js" });
     // Both are listed with their own file.
     await expect(page.locator('[data-instance="eslint-web"]')).toContainText("web/eslint.config.js");

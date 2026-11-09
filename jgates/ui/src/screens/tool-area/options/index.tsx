@@ -190,7 +190,7 @@ export default function OptionsTab({ instance, active, openFile }: ToolTabProps)
         <div className="card flat stack">
           <div className="between wrap">
             <h2>{view.form.title}</h2>
-            <Pill tone={dirty ? "gold" : undefined}>{dirty ? ft("pending_count", { count: intents.length }) : ft("pending_none")}</Pill>
+            <Pill tone={dirty ? "gold" : undefined}>{dirty ? ft(intents.length === 1 ? "pending_count_one" : "pending_count", { count: intents.length }) : ft("pending_none")}</Pill>
           </div>
           <label className="stack tight">
             <span className="small">{ft("search_label")}</span>
@@ -246,7 +246,7 @@ export default function OptionsTab({ instance, active, openFile }: ToolTabProps)
 
         {view.available ? (
           <div className="edit-bar" role="region" aria-label={ft("review")}>
-            <span className="small">{dirty ? ft("pending_count", { count: intents.length }) : ft("pending_none")}</span>
+            <span className="small">{dirty ? ft(intents.length === 1 ? "pending_count_one" : "pending_count", { count: intents.length }) : ft("pending_none")}</span>
             <div className="row wrap">
               <button type="button" className="btn" disabled={!dirty || busy} onClick={() => setPending(new Map())}>
                 {ft("discard")}

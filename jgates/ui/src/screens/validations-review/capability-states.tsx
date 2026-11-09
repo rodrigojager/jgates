@@ -7,7 +7,7 @@ import { api } from "../../api";
 import { ErrorNotice, Pill, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
-import { t, tOr } from "../../i18n";
+import { adapterName, t, tOr } from "../../i18n";
 import "./capability-states.css";
 
 export type CapStateKind = "run" | "blocked" | "na" | "off";
@@ -138,12 +138,14 @@ const settingLabel = (name: string) => {
 };
 const settingsOf = (action: any): string[] => (Array.isArray(action?.settings) ? action.settings : Array.isArray(action?.missing) ? action.missing : []).map(String);
 const langLabel = (id: string) => tOr(`capst_lang_${id.replace(/[^a-z0-9]+/gi, "_")}`, id);
+/** Readable name of an adapter in the current language (the manifest name is English); unknown ones as they are. */
+const adapterLabel = adapterName;
 
 export function naReason(na: any): string {
   const action = na.action ?? {};
   const adapters: any[] = na.adapters ?? [];
   const adapter = adapters.find((a) => a.id === action.adapter) ?? adapters.find((a) => a.applicable) ?? adapters[0];
-  const tool = adapter?.label ?? action.adapter ?? "";
+  const tool = adapterLabel(adapter?.id ?? action.adapter, adapter?.label ?? action.adapter ?? "");
   const languages = ((na.languages ?? []) as string[]).map(langLabel).join(", ") || t("capst_no_language");
   switch (na.reasonCode) {
     case "NO_TOOL":
@@ -151,7 +153,7 @@ export function naReason(na: any): string {
     case "NO_TOOL_FOR_LANGUAGES":
       return t("capst_reason_no_tool_for_languages", {
         languages,
-        tools: adapters.map((a) => `${a.label} (${(a.languages ?? []).map(langLabel).join(", ")})`).join("; "),
+        tools: adapters.map((a) => `${adapterLabel(a.id, a.label)} (${(a.languages ?? []).map(langLabel).join(", ")})`).join("; "),
       });
     case "TOOL_MISSING":
       return t("capst_reason_tool_missing", { tool: (action.tools ?? []).join(", ") || tool });
@@ -390,7 +392,7 @@ export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext })
   const action = na.action ?? { kind: "none" };
   const tools: string[] = action.tools ?? [];
   const adapter = ((na.adapters ?? []) as any[]).find((a) => a.id === action.adapter);
-  const toolName = adapter?.label ?? action.adapter ?? "";
+  const toolName = adapterLabel(adapter?.id ?? action.adapter, adapter?.label ?? action.adapter ?? "");
   let control: ReactNode = null;
 
   // Several rows carry the same button text: the accessible name starts with it and names the capability.
@@ -437,6 +439,8 @@ export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext })
       </a>
     );
     if (tools.length === 0 && settingsOf(action).length > 0) hint = t("capst_settings_hint", { settings: settingsOf(action).map(settingLabel).join(", ") });
+    // Configure first; the tool is also missing here, so it is prepared next (its own action appears then).
+    if (tools.length > 0 && action.prepareNext === true) hint = t("capst_prepare_next", { tool: toolName });
   } else if (action.kind === "prepare-tool") {
     const docsLink = ((action.docs ?? []) as string[]).find((d) => /^https?:\/\//.test(d)) ?? null;
     return (
@@ -556,7 +560,7 @@ export function Details({ na }: { na: any }) {
         <ul className="small">
           {adapters.map((a) => (
             <li key={a.id}>
-              <strong>{a.label}</strong>
+              <strong>{adapterLabel(a.id, a.label)}</strong>
               {a.applicable === false ? <span className="muted"> · {t("capst_not_for_project")}</span> : null}
               <span className="muted"> · {t("capst_prereq_label")} </span>
               <span lang="en">{(a.prerequisites as string[]).join("; ")}</span>

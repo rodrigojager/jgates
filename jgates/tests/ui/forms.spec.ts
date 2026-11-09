@@ -45,7 +45,7 @@ test("edit line-length in the Options tab: only [tool.ruff] changes on disk, the
     await expect(row).toContainText("padrão da ferramenta: 88");
     await row.getByRole("checkbox", { name: "Usar valor herdado (Comprimento da linha)" }).uncheck();
     await page.getByLabel("Comprimento da linha", { exact: true }).fill("100");
-    await expect(page.getByText("1 alteração(ões) não salva(s)").first()).toBeVisible();
+    await expect(page.getByText("1 alteração não salva").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Revisar alterações" }).click();
     const dialog = page.getByRole("dialog");

@@ -10,6 +10,7 @@
   "prepare_fix_docker": "Instale o Docker só se for usar etapas em container.",
   "prepare_adapter_unknown": "O adaptador {adapter} não está entre os incorporados; nada a conferir.",
   "prepare_not_checked": "{tool}: o adaptador ainda não tem verificação de ambiente.",
+  "prepare_when_available_missing": "{tool}: o plano não o encontrou nesta máquina.",
   "prepare_tool_absent": "{tool} não foi encontrado ({detail}).",
   "prepare_tool_no_answer": "{tool} em {detail} não respondeu à consulta de versão.",
   "prepare_lock_drift": "A instância {tool} está fixada em {pinned} no {file}, mas a versão instalada é {found}. Confira a mudança antes de preparar de novo.",

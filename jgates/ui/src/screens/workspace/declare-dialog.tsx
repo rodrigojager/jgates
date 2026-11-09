@@ -16,7 +16,7 @@ interface VocabularyLanguage {
   supported: boolean;
   frameworks: VocabularyFramework[];
 }
-interface Vocabulary {
+export interface Vocabulary {
   languages: VocabularyLanguage[];
   folders: Array<{ path: string; detected: boolean }>;
 }

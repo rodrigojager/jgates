@@ -292,6 +292,15 @@ export default function ProvidersScreen() {
         </div>
       ) : null}
 
+      {/* The agent CLIs come first: with one installed and logged in, nothing else on this screen is needed. */}
+      <section className="stack" aria-labelledby="pk-cli">
+        <div>
+          <h2 id="pk-cli">{t("pk_cli_title")}</h2>
+          <p className="small muted">{t("pk_cli_lead")}</p>
+        </div>
+        <CliProviders entries={cli} writable={writable} revision={p.revision} onChanged={refresh} />
+      </section>
+
       <section className="stack" aria-labelledby="pk-http">
         <div>
           <h2 id="pk-http">{t("pk_http_title")}</h2>
@@ -325,14 +334,6 @@ export default function ProvidersScreen() {
           />
         ) : null}
         {connections.length > 0 ? <div className="pk-grid">{connections.map(card)}</div> : <p className="small muted" data-testid="no-connections">{t("pk_connections_empty")}</p>}
-      </section>
-
-      <section className="stack" aria-labelledby="pk-cli">
-        <div>
-          <h2 id="pk-cli">{t("pk_cli_title")}</h2>
-          <p className="small muted">{t("pk_cli_lead")}</p>
-        </div>
-        <CliProviders entries={cli} writable={writable} revision={p.revision} onChanged={refresh} />
       </section>
 
       <section className="stack" aria-labelledby="pk-other">

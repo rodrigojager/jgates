@@ -19,6 +19,7 @@
   "semcfg_methods": "Methods",
   "semcfg_methods_none": "Select at least one method.",
   "semcfg_methods_selected": "{count} selected; each one runs as its own semantic run, in the order you checked them.",
+  "semcfg_methods_selected_one": "1 selected; it runs as its own semantic run.",
   "semcfg_method_checks_applicability": "checks its own applicability before sending anything",
   "semcfg_method_unavailable": "unavailable in this build: {reason}",
   "semcfg_method_general-review": "General review",

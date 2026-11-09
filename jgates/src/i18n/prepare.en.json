@@ -10,6 +10,7 @@
   "prepare_fix_docker": "Install Docker only if you will use container stages.",
   "prepare_adapter_unknown": "The adapter {adapter} is not among the built-in ones; nothing to check.",
   "prepare_not_checked": "{tool}: the adapter has no environment check yet.",
+  "prepare_when_available_missing": "{tool}: the plan did not find it on this machine.",
   "prepare_tool_absent": "{tool} was not found ({detail}).",
   "prepare_tool_no_answer": "{tool} at {detail} did not answer the version query.",
   "prepare_lock_drift": "The instance {tool} is pinned at {pinned} in {file}, but the installed version is {found}. Check the change before preparing again.",

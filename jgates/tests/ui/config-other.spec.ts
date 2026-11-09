@@ -189,6 +189,9 @@ test("an unknown key in the YAML tab shows the file and the field on 'Checar est
     await page.getByRole("link", { name: "Configuração" }).first().click();
     await page.getByRole("link", { name: "YAML", exact: true }).click();
     await expect(page.getByTestId("draft-note")).toBeVisible();
+    // The editor renders only the visible lines of a long file: go to its end, where the draft line was typed.
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+End");
     await expect(page.locator(".cm-content")).toContainText("network_typo: true");
     await expect(page.locator('[data-file="jgates.yml"]').first()).toContainText("Rascunho");
 

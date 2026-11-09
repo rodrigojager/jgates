@@ -175,7 +175,7 @@ test.describe("Providers e chaves", () => {
 
     // With the key set, Configurar lists the models for the default model.
     await openai.getByRole("button", { name: "Configurar openai" }).click();
-    await expect(page.getByTestId("models-count-openai")).toHaveText("2 modelos do provider para escolher.");
+    await expect(page.getByTestId("models-count-openai")).toHaveText("2 modelos do provedor para escolher.");
     await openai.getByLabel("Modelo padrão").fill("fake-model-b");
     await openai.getByRole("button", { name: "Salvar as preferências de openai" }).click();
     await expect(page.getByTestId("model-openai")).toContainText("fake-model-b");
@@ -341,7 +341,7 @@ test.describe("Providers e chaves", () => {
     await page.getByRole("button", { name: "Acrescentar conexão" }).click();
     const form = page.getByTestId("add-connection-form");
     await form.getByLabel("Nome da conexão").fill("openai");
-    await expect(form).toContainText("Este nome é de um provider do semantic gate");
+    await expect(form).toContainText("Este nome é de um provedor do semantic gate");
     await form.getByLabel("Nome da conexão").fill("team-gateway");
     await form.getByLabel("Base URL").fill(fake.url);
     await form.getByLabel("Nome da chave").fill("TEAM_GATEWAY_KEY");

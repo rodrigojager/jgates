@@ -120,7 +120,7 @@ export default function WorkspaceScreen() {
       </div>
 
       <p className="small" data-testid="ws-summary" aria-label={t("ws_overview_aria")}>
-        {t("ws_summary", { components: components.length, languages: inventory.languages.length, mode: t(`ws_mode_${inventory.mode}`) })}
+        {t("ws_summary", { components: t(components.length === 1 ? "ws_summary_components_one" : "ws_summary_components", { count: components.length }), languages: t(inventory.languages.length === 1 ? "ws_summary_languages_one" : "ws_summary_languages", { count: inventory.languages.length }), mode: t(`ws_mode_${inventory.mode}`) })}
         {inventory.templatesActive ? "" : ` ${t("ws_templates_off")}`}
       </p>
       {runError ? <ErrorNotice error={runError} /> : null}

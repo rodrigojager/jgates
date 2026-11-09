@@ -192,7 +192,7 @@ function Protection({ categories }: { categories: Category[] }) {
         <li key={c.id} className="ov-cat" data-category={c.id} data-state={c.state}>
           <div className="grow">
             <h3>{categoryLabel(c.id)}</h3>
-            {c.state === "included" ? <p>{t("overview_category_checks", { count: c.checks })}</p> : c.reason ? <p>{c.reason}</p> : null}
+            {c.state === "included" ? <p>{t(c.checks === 1 ? "overview_category_checks_one" : "overview_category_checks", { count: c.checks })}</p> : c.reason ? <p>{c.reason}</p> : null}
           </div>
           <Pill tone={CATEGORY_TONE[c.state]}>
             <Icon name={CATEGORY_ICON[c.state]} />

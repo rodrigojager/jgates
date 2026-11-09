@@ -171,7 +171,7 @@ function SemanticForm({ info, onSaved, onClose }: { info: SemanticInfo; onSaved:
       {error ? <ErrorNotice error={error} {...(conflict ? { onRetry: onSaved } : {})} /> : null}
       <div className="edit-bar">
         <span className="small" role="status">
-          {pending.size === 0 ? t("semantic_pending_none") : t("semantic_pending", { count: pending.size })}
+          {pending.size === 0 ? t("semantic_pending_none") : t(pending.size === 1 ? "semantic_pending_one" : "semantic_pending", { count: pending.size })}
         </span>
         <div className="row wrap">
           <button type="button" className="btn" disabled={busy} onClick={onClose}>

@@ -4,7 +4,7 @@ import { currentQuery } from "../../app/route";
 import { useShell } from "../../app/shell-context";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
-import { t, tOr } from "../../i18n";
+import { adapterName, t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { SemanticCard } from "./semantic/card";
 import { CreateDialog, RemoveDialog, RenameDialog, type CatalogAdapter } from "./dialogs";
@@ -277,7 +277,7 @@ export default function ToolsScreen() {
                 </div>
                 <dl className="kv">
                   <dt>{t("tools_dialog_adapter")}</dt>
-                  <dd>{entry?.displayName ?? i.adapter}</dd>
+                  <dd>{adapterName(i.adapter, entry?.displayName ?? i.adapter)}</dd>
                   <dt>{t("tools_dialog_component")}</dt>
                   <dd>{i.component ?? t("tools_workspace_wide")}</dd>
                   <dt>{t("tools_card_runner")}</dt>
@@ -325,7 +325,7 @@ export default function ToolsScreen() {
           {visibleCatalog.map((a) => (
             <li key={a.adapter} className="card flat stack" data-testid="catalog-card" data-adapter={a.adapter}>
               <div className="between wrap">
-                <h3>{a.displayName}</h3>
+                <h3>{adapterName(a.adapter, a.displayName)}</h3>
                 <div className="row wrap">
                   <Pill tone={SUPPORT_TONE[a.supportLevel] ?? "blue"}>{tOr(`support_${a.supportLevel}`, a.supportLevel)}</Pill>
                   {a.platformSupported ? null : <Pill tone="red">{t("tools_card_platform")}</Pill>}
@@ -343,7 +343,7 @@ export default function ToolsScreen() {
               <DistributionInfo info={matrixOf.get(a.adapter)} />
               {a.instantiable ? (
                 <div>
-                  <button type="button" className="btn" disabled={governed} aria-label={t("tools_card_use", { tool: a.displayName })} onClick={() => setDialog({ kind: "create", adapter: a.adapter })}>
+                  <button type="button" className="btn" disabled={governed} aria-label={t("tools_card_use", { tool: adapterName(a.adapter, a.displayName) })} onClick={() => setDialog({ kind: "create", adapter: a.adapter })}>
                     <Icon name="tools" />
                     {t("tools_card_create")}
                   </button>

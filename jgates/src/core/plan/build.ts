@@ -6,7 +6,7 @@ import { readVersion } from "../../cli/version.js";
 import { listBuiltinProfiles, listBuiltinTemplates, getBuiltinTemplate, isBuiltinRef } from "../../builtin/index.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
 import { createCoreCatalog, subcheckLabel } from "../catalog/index.js";
-import { emptyAction, explainMissing, prepareAction } from "./availability.js";
+import { emptyAction, explainMissing, missingSettings, prepareAction } from "./availability.js";
 import { buildRequest } from "../../adapters/quality-bridge/index.js";
 import { bridgeToolConfigs, effectiveCommand, isConfigurable } from "../../adapters/quality-bridge/tool-configs.js";
 import { ADAPTER_ID, planSubchecks, type BridgeSelection, type SubcheckPlan } from "../../adapters/quality-bridge/requirements.js";
@@ -740,7 +740,22 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       const label = capLabel.get(capability) ?? r.selector;
       const base = { ...r, when: r.when, label, languages: projectLanguages, candidates: candidates.map((i) => i.id), disabledBy };
       const missing = candidates.filter((i) => i.reason.code === "NOT_AVAILABLE_HERE");
-      if (missing.length > 0) {
+      // A declared instance without a setting JGates cannot guess (a target URL, a reference revision): configure it
+      // first (the options form), and say when the tool must still be prepared after that.
+      const unset = missing.map((i) => ({ item: i, settings: missingSettings(i.adapter, configuredTools[i.tool]) })).find((u) => u.settings.length > 0);
+      if (unset) {
+        const tools = [unset.item.tool];
+        const prepareNext = unset.item.runtime !== null && !unset.item.runtime.available;
+        const what = unset.settings.map((s) => t(`plan_na_setting_${s}`)).join("; ");
+        notApplicableHere.push({
+          ...base,
+          disabledBy: null,
+          reasonCode: "SETUP_REQUIRED",
+          message: t(prepareNext ? "plan_na_configure_then_prepare" : "plan_na_configure_instance", { label, tool: unset.item.tool, settings: unset.settings.join(", "), what }),
+          adapters: [],
+          action: { ...prepareAction(unset.item.adapter, tools), kind: "configure-tool", settings: unset.settings, prepareNext },
+        });
+      } else if (missing.length > 0) {
         const tools = uniqueSorted(missing.map((i) => i.tool));
         notApplicableHere.push({
           ...base,

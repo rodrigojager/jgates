@@ -30,6 +30,14 @@ test("configuration uses selected plan, disabled scope and coverage gaps indepen
   q = quality({ plan: plan([], [{ category: "quality", reason: "NO_EXECUTABLE_CHECK" }]) });
   assert.equal(q.status, "blocked"); assert.equal(q.coverageGap, true);
 });
+test("a superseded check or one whose tool is missing here (when available) is not counted as switched off", () => {
+  const on = item("pytest#unit", "tests");
+  const replaced = item("quality-bridge.project-tests#unit", "tests", { state: { enabled: false, origin: "profile", runOnly: false }, reason: { code: "SUPERSEDED", message: "Replaced by pytest" } });
+  const missing = item("mutmut#mutation", "tests", { state: { enabled: false, origin: "profile", runOnly: false }, reason: { code: "NOT_AVAILABLE_HERE", message: "mutmut missing" } });
+  const tests = projectMascots({ plan: plan([on, replaced, missing]) }).domains.find((d) => d.domain === "tests");
+  assert.equal(tests.excluded, 0);
+  assert.equal(tests.selection, "enabled");
+});
 test("terminal domain aggregates all stages rather than the last successful event", () => {
   const p = plan([item("a#lint"), item("b#lint")]);
   const r = result([stage("a#lint", { blockingViolations: 2 }), stage("b#lint")]);

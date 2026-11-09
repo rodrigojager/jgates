@@ -96,6 +96,9 @@ test("a category included in the profile without an executable tool is a gap, no
   const text = fs.readFileSync(file, "utf8");
   // The profile asks for license checks; no tool of the plan can run them.
   fs.writeFileSync(file, text.replace("    checks:\n      capability:file-size:", "    checks:\n      capability:licenses:\n        enabled: true\n      capability:file-size:"));
+  // jgates init adds builtin:trivy-licenses, which would cover them: without it no tool of the plan can.
+  const root = path.join(fixture.dir, "jgates.yml");
+  fs.writeFileSync(root, fs.readFileSync(root, "utf8").replace(/  - id: trivy-licenses\n(    .*\n)*/, ""));
   await open(page, fixture, async () => {
     const deps = page.locator('[data-category="dependencies"]');
     await expect(deps).toHaveAttribute("data-state", "gap");

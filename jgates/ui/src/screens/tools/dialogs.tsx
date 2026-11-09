@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { ApiError, api } from "../../api";
 import { Dialog } from "../../components/common";
 import { Icon } from "../../components/icons";
-import { t, tOr } from "../../i18n";
+import { adapterName, t, tOr } from "../../i18n";
 
 // Dialogs of the Tools tab that change .jgates/tools.yml: create, rename and remove an instance. The server patches the
 // YAML text at the instance key only; a file that moved meanwhile is a conflict the dialog reports.
@@ -59,7 +59,7 @@ export function CreateDialog({ adapters, components, initialAdapter, existing, o
     }
   }
 
-  const name = choices.find((a) => a.adapter === adapter)?.displayName ?? adapter;
+  const name = adapterName(adapter, choices.find((a) => a.adapter === adapter)?.displayName ?? adapter);
   return (
     <Dialog title={initialAdapter ? t("tools_dialog_create_for", { tool: name }) : t("tools_dialog_create")} onClose={onClose}>
       <form className="stack" onSubmit={submit}>
@@ -68,7 +68,7 @@ export function CreateDialog({ adapters, components, initialAdapter, existing, o
           <select className="input" value={adapter} onChange={(e) => pick(e.target.value, component)}>
             {choices.map((a) => (
               <option key={a.adapter} value={a.adapter}>
-                {a.displayName}
+                {adapterName(a.adapter, a.displayName)}
               </option>
             ))}
           </select>

@@ -65,6 +65,11 @@ export interface ToolStatus {
   component: string | null;
   enabled: boolean;
   required: boolean;
+  /**
+   * On only "when available" (strict): the plan runs it where its tool is present. Missing, it is offered to prepare
+   * but never makes the environment not ready.
+   */
+  whenAvailable?: boolean;
   /** Runner of the instance in tools.yml (local or container). */
   runner: string;
   state: EnvState;
@@ -302,6 +307,7 @@ interface PlannedInstance {
   enabled: boolean;
   required: boolean;
   runner: string;
+  whenAvailable?: boolean;
 }
 
 /**
@@ -334,6 +340,20 @@ function plannedInstances(projectDir: string, env: NodeJS.ProcessEnv): PlannedIn
       runner: invocation?.command.container ? "container" : "local",
     });
   }
+  // On "when available" with the tool missing here: not in willRun, yet it is what "Preparar" must offer to install.
+  for (const item of plan.groups.notApplicableOrDisabled) {
+    if (!item.adapter || item.subcheck || item.reason.code !== "NOT_AVAILABLE_HERE" || out.has(item.tool)) continue;
+    const invocation = plan.invocations.find((i) => i.id === item.tool);
+    out.set(item.tool, {
+      id: item.tool,
+      adapter: item.adapter,
+      component: item.components[0]?.id ?? null,
+      enabled: true,
+      required: false,
+      runner: invocation?.command.container || item.command?.container ? "container" : "local",
+      whenAvailable: true,
+    });
+  }
   return [...out.values()];
 }
 
@@ -349,7 +369,13 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
   // The tools the plan runs come from the templates as well, not only from tools.yml: the doctor checks every one of
   // them, so "ready" means what the run needs is there (a pytest or Ruff brought by a template included).
   const declared = new Set(resolved.instances.map((i) => i.id));
-  const instances: PlannedInstance[] = [...resolved.instances, ...plannedInstances(projectDir, env).filter((i) => !declared.has(i.id))];
+  const planned = plannedInstances(projectDir, env);
+  // A declared instance on "when available" (the plan found its tool missing) is offered, never essential.
+  const plannedWhen = new Set(planned.filter((i) => i.whenAvailable).map((i) => i.id));
+  const instances: PlannedInstance[] = [
+    ...resolved.instances.map((i) => (plannedWhen.has(i.id) ? { ...i, whenAvailable: true } : i)),
+    ...planned.filter((i) => !declared.has(i.id)),
+  ];
   const tools: ToolStatus[] = [];
   for (const instance of instances) {
     const manifest = byAdapter.get(instance.adapter);
@@ -360,6 +386,7 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
         component: instance.component,
         enabled: instance.enabled,
         required: instance.required,
+        ...(instance.whenAvailable ? { whenAvailable: true } : {}),
         runner: instance.runner,
         state: "not_checked",
         executable: null,
@@ -382,7 +409,7 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
     let fix: string | null = fixFor(manifest);
     if (!probe) {
       state = "not_checked";
-      message = t("prepare_not_checked", { tool: manifest.toolName });
+      message = instance.whenAvailable ? t("prepare_when_available_missing", { tool: instance.id }) : t("prepare_not_checked", { tool: manifest.toolName });
       fix = null;
     } else if (container && container.problem !== null) {
       state = "absent";
@@ -414,6 +441,7 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
       component: instance.component,
       enabled: instance.enabled,
       required: instance.required,
+      ...(instance.whenAvailable ? { whenAvailable: true } : {}),
       runner: instance.runner,
       state,
       executable: probe?.executable ?? null,
@@ -425,7 +453,7 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
       preparation: preparationOf(manifest, instance.id, instance.runner, projectDir, lock, home, env),
     });
   }
-  const count = (s: EnvState, list: Array<{ state: EnvState; optional?: boolean; enabled?: boolean }>) => list.filter((x) => x.state === s && !x.optional && x.enabled !== false).length;
+  const count = (s: EnvState, list: Array<{ state: EnvState; optional?: boolean; enabled?: boolean; whenAvailable?: boolean }>) => list.filter((x) => x.state === s && !x.optional && !x.whenAvailable && x.enabled !== false).length;
   const summary = {
     ready: [...runtimes, ...tools].filter((x) => x.state === "ready").length,
     absent: count("absent", runtimes) + count("absent", tools),

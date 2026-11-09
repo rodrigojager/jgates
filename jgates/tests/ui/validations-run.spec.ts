@@ -300,7 +300,8 @@ test("step logs: one block per tool with both streams, the command collapsed, '(
     await expect(blocks).toHaveCount(1);
     const ruff = blocks.first();
     await expect(ruff).toHaveAttribute("data-invocation", "ruff");
-    await expect(ruff.locator("summary").first()).toHaveText(/Ruff\s*ruff/);
+    // The id is not repeated when it only restates the title (Ruff / ruff).
+    await expect(ruff.locator("summary").first()).toHaveText(/^\s*Ruff\s*$/);
     await expect(ruff.locator('[data-stream="stdout"] pre')).toHaveText("All checks passed!\n");
     await expect(ruff.locator('[data-stream="stderr"]').getByTestId("log-none")).toHaveText("(sem saída)");
     await expect(ruffLog.getByTestId("log-note")).toHaveText(/Muitas ferramentas escrevem progresso e avisos na saída de erro.*não o texto do log\./);
