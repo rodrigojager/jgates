@@ -30,6 +30,10 @@ Os templates embutidos:
 | `typescript` | Componentes TypeScript e JavaScript. |
 | `python-pytest`, `python-import-linter` | pytest com cobertura, e Import Linter. |
 | `typescript-eslint`, `typescript-vitest`, `typescript-dependency-cruiser` | ESLint, Vitest com cobertura, e dependency-cruiser. |
+| `gitleaks-history`, `trivy-licenses` | Segredos em todo o histórico do Git e licenças das dependências. Entram por evidência (um repositório Git; um manifesto de dependências) e rodam na imagem dos scanners. |
+| `python-mypy-defaults`, `python-mutmut` | mypy nos componentes Python mesmo sem configuração do mypy, e teste de mutação com mutmut. |
+| `typescript-stryker` | Teste de mutação de TypeScript e JavaScript com o StrykerJS, quando o projeto tem uma configuração do Stryker. |
+| `python-codeql`, `typescript-codeql`, `go-codeql`, `dotnet-codeql` | Análise de fluxo de dados do CodeQL pela linguagem do componente. O CLI do CodeQL é você quem fornece: sem ele, a verificação aparece como indisponível aqui. |
 | `python-typescript` | Reúne os de Python e TypeScript para repositórios com os dois. |
 | `dotnet`, `go`, `rust` | Suporte parcial: veja [adaptadores](adapters.pt-BR.md). |
 
@@ -42,7 +46,7 @@ ESLint, dependency-cruiser, Import Linter, pytest e Vitest não vêm dentro dos 
 - `python-pytest`: `pytest.ini`, `conftest.py`, ou a seção do pytest no `pyproject.toml`, `tox.ini` ou `setup.cfg`;
 - `python-import-linter` e `typescript-dependency-cruiser`: um `.jgates/architecture.yml` (as regras de arquitetura) ou, no Python, a configuração nativa do Import Linter.
 
-Assim o JGates não impõe um framework de testes ou de lint a quem não usa. O `jgates init` lista todos como `detected`; o `plan` mostra os que ficaram inativos. Em `jgates.yml` o bloco `templates` é seu: dá para trocar a ativação de um template, ou ligar um `manual`, sem tocar no resto.
+Assim o JGates não impõe um framework de testes ou de lint a quem não usa. O `jgates init` grava no `jgates.yml` também os novos acima, como `detected`, e lista todos; o `plan` mostra os que ficaram inativos. Em `jgates.yml` o bloco `templates` é seu: dá para trocar a ativação de um template, ou ligar um `manual`, sem tocar no resto.
 
 ## Perfis
 
@@ -52,7 +56,25 @@ Um perfil escolhe as capacidades que contam. Os três embutidos se herdam:
 | --- | --- | --- |
 | `minimal` (Essencial) | lint, tamanho de arquivo e segredos | - |
 | `standard` (Equilibrado, o padrão do `init`) | mais SAST, dependências, duplicação, IaC e dados pessoais | `minimal` |
-| `strict` (Rigoroso) | mais testes unitários e cobertura | `standard` |
+| `strict` (Rigoroso) | mais testes unitários e cobertura, obrigatórios; e todas as outras verificações para as quais existe ferramenta, no modo "onde houver ferramenta" (abaixo) | `standard` |
+
+### Obrigatória, onde houver ferramenta ou desligada
+
+Cada capacidade de um perfil tem três modos. Na interface (`#/config`, tela de perfis) o seletor mostra **Obrigatória**, **Onde houver ferramenta** e **Desligada**; no `.jgates/profiles.yml` são `enabled: true`, `enabled: true` com `when: available` e `enabled: false`:
+
+```yaml
+checks:
+  capability:unit: { enabled: true }
+  capability:mutation: { enabled: true, when: available }
+```
+
+- **Obrigatória** (`enabled: true`): a verificação precisa rodar. Se o projeto não tem ferramenta para ela, a validação fica bloqueada e diz o que falta (fail-closed: o que você exige nunca é pulado em silêncio).
+- **Onde houver ferramenta** (`when: available`): a verificação roda em cada componente que tem uma ferramenta para ela. Onde não há, a capacidade aparece como "não se aplica aqui", com o motivo e a única ação que a ligaria (por exemplo, acrescentar um template, instalar uma ferramenta, preparar a imagem dos scanners), e **nunca bloqueia** o plano nem a decisão.
+- **Desligada**: não roda.
+
+O `strict` é montado assim: testes unitários, cobertura e detecção de dados pessoais são obrigatórios; todas as outras capacidades que o catálogo conhece (verificação de formato, segredos no histórico, fluxo de dados, licenças, testes de integração e ponta a ponta, mutação, testes de propriedade, arquitetura, compatibilidade e contrato de API, checagem de tipos, migração, desempenho, CI/CD, cadeia de suprimentos e DAST) são ligadas **onde houver ferramenta**. Um projeto sem ferramenta de mutação vê a mutação como "não se aplica aqui", não como falha e não como uma ausência silenciosa. O plano (`jgates plan`) traz esses itens não aplicáveis numa lista própria; quando a correção é um template embutido, a ação diz qual acrescentar (`add-template`).
+
+A tela de perfis, a tela **Escolher a validação** e a revisão do plano mostram **todas** as capacidades com o estado: "Vai rodar", "Não se aplica aqui" (com o motivo e a ação) ou "Desligada" (com quem desligou: o perfil, o seu arquivo, a política ou só esta execução). A escolha e a revisão marcam as que rodam "só onde houver ferramenta".
 
 O `init` copia os três para `.jgates/profiles.yml`, cada um herdando do embutido (`builtin:minimal`...), e `selection.profile` do `jgates.yml` diz qual vale. Os seus perfis ficam no mesmo arquivo:
 

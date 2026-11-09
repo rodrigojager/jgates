@@ -141,9 +141,15 @@ jgates ui --no-open
 
 `ui` starts a local server on this computer only (`127.0.0.1`). It does not print the session secret: the entry link, single-use and valid for 10 minutes, is in a file in the data folder (the `launcher` field of the `--json` output). Open that file in the browser. Without `--no-open`, JGates opens the browser itself.
 
-Main screens: Overview (`#/overview`), Workspace (`#/workspace`), Tools (`#/tools`), Configuration (`#/config`), Environment (`#/environment`), Preferences (`#/preferences`, with the Providers and keys screen at `#/preferences/providers`) and Help (`#/help`). Everything the interface does has an equivalent command.
+Main screens: Overview (`#/overview`), Workspace (`#/workspace`), Tools (`#/tools`), Configuration (`#/config`), Environment (`#/environment`), Semantic (AI) (the review setup at `#/semantic/setup` and the Providers and keys screen at `#/semantic/providers`), Preferences (`#/preferences`) and Help (`#/help`). Everything the interface does has an equivalent command.
 
 The workspace button at the top of the sidebar switches to another project: pick one of the known workspaces, type a folder path, or use **Browse...** to walk the folders of this machine (the drives on Windows) and open one. A folder already set up for JGates or Git is marked in the list. A project without configuration opens on the first-access screen, which creates it.
+
+**Declaring a component.** On the Workspace screen, the **Declare** button (dialog "Declare component") no longer asks you to type free text. **Path** suggests the project's folders (the detected components are marked "detected component"); **Language** is a list in two groups, "With JGates checks" and "Recognized, no tools yet" (C++, for example: the component appears in the inventory and no check runs on it, and the dialog says so), plus "Detect from the folder" and "Other...". **Framework** lists only the frameworks of the chosen language, with "None" (the detection still applies) and "Other...". The values written to `.jgates/workspace.yml` are the same lowercase ids as before; "Other..." accepts a name the list does not have.
+
+**Tools installed while the interface is open.** Before looking for a tool, the JGates server re-reads the `PATH` from the Windows registry. If you install ruff, Docker or any other tool after `jgates ui` started, check again (**Check again** in the Environment screen or in the top bar that lists what is missing) and it is found, with no need to restart the interface or open a new terminal.
+
+**Reading the log of a step.** In the run screen, the logs of a step are shown as one block per tool (ruff, pytest, import-linter...), with its "Standard output" and "Error output" inside. What JGates itself recorded (program, arguments, folder, exit code, duration) is in a collapsed "Command executed" line, not in the output. A stream with nothing reads "(no output)". Many tools write progress and warnings to the error output, and that is normal: whether a step failed is told by its state in the table, not by the log text. The block of a failed step comes highlighted and open first.
 
 ## In CI and with agents
 

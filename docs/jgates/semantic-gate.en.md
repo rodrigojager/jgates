@@ -6,7 +6,7 @@ The semantic gate asks an AI model for a review of the code (correctness, tests,
 
 Only when two things happen together:
 
-1. the project configures a provider in `jgates.yml`, in the `extensions.semantic-gate` block;
+1. the project configures a provider in `jgates.yml`, in the `extensions.semantic-gate` block (the Semantic (AI) area of the interface writes it for you, see [choosing the provider](#choosing-the-provider-in-the-interface); you can also edit the file);
 2. the run asks for the review with `--semantic`.
 
 Without the flag, JGates never calls a provider. `jgates init` writes no provider.
@@ -28,13 +28,28 @@ jgates run --semantic
 
 The block accepts `provider`, `model`, `scope` (`changed`, `full` or `paths`), `paths`, `excludes`, `include`, `masking` (see below), `prompts` (see [the prompts](#the-prompts)), `objective`, `timeoutSeconds`, `maxContextChars`, `maxCalls`, `threshold`, `baseUrl`, `allowInsecureHttp`, `apiKeyEnv`, `command`, `commandArgs`, `commandPromptMode`, `commandOutput`, `costPerCall` and `enabled: false` to turn it off. An unknown key is a problem of the block (state `invalid`). `provider` is a provider of the table below or the name of a [connection](#preferences-and-connections) of your preferences. The project's `baseUrl` follows the same rule as the preferences (`http` only for loopback; `allowInsecureHttp: true` confirms another host).
 
+## Choosing the provider in the interface
+
+In `jgates ui`, the **Semantic (AI)** area guides the choice. In **New review**, the **Provider** step asks "Who will do the AI review?": pick an agent already on your computer or an API with a key. The choice applies to this project and is saved in its `jgates.yml` (`extensions.semantic-gate.provider`); it wins over your user-level defaults (below). In governed mode, where a policy fixes the configuration, the step is read-only.
+
+- **Command-line agents.** The screen lists the agent CLIs it supports (`claude-code`, `codex-cli`, `gemini-cli` and `opencode`) and checks each one on this computer: installed (and its version), logged in, and which models it offers. The state reads **Ready**, **Needs login**, **Login not confirmed** (some CLIs cannot report their status; if you already logged in, you can use it), **Not installed** (with the command to install it, to run in a terminal and then **Check again**) or **Checking...**. Nothing needs a key: they use the login you already did in the CLI.
+- **Logging in.** **Log in** opens a terminal running the CLI's own login command and waits; when you finish there and go back to the window, JGates checks again by itself. If it cannot open a terminal, it shows the command to copy and run. JGates has no OAuth of its own: it never reads, copies or stores the CLI's tokens, it only asks the CLI whether it is logged in.
+- **APIs with a key.** Providers that charge per use on your account. The state says **Needs a key** or **Needs setup** (for example, a base URL) and links to **Providers and keys**, where the key is stored.
+- **Model.** The model picker is fed by the models the CLI itself reports (or the provider's list, for an API); you can also type one.
+
+The same list is available in the terminal: `jgates providers list` shows the CLI providers with their installation and login state next to the API providers and connections. A tool or CLI you install while the interface is open is found when you check again (the server re-reads the `PATH` first).
+
+### Your defaults and the project's choice
+
+The **Providers and keys** screen (`#/semantic/providers`, reached from the Semantic (AI) area) holds **defaults for every project on this machine**: API keys, each provider's default model and the connections to a gateway. They live outside the projects. The project's own choice, made in the Provider step, is saved in its `jgates.yml` and wins over these defaults, field by field (see the precedence below). The screen says so at the top and links to the project's Provider step.
+
 ## The API key
 
 The configuration keeps **only the name** of the variable (`apiKeyEnv`, or the provider's default name from the table below), never the value. There are three ways to give the key:
 
-1. **CLI login.** The CLI providers (`codex-cli`, `claude-code`, `gemini-cli`, `opencode`) use the CLI's own login and need no key.
+1. **CLI login.** The CLI providers (`codex-cli`, `claude-code`, `gemini-cli`, `opencode`) use the CLI's own login and need no key; the Provider step shows whether each is installed and logged in, and **Log in** runs the CLI's own login command.
 2. **Environment variable.** Export the variable in the environment where `jgates run` runs. This is the CI way: `jgates ci` uses only the environment (the pipeline's secrets) and never reads the key store.
-3. **User key store.** Store the key once through the **Preferences > Providers and keys** screen of `jgates ui` or with `jgates secrets`, and it works for every project on your machine. The store is outside every project (see [security](security.en.md#the-user-key-store)), and the environment variable, when set, wins over the store.
+3. **User key store.** Store the key once through the **Semantic (AI) > Providers and keys** screen of `jgates ui` or with `jgates secrets`, and it works for every project on your machine. The store is outside every project (see [security](security.en.md#the-user-key-store)), and the environment variable, when set, wins over the store.
 
 ```bash
 jgates secrets set <NAME>
@@ -91,7 +106,7 @@ jgates providers remove <name>
 - **`jgates ci` ignores the preferences:** only the policy and the pipeline's environment count. A project that uses a connection in CI gets the state `invalid`, and the reason says so; in CI, use `provider: openai-compatible` with the `baseUrl` in the project or in the policy.
 - **A connection name** has lowercase letters, digits and `-` (`^[a-z0-9][a-z0-9-]{0,62}$`) and cannot be the name of a known provider (`openai`, `claude`, `ollama`, `command`...). Its key is the variable of `--key-env`; without it, `<NAME>_API_KEY` (for `litellm-local`, `LITELLM_LOCAL_API_KEY`), and a connection with no key set calls the gateway without `Authorization`.
 - **Security.** The base URL is `http` or `https`, with no user, password, query or fragment; `http` is accepted only for loopback (`localhost`, `127.0.0.0/8`, `::1`) or with the explicit confirmation `--allow-http`, because the key would travel in clear text. Changing the base URL drops the confirmation given for the old one. An extra header with a credential name (`Authorization`, `Cookie`, `*-key`, `*-token`, `*-secret`) or with a `Bearer ...` value is refused: the credential goes in the key store. Each refused field comes in the message with its name (`baseUrl`, `headers.X-Api-Key`, `name`), and nothing is written.
-- **Through the interface.** The **Preferences > Providers and keys** screen does what `jgates providers` does: Configure (base URL, default model, with the provider's model list when the key is set, key name and headers), Test, Add connection and Remove connection. In the project, the semantic gate card in **Tools** edits the essential fields of `extensions.semantic-gate` (on, provider or connection, model, scope, limits and the optional base URL) with the forms engine: the file is the source, each change is a minimal patch of `jgates.yml`, and a file that changed meanwhile is a revision conflict. Masking and prompts stay in the file.
+- **Through the interface.** The **Semantic (AI) > Providers and keys** screen (defaults for all projects) does what `jgates providers` does, and also shows whether each CLI provider is installed and logged in and lets you pick its default model: Configure (base URL, default model, with the provider's model list when the key is set, key name and headers), Test, Add connection and Remove connection. In the project, the semantic gate card in **Tools** edits the essential fields of `extensions.semantic-gate` (on, provider or connection, model, scope, limits and the optional base URL) with the forms engine: the file is the source, each change is a minimal patch of `jgates.yml`, and a file that changed meanwhile is a revision conflict. Masking and prompts stay in the file.
 - `semantic-gate` reads the same preferences: `semantic-gate models list <name>` lists the models of a connection, and `--provider <name>` uses it. In `.semantic-gate.json`, in the environment and in the flags, the values win over the preferences the same way.
 
 ## A gateway (LiteLLM or another)

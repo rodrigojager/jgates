@@ -141,9 +141,15 @@ jgates ui --no-open
 
 O `ui` sobe um servidor local só neste computador (`127.0.0.1`). Ele não imprime o segredo da sessão: o link de entrada, de uso único e com validade de 10 minutos, fica num arquivo da pasta de dados (o campo `launcher` da saída com `--json`). Abra esse arquivo no navegador. Sem `--no-open`, o JGates abre o navegador sozinho.
 
-Telas principais: Visão geral (`#/overview`), Workspace (`#/workspace`), Ferramentas (`#/tools`), Configuração (`#/config`), Ambiente (`#/environment`), Preferências (`#/preferences`, com a tela Providers e chaves em `#/preferences/providers`) e Ajuda (`#/help`). Tudo o que a interface faz tem um comando equivalente.
+Telas principais: Visão geral (`#/overview`), Workspace (`#/workspace`), Ferramentas (`#/tools`), Configuração (`#/config`), Ambiente (`#/environment`), Semântica (IA) (a preparação da revisão em `#/semantic/setup` e a tela Provedores e chaves em `#/semantic/providers`), Preferências (`#/preferences`) e Ajuda (`#/help`). Tudo o que a interface faz tem um comando equivalente.
 
 O botão do workspace no topo da barra lateral troca de projeto: escolha um dos workspaces conhecidos, digite o caminho de uma pasta ou use **Procurar...** para navegar pelas pastas desta máquina (as unidades, no Windows) e abrir uma. Uma pasta já configurada para o JGates ou com Git aparece marcada na lista. Um projeto sem configuração abre na tela de primeiro acesso, que a cria.
+
+**Declarar um componente.** Na tela Workspace, o botão **Declarar** (diálogo "Declarar componente") não pede mais texto livre. **Caminho** sugere as pastas do projeto (os componentes detectados vêm marcados como "componente detectado"); **Linguagem** é uma lista em dois grupos, "Com verificações do JGates" e "Reconhecidas, sem ferramentas ainda" (C++, por exemplo: o componente aparece no inventário, nenhuma verificação roda nele, e o diálogo avisa), mais "Detectar pela pasta" e "Outro…". **Framework** lista só os frameworks da linguagem escolhida, com "Nenhum" (a detecção continua valendo) e "Outro…". Os valores gravados no `.jgates/workspace.yml` são os mesmos ids em minúsculas de antes; "Outro…" aceita um nome que a lista não tem.
+
+**Ferramentas instaladas com a interface aberta.** Antes de procurar uma ferramenta, o servidor do JGates relê o `PATH` do registro do Windows. Se você instalar o ruff, o Docker ou outra ferramenta depois de abrir o `jgates ui`, confira de novo (**Conferir de novo** na tela Ambiente ou na barra do topo que lista o que falta) e ela é encontrada, sem reiniciar a interface nem abrir outro terminal.
+
+**Ler o log de uma etapa.** Na tela da execução, os logs de uma etapa aparecem em um bloco por ferramenta (ruff, pytest, import-linter...), com a "Saída padrão" e a "Saída de erro" dentro dele. O que o próprio JGates registrou (programa, argumentos, pasta, código de saída, duração) fica numa linha recolhida "Comando executado", fora da saída. Uma saída vazia aparece como "(sem saída)". Muitas ferramentas escrevem progresso e avisos na saída de erro, e isso é normal: quem diz se a etapa falhou é o estado dela na tabela, não o texto do log. O bloco de uma etapa que falhou vem destacado e aberto primeiro.
 
 ## Em CI e com agentes
 

@@ -6,7 +6,7 @@ O semantic gate pede a um modelo de IA uma revisão do código (correção, test
 
 Só quando duas coisas acontecem juntas:
 
-1. o projeto configura um provider em `jgates.yml`, no bloco `extensions.semantic-gate`;
+1. o projeto configura um provider no `jgates.yml`, no bloco `extensions.semantic-gate` (a área Semântica (IA) da interface grava isso para você, veja [escolher o provedor](#escolher-o-provedor-pela-interface); também dá para editar o arquivo);
 2. o run pede a revisão com `--semantic`.
 
 Sem a flag, o JGates nunca chama um provider. O `jgates init` não escreve nenhum provider.
@@ -28,13 +28,28 @@ jgates run --semantic
 
 O bloco aceita `provider`, `model`, `scope` (`changed`, `full` ou `paths`), `paths`, `excludes`, `include`, `masking` (veja abaixo), `prompts` (veja [os prompts](#os-prompts)), `objective`, `timeoutSeconds`, `maxContextChars`, `maxCalls`, `threshold`, `baseUrl`, `allowInsecureHttp`, `apiKeyEnv`, `command`, `commandArgs`, `commandPromptMode`, `commandOutput`, `costPerCall` e `enabled: false` para desligar. Uma chave desconhecida é um problema do bloco (estado `invalid`). O `provider` é um provider da tabela abaixo ou o nome de uma [conexão](#preferências-e-conexões) das suas preferências. A `baseUrl` do projeto segue a mesma regra das preferências (`http` só para loopback; `allowInsecureHttp: true` confirma outro host).
 
+## Escolher o provedor pela interface
+
+No `jgates ui`, a área **Semântica (IA)** guia a escolha. Em **Nova revisão**, a etapa **Provedor** pergunta "Quem vai fazer a revisão por IA?": escolha um agente que já está no seu computador ou uma API com chave. A escolha vale para este projeto e fica no `jgates.yml` dele (`extensions.semantic-gate.provider`); ela vale mais que os seus padrões de usuário (abaixo). No modo governado, em que uma política fixa a configuração, a etapa só mostra.
+
+- **Agentes de linha de comando.** A tela lista os CLIs de agente que ela suporta (`claude-code`, `codex-cli`, `gemini-cli` e `opencode`) e confere cada um neste computador: se está instalado (e a versão), se tem login e quais modelos oferece. O estado aparece como **Pronto**, **Falta entrar**, **Login não confirmado** (alguns CLIs não sabem informar o próprio estado; se você já entrou, pode usar), **Não instalado** (com o comando de instalação, para rodar num terminal e depois **Verificar de novo**) ou **Verificando…**. Nenhum precisa de chave: usam o login que você já fez no próprio CLI.
+- **Entrar.** O botão **Entrar** abre um terminal com o comando de login do próprio CLI e espera; quando você termina lá e volta para a janela, o JGates confere de novo sozinho. Se não der para abrir um terminal, ele mostra o comando para copiar e rodar. O JGates não tem OAuth próprio: nunca lê, copia nem guarda os tokens do CLI, só pergunta ao CLI se há login.
+- **APIs com chave.** Provedores que cobram por uso na sua conta. O estado diz **Falta a chave** ou **Falta configurar** (por exemplo, uma URL base) e leva a **Provedores e chaves**, onde a chave é guardada.
+- **Modelo.** O seletor de modelo é alimentado pelos modelos que o próprio CLI informa (ou pela lista do provedor, no caso de uma API); também dá para digitar um.
+
+A mesma lista existe no terminal: o `jgates providers list` mostra os providers de CLI com o estado de instalação e de login ao lado dos providers de API e das conexões. Uma ferramenta ou um CLI que você instala com a interface aberta é encontrado quando você confere de novo (o servidor relê o `PATH` antes).
+
+### Seus padrões e a escolha do projeto
+
+A tela **Provedores e chaves** (`#/semantic/providers`, acessada pela área Semântica (IA)) guarda os **padrões para todos os projetos desta máquina**: as chaves de API, o modelo padrão de cada provedor e as conexões com um gateway. Eles ficam fora dos projetos. A escolha do próprio projeto, feita na etapa Provedor, fica no `jgates.yml` dele e vence esses padrões, campo a campo (veja a precedência abaixo). A tela avisa isso no topo e leva à etapa Provedor do projeto.
+
 ## A chave de API
 
 A configuração guarda **só o nome** da variável (`apiKeyEnv`, ou o nome padrão do provider da tabela abaixo), nunca o valor. Há três formas de dar a chave:
 
-1. **Login do CLI.** Os providers de CLI (`codex-cli`, `claude-code`, `gemini-cli`, `opencode`) usam o login do próprio CLI e não precisam de chave.
+1. **Login do CLI.** Os providers de CLI (`codex-cli`, `claude-code`, `gemini-cli`, `opencode`) usam o login do próprio CLI e não precisam de chave; a etapa Provedor mostra se cada um está instalado e com login, e **Entrar** roda o comando de login do próprio CLI.
 2. **Variável de ambiente.** Exporte a variável no ambiente onde roda o `jgates run`. É a forma do CI: o `jgates ci` usa só o ambiente (os segredos do pipeline) e nunca lê o cofre.
-3. **Cofre do usuário.** Grave a chave uma vez pela tela **Preferências > Providers e chaves** do `jgates ui` ou com o `jgates secrets`, e ela vale para todos os projetos da sua máquina. O cofre fica fora de qualquer projeto (veja [a segurança](security.pt-BR.md#o-cofre-de-chaves-do-usuário)), e a variável de ambiente, quando existe, vence o cofre.
+3. **Cofre do usuário.** Grave a chave uma vez pela tela **Semântica (IA) > Provedores e chaves** do `jgates ui` ou com o `jgates secrets`, e ela vale para todos os projetos da sua máquina. O cofre fica fora de qualquer projeto (veja [a segurança](security.pt-BR.md#o-cofre-de-chaves-do-usuário)), e a variável de ambiente, quando existe, vence o cofre.
 
 ```bash
 jgates secrets set <NAME>
@@ -91,7 +106,7 @@ jgates providers remove <name>
 - **`jgates ci` ignora as preferências:** só a política e o ambiente do pipeline contam. Um projeto que usa uma conexão no CI fica com o estado `invalid` e a razão diz isso; no CI, use `provider: openai-compatible` com a `baseUrl` no projeto ou na política.
 - **O nome de uma conexão** tem letras minúsculas, dígitos e `-` (`^[a-z0-9][a-z0-9-]{0,62}$`) e não pode ser o de um provider conhecido (`openai`, `claude`, `ollama`, `command`...). A chave dela é a variável de `--key-env`; sem ela, `<NOME>_API_KEY` (para `litellm-local`, `LITELLM_LOCAL_API_KEY`), e uma conexão sem chave definida chama o gateway sem `Authorization`.
 - **Segurança.** A base URL é `http` ou `https`, sem usuário, senha, query nem fragmento; `http` só vale para loopback (`localhost`, `127.0.0.0/8`, `::1`) ou com a confirmação explícita `--allow-http`, porque a chave iria em texto claro. Mudar a base URL apaga a confirmação dada para a anterior. Um cabeçalho extra com nome de credencial (`Authorization`, `Cookie`, `*-key`, `*-token`, `*-secret`) ou com valor `Bearer ...` é recusado: a credencial vai no cofre. Cada campo recusado vem na mensagem com o nome dele (`baseUrl`, `headers.X-Api-Key`, `name`), e nada é gravado.
-- **Pela interface.** A tela **Preferências > Providers e chaves** faz o mesmo que o `jgates providers`: Configurar (base URL, modelo padrão, com a lista de modelos do provider quando a chave está definida, nome da chave e cabeçalhos), Testar, Acrescentar conexão e Remover conexão. No projeto, o cartão do semantic gate em **Ferramentas** edita os campos essenciais do `extensions.semantic-gate` (ligado, provider ou conexão, modelo, escopo, limites e a base URL opcional) com o motor de formulários: o arquivo é a fonte, cada mudança é um patch mínimo do `jgates.yml` e um arquivo que mudou no meio é um conflito de revisão. O mascaramento e os prompts continuam no arquivo.
+- **Pela interface.** A tela **Semântica (IA) > Provedores e chaves** (padrões para todos os projetos) faz o mesmo que o `jgates providers`, mostra também se cada CLI está instalado e com login e deixa escolher o modelo padrão dele: Configurar (base URL, modelo padrão, com a lista de modelos do provider quando a chave está definida, nome da chave e cabeçalhos), Testar, Acrescentar conexão e Remover conexão. No projeto, o cartão do semantic gate em **Ferramentas** edita os campos essenciais do `extensions.semantic-gate` (ligado, provider ou conexão, modelo, escopo, limites e a base URL opcional) com o motor de formulários: o arquivo é a fonte, cada mudança é um patch mínimo do `jgates.yml` e um arquivo que mudou no meio é um conflito de revisão. O mascaramento e os prompts continuam no arquivo.
 - O `semantic-gate` lê as mesmas preferências: `semantic-gate models list <name>` lista os modelos de uma conexão, e `--provider <name>` a usa. No `.semantic-gate.json`, no ambiente e nas flags, os valores vencem as preferências do mesmo jeito.
 
 ## Um gateway (LiteLLM ou outro)

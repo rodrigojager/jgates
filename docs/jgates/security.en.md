@@ -32,7 +32,7 @@ The interface does not receive free paths. Each editable file has a binding id, 
 
 ## The user key store
 
-API keys stored through the **Preferences > Providers and keys** screen of `jgates ui`, with `jgates secrets set` or with `semantic-gate auth set` live in a single file of the user, **outside every project** and outside the [data folder](data-folder.en.md): `secrets.json` in the semantic-gate configuration folder (`SEMANTIC_GATE_HOME`, else `%APPDATA%\semantic-gate` on Windows, else `$XDG_CONFIG_HOME/semantic-gate`, by default `~/.config/semantic-gate`). The folder is `0700` and the file `0600` on POSIX systems; the write is atomic (a temporary file renamed over it).
+API keys stored through the **Semantic (AI) > Providers and keys** screen of `jgates ui`, with `jgates secrets set` or with `semantic-gate auth set` live in a single file of the user, **outside every project** and outside the [data folder](data-folder.en.md): `secrets.json` in the semantic-gate configuration folder (`SEMANTIC_GATE_HOME`, else `%APPDATA%\semantic-gate` on Windows, else `$XDG_CONFIG_HOME/semantic-gate`, by default `~/.config/semantic-gate`). The folder is `0700` and the file `0600` on POSIX systems; the write is atomic (a temporary file renamed over it).
 
 - None of these keys goes to the project, to results, logs, cache, drafts, history or undo.
 - The environment variable wins over the store, and the listing says where each value comes from. `jgates ci` never reads nor writes the store: in CI only the environment counts.

@@ -32,7 +32,7 @@ A interface não recebe caminhos livres. Cada arquivo editável tem um id de ví
 
 ## O cofre de chaves do usuário
 
-As chaves de API gravadas pela tela **Preferências > Providers e chaves** do `jgates ui`, pelo `jgates secrets set` ou pelo `semantic-gate auth set` ficam num único arquivo do usuário, **fora de qualquer projeto** e fora da [pasta de dados](data-folder.pt-BR.md): `secrets.json` na pasta de configuração do semantic-gate (`SEMANTIC_GATE_HOME`, senão `%APPDATA%\semantic-gate` no Windows, senão `$XDG_CONFIG_HOME/semantic-gate`, por padrão `~/.config/semantic-gate`). A pasta tem permissão `0700` e o arquivo `0600` em sistemas POSIX; a gravação é atômica (um arquivo temporário renomeado por cima).
+As chaves de API gravadas pela tela **Semântica (IA) > Provedores e chaves** do `jgates ui`, pelo `jgates secrets set` ou pelo `semantic-gate auth set` ficam num único arquivo do usuário, **fora de qualquer projeto** e fora da [pasta de dados](data-folder.pt-BR.md): `secrets.json` na pasta de configuração do semantic-gate (`SEMANTIC_GATE_HOME`, senão `%APPDATA%\semantic-gate` no Windows, senão `$XDG_CONFIG_HOME/semantic-gate`, por padrão `~/.config/semantic-gate`). A pasta tem permissão `0700` e o arquivo `0600` em sistemas POSIX; a gravação é atômica (um arquivo temporário renomeado por cima).
 
 - Nada dessas chaves vai para o projeto, para resultados, logs, cache, rascunhos, histórico ou desfazer.
 - A variável de ambiente vence o cofre, e a listagem diz de onde vem cada valor. O `jgates ci` nunca lê nem grava o cofre: no CI, só o ambiente conta.

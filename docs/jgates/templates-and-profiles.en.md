@@ -30,6 +30,10 @@ The built-in templates:
 | `typescript` | TypeScript and JavaScript components. |
 | `python-pytest`, `python-import-linter` | pytest with coverage, and Import Linter. |
 | `typescript-eslint`, `typescript-vitest`, `typescript-dependency-cruiser` | ESLint, Vitest with coverage, and dependency-cruiser. |
+| `gitleaks-history`, `trivy-licenses` | Secrets in the whole Git history, and dependency licenses. They come in by evidence (a Git repository; a dependency manifest) and run in the scanners image. |
+| `python-mypy-defaults`, `python-mutmut` | mypy on Python components even without a mypy configuration, and mutation testing with mutmut. |
+| `typescript-stryker` | Mutation testing of TypeScript and JavaScript with StrykerJS, when the project has a Stryker configuration. |
+| `python-codeql`, `typescript-codeql`, `go-codeql`, `dotnet-codeql` | CodeQL dataflow analysis by the component's language. The CodeQL CLI is yours to supply: without it the check shows as not available here. |
 | `python-typescript` | Brings the Python and TypeScript ones together for repositories with both. |
 | `dotnet`, `go`, `rust` | Partial support: see [adapters](adapters.en.md). |
 
@@ -42,7 +46,7 @@ ESLint, dependency-cruiser, Import Linter, pytest and Vitest do not come inside 
 - `python-pytest`: `pytest.ini`, `conftest.py`, or the pytest section in `pyproject.toml`, `tox.ini` or `setup.cfg`;
 - `python-import-linter` and `typescript-dependency-cruiser`: a `.jgates/architecture.yml` (the architecture rules) or, in Python, Import Linter's native configuration.
 
-This way JGates does not impose a test or lint framework on those who do not use it. `jgates init` lists all of them as `detected`; `plan` shows the ones that stayed inactive. In `jgates.yml` the `templates` block is yours: you can change a template's activation, or turn on a `manual` one, without touching the rest.
+This way JGates does not impose a test or lint framework on those who do not use it. `jgates init` writes the new ones above in `jgates.yml` too, as `detected`, and lists all of them; `plan` shows the ones that stayed inactive. In `jgates.yml` the `templates` block is yours: you can change a template's activation, or turn on a `manual` one, without touching the rest.
 
 ## Profiles
 
@@ -52,7 +56,25 @@ A profile chooses the capabilities that count. The three built-in ones inherit f
 | --- | --- | --- |
 | `minimal` (Essential) | lint, file size and secrets | - |
 | `standard` (Balanced, the `init` default) | plus SAST, dependencies, duplication, IaC and personal data | `minimal` |
-| `strict` (Rigorous) | plus unit tests and coverage | `standard` |
+| `strict` (Rigorous) | plus unit tests and coverage, required; and every other check for which a tool exists, in the "where a tool exists" mode (below) | `standard` |
+
+### Required, where a tool exists, or off
+
+Each capability of a profile has three modes. In the interface (`#/config`, the profiles screen) the selector reads **Required**, **Where a tool exists** and **Off**; in `.jgates/profiles.yml` they are `enabled: true`, `enabled: true` with `when: available`, and `enabled: false`:
+
+```yaml
+checks:
+  capability:unit: { enabled: true }
+  capability:mutation: { enabled: true, when: available }
+```
+
+- **Required** (`enabled: true`): the check must run. With no tool for it in the project, the validation is blocked and says what is missing (fail-closed: what you require is never skipped silently).
+- **Where a tool exists** (`when: available`): the check runs in every component that has a tool for it. Where none does, the capability is listed as "not applicable here", with the reason and the one action that would enable it (for example, adding a template, installing a tool, preparing the scanners image), and it **never blocks** the plan or the decision.
+- **Off**: it does not run.
+
+`strict` is built this way: unit tests, coverage and personal data detection are required; every other capability the catalog knows (format check, history secrets, dataflow, licenses, integration and end-to-end tests, mutation, property tests, architecture, API compatibility and contract, type check, migration, performance, CI/CD, supply chain and DAST) is turned on **where a tool exists**. A project that has no mutation tool therefore sees mutation as "not applicable here", not as a failure, and not as a silent absence. The plan (`jgates plan`) carries these not-applicable items in its own list; when the fix is a built-in template, the action says which one to add (`add-template`).
+
+The profiles screen, the **Choose** screen and the plan review show **every** capability with its state: "Will run", "Does not apply here" (with the reason and the action) or "Off" (with who turned it off: the profile, your file, the policy or only this run). The Choose and review screens mark the ones set to run only where a tool exists.
 
 `init` copies the three into `.jgates/profiles.yml`, each inheriting from the built-in one (`builtin:minimal`...), and `selection.profile` in `jgates.yml` says which one applies. Your own profiles live in the same file:
 
