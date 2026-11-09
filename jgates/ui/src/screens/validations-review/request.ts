@@ -1,5 +1,6 @@
 // The request one validation is built from: what "Escolher" collects and "Revisar" turns into a plan. Hash routes carry no
 // query string in this application, so the request travels in memory (and in sessionStorage, to survive a reload).
+import { quoteArg } from "../../app/shell-quote";
 
 export type TargetKind = "changed" | "full" | "paths" | "commit" | "compare";
 
@@ -81,8 +82,7 @@ export function sequenceBody(request: ValidationRequest): Record<string, unknown
   return { ...planBody(request), gates: ["quality", "semantic"] };
 }
 
-const SAFE =/^[A-Za-z0-9_@%+=:,./-]+$/;
-const quote = (value: string): string => (SAFE.test(value) ? value : `'${value.replace(/'/g, `'\\''`)}'`);
+const quote = (value: string): string => quoteArg(value);
 
 /** The command that runs exactly this validation from a terminal; its plan has the same hash. */
 export function equivalentCommand(body: Record<string, unknown>, workspacePath: string): string {

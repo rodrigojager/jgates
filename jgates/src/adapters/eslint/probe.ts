@@ -68,8 +68,22 @@ function ancestors(from: string, top: string): string[] {
 }
 
 function describe(entry: string, pkgName: string, source: NonNullable<NodeToolProbe["source"]>): NodeToolProbe {
-  const real = fs.realpathSync(entry);
-  const pkg = packageOf(real, pkgName);
+  let real = fs.realpathSync(entry);
+  let pkg = packageOf(real, pkgName);
+  // Windows: node_modules/.bin/<tool>.cmd is a launcher shim, not a link into the package. The package sits next to
+  // .bin, and Node runs the script its package.json declares as bin.
+  if (!pkg && /[\\/]\.bin[\\/][^\\/]+\.(?:cmd|exe)$/i.test(real)) {
+    const dir = path.join(path.dirname(path.dirname(real)), ...pkgName.split("/"));
+    const found = packageOf(path.join(dir, "package.json"), pkgName);
+    const field = readJson(path.join(dir, "package.json"))?.bin;
+    const wanted = path.basename(real).replace(/\.(?:cmd|exe)$/i, "");
+    const rel = typeof field === "string" ? field : field && typeof field === "object" ? ((field as Record<string, unknown>)[wanted] ?? Object.values(field as Record<string, unknown>)[0]) : null;
+    const script = typeof rel === "string" ? path.resolve(dir, rel) : null;
+    if (found && script && isFile(script)) {
+      real = script;
+      pkg = found;
+    }
+  }
   // A script is run by the Node that runs JGates; anything else (a native launcher) is the executable itself.
   const script = /\.(mjs|cjs|js)$/i.test(real);
   const base = { entry: real, packageDir: pkg?.dir ?? null, source };

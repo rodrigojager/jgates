@@ -229,20 +229,20 @@ test("the selector lists the registered workspaces and choosing the other one op
       await expect(items.filter({ hasText: path.basename(fixture.dir) })).toContainText("Aberto");
       await expect(items.filter({ hasText: path.basename(fixture.dir) })).toContainText("main");
       const row = items.filter({ hasText: path.basename(other.dir) });
-      await expect(row).toContainText(fs.realpathSync(other.dir));
+      await expect(row).toContainText(fs.realpathSync(other.dir), { ignoreCase: true }); // paths are case-folded on Windows
 
       const popup = context.waitForEvent("page");
       await row.getByRole("button", { name: /Abrir/ }).click();
       const second = await popup;
       await second.waitForLoadState("domcontentloaded");
       // The new tab is another server (another port) with its own session, on the other workspace.
-      await expect(second.getByRole("button", { name: "Selecionar workspace" })).toContainText(path.basename(other.dir));
+      await expect(second.getByRole("button", { name: "Selecionar workspace" })).toContainText(path.basename(other.dir), { ignoreCase: true }); // paths are case-folded on Windows
       expect(new URL(second.url()).port).not.toBe(new URL(page.url()).port);
       await expect(second.getByRole("link", { name: /Validações/ }).locator(".nav-count")).toHaveText("0");
       // The first tab is still on its workspace.
       await expect(dialog).toContainText("Sessão aberta em outra aba");
       await page.keyboard.press("Escape");
-      await expect(page.getByRole("button", { name: "Selecionar workspace" })).toContainText(path.basename(fixture.dir));
+      await expect(page.getByRole("button", { name: "Selecionar workspace" })).toContainText(path.basename(fixture.dir), { ignoreCase: true }); // paths are case-folded on Windows
 
       // An unknown folder is refused with a recovery hint, not a generic error.
       await page.getByRole("button", { name: "Selecionar workspace" }).click();
@@ -267,7 +267,7 @@ test("with the server stopped the UI says so and tells how to recover", async ({
     await expect(state).toBeVisible();
     await expect(state.getByRole("heading", { name: "O servidor local parou" })).toBeVisible();
     await expect(state).toContainText("jgates ui");
-    await expect(state).toContainText(fs.realpathSync(fixture.dir));
+    await expect(state).toContainText(fs.realpathSync(fixture.dir), { ignoreCase: true }); // paths are case-folded on Windows
     await expect(page.getByText("Não foi possível concluir")).toHaveCount(0);
     await state.getByRole("button", { name: "Verificar de novo" }).click();
     await expect(state.getByText("O servidor ainda não responde.")).toBeVisible();
@@ -300,8 +300,8 @@ test("a workspace without jgates.yml shows the first-access road in the overview
     const road = page.locator('[data-state="first-access"]');
     await expect(road.getByRole("heading", { name: "Este workspace ainda não tem configuração", level: 1 })).toBeVisible();
     await expect(road.locator("li[data-step]")).toHaveCount(3);
-    await expect(road.locator('li[data-step="init"] code')).toContainText("jgates init --cwd");
-    await expect(road.locator('li[data-step="init"] code')).toContainText(fs.realpathSync(fixture.dir));
+    await expect(road.locator('li[data-step="init"] code')).toContainText(/jgates init --profile \S+ --cwd/);
+    await expect(road.locator('li[data-step="init"] code')).toContainText(fs.realpathSync(fixture.dir), { ignoreCase: true }); // paths are case-folded on Windows
     // The road stays in the overview whichever way the user gets there.
     await page.getByRole("navigation", { name: "Navegação principal" }).getByRole("link", { name: "Workspace" }).click();
     await page.getByRole("navigation", { name: "Navegação principal" }).getByRole("link", { name: "Visão geral" }).click();
@@ -310,7 +310,9 @@ test("a workspace without jgates.yml shows the first-access road in the overview
     // After the init the road gives way (the data of the overview takes its place).
     const init = spawnSync(process.execPath, [MAIN, "init", "--cwd", fixture.dir, "--profile", "minimal", "--no-interactive", "--json"], { env: fixture.env, encoding: "utf8" });
     expect(init.status, init.stderr).toBe(0);
-    await road.getByRole("button", { name: "Já rodei o init, verificar de novo" }).click();
+    // The terminal road is the collapsed alternative to the "create" button: open it, then check again.
+    await road.locator("details > summary").click();
+    await road.getByRole("button", { name: "Já rodei o init no terminal, verificar de novo" }).click();
     await expect(road).toHaveCount(0);
   });
 });

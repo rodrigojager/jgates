@@ -1,13 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(here, "..", "dist", "core");
-const { createTomlCodec, tomlStructuredAvailable, TOML_UNAVAILABLE } = await import(path.join(dist, "codecs", "toml", "index.js"));
-const { validateText } = await import(path.join(dist, "documents", "validate.js"));
+const { createTomlCodec, tomlStructuredAvailable, TOML_UNAVAILABLE } = await import(pathToFileURL(path.join(dist, "codecs", "toml", "index.js")).href);
+const { validateText } = await import(pathToFileURL(path.join(dist, "documents", "validate.js")).href);
 
 const CORPUS = path.join(here, "fixtures", "codecs-toml");
 const read = (name) => fs.readFileSync(path.join(CORPUS, name)).toString("utf8");
@@ -18,7 +19,8 @@ const hasPython = tomlStructuredAvailable();
 const INSTALL_HINT = "Python with tomlkit not found: create the .venv (python3 -m venv .venv && .venv/bin/pip install -e quality-gate) or set JGATES_PYTHON";
 const requireHelper = () => assert.ok(hasPython, INSTALL_HINT);
 // No interpreter reachable: an empty PATH and no JGATES_PYTHON.
-const noPython = createTomlCodec({ env: { PATH: "" } });
+const NO_HOME = path.join(os.tmpdir(), "jgates-no-such-home");
+const noPython = createTomlCodec({ env: { PATH: "", JGATES_HOME: NO_HOME } });
 
 test("without Python the codec answers 'edição estruturada indisponível' and textual reading still works", () => {
   const text = read("pyproject.toml");
@@ -34,7 +36,8 @@ test("without Python the codec answers 'edição estruturada indisponível' and 
 });
 
 test("the syntax validator keeps saying unavailable without Python", () => {
-  const saved = { PATH: process.env.PATH, JGATES_PYTHON: process.env.JGATES_PYTHON };
+  const saved = { PATH: process.env.PATH, JGATES_PYTHON: process.env.JGATES_PYTHON, JGATES_HOME: process.env.JGATES_HOME };
+  process.env.JGATES_HOME = NO_HOME;
   process.env.PATH = "";
   delete process.env.JGATES_PYTHON;
   try {
@@ -43,6 +46,8 @@ test("the syntax validator keeps saying unavailable without Python", () => {
   } finally {
     process.env.PATH = saved.PATH;
     if (saved.JGATES_PYTHON !== undefined) process.env.JGATES_PYTHON = saved.JGATES_PYTHON;
+    if (saved.JGATES_HOME === undefined) delete process.env.JGATES_HOME;
+    else process.env.JGATES_HOME = saved.JGATES_HOME;
   }
 });
 

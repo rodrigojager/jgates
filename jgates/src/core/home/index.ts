@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { canonicalPath, workspaceId } from "../ids/index.js";
+import { renameWithRetry } from "../fs-retry/index.js";
 
 export interface WorkspaceEntry {
   id: string;
@@ -95,7 +96,7 @@ function writeRegistry(home: string, registry: WorkspaceRegistry): void {
   const file = registryFile(home);
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(registry, null, 2) + "\n", { mode: 0o600 });
-  fs.renameSync(tmp, file);
+  renameWithRetry(tmp, file);
 }
 
 export interface RegisterOptions {

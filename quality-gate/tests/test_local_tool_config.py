@@ -30,13 +30,13 @@ import json, sys
 from pathlib import Path
 here = Path(__file__).resolve().parent
 with open(here / "calls.jsonl", "a", encoding="utf-8") as log:
-    log.write(json.dumps({{"tool": Path(sys.argv[0]).name, "argv": sys.argv[1:]}}) + "\\n")
+    log.write(json.dumps({{"tool": Path(sys.argv[0]).stem, "argv": sys.argv[1:]}}) + "\\n")
 args = sys.argv[1:]
 if "--report-path" in args:
     Path(args[args.index("--report-path") + 1]).write_text("[]\\n", encoding="utf-8")
-if "--output" in args and Path(sys.argv[0]).name == "trivy":
+if "--output" in args and Path(sys.argv[0]).stem == "trivy":
     Path(args[args.index("--output") + 1]).write_text('{{"Results": []}}\\n', encoding="utf-8")
-if Path(sys.argv[0]).name == "osv-scanner":
+if Path(sys.argv[0]).stem == "osv-scanner":
     print('{{"results": []}}')
 sys.exit(0)
 """
@@ -45,6 +45,12 @@ sys.exit(0)
 def make_fake_bin(directory: Path, names: tuple[str, ...]) -> Path:
     directory.mkdir(parents=True, exist_ok=True)
     for name in names:
+        if os.name == "nt":
+            # Windows runs no #! line: a launcher the PATH lookup finds (.cmd) runs the Python script of the fake scanner.
+            script = directory / f"{name}.py"
+            script.write_text(FAKE_SCANNER.format(python=sys.executable), encoding="utf-8")
+            (directory / f"{name}.cmd").write_text(f'@"{sys.executable}" "{script}" %*\r\n', encoding="utf-8")
+            continue
         script = directory / name
         script.write_text(FAKE_SCANNER.format(python=sys.executable), encoding="utf-8")
         script.chmod(0o755)
@@ -137,7 +143,8 @@ class LocalBridgeToolConfigTests(unittest.TestCase):
         # the target, files outside it by name only (no runner path leaks).
         entry = self.subcheck(response, "gitleaks")
         self.assertEqual(entry["config"], {"source": "project", "path": ".gitleaks.toml"})
-        self.assertEqual(entry["command"][0], "gitleaks")
+        # On Windows the executable that ran is the launcher the PATH lookup found (gitleaks.CMD).
+        self.assertEqual(Path(entry["command"][0]).stem.lower(), "gitleaks")
         self.assertEqual(flag_value(entry["command"], "--config"), ".gitleaks.toml")
         self.assertEqual(len(entry["command"]), len(argv) + 1)
         self.assertEqual(entry["command"][-1], ".")

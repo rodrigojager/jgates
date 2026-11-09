@@ -57,7 +57,9 @@ export function probeSemgrep(env: NodeJS.ProcessEnv): SemgrepProbe {
     return hit.version ? { executable, version: hit.version, problem: null, detail: "" } : { executable, version: null, problem: "no_answer", detail: executable };
   }
   // Metrics and the version check stay off even for this probe; the home is a throwaway folder.
-  const r = spawnSync(executable, ["--version", "--disable-version-check"], {
+  // A Node script named for Semgrep (a wrapper or a test double) runs through the Node that runs JGates.
+  const script = /\.(?:mjs|cjs|js)$/i.test(executable);
+  const r = spawnSync(script ? process.execPath : executable, script ? [executable, "--version", "--disable-version-check"] : ["--version", "--disable-version-check"], {
     encoding: "utf8",
     timeout: 60_000,
     env: probeEnv(env, { PATH: scannerPath(env.PATH), HOME: env.HOME ?? "", SEMGREP_SEND_METRICS: "off", SEMGREP_ENABLE_VERSION_CHECK: "0" }),

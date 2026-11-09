@@ -88,7 +88,7 @@ const domainOf = (category: string | null): MascotDomain | undefined => MASCOT_D
 function placementOf(item: PlanItem): { domain: MascotDomain; sub: string | null } | undefined {
   // A custom category (project or extension checks) is never guessed from a capability name.
   if (!domainOf(item.category)) return undefined;
-  for (const c of item.capabilities) {
+  for (const c of item.capabilities ?? []) {
     const p = CAPABILITY_PLACEMENT[c];
     if (p) return p;
   }
@@ -147,7 +147,7 @@ export function projectMascots(input: {
     if (!p) continue;
     const key = stageKey(i);
     const tags = tagsOf.get(key) ?? new Set<string>();
-    for (const c of i.capabilities) tags.add(c);
+    for (const c of i.capabilities ?? []) tags.add(c);
     tagsOf.set(key, tags);
   }
   for (const pass of [true, false]) {

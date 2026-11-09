@@ -291,7 +291,8 @@ test("an analyzed file changed during the run (by the test sidecar) makes the re
     // The identity is of the state the run started from, not of the new one.
     assert.equal(changed.analyzed.inputs.hash, steady.analyzed.inputs.hash);
     // The file is reported, never reverted.
-    assert.equal(fs.readFileSync(path.join(w.dir, "app.txt"), "utf8"), "before\nchanged during the run\n");
+    // The sidecar writes in text mode: Windows stores its line break as CRLF.
+    assert.equal(fs.readFileSync(path.join(w.dir, "app.txt"), "utf8").replaceAll("\r\n", "\n"), "before\nchanged during the run\n");
     assert.deepEqual(changed.workspaceChanges.modified, ["app.txt"]);
   } finally {
     w.cleanup();
@@ -496,7 +497,7 @@ test("a project without jgates.yml also builds, writes and executes a plan equiv
     assert.equal(invocation.command.stdin.mode, "quick");
     assert.equal(invocation.command.stdin.pii, true);
     const sent = seenOf(doc).request;
-    const expected = JSON.parse(JSON.stringify(invocation.command.stdin).split("{runDir}").join(doc.runDir));
+    const expected = JSON.parse(JSON.stringify(invocation.command.stdin).split("{runDir}").join(JSON.stringify(doc.runDir).slice(1, -1)));
     expected.target = doc.analyzed.path;
     assert.deepEqual(sent, expected);
   } finally {
@@ -526,7 +527,8 @@ test("Git queries are read-only: the snapshot of a commit comes from a private i
     const dest = path.join(w.home, "snap");
     const snap = snapshotApi.materializeCommit(context, first, dest, env);
     assert.deepEqual(fs.readdirSync(dest), ["app.txt"]);
-    assert.equal(fs.readFileSync(path.join(dest, "app.txt"), "utf8"), "one\n");
+    // git writes the checkout with the platform line endings (core.autocrlf).
+    assert.equal(fs.readFileSync(path.join(dest, "app.txt"), "utf8").replaceAll("\r\n", "\n"), "one\n");
     assert.ok(!fs.existsSync(`${dest}.index`));
     assert.match(snap.tree, /^[0-9a-f]{40}$/);
     assert.deepEqual(fs.readFileSync(index), before);

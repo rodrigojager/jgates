@@ -282,7 +282,10 @@ test("a full run on the main fixture leaves no Ruff or Semgrep cache in the proj
   const { dir } = mainFixture.createMainFixture();
   const home = tmp("jgates-p5f-main-home-");
   try {
-    const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_NO_CACHE: "1", DOCKER_HOST: "tcp://127.0.0.1:1", PATH: [VENV_BIN, "/usr/bin", "/bin"].join(path.delimiter) };
+    // Windows keeps its system tools and the folder of git (the run asks git about the workspace) on the PATH.
+    const gitDir = process.platform === "win32" ? path.dirname(spawnSync("where", ["git"], { encoding: "utf8" }).stdout.split(/\r?\n/)[0]) : null;
+    const systemPath = gitDir ? [path.join(process.env.SystemRoot ?? "C:\\Windows", "System32"), gitDir] : ["/usr/bin", "/bin"];
+    const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_NO_CACHE: "1", DOCKER_HOST: "tcp://127.0.0.1:1", PATH: [VENV_BIN, ...systemPath].join(path.delimiter) };
     const cli = cliIn(env);
     assert.equal(cli(["init", "--cwd", dir, "--profile", "strict", "--no-interactive", "--json"]).code, 0);
     fs.mkdirSync(path.join(dir, ".jgates", "rules"), { recursive: true });
@@ -316,12 +319,12 @@ test("a full run on the main fixture leaves no Ruff or Semgrep cache in the proj
     assert.deepEqual(tree(dir), before);
     assert.ok(!tree(dir).some((f) => /(^|\/)(\.ruff_cache|\.semgrep|\.semgrep_logs)\//.test(f)));
     assert.deepEqual([result.workspaceChanges.added, result.workspaceChanges.modified, result.workspaceChanges.removed], [[], [], []]);
-    assert.equal(result.workspaceGit.repository, true);
+    assert.equal(result.workspaceGit.repository, true, JSON.stringify(result.workspaceGit));
     assert.equal(result.workspaceGit.changed, false);
     assert.deepEqual(result.workspaceGit.before, { tracked: [], untracked: [], truncated: false });
     // The caches are in the run folder, where the manifests said.
     assert.ok(fs.existsSync(path.join(result.runDir, "cache", "ruff", "CACHEDIR.TAG")), "Ruff's cache is in the run folder");
-    assert.ok(fs.existsSync(path.join(result.runDir, "cache", "semgrep", "home", ".semgrep")), "Semgrep's home is in the run folder");
+    assert.ok(fs.existsSync(path.join(result.runDir, "cache", "semgrep", "home", ".semgrep")), `Semgrep's home is in the run folder: ${JSON.stringify(fs.readdirSync(path.join(result.runDir, "cache"), { recursive: true }))}`);
   } finally {
     mainFixture.removeFixture(dir);
     rm(home);

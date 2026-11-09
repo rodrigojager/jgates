@@ -9,7 +9,8 @@ import { yamlCodec } from "../dist/core/codecs/yaml/codec.js";
 import { patchYamlText } from "../dist/core/codecs/yaml/index.js";
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures", "codecs");
-const load = (name) => fs.readFileSync(path.join(dir, name), "utf8");
+// Fixtures are read with LF line endings whatever the checkout (core.autocrlf on Windows) did to them.
+const load = (name) => fs.readFileSync(path.join(dir, name), "utf8").replaceAll("\r\n", "\n");
 
 /** Lines removed and added, after trimming the common head and tail. */
 function lineDiff(before, after) {

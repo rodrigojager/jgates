@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 // Schema-driven forms (Options tab): Ruff and pytest editing the same pyproject.toml through field intents, minimal
 // patches and the shared revision of the document service.
@@ -17,11 +17,11 @@ const VENV_PYTHON = path.join(REPO, ".venv", process.platform === "win32" ? "Scr
 // The TOML helper runs in the sidecar Python: the repository .venv when nothing else is configured.
 if (!process.env.JGATES_PYTHON && fs.existsSync(VENV_PYTHON)) process.env.JGATES_PYTHON = VENV_PYTHON;
 
-const forms = await import(path.join(DIST, "core", "forms", "index.js"));
-const docs = await import(path.join(DIST, "core", "documents", "index.js"));
-const { tomlStructuredAvailable } = await import(path.join(DIST, "core", "codecs", "toml", "index.js"));
-const { routes } = await import(path.join(DIST, "server", "routes", "forms.js"));
-const { choosePytestConfig } = await import(path.join(DIST, "adapters", "pytest", "index.js"));
+const forms = await import(pathToFileURL(path.join(DIST, "core", "forms", "index.js")).href);
+const docs = await import(pathToFileURL(path.join(DIST, "core", "documents", "index.js")).href);
+const { tomlStructuredAvailable } = await import(pathToFileURL(path.join(DIST, "core", "codecs", "toml", "index.js")).href);
+const { routes } = await import(pathToFileURL(path.join(DIST, "server", "routes", "forms.js")).href);
+const { choosePytestConfig } = await import(pathToFileURL(path.join(DIST, "adapters", "pytest", "index.js")).href);
 
 const PYTEST_SECTION = `[tool.pytest.ini_options]
 # Fast feedback by default.
@@ -275,11 +275,11 @@ known-first-party = ["demo"]
 
 test("without Python the form is unavailable and says why; the text stays readable", async () => {
   await withProject(async (dir) => {
-    const view = await forms.openForm(dir, "ruff", { env: { PATH: "" } });
+    const view = await forms.openForm(dir, "ruff", { env: { PATH: "", JGATES_HOME: path.join(os.tmpdir(), "jgates-no-such-home") } });
     assert.equal(view.available, false);
     assert.equal(view.unavailable.code, "STRUCTURED_EDIT_UNAVAILABLE");
     assert.equal(docs.openDocument(dir, "ruff", "config").text, PYPROJECT);
-    await assert.rejects(forms.saveForm(dir, "ruff", { expectedRevision: view.revision, intents: [{ field: "line-length", op: "set", value: 90 }] }, { env: { PATH: "" } }), (e) => e.code === "FORM_UNAVAILABLE");
+    await assert.rejects(forms.saveForm(dir, "ruff", { expectedRevision: view.revision, intents: [{ field: "line-length", op: "set", value: 90 }] }, { env: { PATH: "", JGATES_HOME: path.join(os.tmpdir(), "jgates-no-such-home") } }), (e) => e.code === "FORM_UNAVAILABLE");
   });
 });
 

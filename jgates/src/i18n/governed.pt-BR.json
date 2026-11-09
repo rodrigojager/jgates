@@ -24,5 +24,6 @@
   "governed_excluded_checkov": "o Checkov lê sozinho o .checkov.yaml da pasta de trabalho",
   "governed_excluded_jscpd": "o jscpd lê o .jscpd.json e a chave jscpd do package.json da pasta analisada",
   "governed_excluded_dependency-cruiser": "o dependency-cruiser executa o .dependency-cruiser.js do projeto",
-  "governed_excluded_import-linter": "o Import Linter lê os contratos do .importlinter, setup.cfg ou pyproject.toml do projeto"
+  "governed_excluded_cargo-audit": "o cargo-audit lê sozinho o .cargo/audit.toml da pasta analisada",
+  "governed_excluded_import-linter":"o Import Linter lê os contratos do .importlinter, setup.cfg ou pyproject.toml do projeto"
 }

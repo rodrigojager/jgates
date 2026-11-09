@@ -29,6 +29,20 @@ interface CatalogEntry extends CatalogAdapter {
   executesProjectCode: boolean;
 }
 
+interface Distribution {
+  mode: "shipped" | "prepared-from-authorized-source" | "customer-supplied";
+  sourceUrl?: string;
+  spdx?: string;
+  acquisition?: string[];
+  setup?: string[];
+}
+
+/** What /api/tool-matrix says about how an adapter's tool reaches the customer. */
+interface MatrixInfo {
+  toolVersionRange: string;
+  distribution: Distribution | null;
+}
+
 interface Availability {
   status: string;
   reason: string | null;
@@ -40,6 +54,68 @@ const AVAILABILITY_TONE: Record<string, "green" | "gold"> = { available: "green"
 function matches(haystack: string[], query: string): boolean {
   const q = query.trim().toLowerCase();
   return q === "" || haystack.some((h) => h.toLowerCase().includes(q));
+}
+
+/** Only web links are rendered as links; anything else a manifest might carry is shown as text. */
+function isWebLink(value: string): boolean {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+function LinkList({ title, links }: { title: string; links: string[] }) {
+  if (links.length === 0) return null;
+  return (
+    <div className="stack tight">
+      <span className="small">{title}</span>
+      <ul className="file-sub link-list">
+        {links.map((link) => (
+          <li key={link}>
+            {isWebLink(link) ? (
+              <a href={link} target="_blank" rel="noopener noreferrer">
+                {link}
+              </a>
+            ) : (
+              <code>{link}</code>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** The distribution state of a catalog tool and, for a customer-supplied one, the official setup guidance. */
+export function DistributionInfo({ info }: { info: MatrixInfo | undefined }) {
+  const d = info?.distribution;
+  if (!d) return null;
+  return (
+    <div className="stack tight" data-testid="catalog-distribution" data-mode={d.mode}>
+      <div className="row wrap">
+        <span className="small">{t("tools_dist_label")}</span>
+        <Pill tone={d.mode === "customer-supplied" ? "gold" : "green"}>{t(`tools_dist_${d.mode}`)}</Pill>
+        {d.spdx ? <span className="small muted">{t("tools_dist_license", { spdx: d.spdx })}</span> : null}
+        {d.sourceUrl && isWebLink(d.sourceUrl) ? (
+          <a className="small" href={d.sourceUrl} target="_blank" rel="noopener noreferrer">
+            {t("tools_dist_source")}
+          </a>
+        ) : null}
+      </div>
+      {d.mode === "customer-supplied" ? (
+        <div className="notice" data-testid="catalog-setup-guidance">
+          <Icon name="alert" />
+          <div className="stack tight">
+            <p className="small">{t("tools_dist_customer_note", { range: info?.toolVersionRange ?? "" })}</p>
+            <LinkList title={t("tools_dist_acquire")} links={d.acquisition ?? []} />
+            <LinkList title={t("tools_dist_setup")} links={d.setup ?? []} />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function AvailabilityPill({ value }: { value: Availability | undefined }) {
@@ -57,6 +133,8 @@ export default function ToolsScreen() {
   const catalog = useAsync(() => api<{ adapters: CatalogEntry[] }>("GET", "/api/tool-catalog"), "tool-catalog");
   const discovery = useAsync(() => api<{ inventory: { classifications: Array<{ id: string }> } }>("GET", "/api/workspace/discovery").catch(() => null), "tools-discovery");
   const availability = useAsync(() => api<{ availability: Record<string, Availability> }>("GET", "/api/tool-availability").catch(() => null), "tool-availability");
+  const matrix = useAsync(() => api<{ matrix: { adapters: Array<{ id: string } & MatrixInfo> } }>("GET", "/api/tool-matrix").catch(() => null), "tool-matrix");
+  const matrixOf = useMemo(() => new Map((matrix.data?.matrix.adapters ?? []).map((m) => [m.id, m])), [matrix.data]);
   const shell = useShell();
   const governed = shell.info?.mode === "governed";
 
@@ -257,6 +335,7 @@ export default function ToolsScreen() {
               <p className="small">{a.languages.length > 0 ? t("tools_card_languages", { languages: a.languages.join(", ") }) : t("tools_card_languages_none")}</p>
               <p className="small">{a.categories.map((c) => tOr(`tools_category_${c}`, c)).join(", ")}</p>
               <p className="small">{t("tools_card_runners", { runners: a.runners.map((r) => (r === "container" ? t("tools_card_runner_container") : t("tools_card_runner_local"))).join(", ") })}</p>
+              <DistributionInfo info={matrixOf.get(a.adapter)} />
               {a.instantiable ? (
                 <div>
                   <button type="button" className="btn" disabled={governed} aria-label={t("tools_card_use", { tool: a.displayName })} onClick={() => setDialog({ kind: "create", adapter: a.adapter })}>

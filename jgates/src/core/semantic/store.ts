@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { readEvents } from "../events/index.js";
 import { workspaceDir, workspaceLineage } from "../home/index.js";
-import { readLiveness } from "../run/heartbeat.js";
+import { HEARTBEAT_FILE, readLiveness } from "../run/heartbeat.js";
 import { loadGateRecord } from "../gates/read.js";
 import type { GateRunIdentity } from "../gates/types.js";
 import type { RunResult } from "../run/types.js";
@@ -80,13 +80,22 @@ function readJson(file: string): Record<string, unknown> | null {
   }
 }
 
-function infoOf(workspaceId: string, runId: string, dir: string, mtimeMs: number): SemanticRunInfo {
+/**
+ * A run process creates its folder and plan a moment before its first result checkpoint and its first heartbeat. A
+ * partial run that has never beaten (no heartbeat file at all) and whose folder is younger than this is still starting,
+ * so it reads as running; a heartbeat file with a dead process, or an older folder without one, is interrupted.
+ */
+export const STARTING_GRACE_MS = 30_000;
+
+function infoOf(workspaceId: string, runId: string, dir: string, mtimeMs: number, now: number = Date.now()): SemanticRunInfo {
   const result = readJson(path.join(dir, SEMANTIC_RESULT_FILE)) as Partial<RunResult> | null;
   const partial = result === null || result.partial === true;
-  const alive = partial && readLiveness(dir).alive;
-  const lifecycle: SemanticLifecycle = !partial ? "settled" : alive ? "running" : "interrupted";
   const startedAt = typeof result?.startedAt === "string" ? result.startedAt : null;
   const parsed = startedAt ? Date.parse(startedAt) : NaN;
+  const liveness = partial ? readLiveness(dir) : null;
+  const newest = Math.max(Number.isFinite(parsed) ? parsed : 0, mtimeMs);
+  const starting = partial && liveness !== null && !liveness.alive && liveness.beatAt === null && !fs.existsSync(path.join(dir, HEARTBEAT_FILE)) && now - newest < STARTING_GRACE_MS;
+  const lifecycle: SemanticLifecycle = !partial ? "settled" : liveness?.alive || starting ? "running" : "interrupted";
   const outcome = result?.semanticRun?.outcome ?? null;
   return {
     runId,

@@ -274,7 +274,7 @@ test("preferences, help and about show real content and no mockup talk", async (
     await expect(page.getByRole("heading", { level: 1, name: "Sobre o JGates" })).toBeVisible();
     await expect(page.getByTestId("about-version")).not.toHaveText("-");
     await expect(page.getByTestId("about-mode")).toContainText("Local");
-    await expect(page.getByTestId("about-path")).toContainText(path.basename(fixture.dir));
+    await expect(page.getByTestId("about-path")).toContainText(path.basename(fixture.dir), { ignoreCase: true }); // paths are case-folded on Windows
     await expect(page.locator("code", { hasText: "docs/jgates/compatibility.pt-BR.md" })).toBeVisible();
     await expectNoAxeViolations(page);
   });

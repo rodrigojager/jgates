@@ -69,6 +69,20 @@ test("customer-supplied tools declare their setup: state, prerequisites and dist
     expect(entry.supportLevel).toBe("editable-file");
     expect(entry.limitations.join(" ")).toMatch(/setup guidance/);
     await expect(page.locator('[data-testid="catalog-card"][data-adapter="codeql"]')).toContainText("Arquivo editável");
+
+    // The card shows the distribution state and, for a customer-supplied tool, the official acquisition and setup links.
+    const adapter = doc.matrix.adapters.find((a: any) => a.id === "codeql");
+    expect(adapter.distribution.mode).toBe("customer-supplied");
+    const card = page.locator('[data-testid="catalog-card"][data-adapter="codeql"]');
+    await expect(card.getByTestId("catalog-distribution")).toHaveAttribute("data-mode", "customer-supplied");
+    await expect(card.getByTestId("catalog-distribution")).toContainText("Você fornece esta ferramenta");
+    const guidance = card.getByTestId("catalog-setup-guidance");
+    await expect(guidance).toBeVisible();
+    for (const link of [...adapter.distribution.acquisition, ...adapter.distribution.setup]) await expect(guidance.locator(`a[href="${link}"]`), link).toBeVisible();
+    // A shipped tool carries its state but no customer setup guidance.
+    const shipped = page.locator('[data-testid="catalog-card"][data-adapter="supply-chain"]');
+    await expect(shipped.getByTestId("catalog-distribution")).toHaveAttribute("data-mode", "shipped");
+    await expect(shipped.getByTestId("catalog-setup-guidance")).toHaveCount(0);
   });
 });
 
@@ -109,6 +123,8 @@ test("the create dialog closes with Escape and returns the focus, and the tools 
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
     expect(await page.evaluate(() => document.querySelector("dialog[open]"))).toBeNull();
+    // Focus goes back to the element that opened the dialog.
+    await expect(open).toBeFocused();
 
     // A catalog card's own action opens the dialog for that adapter, and Escape closes it again.
     const card = page.locator('[data-testid="catalog-card"][data-adapter="zizmor"]');
@@ -117,6 +133,7 @@ test("the create dialog closes with Escape and returns the focus, and the tools 
     await expect(page.getByRole("dialog")).toContainText("zizmor", { ignoreCase: true });
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(card.getByRole("button", { name: /Criar instância|Usar/ })).toBeFocused();
 
     // Light and dark.
     const problems: string[] = [];

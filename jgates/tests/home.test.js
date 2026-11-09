@@ -34,7 +34,9 @@ test("two workspaces get distinct folders and workspaces list --json shows both"
         assert.ok(fs.statSync(path.join(h, "workspaces", w.id, d)).isDirectory());
       }
     }
-    assert.deepEqual(new Set(doc.workspaces.map((w) => w.name)), new Set([path.basename(fs.realpathSync(a)), path.basename(fs.realpathSync(b))]));
+    // Workspace names are case-folded on Windows (a case-insensitive file system).
+    const folded = (n) => (process.platform === "win32" ? n.toLowerCase() : n);
+    assert.deepEqual(new Set(doc.workspaces.map((w) => folded(w.name))), new Set([path.basename(fs.realpathSync(a)), path.basename(fs.realpathSync(b))].map(folded)));
   } finally {
     for (const d of [h, a, b]) fs.rmSync(d, { recursive: true, force: true });
   }
@@ -73,7 +75,8 @@ test("without JGATES_HOME the Linux path follows XDG_STATE_HOME and defaults to 
 });
 
 test("macOS and JGATES_HOME resolution", () => {
-  assert.equal(home.resolveHome({ platform: "darwin", env: {}, homedir: "/Users/u" }), "/Users/u/Library/Application Support/jgates");
+  // The path is joined with the separator of the host running the test.
+  assert.equal(home.resolveHome({ platform: "darwin", env: {}, homedir: "/Users/u" }), path.join("/Users/u", "Library", "Application Support", "jgates"));
   const h = tmp("jg-home-");
   try {
     assert.equal(home.resolveHome({ env: { JGATES_HOME: h } }), h);

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ensureHome, workspaceDir } from "../home/index.js";
 import type { Plan } from "./types.js";
+import { renameWithRetry } from "../fs-retry/index.js";
 
 /**
  * The last plan of each workspace lives in the data folder, never in the project:
@@ -33,7 +34,7 @@ function mkdirPrivate(dir: string): void {
 function writeAtomic(file: string, text: string, mode: number): void {
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, text, { mode });
-  fs.renameSync(tmp, file);
+  renameWithRetry(tmp, file);
 }
 
 const serialize = (plan: Plan): string => `${JSON.stringify(plan, null, 2)}\n`;

@@ -77,14 +77,20 @@ export function Pill({ tone, children }: { tone?: "green" | "gold" | "red" | "bl
   return <span className={`pill${tone ? ` ${tone}` : ""}`}>{children}</span>;
 }
 
-/** Modal built on the native <dialog>: focus trap, Escape and focus return come from the platform. */
+/**
+ * Modal built on the native <dialog>: the focus trap and Escape come from the platform. The element that had focus when
+ * the dialog opened gets it back when the dialog closes: a dialog that React unmounts leaves nothing for the platform
+ * to restore, so the opener is remembered here.
+ */
 export function Dialog({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = ref.current;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (dialog && !dialog.open) dialog.showModal();
     return () => {
       if (dialog?.open) dialog.close();
+      if (opener?.isConnected) opener.focus();
     };
   }, []);
   return (

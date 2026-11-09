@@ -157,7 +157,9 @@ test("jgates ui --policy serves the policy: fingerprint, files and the CI snippe
   const policy = configured(home);
   await withUi(["--policy", policy], { JGATES_HOME: home }, async ({ ui, call }) => {
     assert.equal(ui.info.policy, true);
-    assert.equal(ui.info.workspace.path, policy);
+    // The workspace path is case-folded on Windows (a case-insensitive file system).
+    const folded = (p) => (process.platform === "win32" ? p.toLowerCase() : p);
+    assert.equal(folded(ui.info.workspace.path), folded(policy));
     const shell = await call("GET", "/api/shell");
     assert.equal(shell.json.policyMode, true);
     assert.equal(shell.json.mode, "local");

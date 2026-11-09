@@ -128,7 +128,8 @@ test("a finished run lists its steps translated and the agent context of the but
 
     await page.getByRole("button", { name: "Copiar para o agente" }).click();
     await expect.poll(async () => page.evaluate(() => navigator.clipboard.readText())).toContain("Instrução (política congelada)");
-    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    // The Windows clipboard turns line breaks into CRLF.
+    const copied = (await page.evaluate(() => navigator.clipboard.readText())).replaceAll("\r\n", "\n");
     const cli = jgates(fixture, ["report", runId, "--agent-context", "--json", "--cwd", fixture.dir]);
     expect(cli.status).toBe(0);
     expect(JSON.parse(cli.stdout).agentContext.text).toBe(copied);

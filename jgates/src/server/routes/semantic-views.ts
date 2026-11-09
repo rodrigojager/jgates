@@ -85,25 +85,11 @@ export function semanticStagesOf(view: SemanticRunView): SemanticStageInput[] {
   return out;
 }
 
-/** How long a run folder with a plan but no result yet counts as starting rather than interrupted. */
-export const STARTING_GRACE_MS = 30_000;
-
-/**
- * The lifecycle a screen shows. The run process writes plan.json a moment before its first result checkpoint and its
- * first heartbeat; in that gap the store reads the folder as interrupted. A folder without any result whose plan is
- * younger than the grace is starting (running); after the grace it is interrupted for good.
- */
-export function shownLifecycle(view: SemanticRunView, now = Date.now()): SemanticRunView["lifecycle"] {
-  if (view.lifecycle !== "interrupted" || view.result !== null) return view.lifecycle;
-  const created = typeof view.plan?.createdAt === "string" ? Date.parse(view.plan.createdAt) : NaN;
-  return Number.isFinite(created) && now - created < STARTING_GRACE_MS ? "running" : "interrupted";
-}
-
 /** The AI mascots of one Semantic run, from its actual state (live heartbeat, cancel, stage records). */
 export function semanticMascotsOf(view: SemanticRunView): SemanticMascotSnapshot {
   const result = view.result;
   const cancelled = result?.stopped?.cause === "cancelled" || (result?.partial !== true && result?.decision === "cancelled");
-  return projectSemanticMascots({ stages: semanticStagesOf(view), runId: view.runId, running: shownLifecycle(view) === "running", cancelled });
+  return projectSemanticMascots({ stages: semanticStagesOf(view), runId: view.runId, running: view.lifecycle === "running", cancelled });
 }
 
 const count = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
@@ -151,7 +137,7 @@ export function semanticReportOf(view: SemanticRunView): Rec {
   const budget = isRec(investigation?.budget) ? investigation.budget : null;
   return {
     runId: view.runId,
-    lifecycle: shownLifecycle(view),
+    lifecycle: view.lifecycle,
     decision: view.decision,
     complete: view.complete,
     partial: view.partial,
@@ -238,7 +224,7 @@ export const routes: RouteDefinition[] = [
     params: runParams,
     handler({ params, server }) {
       const view = semanticRunOr404(server, params.id as string);
-      return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", runId: view.runId, lifecycle: shownLifecycle(view), mascots: semanticMascotsOf(view) } };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", runId: view.runId, lifecycle: view.lifecycle, mascots: semanticMascotsOf(view) } };
     },
   },
   {

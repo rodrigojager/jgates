@@ -163,7 +163,8 @@ export function setupSequenceProject(options = {}) {
       if (v === undefined) delete process.env[k];
       else process.env[k] = v;
     }
-    for (const d of [dir, home, aux]) fs.rmSync(d, { recursive: true, force: true });
+    // A child the API started can still be exiting (Windows refuses to remove the folder it runs in): retry briefly.
+    for (const d of [dir, home, aux]) fs.rmSync(d, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
   };
   /** A fake server context for the route handlers (the same workspace, data folder and environment as the CLI). */
   const server = async (version) => {

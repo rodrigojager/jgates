@@ -103,7 +103,7 @@ export function semanticScopeShape(scope: ScopeRequest | null | undefined): Sema
 
 /** What decides a Semantic run apart from the attached Quality report: equal before and after Quality when nothing changed. */
 export function semanticSettingsHash(plan: SemanticPlan): string {
-  return contentHash({ v: 1, settings: plan.settings, methods: plan.methods, purpose: plan.purpose, rigor: plan.rigor, budget: plan.budget, scopeHash: plan.scope?.resolution?.scopeHash ?? null });
+  return contentHash({ v: 1, settings: plan.settings, methods: plan.methods.map((m) => m.id), purpose: plan.purpose, rigor: plan.rigor, budget: plan.budget, scopeHash: plan.scope?.resolution?.scopeHash ?? null });
 }
 
 /** The Quality plan of the request: the received one, the one built from the configuration, or the option-driven one. */

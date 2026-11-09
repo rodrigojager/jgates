@@ -92,8 +92,16 @@ const LINGER_MS = 500;
 export function buildEnv(spec: Pick<ExecutionSpec, "env">, options: RunnerOptions = {}): NodeJS.ProcessEnv {
   const parent = options.parentEnv ?? process.env;
   const env: NodeJS.ProcessEnv = {};
+  // Windows names are case-insensitive, but a copy of process.env is a plain object (a parent that upper-cased its
+  // variables, like Python's os.environ, leaves SYSTEMROOT where the allowlist says SystemRoot): look the name up
+  // ignoring case there, so the tool still gets the variable it needs.
+  const folded = process.platform === "win32" ? new Map(Object.keys(parent).map((k) => [k.toLowerCase(), k])) : null;
   for (const name of options.envAllowlist ?? DEFAULT_ENV_ALLOWLIST) {
-    const value = parent[name];
+    let value = parent[name];
+    if (value === undefined && folded) {
+      const actual = folded.get(name.toLowerCase());
+      if (actual !== undefined) value = parent[actual];
+    }
     if (value !== undefined) env[name] = value;
   }
   return { ...env, ...(spec.env ?? {}) };
@@ -225,7 +233,10 @@ export function runSpec(spec: ExecutionSpec, options: RunnerOptions = {}): Promi
 
     let child;
     try {
-      child = spawn(spec.executable, spec.args, {
+      // A Node script named as the executable (a wrapper or a test double) runs through the Node that runs JGates:
+      // Windows cannot execute a script, and elsewhere this is the same as its #! line.
+      const script = /\.(?:mjs|cjs|js)$/i.test(spec.executable);
+      child = spawn(script ? process.execPath : spec.executable, script ? [spec.executable, ...spec.args] : spec.args, {
         cwd: spec.cwd,
         env: buildEnv(spec, options),
         shell: false,

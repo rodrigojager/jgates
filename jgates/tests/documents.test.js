@@ -5,17 +5,19 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const MAIN = path.resolve(here, "..", "dist", "cli", "main.js");
-const docs = await import(path.resolve(here, "..", "dist", "core", "documents", "index.js"));
-const { tomlStructuredAvailable } = await import(path.resolve(here, "..", "dist", "core", "codecs", "toml", "index.js"));
+const docs = await import(pathToFileURL(path.resolve(here, "..", "dist", "core", "documents", "index.js")).href);
+const { tomlStructuredAvailable } = await import(pathToFileURL(path.resolve(here, "..", "dist", "core", "codecs", "toml", "index.js")).href);
 // TOML syntax is checked through the sidecar helper, so the suite needs Python with tomlkit: it fails with the
 // install instruction instead of accepting "unavailable" in silence (project convention). The "unavailable" answer
 // is exercised on purpose below, with an empty PATH.
 const INSTALL_HINT = "Python with tomlkit not found: create the .venv (python3 -m venv .venv && .venv/bin/pip install -e quality-gate) and put .venv/bin on the PATH, or set JGATES_PYTHON";
 const TOML_STATUS = "valid";
+// The repository .venv holds tomlkit; a child process finds it even when the shell has not put it on the PATH.
+const VENV_PYTHON = [path.join("Scripts", "python.exe"), path.join("bin", "python")].map((p) => path.resolve(here, "..", "..", ".venv", p)).find((p) => fs.existsSync(p)) ?? null;
 
 test("the TOML syntax helper is reachable (the suite does not accept 'unavailable' in silence)", () => {
   assert.ok(tomlStructuredAvailable(), INSTALL_HINT);
@@ -28,7 +30,7 @@ function cli(dir, args, input, env = {}) {
   try {
     const r = spawnSync(process.execPath, [MAIN, ...args, "--cwd", dir, "--json"], {
       encoding: "utf8",
-      env: { ...process.env, ...env, JGATES_HOME: home },
+      env: { ...process.env, ...(VENV_PYTHON && !process.env.JGATES_PYTHON ? { JGATES_PYTHON: VENV_PYTHON } : {}), ...env, JGATES_HOME: home },
       input: input ?? "",
       timeout: 20000,
     });
@@ -251,7 +253,9 @@ test("a symlink swapped between read and write to point outside the root makes t
       (dir) => {
         const read = cli(dir, ["tools", "config", "read", "ruff-x", "--file", "config"]);
         assert.equal(read.status, 0, read.stdout);
-        assert.equal(read.doc.document.identity, path.join(dir, "real-conf", "ruff.toml"));
+        // The identity of a file is case-folded on Windows (a case-insensitive file system).
+        const folded = (p) => (process.platform === "win32" ? p.toLowerCase() : p);
+        assert.equal(folded(read.doc.document.identity), folded(path.join(dir, "real-conf", "ruff.toml")));
         // Same content outside, so only the path check can stop the write.
         fs.unlinkSync(path.join(dir, "conf"));
         fs.symlinkSync(outside, path.join(dir, "conf"));

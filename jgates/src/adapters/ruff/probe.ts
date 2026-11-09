@@ -15,6 +15,11 @@ export interface RuffProbe {
   detail: string;
 }
 
+/** Whether the executable named for Ruff is a Node script (a test double or a wrapper), which Node has to run. */
+export function isNodeScript(executable: string): boolean {
+  return /\.(?:mjs|cjs|js)$/i.test(executable);
+}
+
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
 const exeName = process.platform === "win32" ? "ruff.exe" : "ruff";
 
@@ -51,7 +56,8 @@ export function probeRuff(env: NodeJS.ProcessEnv): RuffProbe {
   if (hit && hit.mtimeMs === mtimeMs) {
     return hit.version ? { executable, version: hit.version, problem: null, detail: "" } : { executable, version: null, problem: "no_answer", detail: executable };
   }
-  const r = spawnSync(executable, ["--version"], { encoding: "utf8", timeout: 15_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }), windowsHide: true });
+  const script = isNodeScript(executable);
+  const r = spawnSync(script ? process.execPath : executable, script ? [executable, "--version"] : ["--version"], { encoding: "utf8", timeout: 15_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }), windowsHide: true });
   const version = r.status === 0 ? (/(\d+\.\d+\.\d+\S*)/.exec(r.stdout)?.[1] ?? null) : null;
   cache.set(executable, { mtimeMs, version });
   return version ? { executable, version, problem: null, detail: "" } : { executable, version: null, problem: "no_answer", detail: executable };

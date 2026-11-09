@@ -92,7 +92,7 @@ test("GitHub Actions: the policy is a separate checkout beside the project, outs
     // Lay the workspace out exactly as the checkouts do.
     for (const c of checkouts) fs.mkdirSync(path.join(workspace, c.with.path ?? "."), { recursive: true });
     const project = path.join(workspace, run["working-directory"]);
-    const policy = job.env.JGATES_POLICY_DIR.replace("${{ github.workspace }}", workspace);
+    const policy = path.normalize(job.env.JGATES_POLICY_DIR.replace("${{ github.workspace }}", workspace));
     assert.ok(checkouts.some((c) => path.join(workspace, c.with.path) === project), "the job does not run in a project checkout");
     assert.ok(checkouts.some((c) => path.join(workspace, c.with.path) === policy), "JGATES_POLICY_DIR is not the policy checkout");
     assert.notEqual(project, workspace, "the project is the workspace root, which would contain the policy");
@@ -112,7 +112,7 @@ test("GitLab CI: the policy is cloned outside $CI_PROJECT_DIR", () => {
   try {
     const projectDir = path.join(builds, "group", "project");
     fs.mkdirSync(projectDir, { recursive: true });
-    const policy = declared.replace("$CI_BUILDS_DIR", builds).replace("$CI_JOB_ID", "42");
+    const policy = path.normalize(declared.replace("$CI_BUILDS_DIR", builds).replace("$CI_JOB_ID", "42"));
     assert.ok(policy.startsWith(builds + path.sep), "the policy is not under the builds directory");
     fs.mkdirSync(policy);
     assert.equal(checkPolicyLocation(policy, projectDir), null);

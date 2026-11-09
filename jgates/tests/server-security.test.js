@@ -409,7 +409,17 @@ test("the bootstrap secret works once and never shows up in stdout, stderr or th
     }
     const remaining = fs.readdirSync(path.join(home, "workspaces", ui.info.workspace.id, "server")).filter((f) => f.startsWith("launch-"));
     assert.deepEqual(remaining, [], "stopping the server removes the pending launchers");
-    assert.ok(!fs.existsSync(path.join(home, "workspaces", ui.info.workspace.id, "locks", "ui-server.json")), "stopping the server removes its lock");
+    const lockPath = path.join(home, "workspaces", ui.info.workspace.id, "locks", "ui-server.json");
+    if (process.platform === "win32") {
+      // Windows has no graceful signal for a child process: stopping it ends it at once, without the shutdown handler.
+      // Its lock then names a process that no longer exists, which is what the next server treats as stale.
+      if (fs.existsSync(lockPath)) {
+        const { pid } = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+        assert.throws(() => process.kill(pid, 0), "the lock left behind names a process that is gone");
+      }
+    } else {
+      assert.ok(!fs.existsSync(lockPath), "stopping the server removes its lock");
+    }
   } finally {
     await stopUi(ui);
     p.cleanup();

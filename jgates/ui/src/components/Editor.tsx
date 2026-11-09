@@ -40,6 +40,14 @@ function languageFor(format: string): Extension {
   return language ?? [];
 }
 
+/**
+ * The text is an explicit tab stop, editable or not: a long text scrolls inside the editor, and a scrollable region has to
+ * contain focusable content for the keyboard to reach and scroll it (WCAG 2.1.1, axe scrollable-region-focusable).
+ */
+function lockExtensions(readOnly: boolean): Extension {
+  return [EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly), EditorView.contentAttributes.of({ tabindex: "0" })];
+}
+
 export interface EditorProps {
   value: string;
   format: string;
@@ -83,7 +91,7 @@ export function Editor({ value, format, readOnly, label, onChange, line }: Edito
         // Tab is not bound to indentation: it would trap the keyboard focus inside the editor (WCAG 2.1.2). Mod-] and Mod-[
         // indent from defaultKeymap.
         keymap.of([...defaultKeymap, ...historyKeymap]),
-        lock.current.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
+        lock.current.of(lockExtensions(readOnly)),
         EditorView.contentAttributes.of({ "aria-label": label }),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -106,7 +114,7 @@ export function Editor({ value, format, readOnly, label, onChange, line }: Edito
   }, []);
 
   useEffect(() => {
-    view.current?.dispatch({ effects: lock.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]) });
+    view.current?.dispatch({ effects: lock.current.reconfigure(lockExtensions(readOnly)) });
   }, [readOnly]);
 
   // External replacement of the text (reload from disk).

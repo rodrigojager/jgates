@@ -4,20 +4,21 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
-const { jsCodec, readJs, patchJsText, checkEdit, dialectForFile, UNRESOLVED_KEY } = await import(path.join(dist, "core", "codecs", "js", "index.js"));
-const docs = await import(path.join(dist, "core", "documents", "index.js"));
-const { findEslintConfig } = await import(path.join(dist, "adapters", "eslint", "index.js"));
-const { findVitestConfig } = await import(path.join(dist, "adapters", "vitest", "index.js"));
-const { builtinManifests } = await import(path.join(dist, "adapters", "manifests.js"));
-const { validateManifest } = await import(path.join(dist, "core", "catalog", "index.js"));
+const { jsCodec, readJs, patchJsText, checkEdit, dialectForFile, UNRESOLVED_KEY } = await import(pathToFileURL(path.join(dist, "core", "codecs", "js", "index.js")).href);
+const docs = await import(pathToFileURL(path.join(dist, "core", "documents", "index.js")).href);
+const { findEslintConfig } = await import(pathToFileURL(path.join(dist, "adapters", "eslint", "index.js")).href);
+const { findVitestConfig } = await import(pathToFileURL(path.join(dist, "adapters", "vitest", "index.js")).href);
+const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
+const { validateManifest } = await import(pathToFileURL(path.join(dist, "core", "catalog", "index.js")).href);
 
 const CORPUS = path.join(here, "fixtures", "codecs-js");
-const corpus = (name) => fs.readFileSync(path.join(CORPUS, name), "utf8");
+// Corpus files are read with LF line endings whatever the checkout (core.autocrlf on Windows) did to them.
+const corpus = (name) => fs.readFileSync(path.join(CORPUS, name), "utf8").replaceAll("\r\n", "\n");
 const TS = { dialect: "typescript" };
 
 function withProject(files, tools, fn) {

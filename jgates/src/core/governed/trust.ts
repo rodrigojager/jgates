@@ -61,6 +61,51 @@ export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
     config: "the project's own compiler or type checker configuration (tsconfig.json, mypy.ini, go.mod, Cargo.toml, the .NET project): the project decides the result",
     suppressions: "honored: @ts-ignore, # type: ignore and the compiler's own suppressions; build scripts and analyzers of the project run",
   },
+  zizmor: {
+    treatment: "trusted",
+    config: "zizmor runs with --no-config: neither zizmor.yml nor .github/zizmor.yml of the project is read; the persona and minimum severity come from the policy",
+    suppressions: "disabled: --no-ignores ignores the # zizmor: ignore comments of the workflows",
+  },
+  oasdiff: {
+    treatment: "trusted",
+    config: "the policy's instance (specification, base reference and fail-on level); oasdiff reads no configuration file of the project",
+    suppressions: "none: the adapter passes no error-ignore file",
+  },
+  "supply-chain": {
+    treatment: "trusted",
+    config: "the policy's instance; the analysis is an offline read of the lockfiles and manifests, with no configuration file of the project",
+    suppressions: "none: the analysis honors no comment or ignore file of the analyzed code",
+  },
+  govulncheck: {
+    treatment: "trusted",
+    config: "the policy's instance; govulncheck reads no configuration file, only the module's go.mod and go.sum as data",
+    suppressions: "none: govulncheck has no suppression mechanism",
+  },
+  codeql: {
+    treatment: "self-reported",
+    config: "CodeQL builds the database by running the project's build (autobuild or the instance's build command): the project's code executes",
+    suppressions: "honored: whatever the build and the project's CodeQL packs decide; the query suite is the instance's",
+  },
+  mutation: {
+    treatment: "self-reported",
+    config: "the mutation engine (Stryker or mutmut) loads the project's configuration and re-runs the project's tests on an isolated copy: the project decides the result",
+    suppressions: "honored: the engine's own mutator exclusions and the project's test configuration",
+  },
+  schemathesis: {
+    treatment: "self-reported",
+    config: "the run's own generated configuration file; the verdict depends on the running service the instance targets, which the project provides",
+    suppressions: "none known: a project schemathesis.toml is never read",
+  },
+  zap: {
+    treatment: "self-reported",
+    config: "the instance's mode and target; the verdict depends on the running service the instance targets, which the project provides",
+    suppressions: "none known: the run passes no rules file of the project",
+  },
+  "cargo-audit": {
+    treatment: "excluded",
+    config: "cargo-audit reads .cargo/audit.toml of the analyzed folder by itself, and the adapter passes no configuration of the policy",
+    suppressions: "honored: the advisories ignored in .cargo/audit.toml",
+  },
   gitleaks: {
     treatment: "excluded",
     config: "Gitleaks reads .gitleaks.toml and .gitleaksignore from the scanned folder by itself",

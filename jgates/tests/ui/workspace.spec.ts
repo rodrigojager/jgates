@@ -112,7 +112,12 @@ test("Workspace shows the components, the scope preview, the mode by patch and t
     expect(afterExclude).toMatch(/exclude:\s*\n\s*- web\/src/);
 
     // Só reportar: discovery.mode is patched in place, comments included.
-    await page.getByRole("radio", { name: /Só reportar/ }).click();
+    // The screen re-reads the file after the previous save: a click that lands during that re-render is not a choice, so
+    // the click is repeated until the radio is the checked one (the saved file is asserted right below).
+    await expect(async () => {
+      await page.getByRole("radio", { name: /Só reportar/ }).click({ timeout: 5_000 });
+      await expect(page.getByRole("radio", { name: /Só reportar/ })).toBeChecked({ timeout: 5_000 });
+    }).toPass({ timeout: 45_000 });
     await expect(page.getByTestId("scope-state")).toContainText("Salvo em .jgates/workspace.yml");
     await expect.poll(() => fs.readFileSync(file, "utf8")).toContain("mode: report-only");
     const afterMode = fs.readFileSync(file, "utf8");

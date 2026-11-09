@@ -246,8 +246,9 @@ test("blocker: ferramenta obrigatória indisponível", async ({ page }) => {
 test("blocker: versão da ferramenta fora da faixa", async ({ page }) => {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-fake-ruff-"));
   try {
-    const fake = path.join(bin, "ruff");
-    fs.writeFileSync(fake, '#!/bin/sh\necho "ruff 0.0.1"\n', { mode: 0o755 });
+    // A Node script answers --version the same way on every system (a #! shell script cannot run on Windows).
+    const fake = path.join(bin, "ruff.cjs");
+    fs.writeFileSync(fake, 'console.log("ruff 0.0.1");\n');
     await withServer(page, (fixture) => { fixture.env.JGATES_RUFF = fake; }, async () => {
       await review(page, REQ);
       await expectBlocker(page, "VERSION_OUT_OF_RANGE", /Versão incompatível/);

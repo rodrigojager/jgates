@@ -9,6 +9,7 @@ import type { RunResult } from "../run/types.js";
 import { validateGateRecord } from "./schemas.js";
 import { sourceFromAnalyzed } from "./source.js";
 import { GATE_KINDS, GATE_RECORD_VERSIONS, type GateKind, type GateRecordKind, type GateRecordTypes, type GateRunIdentity, type SourceIdentity } from "./types.js";
+import { renameWithRetry } from "../fs-retry/index.js";
 
 export type GateRecordErrorCode = "GATE_RECORD_UNREADABLE" | "GATE_RECORD_INVALID" | "GATE_RECORD_UNSUPPORTED_VERSION";
 
@@ -91,7 +92,7 @@ export function writeGateRecord<K extends GateRecordKind>(kind: K, file: string,
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.${crypto.randomBytes(4).toString("hex")}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(record, null, 2) + "\n");
-  fs.renameSync(tmp, file);
+  renameWithRetry(tmp, file);
   return record;
 }
 

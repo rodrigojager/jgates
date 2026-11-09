@@ -31,8 +31,9 @@ test("Ambiente shows the doctor diagnosis and Preparar shows versions and networ
   const registry = await startRegistry();
   let server: Awaited<ReturnType<typeof startServer>> | null = null;
   try {
-    const fake = path.join(bin, "semgrep");
-    fs.writeFileSync(fake, '#!/bin/sh\necho "semgrep 1.120.0"\n', { mode: 0o755 });
+    // A Node script answers --version the same way on every system (a #! shell script cannot run on Windows).
+    const fake = path.join(bin, "semgrep.cjs");
+    fs.writeFileSync(fake, 'console.log("semgrep 1.120.0");\n');
     fixture.env.JGATES_SEMGREP = fake;
     fixture.env.JGATES_SEMGREP_RULES_URL = registry.url;
     fs.writeFileSync(

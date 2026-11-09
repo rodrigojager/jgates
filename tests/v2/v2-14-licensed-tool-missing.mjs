@@ -24,8 +24,11 @@ const tmp = (prefix) => {
 };
 
 test("V2-14: a missing licensed tool (CodeQL) blocks its stage with setup guidance, the run is not complete and nothing is installed", async () => {
+  let restoreLocale = () => undefined;
   try {
-    const { setLocale } = await load("i18n", "index.js");
+    const { setLocale, getLocale } = await load("i18n", "index.js");
+    const previousLocale = getLocale();
+    restoreLocale = () => setLocale(previousLocale);
     setLocale("en");
     const { planInit, writeInit } = await load("core", "init", "index.js");
     const { buildPlan } = await load("core", "plan", "index.js");
@@ -88,6 +91,8 @@ test("V2-14: a missing licensed tool (CodeQL) blocks its stage with setup guidan
     assert.equal(listed(home).some((f) => /(^|[\\/])codeql(\.exe)?$/i.test(f)), false);
     assert.equal(listed(dir).some((f) => /(^|[\\/])codeql(\.exe)?$/i.test(f)), false);
   } finally {
+    // The process language is shared by every case the acceptance harness runs in this process.
+    restoreLocale();
     for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
   }
 });

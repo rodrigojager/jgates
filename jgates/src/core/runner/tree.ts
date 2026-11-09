@@ -1,7 +1,13 @@
 // Process trees of the local runner: list the descendants of a process and stop a whole tree, on Unix and on
 // Windows. The runner only ever stops processes it started (by pid, never by name).
 import fs from "node:fs";
+import path from "node:path";
 import { spawnSync } from "node:child_process";
+
+/** A Windows system tool by absolute path: the PATH of a run may hold nothing but the tool it runs. */
+function windowsSystemTool(...parts: string[]): string {
+  return path.join(process.env.SystemRoot ?? process.env.windir ?? "C:\\Windows", ...parts);
+}
 
 /** Parent of every live process, read without starting anything on Linux (/proc) and with ps or CIM elsewhere. */
 export function processTable(): Map<number, number> {
@@ -29,7 +35,7 @@ export function processTable(): Map<number, number> {
   }
   if (process.platform === "win32") {
     const r = spawnSync(
-      "powershell.exe",
+      windowsSystemTool("System32", "WindowsPowerShell", "v1.0", "powershell.exe"),
       ["-NoProfile", "-NonInteractive", "-Command", "Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId) $($_.ParentProcessId)\" }"],
       { encoding: "utf8", windowsHide: true, timeout: 20_000 },
     );
@@ -106,7 +112,7 @@ export function signalTree(rootPid: number, signal: NodeJS.Signals, options: { g
   targets.delete(process.pid);
   if (process.platform === "win32") {
     for (const pid of [rootPid, ...targets]) {
-      spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true, timeout: 20_000 });
+      spawnSync(windowsSystemTool("System32", "taskkill.exe"), ["/PID", String(pid), "/T", "/F"], { windowsHide: true, timeout: 20_000 });
     }
     return [rootPid, ...targets];
   }
@@ -146,7 +152,7 @@ export function treeStopper(rootPid: number, options: { group?: boolean; graceMs
       return;
     }
     if (process.platform === "win32") {
-      for (const pid of known) spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { windowsHide: true, timeout: 20_000 });
+      for (const pid of known) spawnSync(windowsSystemTool("System32", "taskkill.exe"), ["/PID", String(pid), "/T", "/F"], { windowsHide: true, timeout: 20_000 });
       return;
     }
     if (group) {

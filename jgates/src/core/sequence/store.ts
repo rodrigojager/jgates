@@ -15,6 +15,7 @@ import type { ScopeRequest, SemanticPurpose, SemanticRigor } from "../semantic-s
 import type { GateSelection } from "./selection.js";
 import type { QualityAssessment, SequenceCoverage } from "./approval.js";
 import type { ReuseOutcome } from "./reuse.js";
+import { renameWithRetry } from "../fs-retry/index.js";
 
 export const SEQUENCES_DIR = "sequences";
 export const SEQUENCE_FILE = "sequence.json";
@@ -93,7 +94,7 @@ function writeJsonAtomic(file: string, value: unknown): void {
   fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
   const tmp = `${file}.${process.pid}.${crypto.randomBytes(4).toString("hex")}.tmp`;
   fs.writeFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
-  fs.renameSync(tmp, file);
+  renameWithRetry(tmp, file);
 }
 
 function readJson<T>(file: string): T | null {

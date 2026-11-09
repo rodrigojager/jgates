@@ -16,7 +16,7 @@ import { chooseRuffConfig } from "./config.js";
 import { probeRuffImage, type RuffImageProbe } from "./container.js";
 import { ruffManifest } from "./manifest.js";
 import { parseRuffOutput } from "./normalize.js";
-import { probeRuff } from "./probe.js";
+import { isNodeScript, probeRuff } from "./probe.js";
 
 export { ruffManifest } from "./manifest.js";
 export { parseRuffOutput } from "./normalize.js";
@@ -156,8 +156,9 @@ function planRuff(input: RuffPlanInput): ExternalPlan {
   return {
     ...common,
     command: {
-      executable: probe.executable ?? ruffManifest.toolName,
-      args,
+      // A script named by JGATES_RUFF runs through the Node that runs JGates (a script is not an executable on Windows).
+      executable: probe.executable && isNodeScript(probe.executable) ? process.execPath : (probe.executable ?? ruffManifest.toolName),
+      args: probe.executable && isNodeScript(probe.executable) ? [probe.executable, ...args] : args,
       cwd,
       env: redirectionEnv(ruffManifest),
       stdin: null,

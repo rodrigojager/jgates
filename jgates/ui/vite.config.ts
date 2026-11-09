@@ -49,5 +49,17 @@ export default defineConfig({
     cssCodeSplit: false,
     assetsInlineLimit: 0,
     modulePreload: { polyfill: false },
+    rolldownOptions: {
+      output: {
+        // three.js is two files, the math and scene-graph core and the WebGL renderer: each is a chunk of its own, so no
+        // chunk passes 500 kB (the build test of the responsive spec).
+        codeSplitting: {
+          groups: [
+            { name: "three-core", test: /node_modules[\\/]three[\\/]build[\\/]three\.core\.js/, priority: 20 },
+            { name: "three-renderer", test: /node_modules[\\/]three[\\/]/, priority: 10 },
+          ],
+        },
+      },
+    },
   },
 });

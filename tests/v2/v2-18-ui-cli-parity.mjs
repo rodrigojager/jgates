@@ -65,10 +65,17 @@ test("V2-18: the plan built through the server route equals the CLI plan for the
     assert.equal(start.json.sequence.qualityPlanHash, firstCli.quality.planHash);
     assert.equal(start.json.sequence.semanticPlanHash, firstCli.semantic.planHash);
     const one = route("GET", "/api/sequences/:id");
-    await waitFor(async () => {
-      const view = await one.handler({ params: { id: sequenceId }, query: {}, server });
-      return view.json.sequence.record && view.json.sequence.lifecycle === "settled";
-    }, 120_000, "the API sequence to settle");
+    let last = null;
+    try {
+      await waitFor(async () => {
+        const view = await one.handler({ params: { id: sequenceId }, query: {}, server });
+        last = view.json.sequence;
+        return view.json.sequence.record && view.json.sequence.lifecycle === "settled";
+      }, 120_000, "the API sequence to settle");
+    } catch (error) {
+      // A sequence that never settles says what state it stopped in.
+      throw new Error(`${error.message}: ${JSON.stringify({ lifecycle: last?.lifecycle, record: last?.record, timeline: last?.details?.timeline })}`, { cause: error });
+    }
     const view = (await one.handler({ params: { id: sequenceId }, query: {}, server })).json.sequence;
     assert.equal(view.record.status, "completed", JSON.stringify(view.record));
     assert.equal(view.details.plans.quality.planHash, firstCli.quality.planHash);

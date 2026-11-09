@@ -87,6 +87,9 @@ export function ScopeTab({ settings, refreshKey, onChanged }: { settings: Settin
   const [error, setError] = useState<unknown>(null);
   const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
+  // The revision a save produced, until the screen has read it back: a change made before that would carry the old one.
+  const [awaiting, setAwaiting] = useState<string | null>(null);
+  const busy = saving || awaiting !== null;
   const [showYaml, setShowYaml] = useState(false);
   const seen = useRef(settings.revision);
 
@@ -124,7 +127,8 @@ export function ScopeTab({ settings, refreshKey, onChanged }: { settings: Settin
     setSaving(true);
     setError(null);
     try {
-      await api("PUT", "/api/workspace/settings", { expectedRevision: settings.revision, ...body });
+      const saved = await api<{ revision?: string }>("PUT", "/api/workspace/settings", { expectedRevision: settings.revision, ...body });
+      if (typeof saved?.revision === "string" && saved.revision !== settings.revision) setAwaiting(saved.revision);
       toast(t("ws_saved_toast"), "ok");
       onChanged();
     } catch (e) {
@@ -134,6 +138,17 @@ export function ScopeTab({ settings, refreshKey, onChanged }: { settings: Settin
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (awaiting === null) return undefined;
+    if (settings.revision === awaiting) {
+      setAwaiting(null);
+      return undefined;
+    }
+    // Should the read back never arrive, the screen is not left locked.
+    const timer = setTimeout(() => setAwaiting(null), 5000);
+    return () => clearTimeout(timer);
+  }, [awaiting, settings.revision]);
 
   const state = conflict ? "conflict" : dirty ? "unsaved" : settings.exists ? "saved" : "absent";
 
@@ -172,7 +187,7 @@ export function ScopeTab({ settings, refreshKey, onChanged }: { settings: Settin
         </legend>
         {MODES.map((mode) => (
           <label key={mode}>
-            <input type="radio" name="ws-mode" value={mode} checked={settings.mode === mode} disabled={saving} onChange={() => save({ mode })} />
+            <input type="radio" name="ws-mode" value={mode} checked={settings.mode === mode} disabled={busy} onChange={() => save({ mode })} />
             <div>
               <strong>{t(`ws_mode_${mode}`)}</strong>
               <div className="small">{t(`ws_mode_hint_${mode}`)}</div>
@@ -234,14 +249,14 @@ export function ScopeTab({ settings, refreshKey, onChanged }: { settings: Settin
           </div>
         )}
         <div className="row">
-          <button type="button" className="btn primary" disabled={!dirty || saving || conflict} onClick={() => save({ include: includeList, exclude: excludeList })}>
+          <button type="button" className="btn primary" disabled={!dirty || busy || conflict} onClick={() => save({ include: includeList, exclude: excludeList })}>
             {saving ? <Spinner /> : null}
             {saving ? t("ws_saving") : t("ws_save")}
           </button>
           <button
             type="button"
             className="btn"
-            disabled={!dirty || saving}
+            disabled={!dirty || busy}
             onClick={() => {
               setInclude(settings.include.join("\n"));
               setExclude(settings.exclude.join("\n"));

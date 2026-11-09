@@ -146,6 +146,8 @@ function probeTsc(workspace: string, componentRoot: string | null, env: NodeJS.P
     const pkg =
       tscPackage(path.join(shimDir, "node_modules", "typescript")) ??
       tscPackage(path.resolve(shimDir, "..", "lib", "node_modules", "typescript")) ??
+      // A project shim (node_modules/.bin/tsc, which npm puts first on the PATH of its scripts).
+      tscPackage(path.resolve(shimDir, "..", "typescript")) ??
       tscPackage(path.resolve(path.dirname(real), ".."));
     if (pkg) return found(pkg, "path");
     return { executable: null, prefix: [], version: null, problem: "no_answer", detail: onPath, source: "path" };

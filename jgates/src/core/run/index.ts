@@ -22,6 +22,7 @@ import { startHeartbeat } from "./heartbeat.js";
 import { readResultAsGateRun, writeGateRecord } from "../gates/read.js";
 import { sourceIdentityOf } from "../gates/source.js";
 import type { SourceIdentity } from "../gates/types.js";
+import { renameWithRetry } from "../fs-retry/index.js";
 
 export * from "./types.js";
 export { compareGitStatus, diffManifests, takeGitStatus, takeManifest } from "./workspace-state.js";
@@ -113,7 +114,7 @@ export function writePrivateFile(file: string, content: string): void {
 export function writePrivateFileAtomic(file: string, content: string): void {
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, content, { mode: 0o600 });
-  fs.renameSync(tmp, file);
+  renameWithRetry(tmp, file);
 }
 
 const positiveInt = (value: string | undefined): number | undefined => {

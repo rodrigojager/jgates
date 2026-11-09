@@ -22,6 +22,7 @@ import { agentCliBackend, providerToolBackend, type AgentCliGate, type CallTurn,
 import { BudgetMeter, budgetLimits, DEFAULT_TURNS, reserveFor, type UsageSnapshot } from "./budget.js";
 import { HostTools, LIMITING_REFUSALS, type CandidateInput, type ContextState } from "./host-tools.js";
 import type { ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation, ModuleApplicability } from "./types.js";
+import { renameWithRetry } from "../fs-retry/index.js";
 
 export const INVESTIGATION_RECORD = "evidence/investigation.json";
 export const CONTEXTS_DIR = "evidence/contexts";
@@ -99,7 +100,7 @@ function writeAtomic(file: string, content: string): void {
   fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, content, { mode: 0o600 });
-  fs.renameSync(tmp, file);
+  renameWithRetry(tmp, file);
 }
 
 /** The provider configuration handed to the package (only the project's and the user's values). */

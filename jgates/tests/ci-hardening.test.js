@@ -166,17 +166,19 @@ test("ci hardening: a hostile project (its own ESLint, Ruff, Semgrep and Gitleak
     // The plan names only the policy's files and forces the flags; the project's configuration is never read.
     const plan = JSON.parse(readRun(b, "plan.json"));
     const invocation = (id) => plan.invocations.find((i) => i.id === id).command;
-    const policyFile = (rel) => path.join(hostile.policyDir, ...rel.split("/"));
+    // Paths in the plan are case-folded on Windows (a case-insensitive file system).
+    const fold = (p) => (process.platform === "win32" ? p.toLowerCase() : p);
+    const policyFile = (rel) => fold(path.join(hostile.policyDir, ...rel.split("/")));
     const eslint = invocation("eslint");
     assert.ok(eslint.args.includes("--no-inline-config"), JSON.stringify(eslint.args));
-    assert.equal(eslint.args[eslint.args.indexOf("--config") + 1], policyFile(".jgates/eslint.config.mjs"));
+    assert.equal(fold(eslint.args[eslint.args.indexOf("--config") + 1]), policyFile(".jgates/eslint.config.mjs"));
     assert.ok(!JSON.stringify(eslint).includes("node_modules/.bin/eslint"), "ESLint is never the project's copy");
     const ruff = invocation("ruff");
-    assert.equal(ruff.args[ruff.args.indexOf("--config") + 1], policyFile(".jgates/ruff.toml"));
+    assert.equal(fold(ruff.args[ruff.args.indexOf("--config") + 1]), policyFile(".jgates/ruff.toml"));
     for (const flag of ["--ignore-noqa", "--no-respect-gitignore"]) assert.ok(ruff.args.includes(flag), flag);
     const semgrep = invocation("semgrep");
     for (const flag of ["--disable-nosem", "--x-ignore-semgrepignore-files", "--no-git-ignore"]) assert.ok(semgrep.args.includes(flag), flag);
-    assert.ok(semgrep.args.includes(policyFile(".jgates/rules/no-eval.yml")), JSON.stringify(semgrep.args));
+    assert.ok(semgrep.args.map(fold).includes(policyFile(".jgates/rules/no-eval.yml")), JSON.stringify(semgrep.args));
     const bridge = plan.invocations.find((i) => i.adapter === "quality-bridge").command.stdin;
     assert.equal(bridge.hardened, true);
     assert.equal(bridge.toolConfigs, undefined);

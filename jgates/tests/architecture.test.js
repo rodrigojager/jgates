@@ -224,7 +224,7 @@ test("without Python the evaluation is incomplete, never passed", async () => {
   const empty = tmp("jg-arch-bin-");
   try {
     const { declaration } = architecture.readArchitecture(dir);
-    const result = await architecture.evaluateArchitecture({ graph: graph(), declaration, required: true, cwd, env: { PATH: empty } });
+    const result = await architecture.evaluateArchitecture({ graph: graph(), declaration, required: true, cwd, env: { PATH: empty, JGATES_HOME: cwd } });
     assert.equal(result.state, "incomplete");
     assert.equal(result.findings.length, 0);
   } finally {

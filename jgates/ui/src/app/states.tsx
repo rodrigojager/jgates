@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { errorText, Spinner } from "../components/common";
 import { Icon } from "../components/icons";
+import { quoteArg } from "./shell-quote";
 import { useToast } from "../components/Toast";
 import { t } from "../i18n";
 import type { Area } from "./areas";
@@ -237,9 +238,9 @@ export function FirstAccess() {
   );
 }
 
-/** Quotes a path for the command line shown to the user only when it needs it. */
+/** Quotes a path for the command line shown to the user only when it needs it (the shell of the person's system). */
 function quote(value: string): string {
-  return /^[\w@%+=:,./-]+$/.test(value) ? value : `"${value.replace(/(["\\$`])/g, "\\$1")}"`;
+  return quoteArg(value);
 }
 
 /** An area (or route) with no screen in this version of the application. */

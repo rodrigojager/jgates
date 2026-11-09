@@ -24,5 +24,6 @@
   "governed_excluded_checkov": "Checkov reads .checkov.yaml from its working folder by itself",
   "governed_excluded_jscpd": "jscpd reads .jscpd.json and the jscpd key of package.json from the analyzed folder",
   "governed_excluded_dependency-cruiser": "dependency-cruiser runs the project's .dependency-cruiser.js",
-  "governed_excluded_import-linter": "Import Linter reads its contracts from the project's .importlinter, setup.cfg or pyproject.toml"
+  "governed_excluded_cargo-audit": "cargo-audit reads .cargo/audit.toml of the analyzed folder by itself",
+  "governed_excluded_import-linter":"Import Linter reads its contracts from the project's .importlinter, setup.cfg or pyproject.toml"
 }

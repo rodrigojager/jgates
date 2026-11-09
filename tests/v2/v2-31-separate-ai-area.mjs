@@ -165,10 +165,17 @@ test("V2-31: the Semantic/AI area has its own screens and runs, and Quality masc
     const sequenceStart = await call("POST", "/api/sequences", { body: { gates: ["quality", "semantic"], rigor: "quick" } });
     assert.equal(sequenceStart.status, 202, JSON.stringify(sequenceStart.json));
     const sequenceId = sequenceStart.json.sequence.sequenceId;
-    await waitFor(async () => {
-      const view = (await call("GET", "/api/sequences/:id", { params: { id: sequenceId } })).json.sequence;
-      return view.record && view.lifecycle === "settled";
-    }, 180_000, "the sequence to settle");
+    let last = null;
+    try {
+      await waitFor(async () => {
+        const view = (await call("GET", "/api/sequences/:id", { params: { id: sequenceId } })).json.sequence;
+        last = view;
+        return view.record && view.lifecycle === "settled";
+      }, 180_000, "the sequence to settle");
+    } catch (error) {
+      // A sequence that never settles says what state it stopped in.
+      throw new Error(`${error.message}: ${JSON.stringify({ lifecycle: last?.lifecycle, record: last?.record, timeline: last?.details?.timeline })}`, { cause: error });
+    }
     const both = (await call("GET", "/api/sequences/:id/mascots", { params: { id: sequenceId } })).json;
     assert.ok(both.quality && both.semantic, JSON.stringify(both.runs));
     assert.match(both.quality.runId, /^run_/);

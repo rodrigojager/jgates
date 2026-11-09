@@ -124,7 +124,7 @@ test("testing against a project shows the plan and changes no file of the projec
       const result = page.getByTestId("pol-test-result");
       await expect(result).toBeVisible();
       await expect(result).toContainText("Somente leitura");
-      await expect(result).toContainText(project.dir);
+      await expect(result).toContainText(project.dir, { ignoreCase: true }); // paths are case-folded on Windows
       await expect(page.getByTestId("pol-test-count")).toContainText("rodam");
       await expect(page.getByTestId("pol-test-profile")).not.toBeEmpty();
       expect(treeHash(fixture.dir)).toBe(policyBefore);

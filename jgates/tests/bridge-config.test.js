@@ -20,7 +20,7 @@ const toolsApi = await import(pathToFileURL(path.join(dist, "core", "tools", "in
 const documentsApi = await import(pathToFileURL(path.join(dist, "core", "documents", "index.js")).href);
 const planApi = await import(pathToFileURL(path.join(dist, "core", "plan", "index.js")).href);
 
-const VENV_PYTHON = path.resolve(here, "..", "..", ".venv", "bin", process.platform === "win32" ? "python.exe" : "python");
+const VENV_PYTHON = path.resolve(here, "..", "..", ".venv", process.platform === "win32" ? "Scripts" : "bin", process.platform === "win32" ? "python.exe" : "python");
 
 function requirePython() {
   assert.ok(fs.existsSync(VENV_PYTHON), `the repository .venv is required: python3 -m venv .venv && .venv/bin/pip install -e quality-gate (looked for ${VENV_PYTHON})`);
@@ -198,7 +198,7 @@ test("with scope changed or paths the bridge still analyzes the workspace, and t
 const FAKE_SCANNER = (log) => `#!${process.execPath}
 const fs = require("node:fs");
 const path = require("node:path");
-const name = path.basename(process.argv[1]);
+const name = path.basename(process.argv[1]).replace(/\\.js$/, "");
 const args = process.argv.slice(2);
 fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({ tool: name, argv: args }) + "\\n");
 const at = (f) => args[args.indexOf(f) + 1];
@@ -214,7 +214,13 @@ test("the effective command of the plan is the argv the sidecar runs with the ch
   const log = path.join(bin, "calls.jsonl");
   try {
     for (const name of ["gitleaks", "trivy", "osv-scanner"]) {
-      fs.writeFileSync(path.join(bin, name), FAKE_SCANNER(log), { mode: 0o755 });
+      if (process.platform === "win32") {
+        // A launcher the PATH lookup finds (.cmd) that runs the Node script of the fake scanner.
+        fs.writeFileSync(path.join(bin, `${name}.js`), FAKE_SCANNER(log).split("\n").slice(1).join("\n"));
+        fs.writeFileSync(path.join(bin, `${name}.cmd`), `@"${process.execPath}" "${path.join(bin, `${name}.js`)}" %*\r\n`);
+      } else {
+        fs.writeFileSync(path.join(bin, name), FAKE_SCANNER(log), { mode: 0o755 });
+      }
     }
     const bindings = { gitleaks: { path: ".gitleaks.toml" }, trivy: { path: "trivy.yaml" }, "osv-scanner": { path: "osv-scanner.toml" } };
     await withProject(bindings, async ({ dir, plan }) => {
@@ -222,9 +228,10 @@ test("the effective command of the plan is the argv the sidecar runs with the ch
       const ids = { gitleaks: "quality-bridge.gitleaks#secrets", trivy: "quality-bridge.trivy#dependencies", "osv-scanner": "quality-bridge.osv-scanner#dependencies" };
       const stdin = bridgeInvocation(p).command.stdin;
       // The request of the plan, restricted to the three scanners (the others are not installed here).
-      const request = JSON.parse(JSON.stringify(stdin).split("{runDir}").join(runDir));
+      const request = JSON.parse(JSON.stringify(stdin).split("{runDir}").join(JSON.stringify(runDir).slice(1, -1)));
       request.subchecks = Object.keys(ids);
-      const outcome = await bridgeApi.callBridge(request, { cwd: runDir, env: { PATH: `${bin}${path.delimiter}/usr/bin${path.delimiter}/bin`, JGATES_PYTHON: python } });
+      const systemEnv = process.platform === "win32" ? { SystemRoot: process.env.SystemRoot ?? "C:\\Windows", PATHEXT: process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD" } : {};
+      const outcome = await bridgeApi.callBridge(request, { cwd: runDir, env: { ...systemEnv, PATH: process.platform === "win32" ? `${bin}${path.delimiter}${path.join(process.env.SystemRoot ?? "C:\\Windows", "System32")}` : `${bin}${path.delimiter}/usr/bin${path.delimiter}/bin`, JGATES_PYTHON: python } });
       assert.equal(outcome.kind, "response", outcome.message ?? outcome.stderr);
       assert.equal(outcome.response.ok, true, outcome.stderr);
       const calls = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));
@@ -235,7 +242,9 @@ test("the effective command of the plan is the argv the sidecar runs with the ch
         assert.deepEqual(answered.config, { source: "project", path: planned.config.file }, sub);
         // Public form on both sides: tokens of the plan and paths outside the target reduce to the file name.
         const publicArg = (a) => (a.startsWith("{runDir}/") || a.startsWith("{sidecarConfig}/") ? path.posix.basename(a) : a);
-        assert.deepEqual(answered.command, [planned.executable, ...planned.args.map(publicArg)], sub);
+        // On Windows the executable that ran is the launcher the PATH lookup found (gitleaks.CMD).
+        const answeredCommand = [answered.command[0].replace(/\.(?:cmd|exe)$/i, ""), ...answered.command.slice(1)];
+        assert.deepEqual(answeredCommand, [planned.executable, ...planned.args.map(publicArg)], sub);
         // And the process itself received the chosen file inside the workspace.
         const call = calls.find((c) => c.tool === sub);
         assert.equal(flag(call.argv, "--config"), path.join(real, planned.config.file), sub);

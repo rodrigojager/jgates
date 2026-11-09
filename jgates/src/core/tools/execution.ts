@@ -41,7 +41,11 @@ export interface ExecutionView {
 
 /** One line for a command: tokens with spaces or quotes are quoted, everything else is shown as the plan has it. */
 export function commandLine(executable: string, args: readonly string[]): string {
-  const quote = (token: string): string => (/^[A-Za-z0-9_@%+=:,./{}~-]+$/.test(token) ? token : `'${token.replace(/'/g, `'\\''`)}'`);
+  // The line is for a terminal of this machine: cmd.exe and PowerShell read double quotes and a backslash is a path
+  // separator on Windows; POSIX shells read single quotes.
+  const windows = process.platform === "win32";
+  const safe = windows ? /^[A-Za-z0-9_@%+=:,./\\{}~-]+$/ : /^[A-Za-z0-9_@%+=:,./{}~-]+$/;
+  const quote = (token: string): string => (safe.test(token) ? token : windows ? `"${token.replace(/"/g, '\\"')}"` : `'${token.replace(/'/g, `'\\''`)}'`);
   return [executable, ...args].map(quote).join(" ");
 }
 

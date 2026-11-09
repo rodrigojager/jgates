@@ -132,7 +132,7 @@ test("main fixture: one JSON result, valid, run kept outside the project, requir
     for (const log of doc.artifacts.logs) assert.ok(fs.statSync(path.join(runDir, log)).isFile(), log);
     for (const out of doc.artifacts.outputs) assert.ok(fs.statSync(path.join(runDir, out)).isDirectory(), out);
     assert.ok(fs.statSync(path.join(runDir, doc.artifacts.outputs[0], "quality-report.json")).isFile());
-    assert.equal(fs.realpathSync(doc.workspace.path), fs.realpathSync(dir));
+    assert.equal(fs.realpathSync.native(doc.workspace.path), fs.realpathSync.native(dir));
   } finally {
     removeFixture(dir);
     if (home) fs.rmSync(home, { recursive: true, force: true });

@@ -48,7 +48,7 @@ test("the tarball carries the compiled jgates, the UI assets and the skill, and 
   assert.ok(has("semantic-gate/dist/cli.js") && has("quality-gate/bin/quality-gate.js"), "component commands");
   assert.ok(!files.some((f) => f.startsWith("bin/")), "no removed command in the tarball");
 
-  const forbidden = [/(^|\/)\.venv\//, /(^|\/)node_modules\//, /(^|\/)\.quality\//, /(^|\/)\.git\//, /\.tgz$/, /\.map$/, /(^|\/)__pycache__\//, /\.pyc$/, /^jgates\/(src|ui|dev-tools|tests|scripts)\//, /^docs\//, /^\.scratch\//];
+  const forbidden = [/(^|\/)\.venv\//, /(^|\/)node_modules\//, /(^|\/)\.quality\//, /(^|\/)\.git\//, /\.tgz$/, /\.map$/, /(^|\/)__pycache__\//, /\.pyc$/, /^jgates\/(src|ui|dev-tools|tests|scripts)\//, /^docs\/(?!jgates\/)/, /^\.scratch\//];
   const leaked = files.filter((f) => forbidden.some((re) => re.test(f)));
   assert.deepEqual(leaked, [], "development files in the tarball");
   assert.ok(size < 5 * 1024 * 1024, `the tarball is ${size} bytes: a heavy fixture got in`);

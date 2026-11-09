@@ -31,6 +31,7 @@ import { finishScopeRun, prepareScopeRun, type ScopeRunPreparation } from "../se
 import { investigationModuleFor, runInvestigation, type InvestigationDeps, type InvestigationEventType, type InvestigationModule } from "../semantic-executor/index.js";
 import { buildSemanticPlan, resolveQualityRun, type SemanticPlan } from "./plan.js";
 import { attachQuality, type AttachedQuality } from "./quality.js";
+import { renameWithRetry } from "../fs-retry/index.js";
 import {
   CANCEL_REQUEST_FILE,
   REVIEW_OUTPUT,
@@ -135,7 +136,7 @@ function mkdirPrivate(dir: string): void {
 function writeAtomic(file: string, content: string): void {
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, content, { mode: 0o600 });
-  fs.renameSync(tmp, file);
+  renameWithRetry(tmp, file);
 }
 
 function readJson<T>(file: string): T | null {

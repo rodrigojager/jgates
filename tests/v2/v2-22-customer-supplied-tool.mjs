@@ -40,8 +40,11 @@ async function workspace(fixture) {
 }
 
 test("V2-22: a configured customer-supplied executable (CodeQL, stand-in with recorded SARIF) gives readiness and normalized findings", async () => {
+  let restoreLocale = () => undefined;
   try {
-    const { setLocale } = await load("i18n", "index.js");
+    const { setLocale, getLocale } = await load("i18n", "index.js");
+    const previousLocale = getLocale();
+    restoreLocale = () => setLocale(previousLocale);
     setLocale("en");
     const { buildPlan } = await load("core", "plan", "index.js");
     const { executeRun } = await load("core", "run", "index.js");
@@ -111,6 +114,8 @@ test("V2-22: a configured customer-supplied executable (CodeQL, stand-in with re
     assert.equal(passed.findings.filter((f) => f.tool === "codeql").length, 0);
     assert.equal(passed.stages.find((s) => s.id === "codeql#dataflow").state, "completed");
   } finally {
+    // The process language is shared by every case the acceptance harness runs in this process.
+    restoreLocale();
     for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
   }
 });

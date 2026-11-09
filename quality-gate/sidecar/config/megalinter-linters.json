@@ -121,6 +121,14 @@
       "executesProjectCode": false,
       "ci": "excluded",
       "reason": "DevSkim honors ignore comments written in the analyzed code and reads its options from the analyzed tree; not verified for jgates ci"
+    },
+    {
+      "id": "SPELL_CODESPELL",
+      "config": "package: .codespellrc of the quality gate through the rules path, but a .codespellrc, setup.cfg, tox.ini or pyproject.toml of the project is read by codespell itself and wins MegaLinter's workspace-first lookup",
+      "suppressions": "honored: the ignore-words and ignore-regex of the project's configuration and codespell:ignore comments",
+      "executesProjectCode": false,
+      "ci": "excluded",
+      "reason": "codespell reads its ignore lists from the analyzed tree and honors codespell:ignore comments; not verified for jgates ci"
     }
   ]
 }

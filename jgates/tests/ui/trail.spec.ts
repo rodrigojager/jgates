@@ -463,7 +463,7 @@ test("the whole trail through the UI: failed with the two findings, fix, Aprovad
     await dialog.locator(".ws-item").filter({ hasText: path.basename(other.dir) }).getByRole("button", { name: /Abrir/ }).click();
     const popup = await popupPromise;
     await popup.waitForLoadState("domcontentloaded");
-    await expect(popup.getByRole("button", { name: "Selecionar workspace" })).toContainText(path.basename(other.dir));
+    await expect(popup.getByRole("button", { name: "Selecionar workspace" })).toContainText(path.basename(other.dir), { ignoreCase: true }); // paths are case-folded on Windows
     await popup.goto(`${popup.url().split("#")[0]}#/validations`);
     await expect(popup.locator("tr[data-run]")).toHaveCount(1);
     await expect(popup.locator(`tr[data-run="${otherDoc.runId}"]`)).toBeVisible();

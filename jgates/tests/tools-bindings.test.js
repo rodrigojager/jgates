@@ -51,7 +51,9 @@ test("two instances on the same pyproject share one document identity", () => {
     const a = run(dir, ["tools", "inspect", "ruff-api"]).doc.instance.bindings[0];
     const b = run(dir, ["tools", "inspect", "pytest-api"]).doc.instance.bindings[0];
     assert.equal(a.identity, b.identity);
-    assert.equal(a.identity, path.join(dir, "apps/api/pyproject.toml"));
+    // A file identity is case-folded on Windows (a case-insensitive file system).
+    const folded = (p) => (process.platform === "win32" ? p.toLowerCase() : p);
+    assert.equal(folded(a.identity), folded(path.join(dir, "apps/api/pyproject.toml")));
     assert.equal(a.exists, true);
   });
 });

@@ -340,7 +340,18 @@ function localSemgrep() {
 /** A real engine or a thrown explanation; never a silent pass. `mounts` map host folders to container paths. */
 function engine() {
   const local = localSemgrep();
-  if (local) return { kind: "local", run: (args) => spawnSync(local, args, { encoding: "utf8", timeout: 240_000, env: { ...process.env, SEMGREP_SEND_METRICS: "off", SEMGREP_ENABLE_VERSION_CHECK: "0" } }) };
+  if (local) {
+    // Semgrep keeps settings.yml in the user profile and several runs of the suite share it: each run gets a throwaway profile.
+    const run = (args) => {
+      const home = tmp("jgates-semgrep-home-");
+      try {
+        return spawnSync(local, args, { encoding: "utf8", timeout: 240_000, env: { ...process.env, HOME: home, USERPROFILE: home, SEMGREP_SEND_METRICS: "off", SEMGREP_ENABLE_VERSION_CHECK: "0" } });
+      } finally {
+        fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      }
+    };
+    return { kind: "local", run };
+  }
   const docker = spawnSync("docker", ["image", "inspect", SIDECAR_IMAGE], { encoding: "utf8" });
   if (docker.status === 0) {
     return {
@@ -408,7 +419,8 @@ function scanWithPack(variant) {
 test("the rule tests of the bundled pack pass on a real Semgrep (ruleid/ok annotations of every rule file) [proves: semgrep#sast]", () => {
   const eng = engine();
   const docker = eng.kind === "docker";
-  const run = eng.run(["--test", "--metrics=off", "--disable-version-check", docker ? "/rules" : PACK_RULES], { [PACK_RULES]: { path: "/rules" } });
+  // A few jobs only: Semgrep starts one engine process per job, and the suite runs other scans at the same time.
+  const run = eng.run(["--test", "--jobs=2", "--metrics=off", "--disable-version-check", docker ? "/rules" : PACK_RULES], { [PACK_RULES]: { path: "/rules" } });
   const text = `${run.stdout}\n${run.stderr}`;
   assert.equal(run.status, 0, text);
   assert.match(text, /All tests passed/, text);
