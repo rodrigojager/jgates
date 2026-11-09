@@ -136,7 +136,8 @@ recorded in each adapter's distribution record (`jgates tools distribution`).
 | OWASP ZAP | Apache-2.0 | customer-supplied (Docker image) | Keep the license. Active scans attack the target; use them only on systems you own. |
 | StrykerJS, mutmut | Apache-2.0 (StrykerJS), BSD-3-Clause (mutmut) | customer-supplied | Keep the licenses. |
 | govulncheck | BSD-3-Clause | customer-supplied | Limit: it queries the Go vulnerability database, which has its own terms. |
-| cargo-audit | Apache-2.0 | customer-supplied | Limit: it reads the RustSec advisory database, which has its own terms. |
+| cargo-audit | MIT OR Apache-2.0 | customer-supplied | Limit: it reads the RustSec advisory database, which has its own terms. |
+| cargo, rustc, proptest (cargo-test) | MIT OR Apache-2.0 | customer-supplied | Keep the licenses. proptest is the project's own dev-dependency; JGates only runs `cargo test`. |
 | TypeScript, mypy, pyright (build check) | Apache-2.0, MIT, MIT | customer-supplied | Keep the licenses. |
 
 ## Three.js

@@ -60,7 +60,7 @@ export const cargoAuditManifest: AdapterManifest = {
   toggles: { togglable: [], perRunByFlag: false },
   relativeCost: "low",
   origin: "builtin",
-  license: "Apache-2.0",
+  license: "MIT OR Apache-2.0",
   kind: "tool",
   limitations: [
     "reads Cargo.lock only: a project without a lock file has nothing to audit and the stage is blocked, never passed",
@@ -80,7 +80,7 @@ export const cargoAuditManifest: AdapterManifest = {
   distribution: {
     mode: "customer-supplied",
     sourceUrl: "https://github.com/rustsec/rustsec",
-    spdx: "Apache-2.0",
+    spdx: "MIT OR Apache-2.0",
     acquisition: ["https://crates.io/crates/cargo-audit", "https://github.com/rustsec/rustsec/tree/main/cargo-audit#installation"],
     setup: ["https://github.com/rustsec/rustsec/tree/main/cargo-audit#usage", "https://rustsec.org/"],
   },

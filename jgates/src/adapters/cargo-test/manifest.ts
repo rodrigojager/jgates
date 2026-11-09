@@ -65,7 +65,7 @@ export const cargoTestManifest: AdapterManifest = {
   toggles: { togglable: [], perRunByFlag: false },
   relativeCost: "high",
   origin: "builtin",
-  license: "Apache-2.0",
+  license: "MIT OR Apache-2.0",
   kind: "tool",
   limitations: [
     "cargo and rustc are customer-supplied and never installed by a run; without cargo the stage is blocked with the way to get it, never passed",
