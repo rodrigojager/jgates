@@ -38,5 +38,6 @@
   "tools_err_OVERRIDE_NOT_NEEDED": "Este arquivo já é editável.",
   "tools_err_OVERRIDE_UNREADABLE": "Não foi possível ler o arquivo de origem.",
   "tools_err_BINDING_PATH_INVALID": "O caminho precisa ser relativo ao workspace, sem barra invertida, sem . nem .. e sem sair dele.",
-  "tools_err_BINDING_NOT_FOUND": "A instância não declara esse arquivo."
+  "tools_err_BINDING_NOT_FOUND": "A instância não declara esse arquivo.",
+  "tool_declared_by_template": "A instância {tool} vem de um template do jgates.yml, por isso ainda não tem entrada no .jgates/tools.yml. As configurações dela são salvas lá, em tools.{tool}, e se somam ao que o template declara."
 }

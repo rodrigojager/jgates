@@ -15,3 +15,6 @@
 .capst-more p { margin: 4px 0 0; overflow-wrap: anywhere; }
 .capst-blocked { border-color: var(--red); }
 .capst-when { display: inline-flex; align-items: center; gap: 6px; }
+.capst-prepare { min-width: 0; }
+.capst-prepare-box { align-items: flex-start; }
+.capst-commands { margin: 0; padding: 6px 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }

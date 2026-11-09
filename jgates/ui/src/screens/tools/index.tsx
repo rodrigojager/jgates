@@ -363,7 +363,17 @@ export default function ToolsScreen() {
           initialAdapter={dialog.adapter}
           existing={instances.map((i) => i.id)}
           onClose={() => setDialog(null)}
-          onDone={(id) => done(t("tools_done_created", { tool: id }), id)}
+          onDone={(id) => {
+            // Created from a "not applicable here" action (#/tools?add=<adapter>&focus=<settings>): go straight to the
+            // new instance's options, with the settings the check still needs focused.
+            const query = currentQuery();
+            if (query.get("add")) {
+              const focus = query.get("focus");
+              window.location.hash = `#/tools/${encodeURIComponent(id)}${focus ? `?focus=${encodeURIComponent(focus)}` : ""}`;
+              return;
+            }
+            done(t("tools_done_created", { tool: id }), id);
+          }}
         />
       ) : null}
       {dialog?.kind === "rename" ? <RenameDialog id={dialog.id} onClose={() => setDialog(null)} onDone={(to, refs) => done(t("tools_done_renamed", { tool: to }), dialog.id, refs)} /> : null}

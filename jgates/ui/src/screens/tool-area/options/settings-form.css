@@ -1,0 +1,23 @@
+/* Guided settings form of an instance (tools.<id> of tools.yml). Tokens from theme.css. */
+.rtf .rtf-field { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rtf .rtf-field:last-child { border-bottom: 0; }
+.rtf fieldset.rtf-field { border: 0; margin: 0; padding: 12px 0; }
+.rtf fieldset.rtf-field > legend { padding: 0; margin-bottom: 4px; }
+.rtf .rtf-choice .rtf-field { border-bottom: 0; padding: 8px 0 0 14px; border-left: 2px solid var(--line); }
+.rtf .rtf-missing { box-shadow: inset 3px 0 0 var(--gold); padding-left: 12px; background: color-mix(in srgb, var(--gold) 8%, transparent); border-radius: 6px; }
+.rtf .rtf-invalid .input { border-color: var(--red); }
+.rtf .rtf-missing-note { color: var(--ink); display: flex; align-items: center; gap: 6px; margin: 0; }
+.rtf .rtf-required { color: var(--muted); font-weight: 400; font-size: 12px; }
+.rtf .rtf-text { width: 100%; max-width: 520px; }
+.rtf select.input { max-width: 520px; width: 100%; }
+.rtf .rtf-radios { display: flex; flex-direction: column; gap: 8px; }
+.rtf .rtf-radio { display: flex; align-items: flex-start; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; cursor: pointer; }
+.rtf .rtf-radio:has(input:checked) { border-color: var(--accent); }
+.rtf .rtf-radio.rtf-danger:has(input:checked) { border-color: var(--red); }
+.rtf .rtf-radio input { margin-top: 3px; }
+.rtf .rtf-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px 16px; }
+.rtf .rtf-check { font-weight: 620; }
+.rtf .field-problem { margin: 0; }
+@media (max-width: 480px) {
+  .rtf .rtf-checks { grid-template-columns: minmax(0, 1fr); }
+}

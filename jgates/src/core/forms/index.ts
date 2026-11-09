@@ -8,6 +8,8 @@ import { CodecError, sameValue, type Codec, type CodecOptions, type FieldEdit } 
 import { openDocument, previewEdit, saveDocument, type OpenedDocument } from "../documents/index.js";
 import { resolveToolBindings, type ResolvedBinding, type ToolInstance } from "../tools/index.js";
 import { builtinForms } from "./registry.js";
+import { resolveConfig } from "../config/resolve/index.js";
+import { previewToolsText, saveToolsText, suggestedFiles, toolsDocument, type FormDocument } from "./instance-settings.js";
 import { exactPositionOf, positionOf, tomlPositions } from "./toml-positions.js";
 import type {
   FieldView,
@@ -44,6 +46,11 @@ export { builtinForms, scanForms, isFormDefinition } from "./registry.js";
 export { tomlPositions, positionOf, splitTomlKey } from "./toml-positions.js";
 
 const t = translator("forms");
+/** A catalog key of a form: "area:key" reads the adapter's own catalog (zap:zap_form_target), a bare key the forms one. */
+const tf = (key: string): string => {
+  const at = key.indexOf(":");
+  return at > 0 ? translator(key.slice(0, at))(key.slice(at + 1)) : t(key);
+};
 
 export type FormErrorCode =
   | "INSTANCE_NOT_FOUND"
@@ -114,19 +121,44 @@ function codecOptions(format: string, file: string): CodecOptions {
 interface Located {
   form: FormDefinition;
   instance: ToolInstance;
-  binding: ResolvedBinding;
+  /** null for an "instance" form: the document is the tools file, not a binding. */
+  binding: ResolvedBinding | null;
   section: string[];
+  /**
+   * An "instance" form of an instance a template declares (it has no entry in the tools file yet): the first save
+   * creates tools.<id> with this adapter, which the configuration merges with the template's declaration.
+   */
+  seedAdapter?: string;
+}
+
+/** An instance the effective configuration declares (a template) with an "instance" form, or null. */
+function declaredElsewhere(dir: string, instanceId: string, forms: FormDefinition[]): Located | null {
+  let tools: unknown;
+  try {
+    tools = resolveConfig(dir).config.tools;
+  } catch {
+    return null;
+  }
+  const body = isObject(tools) ? tools[instanceId] : undefined;
+  const adapter = isObject(body) && typeof body.adapter === "string" ? body.adapter : null;
+  const form = adapter ? forms.find((f) => f.adapter === adapter && f.scope === "instance") : undefined;
+  if (!adapter || !form) return null;
+  const instance: ToolInstance = { id: instanceId, adapter, component: null, componentRoot: null, enabled: true, required: false, runner: "local", base: null, supportLevel: "editable-file", bindings: [] };
+  return { form, instance, binding: null, section: ["tools", instanceId], seedAdapter: adapter };
 }
 
 function locate(dir: string, instanceId: string, forms: FormDefinition[]): Located {
   const resolved = resolveToolBindings(dir, { skipInventory: true });
   const instance = resolved.instances.find((i) => i.id === instanceId);
   if (!instance) {
+    const declared = declaredElsewhere(dir, instanceId, forms);
+    if (declared) return declared;
     const available = resolved.instances.map((i) => i.id).join(", ") || "-";
     throw new FormError("INSTANCE_NOT_FOUND", t("forms_instance_not_found", { name: instanceId }), t("forms_instance_not_found_fix", { available }));
   }
   const form = forms.find((f) => f.adapter === instance.adapter);
   if (!form) throw new FormError("FORM_NOT_FOUND", t("forms_not_found", { adapter: instance.adapter }), t("forms_not_found_fix"));
+  if (form.scope === "instance") return { form, instance, binding: null, section: ["tools", instance.id] };
   // The primary binding first, then the others, in tools.yml order.
   const ordered = [...instance.bindings].sort((a, b) => Number(b.role === "primary") - Number(a.role === "primary"));
   for (const binding of ordered) {
@@ -139,7 +171,8 @@ function locate(dir: string, instanceId: string, forms: FormDefinition[]): Locat
 }
 
 interface Loaded extends Located {
-  doc: OpenedDocument;
+  dir: string;
+  doc: FormDocument;
   codec: Codec | null;
   /** Value of the form section (undefined when the section is absent). */
   sectionValue: unknown;
@@ -160,9 +193,11 @@ function valueAt(root: unknown, segments: readonly (string | number)[]): { prese
 
 function load(dir: string, instanceId: string, options: FormOptions, forms: FormDefinition[], text?: string): Loaded {
   const located = locate(dir, instanceId, forms);
-  const doc = openDocument(dir, instanceId, located.binding.id);
-  const base: Loaded = { ...located, doc, codec: null, sectionValue: undefined, positions: new Map(), unavailable: null };
-  if (!doc.exists) return { ...base, unavailable: { code: "DOCUMENT_MISSING", message: t("forms_unavailable_missing", { file: doc.relPath ?? doc.path }), position: null } };
+  let doc: FormDocument = located.binding ? openDocument(dir, instanceId, located.binding.id) : toolsDocument(dir);
+  // A template's instance in a project without a tools file yet: the first save creates it.
+  if (located.seedAdapter && !doc.exists) doc = { ...doc, text: "schemaVersion: 1\n" };
+  const base: Loaded = { ...located, dir, doc, codec: null, sectionValue: undefined, positions: new Map(), unavailable: null };
+  if (!doc.exists && !located.seedAdapter) return { ...base, unavailable: { code: "DOCUMENT_MISSING", message: t("forms_unavailable_missing", { file: doc.relPath ?? doc.path }), position: null } };
   const source = text ?? doc.text;
   if (source === null) return { ...base, unavailable: { code: "DOCUMENT_NOT_TEXT", message: t("forms_unavailable_not_text", { file: doc.relPath ?? doc.path }), position: null } };
   const codec = codecFor(doc.format, options.env);
@@ -192,8 +227,14 @@ function load(dir: string, instanceId: string, options: FormOptions, forms: Form
       unavailable: { code: "SECTION_NOT_TABLE", message: t("forms_unavailable_section", { section: located.section.join(".") }), position: positionOf(positions, located.section) },
     };
   }
+  // An instance a template declares has no entry in the tools file: writing one there would not be that instance.
+  if (!located.binding && !at.present && !located.seedAdapter) {
+    return { ...base, codec, positions, unavailable: { code: "INSTANCE_NOT_IN_FILE", message: t("forms_unavailable_instance", { instance: instanceId, file: doc.relPath ?? doc.path }), position: null } };
+  }
   return { ...base, codec, positions, sectionValue: at.present ? at.value : undefined };
 }
+
+const INSTANCE_KEYS = new Set(["adapter", "component", "enabled", "required", "runner", "base", "bindings", "config", "label", "description", "version", "timeoutSeconds"]);
 
 function viewOf(l: Loaded): FormView {
   const section = l.section;
@@ -205,13 +246,13 @@ function viewOf(l: Loaded): FormView {
       id: fieldId(spec.path),
       path: [...spec.path],
       documentPath: docPath(spec.path),
-      label: t(spec.ui.label),
-      help: t(spec.ui.help),
+      label: tf(spec.ui.label),
+      help: tf(spec.ui.help),
       group: spec.ui.group,
       section: spec.ui.section,
       widget: spec.ui.widget,
       order: spec.ui.order,
-      unit: spec.ui.unit ? t(spec.ui.unit) : null,
+      unit: spec.ui.unit ? tf(spec.ui.unit) : null,
       example: spec.ui.example ?? null,
       ordered: spec.ui.ordered === true,
       schema: spec.schema,
@@ -219,6 +260,21 @@ function viewOf(l: Loaded): FormView {
       problems: [],
       position: null,
     };
+    const options = spec.ui.options;
+    // The values of a select or radio (enum), or of the items of a list of known values (items.enum).
+    const items = spec.schema.items as Record<string, unknown> | undefined;
+    const values = Array.isArray(spec.schema.enum) ? spec.schema.enum : isObject(items) && Array.isArray(items.enum) ? items.enum : null;
+    if (options && values) {
+      view.options = (values as unknown[]).map((v) => {
+        const o = options[String(v)];
+        return { value: String(v), label: o ? tf(o.label) : String(v), help: o?.help ? tf(o.help) : null };
+      });
+    }
+    if (spec.ui.suggestFiles) view.suggestions = suggestedFiles(l.dir, spec.ui.suggestFiles);
+    if (spec.ui.required) view.required = true;
+    if (spec.ui.showWhen) view.showWhen = spec.ui.showWhen;
+    if (spec.ui.format) view.format = spec.ui.format;
+    if (spec.ui.prefill !== undefined) view.prefill = spec.ui.prefill;
     if ("default" in spec.schema) view.defaultValue = spec.schema.default;
     if (at.blockedAt !== null) {
       // A parent of the field holds something that is not a table: the field cannot be edited without replacing it.
@@ -242,6 +298,8 @@ function viewOf(l: Loaded): FormView {
   const paths = l.form.fields.map((f) => f.path);
   const walk = (node: Record<string, unknown>, prefix: string[]) => {
     for (const key of Object.keys(node)) {
+      // The instance's own keys (adapter, component...) are not settings the form misses.
+      if (l.form.scope === "instance" && prefix.length === 0 && INSTANCE_KEYS.has(key)) continue;
       const p = [...prefix, key];
       if (paths.some((fp) => fp.length === p.length && fp.every((s, i) => s === p[i]))) continue;
       const container = paths.some((fp) => fp.length > p.length && p.every((s, i) => s === fp[i]));
@@ -251,17 +309,25 @@ function viewOf(l: Loaded): FormView {
   };
   if (!l.unavailable && isObject(sectionValue)) walk(sectionValue, []);
 
+  const instanceScope = l.form.scope === "instance";
   return {
-    form: { id: l.form.id, adapter: l.form.adapter, title: t(l.form.title) },
+    ...(instanceScope
+      ? {
+          scope: "instance" as const,
+          choices: (l.form.choices ?? []).map((c) => ({ id: c.id, label: tf(c.label), help: tf(c.help), required: c.required === true, options: c.options.map((o) => ({ field: o.field, label: tf(o.label), help: tf(o.help) })) })),
+          rules: (l.form.rules ?? []).map((r) => ({ when: r.when, require: r.require, message: tf(r.message) })),
+        }
+      : {}),
+    form: { id: l.form.id, adapter: l.form.adapter, title: tf(l.form.title) },
     instance: l.instance.id,
-    binding: l.binding.id,
+    binding: l.binding?.id ?? "",
     document: { relPath: l.doc.relPath, format: l.doc.format, exists: l.doc.exists, state: l.doc.state, sharedWith: l.doc.sharedWith },
     revision: l.doc.revision,
     section,
     available: l.unavailable === null,
     unavailable: l.unavailable,
     editable: l.doc.state === "editable",
-    sections: l.form.sections.map((s) => ({ id: s.id, label: t(s.label) })),
+    sections: l.form.sections.map((s) => ({ id: s.id, label: tf(s.label) })),
     fields: fields.sort((a, b) => a.order - b.order),
     unsupported,
   };
@@ -311,6 +377,8 @@ function propose(dir: string, l: Loaded, intents: readonly FormIntent[]): FormPr
   const { edits, changes } = editsFor(l, intents);
   const text = l.doc.text ?? "";
   if (edits.length === 0) return { revision: l.doc.revision, changes, changed: false, text, diff: "", validation: { status: "valid", errors: [] } };
+  // The first setting of a template's instance creates its entry, with the adapter the template declares.
+  if (l.seedAdapter && l.sectionValue === undefined && edits.some((e) => e.op === "set")) edits.unshift({ op: "set", path: [...l.section, "adapter"], value: l.seedAdapter });
   let patched: string;
   try {
     patched = (l.codec as Codec).apply(text, edits, codecOptions(l.doc.format, l.doc.path)).text;
@@ -321,7 +389,7 @@ function propose(dir: string, l: Loaded, intents: readonly FormIntent[]): FormPr
     }
     throw error;
   }
-  const preview = previewEdit(dir, l.instance.id, l.binding.id, { text: patched });
+  const preview = l.binding ? previewEdit(dir, l.instance.id, l.binding.id, { text: patched }) : previewToolsText(l.doc, patched);
   return { revision: preview.revision, changes, changed: preview.changed, text: patched, diff: preview.diff, validation: { status: preview.validation.status, errors: preview.validation.errors } };
 }
 
@@ -360,7 +428,9 @@ export async function saveForm(dir: string, instanceId: string, request: FormReq
   }
   const proposal = propose(dir, l, request.intents);
   if (!proposal.changed) return { status: "unchanged", revision: l.doc.revision, changes: proposal.changes };
-  const saved = saveDocument(dir, instanceId, l.binding.id, { expectedRevision: request.expectedRevision, text: proposal.text, ...(l.doc.text !== null ? { baseText: l.doc.text } : {}) });
+  const saved = l.binding
+    ? saveDocument(dir, instanceId, l.binding.id, { expectedRevision: request.expectedRevision, text: proposal.text, ...(l.doc.text !== null ? { baseText: l.doc.text } : {}) })
+    : saveToolsText(l.doc, request.expectedRevision, proposal.text);
   if (saved.status === "conflict") return conflictOf(dir, instanceId, request.expectedRevision, request.intents, options, forms);
   if (saved.status === "unchanged") return { status: "unchanged", revision: saved.revision, changes: proposal.changes };
   return { status: "saved", previousRevision: saved.previousRevision, revision: saved.revision, changes: proposal.changes, changed: true, text: proposal.text, diff: saved.diff, validation: proposal.validation };

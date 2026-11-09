@@ -196,5 +196,22 @@
   "capst_sum_blocked_one": "1 without a check (blocking)",
   "capst_settings_hint": "Then set {settings} in the tool.",
   "capst_setting_baseRef": "the reference revision of the OpenAPI file",
-  "capst_setting_baseSpec": "the reference OpenAPI file"
+  "capst_setting_baseSpec": "the reference OpenAPI file",
+  "capst_prepare_checking": "Checking what is missing...",
+  "capst_prepare_will_run": "JGates will install {tools} with:",
+  "capst_prepare_hosts": "Downloads from: {hosts}",
+  "capst_prepare_confirm": "Install now",
+  "capst_prepare_cancel": "Cancel",
+  "capst_prepare_running": "Installing {tool}... this can take a few minutes.",
+  "capst_prepare_done": "{tool} is ready; the plan was built again.",
+  "capst_prepare_result_done": "{tool} is ready. The plan was built again.",
+  "capst_prepare_result_ready": "{tool} is already available. The plan was built again.",
+  "capst_prepare_result_failed": "The installation of {tool} did not work.",
+  "capst_prepare_result_skipped": "JGates could not install {tool} here.",
+  "capst_prepare_retry": "Try again",
+  "capst_prepare_manual": "JGates cannot prepare {tool} by itself here: install it yourself, then build the plan again.",
+  "capst_prepare_manual_link": "The \"How to install\" link has the official instructions.",
+  "capst_prepare_copy": "Run in a terminal:",
+  "capst_prepare_details": "See details",
+  "capst_prepare_install": "How to install"
 }

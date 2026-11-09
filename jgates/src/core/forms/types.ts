@@ -35,6 +35,25 @@ export interface FormFieldUi {
   example?: string;
   /** For lists: the order of the items matters. */
   ordered?: boolean;
+  /** For select and radio: catalog keys of the label and help of each value of the enum (shown instead of the raw id). */
+  options?: Record<string, { label: string; help?: string }>;
+  /**
+   * For a path field: files offered as choices when they exist in the project (`candidates`, relative paths) plus those
+   * whose name matches `pattern` (a regular expression over the file name, found in a shallow scan). The field stays a
+   * free value: the UI always offers "Other...".
+   */
+  suggestFiles?: { candidates: string[]; pattern?: string };
+  /** The check cannot run without this value (the UI marks it and does not save it empty). */
+  required?: boolean;
+  /** Shown only while another field of the form has this value (for example allowActive while mode is active). */
+  showWhen?: { field: string; equals: unknown };
+  /** What the text is, for the client's own check before saving (the schema still decides on the server). */
+  format?: "http-url" | "git-ref" | "relative-path" | "image-ref";
+  /**
+   * The value the UI proposes for an absent key (a pending change the person sees and can undo, never written on its
+   * own): for example the capability an instance must declare so a profile selects it.
+   */
+  prefill?: unknown;
 }
 
 export interface FormFieldSpec {
@@ -62,6 +81,28 @@ export interface FormDefinition {
   /** Sections of the form, in display order. */
   sections: Array<{ id: string; label: string }>;
   fields: FormFieldSpec[];
+  /**
+   * What the form edits. "documents" (the default): a configuration file bound to the instance, found by `documents`.
+   * "instance": the settings of the instance itself, `tools.<id>` of the tools file (.jgates/tools.yml), for adapters
+   * whose settings live there (runtime checks: target, spec, reference); `documents` is then empty.
+   */
+  scope?: "documents" | "instance";
+  /**
+   * Mutually exclusive fields shown as one radio group (for example a git ref or a reference file): choosing one option
+   * keeps its field and removes the others. Catalog keys for label and help.
+   */
+  choices?: FormChoiceSpec[];
+  /** A value that needs another one to be valid (mode active needs allowActive true); the UI refuses to save without it. */
+  rules?: Array<{ when: { field: string; equals: unknown }; require: { field: string; equals: unknown }; message: string }>;
+}
+
+export interface FormChoiceSpec {
+  id: string;
+  label: string;
+  help: string;
+  /** One of the options must be set for the check to run. */
+  required?: boolean;
+  options: Array<{ field: string; label: string; help: string }>;
 }
 
 /**
@@ -103,6 +144,14 @@ export interface FieldView {
   problems: string[];
   /** Position of the key in the file (null when absent or when the codec cannot place it). */
   position: Position | null;
+  /** Labels of the enum values (select, radio), in the order of the enum. */
+  options?: Array<{ value: string; label: string; help: string | null }>;
+  /** Files of the project offered for a path field (see FormFieldUi.suggestFiles). */
+  suggestions?: string[];
+  required?: boolean;
+  showWhen?: { field: string; equals: unknown };
+  format?: FormFieldUi["format"];
+  prefill?: unknown;
 }
 
 export interface UnsupportedEntry {
@@ -113,7 +162,8 @@ export interface UnsupportedEntry {
 }
 
 export interface FormUnavailable {
-  code: "DOCUMENT_MISSING" | "DOCUMENT_NOT_TEXT" | "STRUCTURED_EDIT_UNAVAILABLE" | "DOCUMENT_PARSE" | "SECTION_NOT_TABLE";
+  /** INSTANCE_NOT_IN_FILE: an "instance" form whose instance is declared elsewhere (a template), not in the tools file. */
+  code: "DOCUMENT_MISSING" | "DOCUMENT_NOT_TEXT" | "STRUCTURED_EDIT_UNAVAILABLE" | "DOCUMENT_PARSE" | "SECTION_NOT_TABLE" | "INSTANCE_NOT_IN_FILE";
   message: string;
   position: Position | null;
 }
@@ -142,6 +192,10 @@ export interface FormView {
   fields: FieldView[];
   /** Keys of the section the form does not cover, with their position in the file. */
   unsupported: UnsupportedEntry[];
+  /** "instance": the form edits tools.<id> of the tools file (document.relPath); absent means "documents". */
+  scope?: "documents" | "instance";
+  choices?: Array<{ id: string; label: string; help: string; required: boolean; options: Array<{ field: string; label: string; help: string }> }>;
+  rules?: Array<{ when: { field: string; equals: unknown }; require: { field: string; equals: unknown }; message: string }>;
 }
 
 /** One change of the form: set the field to a value, or remove it so the inherited value applies again. */

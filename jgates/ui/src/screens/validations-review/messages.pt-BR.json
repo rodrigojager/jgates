@@ -196,5 +196,22 @@
   "capst_sum_blocked_one": "1 sem verificação (bloqueia)",
   "capst_settings_hint": "Depois, informe {settings} na ferramenta.",
   "capst_setting_baseRef": "a revisão de referência do arquivo OpenAPI",
-  "capst_setting_baseSpec": "o arquivo OpenAPI de referência"
+  "capst_setting_baseSpec": "o arquivo OpenAPI de referência",
+  "capst_prepare_checking": "Verificando o que falta...",
+  "capst_prepare_will_run": "O JGates vai instalar {tools} com:",
+  "capst_prepare_hosts": "Baixa de: {hosts}",
+  "capst_prepare_confirm": "Instalar agora",
+  "capst_prepare_cancel": "Cancelar",
+  "capst_prepare_running": "Instalando {tool}... pode levar alguns minutos.",
+  "capst_prepare_done": "{tool} está pronto; o plano foi montado de novo.",
+  "capst_prepare_result_done": "{tool} está pronto. O plano foi montado de novo.",
+  "capst_prepare_result_ready": "{tool} já está disponível. O plano foi montado de novo.",
+  "capst_prepare_result_failed": "A instalação de {tool} não deu certo.",
+  "capst_prepare_result_skipped": "O JGates não conseguiu instalar {tool} aqui.",
+  "capst_prepare_retry": "Tentar de novo",
+  "capst_prepare_manual": "O JGates não consegue preparar {tool} sozinho aqui: instale você mesmo e monte o plano de novo.",
+  "capst_prepare_manual_link": "O link \"Como instalar\" tem as instruções oficiais.",
+  "capst_prepare_copy": "Rode num terminal:",
+  "capst_prepare_details": "Ver detalhes",
+  "capst_prepare_install": "Como instalar"
 }

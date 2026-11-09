@@ -11,6 +11,11 @@ import type { ToolTabMeta, ToolTabProps } from "../../../forms/tab";
 import { OpenAtLine } from "../../../forms/widgets";
 import { t } from "../../../i18n";
 import { fetchDraft, type DraftView } from "../editbar/drafts";
+import { currentQuery } from "../../../app/route";
+import { SettingsForm, type SettingsView } from "./settings-form";
+
+/** Adapters whose settings live in tools.<id> of tools.yml and have a guided form (scope "instance" on the server). */
+const SETTINGS_ADAPTERS = new Set(["zap", "schemathesis", "oasdiff"]);
 
 // Options tab of the tool area: the schema-driven form of the instance (Ruff, pytest...). Each change is an intent per
 // field; the server turns the intents into a minimal patch, the user reviews the diff and saves with the revision the
@@ -21,7 +26,7 @@ export const tab: ToolTabMeta = {
   label: ft("tab_options"),
   // Before Files (20) and the tab the area opens on: the options are what most people come for.
   order: 10,
-  applies: (instance) => instance?.supportLevel === "assisted" || instance?.supportLevel === "full",
+  applies: (instance) => instance?.supportLevel === "assisted" || instance?.supportLevel === "full" || SETTINGS_ADAPTERS.has(instance?.adapter),
 };
 
 interface Proposal {
@@ -56,6 +61,10 @@ export default function OptionsTab({ instance, active, openFile }: ToolTabProps)
   const [draft, setDraft] = useState<DraftView | null>(null);
   const pendingRef = useRef(pending);
   pendingRef.current = pending;
+  // Settings forms: the fields a "not applicable here" action named (#/tools/<id>?focus=target), and the saved notice
+  // kept across the reload that follows a save.
+  const [focus] = useState(() => (currentQuery().get("focus") ?? "").split(",").map((s) => s.trim()).filter(Boolean));
+  const [settingsSaved, setSettingsSaved] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -133,6 +142,36 @@ export default function OptionsTab({ instance, active, openFile }: ToolTabProps)
   }
   if (error) return <ErrorNotice error={error} onRetry={load} />;
   if (!view) return null;
+
+  const settings = view as unknown as SettingsView;
+  if (settings.scope === "instance") {
+    if (!view.available) {
+      return (
+        <div className="notice warn" role="status">
+          <Icon name="alert" />
+          <div className="stack tight grow">
+            <strong>{ft("unavailable_title")}</strong>
+            <p>{view.unavailable?.message}</p>
+            <p className="small">
+              <a href="#/config/yaml">{t("rtf_open_yaml")}</a>
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <SettingsForm
+        key={view.revision ?? "none"}
+        view={settings}
+        focus={focus}
+        justSaved={settingsSaved}
+        onSaved={(ok) => {
+          setSettingsSaved(ok);
+          void load();
+        }}
+      />
+    );
+  }
 
   const readOnly = !view.editable || !view.available;
   const fileLabel = view.document.relPath ?? view.binding;

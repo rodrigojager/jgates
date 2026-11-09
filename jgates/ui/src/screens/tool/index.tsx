@@ -15,6 +15,7 @@ import { EditBar } from "../tool-area/editbar";
 import { fetchDraft, useDraftSync, type DraftView } from "../tool-area/editbar/drafts";
 import { eb } from "../tool-area/editbar/messages";
 import { ExecutionPanel, type ExecutionData } from "../tool-area/execution";
+import OptionsTab from "../tool-area/options";
 
 // Extra tabs of the tool area: each screens/tool-area/<tab>/index.tsx that exports `tab` and a default component
 // (contract in forms/tab.ts). Files is built in (order 20).
@@ -629,10 +630,30 @@ export default function ToolScreen({ params }: { params: Record<string, string> 
         <h1>{t("tool_title", { tool: id })}</h1>
       </div>
       {tools.loading && !instance ? <Loading /> : null}
-      {failure ? <p>{t("tool_missing", { tool: id })}</p> : tools.error ? <ErrorNotice error={tools.error} onRetry={tools.reload} /> : null}
+      {failure ? <DeclaredInstance id={id} /> : tools.error ? <ErrorNotice error={tools.error} onRetry={tools.reload} /> : null}
       {instance ? <ToolHeader instance={instance} execution={execution.data?.execution ?? null} loading={execution.loading} /> : null}
       {instance ? <ToolTabs instance={instance} onChanged={reloadAll} /> : null}
       {execution.data?.execution ? <ExecutionPanel execution={execution.data.execution} /> : null}
+    </div>
+  );
+}
+
+/**
+ * An instance that is not in tools.yml: when a template declares it and it has a settings form (oasdiff of the OpenAPI
+ * template), the form is shown and its first save creates the entry; otherwise the plain "not found".
+ */
+function DeclaredInstance({ id }: { id: string }) {
+  const form = useAsync(() => api<{ form: { scope?: string; form: { adapter: string } } }>("GET", "/api/forms/" + encodeURIComponent(id)).catch(() => null), "declared-form:" + id);
+  if (form.loading) return <Loading />;
+  const view = form.data?.form;
+  if (!view || view.scope !== "instance") return <p>{t("tool_missing", { tool: id })}</p>;
+  return (
+    <div className="stack">
+      <div className="notice" role="status" data-testid="tool-declared">
+        <Icon name="info" />
+        <p className="small">{t("tool_declared_by_template", { tool: id })}</p>
+      </div>
+      <OptionsTab instance={{ id, adapter: view.form.adapter }} active openFile={() => undefined} />
     </div>
   );
 }

@@ -224,6 +224,165 @@ function ProfileOnly({ ctx }: { ctx: StateContext }) {
   );
 }
 
+interface PrerequisiteItem {
+  id: string;
+  kind: string;
+  names: string[];
+  commands: string[];
+  action: "run" | "copy" | null;
+  hosts: string[];
+  message: string | null;
+  fix: string | null;
+}
+
+type PrepareStep =
+  | { step: "idle" }
+  | { step: "checking" }
+  | { step: "confirm"; item: PrerequisiteItem }
+  | { step: "running"; item: PrerequisiteItem }
+  | { step: "manual"; item: PrerequisiteItem | null }
+  | { step: "result"; status: "done" | "failed" | "skipped" | "ready"; message: string | null };
+
+/**
+ * "Preparar <tool>" for a tool that is not installed: finds the item of the prerequisites list that installs it, shows
+ * the commands and the network it reaches, runs it after the person confirms (POST /api/prerequisites/fix), shows the
+ * result here and builds the plan again. A tool JGates cannot install by itself (a download it does not do, a
+ * platform the tool does not support) is said plainly, with the install link. "Ver detalhes" opens the environment.
+ */
+export function PrepareAction({ label, tools, toolName, docs, ctx }: { label: string; tools: string[]; toolName: string; docs: string | null; ctx: StateContext }) {
+  const [state, setState] = useState<PrepareStep>({ step: "idle" });
+  const [error, setError] = useState<unknown>(null);
+  const toast = useToast();
+  const text = t("capst_prepare", { tool: toolName });
+  const busy = state.step === "checking" || state.step === "running";
+
+  async function check() {
+    setError(null);
+    setState({ step: "checking" });
+    try {
+      const report = await api<{ items: PrerequisiteItem[] }>("GET", "/api/prerequisites");
+      const mine = (report.items ?? []).filter((i) => i.names.some((n) => tools.includes(n)));
+      const runnable = mine.find((i) => i.action === "run");
+      if (runnable) setState({ step: "confirm", item: runnable });
+      else if (mine.length > 0) setState({ step: "manual", item: mine[0] as PrerequisiteItem });
+      else if (tools.length > 0) {
+        // Nothing missing any more (installed meanwhile): the plan only has to be built again.
+        setState({ step: "result", status: "ready", message: null });
+        ctx.onChanged();
+      } else setState({ step: "manual", item: null });
+    } catch (e) {
+      setError(e);
+      setState({ step: "idle" });
+    }
+  }
+
+  async function run(item: PrerequisiteItem) {
+    setError(null);
+    setState({ step: "running", item });
+    try {
+      const r = await api<{ outcome: { status: "done" | "failed" | "skipped"; message: string | null } }>("POST", "/api/prerequisites/fix", { id: item.id });
+      setState({ step: "result", status: r.outcome.status, message: r.outcome.message });
+      if (r.outcome.status === "done") {
+        toast(t("capst_prepare_done", { tool: toolName }), "ok");
+        ctx.onChanged();
+      }
+    } catch (e) {
+      setError(e);
+      setState({ step: "confirm", item });
+    }
+  }
+
+  const details = (
+    <a className="small" href="#/environment" aria-label={`${t("capst_prepare_details")}: ${label}`}>
+      {t("capst_prepare_details")}
+    </a>
+  );
+  const install = docs ? (
+    <a className="small" href={docs} target="_blank" rel="noopener noreferrer" aria-label={`${t("capst_prepare_install")}: ${label}`}>
+      {t("capst_prepare_install")}
+    </a>
+  ) : null;
+
+  return (
+    <div className="stack tight capst-prepare" data-testid="prepare-action" data-step={state.step}>
+      <div className="row wrap">
+        {state.step === "idle" || state.step === "checking" ? (
+          <button type="button" className="btn capst-btn" aria-label={`${text}: ${label}`} disabled={busy} onClick={check}>
+            {state.step === "checking" ? <Spinner /> : <Icon name="tools" />}
+            {text}
+          </button>
+        ) : null}
+        {details}
+        {install}
+      </div>
+      {state.step === "checking" ? (
+        <p className="small muted" role="status">
+          {t("capst_prepare_checking")}
+        </p>
+      ) : null}
+      {state.step === "confirm" || state.step === "running" ? (
+        <div className="notice capst-prepare-box" role="group" aria-label={text}>
+          <div className="stack tight grow">
+            <p className="small">{t("capst_prepare_will_run", { tools: state.item.names.join(", ") })}</p>
+            {state.item.commands.length > 0 ? <pre className="capst-commands">{state.item.commands.join("\n")}</pre> : null}
+            {state.item.hosts.length > 0 ? <p className="small muted">{t("capst_prepare_hosts", { hosts: state.item.hosts.join(", ") })}</p> : null}
+            {state.step === "running" ? (
+              <p className="small" role="status">
+                <Spinner /> {t("capst_prepare_running", { tool: toolName })}
+              </p>
+            ) : (
+              <div className="row wrap">
+                <button type="button" className="btn primary capst-btn" aria-label={`${t("capst_prepare_confirm")}: ${label}`} onClick={() => run(state.item)}>
+                  <Icon name="check" />
+                  {t("capst_prepare_confirm")}
+                </button>
+                <button type="button" className="btn capst-btn" onClick={() => setState({ step: "idle" })}>
+                  {t("capst_prepare_cancel")}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+      {state.step === "manual" ? (
+        <div className="notice warn" role="status" data-testid="prepare-manual">
+          <Icon name="alert" />
+          <div className="stack tight grow">
+            <p className="small">{t("capst_prepare_manual", { tool: toolName })}</p>
+            {state.item?.message ? <p className="small">{state.item.message}</p> : null}
+            {state.item?.action === "copy" && state.item.commands.length > 0 ? (
+              <>
+                <p className="small">{t("capst_prepare_copy")}</p>
+                <pre className="capst-commands">{state.item.commands.join("\n")}</pre>
+              </>
+            ) : state.item?.fix ? (
+              <p className="small">{state.item.fix}</p>
+            ) : null}
+            {install ? <p className="small">{t("capst_prepare_manual_link")}</p> : null}
+          </div>
+        </div>
+      ) : null}
+      {state.step === "result" ? (
+        <div className={`notice ${state.status === "done" || state.status === "ready" ? "ok" : "warn"}`} role="status" data-testid="prepare-result" data-status={state.status}>
+          <Icon name={state.status === "done" || state.status === "ready" ? "check" : "alert"} />
+          <div className="stack tight grow">
+            <p className="small">{t(`capst_prepare_result_${state.status}`, { tool: toolName })}</p>
+            {state.message ? <p className="small">{state.message}</p> : null}
+            {state.status === "failed" || state.status === "skipped" ? (
+              <div>
+                <button type="button" className="btn capst-btn" onClick={check}>
+                  {t("capst_prepare_retry")}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+      {error ? <ErrorNotice error={error} /> : null}
+    </div>
+  );
+}
+
 /** The action of a "not applicable here": one control or link, or the plain sentence that no tool exists. */
 export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext }) {
   const { busy, error, run } = useRunner(ctx);
@@ -267,7 +426,9 @@ export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext })
     if (action.kind === "add-files") hint = t("capst_files_hint");
     if (action.kind === "configure-tool" && settingsOf(action).length > 0) hint = t("capst_settings_hint", { settings: settingsOf(action).map(settingLabel).join(", ") });
   } else if (action.kind === "configure-tool") {
-    const href = tools.length > 0 ? `#/tools/${encodeURIComponent(tools[0] as string)}` : `#/tools?add=${encodeURIComponent(String(action.adapter ?? ""))}`;
+    // The settings the check still needs travel in the link, so the options form focuses and highlights them.
+    const focus = settingsOf(action).length > 0 ? `focus=${encodeURIComponent(settingsOf(action).join(","))}` : "";
+    const href = tools.length > 0 ? `#/tools/${encodeURIComponent(tools[0] as string)}${focus ? `?${focus}` : ""}` : `#/tools?add=${encodeURIComponent(String(action.adapter ?? ""))}${focus ? `&${focus}` : ""}`;
     const text = t(tools.length > 0 ? "capst_configure" : "capst_add_tool", { tool: toolName });
     control = (
       <a className="btn capst-btn" href={href} {...named(text)}>
@@ -277,12 +438,11 @@ export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext })
     );
     if (tools.length === 0 && settingsOf(action).length > 0) hint = t("capst_settings_hint", { settings: settingsOf(action).map(settingLabel).join(", ") });
   } else if (action.kind === "prepare-tool") {
-    const text = t("capst_prepare", { tool: tools.join(", ") || toolName });
-    control = (
-      <a className="btn capst-btn" href="#/environment" {...named(text)}>
-        <Icon name="tools" />
-        {text}
-      </a>
+    const docsLink = ((action.docs ?? []) as string[]).find((d) => /^https?:\/\//.test(d)) ?? null;
+    return (
+      <div className="capst-action" data-action={action.kind}>
+        <PrepareAction label={state.label} tools={tools} toolName={tools.join(", ") || toolName} docs={docsLink} ctx={ctx} />
+      </div>
     );
   }
 

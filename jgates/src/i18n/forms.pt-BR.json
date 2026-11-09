@@ -10,6 +10,7 @@
   "forms_unavailable_format": "Não há leitura estruturada para o formato {format}; a edição textual continua.",
   "forms_unavailable_parse": "O arquivo tem um erro de sintaxe, e o formulário fica suspenso até ele ser corrigido: {detail}",
   "forms_unavailable_section": "A seção {section} não é uma tabela; corrija-a no texto.",
+  "forms_unavailable_instance": "A instância {instance} é declarada por um template, não no {file}: as configurações dela são editadas nesse template (Configuração > YAML).",
   "forms_unavailable_fix": "Edite o arquivo pela aba Arquivos.",
   "forms_read_only": "O arquivo {file} não pode ser gravado pelo formulário: {reason}.",
   "forms_field_unknown": "O campo {field} não faz parte deste formulário.",

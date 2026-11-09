@@ -284,7 +284,7 @@ test("Revisar with strict lists every capability of the catalog: will run, not a
     }
     // A tool that needs a running target: the missing setting is named and the one action adds the tool.
     await expect(capRow(page, "dast")).toContainText("a URL do alvo em execução (target)");
-    await expect(capRow(page, "dast").getByRole("link", { name: /^Adicionar ZAP/ })).toHaveAttribute("href", "#/tools?add=zap");
+    await expect(capRow(page, "dast").getByRole("link", { name: /^Adicionar ZAP/ })).toHaveAttribute("href", "#/tools?add=zap&focus=target");
     // Rust-only tools do not fit a Python project: said with the languages.
     await expect(capRow(page, "properties")).toContainText("Python");
     // The plan's own group names them too, and none of them blocks.

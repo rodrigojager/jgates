@@ -38,5 +38,6 @@
   "tools_err_OVERRIDE_NOT_NEEDED": "This file is already editable.",
   "tools_err_OVERRIDE_UNREADABLE": "Could not read the source file.",
   "tools_err_BINDING_PATH_INVALID": "The path must be relative to the workspace, with no backslash, no . or .. and not leaving it.",
-  "tools_err_BINDING_NOT_FOUND": "The instance does not declare that file."
+  "tools_err_BINDING_NOT_FOUND": "The instance does not declare that file.",
+  "tool_declared_by_template": "The instance {tool} comes from a template of jgates.yml, so it has no entry in .jgates/tools.yml yet. Its settings are saved there, in tools.{tool}, and add to what the template declares."
 }

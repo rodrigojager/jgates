@@ -10,6 +10,7 @@
   "forms_unavailable_format": "There is no structured reading for the format {format}; text editing continues.",
   "forms_unavailable_parse": "The file has a syntax error, and the form stays suspended until it is fixed: {detail}",
   "forms_unavailable_section": "The section {section} is not a table; fix it in the text.",
+  "forms_unavailable_instance": "The instance {instance} is declared by a template, not in {file}: its settings are edited in that template (Configuração > YAML).",
   "forms_unavailable_fix": "Edit the file in the Files tab.",
   "forms_read_only": "The file {file} cannot be written by the form: {reason}.",
   "forms_field_unknown": "The field {field} is not part of this form.",
