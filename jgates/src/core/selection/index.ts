@@ -31,6 +31,14 @@ export * from "./selectors.js";
 
 export type SelectionReason = "EXPLICIT" | "DERIVED" | "NOT_SELECTED" | "DEFAULT" | "LOCKED_REQUIRED";
 
+/**
+ * Condition of an `enabled: true` check entry. "available": the check runs where an applicable, executable tool exists;
+ * where none does, the plan reports it as not applicable (with the reason) and never blocks on it. Without `when` an
+ * enabled check is required: fail-closed (ADR-9), exactly as before.
+ */
+export type CheckCondition = "available";
+export const CHECK_CONDITIONS: readonly CheckCondition[] = ["available"];
+
 export interface SelectionDecision {
   selector: string;
   value: boolean | string;
@@ -40,6 +48,11 @@ export interface SelectionDecision {
   path: string | null;
   pointer: string;
   specificity: number;
+  /**
+   * `when` of the same check entry (or of a stronger layer) that qualifies this `enabled: true`. Absent: required.
+   * A `when` written by a weaker layer, or by another entry of the same layer, never relaxes this decision.
+   */
+  when?: CheckCondition;
 }
 
 export interface LockInfo {
@@ -59,6 +72,8 @@ export interface PairState {
   intensity?: string;
   locked?: LockInfo[];
   lockViolation?: boolean;
+  /** "available": on only where available (see whenOf); absent: on means required. */
+  when?: CheckCondition;
 }
 
 export interface SelectionItem {
@@ -82,6 +97,11 @@ export interface SelectionItem {
   component?: string | null;
   /** Conflicting decisions of the same layer and specificity were settled in favour of "enabled". */
   tie?: boolean;
+  /**
+   * "available" when the check is on only where a tool for it is available: the winning decision says so, no other
+   * `enabled: true` of the same layer requires it plainly, and no policy lock covers it. Absent otherwise.
+   */
+  when?: CheckCondition;
 }
 
 export interface SelectionIssue {
@@ -151,6 +171,22 @@ function entryOf(selector: string, field: "enabled" | "intensity", f: ResolvedFi
   };
 }
 
+/**
+ * Attaches `when` to an `enabled: true` entry of /checks/<selector>/ when the condition was written in the same entry
+ * (same layer, source and file) or by a stronger layer. A plain `enabled: true` written over a weaker `when` stays
+ * required (fail-closed).
+ */
+function applyWhen(entries: Entry[], result: ResolveResult): void {
+  for (const e of entries) {
+    if (e.field !== "enabled" || e.value !== true || !e.decision.pointer.startsWith("/checks/")) continue;
+    const w = result.fields[encodePointer(["checks", e.selector, "when"])];
+    if (!w || !CHECK_CONDITIONS.includes(w.value as CheckCondition)) continue;
+    const rank = rankOf(w.layer);
+    const sameEntry = w.layer === e.decision.layer && w.source === e.decision.source && w.file === e.decision.file;
+    if (rank > e.rank || sameEntry) e.decision.when = w.value as CheckCondition;
+  }
+}
+
 /** Where the entries of the selection come from: /checks/<selector>/{enabled,intensity} and the per-kind files. */
 function collectEntries(result: ResolveResult): Entry[] {
   const out: Entry[] = [];
@@ -168,6 +204,7 @@ function collectEntries(result: ResolveResult): Entry[] {
     const e = entryOf(selector, last, f);
     if (e) out.push(e);
   }
+  applyWhen(out, result);
   return out;
 }
 
@@ -317,6 +354,13 @@ export function resolveSelection(result: ResolveResult, options: SelectionOption
         for (const l of locked) violations.push({ lock: l, decision: decision as SelectionDecision, item: selector });
       }
     }
+    // On "when available" only when nothing of the same strength requires it plainly and no lock covers it.
+    const top = winner;
+    const when =
+      value && top && reason === "EXPLICIT" && locked.length === 0 && top.entry.decision.when !== undefined &&
+      !overridden.some((c) => c.entry.value === true && c.entry.rank >= top.entry.rank && c.entry.decision.when === undefined)
+        ? top.entry.decision.when
+        : undefined;
     return {
       enabled: value,
       reason,
@@ -325,6 +369,7 @@ export function resolveSelection(result: ResolveResult, options: SelectionOption
       ...(intensity ? { intensity: String(intensity.entry.value) } : {}),
       ...(locked.length > 0 ? { locked } : {}),
       ...(lockViolation ? { lockViolation } : {}),
+      ...(when ? { when } : {}),
       tie: enabled.tie,
     };
   };
@@ -355,6 +400,7 @@ export function resolveSelection(result: ResolveResult, options: SelectionOption
         ...(d.intensity ? { intensity: d.intensity } : {}),
         ...(d.locked ? { locked: d.locked } : {}),
         ...(d.lockViolation ? { lockViolation: true } : {}),
+        ...(d.when ? { when: d.when } : {}),
       });
     }
     const on = pairs.filter((p) => p.enabled);

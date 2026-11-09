@@ -43,7 +43,11 @@
               "additionalProperties": false,
               "properties": {
                 "enabled": { "type": "boolean" },
-                "intensity": { "type": "string", "minLength": 1 }
+                "intensity": { "type": "string", "minLength": 1 },
+                "when": {
+                  "description": "available: with enabled: true, the check runs where an applicable, executable tool for it exists; where none does, the plan reports it as not applicable (with the reason) and does not block. Absent: an enabled check is required (fail-closed).",
+                  "enum": ["available"]
+                }
               }
             }
           }

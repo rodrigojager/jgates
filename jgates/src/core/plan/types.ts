@@ -1,5 +1,5 @@
 import type { LayerName } from "../config/resolve/index.js";
-import type { LockInfo, SelectionDecision, SelectionIssue, SelectionReason } from "../selection/index.js";
+import type { CheckCondition, LockInfo, SelectionDecision, SelectionIssue, SelectionReason } from "../selection/index.js";
 
 /**
  * Reviewable plan.
@@ -98,6 +98,8 @@ export interface PlanItemState {
   /** Decided by --skip or --only: valid only for this plan, nothing was written. */
   runOnly: boolean;
   locked: LockInfo[];
+  /** "available": switched on only where available; with its tool missing it is off with reason NOT_AVAILABLE_HERE. */
+  when?: CheckCondition;
 }
 
 export interface PlanItem {
@@ -154,6 +156,96 @@ export interface PlanRequirement {
   /** The decision that makes it a requirement (profile, template, project or policy), without this run's flags. */
   requiredBy: SelectionDecision | LockInfo | null;
   coveredBy: string[];
+  /**
+   * "available": the capability is on only where a check for it is available (a check entry with
+   * `when: available`, for example in builtin:strict). Uncovered, it goes to groups.notApplicableRequirements and
+   * never blocks. Absent: required, and uncovered it is an uncoveredRequirements entry that blocks (fail-closed).
+   */
+  when?: CheckCondition;
+}
+
+/**
+ * Why a capability enabled "when available" has no check in this project (never a blocker):
+ * - NO_TOOL: JGates has no adapter for the capability at all;
+ * - NO_TOOL_FOR_LANGUAGES: adapters exist, none supports the languages of the project's components;
+ * - SETUP_REQUIRED: an adapter applies but no instance of it is declared here (evidence files, template, target URL,
+ *   OpenAPI file... see `adapters[].prerequisites` and `action`);
+ * - TOOL_MISSING: an instance is declared and on, but its tool is not available on this machine (prepare it);
+ * - CHECKS_DISABLED / DISABLED_FOR_RUN: the checks that would cover it are off (saved setting / --skip, --only);
+ * - EVIDENCE_MISSING: the only check claiming it has no verifiable evidence contract (generic command).
+ */
+export type NotApplicableReason = "NO_TOOL" | "NO_TOOL_FOR_LANGUAGES" | "SETUP_REQUIRED" | "TOOL_MISSING" | "CHECKS_DISABLED" | "DISABLED_FOR_RUN" | "EVIDENCE_MISSING";
+
+/** An adapter of JGates that covers the capability, and whether it can apply to this project's languages. */
+export interface NotApplicableAdapter {
+  /** Adapter id (ruff, mutation, zap...). */
+  id: string;
+  /** Display name of the adapter (manifest, not translated). */
+  label: string;
+  /** Languages the adapter is limited to; null: any language. */
+  languages: string[] | null;
+  /** True when it supports one of the project's languages (or any language). */
+  applicable: boolean;
+  /** What must exist outside JGates for it to run here (manifest text, English). */
+  prerequisites: string[];
+  /** Official setup (or acquisition) links. */
+  docs: string[];
+}
+
+/**
+ * The one action that would enable the check here, for the UI to offer as a control or a link:
+ * - none: nothing to do in the project ("JGates has no tool for this stack yet");
+ * - prepare-tool: prepare or install the tool of `tools` (instances) of `adapter` (prerequisites / doctor screens);
+ * - add-files: add one of `files` so the built-in `template` activates (templateState "absent": also add the template
+ *   to jgates.yml templates);
+ * - configure-tool: declare or configure an instance of `adapter` in .jgates/tools.yml (target URL, reference...), or
+ *   add `template` to jgates.yml when it has no evidence files;
+ * - enable-check: turn on the checks of `tools`, switched off by a saved setting or by this run's flags.
+ * Unused fields are null or empty lists, so the shape is the same for every kind.
+ */
+export interface NotApplicableAction {
+  kind: "none" | "prepare-tool" | "add-files" | "configure-tool" | "enable-check";
+  adapter: string | null;
+  tools: string[];
+  template: string | null;
+  templateState: "active" | "declared" | "absent" | null;
+  files: string[];
+  docs: string[];
+}
+
+/**
+ * A requirement enabled "when available" that no check covers in this project: shown apart from the uncovered
+ * requirements, as "not applicable here", with the reason and the action. It never blocks the plan, never makes it
+ * reduced and never counts against approval. JSON example (groups.notApplicableRequirements[i]):
+ *
+ * {
+ *   "selector": "capability:mutation", "kind": "capability", "category": "tests",
+ *   "requiredBy": { "selector": "capability:mutation", "value": true, "layer": "profile", "source": "builtin:strict", ..., "when": "available" },
+ *   "coveredBy": [], "when": "available",
+ *   "label": "Mutação", "reasonCode": "SETUP_REQUIRED",
+ *   "message": "Não aplicável neste projeto: Mutação precisa de preparo: ... Declare uma instância de mutation em .jgates/tools.yml.",
+ *   "languages": ["python"],
+ *   "adapters": [{ "id": "mutation", "label": "Mutation testing (Stryker, mutmut)", "languages": ["javascript", "typescript", "python"], "applicable": true, "prerequisites": ["mutmut 3.x ..."], "docs": ["https://..."] }],
+ *   "candidates": [], "disabledBy": null,
+ *   "action": { "kind": "configure-tool", "adapter": "mutation", "tools": [], "template": null, "templateState": null, "files": [], "docs": ["https://..."] }
+ * }
+ */
+export interface NotApplicableRequirement extends PlanRequirement {
+  when: CheckCondition;
+  /** Readable name of the capability in the current language (the selector for a non-capability). */
+  label: string;
+  reasonCode: NotApplicableReason;
+  /** Human sentence in the current language: why not applicable here and what would enable it. */
+  message: string;
+  /** Languages of the project's approvable components that were considered. */
+  languages: string[];
+  /** JGates adapters covering the capability (empty for NO_TOOL). */
+  adapters: NotApplicableAdapter[];
+  /** Items that would cover it when on and available (disabled or with the tool missing). */
+  candidates: string[];
+  /** CHECKS_DISABLED / DISABLED_FOR_RUN: what turned the covering checks off. */
+  disabledBy: SelectionDecision | null;
+  action: NotApplicableAction;
 }
 
 export interface UncoveredRequirement extends PlanRequirement {
@@ -203,7 +295,13 @@ export interface PlanBody {
   templates: { active: Array<{ id: string; source: string; reason: string; matched: string[]; chain: string[]; support?: { level: string; uncovered: string[] } }>; inactive: Array<{ id: string; source: string; reason: string }> };
   incompatibilities: TemplateIncompatibility[];
   invocations: Array<{ id: string; adapter: string; command: PlanCommand; subchecks: string[]; runsAnyway: string[]; contract?: Record<string, unknown> }>;
-  groups: { willRun: PlanItem[]; notApplicableOrDisabled: PlanItem[]; uncoveredRequirements: UncoveredRequirement[] };
+  /**
+   * willRun: items that run. notApplicableOrDisabled: items that do not (off, superseded, or on "when available" with
+   * the tool missing: reason.code NOT_AVAILABLE_HERE, state.when "available"). uncoveredRequirements: required
+   * capabilities without a check (blockers). notApplicableRequirements: capabilities on "when available" without a
+   * check here (never blockers); absent in plans written before it existed, read it as [].
+   */
+  groups: { willRun: PlanItem[]; notApplicableOrDisabled: PlanItem[]; uncoveredRequirements: UncoveredRequirement[]; notApplicableRequirements?: NotApplicableRequirement[] };
   requirements: PlanRequirement[];
   network: { policy: string; required: boolean; items: string[] };
   /** The rules of .jgates/architecture.yml with their state and where it is decided; null without the file. */

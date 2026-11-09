@@ -47,6 +47,12 @@ function printText(ctx: CommandContext, plan: Plan, savedTo: string, outFile: st
   ctx.stdout(t("plan_text_group_uncovered", { count: plan.groups.uncoveredRequirements.length }) + "\n");
   if (plan.groups.uncoveredRequirements.length === 0) ctx.stdout(t("plan_text_none") + "\n");
   for (const u of plan.groups.uncoveredRequirements) ctx.stdout(t("plan_text_uncovered_item", { selector: u.selector, message: u.message }) + "\n");
+  // Capabilities on "when available" without a check here: apart from the uncovered ones, they never block.
+  const notHere = plan.groups.notApplicableRequirements ?? [];
+  if (notHere.length > 0) {
+    ctx.stdout(t("plan_text_group_not_applicable_here", { count: notHere.length }) + "\n");
+    for (const n of notHere) ctx.stdout(t("plan_text_na_item", { selector: n.selector, code: n.reasonCode, message: n.message }) + "\n");
+  }
   for (const inc of plan.incompatibilities) ctx.stdout(t("plan_text_incompat", { message: inc.message }) + "\n");
   for (const w of plan.warnings) ctx.stdout(t("plan_text_warning", { code: w.code, message: w.message }) + "\n");
   if (plan.selection.reduced) ctx.stdout(t("plan_text_reduced") + "\n");

@@ -216,7 +216,8 @@
       "properties": {
         "willRun": { "type": "array", "items": { "$ref": "#/$defs/item" } },
         "notApplicableOrDisabled": { "type": "array", "items": { "$ref": "#/$defs/item" } },
-        "uncoveredRequirements": { "type": "array", "items": { "$ref": "#/$defs/uncovered" } }
+        "uncoveredRequirements": { "type": "array", "items": { "$ref": "#/$defs/uncovered" } },
+        "notApplicableRequirements": { "type": "array", "items": { "$ref": "#/$defs/notApplicable" } }
       }
     },
     "requirements": { "type": "array", "items": { "$ref": "#/$defs/requirement" } },
@@ -307,7 +308,8 @@
         "file": { "type": ["string", "null"] },
         "path": { "type": ["string", "null"] },
         "pointer": { "type": "string" },
-        "specificity": { "type": "number" }
+        "specificity": { "type": "number" },
+        "when": { "enum": ["available"] }
       }
     },
     "lock": {
@@ -443,7 +445,8 @@
             "decision": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/decision" }] },
             "overridden": { "type": "array", "items": { "$ref": "#/$defs/decision" } },
             "runOnly": { "type": "boolean" },
-            "locked": { "type": "array", "items": { "$ref": "#/$defs/lock" } }
+            "locked": { "type": "array", "items": { "$ref": "#/$defs/lock" } },
+            "when": { "enum": ["available"] }
           }
         },
         "command": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/command" }] },
@@ -543,7 +546,8 @@
         "kind": { "enum": ["capability", "lock"] },
         "category": { "type": ["string", "null"] },
         "requiredBy": { "type": ["object", "null"] },
-        "coveredBy": { "$ref": "#/$defs/strings" }
+        "coveredBy": { "$ref": "#/$defs/strings" },
+        "when": { "enum": ["available"] }
       }
     },
     "uncovered": {
@@ -561,6 +565,56 @@
         "disabledBy": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/decision" }] },
         "runOnly": { "type": "boolean" },
         "candidates": { "$ref": "#/$defs/strings" }
+      }
+    },
+    "notApplicable": {
+      "description": "A capability enabled 'when available' with no check in this project: never a blocker.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selector", "kind", "category", "requiredBy", "coveredBy", "when", "label", "reasonCode", "message", "languages", "adapters", "candidates", "disabledBy", "action"],
+      "properties": {
+        "selector": { "type": "string" },
+        "kind": { "enum": ["capability", "lock"] },
+        "category": { "type": ["string", "null"] },
+        "requiredBy": { "type": ["object", "null"] },
+        "coveredBy": { "$ref": "#/$defs/strings" },
+        "when": { "enum": ["available"] },
+        "label": { "type": "string" },
+        "reasonCode": { "enum": ["NO_TOOL", "NO_TOOL_FOR_LANGUAGES", "SETUP_REQUIRED", "TOOL_MISSING", "CHECKS_DISABLED", "DISABLED_FOR_RUN", "EVIDENCE_MISSING"] },
+        "message": { "type": "string" },
+        "languages": { "$ref": "#/$defs/strings" },
+        "adapters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label", "languages", "applicable", "prerequisites", "docs"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "languages": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/strings" }] },
+              "applicable": { "type": "boolean" },
+              "prerequisites": { "$ref": "#/$defs/strings" },
+              "docs": { "$ref": "#/$defs/strings" }
+            }
+          }
+        },
+        "candidates": { "$ref": "#/$defs/strings" },
+        "disabledBy": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/decision" }] },
+        "action": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "adapter", "tools", "template", "templateState", "files", "docs"],
+          "properties": {
+            "kind": { "enum": ["none", "prepare-tool", "add-files", "configure-tool", "enable-check"] },
+            "adapter": { "type": ["string", "null"] },
+            "tools": { "$ref": "#/$defs/strings" },
+            "template": { "type": ["string", "null"] },
+            "templateState": { "enum": ["active", "declared", "absent", null] },
+            "files": { "$ref": "#/$defs/strings" },
+            "docs": { "$ref": "#/$defs/strings" }
+          }
+        }
       }
     },
     "blocker": {

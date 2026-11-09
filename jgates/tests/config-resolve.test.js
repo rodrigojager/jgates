@@ -454,8 +454,13 @@ test("the starter profiles and the built-in templates are valid and select bridg
     for (const c of on(minimal)) assert.ok(on(standard).includes(c));
     for (const c of on(standard)) assert.ok(on(strict).includes(c));
     assert.ok(strict["capability:unit"] && !standard["capability:unit"]);
+    // What a profile requires has a built-in check; what strict turns on "when available" may not (it never blocks).
     const capabilities = new Set([...qualityBridgeManifest.capabilities, ...builtinPiiManifest.capabilities]);
-    for (const key of Object.keys(strict)) assert.ok(capabilities.has(key.slice("capability:".length)), key);
+    const strictBody = builtin.builtinProfileBody(builtin.getBuiltinProfile("builtin:strict")).checks;
+    for (const key of Object.keys(strict)) {
+      if (strictBody[key]?.when === "available") continue;
+      assert.ok(capabilities.has(key.slice("capability:".length)), key);
+    }
   });
 });
 

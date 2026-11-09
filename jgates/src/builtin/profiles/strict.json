@@ -3,12 +3,30 @@
   "profiles": {
     "strict": {
       "label": "Rigoroso",
-      "description": "O Equilibrado mais os testes do projeto e a cobertura, antes do merge.",
+      "description": "O Equilibrado mais testes e cobertura obrigatórios, e liga todas as outras verificações disponíveis onde houver ferramenta para elas.",
       "extends": "builtin:standard",
       "checks": {
         "capability:pii": { "enabled": true },
         "capability:unit": { "enabled": true },
-        "capability:coverage": { "enabled": true }
+        "capability:coverage": { "enabled": true },
+        "capability:format-check": { "enabled": true, "when": "available" },
+        "capability:secrets-history": { "enabled": true, "when": "available" },
+        "capability:dataflow": { "enabled": true, "when": "available" },
+        "capability:licenses": { "enabled": true, "when": "available" },
+        "capability:integration": { "enabled": true, "when": "available" },
+        "capability:e2e": { "enabled": true, "when": "available" },
+        "capability:mutation": { "enabled": true, "when": "available" },
+        "capability:tests": { "enabled": true, "when": "available" },
+        "capability:properties": { "enabled": true, "when": "available" },
+        "capability:architecture": { "enabled": true, "when": "available" },
+        "capability:api-compatibility": { "enabled": true, "when": "available" },
+        "capability:typecheck": { "enabled": true, "when": "available" },
+        "capability:migration": { "enabled": true, "when": "available" },
+        "capability:performance": { "enabled": true, "when": "available" },
+        "capability:ci-cd": { "enabled": true, "when": "available" },
+        "capability:api-contract": { "enabled": true, "when": "available" },
+        "capability:supply-chain": { "enabled": true, "when": "available" },
+        "capability:dast": { "enabled": true, "when": "available" }
       }
     }
   }

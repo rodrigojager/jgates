@@ -5,7 +5,8 @@ import { translator, type Translator } from "../../i18n/index.js";
 import { readVersion } from "../../cli/version.js";
 import { listBuiltinProfiles, listBuiltinTemplates, getBuiltinTemplate, isBuiltinRef } from "../../builtin/index.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
-import { subcheckLabel } from "../catalog/index.js";
+import { createCoreCatalog, subcheckLabel } from "../catalog/index.js";
+import { emptyAction, explainMissing } from "./availability.js";
 import { buildRequest } from "../../adapters/quality-bridge/index.js";
 import { bridgeToolConfigs, effectiveCommand, isConfigurable } from "../../adapters/quality-bridge/tool-configs.js";
 import { ADAPTER_ID, planSubchecks, type BridgeSelection, type SubcheckPlan } from "../../adapters/quality-bridge/requirements.js";
@@ -42,6 +43,7 @@ import {
   type BuildPlanOptions,
   type BuildPlanResult,
   type Inclusion,
+  type NotApplicableRequirement,
   type Plan,
   type PlanBlocker,
   type PlanBody,
@@ -514,6 +516,15 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     externals.set(tool.id, { adapter, plan: planned });
     for (const f of planned.configFiles) hashes.set(f.file, f.sha256);
   }
+  /**
+   * A pair switched on only "when available" whose tool is not available here (an adapter that runs its own process
+   * and reports unavailable at planning). Required pairs keep today's behaviour (blocker or run-time block).
+   */
+  const missingHere = (p: PairEval): boolean => {
+    if (p.eff.when !== "available" || p.tool.parent !== null) return false;
+    const ext = externals.get(p.tool.id);
+    return ext !== undefined && ext.plan.availability.status !== "available";
+  };
 
   const inclusionOf = (toolId: string): Inclusion[] => {
     const field: ResolvedField | undefined =
@@ -538,7 +549,9 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     const subId = bridge ? p.tool.id.slice(ADAPTER_ID.length + 1) : null;
     const sub = subId ? subchecks.get(subId) : undefined;
     const subPlan = subId ? subPlans.get(subId) : undefined;
-    const on = isOn(p);
+    // On only "when available" with its tool missing here: it does not run and never blocks (reported apart).
+    const notHere = isOn(p) && missingHere(p);
+    const on = isOn(p) && !notHere;
     const onlyDecision: SelectionDecision = { selector: "--only", value: false, layer: "call", source: "--only", file: null, path: null, pointer: "", specificity: 0 };
     const decision = p.onlyExcluded ? onlyDecision : p.eff.decision;
     const reason = p.onlyExcluded ? "ONLY_EXCLUDED" : p.eff.reason;
@@ -549,7 +562,10 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     const id = `${p.tool.id}#${p.capability}`;
     let reasonCode: string;
     let reasonMessage: string;
-    if (on && !executable) {
+    if (notHere) {
+      reasonCode = "NOT_AVAILABLE_HERE";
+      reasonMessage = t("plan_reason_not_available_here", { tool: p.tool.id, reason: ext?.plan.availability.reason ?? "-" });
+    } else if (on && !executable) {
       reasonCode = "NO_EXECUTABLE_ADAPTER";
       reasonMessage = t("plan_reason_no_adapter", { tool: p.tool.id, where: where(decision) });
     } else if (supersededOf(p)) {
@@ -630,6 +646,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
         overridden: p.eff.overridden,
         runOnly: decision?.layer === "call" && decision.source !== "--profile",
         locked: p.eff.locked ?? [],
+        ...(p.eff.when && !p.onlyExcluded ? { when: p.eff.when } : {}),
       },
       command: itemCommand,
       runtime: ext ? ext.plan.runtime : bridge ? { name: "python", interpreter: runtime.interpreter, available } : null,
@@ -682,13 +699,23 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       const pair = pairs.find((p) => p.capability === cap.id && p.base?.enabled);
       requiredBy = pair?.base?.decision ?? null;
     }
-    requirements.push({ selector: cap.selector, kind: "capability", category: capCategory.get(cap.id) ?? null, requiredBy, coveredBy: coveredBy(cap.selector, willRun) });
+    requirements.push({
+      selector: cap.selector,
+      kind: "capability",
+      category: capCategory.get(cap.id) ?? null,
+      requiredBy,
+      coveredBy: coveredBy(cap.selector, willRun),
+      ...(cap.when ? { when: cap.when } : {}),
+    });
   }
   for (const lock of selBase.locks) {
     if (requirements.some((r) => r.selector === lock.selector)) continue;
     requirements.push({ selector: lock.selector, kind: "lock", category: null, requiredBy: lock, coveredBy: coveredBy(lock.selector, willRun) });
   }
   const uncovered: UncoveredRequirement[] = [];
+  const notApplicableHere: NotApplicableRequirement[] = [];
+  const capLabel = new Map(createCoreCatalog().toDocument().capabilities.map((c) => [c.id, c.label]));
+  const projectLanguages = uniqueSorted(componentRefs.map((c) => c.language).filter((l): l is string => l !== null));
   for (const r of requirements) {
     if (r.coveredBy.length > 0) continue;
     const candidates = unique.filter((i) => i.availability.status !== "not_executable" && claims(i, r.selector));
@@ -707,6 +734,38 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       disabledBy = candidates.map((i) => i.state.decision).find((d): d is SelectionDecision => d !== null) ?? null;
     }
     const key = { NO_EXECUTABLE_CHECK: "plan_uncovered_no_check", DISABLED_FOR_RUN: "plan_uncovered_for_run", CHECKS_DISABLED: "plan_uncovered_checks_disabled", EVIDENCE_MISSING: "plan_uncovered_evidence_missing" }[reason];
+    if (r.when === "available") {
+      // On only where available: not applicable here, with the reason and the action; never a blocker.
+      const capability = r.selector.startsWith("capability:") ? r.selector.slice("capability:".length) : r.selector;
+      const label = capLabel.get(capability) ?? r.selector;
+      const base = { ...r, when: r.when, label, languages: projectLanguages, candidates: candidates.map((i) => i.id), disabledBy };
+      const missing = candidates.filter((i) => i.reason.code === "NOT_AVAILABLE_HERE");
+      if (missing.length > 0) {
+        const tools = uniqueSorted(missing.map((i) => i.tool));
+        notApplicableHere.push({
+          ...base,
+          disabledBy: null,
+          reasonCode: "TOOL_MISSING",
+          message: t("plan_na_tool_missing", { label, tools: tools.join(", "), reason: missing.map((i) => i.availability.reason ?? i.tool).join("; ") }),
+          adapters: [],
+          action: { ...emptyAction("prepare-tool"), adapter: missing[0]?.adapter ?? null, tools },
+        });
+      } else if (reason === "NO_EXECUTABLE_CHECK") {
+        const explained = explainMissing({ capability, label, languages: projectLanguages, templates: effective.templates }, t);
+        notApplicableHere.push({ ...base, ...explained });
+      } else {
+        const naKey = { DISABLED_FOR_RUN: "plan_na_for_run", CHECKS_DISABLED: "plan_na_checks_disabled", EVIDENCE_MISSING: "plan_na_evidence_missing" }[reason];
+        const tools = uniqueSorted(candidates.map((i) => i.tool));
+        notApplicableHere.push({
+          ...base,
+          reasonCode: reason,
+          message: t(naKey, { label, by: disabledBy ? (disabledBy.file ? where(disabledBy) : disabledBy.source) : "-", detail: unproven.map((i) => uncredited.get(i.id)).join("; ") }),
+          adapters: [],
+          action: { ...emptyAction(reason === "EVIDENCE_MISSING" ? "configure-tool" : "enable-check"), tools },
+        });
+      }
+      continue;
+    }
     uncovered.push({
       ...r,
       reason,
@@ -862,10 +921,10 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     invocations: [
       ...(command ? [{ id: ADAPTER_ID, adapter: ADAPTER_ID, command, subchecks: [...invoked].sort(), runsAnyway }] : []),
       ...[...externals.entries()]
-        .filter(([id]) => pairs.some((p) => p.tool.id === id && isOn(p)))
+        .filter(([id]) => pairs.some((p) => p.tool.id === id && isOn(p) && !missingHere(p)))
         .map(([id, e]) => ({ id, adapter: e.adapter.manifest.id, command: { invocation: id, ...e.plan.command, args: [...e.plan.command.args], env: { ...e.plan.command.env } }, subchecks: [], runsAnyway: [], ...(e.plan.contract ? { contract: e.plan.contract } : {}) })),
     ],
-    groups: { willRun, notApplicableOrDisabled: notApplicable, uncoveredRequirements: uncovered },
+    groups: { willRun, notApplicableOrDisabled: notApplicable, uncoveredRequirements: uncovered, notApplicableRequirements: notApplicableHere },
     requirements,
     network: { policy: networkPolicy, required: networkItems.length > 0, items: networkItems },
     architecture: architectureOf(configDir),

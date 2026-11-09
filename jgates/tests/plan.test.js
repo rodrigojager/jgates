@@ -60,7 +60,7 @@ test("plan --json on the main fixture: items of the three components with origin
     const out = json(r);
     assert.equal(out.status, "OK");
     const p = out.plan;
-    assert.deepEqual(Object.keys(p.groups).sort(), ["notApplicableOrDisabled", "uncoveredRequirements", "willRun"]);
+    assert.deepEqual(Object.keys(p.groups).sort(), ["notApplicableOrDisabled", "notApplicableRequirements", "uncoveredRequirements", "willRun"]);
     assert.ok(Array.isArray(p.groups.uncoveredRequirements));
     assert.ok(p.groups.willRun.length > 0);
     assert.deepEqual(validateDoc(p), []);
