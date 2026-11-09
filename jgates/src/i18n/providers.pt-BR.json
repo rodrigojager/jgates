@@ -97,5 +97,19 @@
   "providers_err_preferences_blocked": "as preferências do usuário não são usadas aqui: só o projeto e o ambiente contam",
   "providers_fix_preferences_blocked": "Ponha a configuração na política de CI ou no ambiente do pipeline.",
   "providers_err_preferences_write_failed": "o arquivo de preferências não pode ser gravado",
-  "providers_fix_preferences_write_failed": "Confira as permissões da pasta indicada acima."
+  "providers_fix_preferences_write_failed": "Confira as permissões da pasta indicada acima.",
+  "providers_cli_header": "CLIs de agente (cada um faz login com o próprio comando; o JGates não lê credenciais):",
+  "providers_cli_installed": "instalado {version}  {path}",
+  "providers_cli_not_installed": "não instalado (instale: {install})",
+  "providers_cli_logged_in": "com login",
+  "providers_cli_logged_in_method": "com login ({method})",
+  "providers_cli_not_logged_in": "sem login: rode {command}",
+  "providers_cli_unknown_timeout": "login desconhecido: o comando de status não respondeu a tempo (rode {command} se precisar)",
+  "providers_cli_unknown_command_failed": "login desconhecido: o comando de status falhou (rode {command} se precisar)",
+  "providers_cli_unknown_unrecognized_output": "login desconhecido: a saída do status não foi reconhecida (rode {command} se precisar)",
+  "providers_cli_unknown_no_credential_found": "login desconhecido: sem comando de status e sem arquivo de credencial (rode {command} para entrar)",
+  "providers_cli_unknown_not_installed": "não instalado",
+  "providers_cli_unknown_status_command": "login desconhecido",
+  "providers_cli_unknown_credential_file": "login desconhecido",
+  "providers_cli_unknown_key_variable": "login desconhecido"
 }

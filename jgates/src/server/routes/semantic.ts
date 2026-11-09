@@ -14,7 +14,7 @@ import { parseDocument } from "yaml";
 import { readSemanticState } from "../../adapters/semantic-gate/index.js";
 import { readRevision, type YamlEdit } from "../../core/codecs/yaml/index.js";
 import { ROOT_FILE } from "../../core/config/load/index.js";
-import { baseUrlProblem, listProviders, PROVIDERS, publicResolution } from "../../core/providers/index.js";
+import { baseUrlProblem, knownProvider, listProviders, PROVIDERS, publicResolution } from "../../core/providers/index.js";
 import { translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
 import { modeOf } from "../policy-mode.js";
@@ -241,4 +241,55 @@ export const routes: RouteDefinition[] = [
       return { status: 200, json: { schemaVersion: 1, status: "OK", save: { status: edits.length > 0 ? "saved" : "unchanged", changes }, semantic: semanticView(server) } };
     },
   },
+  {
+    // The provider step of the Semantic area: saves the project's provider and model in jgates.yml >
+    // extensions.semantic-gate (creating the block when absent; comments and the other keys stay as they are). A known
+    // provider is written by its id (an alias becomes the id), a connection of the preferences by its name; model null
+    // removes the project's model (the user's default or the CLI's own applies). A block with `enabled: false` is turned
+    // on: choosing a provider is asking for the review. Same revision and governed-mode rules as PUT /api/config/semantic.
+    method: "PUT",
+    path: "/api/config/semantic/provider",
+    body: {
+      type: "object",
+      properties: {
+        expectedRevision: { anyOf: [{ type: "string", pattern: "^[0-9a-f]{64}$" }, { type: "null" }] },
+        provider: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$" },
+        model: { anyOf: [{ type: "string", minLength: 1, maxLength: 200, pattern: NO_CONTROL }, { type: "null" }] },
+      },
+      required: ["expectedRevision", "provider", "model"],
+      additionalProperties: false,
+    },
+    handler({ body, server }) {
+      assertWritable();
+      const request = body as { expectedRevision: string | null; provider: string; model: string | null };
+      const l = load(server);
+      if (l.revision !== request.expectedRevision) {
+        throw new HttpError(409, "REVISION_CONFLICT", t("server_semantic_conflict", { file: ROOT_FILE }), t("server_semantic_conflict_fix"), { currentRevision: l.revision });
+      }
+      const provider = projectProviderName(request.provider);
+      const intents: Intent[] = [
+        { field: "provider", op: "set", value: provider },
+        request.model === null ? { field: "model", op: "inherit" } : { field: "model", op: "set", value: request.model.trim() },
+      ];
+      if (l.block.enabled === false) intents.push({ field: "enabled", op: "set", value: true });
+      const { edits, changes } = editsFor(l, intents);
+      if (edits.length > 0) patchConfigFile(server, ROOT_FILE, "root", edits, request.expectedRevision);
+      server.log(`semantic provider ${edits.length > 0 ? "saved" : "unchanged"}: ${provider}`);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", save: { status: edits.length > 0 ? "saved" : "unchanged", changes }, semantic: semanticView(server) } };
+    },
+  },
 ];
+
+/** The name a project uses for a provider: the id of a known provider (an alias becomes the id) or a connection's name. */
+function projectProviderName(given: string): string {
+  const known = knownProvider(given);
+  if (known) return known.id;
+  let connections: string[] = [];
+  try {
+    connections = listProviders().providers.filter((p) => p.kind === "connection").map((p) => p.name);
+  } catch {
+    connections = [];
+  }
+  if (connections.includes(given)) return given;
+  throw new HttpError(422, "UNKNOWN_PROVIDER", t("server_semantic_provider_unknown", { name: given }), t("server_semantic_provider_unknown_fix"), { field: "provider" });
+}

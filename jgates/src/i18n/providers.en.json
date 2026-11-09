@@ -97,5 +97,19 @@
   "providers_err_preferences_blocked": "the user's preferences are not used here: only the project and the environment count",
   "providers_fix_preferences_blocked": "Put the setting in the CI policy or in the environment of the pipeline.",
   "providers_err_preferences_write_failed": "the preferences file cannot be written",
-  "providers_fix_preferences_write_failed": "Check the permissions of the folder named above."
+  "providers_fix_preferences_write_failed": "Check the permissions of the folder named above.",
+  "providers_cli_header": "Agent CLIs (each logs in with its own command; JGates reads no credential):",
+  "providers_cli_installed": "installed {version}  {path}",
+  "providers_cli_not_installed": "not installed (install: {install})",
+  "providers_cli_logged_in": "logged in",
+  "providers_cli_logged_in_method": "logged in ({method})",
+  "providers_cli_not_logged_in": "not logged in: run {command}",
+  "providers_cli_unknown_timeout": "login state unknown: the status command did not answer in time (run {command} if needed)",
+  "providers_cli_unknown_command_failed": "login state unknown: the status command failed (run {command} if needed)",
+  "providers_cli_unknown_unrecognized_output": "login state unknown: the status output was not recognized (run {command} if needed)",
+  "providers_cli_unknown_no_credential_found": "login state unknown: no status command and no credential file found (run {command} to log in)",
+  "providers_cli_unknown_not_installed": "not installed",
+  "providers_cli_unknown_status_command": "login state unknown",
+  "providers_cli_unknown_credential_file": "login state unknown",
+  "providers_cli_unknown_key_variable": "login state unknown"
 }

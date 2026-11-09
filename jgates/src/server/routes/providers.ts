@@ -28,6 +28,16 @@ import {
   type ProviderEntry,
   type ProviderPatch,
 } from "../../core/providers/index.js";
+import {
+  CLI_PROVIDER_IDS,
+  cliProvidersStatus,
+  cliSpec,
+  isCliProviderId,
+  MODELS_TIMEOUT_MS as CLI_MODELS_TIMEOUT_MS,
+  openLoginTerminal,
+  resolveCliExecutable,
+  STATUS_TIMEOUT_MS as CLI_COMMAND_TIMEOUT_MS,
+} from "../../core/providers/cli-status.js";
 import { resolveSecret, SECRET_MASK } from "../../core/secrets/index.js";
 import { translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
@@ -44,6 +54,8 @@ const TEST_TIMEOUT_MS = 30_000;
 export const MODELS_TIMEOUT_MS = TEST_TIMEOUT_MS + 15_000;
 /** Models an answer of Testar carries at most (the list feeds the choice of the default model). */
 const MAX_MODELS = 500;
+/** Handler limit of the CLI status: a status command and a model listing run in parallel, each bounded on its own. */
+export const CLI_STATUS_TIMEOUT_MS = Math.max(CLI_COMMAND_TIMEOUT_MS, CLI_MODELS_TIMEOUT_MS) + 10_000;
 
 // ---- the lock of the user's settings ------------------------------------------------------------------------------------
 
@@ -302,6 +314,46 @@ export const routes: RouteDefinition[] = [
       const outcome = providersGuard(() => removeProvider(params.name as string));
       server.log(`provider preference removed: ${params.name as string}`);
       return { status: 200, json: { schemaVersion: 1, status: "OK", name: params.name, ...outcome, revision: preferencesRevision() } };
+    },
+  },
+  {
+    // The agent CLIs (claude-code, codex-cli, opencode, gemini-cli): installed (path, version), logged in (the CLI's own
+    // status command, bounded in time; no credential is read) and the models each offers. Reads only: every mode.
+    // ?models=0 skips the model listings; ?refresh=1 ignores their cache; ?only=<id> checks one CLI.
+    method: "GET",
+    path: "/api/providers/cli-status",
+    query: {
+      type: "object",
+      properties: { models: { enum: ["0", "1"] }, refresh: { enum: ["0", "1"] }, only: { enum: [...CLI_PROVIDER_IDS] } },
+      additionalProperties: false,
+    },
+    timeoutMs: CLI_STATUS_TIMEOUT_MS,
+    async handler({ query }) {
+      const only = typeof query.only === "string" && isCliProviderId(query.only) ? [query.only] : undefined;
+      const report = await cliProvidersStatus({ models: query.models !== "0", cache: query.refresh !== "1", ...(only ? { only } : {}) });
+      return { status: 200, json: { schemaVersion: 1, status: "OK", ...report } };
+    },
+  },
+  {
+    // Opens a new visible terminal running the CLI's own login command (claude auth login, codex login, opencode auth
+    // login, gemini). JGates never logs in nor reads a credential; the screen checks the status again afterwards.
+    // Refused in the governed mode and while a CI policy is edited, like every change of the user's settings.
+    method: "POST",
+    path: "/api/providers/:name/login",
+    params: nameParams,
+    async handler({ params, server }) {
+      assertUserSettingsWritable(server);
+      const name = params.name as string;
+      if (!isCliProviderId(name)) {
+        throw new HttpError(404, "NOT_A_CLI_PROVIDER", t("server_cli_not_cli_provider", { name }), t("server_cli_not_cli_provider_fix"), { providers: [...CLI_PROVIDER_IDS] });
+      }
+      const spec = cliSpec(name);
+      if (!resolveCliExecutable(spec.command)) {
+        throw new HttpError(409, "CLI_NOT_INSTALLED", t("server_cli_not_installed", { name: spec.name, command: spec.command }), t("server_cli_not_installed_fix", { install: spec.install }), { install: spec.install });
+      }
+      const outcome = await openLoginTerminal(name);
+      server.log(`login terminal ${outcome.opened ? "opened" : "not opened"}: ${name}`);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", ...outcome } };
     },
   },
   {

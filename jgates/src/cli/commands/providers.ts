@@ -18,6 +18,7 @@ import {
   type ProviderEntry,
   type ProviderPatch,
 } from "../../core/providers/index.js";
+import { cliProvidersStatus, type CliProviderStatus } from "../../core/providers/cli-status.js";
 import { resolveSecret, SECRET_MASK } from "../../core/secrets/index.js";
 import { loadModelLister } from "../../adapters/semantic-gate/index.js";
 import { emptyCounts, maskText, strictMaskRules } from "../../adapters/semantic-gate/mask.js";
@@ -64,6 +65,21 @@ function renderEntry(e: ProviderEntry): string {
   return lines.join("\n");
 }
 
+/** One agent CLI: installed (version, path) or how to install it, and its login state with the command to log in. */
+function renderCli(s: CliProviderStatus): string {
+  const id = s.id.padEnd(12);
+  if (!s.installed) return `  ${id}  ${t("providers_cli_not_installed", { install: s.install })}`;
+  const login =
+    s.login.state === "logged-in"
+      ? s.login.method
+        ? t("providers_cli_logged_in_method", { method: s.login.method })
+        : t("providers_cli_logged_in")
+      : s.login.state === "not-logged-in"
+        ? t("providers_cli_not_logged_in", { command: s.loginCommand.display })
+        : t(`providers_cli_unknown_${s.login.reason.toLowerCase()}`, { command: s.loginCommand.display });
+  return [`  ${id}  ${t("providers_cli_installed", { version: s.version ?? "?", path: s.path ?? "-" })}`, `  ${"".padEnd(12)}  ${login}`].join("\n");
+}
+
 export const command: CommandModule = {
   name: "providers",
   description: t("providers_cmd_description"),
@@ -102,10 +118,13 @@ export const command: CommandModule = {
       } catch (error) {
         return fromError(error);
       }
-      if (ctx.json) writeJson(ctx, { ...header("list"), status: "OK", exitCode: 0, file: listing.file, providers: listing.providers.map(publicEntry), problems: listing.problems.map((e) => ({ field: e.field, code: e.code, message: fieldText(e) })) });
+      // The agent CLIs: installed, version, logged in (their own status commands, bounded in time; no model listing here).
+      const cli = await cliProvidersStatus({ env, models: false });
+      if (ctx.json) writeJson(ctx, { ...header("list"), status: "OK", exitCode: 0, file: listing.file, providers: listing.providers.map(publicEntry), problems: listing.problems.map((e) => ({ field: e.field, code: e.code, message: fieldText(e) })), cli: cli.providers });
       else {
         const out = [t("providers_list_header", { path: listing.file }), "", listing.providers.map(renderEntry).join("\n\n")];
         if (listing.problems.length > 0) out.push("", t("providers_list_problems"), ...listing.problems.map((e) => `  ${fieldText(e)}`));
+        out.push("", t("providers_cli_header"), ...cli.providers.map(renderCli));
         ctx.stdout(`${out.join("\n")}\n`);
       }
       return 0;
