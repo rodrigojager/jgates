@@ -94,6 +94,33 @@ test("navigation reaches every area by keyboard and the skip link moves focus to
   });
 });
 
+test("a screen chosen while the shell is still loading gets the focus once it loads; the automatic start screen does not", async ({ page }) => {
+  await withServer(committedFixture(), async (server) => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await page.route("**/api/shell", async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.goto(server.bootstrapUrl);
+    const nav = page.getByRole("navigation", { name: "Navegação principal" });
+    await expect(nav).toBeVisible();
+    await nav.getByRole("link", { name: "Workspace" }).focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(() => new URL(page.url()).hash).toBe("#/workspace");
+    release();
+    await expect(page.getByRole("heading", { name: "Workspace", level: 1 })).toBeVisible();
+    await expect(page.locator("main#content")).toBeFocused();
+
+    // A fresh load without a route lands on the start screen and leaves the focus where it was.
+    await page.unroute("**/api/shell");
+    await page.goto(`${new URL(server.bootstrapUrl).origin}/`);
+    await expect(nav).toBeVisible();
+    await expect(page.locator("main h1")).toBeVisible();
+    await expect(page.locator("main#content")).not.toBeFocused();
+  });
+});
+
 test("below 700 px the menu is a drawer that traps focus", async ({ page }) => {
   await withServer(committedFixture(), async (server) => {
     await page.setViewportSize({ width: 600, height: 800 });

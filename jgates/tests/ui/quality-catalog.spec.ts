@@ -148,6 +148,8 @@ test("the create dialog closes with Escape and returns the focus, and the tools 
     await page.setViewportSize({ width: 375, height: 800 });
     await page.reload();
     await expect(page.getByRole("heading", { name: "Ferramentas", level: 1 })).toBeVisible();
+    // Measure after the distribution blocks (with their long setup links) have rendered.
+    await expect(page.locator('[data-testid="catalog-card"][data-adapter="codeql"] [data-testid="catalog-setup-guidance"]')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 });

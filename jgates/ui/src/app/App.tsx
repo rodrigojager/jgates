@@ -53,13 +53,30 @@ export function App() {
   const found = resolveScreen(path);
   const focusKey = found ? found.mod.screen.id : (areaOfPath(path)?.id ?? path);
   const before = useRef<{ key: string; loaded: boolean } | null>(null);
+  // A move the visitor chose while the shell was still loading: focus the content once it has loaded, instead of losing it.
+  const pendingFocus = useRef(false);
   const loaded = info !== null;
+  const chosen = route !== "";
   useEffect(() => {
     const last = before.current;
     before.current = { key: focusKey, loaded };
-    if (!last || !last.loaded || last.key === focusKey) return;
+    if (!last || last.key === focusKey) {
+      if (loaded && pendingFocus.current) {
+        pendingFocus.current = false;
+        main.current?.focus();
+      }
+      return;
+    }
+    if (!last.loaded || !loaded) {
+      // The start screen chosen by the shell itself (no route in the address) never takes the focus.
+      if (chosen) pendingFocus.current = true;
+      if (!loaded) return;
+      pendingFocus.current = false;
+      if (chosen) main.current?.focus();
+      return;
+    }
     main.current?.focus();
-  }, [focusKey, loaded]);
+  }, [focusKey, loaded, chosen]);
 
   const skip = (event: MouseEvent) => {
     event.preventDefault();

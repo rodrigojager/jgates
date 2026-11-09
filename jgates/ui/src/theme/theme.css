@@ -241,7 +241,8 @@ tr.link-row:hover { background: var(--mint); }
 .file-item[aria-current="true"] { background: var(--mint); border-color: var(--accent); }
 .file-sub { list-style: none; margin: 2px 0 6px 18px; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 /* Official links under a tool card: each one is a target of at least 24 px (WCAG 2.2 target size). */
-.link-list a { display: inline-block; min-height: 24px; line-height: 24px; }
+.link-list a { display: inline-block; min-height: 24px; line-height: 24px; max-width: 100%; overflow-wrap: anywhere; }
+.link-list code { overflow-wrap: anywhere; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: 12px; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; overflow-wrap: anywhere; }
