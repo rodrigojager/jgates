@@ -1,0 +1,38 @@
+.step-log-toggle { padding: 6px 10px; }
+.step-log-row > td { padding-top: 0; background: var(--bg); }
+.step-log { display: grid; gap: 10px; padding: 12px 0 4px; min-width: 0; }
+.step-log-note, .step-log-failed { display: flex; gap: 8px; align-items: flex-start; margin: 0; }
+.step-log-note svg.icon, .step-log-failed svg.icon { flex: 0 0 auto; margin-top: 1px; }
+.step-log-failed { color: var(--red); font-weight: 600; }
+.log-block { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); min-width: 0; }
+.log-block[data-failed] { border-color: var(--red); border-left-width: 3px; }
+.log-block > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 9px 12px; cursor: pointer; font-weight: 600; }
+.log-block-id { color: var(--muted); font-weight: 400; }
+.log-block-body { display: grid; gap: 12px; padding: 0 12px 12px; min-width: 0; }
+.log-command > summary { cursor: pointer; font-size: 13px; color: var(--muted); width: fit-content; min-height: 28px; display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+/* The summaries are flex boxes (which drops the native marker), so the open/closed arrow is drawn here. */
+.log-command > summary::before, .log-block > summary::before { content: "▸"; color: var(--muted); font-weight: 400; }
+.log-command[open] > summary::before, .log-block[open] > summary::before { content: "▾"; }
+.log-command > summary::-webkit-details-marker, .log-block > summary::-webkit-details-marker { display: none; }
+.log-block > summary { min-height: 40px; }
+.log-command[open] { display: grid; gap: 6px; }
+.log-command > p { margin: 0; }
+.log-facts { display: grid; gap: 4px; margin: 0; font-size: 12px; }
+.log-facts > div { display: grid; grid-template-columns: minmax(96px, max-content) minmax(0, 1fr); gap: 10px; }
+.log-facts dt { color: var(--muted); }
+.log-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.log-stream { display: grid; gap: 6px; min-width: 0; }
+.log-stream .log { overflow-wrap: anywhere; }
+.log-none { margin: 0; font-style: italic; }
+@media (max-width: 700px) {
+  /* When the steps table is wider than the phone and scrolls sideways, the log stays the width of the screen and in
+     view, instead of growing with the table. */
+  .step-log { position: sticky; left: 8px; max-width: calc(100vw - 50px); }
+}
+@media (max-width: 520px) {
+  /* On a phone the steps table takes the whole card, so its five columns fit without scrolling sideways. */
+  .vrun-steps-card { padding: 4px 0; }
+  .step-log-toggle { white-space: normal; }
+  .step-log-toggle svg.icon { display: none; }
+  .log-facts > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}

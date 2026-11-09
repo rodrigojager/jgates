@@ -28,6 +28,20 @@ async function withServer(page: Page, body: (ctx: { fixture: Fixture; server: Ui
   }
 }
 
+/**
+ * The text JGates itself shows on the page. The step logs are left out: they are the tools' own output, in the tools'
+ * own words (a failed step opens its log by itself).
+ */
+function uiText(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const logs = [...document.querySelectorAll<HTMLElement>(".step-log")];
+    for (const l of logs) l.style.display = "none";
+    const text = (document.querySelector("main") ?? document.body).innerText;
+    for (const l of logs) l.style.display = "";
+    return text;
+  });
+}
+
 function jgates(fixture: Fixture, args: string[]) {
   return spawnSync(process.execPath, [MAIN, ...args], { env: fixture.env, encoding: "utf8", timeout: 240_000 });
 }
@@ -106,7 +120,7 @@ test("cancel from the UI stops the step processes, says that no approval was iss
       await expect.poll(() => alive(pid), { timeout: 20_000 }).toBe(false);
       const after = await page.getByRole("log", { name: "Eventos" }).locator("li").evaluateAll((els) => els.map((e) => e.getAttribute("data-seq")));
       expect(new Set(after).size).toBe(after.length);
-      const text = await page.locator("main, body").first().innerText();
+      const text = await uiText(page);
       expect(text).not.toMatch(/\b(failed|blocked|completed)\b/);
     },
     (fixture) => addSlowCheck(fixture, pidFile),
@@ -123,7 +137,7 @@ test("a finished run lists its steps translated and the agent context of the but
     expect(runId).toMatch(/^run_/);
 
     // The steps and decisions come translated: no raw contract words in the visible text.
-    const visible = await page.locator("main, body").first().innerText();
+    const visible = await uiText(page);
     expect(visible).not.toMatch(/\b(failed|blocked|completed|incomplete|not_applicable)\b/);
 
     await page.getByRole("button", { name: "Copiar para o agente" }).click();
@@ -215,7 +229,7 @@ test("a reduced approval has its own badge, the list of what was turned off, and
     await expect(arch).toContainText("Parcial");
     await expect(page.getByTestId("reused")).toContainText("Resultado reutilizado");
     await expect(page.getByTestId("policy-change")).toBeVisible();
-    const text = await page.locator("main, body").first().innerText();
+    const text = await uiText(page);
     expect(text).not.toMatch(/\b(failed|blocked|completed|disabled)\b/);
     expect(text).toContain("Bloqueada");
 
@@ -227,5 +241,127 @@ test("a reduced approval has its own badge, the list of what was turned off, and
 
     const axe = await new AxeBuilder({ page }).analyze();
     expect(axe.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
+  });
+});
+
+/** The logs of a stored run, written the way the runner writes them: the command header and footer in the error stream. */
+function writeStepLogs(fixture: Fixture, workspaceId: string) {
+  const dir = path.join(fixture.home, "workspaces", workspaceId, "runs", RUN_ID);
+  const logs = path.join(dir, "logs");
+  const header = (exe: string, args: string[]) => `executable: ${exe}\nargs: ${JSON.stringify(args)}\ncwd: /work/project\n---\n`;
+  const footer = (code: number, ms: number) => `\n---\nexit code: ${code}\nsignal: (none)\nduration ms: ${ms}\n`;
+  const files: Record<string, string> = {
+    "ruff.stdout.log": "All checks passed!\n",
+    "ruff.stderr.log": `${header("/tools/ruff", ["check", "--output-format", "json", "."])}${footer(0, 191)}`,
+    "import-linter.stdout.log": "Contracts: 1 kept, 0 broken.\n",
+    "import-linter.stderr.log": `${header("/tools/lint-imports", ["--no-cache"])}${footer(0, 289)}`,
+    "import-linter.graph.stderr.log": `${header("/tools/python", ["-I", "-c", "print(1)"])}${footer(0, 215)}`,
+    "pytest.stdout.log": "1 failed, 3 passed\n",
+    "pytest.stderr.log": `${header("/usr/bin/python", ["-m", "pytest"])}DeprecationWarning: something old\n${footer(1, 1695)}`,
+  };
+  for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(logs, name), text);
+  const steps: Array<[string, string, string]> = [
+    ["ruff", "Ruff", "succeeded"],
+    ["import-linter", "Import Linter", "succeeded"],
+    ["pytest", "pytest", "failed"],
+  ];
+  let sequence = 0;
+  const event = (type: string, data: Record<string, unknown>) =>
+    JSON.stringify({ schemaVersion: 1, runId: RUN_ID, sequence: ++sequence, type, at: "2026-10-26T10:00:01.000Z", data });
+  const lines = [event("run-started", {})];
+  for (const [step, label, status] of steps) lines.push(event("step-started", { step, label }), event("step-finished", { step, status, durationMs: 200 }));
+  fs.writeFileSync(path.join(dir, "events.jsonl"), `${lines.join("\n")}\n`);
+}
+
+test("step logs: one block per tool with both streams, the command collapsed, '(sem saída)' and the failed step opened", async ({ page }) => {
+  await withServer(page, async ({ fixture, base }) => {
+    const ws = await workspaceIdOf(fixture);
+    writeStoredRun(fixture, ws, storedResult({}));
+    writeStepLogs(fixture, ws);
+    await page.goto(`${base}#/runs/${RUN_ID}`);
+    await expect(page.locator('tr[data-step="ruff"]')).toBeVisible({ timeout: 30_000 });
+
+    // The failed step shows its log by itself, highlighted; the others wait for a click.
+    const pytestLog = page.getByRole("region", { name: "Log de pytest" });
+    await expect(pytestLog).toBeVisible();
+    await expect(pytestLog.getByTestId("log-block").first()).toHaveAttribute("data-failed", "true");
+    await expect(pytestLog).toContainText("Esta etapa falhou");
+    await expect(pytestLog.locator('[data-stream="stderr"] pre')).toHaveText("DeprecationWarning: something old\n");
+    await expect(page.getByRole("region", { name: "Log de Ruff" })).toHaveCount(0);
+
+    // Ruff: one block named after the tool; its error stream had only the JGates header, so it reads "(sem saída)".
+    const show = page.getByRole("button", { name: "Ver log de Ruff" });
+    await expect(show).toHaveAttribute("aria-expanded", "false");
+    await show.focus();
+    await page.keyboard.press("Enter");
+    const ruffLog = page.getByRole("region", { name: "Log de Ruff" });
+    await expect(page.getByRole("button", { name: "Ocultar log de Ruff" })).toHaveAttribute("aria-expanded", "true");
+    const blocks = ruffLog.getByTestId("log-block");
+    await expect(blocks).toHaveCount(1);
+    const ruff = blocks.first();
+    await expect(ruff).toHaveAttribute("data-invocation", "ruff");
+    await expect(ruff.locator("summary").first()).toHaveText(/Ruff\s*ruff/);
+    await expect(ruff.locator('[data-stream="stdout"] pre')).toHaveText("All checks passed!\n");
+    await expect(ruff.locator('[data-stream="stderr"]').getByTestId("log-none")).toHaveText("(sem saída)");
+    await expect(ruffLog.getByTestId("log-note")).toHaveText(/Muitas ferramentas escrevem progresso e avisos na saída de erro.*não o texto do log\./);
+
+    // The header is never shown as error output: only inside the collapsed "Comando executado".
+    const command = ruff.getByTestId("log-command");
+    await expect(command.locator("summary")).toHaveText("Comando executado");
+    await expect(command).not.toHaveAttribute("open", "");
+    expect(await ruffLog.innerText()).not.toContain("executable:");
+    expect(await ruffLog.innerText()).not.toContain("/tools/ruff");
+    await command.locator("summary").focus();
+    await page.keyboard.press("Enter");
+    await expect(command).toHaveAttribute("open", "");
+    await expect(command).toContainText("Programa");
+    await expect(command).toContainText("/tools/ruff");
+    await expect(command).toContainText("check --output-format json .");
+    await expect(command).toContainText("Código de saída");
+    await expect(command).toContainText("191 ms");
+
+    // Two files of one invocation share a block; a sub-invocation (import-linter.graph) has its own, after it.
+    await page.getByRole("button", { name: "Ver log de Import Linter" }).click();
+    const lint = page.getByRole("region", { name: "Log de Import Linter" }).getByTestId("log-block");
+    await expect(lint).toHaveCount(2);
+    await expect(lint.nth(0)).toHaveAttribute("data-invocation", "import-linter");
+    await expect(lint.nth(0).locator(".log-stream")).toHaveCount(2);
+    await expect(lint.nth(0).locator('[data-stream="stdout"] pre')).toHaveText("Contracts: 1 kept, 0 broken.\n");
+    await expect(lint.nth(1)).toHaveAttribute("data-invocation", "import-linter.graph");
+    await expect(lint.nth(1).locator("summary").first()).toContainText("Import Linter · grafo de imports");
+    await expect(lint.nth(1)).not.toHaveAttribute("open", "");
+    await lint.nth(1).locator("summary").first().click();
+    await expect(lint.nth(1).locator('[data-stream="stderr"]').getByTestId("log-none")).toHaveText("(sem saída)");
+
+    // Closing by keyboard hides the log again.
+    await page.getByRole("button", { name: "Ocultar log de Ruff" }).focus();
+    await page.keyboard.press("Space");
+    await expect(ruffLog).toHaveCount(0);
+
+    const axe = await new AxeBuilder({ page }).analyze();
+    expect(axe.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
+
+    // At 375 px the logs stay inside the screen (long arguments wrap instead of pushing the table).
+    await page.setViewportSize({ width: 375, height: 800 });
+    await expect(pytestLog).toBeVisible();
+    const right = (selector: string) => page.locator(selector).first().evaluate((e) => e.getBoundingClientRect().right);
+    const card = await right(".vrun-steps-card");
+    expect(await right(".vrun-steps-card table")).toBeLessThanOrEqual(card + 0.5);
+    expect(await right('tr[data-step="ruff"] button')).toBeLessThanOrEqual(card);
+    expect(await right('[aria-label="Log de pytest"] [data-testid="log-block"]')).toBeLessThanOrEqual(card);
+    expect(card).toBeLessThanOrEqual(375);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+
+    // In English: the same labels.
+    const prefs = path.join(fixture.home, "preferences.json");
+    const stored = fs.existsSync(prefs) ? JSON.parse(fs.readFileSync(prefs, "utf8")) : { schemaVersion: 1, theme: "system" };
+    fs.writeFileSync(prefs, `${JSON.stringify({ ...stored, language: "en" }, null, 2)}\n`, { mode: 0o600 });
+    await page.reload();
+    const enLog = page.getByRole("region", { name: "Log of pytest" });
+    await expect(enLog.getByTestId("log-note")).toHaveText(/error output; that is normal\. Whether the step failed is told by its state/);
+    await page.getByRole("button", { name: "Show log of Ruff" }).click();
+    const enRuff = page.getByRole("region", { name: "Log of Ruff" });
+    await expect(enRuff.locator('[data-stream="stderr"]').getByTestId("log-none")).toHaveText("(no output)");
+    await expect(enRuff.getByTestId("log-command").locator("summary")).toHaveText("Command executed");
   });
 });

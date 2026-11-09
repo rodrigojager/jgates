@@ -9,6 +9,7 @@ import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { ResultView, formatDuration, stageName, stateText, type DomainFilter } from "../validations-result/ResultView";
+import { StepLogPanel } from "./step-log";
 import "./run-summary.css";
 
 // Runs are opened by the id the server gave (job_...) or by the id of a stored run (run_...); the route stays /runs/:id.
@@ -109,65 +110,67 @@ function eventText(e: StepEvent): string {
   }
 }
 
-function StepLog({ runId, stepId }: { runId: string; stepId: string }) {
-  const [files, setFiles] = useState<Array<{ name: string; bytes: number }> | null>(null);
-  const [error, setError] = useState<unknown>(null);
-  async function load() {
-    if (files !== null) return;
-    try {
-      const r = await api("GET", `/api/results/${runId}/logs`);
-      setFiles((r.logs as any[]).filter((f) => f.name.startsWith(`${stepId}.`)));
-    } catch (e) {
-      setError(e);
-    }
-  }
-  return (
-    <details onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && load()}>
-      <summary>{t("vrun_logs")}</summary>
-      {error ? <ErrorNotice error={error} /> : null}
-      {files && files.length === 0 ? <p className="small">{t("vrun_logs_empty")}</p> : null}
-      {files?.map((f) => <LogPage key={f.name} runId={runId} name={f.name} />)}
-    </details>
-  );
-}
+const COLUMNS = 5;
 
-function LogPage({ runId, name }: { runId: string; name: string }) {
-  const [text, setText] = useState("");
-  const [next, setNext] = useState(0);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const started = useRef(false);
-  async function more() {
-    try {
-      const r = await api("GET", `/api/results/${runId}/logs/${encodeURIComponent(name)}?offset=${next}`);
-      setText((old) => old + r.text);
-      setNext(r.next);
-      setDone(r.done);
-    } catch (e) {
-      setError(e);
-    }
-  }
+/**
+ * One step of the table and, under it when asked, its logs across the whole width of the table. A step that failed
+ * shows its logs by itself (once: the person may close them).
+ */
+function StepRow({ row: r, runId }: { row: Row; runId: string | null }) {
+  const failed = r.state === "error" || r.state === "timeout";
+  const [open, setOpen] = useState(failed);
+  const autoOpened = useRef(failed);
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    void more();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (failed && !autoOpened.current) {
+      autoOpened.current = true;
+      setOpen(true);
+    }
+  }, [failed]);
+  const name = stageName(r);
+  const hasLog = runId !== null && r.state !== "pending" && !r.cause;
+  const panelId = `step-log-${r.id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
   return (
-    <div className="stack" style={{ gap: 6 }}>
-      <strong className="small">{name.endsWith(".stderr.log") ? t("vrun_logs_stderr") : t("vrun_logs_stdout")}</strong>
-      {error ? <ErrorNotice error={error} /> : null}
-      <pre className="log" tabIndex={0} aria-label={name}>
-        {text === "" && done ? t("vrun_logs_empty_file") : text}
-      </pre>
-      {!done ? (
-        <div>
-          <button type="button" className="btn" onClick={more}>
-            {t("vrun_logs_more")}
-          </button>
-        </div>
+    <>
+      <tr data-step={r.id} data-state={r.state}>
+        <th scope="row">{name}</th>
+        <td>
+          <Pill tone={r.state === "completed" ? "green" : failed ? "red" : r.state === "pending" || r.state === "running" ? "blue" : "gold"}>
+            {r.state === "pending" ? t("vrun_step_pending") : r.state === "running" ? t("vrun_step_running") : stateText(r.state)}
+          </Pill>
+        </td>
+        <td>
+          {r.cause ? <div>{tOr(`vrun_why_${r.cause}`, t("vrun_why_skipped"))}</div> : null}
+          {r.reasons.map((reason) => (
+            <div className="small" key={reason}>
+              {reason}
+            </div>
+          ))}
+        </td>
+        <td>{formatDuration(r.durationMs)}</td>
+        <td>
+          {hasLog ? (
+            <button
+              type="button"
+              className="btn step-log-toggle"
+              aria-expanded={open}
+              aria-controls={open ? panelId : undefined}
+              aria-label={t(open ? "vrun_logs_hide_of" : "vrun_logs_show_of", { step: name })}
+              onClick={() => setOpen((v) => !v)}
+            >
+              <Icon name="terminal" />
+              {t(open ? "vrun_logs_hide" : "vrun_logs_show")}
+            </button>
+          ) : null}
+        </td>
+      </tr>
+      {hasLog && open ? (
+        <tr className="step-log-row" data-log-for={r.id}>
+          <td colSpan={COLUMNS}>
+            <StepLogPanel runId={runId} stepId={r.id} label={name} failed={failed} id={panelId} />
+          </td>
+        </tr>
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -392,7 +395,7 @@ export default function RunScreen({ params }: { params: Record<string, string> }
       {job && rows.length > 0 ? (
         <section className="stack" aria-labelledby="vrun-steps">
           <h2 id="vrun-steps">{t("vrun_steps")}</h2>
-          <div className="card flat table-wrap">
+          <div className="card flat table-wrap vrun-steps-card">
             <table aria-label={t("vrun_progress_label")}>
               <thead>
                 <tr>
@@ -405,24 +408,7 @@ export default function RunScreen({ params }: { params: Record<string, string> }
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} data-step={r.id} data-state={r.state}>
-                    <th scope="row">{stageName(r)}</th>
-                    <td>
-                      <Pill tone={r.state === "completed" ? "green" : r.state === "error" || r.state === "timeout" ? "red" : r.state === "pending" || r.state === "running" ? "blue" : "gold"}>
-                        {r.state === "pending" ? t("vrun_step_pending") : r.state === "running" ? t("vrun_step_running") : stateText(r.state)}
-                      </Pill>
-                    </td>
-                    <td>
-                      {r.cause ? <div>{tOr(`vrun_why_${r.cause}`, t("vrun_why_skipped"))}</div> : null}
-                      {r.reasons.map((reason) => (
-                        <div className="small" key={reason}>
-                          {reason}
-                        </div>
-                      ))}
-                    </td>
-                    <td>{formatDuration(r.durationMs)}</td>
-                    <td>{runId && r.state !== "pending" && !r.cause ? <StepLog runId={runId} stepId={r.id} /> : null}</td>
-                  </tr>
+                  <StepRow key={r.id} row={r} runId={runId} />
                 ))}
               </tbody>
             </table>
