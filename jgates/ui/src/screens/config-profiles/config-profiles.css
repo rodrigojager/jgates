@@ -44,3 +44,7 @@
   .profile-grid { grid-template-columns: minmax(0, 1fr); }
   .capabilities { padding-left: 0; }
 }
+.cap-mode { flex: none; width: auto; max-width: 52%; }
+.cap-mode-help { margin: 0; }
+.cap-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+@media (max-width: 640px) { .check-row.level-capability .check-main { flex-wrap: wrap; } .cap-mode { max-width: 100%; width: 100%; } }

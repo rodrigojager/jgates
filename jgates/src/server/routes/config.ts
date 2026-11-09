@@ -1,7 +1,7 @@
 // Configuração > Perfil: the selected profile's checks by category (capabilities, tools, rules) with the origin of every
 // value, "why is this on?" (the same chain `jgates config resolve --explain` prints), granular on/off written into the
 // profile by patch, and the policy controls (severity, minimum coverage, missing verification).
-import { buildPlan } from "../../core/plan/index.js";
+import { buildPlan, type Plan, type PlanItem } from "../../core/plan/index.js";
 import { findNativeMinimum } from "../../adapters/pytest/coverage.js";
 import { projectMascots } from "../../core/mascots/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
@@ -74,7 +74,28 @@ function itemView(item: SelectionItem | undefined, saveTo: { file: string; path:
     decision: item.decision,
     locked: item.locked ?? [],
     tie: item.tie === true,
+    /** "available": on only where a tool for it exists here; null: on means required (or it is off). */
+    when: item.when ?? null,
     saveTo,
+  };
+}
+
+/**
+ * What the plan of the profile says about each capability in this project, for the screen to show "vai rodar",
+ * "não se aplica aqui" (with the reason and the action) or "sem verificação": the items that run (trimmed), the
+ * when-available requirements without a check and the required ones without a check.
+ */
+export function planAvailability(plan: Plan | null) {
+  if (!plan) return null;
+  const brief = (i: PlanItem) => ({ id: i.id, tool: i.tool, adapter: i.adapter, label: i.label, capabilities: i.capabilities, requirement: i.requirement, availability: i.availability, state: { enabled: i.state.enabled, when: i.state.when ?? null } });
+  return {
+    profile: plan.profile,
+    groups: {
+      willRun: plan.groups.willRun.map(brief),
+      notApplicableOrDisabled: plan.groups.notApplicableOrDisabled.map(brief),
+      uncoveredRequirements: plan.groups.uncoveredRequirements,
+      notApplicableRequirements: plan.groups.notApplicableRequirements ?? [],
+    },
   };
 }
 
@@ -187,6 +208,7 @@ function buildView(server: ServerContext, ref: string) {
     governed: mode.governed,
     profile: { ref, id: ref.replace(/^builtin:/, ""), editable, isDefault: def === ref, file },
     categories,
+    plan: planAvailability(built.ok ? built.plan : null),
     policy,
     selectionErrors: selection.errors.map((e) => ({ code: e.code, selector: e.selector, message: e.message, fix: e.fix ?? null })),
     warnings: result.warnings,
@@ -260,7 +282,8 @@ export const routes: RouteDefinition[] = [
           maxItems: 200,
           items: {
             type: "object",
-            properties: { selector: { type: "string", pattern: selectorPattern }, enabled: { type: "boolean" } },
+            // when: "available" turns it on only where a tool exists; null makes it required again (see SelectionChange).
+            properties: { selector: { type: "string", pattern: selectorPattern }, enabled: { type: "boolean" }, when: { enum: ["available", null] } },
             required: ["selector", "enabled"],
             additionalProperties: false,
           },
@@ -271,7 +294,7 @@ export const routes: RouteDefinition[] = [
       additionalProperties: false,
     },
     handler({ body, server }) {
-      const input = body as { profile: string; changes: Array<{ selector: string; enabled: boolean }>; expectedHash?: string };
+      const input = body as { profile: string; changes: Array<{ selector: string; enabled: boolean; when?: "available" | null }>; expectedHash?: string };
       return guard(() => {
         const result = setProfileChecks(server.projectDir, input.profile, input.changes, input.expectedHash ? { expectedHash: input.expectedHash } : {});
         server.log(`selection ${input.profile} ${input.changes.length} change(s)`);

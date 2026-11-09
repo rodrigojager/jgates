@@ -258,6 +258,140 @@ test("blocker: versão da ferramenta fora da faixa", async ({ page }) => {
   }
 });
 
+// ---- Revisar and Escolher: every capability with its state ---------------------------------------------------------
+
+const STRICT = { ...REQ, profile: "strict" };
+const capRow = (page: Page, cap: string) => page.locator(`[data-testid="capability-states"] [data-testid="capability-state"][data-capability="${cap}"]`);
+
+test("Revisar with strict lists every capability of the catalog: will run, not applicable here with the reason and the action, never a blocker", async ({ page }) => {
+  await withServer(page, null, async () => {
+    await review(page, STRICT);
+    const states = page.getByTestId("capability-states");
+    await expect(states).toBeVisible();
+    await expect(states.getByTestId("capability-summary")).toContainText("não se aplica");
+    // Every capability of the catalog is listed, none silently missing.
+    await expect(states.getByTestId("capability-state")).toHaveCount(28);
+    await expect(capRow(page, "lint")).toHaveAttribute("data-state", "run");
+    await expect(capRow(page, "lint")).toContainText("Vai rodar");
+    for (const cap of ["mutation", "dast", "e2e", "performance", "integration", "migration", "api-contract", "api-compatibility"]) {
+      await expect(capRow(page, cap), cap).toHaveAttribute("data-state", "na");
+      await expect(capRow(page, cap), cap).toContainText("Não se aplica aqui");
+    }
+    // No tool at all: said plainly, with no control.
+    for (const cap of ["e2e", "performance", "integration", "migration"]) {
+      await expect(capRow(page, cap)).toContainText("O JGates ainda não tem ferramenta para isto nesta stack.");
+      await expect(capRow(page, cap).locator("button, a.btn")).toHaveCount(0);
+    }
+    // A tool that needs a running target: the missing setting is named and the one action adds the tool.
+    await expect(capRow(page, "dast")).toContainText("a URL do alvo em execução (target)");
+    await expect(capRow(page, "dast").getByRole("link", { name: /^Adicionar ZAP/ })).toHaveAttribute("href", "#/tools?add=zap");
+    // Rust-only tools do not fit a Python project: said with the languages.
+    await expect(capRow(page, "properties")).toContainText("Python");
+    // The plan's own group names them too, and none of them blocks.
+    await expect(page.getByTestId("group-not-applicable-requirements")).toContainText("Mutação");
+    await page.getByTestId("group-not-applicable-requirements").getByRole("button", { name: "Ver o motivo e como ligar cada uma" }).click();
+    await expect(page.locator("#vrev-caps")).toBeFocused();
+    await expect(page.locator('[data-blocker="CATEGORY_EMPTY"]')).toHaveCount(0);
+    // Details keep the adapter's own prerequisites as secondary text.
+    await capRow(page, "dast").locator("details.capst-more > summary").click();
+    await expect(capRow(page, "dast").locator("details [lang=en]").first()).toBeVisible();
+  });
+});
+
+test("'Adicionar ZAP' opens the tool creation for zap", async ({ page }) => {
+  await withServer(page, null, async () => {
+    await review(page, STRICT);
+    await capRow(page, "dast").getByRole("link", { name: /^Adicionar ZAP/ }).click();
+    await expect(page.getByRole("dialog")).toContainText("Nova instância de ZAP");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+});
+
+test("'Ativar' adds the missing template to jgates.yml and the plan is built again", async ({ page }) => {
+  await withServer(page, null, async ({ fixture }) => {
+    await review(page, STRICT);
+    // Whichever capability still waits for a built-in template in this project (init already adds the common ones).
+    const button = page.locator('[data-testid="capability-states"] [data-testid="capability-state"]').getByRole("button", { name: /^Ativar/ }).first();
+    await expect(button).toBeVisible();
+    const name = String(await button.getAttribute("aria-label"));
+    const capability = String(await button.locator("xpath=ancestor::li[@data-capability][1]").getAttribute("data-capability"));
+    const before = read(fixture, "jgates.yml");
+    await button.click();
+    await expect(page.getByText(/Template .* ativado no jgates\.yml\./)).toBeVisible();
+    const after = read(fixture, "jgates.yml");
+    // A patch: what was there stays, one template entry more.
+    expect(after).toContain(before.trimEnd().split("\n").slice(0, 3).join("\n"));
+    expect((after.match(/source: builtin:/g) ?? []).length).toBe((before.match(/source: builtin:/g) ?? []).length + 1);
+    // The new plan no longer asks for that template: the row moved on (runs, or names what is still missing).
+    await expect(capRow(page, capability).getByRole("button", { name })).toHaveCount(0, { timeout: 60_000 });
+  });
+});
+
+test("a capability switched off by the profile file says so and 'Ligar neste perfil' writes it on, where a tool exists", async ({ page }) => {
+  const prepare = (fixture: Fixture) => {
+    const file = ".jgates/profiles.yml";
+    const text = read(fixture, file);
+    const entry = "      capability:format-check:\n        enabled: true\n        when: available\n";
+    expect(text).toContain(entry);
+    write(fixture, file, text.replace(entry, "      capability:format-check:\n        enabled: false\n"));
+  };
+  await withServer(page, prepare, async ({ fixture }) => {
+    await review(page, STRICT);
+    const row = capRow(page, "format-check");
+    await expect(row).toHaveAttribute("data-state", "off");
+    await expect(row).toContainText("Desligada neste perfil (pelo seu arquivo .jgates/profiles.yml).");
+    await row.getByRole("button", { name: /^Ligar neste perfil: / }).click();
+    await expect(row).not.toHaveAttribute("data-state", "off", { timeout: 60_000 });
+    expect(read(fixture, ".jgates/profiles.yml")).toMatch(/capability:format-check:\n {8}enabled: true\n {8}when: available/);
+  });
+});
+
+test("a capability switched off for this run only can be included again from the review", async ({ page }) => {
+  await withServer(page, null, async () => {
+    await review(page, { ...STRICT, skip: ["capability:secrets"] });
+    const row = capRow(page, "secrets");
+    // secrets is required by the profile: switched off for this run it has no check, and the review says how to undo it.
+    await expect(row).toHaveAttribute("data-state", "blocked");
+    await expect(row).toContainText("Sem verificação");
+    await expect(page.getByTestId("equivalent-command")).toContainText("--skip capability:secrets");
+    await row.getByRole("button", { name: /^Incluir nesta execução: / }).click();
+    await expect(row).toHaveAttribute("data-state", "run", { timeout: 60_000 });
+    await expect(page.getByTestId("equivalent-command")).not.toContainText("--skip");
+  });
+});
+
+test("Escolher lists every capability too: not applicable ones with the reason, off ones with the way to turn them on", async ({ page }) => {
+  await withServer(page, null, async () => {
+    await page.goto(`${base(page)}#/validations/choose`);
+    await page.locator('[data-profile="strict"]').click();
+    await page.getByTestId("customize").locator("summary").click();
+    const customize = page.getByTestId("customize");
+    await expect(customize.getByTestId("capability-state")).toHaveCount(28, { timeout: 60_000 });
+    await expect(customize.locator('[data-capability="e2e"]')).toContainText("O JGates ainda não tem ferramenta para isto");
+    await expect(customize.locator('[data-capability="mutation"]')).toContainText("Não se aplica aqui");
+    await expect(customize.getByTestId("capability-summary")).toContainText("vão rodar");
+    await expect(page.getByRole("checkbox", { name: /Testes unitários/ })).toBeChecked();
+  });
+});
+
+test("the capability states fit 375 px and work with the keyboard", async ({ page }) => {
+  await withServer(page, null, async () => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await review(page, STRICT);
+    await expect(page.getByTestId("capability-states")).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+    // A category closes and opens from the keyboard.
+    const summary = page.locator('[data-testid="capability-states"] details[data-category="tests"] > summary');
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator('[data-testid="capability-states"] details[data-category="tests"]')).not.toHaveAttribute("open", "");
+    await page.keyboard.press("Enter");
+    await expect(page.locator('[data-testid="capability-states"] details[data-category="tests"]')).toHaveAttribute("open", "");
+  });
+});
+
 // ---- Revisar: ties, TOOL_UNAVAILABLE per instance, the equivalent command ------------------------------------------
 
 test("a tie between selectors of the same layer appears in the review with the explanation (not only in the config JSON)", async ({ page }) => {

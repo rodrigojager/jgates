@@ -1,4 +1,5 @@
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
+import { ProviderFixLink } from "../../components/ProviderFixLink";
 import { useMemo, useState } from "react";
 import { ApiError, api } from "../../api";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
@@ -9,7 +10,8 @@ import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { PendingDrafts } from "../tool-area/editbar/pending";
 import { blockersOf, unavailableItems, type Blocker } from "./blockers";
-import { equivalentCommand, planBody, readRequest, sequenceBody } from "./request";
+import { CapabilityStates, capabilityStates } from "./capability-states";
+import { equivalentCommand, planBody, readRequest, sequenceBody, writeRequest } from "./request";
 
 export const screen: ScreenMeta = { id: "validations-review", path: "/validations/review", area: "validations", navLabel: "vrev_nav", navPath: "/validations/review", order: 32, icon: "plan" };
 
@@ -61,11 +63,11 @@ function ItemList({ items, label }: { items: any[]; label: string }) {
               {commandOf(item)}
             </code>
           ) : null}
-          <p className="muted small" style={{ margin: 0 }}>
+          <p className="muted small" style={{ margin: 0, overflowWrap: "anywhere" }}>
             {effectsOf(item).join(" · ")}
           </p>
           {item.reason?.message ? (
-            <p className="muted small" style={{ margin: 0 }}>
+            <p className="muted small" style={{ margin: 0, overflowWrap: "anywhere" }}>
               {item.reason.message}
             </p>
           ) : null}
@@ -112,17 +114,17 @@ function TieNote({ tie }: { tie: any }) {
 export default function ReviewScreen() {
   const { info } = useShell();
   const toast = useToast();
-  const request = useMemo(() => readRequest(), []);
+  const [request, setRequest] = useState(() => readRequest());
   const body = useMemo(() => planBody(request), [request]);
   const [version, setVersion] = useState(0);
-  const built = useAsync(() => api("POST", "/api/plans", body), `review:${version}`);
+  const built = useAsync(() => api("POST", "/api/plans", body), `review:${version}:${request.skip.join(",")}`);
   const [starting, setStarting] = useState(false);
   const [runError, setRunError] = useState<unknown>(null);
   const [unresolved, setUnresolved] = useState(0);
 
   const both = request.gates === "both";
   // With both gates the selection is planned as a whole (the CLI's `--gates quality,semantic --dry-run`).
-  const sequencePlan = useAsync(() => (both ? api("POST", "/api/sequence/plan", sequenceBody(request)) : Promise.resolve(null)), `review-sequence:${both}:${version}`);
+  const sequencePlan = useAsync(() => (both ? api("POST", "/api/sequence/plan", sequenceBody(request)) : Promise.resolve(null)), `review-sequence:${both}:${version}:${request.skip.join(",")}`);
   const gatePlan = (sequencePlan.data as any)?.plan ?? null;
   const gateBlockers: any[] = gatePlan?.blockers ?? [];
 
@@ -164,6 +166,18 @@ export default function ReviewScreen() {
       })()
     : "";
   const languages = plan ? [...new Set<string>((plan.components as any[]).map((c) => c.language).filter(Boolean))] : [];
+  const capGroups = plan ? capabilityStates(plan, review.catalog ?? null) : [];
+  const projectProfile = plan?.profile && !String(plan.profile.chain?.[0]?.file ?? "builtin:").startsWith("builtin:") ? String(plan.profile.id) : null;
+  const capContext = {
+    profile: projectProfile,
+    onChanged: () => setVersion((n) => n + 1),
+    // Taking a switch-off of this run back: the request changes and the plan is built again.
+    onIncludeRun: (selectors: string[]) => {
+      const next = { ...request, skip: request.skip.filter((s) => !selectors.includes(s)) };
+      writeRequest(next);
+      setRequest(next);
+    },
+  };
   const concurrency = review.execution?.concurrency;
 
   async function copy() {
@@ -236,7 +250,7 @@ export default function ReviewScreen() {
                   <ul style={{ margin: 0, paddingLeft: 18 }}>
                     {gateBlockers.map((b, i) => (
                       <li key={`${b.gate}-${b.code}-${i}`} data-blocker={b.code}>
-                        <strong>{tOr(`vrev_seq_gate_${b.gate}`, b.gate)}</strong>: {b.message}
+                        <strong>{tOr(`vrev_seq_gate_${b.gate}`, b.gate)}</strong>: {b.message} <ProviderFixLink code={b.code} />
                       </li>
                     ))}
                   </ul>
@@ -336,6 +350,8 @@ export default function ReviewScreen() {
             </section>
           ) : null}
 
+          {capGroups.length > 0 ? <CapabilityStates groups={capGroups} ctx={capContext} title={t("vrev_caps_title")} lead={t("vrev_caps_lead")} headingId="vrev-caps" /> : null}
+
           {review.ties.length > 0 ? (
             <section className="notice warn" aria-labelledby="vrev-ties" data-testid="ties">
               <Icon name="info" />
@@ -388,6 +404,30 @@ export default function ReviewScreen() {
                 {t("plan_not_applicable")} ({plan.groups.notApplicableOrDisabled.length})
               </h3>
               {plan.groups.notApplicableOrDisabled.length === 0 ? <p className="muted">{t("vrev_none")}</p> : <ItemList items={plan.groups.notApplicableOrDisabled} label={t("plan_not_applicable")} />}
+            </div>
+            <div className="stack" style={{ gap: 8 }} data-testid="group-not-applicable-requirements">
+              <h3 id="not-applicable-requirements">
+                {t("vrev_na_requirements")} ({(plan.groups.notApplicableRequirements ?? []).length})
+              </h3>
+              {(plan.groups.notApplicableRequirements ?? []).length === 0 ? (
+                <p className="muted">{t("vrev_none")}</p>
+              ) : (
+                <p className="muted">
+                  {t("vrev_na_requirements_lead", { list: ((plan.groups.notApplicableRequirements ?? []) as any[]).map((r) => r.label ?? r.selector).join(", ") })}{" "}
+                  <button
+                    type="button"
+                    className="capst-link"
+                    onClick={() => {
+                      const heading = document.getElementById("vrev-caps");
+                      heading?.scrollIntoView({ block: "start" });
+                      heading?.setAttribute("tabindex", "-1");
+                      heading?.focus();
+                    }}
+                  >
+                    {t("vrev_na_requirements_link")}
+                  </button>
+                </p>
+              )}
             </div>
             <div className="stack" style={{ gap: 8 }} data-testid="group-uncovered">
               <h3 id="uncovered">

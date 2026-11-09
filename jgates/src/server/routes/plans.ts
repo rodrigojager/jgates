@@ -11,7 +11,8 @@ import { encodePointer, resolveConfig, type CallOverride } from "../../core/conf
 import { discoverWorkspace } from "../../core/discovery/index.js";
 import { buildPlan, readLastPlan, saveLastPlan, PLAN_SCOPES, type Plan, type PlanScopeKind } from "../../core/plan/index.js";
 import { createProfile, listProfiles, ProfileError, PROFILES_FILE } from "../../core/profiles/index.js";
-import { parseSkipList, resolveSelection, skipOverrides } from "../../core/selection/index.js";
+import { createCoreCatalog } from "../../core/catalog/index.js";
+import { parseSkipList, resolveSelection, skipOverrides, type SelectionResult } from "../../core/selection/index.js";
 import { HttpError, refuse } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 
@@ -58,12 +59,42 @@ const brief = (d: { selector: string; value: boolean | string; layer: string; so
 });
 
 /**
+ * Every capability of the catalog with what the selection decided for it (on, "when available" or off, and where that
+ * was decided), so the review can show the ones the profile leaves off too, not only what the plan carries.
+ */
+export interface ReviewCatalog {
+  categories: Array<{ id: string; label: string }>;
+  capabilities: Array<{ id: string; label: string; description: string; category: string; enabled: boolean; when: string | null; reason: string; decision: ReturnType<typeof brief> | null }>;
+}
+
+function reviewCatalog(selection: SelectionResult): ReviewCatalog {
+  const catalog = createCoreCatalog().toDocument();
+  const byKey = new Map(selection.items.map((i) => [i.selector, i]));
+  return {
+    categories: catalog.categories.map((c) => ({ id: c.id, label: c.label })),
+    capabilities: catalog.capabilities.map((c) => {
+      const item = byKey.get(`capability:${c.id}`);
+      return {
+        id: c.id,
+        label: c.label,
+        description: c.description,
+        category: String(c.category ?? ""),
+        enabled: item?.enabled ?? false,
+        when: item?.when ?? null,
+        reason: item?.reason ?? "NOT_SELECTED",
+        decision: item?.decision ? brief(item.decision) : null,
+      };
+    }),
+  };
+}
+
+/**
  * What the review shows besides the plan: the ties of the selection (decisions of the same layer and specificity that
  * disagreed and were settled in favour of "enabled") and the execution settings. Neither is part of the plan hash, so
  * they are read again from the same request the plan was built from.
  */
-export function selectionReview(projectDir: string, b: PlanBody): { ties: ReviewTie[]; execution: { concurrency: number | null; network: string | null } } {
-  const none = { ties: [] as ReviewTie[], execution: { concurrency: null as number | null, network: null as string | null } };
+export function selectionReview(projectDir: string, b: PlanBody): { ties: ReviewTie[]; execution: { concurrency: number | null; network: string | null }; catalog: ReviewCatalog | null } {
+  const none = { ties: [] as ReviewTie[], execution: { concurrency: null as number | null, network: null as string | null }, catalog: null };
   try {
     const inventory = discoverWorkspace(projectDir).inventory;
     const overrides: CallOverride[] = [
@@ -84,6 +115,7 @@ export function selectionReview(projectDir: string, b: PlanBody): { ties: Review
         .filter((i) => i.tie === true)
         .map((i) => ({ selector: i.selector, kind: i.kind, decision: i.decision ? brief(i.decision) : null, overridden: i.overridden.map(brief) })),
       execution: { concurrency: typeof execution.concurrency === "number" ? execution.concurrency : null, network: typeof execution.network === "string" ? execution.network : null },
+      catalog: reviewCatalog(selection),
     };
   } catch {
     return none;

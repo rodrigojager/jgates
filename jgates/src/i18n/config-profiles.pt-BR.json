@@ -12,6 +12,8 @@
   "cfgp_selector_repeated": "O seletor '{selector}' veio mais de uma vez.",
   "cfgp_locked": "'{selector}' está travado pela política e não pode ser desligado: {reason}",
   "cfgp_locked_fix": "Para liberar, a política em {file} precisa mudar.",
+  "cfgp_when_needs_enabled": "'{selector}': \"só onde houver ferramenta\" vale apenas para uma verificação ligada.",
+  "cfgp_when_needs_enabled_fix": "Envie enabled: true junto com when: available, ou desligue sem when.",
   "cfgp_policy_governed": "No modo governado a política vem de fora do repositório e não pode ser alterada por aqui.",
   "cfgp_policy_governed_fix": "Altere a política no repositório de governança.",
   "cfgp_policy_value_invalid": "O valor de '{field}' não é válido.",

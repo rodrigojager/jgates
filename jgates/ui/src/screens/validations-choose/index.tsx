@@ -9,6 +9,7 @@ import { useShell } from "../../app/shell-context";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { readRequest, writeRequest, type GateChoice, type TargetKind, type ValidationRequest } from "../validations-review/request";
+import { CapabilityRow, capabilityStates, countStates, summaryText, type StateContext } from "../validations-review/capability-states";
 
 export const screen: ScreenMeta = { id: "validations-choose", path: "/validations/choose", area: "validations", navLabel: "vch_nav", navPath: "/validations/choose", order: 31, icon: "sliders" };
 
@@ -60,6 +61,12 @@ function Customize({ profile, skip, onSkip, onSaved }: { profile: any; skip: str
     return out;
   }, [rows, skip]);
   const requiredRemoved = removed.some((r) => r.required);
+  // Every capability of the catalog with its state: what runs can be switched off for this run (checkbox); what does
+  // not apply here or is off in the profile says why, with the action that turns it on.
+  const groups = useMemo(() => (plan ? capabilityStates(plan, (base.data as any)?.review?.catalog ?? null) : []), [plan, base.data]);
+  const counts = countStates(groups);
+  const byCapability = useMemo(() => new Map(rows.flatMap(([, list]) => list.map((r) => [r.capability, r] as const))), [rows]);
+  const ctx: StateContext = { profile: profile.origin === "project" ? String(profile.id) : null, onChanged: base.reload };
 
   function toggle(row: CapRow, on: boolean) {
     const selector = `capability:${row.capability}`;
@@ -92,23 +99,26 @@ function Customize({ profile, skip, onSkip, onSaved }: { profile: any; skip: str
         <p className="muted">{t("vch_customize_lead", { profile: profile.label ?? profile.id })}</p>
         {base.loading ? <p className="spinner-text" role="status">{t("plan_building")}</p> : null}
         {base.error ? <ErrorNotice error={base.error} onRetry={base.reload} /> : null}
-        {rows.map(([category, list]) => (
-          <fieldset key={category ?? "none"} style={{ border: 0, padding: 0, margin: 0 }}>
+        {plan ? <p className="small" data-testid="capability-summary">{summaryText(counts)}</p> : null}
+        {groups.map((group) => (
+          <fieldset key={group.id} style={{ border: 0, padding: 0, margin: 0 }} data-category={group.id}>
             <legend>
-              <strong>{catLabel(category)}</strong>
+              <strong>{group.label}</strong>
             </legend>
-            <ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0", display: "grid", gap: 6 }}>
-              {list.map((row) => {
+            <ul className="capst-list">
+              {group.items.map((state) => {
+                const row = byCapability.get(state.id);
+                if (state.kind !== "run" || !row) return <CapabilityRow key={state.id} state={state} ctx={ctx} />;
                 const off = skip.includes(`capability:${row.capability}`);
                 const checked = row.enabled && !off;
                 return (
-                  <li key={row.capability}>
+                  <li key={row.capability} className="capst-row" data-testid="capability-state" data-capability={state.id} data-state={off ? "off" : "run"}>
                     <label className="row" style={{ gap: 8, alignItems: "flex-start" }}>
                       <input type="checkbox" checked={checked} disabled={!row.enabled} onChange={(e) => toggle(row, e.target.checked)} />
                       <span>
-                        {capLabel(row.capability)} <span className="muted small">({row.tools.join(", ")})</span>
-                        {row.required ? <span className="small"> · {t("vrev_req_required")}</span> : null}
-                        {!row.enabled ? <span className="muted small"> · {t("vch_outside_profile")}</span> : null}
+                        {state.label} <span className="muted small">({row.tools.join(", ")})</span>
+                        {row.required ? <span className="small"> · {t("vrev_req_required")}</span> : state.when === "available" ? <span className="small muted"> · {t("vch_when_available")}</span> : null}
+                        {off ? <span className="small muted"> · {t("capst_off_run")}</span> : null}
                       </span>
                     </label>
                   </li>

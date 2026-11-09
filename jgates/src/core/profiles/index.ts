@@ -345,6 +345,11 @@ export { hashBytes };
 export interface SelectionChange {
   selector: string;
   enabled: boolean;
+  /**
+   * "available": on only where a tool for it is available (writes `when: available` next to `enabled: true`); null:
+   * removes `when` from the entry (on means required again; always removed when switching off); absent: `when` stays.
+   */
+  when?: "available" | null;
 }
 
 function configTranslator() {
@@ -391,7 +396,14 @@ export function setProfileChecks(dir: string, id: string, changes: SelectionChan
       }
     }
   }
-  const edits: YamlEdit[] = changes.map((c) => ({ op: "set", path: ["profiles", id, "checks", c.selector, "enabled"], value: c.enabled }));
+  const edits: YamlEdit[] = [];
+  for (const c of changes) {
+    if (c.when === "available" && !c.enabled) throw new ProfileError("SELECTION_REJECTED", t("cfgp_when_needs_enabled", { selector: c.selector }), t("cfgp_when_needs_enabled_fix"));
+    edits.push({ op: "set", path: ["profiles", id, "checks", c.selector, "enabled"], value: c.enabled });
+    const entry = asRecord(asRecord(map[id]?.checks)[c.selector]);
+    if (c.when === "available") edits.push({ op: "set", path: ["profiles", id, "checks", c.selector, "when"], value: "available" });
+    else if ((c.when === null || !c.enabled) && entry?.when !== undefined) edits.push({ op: "delete", path: ["profiles", id, "checks", c.selector, "when"] });
+  }
   const result = applyEdits(projectDir, file, "profiles", edits, { expectedHash: options.expectedHash });
   return { id, file, changes, ...result };
 }

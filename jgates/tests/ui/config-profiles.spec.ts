@@ -88,27 +88,28 @@ test("deleting the default profile is refused with the reason and the file does 
   });
 });
 
-test("turning off Testes unitários writes capability:unit enabled false in the profile and leaves the rest of the category", async ({ page }) => {
+test("choosing Desligada for Testes unitários writes capability:unit enabled false in the profile and leaves the rest of the category", async ({ page }) => {
   await withServer(async ({ fixture, server }) => {
     await open(page, server);
     await page.getByRole("button", { name: "Editar o perfil Rigoroso" }).click();
     await expect(page.locator('[data-profile="strict"]')).toContainText("Em edição");
 
     await page.getByRole("button", { name: "Abrir a categoria Testes" }).click();
-    const unit = page.getByRole("switch", { name: "Testes unitários", exact: true });
-    const coverage = page.getByRole("switch", { name: "Cobertura", exact: true });
-    const integration = page.getByRole("switch", { name: "Testes de integração", exact: true });
-    await expect(unit).toBeChecked();
-    await expect(coverage).toBeChecked();
-    await expect(integration).not.toBeChecked();
+    const unit = page.getByRole("combobox", { name: "Testes unitários", exact: true });
+    const coverage = page.getByRole("combobox", { name: "Cobertura", exact: true });
+    const integration = page.getByRole("combobox", { name: "Testes de integração", exact: true });
+    await expect(unit).toHaveValue("required");
+    await expect(coverage).toHaveValue("required");
+    // strict turns on every other check where a tool exists.
+    await expect(integration).toHaveValue("available");
     // The origin and the file where it is saved are on the row.
     const row = page.locator('[data-selector="capability:unit"]');
     await expect(row.getByTestId("origin-source")).toContainText("Perfil");
     await expect(row.getByTestId("origin-save")).toContainText(".jgates/profiles.yml");
 
     const before = read(PROFILES(fixture));
-    await unit.click();
-    await expect(unit).not.toBeChecked();
+    await unit.selectOption("off");
+    await expect(page.locator('[data-selector="capability:unit"]')).toHaveAttribute("data-mode", "off");
 
     const after = read(PROFILES(fixture));
     expect(after).not.toBe(before);
@@ -122,9 +123,9 @@ test("turning off Testes unitários writes capability:unit enabled false in the 
     await page.reload();
     await page.getByRole("button", { name: "Editar o perfil Rigoroso" }).click();
     await page.getByRole("button", { name: "Abrir a categoria Testes" }).click();
-    await expect(page.getByRole("switch", { name: "Testes unitários", exact: true })).not.toBeChecked();
-    await expect(page.getByRole("switch", { name: "Cobertura", exact: true })).toBeChecked();
-    await expect(page.getByRole("switch", { name: "Testes de integração", exact: true })).not.toBeChecked();
+    await expect(page.getByRole("combobox", { name: "Testes unitários", exact: true })).toHaveValue("off");
+    await expect(page.getByRole("combobox", { name: "Cobertura", exact: true })).toHaveValue("required");
+    await expect(page.getByRole("combobox", { name: "Testes de integração", exact: true })).toHaveValue("available");
     const resolved = explain(fixture, "strict").selection.items as Array<{ selector: string; enabled: boolean }>;
     expect(resolved.find((i) => i.selector === "capability:unit")?.enabled).toBe(false);
     expect(resolved.find((i) => i.selector === "capability:coverage")?.enabled).toBe(true);
@@ -143,13 +144,12 @@ test("a requirement locked by the policy shows the padlock and the reason, and i
     await expect(locked).toHaveAttribute("data-locked", "true");
     await expect(locked.getByTestId("locked-item")).toContainText("Exigido pela política do time");
     await expect(locked.locator('[data-locked="true"] svg.icon')).toBeVisible();
-    const toggle = locked.getByRole("switch", { name: "Lint", exact: true });
-    await expect(toggle).toBeChecked();
+    const toggle = locked.getByRole("combobox", { name: "Lint", exact: true });
+    await expect(toggle).toHaveValue("required");
     await expect(toggle).toBeDisabled();
 
     const before = sha256(read(PROFILES(fixture)));
-    await toggle.click({ force: true });
-    await expect(toggle).toBeChecked();
+    await expect(toggle).toHaveValue("required");
     expect(sha256(read(PROFILES(fixture)))).toBe(before);
 
     // The server refuses it as well, with the reason, whatever the screen does.
@@ -214,5 +214,81 @@ test("the screen has no accessibility violations in both themes and fits the nar
     await page.setViewportSize({ width: 390, height: 800 });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
+  });
+});
+
+test("strict shows every capability with its mode (required, where a tool exists, off) and what it means in this project", async ({ page }) => {
+  await withServer(async ({ server }) => {
+    await open(page, server);
+    await page.getByRole("button", { name: "Editar o perfil Rigoroso" }).click();
+    await expect(page.locator('[data-profile="strict"]')).toContainText("Em edição");
+    for (const name of ["Qualidade", "Segurança", "Testes", "Arquitetura", "Dependências", "Infraestrutura"]) await page.getByRole("button", { name: `Abrir a categoria ${name}` }).click();
+    await expect(page.getByTestId("capability-mode")).toHaveCount(28);
+    await expect(page.getByTestId("capability-summary")).toContainText("vão rodar");
+    const mutation = page.locator('[data-selector="capability:mutation"]');
+    await expect(mutation).toHaveAttribute("data-mode", "available");
+    await expect(mutation.getByTestId("capability-status")).toContainText("Não se aplica aqui");
+    await expect(mutation).toContainText("Onde não houver, aparece como não aplicável");
+    const e2e = page.locator('[data-selector="capability:e2e"]');
+    await expect(e2e.getByTestId("capability-status")).toContainText("O JGates ainda não tem ferramenta para isto nesta stack.");
+    const unit = page.locator('[data-selector="capability:unit"]');
+    await expect(unit).toHaveAttribute("data-mode", "required");
+    await expect(unit).toContainText("a validação bloqueia");
+  });
+});
+
+test("a capability the profile file turns off says 'Desligada neste perfil (pelo seu arquivo)' and the select turns it on, with or without when", async ({ page }) => {
+  await withServer(async ({ fixture, server }) => {
+    const entry = "      capability:format-check:\n        enabled: true\n        when: available\n";
+    const text = read(PROFILES(fixture));
+    expect(text).toContain(entry);
+    fs.writeFileSync(PROFILES(fixture), text.replace(entry, "      capability:format-check:\n        enabled: false\n"));
+    await open(page, server);
+    await page.getByRole("button", { name: "Editar o perfil Rigoroso" }).click();
+    await expect(page.locator('[data-profile="strict"]')).toContainText("Em edição");
+    await page.getByRole("button", { name: "Abrir a categoria Qualidade" }).click();
+    const row = page.locator('[data-selector="capability:format-check"]');
+    await expect(row).toHaveAttribute("data-mode", "off");
+    await expect(row.getByTestId("capability-status")).toContainText("Desligada neste perfil (pelo seu arquivo .jgates/profiles.yml).");
+
+    const select = row.getByRole("combobox", { name: "Verificação de formato", exact: true });
+    await select.focus();
+    await select.selectOption("available");
+    await expect(row).toHaveAttribute("data-mode", "available");
+    const strict = (t: string) => t.slice(t.indexOf("  strict:"));
+    expect(strict(read(PROFILES(fixture)))).toMatch(/capability:format-check:\n {8}enabled: true\n {8}when: available/);
+
+    // Required again: the when goes away, the entry stays.
+    await row.getByRole("combobox", { name: "Verificação de formato", exact: true }).selectOption("required");
+    await expect(row).toHaveAttribute("data-mode", "required");
+    expect(strict(read(PROFILES(fixture)))).toMatch(/capability:format-check:\n {8}enabled: true\n(?! {8}when)/);
+    const resolved = explain(fixture, "strict").selection.items as Array<{ selector: string; enabled: boolean; when?: string }>;
+    expect(resolved.find((i) => i.selector === "capability:format-check")?.when).toBeUndefined();
+
+    // Off removes the when as well.
+    await row.getByRole("combobox", { name: "Verificação de formato", exact: true }).selectOption("available");
+    await expect(row).toHaveAttribute("data-mode", "available");
+    await row.getByRole("combobox", { name: "Verificação de formato", exact: true }).selectOption("off");
+    await expect(row).toHaveAttribute("data-mode", "off");
+    expect(strict(read(PROFILES(fixture)))).toMatch(/capability:format-check:\n {8}enabled: false\n(?! {8}when)/);
+  });
+});
+
+test("the server refuses when: available on a check that is being turned off", async ({ page }) => {
+  await withServer(async ({ fixture, server }) => {
+    await open(page, server);
+    const before = sha256(read(PROFILES(fixture)));
+    const answer = await page.evaluate(async () => {
+      const session = await (await fetch("/api/session", { credentials: "same-origin" })).json();
+      const response = await fetch("/api/config/selection", {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", [session.csrfHeader]: session.csrfToken },
+        body: JSON.stringify({ profile: "strict", changes: [{ selector: "capability:mutation", enabled: false, when: "available" }] }),
+      });
+      return { status: response.status };
+    });
+    expect(answer.status).toBe(422);
+    expect(sha256(read(PROFILES(fixture)))).toBe(before);
   });
 });

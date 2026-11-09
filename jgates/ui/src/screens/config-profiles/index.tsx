@@ -59,7 +59,7 @@ export default function ConfigProfilesScreen() {
 
       <QualityMascotStrip snapshot={v.mascots} />
       <div className="cfgp-columns">
-        <Protect categories={v.categories as CategoryView[]} profile={current} editable={v.profile.editable === true} onChanged={refresh} />
+        <Protect categories={v.categories as CategoryView[]} plan={v.plan ?? null} profile={current} editable={v.profile.editable === true} onChanged={refresh} />
         <Policy policy={v.policy as PolicyView} governedPolicy={v.governed?.policy ?? null} onChanged={refresh} />
       </div>
 

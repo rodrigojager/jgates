@@ -69,6 +69,12 @@
   "cfgp_reason_NOT_SELECTED": "Nenhuma camada seleciona: desligado.",
   "cfgp_reason_DEFAULT": "Valor padrão.",
   "cfgp_reason_LOCKED_REQUIRED": "Exigido pela política.",
+  "cfgp_mode_required": "Obrigatória",
+  "cfgp_mode_available": "Onde houver ferramenta",
+  "cfgp_mode_off": "Desligada",
+  "cfgp_mode_required_help": "Sempre roda. Sem ferramenta para ela aqui, a validação bloqueia.",
+  "cfgp_mode_available_help": "Roda onde houver ferramenta. Onde não houver, aparece como não aplicável, com o motivo, e não bloqueia.",
+  "cfgp_mode_off_help": "Não roda neste perfil. Escolha outra opção para ligar.",
   "cfgp_saved": "{count} alteração(ões) gravada(s) no perfil {profile}.",
 
   "cfgp_policy_title": "Quando bloquear a entrega?",

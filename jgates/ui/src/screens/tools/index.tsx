@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { api } from "../../api";
+import { currentQuery } from "../../app/route";
 import { useShell } from "../../app/shell-context";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
@@ -141,7 +142,11 @@ export default function ToolsScreen() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [component, setComponent] = useState("");
-  const [dialog, setDialog] = useState<{ kind: "create"; adapter: string | null } | { kind: "rename"; id: string } | { kind: "remove"; id: string } | null>(null);
+  // `#/tools?add=<adapter>` (the "Adicionar" action of a check that does not apply yet) opens the creation for that adapter.
+  const [dialog, setDialog] = useState<{ kind: "create"; adapter: string | null } | { kind: "rename"; id: string } | { kind: "remove"; id: string } | null>(() => {
+    const add = currentQuery().get("add");
+    return add ? { kind: "create", adapter: add } : null;
+  });
   const [notice, setNotice] = useState<{ text: string; tool: string; references: string[] } | null>(null);
 
   const instances: any[] = (tools.data as any)?.instances ?? [];

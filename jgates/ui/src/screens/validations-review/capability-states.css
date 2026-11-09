@@ -1,0 +1,17 @@
+/* State of every capability (Revisar, Escolher, Configuração > Perfil). Tokens from theme.css (light and dark). */
+.capst-group { border-top: 1px solid var(--line); padding: 8px 0 4px; }
+.capst-group > summary { cursor: pointer; padding: 2px 0; }
+.capst-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.capst-row { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); min-width: 0; }
+.capst-main { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.capst-name { flex: 0 1 auto; overflow-wrap: anywhere; }
+.capst-detail { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.capst-sub { margin: 0; overflow-wrap: anywhere; }
+.capst-action { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.capst-btn { padding: 4px 10px; font-size: 12px; white-space: normal; text-align: left; max-width: 100%; }
+.capst-link { color: var(--accent); text-decoration: underline; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
+.capst-more summary { cursor: pointer; color: var(--muted); }
+.capst-more ul { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; overflow-wrap: anywhere; }
+.capst-more p { margin: 4px 0 0; overflow-wrap: anywhere; }
+.capst-blocked { border-color: var(--red); }
+.capst-when { display: inline-flex; align-items: center; gap: 6px; }
