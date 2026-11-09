@@ -226,7 +226,8 @@ function PrefsForm({ entry, revision, models, onSaved, onCancel }: { entry: Prov
   );
 }
 
-function RemoveConnectionDialog({ entry, revision, onClose, onDone }: { entry: ProviderEntry; revision: string | null; onClose: () => void; onDone: () => void }) {
+/** Remover a connection, or Restaurar padrões of a provider (its preferences go back to the defaults). */
+export function RemoveConnectionDialog({ entry, revision, onClose, onDone }: { entry: ProviderEntry; revision: string | null; onClose: () => void; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const connection = entry.kind === "connection";
@@ -297,12 +298,6 @@ export function ProviderCard({ entry, secret, writable, revision, onChanged }: {
             <dd>
               <code>{Object.keys(entry.headers).join(", ")}</code>
             </dd>
-          </>
-        ) : null}
-        {entry.type === "cli" ? (
-          <>
-            <dt>{t("pk_field_login")}</dt>
-            <dd>{t("pk_cli_login")}</dd>
           </>
         ) : null}
       </dl>

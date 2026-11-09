@@ -13,8 +13,7 @@
   "pk_connections_lead": "Um gateway compatível com a API da OpenAI (LiteLLM, vLLM, um proxy do time, o Ollama em /v1), com nome. Um projeto usa a conexão com provider: <nome>.",
   "pk_connections_empty": "Nenhuma conexão ainda.",
   "pk_cli_title": "Provedores de CLI",
-  "pk_cli_lead": "Usam o login que você já fez no próprio CLI e não precisam de chave; aqui fica só o modelo padrão. Se cada um está instalado e com login aparece ao escolher o provedor do projeto.",
-  "pk_cli_login": "Login do próprio CLI",
+  "pk_cli_lead": "Usam o login que você já fez no próprio CLI: não precisam de chave e o JGates não lê nenhuma credencial. Aqui você vê se cada um está instalado e com login, e escolhe o modelo padrão para todos os projetos.",
   "pk_other_title": "Outras chaves",
   "pk_other_lead": "Nomes que nenhum provider da lista usa: os seus próprios (por exemplo, o passEnv de uma ferramenta de PII). Só quem declara o nome recebe o valor.",
   "pk_other_empty": "Nenhuma outra chave.",
@@ -31,7 +30,6 @@
   "pk_field_model": "Modelo padrão",
   "pk_field_key_name": "Nome da chave",
   "pk_field_headers": "Cabeçalhos extras",
-  "pk_field_login": "Acesso",
   "pk_help_baseUrl": "http ou https; http só para loopback, a menos que você confirme. Vazio volta ao padrão do provider.",
   "pk_help_model": "O modelo que o provider usa quando o projeto não fixa um. Vazio deixa sem padrão.",
   "pk_help_apiKeyEnv": "O nome da variável (ou do cofre) que guarda a chave, nunca a chave. Vazio volta ao nome padrão.",
@@ -115,5 +113,9 @@
   "pk_nav": "Provedores e chaves",
   "pk_defaults_badge": "Padrões para todos os projetos",
   "pk_project_note": "O provedor que revisa este projeto é escolhido na preparação da revisão semântica e fica no jgates.yml dele; ele vence estes padrões.",
-  "pk_project_link": "Escolher o provedor deste projeto"
+  "pk_project_link": "Escolher o provedor deste projeto",
+  "pk_cli_path": "Executável:",
+  "pk_cli_model_follow": "Padrão do próprio {name}",
+  "pk_cli_model_follow_configured": "Padrão do próprio {name} (hoje: {model})",
+  "pk_cli_model_help": "Vale para todos os projetos que usam o {name} sem fixar um modelo."
 }

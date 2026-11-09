@@ -13,8 +13,7 @@
   "pk_connections_lead": "A gateway compatible with the OpenAI API (LiteLLM, vLLM, a team proxy, Ollama under /v1), with a name. A project uses the connection with provider: <name>.",
   "pk_connections_empty": "No connection yet.",
   "pk_cli_title": "CLI providers",
-  "pk_cli_lead": "They use the login you already did in the CLI itself and need no key; only the default model is kept here. Whether each one is installed and logged in shows when you choose the project's provider.",
-  "pk_cli_login": "The CLI's own login",
+  "pk_cli_lead": "They use the login you already did in the CLI itself: no key is needed and JGates reads no credential. Here you see whether each one is installed and logged in, and choose the default model for every project.",
   "pk_other_title": "Other keys",
   "pk_other_lead": "Names no provider of the list uses: your own (for example, the passEnv of a PII tool). Only the process that declares the name gets the value.",
   "pk_other_empty": "No other key.",
@@ -31,7 +30,6 @@
   "pk_field_model": "Default model",
   "pk_field_key_name": "Key name",
   "pk_field_headers": "Extra headers",
-  "pk_field_login": "Access",
   "pk_help_baseUrl": "http or https; http only for loopback unless you confirm it. Empty goes back to the provider's default.",
   "pk_help_model": "The model the provider uses when the project sets none. Empty leaves no default.",
   "pk_help_apiKeyEnv": "The name of the variable (or of the store entry) that holds the key, never the key. Empty goes back to the default name.",
@@ -115,5 +113,9 @@
   "pk_nav": "Providers and keys",
   "pk_defaults_badge": "Defaults for every project",
   "pk_project_note": "Which provider reviews this project is chosen in the Semantic setup and saved in its jgates.yml; it wins over these defaults.",
-  "pk_project_link": "Choose this project's provider"
+  "pk_project_link": "Choose this project's provider",
+  "pk_cli_path": "Executable:",
+  "pk_cli_model_follow": "{name}'s own default",
+  "pk_cli_model_follow_configured": "{name}'s own default (now: {model})",
+  "pk_cli_model_help": "Applies to every project that uses {name} without pinning a model."
 }

@@ -7,6 +7,7 @@ import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { fieldErrors, ModelList, ProviderCard } from "./card";
+import { CliProviders } from "./cli-card";
 import { KeyControl } from "./key";
 import { CONNECTION_NAME, insecureHttp, KEY_NAME, parseHeaders, secretPath, type ModelsAnswer, type ProvidersData, type SecretsData, type SecretView } from "./model";
 import "./providers.css";
@@ -331,7 +332,7 @@ export default function ProvidersScreen() {
           <h2 id="pk-cli">{t("pk_cli_title")}</h2>
           <p className="small muted">{t("pk_cli_lead")}</p>
         </div>
-        <div className="pk-grid">{cli.map(card)}</div>
+        <CliProviders entries={cli} writable={writable} revision={p.revision} onChanged={refresh} />
       </section>
 
       <section className="stack" aria-labelledby="pk-other">

@@ -34,11 +34,63 @@ async function fakeProvider(key: string): Promise<{ url: string; seen: string[];
   return { url: `http://127.0.0.1:${port}/v1`, seen, close: () => new Promise((r) => server.close(() => r())) };
 }
 
-async function openProviders(page: Page, server: UiServer): Promise<void> {
+// GET /api/providers/cli-status and POST /api/providers/:name/login are stubbed in the browser: no real CLI runs and no
+// terminal opens. Claude Code needs a login (until the stub says it is done), Codex CLI is ready, OpenCode cannot confirm
+// its login and lists many models, Gemini CLI is not installed.
+const OPENCODE_MODELS = Array.from({ length: 60 }, (_, i) => `provider-${i % 3}/model-${String(i).padStart(2, "0")}`);
+
+interface CliStub {
+  claudeLoggedIn: boolean;
+  logins: string[];
+  statusCalls: string[];
+}
+
+function cliEntry(id: string, name: string, command: string, installed: boolean, login: "logged-in" | "not-logged-in" | "unknown", models: { source: string; list: string[]; configured: string | null; suggestedDefault: string | null } | null, withModels: boolean) {
+  return {
+    id,
+    name,
+    command,
+    installed,
+    path: installed ? `C:/stub/bin/${command}.cmd` : null,
+    version: installed ? "1.2.3" : null,
+    login: { state: installed ? login : "unknown", reason: installed ? "STATUS_COMMAND" : "NOT_INSTALLED", method: login === "logged-in" ? "ChatGPT" : null, checkedWith: `${command} status` },
+    models: withModels && models ? { truncated: false, configuredIn: models.configured ? "~/.stub" : null, problem: null, ...models } : null,
+    loginCommand: { command, args: ["login"], display: `${command} login` },
+    install: `npm install -g ${command}-stub`,
+  };
+}
+
+async function stubCli(page: Page): Promise<CliStub> {
+  const stub: CliStub = { claudeLoggedIn: false, logins: [], statusCalls: [] };
+  await page.route("**/api/providers/cli-status**", async (route) => {
+    const url = new URL(route.request().url());
+    stub.statusCalls.push(url.search);
+    const withModels = url.searchParams.get("models") !== "0";
+    const only = url.searchParams.get("only");
+    const all = [
+      cliEntry("claude-code", "Claude Code", "claude", true, stub.claudeLoggedIn ? "logged-in" : "not-logged-in", { source: "suggested", list: ["sonnet", "opus", "haiku"], configured: null, suggestedDefault: "sonnet" }, withModels),
+      cliEntry("codex-cli", "Codex CLI", "codex", true, "logged-in", { source: "cli", list: ["gpt-5.5", "gpt-5.5-mini", "gpt-5.4"], configured: "gpt-5.5-mini", suggestedDefault: "gpt-5.5-mini" }, withModels),
+      cliEntry("opencode", "OpenCode", "opencode", true, "unknown", { source: "cli", list: OPENCODE_MODELS, configured: null, suggestedDefault: null }, withModels),
+      cliEntry("gemini-cli", "Gemini CLI", "gemini", false, "unknown", null, withModels),
+    ];
+    const providers = only ? all.filter((p) => p.id === only) : all;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ schemaVersion: 1, status: "OK", checkedAt: new Date().toISOString(), timeoutMs: 8000, providers }) });
+  });
+  await page.route("**/api/providers/*/login", async (route) => {
+    const name = decodeURIComponent(new URL(route.request().url()).pathname.split("/")[3] as string);
+    stub.logins.push(name);
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ schemaVersion: 1, status: "OK", opened: true, method: "terminal", command: { display: "claude auth login" }, reason: null }) });
+  });
+  return stub;
+}
+
+async function openProviders(page: Page, server: UiServer): Promise<CliStub> {
+  const stub = await stubCli(page);
   await page.goto(server.bootstrapUrl);
   await page.waitForURL((u) => !u.pathname.startsWith("/session"));
   await page.goto(`${page.url().split("#")[0]}#/preferences/providers`);
   await expect(page.getByRole("heading", { name: "Provedores e chaves", level: 1 })).toBeVisible();
+  return stub;
 }
 
 async function serious(page: Page, include?: string): Promise<string[]> {
@@ -186,10 +238,102 @@ test.describe("Providers e chaves", () => {
     await gemini.getByRole("button", { name: "Restaurar padrões de gemini" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Restaurar os padrões" }).click();
     await expect(page.getByTestId("model-gemini")).toContainText("Não definido");
-    // A CLI provider keeps only its default model: no key and no Testar.
+    // A CLI provider has no key and no Testar: its state comes from the CLI itself.
     const cli = page.getByTestId("provider-codex-cli");
-    await expect(cli).toContainText("Login do próprio CLI");
+    await expect(cli).toContainText("Pronto");
+    await expect(cli).not.toContainText("Login do próprio CLI");
     await expect(cli.getByRole("button", { name: "Testar codex-cli" })).toHaveCount(0);
+  });
+
+  test("the agent CLIs show their live state (Pronto, Falta entrar, Login não confirmado, Não instalado), Entrar re-checks on focus, and the default model is picked from the CLI's models", async ({ page }) => {
+    const stub = await openProviders(page, server);
+    const section = page.getByTestId("pk-cli-cards");
+    await expect(section).toBeVisible();
+    await expect(page.getByText("Login do próprio CLI")).toHaveCount(0);
+
+    // Pronto: the login method, the version and the executable's path.
+    const codex = page.getByTestId("provider-codex-cli");
+    await expect(codex).toHaveAttribute("data-state", "ready");
+    await expect(codex.getByRole("heading", { name: "Codex CLI" })).toBeVisible();
+    await expect(codex).toContainText("Pronto");
+    await expect(page.getByTestId("pk-cli-detail-codex-cli")).toHaveText("Instalado e com login feito (ChatGPT). · versão 1.2.3");
+    await expect(page.getByTestId("pk-cli-path-codex-cli")).toContainText("C:/stub/bin/codex.cmd");
+    await expect(page.getByTestId("model-codex-cli")).toHaveText("Padrão do próprio Codex CLI (hoje: gpt-5.5-mini)");
+    await expect(page.getByTestId("pk-cli-recheck-codex-cli")).toHaveCount(0);
+
+    // Login não confirmado: Entrar (secondary) and Verificar de novo.
+    const opencode = page.getByTestId("provider-opencode");
+    await expect(opencode).toHaveAttribute("data-state", "unknown");
+    await expect(opencode).toContainText("Login não confirmado");
+    await expect(page.getByTestId("pk-cli-login-opencode")).toBeVisible();
+    await expect(page.getByTestId("pk-cli-recheck-opencode")).toBeVisible();
+
+    // Não instalado: how to install, a copy button and Verificar de novo; no path.
+    const gemini = page.getByTestId("provider-gemini-cli");
+    await expect(gemini).toHaveAttribute("data-state", "missing");
+    await expect(gemini).toContainText("Não instalado");
+    await expect(gemini.getByText("npm install -g gemini-stub")).toBeVisible();
+    await expect(page.getByTestId("pk-cli-install-copy-gemini-cli")).toBeVisible();
+    await expect(page.getByTestId("pk-cli-path-gemini-cli")).toHaveCount(0);
+    await expect(page.getByTestId("pk-cli-login-gemini-cli")).toHaveCount(0);
+    const before = stub.statusCalls.length;
+    await page.getByRole("button", { name: "Verificar de novo o Gemini CLI" }).click();
+    await expect.poll(() => stub.statusCalls.slice(before).some((q) => q.includes("only=gemini-cli") && q.includes("refresh=1"))).toBe(true);
+
+    // Falta entrar: Entrar opens the CLI's own login (stubbed); the card is checked again when the window gets the
+    // focus back.
+    const claude = page.getByTestId("provider-claude-code");
+    await expect(claude).toHaveAttribute("data-state", "login");
+    await expect(claude).toContainText("Falta entrar");
+    await page.getByRole("button", { name: "Entrar no Claude Code" }).click();
+    await expect(page.getByTestId("pk-cli-login-note-claude-code")).toContainText("Abrimos um terminal com claude auth login");
+    expect(stub.logins).toEqual(["claude-code"]);
+    stub.claudeLoggedIn = true;
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(claude).toHaveAttribute("data-state", "ready");
+    await expect(page.getByTestId("toasts")).toContainText("Login confirmado no Claude Code.");
+    await expect(page.getByTestId("pk-cli-login-note-claude-code")).toHaveCount(0);
+
+    // Configurar: the default model is a select fed by the CLI's models, with "Outro…"; the keyboard reaches it.
+    await codex.getByRole("button", { name: "Configurar codex-cli" }).click();
+    const picker = page.getByTestId("pk-cli-model-codex-cli");
+    const select = picker.getByLabel("Modelo padrão", { exact: true });
+    await expect(select).toHaveValue("__default__");
+    await expect(select.locator("option")).toHaveText(["Padrão do próprio Codex CLI (hoje: gpt-5.5-mini)", "gpt-5.5", "gpt-5.5-mini", "gpt-5.4", "Outro…"]);
+    await expect(picker).toContainText("Lista do próprio Codex CLI (3 modelos).");
+    await select.selectOption({ label: "Outro…" });
+    await expect(picker.getByLabel("Nome do modelo")).toBeVisible();
+    await select.focus();
+    await select.selectOption("gpt-5.4");
+    await expect(picker.getByLabel("Nome do modelo")).toHaveCount(0);
+    await codex.getByRole("button", { name: "Salvar as preferências de codex-cli" }).click();
+    await expect(page.getByTestId("model-codex-cli")).toContainText("gpt-5.4");
+    await expect(page.getByTestId("model-codex-cli")).toContainText("sua preferência");
+    expect(JSON.parse(fs.readFileSync(path.join(fixture.store, "config.json"), "utf8")).providers["codex-cli"].model).toBe("gpt-5.4");
+
+    // Many models: a combobox that filters as you type; Esc closes the list only.
+    await opencode.getByRole("button", { name: "Configurar opencode" }).click();
+    const combo = page.getByTestId("pk-cli-model-opencode").getByRole("combobox", { name: "Modelo padrão" });
+    await combo.fill("model-1");
+    await expect(page.getByRole("listbox")).toBeVisible();
+    await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(10);
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await expect(combo).toHaveValue("provider-2/model-11");
+    await page.keyboard.press("Escape");
+    await opencode.getByRole("button", { name: "Cancelar" }).click();
+
+    // Back to the CLI's own default: Restaurar padrões.
+    await codex.getByRole("button", { name: "Restaurar padrões de codex-cli" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Restaurar os padrões" }).click();
+    await expect(page.getByTestId("model-codex-cli")).toHaveText("Padrão do próprio Codex CLI (hoje: gpt-5.5-mini)");
+
+    // 375 px: nothing wider than the screen.
+    await page.setViewportSize({ width: 375, height: 800 });
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    expect(await serious(page, '[data-testid="pk-cli-cards"]')).toEqual([]);
   });
 
   test("a connection with a credential header is refused by field, then added, tested and removed", async ({ page }) => {
@@ -251,6 +395,7 @@ test("Preferências links to Provedores e chaves, now under Semântica (IA); the
   const fixture = createFixture();
   const server = await startServer(fixture);
   try {
+    await stubCli(page);
     await page.goto(server.bootstrapUrl);
     await page.waitForURL((u) => !u.pathname.startsWith("/session"));
     await page.goto(`${page.url().split("#")[0]}#/preferences`);
@@ -277,6 +422,9 @@ test("Preferências links to Provedores e chaves, now under Semântica (IA); the
     await expect(page.getByRole("heading", { name: "Providers and keys", level: 1 })).toBeVisible();
     await expect(page.getByTestId("key-state-OPENAI_API_KEY")).toHaveText("Not set");
     await expect(page.getByRole("button", { name: "Save key OPENAI_API_KEY" })).toBeVisible();
+    await expect(page.getByTestId("provider-codex-cli")).toContainText("Ready");
+    await expect(page.getByTestId("provider-gemini-cli")).toContainText("Not installed");
+    await expect(page.getByTestId("model-codex-cli")).toHaveText("Codex CLI's own default (now: gpt-5.5-mini)");
     // No catalog key shows up raw.
     expect(await page.locator("main").innerText()).not.toMatch(/\bpk_[a-z_]+\b/);
   } finally {

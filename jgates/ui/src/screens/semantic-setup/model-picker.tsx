@@ -22,6 +22,10 @@ interface Props {
   help: string;
   loading?: boolean;
   disabled?: boolean;
+  /** The label of the control (default: "Modelo"); the Providers screen says "Modelo padrão". */
+  label?: string;
+  /** The data-testid of the field (default: semprov-model). */
+  testId?: string;
 }
 
 /**
@@ -32,7 +36,7 @@ export function ModelPicker(props: Props) {
   return props.models.length > SELECT_LIMIT ? <ModelCombobox {...props} /> : <ModelSelect {...props} />;
 }
 
-function ModelSelect({ models, value, onChange, defaultLabel, help, loading, disabled }: Props) {
+function ModelSelect({ models, value, onChange, defaultLabel, help, loading, disabled, label, testId }: Props) {
   const id = useId();
   const listed = value !== null && models.includes(value);
   const [other, setOther] = useState(value !== null && !listed);
@@ -43,9 +47,9 @@ function ModelSelect({ models, value, onChange, defaultLabel, help, loading, dis
   }, [value, models]);
   const selected = other ? OTHER : value === null ? (defaultLabel !== null ? DEFAULT : "") : value;
   return (
-    <div className="field semprov-model" data-testid="semprov-model">
+    <div className="field semprov-model" data-testid={testId ?? "semprov-model"}>
       <label className="field-label" htmlFor={`${id}-select`}>
-        {t("semprov_model_label")}
+        {label ?? t("semprov_model_label")}
       </label>
       <select
         id={`${id}-select`}
@@ -87,7 +91,7 @@ function ModelSelect({ models, value, onChange, defaultLabel, help, loading, dis
   );
 }
 
-function ModelCombobox({ models, value, onChange, defaultLabel, help, loading, disabled }: Props) {
+function ModelCombobox({ models, value, onChange, defaultLabel, help, loading, disabled, label, testId }: Props) {
   const id = useId();
   const listId = `${id}-list`;
   const input = useRef<HTMLInputElement>(null);
@@ -126,9 +130,9 @@ function ModelCombobox({ models, value, onChange, defaultLabel, help, loading, d
   };
 
   return (
-    <div className="field semprov-model" data-testid="semprov-model">
+    <div className="field semprov-model" data-testid={testId ?? "semprov-model"}>
       <label className="field-label" htmlFor={`${id}-input`}>
-        {t("semprov_model_label")}
+        {label ?? t("semprov_model_label")}
       </label>
       <div className="semprov-combo">
         <input
