@@ -10,6 +10,7 @@ import { DocumentError } from "../../core/documents/index.js";
 import { resolveToolBindings } from "../../core/tools/index.js";
 import { buildMatrix, unitApplicability, verifyMatrix } from "../../core/matrix/index.js";
 import { discoverWorkspace } from "../../core/discovery/index.js";
+import { refreshPath } from "../../core/env-refresh/index.js";
 import { HttpError, refuse } from "../http.js";
 import type { RouteDefinition } from "../types.js";
 
@@ -91,6 +92,7 @@ export const routes: RouteDefinition[] = [
     path: "/api/tool-availability",
     timeoutMs: 60_000,
     handler({ server }) {
+      if (!server.policyMode) refreshPath();
       return { status: 200, json: { schemaVersion: 1, status: "OK", availability: instanceAvailability(server.projectDir) } };
     },
   },

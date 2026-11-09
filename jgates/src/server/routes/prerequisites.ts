@@ -1,6 +1,7 @@
 // Prerequisites: what has to be in place before a validation runs (Docker, Git's trust in the folder, the tools JGates
 // installs), shown on top of the Overview and the Environment, and the action of each one after a confirmation.
 import { fixPrerequisite, listPrerequisites, PrerequisiteError } from "../../core/prerequisites/index.js";
+import { refreshPath } from "../../core/env-refresh/index.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition } from "../types.js";
 
@@ -9,6 +10,7 @@ export const routes: RouteDefinition[] = [
     method: "GET",
     path: "/api/prerequisites",
     handler({ server }) {
+      if (!server.policyMode) refreshPath();
       return { status: 200, json: { schemaVersion: 1, status: "OK", ...listPrerequisites(server.projectDir) } };
     },
   },
@@ -26,6 +28,7 @@ export const routes: RouteDefinition[] = [
     timeoutMs: 600_000,
     async handler({ body, server }) {
       const { id } = body as { id: string };
+      if (!server.policyMode) refreshPath({ force: true });
       try {
         const outcome = await fixPrerequisite(server.projectDir, id);
         server.log(`prerequisite ${id} ${outcome.status}`);

@@ -1,5 +1,6 @@
 // Environment: the same diagnosis as `jgates doctor` and the explicit preparation step ("Preparar").
 import { PrepareError, diagnoseEnvironment, prepareInstance, previewPrepare } from "../../core/prepare/index.js";
+import { refreshPath } from "../../core/env-refresh/index.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition } from "../types.js";
 import { ID_PATTERN } from "./tools.js";
@@ -15,6 +16,7 @@ export const routes: RouteDefinition[] = [
     method: "GET",
     path: "/api/environment",
     handler({ server }) {
+      if (!server.policyMode) refreshPath();
       return { status: 200, json: { status: "OK", ...diagnoseEnvironment(server.projectDir) } };
     },
   },
@@ -36,6 +38,7 @@ export const routes: RouteDefinition[] = [
     timeoutMs: 180_000,
     async handler({ body, server }) {
       const input = body as { instance: string; dryRun?: boolean; allowVersionChange?: boolean; image?: string };
+      if (!server.policyMode) refreshPath({ force: true });
       const options = input.image ? { image: input.image } : {};
       try {
         const preview = previewPrepare(server.projectDir, input.instance, options);
