@@ -31,7 +31,7 @@
   "vch_extends": "parte de {base}",
   "vch_criteria_title": "Critérios em vigor",
   "vch_criteria_adjust": "Ajustar critérios",
-  "vch_criteria_summary": "{rules} regra(s) com critério próprio, {evidence} evidência(s) obrigatória(s), {exceptions} exceção(ões) registrada(s).",
+  "vch_criteria_summary": "{rules, plural, one {# regra} other {# regras}} com critério próprio, {evidence, plural, one {# evidência obrigatória} other {# evidências obrigatórias}}, {exceptions, plural, one {# exceção registrada} other {# exceções registradas}}.",
   "vch_criteria_threshold": "limite {value}",
   "vch_criteria_severity": "severidade {value}",
   "vch_criteria_locked": "travada",

@@ -9,7 +9,7 @@
   "oasdiff_cancelled": "A execução foi cancelada; o oasdiff foi parado e a saída parcial ficou nos logs.",
   "oasdiff_invalid_output": "A saída do oasdiff não é o JSON esperado de mudanças incompatíveis: {detail}",
   "oasdiff_no_invocation": "O plano não tem invocação do oasdiff para a instância {tool}.",
-  "oasdiff_reason_completed": "oasdiff {version}: {count} mudança(s) incompatível(is) em {spec}",
+  "oasdiff_reason_completed": "oasdiff {version}: {count, plural, one {# mudança incompatível} other {# mudanças incompatíveis}} em {spec}",
   "oasdiff_reference_file": "o arquivo de referência {file}",
   "oasdiff_reference_ref": "a revisão {ref}",
   "oasdiff_reference_none": "nenhuma referência configurada (a etapa fica bloqueada até definir baseRef ou baseSpec)",

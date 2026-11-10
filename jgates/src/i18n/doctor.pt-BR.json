@@ -6,7 +6,7 @@
   "doctor_bad_cwd": "A pasta {path} não existe.",
   "doctor_bad_cwd_fix": "Informe uma pasta existente em --cwd.",
   "doctor_header_ready": "Ambiente pronto.",
-  "doctor_header_not_ready": "Ambiente com pendências: {absent} ausente(s), {incompatible} incompatível(is).",
+  "doctor_header_not_ready": "Ambiente com pendências: {absent, plural, one {# ausente} other {# ausentes}}, {incompatible, plural, one {# incompatível} other {# incompatíveis}}.",
   "doctor_note": "Ambiente pronto não é plano válido nem resultado aprovado: são estados diferentes.",
   "doctor_runtimes": "Runtimes e binários:",
   "doctor_tools": "Ferramentas:",

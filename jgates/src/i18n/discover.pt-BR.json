@@ -5,7 +5,7 @@
   "discover_unexpected_argument_fix": "Use: jgates discover [--cwd <projeto>] [--json]",
   "discover_bad_cwd": "A pasta do projeto não existe ou não é uma pasta: {path}",
   "discover_bad_cwd_fix": "Passe uma pasta existente em --cwd.",
-  "discover_config_invalid": "O arquivo .jgates/workspace.yml é inválido: {count} problema(s).",
+  "discover_config_invalid": "O arquivo .jgates/workspace.yml é inválido: {count, plural, one {# problema} other {# problemas}}.",
   "discover_header": "Modo: {mode}. Componentes encontrados: {count}.",
   "discover_report_only": "Modo somente relatório: nenhum template é ativado.",
   "discover_truncated": "A leitura parou no limite de arquivos ou de profundidade; o inventário pode estar incompleto.",

@@ -31,7 +31,7 @@
   "build_check_cancelled": "A execução foi cancelada; o verificador foi parado e a saída parcial dele ficou nos logs.",
   "build_check_exit_error": "{tool} em {unit} terminou com o código {code} e a saída não pôde ser interpretada: {detail}",
   "build_check_no_invocation": "O plano não tem invocação do build-check para a instância {tool}.",
-  "build_check_reason_completed": "{tool} {version}: {units} unidade(s) verificada(s), {count} diagnóstico(s), {blocking} bloqueante(s); {skipped} unidade(s) ignorada(s)",
+  "build_check_reason_completed": "{tool} {version}: {units, plural, one {# unidade verificada} other {# unidades verificadas}}, {count, plural, one {# diagnóstico} other {# diagnósticos}}, {blocking, plural, one {# bloqueante} other {# bloqueantes}}; {skipped, plural, one {# unidade ignorada} other {# unidades ignoradas}}",
   "build_check_setting_without_config": "O withoutConfig da instância {tool} é {value}; use um destes: {allowed}.",
   "build_check_skip_pyright_configured": "o componente configura o pyright, não o mypy (a verificação do pyright o cobre)"
 }

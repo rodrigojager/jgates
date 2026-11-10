@@ -132,7 +132,7 @@ function analyze(doc: Document.Parsed, edit: FieldEdit, editIndex: number): Code
     const anchor = (n as { anchor?: string } | null)?.anchor;
     if (anchor && (counts.get(anchor) ?? 0) > 0) {
       const aliases = counts.get(anchor) as number;
-      at("SHARED_BY_ALIAS", `the value is shared by ${aliases} alias(es) of &${anchor}: the change reaches every consumer`);
+      at("SHARED_BY_ALIAS", `the value is shared by ${aliases} ${aliases === 1 ? "alias" : "aliases"} of &${anchor}: the change reaches every consumer`);
     }
   };
   check(node);

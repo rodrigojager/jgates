@@ -9,7 +9,7 @@
   "oasdiff_cancelled": "The run was cancelled; oasdiff was stopped and its partial output was kept in the logs.",
   "oasdiff_invalid_output": "The oasdiff output is not the expected breaking-changes JSON: {detail}",
   "oasdiff_no_invocation": "The plan has no oasdiff invocation for the instance {tool}.",
-  "oasdiff_reason_completed": "oasdiff {version}: {count} breaking change(s) in {spec}",
+  "oasdiff_reason_completed": "oasdiff {version}: {count, plural, one {# breaking change} other {# breaking changes}} in {spec}",
   "oasdiff_reference_file": "the reference file {file}",
   "oasdiff_reference_ref": "the revision {ref}",
   "oasdiff_reference_none": "no reference configured (the stage is blocked until baseRef or baseSpec is set)",

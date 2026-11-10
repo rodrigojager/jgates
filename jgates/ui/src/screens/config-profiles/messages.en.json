@@ -75,7 +75,7 @@
   "cfgp_mode_required_help": "Always runs. With no tool for it here, the validation is blocked.",
   "cfgp_mode_available_help": "Runs where a tool exists. Where none does, it shows as not applicable, with the reason, and does not block.",
   "cfgp_mode_off_help": "Does not run in this profile. Pick another option to turn it on.",
-  "cfgp_saved": "{count} change(s) written to the profile {profile}.",
+  "cfgp_saved": "{count, plural, one {# change} other {# changes}} written to the profile {profile}.",
 
   "cfgp_policy_title": "When to block delivery?",
   "cfgp_policy_lead": "Approval criteria, independent of intensity. Written to .jgates/policy.yml.",

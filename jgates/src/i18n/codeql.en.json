@@ -8,7 +8,7 @@
   "codeql_cancelled": "The run was cancelled; CodeQL was stopped and its partial output was kept in the logs.",
   "codeql_invalid_output": "The CodeQL output is not the expected SARIF 2.1.0 of a CodeQL analysis: {detail}",
   "codeql_no_invocation": "The plan has no CodeQL invocation for the instance {tool}.",
-  "codeql_reason_completed": "CodeQL {version}: {count} finding(s)",
+  "codeql_reason_completed": "CodeQL {version}: {count, plural, one {# finding} other {# findings}}",
   "codeql_limitation_customer": "CodeQL is customer-supplied: without the CLI, its query packs and an entitlement under the CodeQL terms the stage is blocked with setup guidance, never passed.",
   "codeql_condition_scope": "Database of the language {language}, query suite {suite}; query packs are not downloaded.",
   "codeql_condition_build": "The database build runs the command: {command}",

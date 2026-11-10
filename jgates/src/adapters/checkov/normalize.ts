@@ -37,7 +37,7 @@ export function parseCheckovReport(text: string, options: ParseOptions): ParseRe
     if (!isRec(d.results) || !isRec(d.summary)) return { ok: false, findings: [], problem: `document ${index} has no results or summary object` };
     reported = str(d.summary.checkov_version) ?? reported;
     if (typeof d.summary.parsing_errors === "number" && d.summary.parsing_errors > 0) {
-      return { ok: false, findings: [], problem: `Checkov could not parse ${d.summary.parsing_errors} file(s) of ${String(d.check_type ?? "?")}` };
+      return { ok: false, findings: [], problem: `Checkov could not parse ${d.summary.parsing_errors} ${d.summary.parsing_errors === 1 ? "file" : "files"} of ${String(d.check_type ?? "?")}` };
     }
     const failed = d.results.failed_checks ?? [];
     if (!Array.isArray(failed)) return { ok: false, findings: [], problem: `document ${index} has failed_checks that is not a list` };

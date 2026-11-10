@@ -1,6 +1,7 @@
 import appEn from "./ui.en.json";
 import app from "./ui.pt-BR.json";
 import { getLocale, type Locale } from "./locale";
+import { resolvePlurals } from "./plural";
 
 export { getLocale, formatLocale, LOCALES, type Locale } from "./locale";
 
@@ -57,7 +58,7 @@ function lookup(key: string): string | undefined {
 export function t(key: string, params: Record<string, string | number> = {}): string {
   const template = lookup(key);
   if (template === undefined) return key;
-  return template.replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole));
+  return resolvePlurals(template, params).replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole));
 }
 
 /** Catalog text for a dynamic key with a fallback to the raw value (for example an enum the catalog does not know). */

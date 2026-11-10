@@ -163,7 +163,7 @@ export function parseImportLinterOutput(text: string): ImportLinterReport {
     return FAIL(`unrecognised line in the details of ${current.name}: ${JSON.stringify(line.slice(0, 80))}`);
   }
   closeChain();
-  if (pending.size > 0) return FAIL(`no details for the broken contract(s): ${[...pending].join(", ")} (output cut short?)`);
+  if (pending.size > 0) return FAIL(`no details for the broken ${pending.size === 1 ? "contract" : "contracts"}: ${[...pending].join(", ")} (output cut short?)`);
   for (const c of contracts) {
     if (c.status === "broken" && (c.groups.length === 0 || c.groups.some((g) => g.chains.length === 0))) return FAIL(`the details of ${c.name} are incomplete (output cut short?)`);
   }

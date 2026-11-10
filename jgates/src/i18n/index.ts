@@ -72,8 +72,72 @@ export function listAreas(locale: string = DEFAULT_LOCALE, dir: string = message
     .sort();
 }
 
+/** Index just past the "}" that closes the "{" at open, or -1 when the braces do not balance. */
+function closingBrace(text: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === "{") depth++;
+    else if (text[i] === "}" && --depth === 0) return i + 1;
+  }
+  return -1;
+}
+
+/** Form of a count: exactly 1 is "one", everything else (0 included) is "other", in both languages. */
+export function pluralCategory(count: number): "one" | "other" {
+  return count === 1 ? "one" : "other";
+}
+
+const PLURAL_HEAD = /\{(\w+),\s*plural,\s*/y;
+
+/**
+ * Resolves the ICU-style plural blocks of a template: "{count, plural, one {# test} other {# tests}}" becomes the
+ * branch of the count with "#" replaced by the number. "=0 {...}" matches that exact number; "other" is the fallback.
+ * A block whose count is missing or not a number is left as written, like an unknown placeholder.
+ */
+export function resolvePlurals(template: string, params: Params = {}): string {
+  let out = "";
+  let i = 0;
+  while (i < template.length) {
+    const open = template.indexOf("{", i);
+    if (open < 0) break;
+    PLURAL_HEAD.lastIndex = open;
+    const head = PLURAL_HEAD.exec(template);
+    const end = head ? closingBrace(template, open) : -1;
+    if (!head || end < 0) {
+      out += template.slice(i, open + 1);
+      i = open + 1;
+      continue;
+    }
+    const branches = new Map<string, string>();
+    let cursor = open + head[0].length;
+    const bodyEnd = end - 1;
+    while (cursor < bodyEnd) {
+      const label = /\s*(=\d+|\w+)\s*\{/y;
+      label.lastIndex = cursor;
+      const found = label.exec(template);
+      if (!found) break;
+      const branchOpen = cursor + found[0].length - 1;
+      const branchEnd = closingBrace(template, branchOpen);
+      if (branchEnd < 0 || branchEnd > bodyEnd) break;
+      branches.set(found[1] as string, template.slice(branchOpen + 1, branchEnd - 1));
+      cursor = branchEnd;
+    }
+    const raw = params[head[1] as string];
+    const count = raw === undefined || raw === "" ? NaN : Number(raw);
+    out += template.slice(i, open);
+    if (Number.isNaN(count) || !branches.has("other")) {
+      out += template.slice(open, end);
+    } else {
+      const chosen = branches.get(`=${count}`) ?? branches.get(pluralCategory(count)) ?? (branches.get("other") as string);
+      out += chosen.replace(/#/g, String(raw));
+    }
+    i = end;
+  }
+  return out + template.slice(i);
+}
+
 export function format(template: string, params: Params = {}): string {
-  return template.replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole));
+  return resolvePlurals(template, params).replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole));
 }
 
 /**

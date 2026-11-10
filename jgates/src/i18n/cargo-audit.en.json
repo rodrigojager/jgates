@@ -9,7 +9,7 @@
   "cargo-audit_cancelled": "The run was cancelled; cargo-audit was stopped and its partial output was kept in the logs.",
   "cargo-audit_invalid_output": "The cargo-audit output is not the expected audit JSON: {detail}",
   "cargo-audit_no_invocation": "The plan has no cargo-audit invocation for the instance {tool}.",
-  "cargo-audit_reason_completed": "cargo-audit {version}: {count} advisory finding(s) in {packages} locked package(s)",
+  "cargo-audit_reason_completed": "cargo-audit {version}: {count, plural, one {# advisory finding} other {# advisory findings}} in {packages, plural, one {# locked package} other {# locked packages}}",
   "cargo-audit_warnings": "{count} of them are non-blocking warnings (unmaintained, unsound or yanked)",
   "cargo-audit_limitation_matching": "Advisories are matched on the locked package versions, not on the call graph; the ignore list of .cargo/audit.toml is a scanner exception, not a waiver of the gate.",
   "cargo-audit_condition_network": "Network: the RustSec advisory database (github.com/RustSec/advisory-db) is cloned into the run folder."

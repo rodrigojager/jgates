@@ -10,8 +10,8 @@
   "dependency_cruiser_exit_error": "dependency-cruiser ended with code {code}: {detail}",
   "dependency_cruiser_invalid_output": "The dependency-cruiser output is not the expected JSON: {detail}",
   "dependency_cruiser_no_invocation": "The plan has no dependency-cruiser invocation for the instance {tool}.",
-  "dependency_cruiser_reason_completed": "dependency-cruiser {version}: graph with {nodes} module(s) and {edges} dependency(ies); {findings} finding(s); coverage {coverage} ({unresolved} unresolved dependency(ies)).",
-  "dependency_cruiser_reason_incomplete": "Architecture not proven: {detail} (coverage {coverage}, {unresolved} unresolved dependency(ies); see coverage.json).",
+  "dependency_cruiser_reason_completed": "dependency-cruiser {version}: graph with {nodes, plural, one {# module} other {# modules}} and {edges, plural, one {# dependency} other {# dependencies}}; {findings, plural, one {# finding} other {# findings}}; coverage {coverage} ({unresolved, plural, one {# unresolved dependency} other {# unresolved dependencies}}).",
+  "dependency_cruiser_reason_incomplete": "Architecture not proven: {detail} (coverage {coverage}, {unresolved, plural, one {# unresolved dependency} other {# unresolved dependencies}}; see coverage.json).",
   "dependency_cruiser_condition_generated": "The dependency-cruiser configuration is generated in the run folder from .jgates/architecture.yml; the rules are evaluated by JGates over the normalized graph.",
   "dependency_cruiser_condition_binding": "Uses the native configuration of the binding ({file}); dependency-cruiser loads that JavaScript file.",
   "dependency_cruiser_condition_binary": "Executable: {tool} ({source}); nothing is downloaded during the run."

@@ -15,8 +15,8 @@
   "gc_text_run": "  {reason}  {workspace}/{run}  {bytes} bytes",
   "gc_text_missing": "  Workspace sem caminho: {id}  {path}{kept}",
   "gc_text_kept": "  (runs marcados mantidos: {runs})",
-  "gc_text_summary_dry": "{count} run(s) seriam apagados ({bytes} bytes). Use --yes para apagar.",
-  "gc_text_summary_none": "Nada foi apagado: use --yes para apagar ou --dry-run para listar. {count} run(s) seriam apagados ({bytes} bytes).",
-  "gc_text_summary_done": "{count} run(s) e {workspaces} workspace(s) apagados ({bytes} bytes).",
+  "gc_text_summary_dry": "{count, plural, one {# run seria apagado} other {# runs seriam apagados}} ({bytes} bytes). Use --yes para apagar.",
+  "gc_text_summary_none": "Nada foi apagado: use --yes para apagar ou --dry-run para listar. {count, plural, one {# run seria apagado} other {# runs seriam apagados}} ({bytes} bytes).",
+  "gc_text_summary_done": "Apagados: {count, plural, one {# run} other {# runs}} e {workspaces, plural, one {# workspace} other {# workspaces}} ({bytes} bytes).",
   "gc_text_skipped": "  Ignorado: {path} ({reason})"
 }

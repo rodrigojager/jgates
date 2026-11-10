@@ -7,7 +7,7 @@
   "vitest_exit_error": "O Vitest terminou com o código {code}: {detail}",
   "vitest_invalid_output": "O relatório do Vitest não é o JSON esperado: {detail}",
   "vitest_no_invocation": "O plano não tem a invocação do Vitest para a instância {tool}.",
-  "vitest_reason_tests": "Vitest {version}: {executed} teste(s) executado(s), {failed} com falha, {skipped} ignorado(s)",
+  "vitest_reason_tests": "Vitest {version}: {executed, plural, one {# teste executado} other {# testes executados}}, {failed} com falha, {skipped, plural, one {# ignorado} other {# ignorados}}",
   "vitest_reason_coverage": "Cobertura de linhas: {percent}% ({covered} de {total} linhas)",
   "vitest_coverage_missing": "O Vitest rodou com cobertura, mas o resumo não foi lido: {detail}",
   "vitest_coverage_provider_missing": "O provider de cobertura {provider} não está instalado, e o JGates não instala nada durante o run. Instale com: npm install --save-dev {provider}@{version}",

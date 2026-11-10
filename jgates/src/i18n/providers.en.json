@@ -23,7 +23,7 @@
   "providers_unknown_provider_fix": "See the names with jgates providers list; jgates providers add {name} --base-url <url> creates a connection.",
   "providers_test_needs_base_url": "{name} has no base URL to be tested.",
   "providers_test_needs_base_url_fix": "Set it first: jgates providers set {name} --base-url <url>.",
-  "providers_test_ok": "{name} answers: {count} model(s) listed, no token spent.",
+  "providers_test_ok": "{name} answers: {count, plural, one {# model} other {# models}} listed, no token spent.",
   "providers_test_model_missing": "The default model {model} is not in the list.",
   "providers_test_failed": "The test of {name} failed: {detail}",
   "providers_test_failed_fix": "Check the base URL, the key (jgates secrets set <NAME>) and the network; the test only lists the models, it sends no prompt.",

@@ -17,6 +17,6 @@
   "il_no_packages": "Nenhum pacote Python (pasta com __init__.py) foi achado no componente; o grafo está vazio.",
   "il_contract_missing": "O relatório do Import Linter não traz o contrato das regras {rules}: a verificação não foi feita.",
   "il_finding": "{header}: {route}",
-  "il_reason_completed": "Import Linter {version}: {contracts} contrato(s), {findings} achado(s); grafo {coverage} ({nodes} módulos, {edges} dependências)",
-  "il_reason_incomplete": "Arquitetura não provada: {detail} Cobertura {coverage}, {unresolved} import(s) sem resolução ({gaps}). Ausência de achados aqui não é ausência de violação."
+  "il_reason_completed": "Import Linter {version}: {contracts, plural, one {# contrato} other {# contratos}}, {findings, plural, one {# achado} other {# achados}}; grafo {coverage} ({nodes} módulos, {edges} dependências)",
+  "il_reason_incomplete": "Arquitetura não provada: {detail} Cobertura {coverage}, {unresolved, plural, one {# import} other {# imports}} sem resolução ({gaps}). Ausência de achados aqui não é ausência de violação."
 }

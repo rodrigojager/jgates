@@ -17,6 +17,6 @@
   "il_no_packages": "No Python package (folder with __init__.py) was found in the component; the graph is empty.",
   "il_contract_missing": "The Import Linter report does not include the contract of the rules {rules}: the check was not done.",
   "il_finding": "{header}: {route}",
-  "il_reason_completed": "Import Linter {version}: {contracts} contract(s), {findings} finding(s); graph {coverage} ({nodes} modules, {edges} dependencies)",
-  "il_reason_incomplete": "Architecture not proven: {detail} Coverage {coverage}, {unresolved} unresolved import(s) ({gaps}). The absence of findings here is not the absence of violations."
+  "il_reason_completed": "Import Linter {version}: {contracts, plural, one {# contract} other {# contracts}}, {findings, plural, one {# finding} other {# findings}}; graph {coverage} ({nodes} modules, {edges} dependencies)",
+  "il_reason_incomplete": "Architecture not proven: {detail} Coverage {coverage}, {unresolved, plural, one {# unresolved import} other {# unresolved imports}} ({gaps}). The absence of findings here is not the absence of violations."
 }

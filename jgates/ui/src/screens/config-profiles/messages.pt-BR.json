@@ -54,7 +54,7 @@
   "cfgp_category_switch": "Categoria {name}",
   "cfgp_category_open": "Abrir a categoria {name}",
   "cfgp_category_count": "{on} de {total} capacidades ligadas.",
-  "cfgp_category_locked": "{count} travada(s) pela política",
+  "cfgp_category_locked": "{count, plural, one {# travada} other {# travadas}} pela política",
   "cfgp_tools_toggle": "Ferramentas de {capability} ({count})",
   "cfgp_no_tools": "Nenhuma ferramenta do projeto executa esta capacidade.",
   "cfgp_tool_shared": "Desligar esta ferramenta a desliga também em: {others}. Ela serve a {capability} e a essas capacidades.",
@@ -75,7 +75,7 @@
   "cfgp_mode_required_help": "Sempre roda. Sem ferramenta para ela aqui, a validação bloqueia.",
   "cfgp_mode_available_help": "Roda onde houver ferramenta. Onde não houver, aparece como não aplicável, com o motivo, e não bloqueia.",
   "cfgp_mode_off_help": "Não roda neste perfil. Escolha outra opção para ligar.",
-  "cfgp_saved": "{count} alteração(ões) gravada(s) no perfil {profile}.",
+  "cfgp_saved": "{count, plural, one {# alteração gravada} other {# alterações gravadas}} no perfil {profile}.",
 
   "cfgp_policy_title": "Quando bloquear a entrega?",
   "cfgp_policy_lead": "Critérios de aprovação, independentes da intensidade. Gravados em .jgates/policy.yml.",

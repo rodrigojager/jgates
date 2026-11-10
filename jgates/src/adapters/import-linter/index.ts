@@ -217,7 +217,7 @@ async function runImportLinter(context: AdapterContext, plan: Plan, tool: string
       return errorAll(t("il_invalid_output", { detail: `${report.problem ?? ""}${tail ? ` (${tail})` : ""}` }));
     }
     // Exit code and report must agree: a broken contract with exit 0 (or the reverse) proves nothing.
-    if ((result.exitCode === 0) !== (report.broken === 0)) return errorAll(t("il_invalid_output", { detail: `exit ${result.exitCode} with ${report.broken} broken contract(s)` }));
+    if ((result.exitCode === 0) !== (report.broken === 0)) return errorAll(t("il_invalid_output", { detail: `exit ${result.exitCode} with ${report.broken} broken ${report.broken === 1 ? "contract" : "contracts"}` }));
     if (mode === "generated") {
       const missing = [...handled].filter((id) => !report?.contracts.some((c) => c.name === id));
       if (missing.length > 0) return errorAll(t("il_contract_missing", { rules: missing.join(", ") }));

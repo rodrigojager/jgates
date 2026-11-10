@@ -95,7 +95,7 @@
   "scope_inherited_baseline_without_ledger": "None: {runId} has no scope ledger, so this run inherits no repository coverage.",
   "scope_inherited_baseline_other_repository": "None: {runId} belongs to another repository.",
   "scope_inherited_nothing_reusable": "None: no unit of {runId} still holds after the current checks.",
-  "scope_inherited_carried_with_evidence": "Partial: {count} unit(s) of {runId} carried with fingerprints checked against the current source.",
+  "scope_inherited_carried_with_evidence": "Partial: {count, plural, one {# unit of {runId} carried} other {# units of {runId} carried}} with fingerprints checked against the current source.",
   "scope_reuse_prior_findings": "{runId} left findings here: not carried.",
   "scope_reuse_prior_unresolved": "{runId} left this unresolved: never carried as covered.",
   "scope_reuse_method_changed": "The methods changed.",

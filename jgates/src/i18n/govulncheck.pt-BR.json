@@ -10,7 +10,7 @@
   "govulncheck_cancelled": "A execução foi cancelada; o govulncheck foi interrompido e a saída parcial ficou nos logs.",
   "govulncheck_invalid_output": "A saída do govulncheck não é o fluxo JSON esperado: {detail}",
   "govulncheck_no_invocation": "O plano não tem invocação do govulncheck para a instância {tool}.",
-  "govulncheck_reason_completed": "govulncheck {version}: {count} vulnerabilidade(s) alcançável(is)",
+  "govulncheck_reason_completed": "govulncheck {version}: {count, plural, one {# vulnerabilidade alcançável} other {# vulnerabilidades alcançáveis}}",
   "govulncheck_not_called": "mais {count} em código requerido ou importado que nunca é chamado (não são achados)",
   "govulncheck_limitation_reachable": "Só são achados as vulnerabilidades cujo símbolo o código alcança; o banco de vulnerabilidades do Go não tem severidade, então uma alcançável bloqueia com severidade desconhecida.",
   "govulncheck_condition_network": "Rede: o banco de vulnerabilidades do Go (vuln.go.dev) é consultado e os módulos que faltam no cache de módulos são baixados."

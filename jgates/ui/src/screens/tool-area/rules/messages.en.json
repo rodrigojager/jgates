@@ -19,7 +19,7 @@
   "rules_rename": "Rename",
   "rules_rename_confirm": "Rename",
   "rules_renamed": "Rule renamed to {file}.",
-  "rules_renamed_pending": "Rule renamed to {file}. {count} reference(s) to the old name need manual adjustment: {where}.",
+  "rules_renamed_pending": "Rule renamed to {file}. {count, plural, one {# reference to the old name needs manual adjustment} other {# references to the old name need manual adjustment}}: {where}.",
   "rules_conflict": "The file changed since the list was loaded. Refresh the list and try again.",
   "rules_cancel": "Cancel"
 }

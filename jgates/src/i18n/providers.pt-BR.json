@@ -23,7 +23,7 @@
   "providers_unknown_provider_fix": "Veja os nomes com o jgates providers list; o jgates providers add {name} --base-url <url> cria uma conexão.",
   "providers_test_needs_base_url": "{name} não tem base URL para ser testado.",
   "providers_test_needs_base_url_fix": "Defina-a antes: jgates providers set {name} --base-url <url>.",
-  "providers_test_ok": "{name} responde: {count} modelo(s) listado(s), nenhum token gasto.",
+  "providers_test_ok": "{name} responde: {count, plural, one {# modelo listado} other {# modelos listados}}, nenhum token gasto.",
   "providers_test_model_missing": "O modelo padrão {model} não está na lista.",
   "providers_test_failed": "O teste de {name} falhou: {detail}",
   "providers_test_failed_fix": "Confira a base URL, a chave (jgates secrets set <NAME>) e a rede; o teste só lista os modelos, não manda prompt.",

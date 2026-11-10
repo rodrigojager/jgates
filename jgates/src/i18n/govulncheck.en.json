@@ -10,7 +10,7 @@
   "govulncheck_cancelled": "The run was cancelled; govulncheck was stopped and its partial output was kept in the logs.",
   "govulncheck_invalid_output": "The govulncheck output is not the expected JSON stream: {detail}",
   "govulncheck_no_invocation": "The plan has no govulncheck invocation for the instance {tool}.",
-  "govulncheck_reason_completed": "govulncheck {version}: {count} reachable vulnerabilit(ies)",
+  "govulncheck_reason_completed": "govulncheck {version}: {count, plural, one {# reachable vulnerability} other {# reachable vulnerabilities}}",
   "govulncheck_not_called": "{count} more in required or imported code that is never called (not findings)",
   "govulncheck_limitation_reachable": "Only vulnerabilities whose symbol the code reaches are findings; the Go vulnerability database has no severity, so a reachable one blocks with an unknown severity.",
   "govulncheck_condition_network": "Network: the Go vulnerability database (vuln.go.dev) is fetched, and the modules missing from the module cache are downloaded."

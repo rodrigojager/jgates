@@ -73,7 +73,7 @@ export function parseZapReport(text: string, opts: { stageId: string; blockingRi
         category: "dast",
         severity: risk?.native ?? riskcode,
         normalizedSeverity: risk?.normalized ?? "unknown",
-        message: `${name} (${instances.length} instance(s) on ${siteName})`,
+        message: `${name} (${instances.length} ${instances.length === 1 ? "instance" : "instances"} on ${siteName})`,
         fingerprint: contentHash({ tool: "zap", rule: ref, site: siteName, uris: instances.map((i) => `${i.method} ${i.uri} ${i.param ?? ""}`).sort() }),
         origin: "zap",
         blocking,

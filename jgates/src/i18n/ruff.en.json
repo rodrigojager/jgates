@@ -7,6 +7,6 @@
   "ruff_timeout": "Ruff exceeded the limit of {seconds} s and was ended.",
   "ruff_invalid_output": "The Ruff output is not the expected JSON list: {detail}",
   "ruff_no_invocation": "The plan has no Ruff invocation for the instance {tool}.",
-  "ruff_reason_completed": "Ruff {version}: {count} finding(s)",
+  "ruff_reason_completed": "Ruff {version}: {count, plural, one {# finding} other {# findings}}",
   "ruff_condition_python": "Analyzes the component's Python files."
 }

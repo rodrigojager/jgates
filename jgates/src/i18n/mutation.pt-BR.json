@@ -29,7 +29,7 @@
   "mutation_reason": "{engine} {version}: pontuação de mutação {score}% ({detected} de {valid} mutantes detectados), {survived} sobreviveram, {notCovered} não cobertos",
   "mutation_reason_minimum": "{engine} {version}: pontuação de mutação {score}% ({detected} de {valid} mutantes detectados), {survived} sobreviveram, {notCovered} não cobertos; mínimo {minimum}%",
   "mutation_truncated": "{listed} de {total} mutantes sobreviventes estão listados como achados",
-  "mutation_exclusion_invalid": "{count} mutante(s) fora da pontuação (não compilaram, falharam, foram ignorados ou pulados)",
+  "mutation_exclusion_invalid": "{count, plural, one {# mutante ficou fora da pontuação (não compilou, falhou, foi ignorado ou pulado)} other {# mutantes ficaram fora da pontuação (não compilaram, falharam, foram ignorados ou pulados)}}",
   "mutation_metric_score": "Pontuação de mutação",
   "mutation_metric_killed": "Mutantes detectados",
   "mutation_metric_survived": "Mutantes sobreviventes",

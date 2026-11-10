@@ -13,7 +13,7 @@
   "schemathesis_run_errors": "Schemathesis did not exercise {target} as planned: {detail}",
   "schemathesis_nothing_tested": "no API operation was tested",
   "schemathesis_no_invocation": "The plan has no Schemathesis invocation for the instance {tool}.",
-  "schemathesis_reason_completed": "Schemathesis {version}: {count} contract violation(s) in {tested} operation(s) of {target}",
+  "schemathesis_reason_completed": "Schemathesis {version}: {count, plural, one {# contract violation} other {# contract violations}} in {tested, plural, one {# operation} other {# operations}} of {target}",
   "schemathesis_condition_target": "Sends generated requests, valid and invalid, to {target}.",
   "schemathesis_condition_no_target": "No target is configured: the stage is blocked until tools.<instance>.target is set.",
   "schemathesis_condition_bounds": "Seed {seed}, at most {examples} examples per operation, {request} s per request, {timeout} s for the stage.",

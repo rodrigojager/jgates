@@ -29,7 +29,7 @@
   "mutation_reason": "{engine} {version}: mutation score {score}% ({detected} of {valid} mutants detected), {survived} survived, {notCovered} not covered",
   "mutation_reason_minimum": "{engine} {version}: mutation score {score}% ({detected} of {valid} mutants detected), {survived} survived, {notCovered} not covered; minimum {minimum}%",
   "mutation_truncated": "{listed} of {total} surviving mutants are listed as findings",
-  "mutation_exclusion_invalid": "{count} mutant(s) left out of the score (did not compile, crashed, ignored or skipped)",
+  "mutation_exclusion_invalid": "{count, plural, one {# mutant was left out of the score (did not compile, crashed, ignored or skipped)} other {# mutants were left out of the score (did not compile, crashed, ignored or skipped)}}",
   "mutation_metric_score": "Mutation score",
   "mutation_metric_killed": "Mutants detected",
   "mutation_metric_survived": "Mutants survived",

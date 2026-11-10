@@ -12,5 +12,5 @@
   "trivy_image_blocked": "A varredura de imagem do Trivy não pôde rodar.",
   "trivy_image_missing_tool": "{reason}. Inicie o motor de contêiner e baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
   "trivy_image_error": "A varredura de imagem do Trivy falhou: {reason}",
-  "trivy_image_reason_completed": "Trivy {version}: {count} achado(s) na imagem final (executor: {runner})."
+  "trivy_image_reason_completed": "Trivy {version}: {count, plural, one {# achado} other {# achados}} na imagem final (executor: {runner})."
 }

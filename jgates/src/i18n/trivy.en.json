@@ -12,5 +12,5 @@
   "trivy_image_blocked": "The Trivy image scan could not run.",
   "trivy_image_missing_tool": "{reason}. Start the container engine and download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
   "trivy_image_error": "The Trivy image scan failed: {reason}",
-  "trivy_image_reason_completed": "Trivy {version}: {count} finding(s) in the final image (runner: {runner})."
+  "trivy_image_reason_completed": "Trivy {version}: {count, plural, one {# finding} other {# findings}} in the final image (runner: {runner})."
 }

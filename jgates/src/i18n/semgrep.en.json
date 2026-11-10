@@ -7,7 +7,7 @@
   "semgrep_timeout": "Semgrep exceeded the limit of {seconds} s and was ended.",
   "semgrep_invalid_output": "The Semgrep output is not the expected JSON: {detail}",
   "semgrep_no_invocation": "The plan has no Semgrep invocation for the instance {tool}.",
-  "semgrep_reason_completed": "Semgrep {version}: {count} finding(s) with {rules} local rule(s)",
+  "semgrep_reason_completed": "Semgrep {version}: {count, plural, one {# finding} other {# findings}} with {rules, plural, one {# local rule} other {# local rules}}",
   "semgrep_condition_local": "Uses only the binding's local rules; accesses neither a registry nor the network.",
   "semgrep_condition_pack": "Also runs the bundled JGates rule pack {pack} ({count} rule files shipped with JGates, MIT); nothing is downloaded.",
   "semgrep_pack_unknown": "The instance {tool} selects the rule pack {pack}, which this JGates does not ship. Use tools.{tool}.rulePack: jgates or remove it.",
@@ -17,7 +17,7 @@
   "semgrep_no_rule_files": "The rules folder of the instance {tool} has no .yml or .yaml files ({detail}). Create at least one rule.",
   "semgrep_rules_invalid": "Invalid local rules in the instance {tool}: {detail}. Fix the file before planning.",
   "semgrep_issue": "{file}{where}: {message}",
-  "semgrep_rules_hidden": "(and {count} more problem(s))",
+  "semgrep_rules_hidden": "(and {count, plural, one {# more problem} other {# more problems}})",
   "semgrep_condition_prepared": "Uses the registry rules {ref} prepared earlier (hash {hash}, from {source}); the local copy runs without network.",
   "semgrep_prepared_missing": "The instance {tool} pins the rules {ref} in {file}, but the prepared copy is not in the data folder. Run jgates tools prepare --instance {tool} --no-interactive.",
   "semgrep_prepared_corrupt": "The prepared copy of the rules {ref} of the instance {tool} does not match the hash in {file}. Run jgates tools prepare --instance {tool} --no-interactive."

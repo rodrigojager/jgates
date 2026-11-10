@@ -10,7 +10,7 @@
   "zap_cancelled": "The run was cancelled; the ZAP step container was removed and its partial output was kept in the logs.",
   "zap_invalid_output": "The ZAP report could not be interpreted: {detail}",
   "zap_no_invocation": "The plan has no ZAP invocation for the instance {tool}.",
-  "zap_reason_completed": "ZAP {version} ({mode}): {count} alert(s), {blocking} blocking, on {target}",
+  "zap_reason_completed": "ZAP {version} ({mode}): {count, plural, one {# alert} other {# alerts}}, {blocking} blocking, on {target}",
   "zap_condition_target": "Scans the running target {target}.",
   "zap_condition_no_target": "No target is configured: the stage is blocked until tools.<instance>.target is set.",
   "zap_condition_passive": "Passive mode: no attack payloads are sent.",

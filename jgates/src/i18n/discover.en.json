@@ -5,7 +5,7 @@
   "discover_unexpected_argument_fix": "Use: jgates discover [--cwd <project>] [--json]",
   "discover_bad_cwd": "The project folder does not exist or is not a folder: {path}",
   "discover_bad_cwd_fix": "Pass an existing folder in --cwd.",
-  "discover_config_invalid": "The file .jgates/workspace.yml is invalid: {count} problem(s).",
+  "discover_config_invalid": "The file .jgates/workspace.yml is invalid: {count, plural, one {# problem} other {# problems}}.",
   "discover_header": "Mode: {mode}. Components found: {count}.",
   "discover_report_only": "Report-only mode: no template is activated.",
   "discover_truncated": "Reading stopped at the file or depth limit; the inventory may be incomplete.",

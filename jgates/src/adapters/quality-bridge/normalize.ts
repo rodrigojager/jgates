@@ -294,7 +294,7 @@ export function normalizeBridge(outcome: BridgeOutcome, plans: SubcheckPlan[]): 
   }
   if (malformed > 0) {
     composite.interpreted = false;
-    composite.reason = `${malformed} finding(s) in the report could not be interpreted`;
+    composite.reason = `${malformed} ${malformed === 1 ? "finding" : "findings"} in the report could not be interpreted`;
   }
   // Never looser than the legacy verdict: a NEEDS_CHANGES the stages do not explain leaves the composite unproven.
   // A subcheck the plan turned off but the sidecar still tried (and could not run) explains that verdict.

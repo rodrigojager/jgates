@@ -8,7 +8,7 @@
   "eslint_exit_error": "O ESLint terminou com o código {code}: {detail}",
   "eslint_invalid_output": "O relatório do ESLint não é o JSON esperado: {detail}",
   "eslint_no_invocation": "O plano não tem a invocação do ESLint para a instância {tool}.",
-  "eslint_reason_completed": "ESLint {version}: {files} arquivo(s) analisado(s), {count} achado(s), {blocking} bloqueante(s)",
+  "eslint_reason_completed": "ESLint {version}: {files, plural, one {# arquivo analisado} other {# arquivos analisados}}, {count, plural, one {# achado} other {# achados}}, {blocking, plural, one {# bloqueante} other {# bloqueantes}}",
   "eslint_condition_executes": "Executa código do projeto: o eslint.config e os plugins dele rodam durante a análise. Por isso a etapa nunca é reaproveitada do cache.",
   "eslint_condition_config_binding": "Usa o eslint.config escolhido no binding: {file}.",
   "eslint_condition_config_native": "Usa o eslint.config que o próprio ESLint encontra: {file}.",

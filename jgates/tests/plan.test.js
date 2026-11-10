@@ -273,7 +273,7 @@ test("after a configuration file changes, the new plan has another hash and list
     fs.writeFileSync(file, text);
     const shown = plan();
     assert.equal(shown.code, 0, shown.err);
-    assert.match(shown.out, /Mudou desde o plano anterior: 0 item\(ns\) novo\(s\), 0 removido\(s\), [1-9]\d* alterado\(s\), 1 arquivo\(s\) de configuração\./);
+    assert.match(shown.out, /Mudou desde o plano anterior: 0 itens novos, 0 removidos, [1-9]\d* alterados, 1 arquivo de configuração\./);
     assert.match(shown.out, /Requisitos sem cobertura \(0\):/);
   });
 });

@@ -4,7 +4,7 @@
   "env_lead": "O mesmo diagnóstico do jgates doctor: runtimes, binários e versões das ferramentas contra o lockfile. O que faltar aparece no topo, com o botão que resolve; nada roda sem você confirmar.",
   "env_recheck": "Conferir de novo",
   "env_ready": "Ambiente pronto.",
-  "env_not_ready": "Ambiente com pendências: {absent} ausente(s), {incompatible} incompatível(is).",
+  "env_not_ready": "Ambiente com pendências: {absent, plural, one {# ausente} other {# ausentes}}, {incompatible, plural, one {# incompatível} other {# incompatíveis}}.",
   "env_three_states": "Ambiente pronto, plano válido e resultado aprovado são estados diferentes: esta tela só diz do primeiro.",
   "env_runtimes": "Runtimes e binários",
   "env_tools": "Ferramentas",

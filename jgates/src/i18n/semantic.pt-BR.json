@@ -64,7 +64,7 @@
   "semantic_reason_cancelled": "Cancelado.",
   "semantic_reason_interrupted": "O processo da execução parou antes de terminar; encerrada como cancelada.",
   "semantic_summary_passed": "Revisão semântica aprovada (nota {score}). Consultiva: não obriga nada fora desta execução.",
-  "semantic_summary_failed": "A revisão semântica não aprovou ({status}, {count} bloqueante(s)).",
+  "semantic_summary_failed": "A revisão semântica não aprovou ({status}, {count, plural, one {# bloqueante} other {# bloqueantes}}).",
   "semantic_summary_invalid": "A saída do modelo não é válida; nada é aprovado: {reason}",
   "semantic_summary_cancelled": "Execução semântica cancelada; a evidência parcial foi mantida.",
   "semantic_summary_incomplete": "Execução semântica incompleta ({state}); nada é aprovado.",

@@ -13,7 +13,7 @@
   "agent_context_no": "não",
   "agent_context_partial": "O run não terminou: este resultado é parcial e nenhuma aprovação foi emitida.",
   "agent_context_stopped": "Interrompido: {cause} {detail}",
-  "agent_context_reduced": "Aprovação reduzida: {count} verificação(ões) desligada(s) nesta execução.",
+  "agent_context_reduced": "Aprovação reduzida: {count, plural, one {# verificação desligada} other {# verificações desligadas}} nesta execução.",
   "agent_context_disabled_title": "Verificações desligadas",
   "agent_context_disabled_item": "- {id} (origem: {origin}){reason}",
   "agent_context_stages_title": "Etapas",
@@ -30,7 +30,7 @@
   "agent_context_metric_item": "- {id}: {value}",
   "agent_context_metric_unmeasured": "não medida{reason}",
   "agent_context_architecture_title": "Cobertura de arquitetura",
-  "agent_context_architecture_item": "- {tool}: grafo {status}, {unresolved} dependência(s) não resolvida(s){reason}",
+  "agent_context_architecture_item": "- {tool}: grafo {status}, {unresolved, plural, one {# dependência não resolvida} other {# dependências não resolvidas}}{reason}",
   "agent_context_reproduce_title": "Como reproduzir",
   "agent_context_truncated": "A lista foi cortada em {max} itens; veja o resultado completo com: {command}",
   "agent_context_report_command": "jgates report {runId} --format json"

@@ -31,7 +31,7 @@
   "vch_extends": "starts from {base}",
   "vch_criteria_title": "Criteria in force",
   "vch_criteria_adjust": "Adjust criteria",
-  "vch_criteria_summary": "{rules} rule(s) with their own criterion, {evidence} required evidence(s), {exceptions} recorded exception(s).",
+  "vch_criteria_summary": "{rules, plural, one {# rule} other {# rules}} with their own criterion, {evidence, plural, one {# required evidence item} other {# required evidence items}}, {exceptions, plural, one {# recorded exception} other {# recorded exceptions}}.",
   "vch_criteria_threshold": "threshold {value}",
   "vch_criteria_severity": "severity {value}",
   "vch_criteria_locked": "locked",

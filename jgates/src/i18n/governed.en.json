@@ -1,8 +1,8 @@
 {
   "governed_suppressions_label": "Suppressions in the code (jgates ci)",
   "governed_suppressions_reason": "jgates ci reports every suppression comment of the analyzed commit",
-  "governed_suppressions_done": "{files} file(s) read: {count} suppression comment(s), {blocking} still honored by a check of this run",
-  "governed_suppressions_skipped": "{count} file(s) over the size limit were not read: {files}",
+  "governed_suppressions_done": "{files, plural, one {# file} other {# files}} read: {count, plural, one {# suppression comment} other {# suppression comments}}, {blocking} still honored by a check of this run",
+  "governed_suppressions_skipped": "{count, plural, one {# file over the size limit was not read} other {# files over the size limit were not read}}: {files}",
   "governed_suppressions_truncated": "The commit has more than {count} files: the suppression comments could not all be read",
   "governed_linters_unreadable": "The list of MegaLinter's linters could not be read: {detail}",
   "governed_suppression_neutralized": "{tool} suppression comment: ignored by jgates ci ({how}); what it hid is reported anyway",

@@ -10,8 +10,8 @@
   "dependency_cruiser_exit_error": "O dependency-cruiser terminou com o código {code}: {detail}",
   "dependency_cruiser_invalid_output": "A saída do dependency-cruiser não é o JSON esperado: {detail}",
   "dependency_cruiser_no_invocation": "O plano não tem a invocação do dependency-cruiser para a instância {tool}.",
-  "dependency_cruiser_reason_completed": "dependency-cruiser {version}: grafo com {nodes} módulo(s) e {edges} dependência(s); {findings} achado(s); cobertura {coverage} ({unresolved} dependência(s) não resolvida(s)).",
-  "dependency_cruiser_reason_incomplete": "Arquitetura não provada: {detail} (cobertura {coverage}, {unresolved} dependência(s) não resolvida(s); veja coverage.json).",
+  "dependency_cruiser_reason_completed": "dependency-cruiser {version}: grafo com {nodes, plural, one {# módulo} other {# módulos}} e {edges, plural, one {# dependência} other {# dependências}}; {findings, plural, one {# achado} other {# achados}}; cobertura {coverage} ({unresolved, plural, one {# dependência não resolvida} other {# dependências não resolvidas}}).",
+  "dependency_cruiser_reason_incomplete": "Arquitetura não provada: {detail} (cobertura {coverage}, {unresolved, plural, one {# dependência não resolvida} other {# dependências não resolvidas}}; veja coverage.json).",
   "dependency_cruiser_condition_generated": "A configuração do dependency-cruiser é gerada na pasta do run a partir de .jgates/architecture.yml; as regras são avaliadas pelo JGates sobre o grafo normalizado.",
   "dependency_cruiser_condition_binding": "Usa a configuração nativa do binding ({file}); o dependency-cruiser carrega esse arquivo JavaScript.",
   "dependency_cruiser_condition_binary": "Executável: {tool} ({source}); nada é baixado durante o run."

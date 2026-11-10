@@ -8,7 +8,7 @@
   "codeql_cancelled": "A execução foi cancelada; o CodeQL foi interrompido e a saída parcial ficou nos logs.",
   "codeql_invalid_output": "A saída do CodeQL não é o SARIF 2.1.0 esperado de uma análise do CodeQL: {detail}",
   "codeql_no_invocation": "O plano não tem invocação do CodeQL para a instância {tool}.",
-  "codeql_reason_completed": "CodeQL {version}: {count} achado(s)",
+  "codeql_reason_completed": "CodeQL {version}: {count, plural, one {# achado} other {# achados}}",
   "codeql_limitation_customer": "O CodeQL é fornecido pelo cliente: sem o CLI, os pacotes de consultas e um direito de uso pelos termos do CodeQL, a etapa fica bloqueada com orientação de configuração, nunca aprovada.",
   "codeql_condition_scope": "Banco de dados da linguagem {language}, suíte de consultas {suite}; os pacotes de consultas não são baixados.",
   "codeql_condition_build": "A construção do banco roda o comando: {command}",

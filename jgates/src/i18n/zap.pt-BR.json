@@ -10,7 +10,7 @@
   "zap_cancelled": "A execução foi cancelada; o contêiner da etapa do ZAP foi removido e sua saída parcial ficou nos logs.",
   "zap_invalid_output": "O relatório do ZAP não pôde ser interpretado: {detail}",
   "zap_no_invocation": "O plano não tem invocação do ZAP para a instância {tool}.",
-  "zap_reason_completed": "ZAP {version} ({mode}): {count} alerta(s), {blocking} bloqueante(s), em {target}",
+  "zap_reason_completed": "ZAP {version} ({mode}): {count, plural, one {# alerta} other {# alertas}}, {blocking, plural, one {# bloqueante} other {# bloqueantes}}, em {target}",
   "zap_condition_target": "Varre o alvo em execução {target}.",
   "zap_condition_no_target": "Nenhum alvo configurado: a etapa fica bloqueada até tools.<instância>.target ser definido.",
   "zap_condition_passive": "Modo passivo: nenhuma carga de ataque é enviada.",

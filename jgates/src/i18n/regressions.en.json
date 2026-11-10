@@ -35,7 +35,7 @@
   "regressions_text_none": "No regression proposals in this workspace's Semantic runs.",
   "regressions_text_state_proposed": "proposed",
   "regressions_text_state_incorporated": "incorporated as {tool}",
-  "regressions_text_incorporated_count": "{count} regression(s) incorporated in .jgates/regressions/manifest.json.",
+  "regressions_text_incorporated_count": "{count, plural, one {# regression} other {# regressions}} incorporated in .jgates/regressions/manifest.json.",
   "regressions_text_origin": "Proposed by {method} in {run} (candidate {candidate}: {status}).",
   "regressions_text_method_executed": "The method executed it itself (see the proposal's execution).",
   "regressions_text_method_not_executed": "The method did not execute it: validate it before incorporating.",

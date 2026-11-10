@@ -8,7 +8,7 @@
   "jscpd_exit_error": "O jscpd terminou com o código {code}: {detail}",
   "jscpd_invalid_output": "O relatório do jscpd não é o JSON esperado: {detail}",
   "jscpd_no_invocation": "O plano não tem a invocação do jscpd para a instância {tool}.",
-  "jscpd_reason_completed": "jscpd {version}: {count} duplicação(ões), {percent}% das linhas duplicadas",
+  "jscpd_reason_completed": "jscpd {version}: {count, plural, one {# duplicação} other {# duplicações}}, {percent}% das linhas duplicadas",
   "jscpd_finding_duplicate": "Bloco de código duplicado com {other} ({lines} linhas).",
   "jscpd_finding_threshold": "A duplicação total ({percent}%) passou do limite (threshold) do config do jscpd.",
   "jscpd_condition_config_binding": "Usa o config do jscpd escolhido no binding: {file}.",

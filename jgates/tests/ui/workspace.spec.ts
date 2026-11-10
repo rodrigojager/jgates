@@ -101,7 +101,7 @@ test("Workspace shows the components, the scope preview, the mode by patch and t
     const excluded = page.getByTestId("preview-excluded");
     await expect(excluded).toContainText("web/src/index.ts");
     await expect(excluded).toContainText("exclude: web/src");
-    await expect(page.getByTestId("preview-summary")).toContainText("saem com esta alteração");
+    await expect(page.getByTestId("preview-summary")).toContainText("1 arquivo sai com esta alteração");
     await expect(page.getByTestId("scope-state")).toContainText("Alterações não salvas");
     expect(fs.readFileSync(file, "utf8")).toBe(WORKSPACE_YML);
     await page.getByRole("button", { name: "Salvar", exact: true }).click();

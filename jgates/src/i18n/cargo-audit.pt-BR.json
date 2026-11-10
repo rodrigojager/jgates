@@ -9,7 +9,7 @@
   "cargo-audit_cancelled": "A execução foi cancelada; o cargo-audit foi interrompido e a saída parcial ficou nos logs.",
   "cargo-audit_invalid_output": "A saída do cargo-audit não é o JSON de auditoria esperado: {detail}",
   "cargo-audit_no_invocation": "O plano não tem invocação do cargo-audit para a instância {tool}.",
-  "cargo-audit_reason_completed": "cargo-audit {version}: {count} achado(s) de avisos em {packages} pacote(s) travado(s)",
+  "cargo-audit_reason_completed": "cargo-audit {version}: {count, plural, one {# achado} other {# achados}} de avisos em {packages, plural, one {# pacote travado} other {# pacotes travados}}",
   "cargo-audit_warnings": "{count} deles são avisos que não bloqueiam (sem manutenção, inseguro ou removido)",
   "cargo-audit_limitation_matching": "Os avisos são casados com as versões travadas dos pacotes, não com o grafo de chamadas; a lista de ignorados de .cargo/audit.toml é exceção do scanner, não dispensa do gate.",
   "cargo-audit_condition_network": "Rede: o banco de avisos do RustSec (github.com/RustSec/advisory-db) é clonado na pasta da execução."

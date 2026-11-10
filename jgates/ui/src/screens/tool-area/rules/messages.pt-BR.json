@@ -19,7 +19,7 @@
   "rules_rename": "Renomear",
   "rules_rename_confirm": "Renomear",
   "rules_renamed": "Regra renomeada para {file}.",
-  "rules_renamed_pending": "Regra renomeada para {file}. {count} referência(s) ao nome antigo precisam de ajuste manual: {where}.",
+  "rules_renamed_pending": "Regra renomeada para {file}. {count, plural, one {# referência ao nome antigo precisa de ajuste manual} other {# referências ao nome antigo precisam de ajuste manual}}: {where}.",
   "rules_conflict": "O arquivo mudou desde que a lista foi carregada. Atualize a lista e tente de novo.",
   "rules_cancel": "Cancelar"
 }

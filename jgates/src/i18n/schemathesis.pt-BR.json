@@ -13,7 +13,7 @@
   "schemathesis_run_errors": "O Schemathesis não exercitou {target} como planejado: {detail}",
   "schemathesis_nothing_tested": "nenhuma operação da API foi testada",
   "schemathesis_no_invocation": "O plano não tem invocação do Schemathesis para a instância {tool}.",
-  "schemathesis_reason_completed": "Schemathesis {version}: {count} violação(ões) de contrato em {tested} operação(ões) de {target}",
+  "schemathesis_reason_completed": "Schemathesis {version}: {count, plural, one {# violação} other {# violações}} de contrato em {tested, plural, one {# operação} other {# operações}} de {target}",
   "schemathesis_condition_target": "Envia requisições geradas, válidas e inválidas, para {target}.",
   "schemathesis_condition_no_target": "Nenhum alvo configurado: a etapa fica bloqueada até tools.<instância>.target ser definido.",
   "schemathesis_condition_bounds": "Semente {seed}, no máximo {examples} exemplos por operação, {request} s por requisição, {timeout} s para a etapa.",

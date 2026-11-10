@@ -95,7 +95,7 @@
   "scope_inherited_baseline_without_ledger": "Nenhuma: {runId} não tem registro de escopo, então esta execução não herda cobertura do repositório.",
   "scope_inherited_baseline_other_repository": "Nenhuma: {runId} pertence a outro repositório.",
   "scope_inherited_nothing_reusable": "Nenhuma: nenhuma unidade de {runId} continua válida após as verificações atuais.",
-  "scope_inherited_carried_with_evidence": "Parcial: {count} unidade(s) de {runId} reaproveitada(s) com impressões digitais conferidas contra a fonte atual.",
+  "scope_inherited_carried_with_evidence": "Parcial: {count, plural, one {# unidade de {runId} reaproveitada} other {# unidades de {runId} reaproveitadas}} com impressões digitais conferidas contra a fonte atual.",
   "scope_reuse_prior_findings": "{runId} deixou achados aqui: não reaproveitado.",
   "scope_reuse_prior_unresolved": "{runId} deixou isto sem resolução: nunca é contado como coberto.",
   "scope_reuse_method_changed": "Os métodos mudaram.",

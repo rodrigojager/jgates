@@ -35,7 +35,7 @@
   "regressions_text_none": "Nenhuma proposta de regressão nas execuções Semantic deste workspace.",
   "regressions_text_state_proposed": "proposta",
   "regressions_text_state_incorporated": "incorporada como {tool}",
-  "regressions_text_incorporated_count": "{count} regressão(ões) incorporada(s) em .jgates/regressions/manifest.json.",
+  "regressions_text_incorporated_count": "{count, plural, one {# regressão incorporada} other {# regressões incorporadas}} em .jgates/regressions/manifest.json.",
   "regressions_text_origin": "Proposta por {method} em {run} (candidato {candidate}: {status}).",
   "regressions_text_method_executed": "O método a executou ele mesmo (veja a execução da proposta).",
   "regressions_text_method_not_executed": "O método não a executou: valide-a antes de incorporar.",

@@ -416,7 +416,7 @@ export async function runSemanticReview(
       outcome({
         state: "blocked",
         code: "MASKING_BLOCKED",
-        reason: `The masking found ${totalCount(counts) > 0 ? `${totalCount(counts)} value(s)` : "sensitive data"} and masking.onMatch is block; nothing was sent.`,
+        reason: `The masking found ${totalCount(counts) > 0 ? `${totalCount(counts)} ${totalCount(counts) === 1 ? "value" : "values"}` : "sensitive data"} and masking.onMatch is block; nothing was sent.`,
         context: contextInfo(),
       }),
     );

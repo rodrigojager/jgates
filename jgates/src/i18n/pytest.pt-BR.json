@@ -10,7 +10,7 @@
   "pytest_no_invocation": "O plano não tem a invocação do pytest para a instância {tool}.",
   "pytest_invalid_junit": "O relatório JUnit do pytest não pôde ser interpretado: {detail}",
   "pytest_exit_mismatch": "O pytest terminou com o código 1, mas o relatório JUnit não traz nenhum teste falhando: o resultado não pode ser interpretado.",
-  "pytest_reason_tests": "pytest {version}: {total} teste(s) executado(s), {failed} falha(s), {errors} erro(s), {skipped} pulado(s)",
+  "pytest_reason_tests": "pytest {version}: {total, plural, one {# teste executado} other {# testes executados}}, {failed, plural, one {# falha} other {# falhas}}, {errors, plural, one {# erro} other {# erros}}, {skipped, plural, one {# pulado} other {# pulados}}",
   "pytest_condition_runs": "Roda o pytest do componente com o relatório JUnit na pasta do run, sem cache nem bytecode no workspace.",
   "pytest_condition_coverage": "Mede a cobertura de linhas com pytest-cov (fonte: {source}); o relatório e o arquivo .coverage ficam na pasta do run.",
   "pytest_condition_pythonpath": "O código em {dir} entra no PYTHONPATH (layout src).",
@@ -33,6 +33,6 @@
   "pytest_metric_tests_skipped": "Testes pulados",
   "pytest_metric_coverage": "Cobertura de linhas",
   "pytest_metric_not_measured": "Cobertura não medida: {reason}",
-  "pytest_exclusion_pragma": "{count} linha(s) excluída(s) por pragma ou pela configuração do coverage",
+  "pytest_exclusion_pragma": "{count, plural, one {# linha excluída} other {# linhas excluídas}} por pragma ou pela configuração do coverage",
   "pytest_exclusion_source": "fonte medida: {source}"
 }

@@ -8,7 +8,7 @@
   "eslint_exit_error": "ESLint ended with code {code}: {detail}",
   "eslint_invalid_output": "The ESLint report is not the expected JSON: {detail}",
   "eslint_no_invocation": "The plan has no ESLint invocation for the instance {tool}.",
-  "eslint_reason_completed": "ESLint {version}: {files} file(s) analyzed, {count} finding(s), {blocking} blocking",
+  "eslint_reason_completed": "ESLint {version}: {files, plural, one {# file} other {# files}} analyzed, {count, plural, one {# finding} other {# findings}}, {blocking} blocking",
   "eslint_condition_executes": "Executes project code: the eslint.config and its plugins run during the analysis. That is why the stage is never reused from the cache.",
   "eslint_condition_config_binding": "Uses the eslint.config chosen in the binding: {file}.",
   "eslint_condition_config_native": "Uses the eslint.config that ESLint itself finds: {file}.",

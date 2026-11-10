@@ -15,8 +15,8 @@
   "gc_text_run": "  {reason}  {workspace}/{run}  {bytes} bytes",
   "gc_text_missing": "  Workspace without a path: {id}  {path}{kept}",
   "gc_text_kept": "  (marked runs kept: {runs})",
-  "gc_text_summary_dry": "{count} run(s) would be deleted ({bytes} bytes). Use --yes to delete.",
-  "gc_text_summary_none": "Nothing was deleted: use --yes to delete or --dry-run to list. {count} run(s) would be deleted ({bytes} bytes).",
-  "gc_text_summary_done": "{count} run(s) and {workspaces} workspace(s) deleted ({bytes} bytes).",
+  "gc_text_summary_dry": "{count, plural, one {# run} other {# runs}} would be deleted ({bytes} bytes). Use --yes to delete.",
+  "gc_text_summary_none": "Nothing was deleted: use --yes to delete or --dry-run to list. {count, plural, one {# run} other {# runs}} would be deleted ({bytes} bytes).",
+  "gc_text_summary_done": "Deleted: {count, plural, one {# run} other {# runs}} and {workspaces, plural, one {# workspace} other {# workspaces}} ({bytes} bytes).",
   "gc_text_skipped": "  Skipped: {path} ({reason})"
 }

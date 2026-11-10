@@ -10,7 +10,7 @@
   "pytest_no_invocation": "The plan has no pytest invocation for the instance {tool}.",
   "pytest_invalid_junit": "The pytest JUnit report could not be interpreted: {detail}",
   "pytest_exit_mismatch": "pytest ended with code 1, but the JUnit report has no failing test: the result cannot be interpreted.",
-  "pytest_reason_tests": "pytest {version}: {total} test(s) run, {failed} failure(s), {errors} error(s), {skipped} skipped",
+  "pytest_reason_tests": "pytest {version}: {total, plural, one {# test} other {# tests}} run, {failed, plural, one {# failure} other {# failures}}, {errors, plural, one {# error} other {# errors}}, {skipped} skipped",
   "pytest_condition_runs": "Runs the component's pytest with the JUnit report in the run folder, with no cache or bytecode in the workspace.",
   "pytest_condition_coverage": "Measures line coverage with pytest-cov (source: {source}); the report and the .coverage file stay in the run folder.",
   "pytest_condition_pythonpath": "The code in {dir} enters the PYTHONPATH (src layout).",
@@ -33,6 +33,6 @@
   "pytest_metric_tests_skipped": "Skipped tests",
   "pytest_metric_coverage": "Line coverage",
   "pytest_metric_not_measured": "Coverage not measured: {reason}",
-  "pytest_exclusion_pragma": "{count} line(s) excluded by pragma or by the coverage configuration",
+  "pytest_exclusion_pragma": "{count, plural, one {# line} other {# lines}} excluded by pragma or by the coverage configuration",
   "pytest_exclusion_source": "measured source: {source}"
 }
