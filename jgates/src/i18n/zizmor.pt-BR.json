@@ -1,7 +1,7 @@
 {
   "zizmor_label": "zizmor (segurança do GitHub Actions)",
-  "zizmor_missing": "O zizmor não está instalado ({detail}). Rode: jgates doctor --fix (instala o zizmor do PyPI no ambiente do JGates) ou pip install zizmor.",
-  "zizmor_probe_failed": "O zizmor em {path} não respondeu a --version. Reinstale com: jgates doctor --fix.",
+  "zizmor_missing": "zizmor não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
+  "zizmor_probe_failed": "zizmor em {path} não respondeu à consulta de versão.",
   "zizmor_blocked": "O zizmor não pôde rodar: {detail}",
   "zizmor_exit_error": "O zizmor terminou com o código {code}: {detail}",
   "zizmor_timeout": "O zizmor passou do limite de {seconds} s e foi encerrado.",

@@ -1,9 +1,9 @@
-// Finds the Schemathesis CLI (`st`) and asks it for its version, without installing or changing anything.
+// Whether the Schemathesis CLI (`st`) is in the tools image, and its version, from image.json (nothing starts). Inside
+// the image only, JGATES_SCHEMATHESIS names another executable, which is asked for its version.
 import fs from "node:fs";
-import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
-import { pythonEnvExecutable } from "../../core/install/paths.js";
+import { besideOverridePython, imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface SchemathesisProbe {
@@ -14,28 +14,15 @@ export interface SchemathesisProbe {
 }
 
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
-const exeName = process.platform === "win32" ? "st.exe" : "st";
-
-/** JGATES_SCHEMATHESIS, then the folder of JGATES_PYTHON (same virtual environment), then the JGates environment
- * (<JGATES_HOME>/tools/python, from `jgates doctor --fix`), then `st` on PATH. */
+/** Inside the tools image only: the executable JGATES_SCHEMATHESIS names, else the one beside the JGATES_PYTHON override. */
 export function findSchemathesis(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
-  const tried: string[] = [];
-  if (env.JGATES_SCHEMATHESIS) {
-    tried.push(env.JGATES_SCHEMATHESIS);
-    return { executable: findOnPath(env.JGATES_SCHEMATHESIS, env), tried };
-  }
-  if (env.JGATES_PYTHON) {
-    const sibling = path.join(path.dirname(env.JGATES_PYTHON), exeName);
-    tried.push(sibling);
-    if (fs.existsSync(sibling)) return { executable: path.resolve(sibling), tried };
-  }
-  const own = pythonEnvExecutable("st", env);
-  if (own) return { executable: own, tried: [...tried, own] };
-  tried.push("st on PATH");
-  return { executable: findOnPath("st", env), tried };
+  const override = inImageOverride(env, "JGATES_SCHEMATHESIS") ?? besideOverridePython(env, "st");
+  return override ? { executable: findOnPath(override, env), tried: [override] } : { executable: null, tried: [] };
 }
 
 export function probeSchemathesis(env: NodeJS.ProcessEnv): SchemathesisProbe {
+  const image = imageProbeUnlessOverridden("schemathesis", env, "JGATES_SCHEMATHESIS");
+  if (image) return image;
   const { executable, tried } = findSchemathesis(env);
   if (!executable) return { executable: null, version: null, problem: "not_found", detail: tried.join(", ") };
   let mtimeMs = 0;

@@ -1,6 +1,6 @@
 {
   "eslint_label": "ESLint (project config)",
-  "eslint_missing": "ESLint is not installed in the project ({detail}). Install it with: npm install --save-dev eslint (or point JGATES_ESLINT to the executable).",
+  "eslint_missing": "ESLint is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
   "eslint_no_version": "Could not read the ESLint version at {path}. Reinstall with: npm install --save-dev eslint.",
   "eslint_no_config": "The instance {tool} has no eslint.config in the component or above it. Create the file or declare tools.{tool}.config in .jgates/tools.yml.",
   "eslint_blocked": "ESLint could not run: {detail}",

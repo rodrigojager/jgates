@@ -77,7 +77,7 @@
   "scripts": {
     "prepare": "node scripts/prepare.mjs",
     "test": "npm run test:root && npm run test:semantic && npm run test:quality && npm run test:jgates",
-    "test:root": "node --test tests/*.test.js",
+    "test:root": "node --import ./jgates/tests/setup/in-image.mjs --test tests/*.test.js",
     "test:semantic": "npm --prefix semantic-gate test --workspaces=false",
     "test:semantic:build": "npm --prefix semantic-gate run test:build --workspaces=false",
     "test:quality": "npm --prefix quality-gate test --workspaces=false",

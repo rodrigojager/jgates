@@ -1,6 +1,6 @@
 {
   "pii_label": "Dados pessoais (detector interno)",
-  "pii_python_missing": "Python não encontrado ({python}). Defina JGATES_PYTHON ou ponha o Python no PATH.",
+  "pii_python_missing": "Python não encontrado ({python}).",
   "pii_sidecar_missing": "O pacote do quality-gate (sidecar) não foi encontrado.",
   "pii_condition": "Procura nos arquivos de texto do alvo as entidades ligadas (CPF, CNPJ e cartão de crédito por padrão; telefone quando ligado); o valor encontrado nunca é guardado.",
   "pii_limitation": "O detector só observa: não corrige conteúdo e só reconhece o formato pt-BR. Uma opção que ele não suporta é recusada, nunca ignorada.",

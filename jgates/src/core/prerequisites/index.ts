@@ -1,8 +1,10 @@
 // What has to be in place before a validation can run, as a short list the UI shows on top of the Overview and the
-// Environment screens, each with the one action that fixes it:
-//   - docker: Docker is installed but stopped (start it) or absent (install it), when an enabled check runs in it;
+// Environment screens, each with the one action that fixes it (container-first, ADR-0004: no tool is installed on the
+// host, every check runs in the JGates tools image):
+//   - docker: the container engine is installed but stopped (start it) or absent (install it);
+//   - image: the JGates tools image of this release is not in the engine (download it);
 //   - git: Git refuses to read the project's repository because of its ownership (safe.directory);
-//   - tools: the tools JGates installs itself (its Python environment, prepared rules and images);
+//   - data: an instance's data to prepare (the Semgrep registry rules);
 //   - manual:<key>: anything else that is missing and that JGates cannot fix here (it carries the instruction).
 // The list is read-only. `fixPrerequisite` runs the action of one item, and only when a person confirmed it in the UI:
 // commands that need sudo never run here (no terminal to ask for the password); the UI shows them to copy instead.
@@ -12,7 +14,7 @@ import { assessEnvironment, executeRecipe, mergeRecipes, type Assessment, type I
 import { displayCommand } from "../install/system.js";
 import { gitContext, resolveGit } from "../snapshot/git.js";
 
-export type PrerequisiteKind = "docker-start" | "docker-install" | "git-trust" | "tools-install" | "manual";
+export type PrerequisiteKind = "docker-start" | "docker-install" | "image-pull" | "git-trust" | "data-prepare" | "manual";
 
 /** run: the UI runs it after a confirmation; copy: the person runs it in a terminal (sudo); null: only the text. */
 export type PrerequisiteAction = "run" | "copy" | null;
@@ -86,7 +88,7 @@ function gitItem(projectDir: string, env: NodeJS.ProcessEnv): Prerequisite | nul
   };
 }
 
-/** The list of what is missing, in the order it should be fixed: Docker, Git, the tools, then the manual items. */
+/** The list of what is missing, in the order it should be fixed: Docker, the tools image, Git, data, then the manual items. */
 export function listPrerequisites(projectDir: string, options: PrerequisiteOptions = {}): PrerequisiteReport {
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
@@ -114,6 +116,21 @@ export function listPrerequisites(projectDir: string, options: PrerequisiteOptio
       });
       continue;
     }
+    if (r.id === "image" && item.recipe) {
+      const recipe = item.recipe;
+      items.push({
+        id: "image",
+        kind: "image-pull",
+        classification: classOf(item.classification),
+        names: [r.path ?? "image"],
+        commands: recipe.commands,
+        action: recipe.available ? "run" : null,
+        hosts: recipe.network.hosts,
+        message: recipe.available ? r.message : `${r.message} ${recipe.reason ?? ""}`.trim(),
+        fix: r.fix,
+      });
+      continue;
+    }
     manual.push({ id: `manual:runtime:${r.id}`, kind: "manual", classification: classOf(item.classification), names: [r.id], commands: [], action: null, hosts: [], message: r.message, fix: r.fix });
   }
 
@@ -122,10 +139,10 @@ export function listPrerequisites(projectDir: string, options: PrerequisiteOptio
 
   const installable = missing.filter((i) => i.key.startsWith("tool:") && i.recipe?.available && !i.recipe.system);
   if (installable.length > 0) {
-    const recipes = mergeRecipes(installable.map((i) => assessment.recipes.get(i.key)).filter((r): r is Recipe => r !== undefined), env);
+    const recipes = mergeRecipes(installable.map((i) => assessment.recipes.get(i.key)).filter((r): r is Recipe => r !== undefined));
     items.push({
-      id: "tools",
-      kind: "tools-install",
+      id: "data",
+      kind: "data-prepare",
       classification: installable.some((i) => i.classification === "essential") ? "essential" : "optional",
       names: installable.map((i) => i.name),
       commands: recipes.flatMap((r) => r.commands),
@@ -189,8 +206,8 @@ export async function fixPrerequisite(projectDir: string, id: string, options: P
     return r.status === 0 ? { id, status: "done", message: null, outcomes: [] } : { id, status: "failed", message: `${displayCommand(argv.slice(1))}: ${r.error ?? `exit ${r.status ?? "-"}`}`, outcomes: [] };
   }
 
-  const keys = item.kind === "tools-install" ? item.names.map((n) => `tool:${n}`) : [`runtime:${item.names[0]}`];
-  const recipes = mergeRecipes(keys.map((k) => assessment.recipes.get(k)).filter((r): r is Recipe => r !== undefined), env);
+  const keys = item.kind === "data-prepare" ? item.names.map((n) => `tool:${n}`) : item.kind === "image-pull" ? ["runtime:image"] : [`runtime:${item.names[0]}`];
+  const recipes = mergeRecipes(keys.map((k) => assessment.recipes.get(k)).filter((r): r is Recipe => r !== undefined));
   const outcomes: RecipeOutcome[] = [];
   for (const recipe of recipes) outcomes.push(await executeRecipe(recipe, { ...exec, env, confirmed: true, interactive: false }));
   const failed = outcomes.find((o) => o.status === "failed");

@@ -232,12 +232,6 @@
               "jgates"
             ]
           },
-          "runner": {
-            "enum": [
-              "local",
-              "container"
-            ]
-          },
           "base": {
             "$ref": "#/$defs/pathText"
           },

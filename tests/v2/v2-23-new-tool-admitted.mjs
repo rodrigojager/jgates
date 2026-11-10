@@ -16,6 +16,22 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const DIST = path.join(root, "jgates", "dist");
 const FIXTURES = path.join(root, "jgates", "tests", "fixtures", "zizmor");
 const load = (...parts) => import(pathToFileURL(path.join(DIST, ...parts)).href);
+const { imageJsonWithout, releaseImageJson } = await import(pathToFileURL(path.join(root, "jgates", "tests", "setup", "image-json.mjs")).href);
+
+/**
+ * A zizmor that stands for the tools image's in this in-image run (tests/setup/in-image.mjs): the one on this machine's
+ * PATH, else the image's version installed into a throwaway virtual environment of the test (never JGates's doing).
+ */
+function zizmorStandIn(probe) {
+  if (probe.executable && path.isAbsolute(probe.executable)) return probe.executable;
+  const venv = path.join(tmp("v2-23-venv-"), "venv");
+  const created = spawnSync(process.platform === "win32" ? "python" : "python3", ["-m", "venv", venv], { encoding: "utf8" });
+  assert.equal(created.status, 0, `python -m venv failed: ${created.stderr}`);
+  const bin = path.join(venv, process.platform === "win32" ? "Scripts" : "bin");
+  const pip = spawnSync(path.join(bin, process.platform === "win32" ? "python.exe" : "python"), ["-m", "pip", "install", "--quiet", `zizmor==${releaseImageJson().tools.zizmor}`], { encoding: "utf8", timeout: 600_000 });
+  assert.equal(pip.status, 0, `installing the stand-in zizmor failed (network?): ${pip.stderr}`);
+  return path.join(bin, process.platform === "win32" ? "zizmor.exe" : "zizmor");
+}
 
 const made = [];
 const tmp = (prefix) => {
@@ -64,14 +80,14 @@ test("V2-23: a new tool (zizmor) is admitted through configuration, prerequisite
   try {
     const home = tmp("v2-23-home-");
     const { probeZizmor } = await load("adapters", "zizmor", "index.js");
-    const { assessEnvironment, executeRecipe } = await load("core", "install", "index.js");
+    const { assessEnvironment } = await load("core", "install", "index.js");
     const baseEnv = { ...process.env, JGATES_HOME: home, NO_COLOR: "1" };
     delete baseEnv.JGATES_ZIZMOR;
 
     // Applicability: a repo with workflows lists the check under infrastructure; one without workflows has no zizmor.
     const bad = await workspace("injection");
     const none = await workspace(null);
-    const missingEnv = { ...baseEnv, JGATES_ZIZMOR: path.join(home, "no-such-zizmor") };
+    const missingEnv = { ...baseEnv, JGATES_IMAGE_JSON: imageJsonWithout("zizmor") };
     const withFlows = await plan(bad, missingEnv, home);
     const item = withFlows.groups.willRun.find((i) => i.id === "zizmor#ci-cd");
     assert.ok(item, "zizmor#ci-cd is in the plan of a repo with .github/workflows");
@@ -81,23 +97,23 @@ test("V2-23: a new tool (zizmor) is admitted through configuration, prerequisite
     assert.equal(noFlows.ok, true);
     assert.equal([...noFlows.plan.groups.willRun, ...noFlows.plan.groups.notApplicableOrDisabled].some((i) => i.adapter === "zizmor"), false);
 
-    // Prerequisites: the tool is missing, the plan says how to prepare it, and the product's own guided recipe prepares it.
+    // Prerequisites: a tool the tools image lacks is unavailable with the image as its one cause; nothing is offered
+    // to install on the host.
     assert.equal(item.availability.status, "unavailable");
-    assert.match(item.availability.reason, /jgates doctor --fix/);
+    assert.match(item.availability.reason, /jgates setup/);
     const blocked = await run(bad, missingEnv, home, withFlows);
     assert.equal(blocked.stages.find((s) => s.id === "zizmor#ci-cd").state, "blocked");
     assert.notEqual(blocked.decision, "passed");
-    let env = baseEnv;
-    if (probeZizmor(baseEnv).executable === null) {
-      const assessment = assessEnvironment(bad, { env: baseEnv });
-      const recipe = assessment.recipes.get("tool:zizmor");
-      assert.equal(recipe?.kind, "python-packages", "the guided preparation of zizmor is a pip install into the JGates environment");
-      assert.ok(recipe.writes.every((w) => w.startsWith(home)), "the preparation writes only under the JGates data folder");
-      const outcome = await executeRecipe(recipe, { env: baseEnv, confirmed: true, interactive: false });
-      assert.equal(outcome.status, "installed", `the guided preparation of zizmor failed (network or Python missing): ${outcome.message}`);
-    }
+    const assessment = assessEnvironment(bad, { env: missingEnv });
+    const diagnosed = assessment.report.tools.find((x) => x.adapter === "zizmor");
+    assert.equal(diagnosed.missing, true);
+    assert.equal(diagnosed.recipe, null, "no host install is offered for a tool");
+    assert.equal(diagnosed.fix, "jgates setup");
+    assert.equal(assessment.recipes.has("tool:zizmor"), false);
+    // Execution: a zizmor stands for the image's (an override inside the image, as an advanced CI setup names it).
+    const env = { ...baseEnv, JGATES_ZIZMOR: zizmorStandIn(probeZizmor(baseEnv)) };
     const ready = probeZizmor(env);
-    assert.ok(ready.executable && ready.version, `zizmor answers after the preparation (${ready.detail})`);
+    assert.ok(ready.executable && ready.version, `zizmor answers (${ready.detail})`);
     t.diagnostic(`zizmor ${ready.version} at ${ready.executable}`);
 
     // Configuration: the settings of the instance reach the planned command.

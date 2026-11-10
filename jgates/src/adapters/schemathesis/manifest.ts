@@ -6,7 +6,7 @@ import type { AdapterManifest } from "../../core/catalog/index.js";
  * `st run <spec> --url <target>` per tool instance, with a fixed seed, a bound on examples per operation, a request
  * timeout and the stage timeout, and a configuration file written into the run folder (the authentication header comes
  * from an environment variable, never from the plan). Without a target the stage is blocked, never passed.
- * Schemathesis is MIT, installed with pip into the JGates environment by `jgates doctor --fix` (never during a run).
+ * Schemathesis is MIT and comes from the JGates tools image (installed there with pip; never during a run).
  */
 export const schemathesisManifest: AdapterManifest = {
   schemaVersion: 1,
@@ -71,7 +71,7 @@ export const schemathesisManifest: AdapterManifest = {
       capability: "api-contract",
       stack: "any",
       state: "validated",
-      prerequisites: ["schemathesis 4.x (pip: jgates doctor --fix installs it into the JGates environment)", "an OpenAPI 3 specification and a running HTTP target (tools.<id>.target)"],
+      prerequisites: ["schemathesis 4.x (in the JGates tools image)", "an OpenAPI 3 specification and a running HTTP target (tools.<id>.target)"],
       limitations: ["HTTP APIs described by OpenAPI only"],
     },
   ],

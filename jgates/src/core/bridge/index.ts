@@ -1,19 +1,23 @@
 // Bridge to the Python quality sidecar: one JSON request in, one JSON response out.
 //
-// Interpreter: JGATES_PYTHON when set (absolute path or a name looked up on PATH); otherwise the Python environment
-// JGates installs into (<JGATES_HOME>/tools/python, created by `jgates doctor --fix`) when it exists; otherwise the
-// first of `python` and `python3` found on PATH. In the repository that is the .venv (`.venv/bin` first on PATH).
-// The project's own Python (pytest) is resolveProjectPython: it never picks the JGates environment.
-// Sidecar package: JGATES_SIDECAR_DIR when set (folder that holds the quality_sidecar package); otherwise
-// quality-gate/sidecar, found by walking up from this module. It is prepended to PYTHONPATH, so the bridge
-// works with an editable install and without one.
+// Interpreter (container-first, no Python on the host): the sidecar's own environment in the JGates tools image
+// (/opt/tools/python/quality-sidecar, which imports quality_sidecar, tomlkit and defusedxml). On the host it only
+// starts inside a step container the run launches; inside the image it runs natively. Inside the image only,
+// JGATES_PYTHON names another interpreter (advanced CI setups), with the sidecar package found as below.
+// The project's own Python (pytest) is resolveProjectPython, read only for such an override inside the image.
+// Sidecar package for an override: JGATES_SIDECAR_DIR when set (folder that holds the quality_sidecar package);
+// otherwise quality-gate/sidecar, found by walking up from this module. It is prepended to PYTHONPATH.
 // The response is validated against quality-gate/schemas/bridge-response.schema.json: anything else is a failure.
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { runSpec } from "../runner/process.js";
-import { pythonEnvBinDir, pythonEnvInterpreter } from "../install/paths.js";
+import { findOnPath } from "../runner/path-lookup.js";
+
+export { findOnPath };
+import { stepMode } from "../runner/in-image.js";
+import { inImageOverride, probeImageTool } from "../tools-image/catalogue.js";
 
 export const SUBCHECK_STATUSES = ["ok", "findings", "skipped", "missing", "timeout", "error"] as const;
 export type SubcheckStatus = (typeof SUBCHECK_STATUSES)[number];
@@ -99,23 +103,6 @@ function isFile(p: string): boolean {
   }
 }
 
-/** Looks a command up on PATH (PATHEXT on Windows); an absolute or relative path is checked as is. */
-export function findOnPath(command: string, env: NodeJS.ProcessEnv = process.env): string | null {
-  const exts = process.platform === "win32" ? ["", ...(env.PATHEXT ?? ".EXE;.CMD;.BAT").split(";").filter(Boolean)] : [""];
-  if (command.includes("/") || command.includes("\\")) {
-    for (const ext of exts) if (isFile(command + ext)) return path.resolve(command + ext);
-    return null;
-  }
-  const dirs = (env.PATH ?? env.Path ?? "").split(path.delimiter).filter(Boolean);
-  for (const dir of dirs) {
-    for (const ext of exts) {
-      const candidate = path.join(dir, command + ext);
-      if (isFile(candidate)) return candidate;
-    }
-  }
-  return null;
-}
-
 /** The Python of the project (JGATES_PYTHON, then `python` and `python3` on PATH): the one its tests run with. */
 export function resolveProjectPython(env: NodeJS.ProcessEnv = process.env): { interpreter: string | null; tried: string[] } {
   const tried = env.JGATES_PYTHON ? [env.JGATES_PYTHON] : ["python", "python3"];
@@ -126,13 +113,53 @@ export function resolveProjectPython(env: NodeJS.ProcessEnv = process.env): { in
   return { interpreter: null, tried };
 }
 
-/** Resolves the Python interpreter for the sidecar (see the header of this module). */
-export function resolvePython(env: NodeJS.ProcessEnv = process.env): { interpreter: string | null; tried: string[] } {
-  if (!env.JGATES_PYTHON) {
-    const own = pythonEnvInterpreter(env);
-    if (own) return { interpreter: own, tried: [own] };
+/** The interpreter of the quality sidecar's environment in the tools image. */
+export const IMAGE_SIDECAR_PYTHON = "/opt/tools/python/quality-sidecar/bin/python";
+
+export interface SidecarRuntime {
+  /** The interpreter that runs the sidecar (null only for an override that names nothing on PATH). */
+  interpreter: string | null;
+  /** True when this process may start it itself: JGates runs inside the tools image. On the host only a step
+   * container the run launches can start it (a host process never runs it). */
+  native: boolean;
+  /** The folder to prepend to PYTHONPATH (an override's sidecar package); null when the interpreter imports it already. */
+  pythonPath: string | null;
+  /** What was looked for, for messages. */
+  tried: string[];
+}
+
+/** The Python that runs the quality sidecar (see the header of this module). Starts nothing. */
+export function sidecarRuntime(env: NodeJS.ProcessEnv = process.env): SidecarRuntime {
+  const override = inImageOverride(env, "JGATES_PYTHON");
+  if (override) return { interpreter: findOnPath(override, env), native: true, pythonPath: resolveSidecarDir(env), tried: [override] };
+  return { interpreter: IMAGE_SIDECAR_PYTHON, native: stepMode(env) === "in-image", pythonPath: null, tried: [IMAGE_SIDECAR_PYTHON] };
+}
+
+export interface SidecarAvailability extends SidecarRuntime {
+  /** null when the sidecar can run; otherwise why not (an override's interpreter or package missing, or an image
+   * without the sidecar). */
+  problem: "python_missing" | "sidecar_missing" | null;
+  /** The sidecar's version (the image's, or the package's pyproject.toml for an override). */
+  version: string | null;
+}
+
+/** Whether the quality sidecar can run (for the plan): the image's copy from image.json, or an in-image override. */
+export function sidecarAvailability(env: NodeJS.ProcessEnv = process.env): SidecarAvailability {
+  const runtime = sidecarRuntime(env);
+  if (inImageOverride(env, "JGATES_PYTHON")) {
+    if (!runtime.interpreter) return { ...runtime, problem: "python_missing", version: null };
+    const dir = runtime.pythonPath;
+    if (!dir || !isFile(path.join(dir, "quality_sidecar", "__main__.py"))) return { ...runtime, problem: "sidecar_missing", version: null };
+    let version: string | null = null;
+    try {
+      version = /^version\s*=\s*"([^"]+)"/m.exec(fs.readFileSync(path.join(path.dirname(dir), "pyproject.toml"), "utf8"))?.[1] ?? null;
+    } catch {
+      version = null;
+    }
+    return { ...runtime, problem: null, version };
   }
-  return resolveProjectPython(env);
+  const image = probeImageTool("quality-sidecar", env);
+  return { ...runtime, problem: image.problem === null ? null : "sidecar_missing", version: image.version };
 }
 
 /** Folder quality-gate/ of the repository, found by walking up from this module; null when absent. */
@@ -193,23 +220,20 @@ export async function callBridge(request: BridgeRequest, opts: BridgeCallOptions
   const env = opts.env ?? process.env;
   const started = Date.now();
   const base: BridgeRaw = { interpreter: null, exitCode: null, stdout: "", stderr: "", durationMs: 0 };
-  const { interpreter, tried } = resolvePython(env);
+  const runtime = sidecarRuntime(env);
+  const interpreter = runtime.interpreter;
   if (!interpreter) {
-    return { kind: "failure", code: "python-not-found", message: `no Python interpreter found on PATH (tried: ${tried.join(", ")})`, ...base };
+    return { kind: "failure", code: "python-not-found", message: `no Python interpreter found on PATH (tried: ${runtime.tried.join(", ")})`, ...base };
   }
-  const sidecarDir = resolveSidecarDir(env);
-  if (!sidecarDir) {
+  const sidecarDir = runtime.pythonPath;
+  if (inImageOverride(env, "JGATES_PYTHON") && !sidecarDir) {
     return { kind: "failure", code: "spawn-failed", message: "the quality sidecar package was not found", ...base, interpreter };
   }
   const envTimeout = Number(env.JGATES_BRIDGE_TIMEOUT_MS);
   const timeoutMs = opts.timeoutMs ?? (Number.isFinite(envTimeout) && envTimeout > 0 ? envTimeout : DEFAULT_TIMEOUT_MS);
-  // On the JGates environment, the sidecar's scanners installed there (Ruff, Semgrep) come first on its PATH.
-  const ownBin = interpreter === pythonEnvInterpreter(env) ? pythonEnvBinDir(env) : null;
-  const pathKey = env.PATH === undefined && env.Path !== undefined ? "Path" : "PATH";
   const childEnv: NodeJS.ProcessEnv = {
     ...env,
-    ...(ownBin ? { [pathKey]: env[pathKey] ? `${ownBin}${path.delimiter}${env[pathKey]}` : ownBin } : {}),
-    PYTHONPATH: env.PYTHONPATH ? `${sidecarDir}${path.delimiter}${env.PYTHONPATH}` : sidecarDir,
+    ...(sidecarDir ? { PYTHONPATH: env.PYTHONPATH ? `${sidecarDir}${path.delimiter}${env.PYTHONPATH}` : sidecarDir } : {}),
     PYTHONDONTWRITEBYTECODE: "1",
     PYTHONIOENCODING: "utf-8",
     PYTHONUTF8: "1",

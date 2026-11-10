@@ -195,7 +195,8 @@ export interface PlanRequirement {
  * - NO_TOOL_FOR_LANGUAGES: adapters exist, none supports the languages of the project's components;
  * - SETUP_REQUIRED: an adapter applies but no instance of it is declared here (evidence files, template, target URL,
  *   OpenAPI file... see `adapters[].prerequisites` and `action`);
- * - TOOL_MISSING: an instance is declared and on, but its tool is not available on this machine (prepare it);
+ * - TOOL_MISSING: an instance is declared and on, but its tool is not available: the tools image does not have it
+ *   (one shared cause, action prepare-image) or, inside the image, an override names nothing;
  * - CHECKS_DISABLED / DISABLED_FOR_RUN: the checks that would cover it are off (saved setting / --skip, --only);
  * - EVIDENCE_MISSING: the only check claiming it has no verifiable evidence contract (generic command).
  */
@@ -220,7 +221,9 @@ export interface NotApplicableAdapter {
 /**
  * The one action that would enable the check here, for the UI to offer as a control or a link:
  * - none: nothing to do in the project ("JGates has no tool for this stack yet");
- * - prepare-tool: prepare or install the tool of `tools` (instances) of `adapter` (prerequisites / doctor screens);
+ * - prepare-tool: prepare the data of `tools` (instances) of `adapter` (prerequisites / doctor screens);
+ * - prepare-image: the tools image lacks the tool of `tools` (instances): download the tools image of this JGates
+ *   release (one shared action, TOOL_MISSING); a tool is never installed on the host;
  * - add-files: add one of `files` so the built-in `template` activates (templateState "absent": also add the template
  *   to jgates.yml templates);
  * - add-template: add the built-in `template` (a "builtin:<id>" reference, templateState "absent") to the templates
@@ -236,7 +239,7 @@ export interface NotApplicableAdapter {
  * Unused fields are null or empty lists, so the shape is the same for every kind.
  */
 export interface NotApplicableAction {
-  kind: "none" | "prepare-tool" | "add-files" | "add-template" | "configure-tool" | "enable-check";
+  kind: "none" | "prepare-tool" | "prepare-image" | "add-files" | "add-template" | "configure-tool" | "enable-check";
   adapter: string | null;
   tools: string[];
   template: string | null;

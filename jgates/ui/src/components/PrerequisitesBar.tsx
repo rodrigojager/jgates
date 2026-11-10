@@ -13,7 +13,7 @@ import "./prerequisites.css";
 
 export interface PrerequisiteItem {
   id: string;
-  kind: "docker-start" | "docker-install" | "git-trust" | "tools-install" | "manual";
+  kind: "docker-start" | "docker-install" | "image-pull" | "git-trust" | "data-prepare" | "manual";
   classification: "essential" | "optional";
   names: string[];
   commands: string[];
@@ -47,12 +47,14 @@ function texts(item: PrerequisiteItem, platform: string): { icon: IconName; titl
       return { icon: "power", title: t("prq_docker_install_title"), text: t("prq_docker_text"), button: t("prq_docker_install_button") };
     case "git-trust":
       return { icon: "branch", title: t("prq_git_title"), text: t("prq_git_text", { folder: item.names[0] ?? "-" }), button: t("prq_git_button") };
-    case "tools-install":
+    case "image-pull":
+      return { icon: "tools", title: t("prq_image_title"), text: item.message ?? t("prq_image_text"), button: t("prq_image_button") };
+    case "data-prepare":
       return {
         icon: "tools",
-        title: item.names.length === 1 ? t("prq_tools_title_one", { names: item.names.join(", ") }) : t("prq_tools_title", { count: item.names.length, names: item.names.join(", ") }),
-        text: t("prq_tools_text"),
-        button: item.names.length === 1 ? t("prq_tools_button_one") : t("prq_tools_button", { count: item.names.length }),
+        title: item.names.length === 1 ? t("prq_data_title_one", { names: item.names.join(", ") }) : t("prq_data_title", { count: item.names.length, names: item.names.join(", ") }),
+        text: t("prq_data_text"),
+        button: item.names.length === 1 ? t("prq_data_button_one") : t("prq_data_button", { count: item.names.length }),
       };
     default:
       return { icon: "alert", title: t("prq_manual_title", { name: item.names.join(", ") }), text: item.message ?? "", button: "" };
@@ -112,7 +114,7 @@ function ConfirmDialog({ item, platform, onClose, onDone }: { item: Prerequisite
   return (
     <Dialog title={x.title} onClose={onClose}>
       <div className="stack">
-        <p>{t(item.kind === "git-trust" ? "prq_confirm_git" : item.kind === "tools-install" ? "prq_confirm_tools" : "prq_confirm_docker")}</p>
+        <p>{t(item.kind === "git-trust" ? "prq_confirm_git" : item.kind === "image-pull" ? "prq_confirm_image" : item.kind === "data-prepare" ? "prq_confirm_data" : "prq_confirm_docker")}</p>
         <pre className="prq-pre" data-testid="prq-confirm-commands">
           <code>{item.commands.join("\n")}</code>
         </pre>
@@ -120,7 +122,7 @@ function ConfirmDialog({ item, platform, onClose, onDone }: { item: Prerequisite
         {running ? (
           // The same turning ring as "Carregando...": an install takes minutes and must not look frozen.
           <p className="small spinner-text" role="status" data-testid="prq-running">
-            {t(item.kind === "tools-install" ? "prq_running_tools" : "prq_running")}
+            {t(item.kind === "image-pull" ? "prq_running_image" : "prq_running")}
           </p>
         ) : null}
         {failed ? (
@@ -175,7 +177,7 @@ function Row({ item, platform, onRun, waiting, inEnvironment }: { item: Prerequi
           </button>
         ) : null}
         {copyOnly ? <CopyButton text={item.commands.join("\n")} /> : null}
-        {item.kind === "tools-install" && !inEnvironment ? (
+        {item.kind === "data-prepare" && !inEnvironment ? (
           <a className="prq-link" href="#/environment">
             {t("prq_see_environment")}
           </a>

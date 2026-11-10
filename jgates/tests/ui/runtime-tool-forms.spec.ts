@@ -15,6 +15,16 @@ const capRow = (page: Page, cap: string) => page.locator(`[data-testid="capabili
 /** A Schemathesis instance with its target and capability: what is left missing is the tool itself (empty test PATH). */
 const SCHEMATHESIS = "  schemathesis:\n    adapter: schemathesis\n    capabilities: [api-contract]\n    target: http://localhost:8000\n";
 const tools = (fixture: Fixture): any => parse(fs.readFileSync(path.join(fixture.dir, ".jgates", "tools.yml"), "utf8"));
+/** The servers run in in-image mode (support.ts): an image.json without these tools makes them missing here. */
+function imageWithout(fixture: Fixture, ...names: string[]): void {
+  const doc = JSON.parse(fs.readFileSync(fixture.env.JGATES_IMAGE_JSON as string, "utf8"));
+  for (const name of names) delete doc.tools[name];
+  const home = fixture.env.JGATES_HOME as string;
+  fs.mkdirSync(home, { recursive: true });
+  const file = path.join(home, "image.json");
+  fs.writeFileSync(file, JSON.stringify(doc));
+  fixture.env.JGATES_IMAGE_JSON = file;
+}
 
 async function withServer(page: Page, prepare: ((fixture: Fixture) => void) | null, body: (ctx: { fixture: Fixture; server: UiServer }) => Promise<void>) {
   const fixture = createFixture();
@@ -99,7 +109,10 @@ test("'Adicionar ZAP' lands on the ZAP form with the target focused; an invalid 
 });
 
 test("oasdiff from the strict review: template, then its settings form with the base as a Git ref, the OpenAPI file offered, fail level as a select", async ({ page }) => {
-  const prepare = (fixture: Fixture) => fs.writeFileSync(path.join(fixture.dir, "openapi.yaml"), "openapi: 3.0.0\ninfo: {title: demo, version: '1'}\npaths: {}\n");
+  const prepare = (fixture: Fixture) => {
+    fs.writeFileSync(path.join(fixture.dir, "openapi.yaml"), "openapi: 3.0.0\ninfo: {title: demo, version: '1'}\npaths: {}\n");
+    imageWithout(fixture, "oasdiff");
+  };
   await withServer(page, prepare, async ({ fixture }) => {
     await review(page);
     // With an OpenAPI file the built-in template comes first; then the instance still needs its reference.
@@ -151,11 +164,12 @@ test("oasdiff from the strict review: template, then its settings form with the 
   });
 });
 
-test("'Preparar' installs the missing tool from the review after a confirmation, shows the result and builds the plan again", async ({ page }) => {
-  // A Schemathesis instance with its target: the tool itself is what is missing (the test PATH is empty).
+test("'Preparar' downloads the tools image a missing tool comes from, after a confirmation, shows the result and builds the plan again", async ({ page }) => {
+  // A Schemathesis instance with its target: the tool itself is what is missing (the tools image lacks it).
   const prepare = (fixture: Fixture) => {
     fs.writeFileSync(path.join(fixture.dir, "openapi.yaml"), "openapi: 3.0.0\ninfo: {title: demo, version: '1'}\npaths: {}\n");
     fs.appendFileSync(path.join(fixture.dir, ".jgates", "tools.yml"), SCHEMATHESIS);
+    imageWithout(fixture, "schemathesis");
   };
   await withServer(page, prepare, async () => {
     const fixes: unknown[] = [];
@@ -168,14 +182,14 @@ test("'Preparar' installs the missing tool from the review after a confirmation,
           status: "OK",
           ready: false,
           platform: "linux",
-          items: [{ id: "tools", kind: "tools-install", classification: "optional", names: ["schemathesis"], commands: ["python -m pip install schemathesis==4.33.1"], action: "run", hosts: ["pypi.org"], message: null, fix: null }],
+          items: [{ id: "image", kind: "image-pull", classification: "essential", names: ["ghcr.io/example/jgates-tools:9"], commands: ["docker pull ghcr.io/example/jgates-tools:9"], action: "run", hosts: ["ghcr.io"], message: null, fix: "jgates setup" }],
         },
       });
     });
     await page.route("**/api/prerequisites/fix", async (route) => {
       fixes.push(route.request().postDataJSON());
       await new Promise((r) => setTimeout(r, 300));
-      return route.fulfill({ json: { schemaVersion: 1, status: "OK", outcome: { id: "tools", status: "done", message: null, outcomes: [] }, ready: true, platform: "linux", items: [] } });
+      return route.fulfill({ json: { schemaVersion: 1, status: "OK", outcome: { id: "image", status: "done", message: null, outcomes: [] }, ready: true, platform: "linux", items: [] } });
     });
     await review(page);
     const row = capRow(page, "api-contract");
@@ -186,21 +200,22 @@ test("'Preparar' installs the missing tool from the review after a confirmation,
     await button.click();
     // The commands and the network are shown before anything runs.
     await expect(row.getByTestId("prepare-action")).toHaveAttribute("data-step", "confirm");
-    await expect(row).toContainText("python -m pip install schemathesis==4.33.1");
-    await expect(row).toContainText("pypi.org");
+    await expect(row).toContainText("docker pull ghcr.io/example/jgates-tools:9");
+    await expect(row).toContainText("ghcr.io");
     expect(fixes).toEqual([]);
     await row.getByRole("button", { name: /^Instalar agora/ }).click();
     await expect(row.getByTestId("prepare-action")).toHaveAttribute("data-step", "running");
     await expect(row.getByTestId("prepare-result")).toHaveAttribute("data-status", "done", { timeout: 10_000 });
-    expect(fixes).toEqual([{ id: "tools" }]);
+    expect(fixes).toEqual([{ id: "image" }]);
     expect(prerequisites).toBeGreaterThan(0);
   });
 });
 
-test("'Preparar' for a tool JGates cannot install says so plainly, with the install link", async ({ page }) => {
+test("'Preparar' for a tool JGates cannot prepare here says so plainly, with no per-tool install link", async ({ page }) => {
   const prepare = (fixture: Fixture) => {
     fs.writeFileSync(path.join(fixture.dir, "openapi.yaml"), "openapi: 3.0.0\ninfo: {title: demo, version: '1'}\npaths: {}\n");
     fs.appendFileSync(path.join(fixture.dir, ".jgates", "tools.yml"), SCHEMATHESIS);
+    imageWithout(fixture, "schemathesis");
   };
   await withServer(page, prepare, async () => {
     await page.route("**/api/prerequisites", (route) =>
@@ -210,7 +225,7 @@ test("'Preparar' for a tool JGates cannot install says so plainly, with the inst
           status: "OK",
           ready: false,
           platform: "win32",
-          items: [{ id: "manual:tool:schemathesis", kind: "manual", classification: "optional", names: ["schemathesis"], commands: [], action: null, hosts: [], message: "Python 3.10+ was not found.", fix: "Install Python 3.10 or later." }],
+          items: [{ id: "manual:tool:schemathesis", kind: "manual", classification: "optional", names: ["schemathesis"], commands: [], action: null, hosts: [], message: "Schemathesis is not in the JGates tools image.", fix: "jgates setup" }],
         },
       }),
     );
@@ -219,7 +234,7 @@ test("'Preparar' for a tool JGates cannot install says so plainly, with the inst
     await row.getByRole("button", { name: /^Preparar/ }).click();
     const manual = row.getByTestId("prepare-manual");
     await expect(manual).toContainText("O JGates não consegue preparar");
-    await expect(manual).toContainText("Python 3.10+ was not found.");
-    await expect(row.getByRole("link", { name: /^Como instalar/ })).toHaveAttribute("href", /^https:\/\//);
+    await expect(manual).toContainText("Schemathesis is not in the JGates tools image.");
+    await expect(row.getByRole("link", { name: /^Como instalar/ })).toHaveCount(0);
   });
 });

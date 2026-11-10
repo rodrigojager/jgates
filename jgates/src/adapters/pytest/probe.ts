@@ -1,9 +1,13 @@
 // Asks the Python of the run whether pytest answers and whether the coverage plugin is active, without installing or
 // writing anything. The plugin check runs `pytest --help` in the component with the project's own configuration but
 // without conftest.py, so planning never executes project code.
+// Container-first: the answer comes from the tools image's image.json (pytest, pytest-cov) without starting anything;
+// the project's own environment is prepared in its dependency volume by the run. Inside the image only, JGATES_PYTHON
+// names the project's Python, which is asked as before.
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolveProjectPython } from "../../core/bridge/index.js";
+import { imageProbeUnlessOverridden, probeImageTool } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface PytestProbe {
@@ -24,6 +28,11 @@ function safeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
 }
 
 export function probePytest(env: NodeJS.ProcessEnv, cwd: string): PytestProbe {
+  const image = imageProbeUnlessOverridden("pytest", env, "JGATES_PYTHON");
+  if (image) {
+    if (image.problem !== null) return { python: null, version: null, problem: "no_pytest", detail: image.detail, coverage: false };
+    return { python: "python", version: image.version, problem: null, detail: "", coverage: probeImageTool("pytest-cov", env).problem === null };
+  }
   const { interpreter, tried } = resolveProjectPython(env);
   if (!interpreter) return { python: null, version: null, problem: "python_missing", detail: tried.join(", "), coverage: false };
   let mtimeMs = 0;

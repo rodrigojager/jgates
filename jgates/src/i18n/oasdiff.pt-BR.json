@@ -1,6 +1,6 @@
 {
   "oasdiff_label": "oasdiff (compatibilidade OpenAPI)",
-  "oasdiff_missing": "O oasdiff não está instalado ({detail}). Baixe o binário da release em https://github.com/oasdiff/oasdiff/releases (ou go install github.com/oasdiff/oasdiff@latest), coloque no PATH ou em <JGATES_HOME>/tools/bin, ou aponte JGATES_OASDIFF para ele. O JGates nunca o instala durante uma execução.",
+  "oasdiff_missing": "oasdiff não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
   "oasdiff_probe_failed": "O oasdiff em {path} não respondeu a --version. Reinstale de https://github.com/oasdiff/oasdiff/releases.",
   "oasdiff_blocked": "O oasdiff não pôde rodar: {detail}",
   "oasdiff_no_spec": "Nenhuma especificação OpenAPI foi encontrada (openapi.yaml, openapi.json, swagger.* ...). Defina tools.<instância>.spec com o caminho dela.",
@@ -24,7 +24,6 @@
   "oasdiff_setting_base_ref": "O baseRef da instância {tool} é {value}; use um branch, tag, commit do git ou HEAD~N.",
   "oasdiff_setting_both": "A instância {tool} define baseRef e baseSpec; escolha uma referência.",
   "oasdiff_setting_fail_on": "O failOn da instância {tool} é {value}; use um de: {allowed}.",
-  "oasdiff_fix": "O oasdiff é fornecido por você: baixe o binário da release em https://github.com/oasdiff/oasdiff/releases (ou go install github.com/oasdiff/oasdiff@latest), coloque no PATH ou em <JGATES_HOME>/tools/bin, ou defina JGATES_OASDIFF, e rode o doctor de novo.",
   "oasdiff_form_title": "Opções do oasdiff",
   "oasdiff_form_section_compare": "Comparação",
   "oasdiff_form_spec": "Especificação OpenAPI",

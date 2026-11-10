@@ -79,5 +79,7 @@
   "resolve_profile_unknown": "O perfil '{id}' não existe.",
   "resolve_profile_unknown_fix": "Perfis disponíveis: {available}.",
   "resolve_profile_duplicate": "O perfil '{id}' está definido em {a} e em {b}.",
-  "config_option_skip": "Desliga seletores só nesta execução (separe vários por vírgula)."
+  "config_option_skip": "Desliga seletores só nesta execução (separe vários por vírgula).",
+  "config_migrated_execution_runner": "{file}: execution.runner ({value}) foi removido: toda verificação roda na imagem de ferramentas do JGates. A configuração é ignorada; apague-a e use schemaVersion: 2.",
+  "config_migrated_tool_runner": "{file}: o runner de {tool} ({value}) foi removido: toda verificação roda na imagem de ferramentas do JGates. A configuração é ignorada; apague-a."
 }

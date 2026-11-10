@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import os from "node:os";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { MAIN, PYTEST_SECTION, PYTHON, createFixture, sha256, startServer, tomlSection, type Fixture, type UiServer } from "./support";
+import { IN_IMAGE, MAIN, PYTEST_SECTION, PYTHON, createFixture, sha256, startServer, tomlSection, type Fixture, type UiServer } from "./support";
 
 // The vertical slice through the browser: editing the Ruff configuration in the UI changes what the next run finds.
 
@@ -247,7 +247,7 @@ function createMain(): Main {
   const { dir } = mainFixtureLib.createMainFixture();
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-trail-home-"));
   const emptyBin = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-trail-bin-"));
-  const env: NodeJS.ProcessEnv = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, PATH: emptyBin, DOCKER_HOST: "tcp://127.0.0.1:1" };
+  const env: NodeJS.ProcessEnv = { ...process.env, ...IN_IMAGE, JGATES_HOME: home, JGATES_PYTHON: PYTHON, PATH: emptyBin, DOCKER_HOST: "tcp://127.0.0.1:1" };
   delete env.JGATES_NO_CACHE;
   delete env.JGATES_RUFF;
   const cli = (args: string[]) => {

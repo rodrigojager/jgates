@@ -57,7 +57,7 @@
   "run_option_waiver": "Dispensa achados só neste run, além do .jgates/waivers.json: pares chave=valor separados por ponto e vírgula (rule, fingerprint, path, expires, reason). Pode repetir.",
   "run_bad_waiver": "Dispensa inválida em --waiver \"{spec}\": {problem}.",
   "run_bad_waiver_fix": "Use, por exemplo, --waiver \"rule=ruff.F401;path=src/**;expires=2026-12-31;reason=legado em migração\".",
-  "run_install_hint": "Algumas verificações não rodaram porque falta uma ferramenta. Rode: jgates doctor --fix",
+  "run_install_hint": "Algumas verificações não rodaram porque o motor, a imagem de ferramentas ou uma ferramenta dela não está pronta. Rode: jgates doctor",
   "run_install_again": "Rodar de novo agora? [s/N] ",
   "run_option_ci": "Igual a --no-interactive: nunca pergunta, nem para instalar uma ferramenta que falta.",
   "run_option_plain": "Saída enxuta para agentes, logs e CI: sem cores nem animação, uma linha por evento e um aviso por minuto enquanto uma etapa longa roda. É o padrão quando a saída não é um terminal, com NO_COLOR ou em CI.",

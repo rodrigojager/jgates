@@ -1,6 +1,6 @@
 {
   "pii_label": "Personal data (built-in detector)",
-  "pii_python_missing": "Python not found ({python}). Set JGATES_PYTHON or put Python on the PATH.",
+  "pii_python_missing": "Python not found ({python}).",
   "pii_sidecar_missing": "The quality-gate package (sidecar) was not found.",
   "pii_condition": "Searches the target's text files for the enabled entities (CPF, CNPJ and credit card by default; phone when enabled); the value found is never stored.",
   "pii_limitation": "The detector only observes: it does not fix content and only recognizes the pt-BR format. An option it does not support is refused, never ignored.",

@@ -14,6 +14,12 @@ export const MAIN = path.join(REPO, "jgates", "dist", "cli", "main.js");
 const VENV_BIN = path.join(REPO, ".venv", process.platform === "win32" ? "Scripts" : "bin");
 export const PYTHON = process.env.JGATES_PYTHON ?? path.join(VENV_BIN, process.platform === "win32" ? "python.exe" : "python");
 export const RUFF = process.env.JGATES_RUFF ?? path.join(VENV_BIN, process.platform === "win32" ? "ruff.exe" : "ruff");
+/**
+ * JGates runs here as inside the tools image (in-image mode, like the node tests' tests/setup/in-image.mjs): the steps
+ * run natively with the test doubles above, the image's tools are the package's mirror of image.json, and no server
+ * reaches a real container engine.
+ */
+export const IN_IMAGE: NodeJS.ProcessEnv = { JGATES_IMAGE_JSON: path.join(REPO, "jgates", "release", "image-tools.json"), JGATES_CONTAINER_RUNTIME: "jgates-test-no-engine" };
 
 export const PYTEST_SECTION = `[tool.pytest.ini_options]\naddopts = "-q"\n`;
 export const PYPROJECT = `[project]
@@ -49,7 +55,7 @@ export function createFixture(): Fixture {
   fs.writeFileSync(path.join(dir, "demo", "__init__.py"), "");
   fs.writeFileSync(path.join(dir, "demo", "mod.py"), MODULE);
   // An empty PATH keeps the run from finding tools of the machine: Python and Ruff come by absolute path.
-  const env: NodeJS.ProcessEnv = { ...process.env, JGATES_HOME: home, SEMANTIC_GATE_HOME: store, JGATES_PYTHON: PYTHON, JGATES_RUFF: RUFF, PATH: emptyBin };
+  const env: NodeJS.ProcessEnv = { ...process.env, ...IN_IMAGE, JGATES_HOME: home, SEMANTIC_GATE_HOME: store, JGATES_PYTHON: PYTHON, JGATES_RUFF: RUFF, PATH: emptyBin };
   for (const name of Object.keys(env)) if (/_API_KEY$|^SEMANTIC_GATE_(?!HOME$)/.test(name)) delete env[name];
   const init = spawnSync(process.execPath, [MAIN, "init", "--cwd", dir, "--profile", "minimal", "--no-interactive", "--json"], { env, encoding: "utf8", timeout: 120_000 });
   if (init.status !== 0) throw new Error(`jgates init failed: ${init.stdout}${init.stderr}`);
@@ -226,7 +232,7 @@ export function createGateFixture(): GateFixture {
   git("commit", "-q", "-m", "fixture");
 
   // The real PATH stays (the Quality check and git need it); keys of the machine never reach the server.
-  const env: NodeJS.ProcessEnv = { ...process.env, JGATES_HOME: home, SEMANTIC_GATE_HOME: store, JGATES_NO_CACHE: "1", NO_COLOR: "1", SEMANTIC_GATE_MOCK_TOOL_SCRIPT: script };
+  const env: NodeJS.ProcessEnv = { ...process.env, ...IN_IMAGE, JGATES_HOME: home, SEMANTIC_GATE_HOME: store, JGATES_NO_CACHE: "1", NO_COLOR: "1", SEMANTIC_GATE_MOCK_TOOL_SCRIPT: script };
   for (const name of Object.keys(env)) if (/_API_KEY$|^SEMANTIC_GATE_(?!HOME$|MOCK_TOOL_SCRIPT$)/.test(name)) delete env[name];
 
   const workspaces = path.join(home, "workspaces");

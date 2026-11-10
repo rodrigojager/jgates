@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion"],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2, "description": "2 since the container-first release (execution.runner removed); a schema 1 document is read through the migration reader." },
     "extends": {
       "type": "array",
       "uniqueItems": true,
@@ -90,7 +90,6 @@
         "concurrency": { "type": "integer", "minimum": 1 },
         "network": { "enum": ["explicit", "allow", "deny"] },
         "timeoutSeconds": { "type": "integer", "minimum": 1 },
-        "runner": { "enum": ["local", "container"], "description": "Default runner of the tools that do not choose their own." },
         "failFast": { "type": "boolean", "description": "Stop at the first failed stage; the rest is recorded as not run." },
         "trustSelfReported": {
           "type": "boolean",

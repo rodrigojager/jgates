@@ -1,6 +1,6 @@
 {
   "dependency_cruiser_label": "dependency-cruiser (TS/JS architecture)",
-  "dependency_cruiser_missing": "dependency-cruiser was not found ({detail}). Install it with: npm install --save-dev dependency-cruiser in the project, or set JGATES_DEPCRUISE to the executable path. JGates never downloads the tool during a run.",
+  "dependency_cruiser_missing": "dependency-cruiser is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
   "dependency_cruiser_probe_failed": "dependency-cruiser at {path} did not answer --version. Reinstall it in the project.",
   "dependency_cruiser_incompatible": "Incompatible dependency-cruiser version: {version} outside the range {range}.",
   "dependency_cruiser_no_architecture": "The instance {tool} needs the architecture contract: create .jgates/architecture.yml (and list it in extends in jgates.yml).",

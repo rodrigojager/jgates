@@ -1,4 +1,5 @@
-// Environment: the same diagnosis as `jgates doctor` and the explicit preparation step ("Preparar").
+// Environment: the same diagnosis as `jgates doctor` (engine, tools image, the image's tools) and the explicit
+// preparation of an instance's data ("Preparar": the Semgrep rules).
 import { PrepareError, diagnoseEnvironment, prepareInstance, previewPrepare } from "../../core/prepare/index.js";
 import { refreshPath } from "../../core/env-refresh/index.js";
 import { HttpError } from "../http.js";
@@ -30,21 +31,19 @@ export const routes: RouteDefinition[] = [
         instance: { type: "string", pattern: ID_PATTERN },
         dryRun: { type: "boolean" },
         allowVersionChange: { type: "boolean" },
-        image: { type: "string", minLength: 1, maxLength: 512 },
       },
       required: ["instance"],
       additionalProperties: false,
     },
     timeoutMs: 180_000,
     async handler({ body, server }) {
-      const input = body as { instance: string; dryRun?: boolean; allowVersionChange?: boolean; image?: string };
+      const input = body as { instance: string; dryRun?: boolean; allowVersionChange?: boolean };
       if (!server.policyMode) refreshPath({ force: true });
-      const options = input.image ? { image: input.image } : {};
       try {
-        const preview = previewPrepare(server.projectDir, input.instance, options);
+        const preview = previewPrepare(server.projectDir, input.instance);
         if (input.dryRun !== false) return { status: 200, json: { schemaVersion: 1, status: "OK", dryRun: true, preview } };
-        const result = await prepareInstance(server.projectDir, input.instance, { ...options, allowVersionChange: input.allowVersionChange === true });
-        server.log(`prepare ${input.instance} ${result.image ? result.image.pinned : (result.rules?.hash ?? "-")}`);
+        const result = await prepareInstance(server.projectDir, input.instance, { allowVersionChange: input.allowVersionChange === true });
+        server.log(`prepare ${input.instance} ${result.rules.hash}`);
         return { status: 200, json: { schemaVersion: 1, status: "OK", dryRun: false, preview, result, environment: diagnoseEnvironment(server.projectDir) } };
       } catch (error) {
         if (error instanceof PrepareError) throw toHttp(error);

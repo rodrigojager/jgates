@@ -6,7 +6,7 @@ The list of adapters, what each one delivers, on which systems it was tested and
 
 ## Declare an instance
 
-Instances live in `.jgates/tools.yml`, which `jgates.yml` includes in `extends`. Each one names the adapter, the component, the runner (`local` or `container`) and the configuration file the tool reads:
+Instances live in `.jgates/tools.yml`, which `jgates.yml` includes in `extends`. Each one names the adapter, the component and the configuration file the tool reads. Every instance runs in the JGates tools image (there is no runner to choose; an old `runner` key is ignored with a notice):
 
 ```yaml
 schemaVersion: 1
@@ -14,7 +14,6 @@ tools:
   ruff-api:
     adapter: ruff
     component: api
-    runner: container
     config: api/pyproject.toml
 ```
 
@@ -41,32 +40,25 @@ Each instance shows how much JGates understands the tool:
 | editable file | JGates knows the configuration file and edits it as text, with validation when the format allows. |
 | unavailable, incompatible | The tool was not found, or the version is outside the range the adapter declares. The step comes out blocked, never approved. |
 
-A missing tool does not fail the code, but it does not approve it either: the plan warns `TOOL_UNAVAILABLE`, the requirement stays unproven and the run comes out `incomplete` (exit 2).
+A missing tool does not fail the code, but it does not approve it either: the plan warns `TOOL_MISSING` (a tool the tools image does not have, with the image as the one action) or `TOOL_UNAVAILABLE`, the requirement stays unproven and the run comes out `incomplete` (exit 2).
 
-## Prepare a tool
+## Where the tools come from
 
-JGates installs nothing on its own during a `run`. Preparation is a separate step, with a simulation:
+Every tool comes from the JGates tools image, whose `image.json` says which tools and versions it has; JGates never installs a tool on your machine. `jgates doctor` shows the container engine, the tools image and each instance's tool. A tool the image lacks is `TOOL_MISSING`, fixed by the tools image of this JGates version, never by a host install.
+
+## Prepare an instance's data
+
+Some instances need data before they run. Preparation is a separate step, with a simulation:
 
 ```bash
 jgates doctor
-jgates tools prepare --instance ruff-api --dry-run
-jgates tools prepare --instance ruff-api --no-interactive
+jgates tools prepare --instance <instance> --dry-run
+jgates tools prepare --instance <instance> --no-interactive
 ```
 
 `--dry-run` shows versions, the network that would be used and what would be written, without downloading or writing. What was prepared is pinned in `.jgates/lock.json`, which goes into the repository: the `run` uses what was pinned. Moving an already pinned tool to an older version requires `--allow-version-change` (`VERSION_DOWNGRADE`).
 
-`prepare` applies to container instances (below) and to Semgrep, whose local rules are downloaded once and pinned by hash. On a local instance of a tool you install yourself (Ruff from `pip`, for example), it answers `PREPARE_NOT_SUPPORTED`, and `jgates doctor` shows the install command.
-
-### Tools in a container
-
-An instance with `runner: container` runs the tool in an image, without network, with the workspace read-only. The image is chosen and pinned by `tools prepare`, and the `run` downloads nothing:
-
-```bash
-jgates tools prepare --instance ruff-api --image ruff:0.17.2 --dry-run
-jgates tools prepare --instance ruff-api --image ruff:0.17.2 --no-interactive
-```
-
-`--image` accepts `name:tag` or `name@sha256:...`. If the image is not in the runtime, `prepare` warns that it will do a `docker pull` and from which host, and in an interactive terminal asks for your confirmation first. The result, with the digest and the version from the image label, goes to `.jgates/lock.json`. Without `--image`, the image already pinned in the lockfile applies, otherwise the one from the JGates sidecar. The `JGATES_*_IMAGE` variables of the development versions no longer exist: the image lives in the lockfile, versioned with the project.
+`prepare` applies to Semgrep, whose local rules are downloaded once and pinned by hash. On any other instance it answers `PREPARE_NOT_SUPPORTED`.
 
 ### The bridge's scanners in the sidecar image
 

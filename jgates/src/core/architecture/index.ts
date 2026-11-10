@@ -6,7 +6,7 @@
 import path from "node:path";
 import { translator } from "../../i18n/index.js";
 import { loadProjectConfig } from "../config/load/index.js";
-import { resolvePython, resolveSidecarDir } from "../bridge/index.js";
+import { sidecarRuntime } from "../bridge/index.js";
 import { runSpec } from "../runner/index.js";
 import type {
   ArchitectureContract,
@@ -106,10 +106,11 @@ function incomplete(options: EvaluateOptions, detail: string): ArchitectureEvalu
 /** Evaluates the graph against the declared contract through the sidecar bridge. Never throws for sidecar problems. */
 export async function evaluateArchitecture(options: EvaluateOptions): Promise<ArchitectureEvaluation> {
   const env = options.env ?? process.env;
-  const { interpreter } = resolvePython(env);
+  // The sidecar's Python of the tools image: in the step's container on the host, natively inside the image.
+  const runtime = sidecarRuntime(env);
+  const interpreter = runtime.interpreter;
   if (!interpreter) return incomplete(options, "Python não encontrado");
-  const sidecarDir = resolveSidecarDir(env);
-  if (!sidecarDir) return incomplete(options, "sidecar de qualidade não encontrado");
+  const sidecarDir = runtime.pythonPath;
   const request = {
     schemaVersion: 1,
     operation: "architecture",
@@ -119,7 +120,7 @@ export async function evaluateArchitecture(options: EvaluateOptions): Promise<Ar
   };
   const childEnv: NodeJS.ProcessEnv = {
     ...env,
-    PYTHONPATH: env.PYTHONPATH ? `${sidecarDir}${path.delimiter}${env.PYTHONPATH}` : sidecarDir,
+    ...(sidecarDir ? { PYTHONPATH: env.PYTHONPATH ? `${sidecarDir}${path.delimiter}${env.PYTHONPATH}` : sidecarDir } : {}),
     PYTHONDONTWRITEBYTECODE: "1",
     PYTHONIOENCODING: "utf-8",
     PYTHONUTF8: "1",

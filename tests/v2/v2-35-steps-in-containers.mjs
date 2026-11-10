@@ -84,7 +84,7 @@ test("V2-35: a multi-step run spawns only the engine CLI and git, and each step 
     runtime,
     `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(calls)};\nprocess.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};\nprocess.env.FAKE_DOCKER_LABELS = ${JSON.stringify(JSON.stringify({ "org.jgates.version": CLI_VERSION }))};\nrequire(${JSON.stringify(FAKE)});\n`,
   );
-  const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1", JGATES_SPAWN_AUDIT_LOG: audit };
+  const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1", JGATES_SPAWN_AUDIT_LOG: audit };
   const cli = (args) => spawnSync(process.execPath, ["--require", preload, MAIN, ...args], { cwd: project, encoding: "utf8", env, input: "", timeout: 240_000 });
 
   fs.writeFileSync(path.join(project, "check.js"), "process.exit(0);\n");

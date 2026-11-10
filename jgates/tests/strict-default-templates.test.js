@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // Built-in templates for the checks builtin:strict turns on "when available" and that need no project-specific input
 // (Gitleaks history, Trivy licenses, CodeQL dataflow, mutmut / Stryker mutation, mypy with its defaults): activation,
 // the instance they bring (never switched on by the template itself), init, and the actions of the not-applicable
-// entries (add-template, configure-tool with the settings JGates cannot guess, prepare-tool).
+// entries (add-template, configure-tool with the settings JGates cannot guess, prepare-image).
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(here, "..", "dist");
@@ -93,7 +93,7 @@ test("the new templates bring one instance of the right adapter and capability, 
   assert.equal(getBuiltinTemplate("builtin:python-mypy-defaults").value.config.tools.mypy.config.withoutConfig, "defaults");
 });
 
-test("templates added: strict plans every new check or reports it TOOL_MISSING with a prepare-tool action; never SETUP_REQUIRED", () => {
+test("templates added: strict plans every new check or reports it TOOL_MISSING with the shared prepare-image action; never SETUP_REQUIRED", () => {
   withDir(pythonProject(["base", "python", "python-pytest", ...PYTHON_TEMPLATES]), (dir) => {
     const p = plan(dir, "builtin:strict");
     const active = p.templates.active.map((a) => a.id);
@@ -105,9 +105,11 @@ test("templates added: strict plans every new check or reports it TOOL_MISSING w
       const n = na[cap];
       assert.ok(n, `${cap} is planned or reported`);
       assert.equal(n.reasonCode, "TOOL_MISSING", `${cap}: ${n.message}`);
-      assert.equal(n.action.kind, "prepare-tool");
+      // The tool is not in the tools image: the image of this release is the one shared action, never a host install.
+      assert.equal(n.action.kind, "prepare-image", JSON.stringify(n));
       assert.ok(n.action.tools.length === 1 && n.action.adapter, cap);
-      assert.ok(n.action.docs.length > 0, `${cap} says where to get the tool`);
+      assert.deepEqual(n.action.docs, [], `${cap} offers no per-tool download`);
+      assert.match(n.message, /JGates tools image|imagem de ferramentas do JGates/, cap);
       assert.ok(n.message.length > 0, cap);
     }
     assert.equal(p.groups.uncoveredRequirements.length, 0);

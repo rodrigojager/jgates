@@ -1,6 +1,6 @@
 // Finds the container runtime and the ZAP image the instance names, without pulling or changing anything.
 import { spawnSync } from "node:child_process";
-import { containerRuntime, runtimeClientEnv } from "../../core/prepare/image.js";
+import { containerRuntime, runtimeClientEnv } from "../container-scanner/image.js";
 
 export const DEFAULT_ZAP_IMAGE = "ghcr.io/zaproxy/zaproxy:stable";
 

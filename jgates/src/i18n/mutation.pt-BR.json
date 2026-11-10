@@ -8,7 +8,7 @@
   "mutation_limitation_executes": "O teste de mutação executa código do projeto: os testes do componente rodam uma vez por mutante.",
   "mutation_limitation_bounded": "A execução é limitada pelo timeoutSeconds da instância; uma execução que o excede fica sem pontuação.",
   "mutation_no_engine": "Não dá para saber qual motor de mutação o componente {dir} usa. Defina engine: stryker ou engine: mutmut na instância.",
-  "mutation_stryker_missing": "O StrykerJS não está instalado ({detail}). Instale @stryker-mutator/core no projeto (npm install --save-dev @stryker-mutator/core) e dê a ele uma configuração; o JGates não instala nada durante uma execução.",
+  "mutation_stryker_missing": "StrykerJS não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
   "mutation_stryker_no_version": "O StrykerJS encontrado em {detail} não informou a versão.",
   "mutation_python_missing": "Não há Python para rodar o mutmut ({detail}). Defina JGATES_PYTHON ou ponha o Python do projeto no PATH.",
   "mutation_mutmut_missing": "O mutmut não está instalado no Python {python}. Instale-o no ambiente do projeto (pip install mutmut); o JGates não instala nada durante uma execução.",
@@ -37,5 +37,6 @@
   "mutation_setting_engine": "O motor da instância {tool} é {value}; use um destes: {allowed}.",
   "mutation_setting_mutate": "A configuração mutate da instância {tool} deve ser uma lista de padrões relativos sem vírgulas, hífen inicial ou '..'.",
   "mutation_setting_minimum": "O minimumScore da instância {tool} é {value}; use um número de 0 a 100.",
-  "mutation_condition_timeout": "Limitado a {seconds} s; uma execução que passar disso fica sem pontuação."
+  "mutation_condition_timeout": "Limitado a {seconds} s; uma execução que passar disso fica sem pontuação.",
+  "mutation_mutmut_not_in_image": "O mutmut não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina."
 }

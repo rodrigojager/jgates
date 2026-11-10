@@ -1,9 +1,9 @@
-// Finds the zizmor executable and asks it for its version, without installing or changing anything.
+// Whether zizmor is in the tools image, and its version, from image.json (nothing starts). Inside the image only,
+// JGATES_ZIZMOR names another executable, which is asked for its version.
 import fs from "node:fs";
-import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
-import { pythonEnvExecutable } from "../../core/install/paths.js";
+import { besideOverridePython, imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface ZizmorProbe {
@@ -14,28 +14,15 @@ export interface ZizmorProbe {
 }
 
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
-const exeName = process.platform === "win32" ? "zizmor.exe" : "zizmor";
-
-/** JGATES_ZIZMOR, then the folder of JGATES_PYTHON (same virtual environment), then the JGates environment
- * (<JGATES_HOME>/tools/python, from `jgates doctor --fix`), then PATH. */
+/** Inside the tools image only: the executable JGATES_ZIZMOR names, else the one beside the JGATES_PYTHON override. */
 export function findZizmor(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
-  const tried: string[] = [];
-  if (env.JGATES_ZIZMOR) {
-    tried.push(env.JGATES_ZIZMOR);
-    return { executable: findOnPath(env.JGATES_ZIZMOR, env), tried };
-  }
-  if (env.JGATES_PYTHON) {
-    const sibling = path.join(path.dirname(env.JGATES_PYTHON), exeName);
-    tried.push(sibling);
-    if (fs.existsSync(sibling)) return { executable: path.resolve(sibling), tried };
-  }
-  const own = pythonEnvExecutable("zizmor", env);
-  if (own) return { executable: own, tried: [...tried, own] };
-  tried.push("zizmor on PATH");
-  return { executable: findOnPath("zizmor", env), tried };
+  const override = inImageOverride(env, "JGATES_ZIZMOR") ?? besideOverridePython(env, "zizmor");
+  return override ? { executable: findOnPath(override, env), tried: [override] } : { executable: null, tried: [] };
 }
 
 export function probeZizmor(env: NodeJS.ProcessEnv): ZizmorProbe {
+  const image = imageProbeUnlessOverridden("zizmor", env, "JGATES_ZIZMOR");
+  if (image) return image;
   const { executable, tried } = findZizmor(env);
   if (!executable) return { executable: null, version: null, problem: "not_found", detail: tried.join(", ") };
   let mtimeMs = 0;

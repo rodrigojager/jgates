@@ -60,6 +60,8 @@ export interface ConfigLoadResult {
   /** Convenience lookup by kind. */
   byKind: Partial<Record<DocumentKind, LoadedDocument>>;
   diagnostics: ConfigDiagnostic[];
+  /** What the migration reader did to older documents (settings it dropped); never makes the configuration invalid. */
+  notices: import("./migrate.js").ConfigNotice[];
 }
 
 export interface YamlLimits {

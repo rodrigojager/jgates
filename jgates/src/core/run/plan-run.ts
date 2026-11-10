@@ -11,7 +11,7 @@ import { runBridgeFromPlan, subchecksFromPlan } from "../../adapters/quality-bri
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
 import { manifestResources } from "../../adapters/manifests.js";
 import { ADAPTER_ID as BRIDGE_ID } from "../../adapters/quality-bridge/requirements.js";
-import { resolvePython, resolveSidecarDir } from "../bridge/index.js";
+import { sidecarAvailability } from "../bridge/index.js";
 import { translator } from "../../i18n/index.js";
 import { externalAdapter } from "../plan/adapters.js";
 import type { Plan, PlanItem } from "../plan/types.js";
@@ -57,13 +57,11 @@ function bridgeSkeleton(plan: Plan): AdapterOutput {
 /** What the bridge needs right before it starts: the Python and the sidecar package (looked up now, not at planning). */
 function bridgePreflight(context: AdapterContext): PreflightProblem[] {
   const t = translator("runner");
-  const { interpreter, tried } = resolvePython(context.env);
+  // The sidecar of the tools image, or an override inside the image (its interpreter and package must exist).
+  const sidecar = sidecarAvailability(context.env);
   const problems: PreflightProblem[] = [];
-  if (!interpreter) problems.push({ code: "RUNTIME_MISSING", message: t("runner_bridge_python_missing", { python: tried.join(", ") || "python" }) });
-  const sidecarDir = resolveSidecarDir(context.env);
-  if (!sidecarDir || !fs.existsSync(path.join(sidecarDir, "quality_sidecar", "__main__.py"))) {
-    problems.push({ code: "PREREQUISITE_MISSING", message: t("runner_bridge_sidecar_missing", { dir: sidecarDir ?? "-" }) });
-  }
+  if (sidecar.problem === "python_missing") problems.push({ code: "RUNTIME_MISSING", message: t("runner_bridge_python_missing", { python: sidecar.tried.join(", ") || "python" }) });
+  if (sidecar.problem === "sidecar_missing") problems.push({ code: "PREREQUISITE_MISSING", message: t("runner_bridge_sidecar_missing", { dir: sidecar.pythonPath ?? "-" }) });
   return problems;
 }
 

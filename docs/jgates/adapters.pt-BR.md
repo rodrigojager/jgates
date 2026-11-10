@@ -6,7 +6,7 @@ A lista de adaptadores, o que cada um entrega, em que sistemas foi testado e a l
 
 ## Declarar uma instância
 
-As instâncias ficam em `.jgates/tools.yml`, que o `jgates.yml` inclui em `extends`. Cada uma diz o adaptador, o componente, o runner (`local` ou `container`) e o arquivo de configuração que a ferramenta lê:
+As instâncias ficam em `.jgates/tools.yml`, que o `jgates.yml` inclui em `extends`. Cada uma diz o adaptador, o componente e o arquivo de configuração que a ferramenta lê. Toda instância roda na imagem de ferramentas do JGates (não há runner a escolher; uma chave `runner` antiga é ignorada com um aviso):
 
 ```yaml
 schemaVersion: 1
@@ -14,7 +14,6 @@ tools:
   ruff-api:
     adapter: ruff
     component: api
-    runner: container
     config: api/pyproject.toml
 ```
 
@@ -41,32 +40,25 @@ Cada instância mostra o quanto o JGates entende da ferramenta:
 | arquivo editável | O JGates conhece o arquivo de configuração e o edita como texto, com validação quando o formato permite. |
 | indisponível, incompatível | A ferramenta não foi achada, ou a versão está fora da faixa que o adaptador declara. A etapa sai como bloqueada, nunca como aprovada. |
 
-Uma ferramenta ausente não reprova o código, mas também não o aprova: o plano avisa `TOOL_UNAVAILABLE`, o requisito fica sem prova e o run sai `incomplete` (exit 2).
+Uma ferramenta ausente não reprova o código, mas também não o aprova: o plano avisa `TOOL_MISSING` (uma ferramenta que a imagem de ferramentas não tem, com a imagem como a única ação) ou `TOOL_UNAVAILABLE`, o requisito fica sem prova e o run sai `incomplete` (exit 2).
 
-## Preparar uma ferramenta
+## De onde vêm as ferramentas
 
-O JGates não instala nada por conta própria durante um `run`. A preparação é um passo à parte, com simulação:
+Toda ferramenta vem da imagem de ferramentas do JGates, cujo `image.json` diz quais ferramentas e versões ela tem; o JGates nunca instala uma ferramenta na sua máquina. O `jgates doctor` mostra o motor de containers, a imagem de ferramentas e a ferramenta de cada instância. Uma ferramenta que a imagem não tem é `TOOL_MISSING`, resolvida pela imagem de ferramentas desta versão do JGates, nunca por uma instalação na máquina.
+
+## Preparar os dados de uma instância
+
+Algumas instâncias precisam de dados antes de rodar. A preparação é um passo à parte, com simulação:
 
 ```bash
 jgates doctor
-jgates tools prepare --instance ruff-api --dry-run
-jgates tools prepare --instance ruff-api --no-interactive
+jgates tools prepare --instance <instance> --dry-run
+jgates tools prepare --instance <instance> --no-interactive
 ```
 
 O `--dry-run` mostra versões, a rede que seria usada e o que seria gravado, sem baixar nem gravar. O que foi preparado fica fixado em `.jgates/lock.json`, que vai no repositório: o `run` usa o que foi fixado. Mudar a versão de uma ferramenta já fixada para uma mais antiga exige `--allow-version-change` (`VERSION_DOWNGRADE`).
 
-O `prepare` vale para as instâncias em container (abaixo) e para o Semgrep, cujas regras locais são baixadas uma vez e fixadas por hash. Numa instância local de uma ferramenta que você instala por conta própria (o Ruff do `pip`, por exemplo), ele responde `PREPARE_NOT_SUPPORTED`, e o `jgates doctor` mostra o comando de instalação.
-
-### Ferramentas em container
-
-Uma instância com `runner: container` roda a ferramenta numa imagem, sem rede, com o workspace somente leitura. A imagem é escolhida e fixada pelo `tools prepare`, e o `run` não baixa nada:
-
-```bash
-jgates tools prepare --instance ruff-api --image ruff:0.17.2 --dry-run
-jgates tools prepare --instance ruff-api --image ruff:0.17.2 --no-interactive
-```
-
-`--image` aceita `nome:tag` ou `nome@sha256:...`. Se a imagem não está no runtime, o `prepare` avisa que fará um `docker pull` e em qual host, e num terminal interativo pede a sua confirmação antes. O resultado, com o digest e a versão pelo rótulo da imagem, vai para o `.jgates/lock.json`. Sem `--image`, vale a imagem já fixada no lockfile, senão a do sidecar do JGates. As variáveis `JGATES_*_IMAGE` das versões de desenvolvimento não existem mais: a imagem vive no lockfile, versionada com o projeto.
+O `prepare` vale para o Semgrep, cujas regras locais são baixadas uma vez e fixadas por hash. Em qualquer outra instância ele responde `PREPARE_NOT_SUPPORTED`.
 
 ### Os scanners da ponte na imagem do sidecar
 

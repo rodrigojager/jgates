@@ -26,9 +26,10 @@ const manifests = await load("adapters", "manifests.js");
 const matrix = await load("core", "matrix", "index.js");
 
 const goProbe = govulncheck.probeGovulncheck(process.env);
-const GO_REAL = goProbe.executable !== null && goProbe.version !== null && goProbe.go !== null;
+// In-image mode (tests/setup/in-image.mjs): a tool on this machine's PATH (an absolute executable) stands for the image's.
+const GO_REAL = goProbe.executable !== null && path.isAbsolute(goProbe.executable) && goProbe.version !== null && goProbe.go !== null && path.isAbsolute(goProbe.go);
 const cargoProbe = cargoAudit.probeCargoAudit(process.env);
-const CARGO_REAL = cargoProbe.executable !== null && cargoProbe.version !== null;
+const CARGO_REAL = cargoProbe.executable !== null && path.isAbsolute(cargoProbe.executable) && cargoProbe.version !== null;
 
 const recorded = (name) => fs.readFileSync(path.join(FIXTURES, "recorded", name), "utf8");
 
@@ -42,8 +43,8 @@ function setup(fixture, { env = {} } = {}) {
     JGATES_HOME: home,
     JGATES_NO_CACHE: "1",
     NO_COLOR: "1",
-    JGATES_GOVULNCHECK: goProbe.executable ?? path.join(home, "no-govulncheck"),
-    JGATES_CARGO_AUDIT: cargoProbe.executable ?? path.join(home, "no-cargo-audit"),
+    JGATES_GOVULNCHECK: GO_REAL ? goProbe.executable : path.join(home, "no-govulncheck"),
+    JGATES_CARGO_AUDIT: CARGO_REAL ? cargoProbe.executable : path.join(home, "no-cargo-audit"),
     ...env,
   };
   const cli = (args) => {
@@ -74,7 +75,7 @@ const goOpts = { stageId: "govulncheck#dependencies", version: "1.9.0", root: ".
 const rustOpts = { stageId: "cargo-audit#dependencies", version: "0.22.2", root: "." };
 
 test("govulncheck: a vulnerable yaml.v2 the code calls is a normalized finding and the patched twin none [proves: govulncheck#dependencies]", (t) => {
-  if (!GO_REAL) t.diagnostic(`govulncheck (or Go) is not installed (${goProbe.detail}): the live scan did not run; customer-setup-required is asserted and the recorded govulncheck 1.9.0 output is parsed. Install: go install golang.org/x/vuln/cmd/govulncheck@latest`);
+  if (!GO_REAL) t.diagnostic(`govulncheck (or Go) is not installed (${goProbe.detail}): the live scan did not run; customer-setup-required is asserted and the recorded govulncheck 1.9.0 output is parsed. It is in the tools image; put govulncheck and Go on the PATH to run it here.`);
   const bad = setup("go-bad");
   const clean = setup("go-clean");
   try {
@@ -89,7 +90,7 @@ test("govulncheck: a vulnerable yaml.v2 the code calls is a normalized finding a
     assert.equal(item.network, true);
     if (!GO_REAL) {
       assert.equal(item.availability.status, "unavailable");
-      assert.match(item.availability.reason, /go install golang\.org\/x\/vuln\/cmd\/govulncheck/);
+      assert.match(item.availability.reason, /jgates setup/);
       const blocked = bad.run("govulncheck");
       const stage = blocked.doc.stages.find((s) => s.id === "govulncheck#dependencies");
       assert.equal(stage.state, "blocked");
@@ -157,7 +158,7 @@ test("govulncheck recorded output (1.9.0): called vulnerabilities are findings, 
 });
 
 test("cargo-audit: a RustSec-advised crate in Cargo.lock is a normalized finding and the clean twin none [proves: cargo-audit#dependencies]", (t) => {
-  if (!CARGO_REAL) t.diagnostic(`cargo-audit is not installed (${cargoProbe.detail}): the live audit did not run; customer-setup-required is asserted and the recorded cargo-audit 0.22.2 output is parsed. Install: cargo install cargo-audit --locked`);
+  if (!CARGO_REAL) t.diagnostic(`cargo-audit is not installed (${cargoProbe.detail}): the live audit did not run; customer-setup-required is asserted and the recorded cargo-audit 0.22.2 output is parsed. It is in the tools image; put cargo-audit on the PATH to run it here.`);
   const bad = setup("rust-bad");
   const clean = setup("rust-clean");
   try {
@@ -172,7 +173,7 @@ test("cargo-audit: a RustSec-advised crate in Cargo.lock is a normalized finding
     assert.equal(item.network, true);
     if (!CARGO_REAL) {
       assert.equal(item.availability.status, "unavailable");
-      assert.match(item.availability.reason, /cargo install cargo-audit/);
+      assert.match(item.availability.reason, /jgates setup/);
       const blocked = bad.run("cargo-audit");
       assert.equal(blocked.doc.stages.find((s) => s.id === "cargo-audit#dependencies").state, "blocked");
       assert.notEqual(blocked.doc.decision, "passed");

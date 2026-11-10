@@ -23,12 +23,6 @@
   "security_binding_refused": "The file {binding} of the instance {tool} was refused ({file}). Fix the path in .jgates/tools.yml.",
   "security_binding_missing": "The file {binding} of the instance {tool} does not exist ({file}). Create the file or fix the path in .jgates/tools.yml.",
   "security_binding_not_file": "The {binding} of the instance {tool} points to a folder ({file}); it must be a file.",
-  "security_container_only": "{tool} runs only in the container runner in this version (tools.yml asks for runner: {runner}). Remove the runner or use runner: container.",
-  "security_runtime_missing": "The container runtime {runtime} was not found, and {tool} runs only in a container. Install Docker or point JGATES_CONTAINER_RUNTIME to it.",
-  "security_image_unprepared": "The image of {tool} ({instance}) has not been prepared yet: run {command}. The preparation writes the image by digest and the {tool} version to .jgates/lock.json (the default image is the sidecar's).",
-  "security_lock_invalid": ".jgates/lock.json is not valid ({detail}), and the image of {tool} comes only from it. Fix or delete the file and run {command}.",
-  "security_image_missing": "The image {image} pinned in .jgates/lock.json for {instance} is not in the container runtime ({detail}). Run {command} again.",
-  "security_image_changed": "The image {image} no longer states the {tool} version pinned in .jgates/lock.json ({detail}). Run {command} again.",
   "security_parser_version_plan": "The {tool} parser does not know version {version} (accepts {range}).",
   "security_parser_version_report": "The report was written by {tool} {version}, outside the range the parser knows ({range}).",
   "security_document_binding": "File {binding}: {file} (chosen in tools.yml).",
@@ -50,11 +44,12 @@
   "bridge_superseded": "Switched off so the same tool does not run twice: the dedicated adapter runs {subcheck} for {capability} ({by}), and the bridge subcheck stays out.",
   "bridge_docker_missing": "not installed on this machine, and Docker does not answer: install the scanner on the PATH, or start Docker and build the sidecar image {image} to run it there",
   "bridge_image_missing": "not installed on this machine, and the sidecar image {image} is not built; JGates runs the scanners in it when it exists. Build it once (it is large and takes a while): {command}",
-  "bridge_superseded_tests":"Switched off so the project's tests do not run twice: the test adapter runs them with the project's own runner for {capability} ({by}), and the bridge's {subcheck} stays out.",
+  "bridge_superseded_tests": "Switched off so the project's tests do not run twice: the test adapter runs them with the project's own runner for {capability} ({by}), and the bridge's {subcheck} stays out.",
   "bridge_runs_twice": "The bridge subcheck {subcheck} keeps running for {capabilities}, while the dedicated adapter ({by}) runs the same tool for another capability: the tool runs twice. Declare those capabilities in the adapter instance too so the bridge leaves it out.",
   "security_findings_dropped": "{count} finding(s) of a capability the plan did not ask of this instance were left out",
   "security_database_undated": "vulnerability database {source} (the tool does not report the date)",
   "security_database_cached": "read from the cached copy in the data folder, downloaded on {date} (no new download)",
   "security_database_stored": "downloaded in this run and cached in the data folder for the next ones",
-  "bridge_linter_twice": "ESLint runs twice on purpose: directly ({by}), with the project's eslint.config, and inside the bridge's MegaLinter, with the trusted config and --no-inline-config (the same as governed mode). The two results may diverge; MegaLinter does not leave ESLint out separately."
+  "bridge_linter_twice": "ESLint runs twice on purpose: directly ({by}), with the project's eslint.config, and inside the bridge's MegaLinter, with the trusted config and --no-inline-config (the same as governed mode). The two results may diverge; MegaLinter does not leave ESLint out separately.",
+  "security_not_in_image": "{tool} is not in the JGates tools image {image} ({detail}). Download the tools of this JGates version."
 }

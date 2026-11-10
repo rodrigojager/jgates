@@ -105,7 +105,7 @@ test("V2-42: cancel kills only the run's labelled containers, takes its services
         images: [],
       }),
     );
-    const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
+    const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
 
     fs.writeFileSync(path.join(project, "check.js"), "process.exit(0);\n");
     fs.mkdirSync(path.join(project, ".jgates", "templates"), { recursive: true });

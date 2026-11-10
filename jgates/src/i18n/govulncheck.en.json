@@ -1,8 +1,7 @@
 {
   "govulncheck_label": "govulncheck (Go dependency vulnerabilities)",
-  "govulncheck_missing": "govulncheck is not installed ({detail}). Install it with: go install golang.org/x/vuln/cmd/govulncheck@latest (https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck), put it on the PATH or in <JGATES_HOME>/tools/bin, or point JGATES_GOVULNCHECK to it. JGates never installs it during a run.",
-  "govulncheck_fix": "govulncheck is supplied by you: run go install golang.org/x/vuln/cmd/govulncheck@latest (needs Go, https://go.dev/dl/), put the binary on the PATH or in <JGATES_HOME>/tools/bin, or set JGATES_GOVULNCHECK, then run doctor again.",
-  "govulncheck_probe_failed": "govulncheck at {path} did not answer -version. Reinstall it with: go install golang.org/x/vuln/cmd/govulncheck@latest.",
+  "govulncheck_missing": "govulncheck is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
+  "govulncheck_probe_failed": "govulncheck at {path} did not answer its version query.",
   "govulncheck_no_go": "govulncheck needs the Go toolchain on the PATH to load the module ({detail}). Install Go from https://go.dev/dl/.",
   "govulncheck_no_module": "No go.mod was found in the scan root, so there is no Go module to analyse.",
   "govulncheck_blocked": "govulncheck could not run: {detail}",

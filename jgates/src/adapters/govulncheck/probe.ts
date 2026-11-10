@@ -1,10 +1,9 @@
-// Finds the govulncheck executable and asks it for its version, without installing or changing anything.
+// Whether govulncheck and the Go toolchain it needs are in the tools image, and their versions, from image.json
+// (nothing starts). Inside the image only, JGATES_GOVULNCHECK names another executable, which is asked for its version.
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
-import { resolveHome } from "../../core/home/index.js";
+import { imageProbeUnlessOverridden, inImageOverride, probeImageTool } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface GovulncheckProbe {
@@ -17,29 +16,19 @@ export interface GovulncheckProbe {
 }
 
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
-const exeName = process.platform === "win32" ? "govulncheck.exe" : "govulncheck";
-
-/** JGATES_GOVULNCHECK, then <JGATES_HOME>/tools/bin, then where `go install` puts it ($GOBIN, $GOPATH/bin, ~/go/bin), then PATH. */
+/** The executable JGATES_GOVULNCHECK names, inside the tools image only. */
 export function findGovulncheck(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
-  const tried: string[] = [];
-  if (env.JGATES_GOVULNCHECK) {
-    tried.push(env.JGATES_GOVULNCHECK);
-    return { executable: findOnPath(env.JGATES_GOVULNCHECK, env), tried };
-  }
-  const homes = [path.join(resolveHome({ env }), "tools", "bin")];
-  if (env.GOBIN) homes.push(env.GOBIN);
-  if (env.GOPATH) for (const p of env.GOPATH.split(path.delimiter)) if (p) homes.push(path.join(p, "bin"));
-  homes.push(path.join(env.USERPROFILE ?? env.HOME ?? os.homedir(), "go", "bin"));
-  for (const dir of homes) {
-    const candidate = path.join(dir, exeName);
-    tried.push(candidate);
-    if (fs.existsSync(candidate)) return { executable: candidate, tried };
-  }
-  tried.push("govulncheck on PATH");
-  return { executable: findOnPath("govulncheck", env), tried };
+  const override = inImageOverride(env, "JGATES_GOVULNCHECK");
+  return override ? { executable: findOnPath(override, env), tried: [override] } : { executable: null, tried: [] };
 }
 
 export function probeGovulncheck(env: NodeJS.ProcessEnv): GovulncheckProbe {
+  const image = imageProbeUnlessOverridden("govulncheck", env, "JGATES_GOVULNCHECK");
+  if (image) {
+    if (image.problem !== null) return { ...image, go: null };
+    const go = probeImageTool("go", env);
+    return go.executable ? { ...image, go: go.executable } : { executable: image.executable, version: image.version, go: null, problem: "no_go", detail: go.detail };
+  }
   const { executable, tried } = findGovulncheck(env);
   if (!executable) return { executable: null, version: null, go: null, problem: "not_found", detail: tried.join(", ") };
   const go = findOnPath("go", env);

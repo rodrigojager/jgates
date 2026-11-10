@@ -52,12 +52,15 @@ test.after(() => {
   for (const d of [...homes, ...dirs]) fs.rmSync(d, { recursive: true, force: true });
 });
 
+// In-image mode (tests/setup/in-image.mjs): the repository .venv stands for the sidecar environment of the tools image.
+const VENV_PYTHON = [path.join("Scripts", "python.exe"), path.join("bin", "python")].map((p) => path.join(ROOT, ".venv", p)).find((p) => fs.existsSync(p));
+
 function jgates(args, { cwd, home } = {}) {
   const r = spawnSync(process.execPath, [MAIN, ...args], {
     encoding: "utf8",
     cwd,
     timeout: 90000,
-    env: { ...process.env, JGATES_HOME: home, NO_COLOR: "1" },
+    env: { ...process.env, ...(VENV_PYTHON && !process.env.JGATES_PYTHON ? { JGATES_PYTHON: VENV_PYTHON } : {}), JGATES_HOME: home, NO_COLOR: "1" },
   });
   return { code: r.status, out: r.stdout, err: r.stderr };
 }

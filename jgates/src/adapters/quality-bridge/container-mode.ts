@@ -14,7 +14,7 @@ import os from "node:os";
 import path from "node:path";
 import { findQualityGateDir, findOnPath, parseBridgeStdout, validateResponse, type BridgeOutcome, type BridgeRequest, type BridgeResponse, type BridgeSubcheck } from "../../core/bridge/index.js";
 import { resolveHome } from "../../core/home/index.js";
-import { containerRuntime, runtimeClientEnv, SIDECAR_IMAGE } from "../../core/prepare/image.js";
+import { containerRuntime, runtimeClientEnv, SIDECAR_IMAGE } from "../container-scanner/image.js";
 import { CONTAINER_CACHE, CONTAINER_OUTPUT, CONTAINER_WORKSPACE, runContainer } from "../../core/runner/index.js";
 import { translator } from "../../i18n/index.js";
 

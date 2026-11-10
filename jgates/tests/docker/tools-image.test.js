@@ -95,7 +95,7 @@ const TOOLS = {
 };
 
 // The step contract of the runner (PLAN.md shared interfaces), without the volumes.
-const STEP = ["run", "--rm", "--init", "--pull", "never", "--network", "none", "--read-only", "--tmpfs", "/tmp:exec", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", "10001:10001", "--env", "HOME=/tmp/home", "--label", "org.jgates.dev=true", "--label", "org.jgates.test=tools-image"];
+const STEP = ["run", "--rm", "--init", "--pull", "never", "--network", "none", "--read-only", "--tmpfs", "/tmp:exec", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", "10001:10001", "--env", "HOME=/tmp", "--label", "org.jgates.dev=true", "--label", "org.jgates.test=tools-image"];
 
 let inspect = null;
 let imageJson = null;

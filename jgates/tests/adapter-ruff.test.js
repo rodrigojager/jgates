@@ -19,6 +19,7 @@ const HAS_RUFF = fs.existsSync(path.join(VENV_BIN, process.platform === "win32" 
 const runner = await import(pathToFileURL(path.join(dist, "core", "runner", "index.js")).href);
 const ruffAdapter = await import(pathToFileURL(path.join(dist, "adapters", "ruff", "index.js")).href);
 const catalog = await import(pathToFileURL(path.join(dist, "core", "catalog", "index.js")).href);
+const { imageJsonWithout } = await import(pathToFileURL(path.join(here, "setup", "image-json.mjs")).href);
 
 const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 
@@ -180,15 +181,18 @@ test("without a binding Ruff's own resolution picks the configuration file; ruff
   }
 });
 
-test("without Ruff installed the stage is blocked and the decision is incomplete, never passed; the message says how to install", () => {
-  const p = project({ JGATES_PYTHON: path.join(os.tmpdir(), "jgates-no-such-venv", "bin", "python") });
+test("with Ruff absent from the tools image the stage is blocked and the decision is incomplete, never passed; the cause is the image, not a host install", () => {
+  const p = project({ JGATES_PYTHON: path.join(os.tmpdir(), "jgates-no-such-venv", "bin", "python"), JGATES_IMAGE_JSON: imageJsonWithout("ruff") });
   try {
     const planned = p.plan();
     assert.equal(planned.code, 0, planned.out + planned.err);
     const item = planned.doc.plan.groups.willRun.find((i) => i.id === "ruff#lint");
     assert.equal(item.availability.status, "unavailable");
-    assert.match(item.availability.reason, /jgates doctor --fix/);
-    assert.ok(planned.doc.plan.warnings.some((w) => w.code === "TOOL_UNAVAILABLE"));
+    assert.match(item.availability.reason, /jgates setup/);
+    assert.doesNotMatch(item.availability.reason, /pip install|doctor --fix/);
+    const shared = planned.doc.plan.warnings.filter((w) => w.code === "TOOL_MISSING");
+    assert.equal(shared.length, 1, JSON.stringify(planned.doc.plan.warnings));
+    assert.match(shared[0].message, /ruff/);
 
     const ran = p.run();
     assert.equal(ran.code, 2, ran.out + ran.err);
@@ -196,7 +200,7 @@ test("without Ruff installed the stage is blocked and the decision is incomplete
     assert.notEqual(ran.doc.decision, "passed");
     const stage = ran.doc.stages.find((s) => s.id === "ruff#lint");
     assert.equal(stage.state, "blocked");
-    assert.match(stage.reason, /jgates doctor --fix/);
+    assert.match(stage.reason, /jgates setup/);
     assert.deepEqual(ruffFindings(ran.doc), []);
   } finally {
     p.cleanup();

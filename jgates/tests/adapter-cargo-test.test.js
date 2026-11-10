@@ -19,11 +19,13 @@ const MAIN = path.join(dist, "cli", "main.js");
 const FIXTURES = path.join(here, "fixtures", "cargo-test");
 const load = (...parts) => import(pathToFileURL(path.join(dist, ...parts)).href);
 const cargoTest = await load("adapters", "cargo-test", "index.js");
+const { imageJsonWithout } = await import(pathToFileURL(path.join(path.dirname(fileURLToPath(import.meta.url)), "setup", "image-json.mjs")).href);
 const manifests = await load("adapters", "manifests.js");
 const matrix = await load("core", "matrix", "index.js");
 
 const probe = cargoTest.probeCargo(process.env);
-const CARGO_REAL = probe.executable !== null && probe.version !== null;
+// In-image mode (tests/setup/in-image.mjs): a tool on this machine's PATH (an absolute executable) stands for the image's.
+const CARGO_REAL = probe.executable !== null && path.isAbsolute(probe.executable) && probe.version !== null;
 
 const made = [];
 const tmp = (prefix) => {
@@ -192,19 +194,19 @@ test("cargo-test: an ordinary failing #[test] is cargo-test.test-failed, not a p
   assert.equal(metric(result.doc, "tests.property.total").value, 1);
 });
 
-test("cargo-test: without cargo on the PATH the stage is blocked with setup guidance, never passed", () => {
+test("cargo-test: with cargo absent from the tools image the stage is blocked with the image's cause, never passed", () => {
   const empty = tmp("jgates-ct-nopath-");
-  const bad = setup("plain-bad", { env: { PATH: empty, Path: empty, JGATES_CARGO: "" }, lock: false });
+  const bad = setup("plain-bad", { env: { PATH: empty, Path: empty, JGATES_CARGO: "", JGATES_IMAGE_JSON: imageJsonWithout("cargo") }, lock: false });
   const planned = bad.plan();
   assert.equal(planned.code, 0, planned.out + planned.err);
   const item = planItem(planned, "cargo-test#tests");
   assert.ok(item);
   assert.equal(item.availability.status, "unavailable");
-  assert.match(item.availability.reason, /rustup|rust-lang\.org/);
+  assert.match(item.availability.reason, /jgates setup/);
   const blocked = bad.run();
   const stage = blocked.doc.stages.find((s) => s.id === "cargo-test#tests");
   assert.equal(stage.state, "blocked");
-  assert.match(stage.reason, /rust-lang\.org/);
+  assert.match(stage.reason, /jgates setup/);
   assert.notEqual(blocked.doc.decision, "passed");
   assert.equal(mine(blocked.doc).length, 0);
 });

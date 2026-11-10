@@ -143,7 +143,7 @@ test("the bridge refuses a configuration path outside the workspace root with a 
     fs.writeFileSync(path.join(target, "app.py"), "print('x')\n");
     fs.writeFileSync(path.join(work, "outside.toml"), 'title = "outside"\n');
     const request = { schemaVersion: 1, target, outputDir: path.join(work, "out"), mode: "full", secrets: true, subchecks: ["gitleaks"], toolConfigs: { gitleaks: "../outside.toml" } };
-    const outcome = await bridgeApi.callBridge(request, { cwd: work, env: { PATH: "/usr/bin:/bin", JGATES_PYTHON: python } });
+    const outcome = await bridgeApi.callBridge(request, { cwd: work, env: { PATH: "/usr/bin:/bin", JGATES_PYTHON: python, JGATES_IMAGE_JSON: process.env.JGATES_IMAGE_JSON } });
     assert.equal(outcome.kind, "response", outcome.message);
     assert.equal(outcome.exitCode, 3);
     assert.equal(outcome.response.ok, false);
@@ -231,7 +231,7 @@ test("the effective command of the plan is the argv the sidecar runs with the ch
       const request = JSON.parse(JSON.stringify(stdin).split("{runDir}").join(JSON.stringify(runDir).slice(1, -1)));
       request.subchecks = Object.keys(ids);
       const systemEnv = process.platform === "win32" ? { SystemRoot: process.env.SystemRoot ?? "C:\\Windows", PATHEXT: process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD" } : {};
-      const outcome = await bridgeApi.callBridge(request, { cwd: runDir, env: { ...systemEnv, PATH: process.platform === "win32" ? `${bin}${path.delimiter}${path.join(process.env.SystemRoot ?? "C:\\Windows", "System32")}` : `${bin}${path.delimiter}/usr/bin${path.delimiter}/bin`, JGATES_PYTHON: python } });
+      const outcome = await bridgeApi.callBridge(request, { cwd: runDir, env: { ...systemEnv, PATH: process.platform === "win32" ? `${bin}${path.delimiter}${path.join(process.env.SystemRoot ?? "C:\\Windows", "System32")}` : `${bin}${path.delimiter}/usr/bin${path.delimiter}/bin`, JGATES_PYTHON: python, JGATES_IMAGE_JSON: process.env.JGATES_IMAGE_JSON } });
       assert.equal(outcome.kind, "response", outcome.message ?? outcome.stderr);
       assert.equal(outcome.response.ok, true, outcome.stderr);
       const calls = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => JSON.parse(l));

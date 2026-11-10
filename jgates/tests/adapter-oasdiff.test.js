@@ -20,8 +20,10 @@ const load = (...parts) => import(pathToFileURL(path.join(dist, ...parts)).href)
 const adapter = await load("adapters", "oasdiff", "index.js");
 const manifests = await load("adapters", "manifests.js");
 
+const { imageJsonWithout } = await import(pathToFileURL(path.join(here, "setup", "image-json.mjs")).href);
 const probe = adapter.probeOasdiff(process.env);
-const REAL = probe.executable !== null && probe.version !== null;
+// In-image mode (tests/setup/in-image.mjs): a tool on this machine's PATH (an absolute executable) stands for the image's.
+const REAL = probe.executable !== null && path.isAbsolute(probe.executable) && probe.version !== null;
 
 const recorded = (name) => fs.readFileSync(path.join(FIXTURES, "recorded", name), "utf8");
 const fixture = (name) => fs.readFileSync(path.join(FIXTURES, name, "openapi.yaml"), "utf8");
@@ -190,12 +192,12 @@ test("oasdiff plan: the spec is found, the template comes in by evidence and the
   assert.deepEqual({ spec: defaults.spec, baseRef: defaults.baseRef, baseSpec: defaults.baseSpec, failOn: defaults.failOn, problems: defaults.problems }, { spec: null, baseRef: null, baseSpec: null, failOn: "ERR", problems: [] });
 });
 
-test("oasdiff prerequisites: a missing tool is unavailable with the way to get it, and nothing is installed", () => {
-  const ws = setup("removed", { tools: toolsYml("    baseRef: HEAD\n"), env: { JGATES_OASDIFF: path.join(os.tmpdir(), "jgates-no-such-oasdiff") } });
+test("oasdiff prerequisites: a tool the tools image lacks is unavailable with the image's cause, and nothing is installed", () => {
+  const ws = setup("removed", { tools: toolsYml("    baseRef: HEAD\n"), env: { JGATES_OASDIFF: "", JGATES_IMAGE_JSON: imageJsonWithout("oasdiff") } });
   try {
     const item = itemOf(ws.plan());
     assert.equal(item.availability.status, "unavailable");
-    assert.match(item.availability.reason, /github\.com\/oasdiff\/oasdiff\/releases/);
+    assert.match(item.availability.reason, /jgates setup/);
     const run = ws.run();
     const stage = run.doc.stages.find((s) => s.id === "oasdiff#api-compatibility");
     assert.equal(stage.state, "blocked");

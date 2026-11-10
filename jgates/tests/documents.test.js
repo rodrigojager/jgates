@@ -18,6 +18,8 @@ const INSTALL_HINT = "Python with tomlkit not found: create the .venv (python3 -
 const TOML_STATUS = "valid";
 // The repository .venv holds tomlkit; a child process finds it even when the shell has not put it on the PATH.
 const VENV_PYTHON = [path.join("Scripts", "python.exe"), path.join("bin", "python")].map((p) => path.resolve(here, "..", "..", ".venv", p)).find((p) => fs.existsSync(p)) ?? null;
+// In-image mode (tests/setup/in-image.mjs): the same .venv stands for the sidecar environment of the tools image.
+if (VENV_PYTHON && !process.env.JGATES_PYTHON) process.env.JGATES_PYTHON = VENV_PYTHON;
 
 test("the TOML syntax helper is reachable (the suite does not accept 'unavailable' in silence)", () => {
   assert.ok(tomlStructuredAvailable(), INSTALL_HINT);

@@ -1,8 +1,7 @@
 {
   "cargo-test_label": "cargo test (testes Rust e propriedades proptest)",
-  "cargo-test_missing": "O cargo não está instalado ou não está no PATH ({detail}). Instale o toolchain do Rust com o rustup (https://www.rust-lang.org/tools/install), ponha o cargo no PATH ou aponte JGATES_CARGO para ele. O JGates nunca instala um toolchain durante uma execução.",
-  "cargo-test_fix": "O cargo é fornecido por você: instale o Rust com o rustup (https://www.rust-lang.org/tools/install), garanta que o cargo está no PATH (ou defina JGATES_CARGO), baixe as dependências do crate uma vez (cargo fetch; a execução é offline) e rode o doctor de novo.",
-  "cargo-test_probe_failed": "O cargo em {path} não respondeu a --version. Reinstale o toolchain do Rust com o rustup.",
+  "cargo-test_missing": "cargo não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
+  "cargo-test_probe_failed": "cargo em {path} não respondeu à consulta de versão.",
   "cargo-test_no_manifest": "Nenhum Cargo.toml foi encontrado no componente, então não há o que testar.",
   "cargo-test_blocked": "O cargo test não pôde rodar: {detail}",
   "cargo-test_exit_error": "O cargo test terminou com o código {code} sem nenhum resultado de teste (erro de compilação ou falha): {detail}",

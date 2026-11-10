@@ -3,8 +3,8 @@ import type { AdapterManifest } from "../../core/catalog/index.js";
 /**
  * zizmor as its own adapter: the static analysis of GitHub Actions workflows (template injection, excessive
  * permissions, unpinned actions, credential persistence...). One `zizmor --format json-v1 .` per tool instance, offline
- * by default, with the JSON on stdout. zizmor is MIT and comes from PyPI: `jgates doctor --fix` (or the guided
- * preparation of the UI) installs it into JGates's own Python environment, never during a run and never globally.
+ * by default, with the JSON on stdout. zizmor is MIT and comes from the JGates tools image (installed there from PyPI);
+ * JGates never installs it on the host or during a run.
  * Settings of the instance in tools.yml: persona (regular, pedantic, auditor), minSeverity and offline.
  */
 export const zizmorManifest: AdapterManifest = {
@@ -74,7 +74,7 @@ export const zizmorManifest: AdapterManifest = {
       capability: "ci-cd",
       stack: "any",
       state: "validated",
-      prerequisites: ["zizmor 1.32+ (pip: jgates doctor --fix installs it into the JGates environment)", "GitHub Actions workflows in .github/workflows"],
+      prerequisites: ["zizmor 1.32+ (in the JGates tools image)", "GitHub Actions workflows in .github/workflows"],
       limitations: ["GitHub Actions only"],
     },
   ],

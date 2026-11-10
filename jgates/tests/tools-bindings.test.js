@@ -147,7 +147,8 @@ test("tools list shows each instance with its support level", () => {
     const byId = Object.fromEntries(r.doc.instances.map((i) => [i.id, i]));
     // The Ruff manifest declares the form (Options tab), so the level is "assisted configuration".
     assert.equal(byId["ruff-api"].supportLevel, "assisted");
-    assert.equal(byId["ruff-api"].runner, "local");
+    // Container-first: one runner; the `runner: local` of the fixture is dropped by the migration reader.
+    assert.equal(byId["ruff-api"].runner, "container");
     assert.equal(byId["ruff-api"].component, "api");
     assert.equal(byId.bridge.supportLevel, "editable-file");
     assert.ok(r.doc.adapters.length > 0);

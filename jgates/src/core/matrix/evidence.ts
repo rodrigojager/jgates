@@ -205,7 +205,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "GitHub Actions workflows only; offline by default, so the audits that need the GitHub API are left out; ignore comments are scanner exceptions.",
       ptBR: "Só workflows do GitHub Actions; offline por padrão, então as auditorias que exigem a API do GitHub ficam de fora; comentários de ignorar são exceções do scanner.",
     },
-    external: { en: "zizmor 1.32+ (pip, prepared by jgates doctor --fix)", ptBR: "zizmor 1.32+ (pip, preparado por jgates doctor --fix)" },
+    external: { en: "zizmor 1.32+ (in the JGates tools image)", ptBR: "zizmor 1.32+ (na imagem de ferramentas do JGates)" },
   },
   oasdiff: {
     capabilities: {
@@ -225,7 +225,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Runs only against a configured running target (local or disposable, never production); without a target the stage is blocked, never passed; OpenAPI HTTP APIs only.",
       ptBR: "Roda só contra um alvo em execução configurado (local ou descartável, nunca produção); sem alvo a etapa fica bloqueada, nunca aprovada; só APIs HTTP descritas em OpenAPI.",
     },
-    external: { en: "schemathesis 4.x (pip, prepared by jgates doctor --fix) and a running target", ptBR: "schemathesis 4.x (pip, preparado por jgates doctor --fix) e um alvo em execução" },
+    external: { en: "schemathesis 4.x (in the JGates tools image) and a running target", ptBR: "schemathesis 4.x (na imagem de ferramentas do JGates) e um alvo em execução" },
   },
   zap: {
     capabilities: {
@@ -350,7 +350,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       tests: proven(["rust"], t("adapter-cargo-test.test.js", "cargo-test: an ordinary failing #[test] is cargo-test.test-failed, not a property failure, and a crate without proptest has no property metrics [proves: cargo-test#tests, cargo-test#tests@rust]")),
       properties: proven(["rust"], t("adapter-cargo-test.test.js", "cargo-test: a failing proptest property is cargo-test.property-failed with the minimal failing input and the clean twin none [proves: cargo-test#properties, cargo-test#properties@rust]")),
     },
-    otherTests: [t("adapter-cargo-test.test.js", "cargo-test: without cargo on the PATH the stage is blocked with setup guidance, never passed"), t("adapter-cargo-test.test.js", "cargo-test recorded libtest output")],
+    otherTests: [t("adapter-cargo-test.test.js", "cargo-test: with cargo absent from the tools image the stage is blocked with the image's cause, never passed"), t("adapter-cargo-test.test.js", "cargo-test recorded libtest output")],
     limitation: {
       en: "Customer-supplied toolchain (cargo, MIT OR Apache-2.0): runs cargo test --offline and parses the stable libtest text output; proptest properties are found statically (proptest! blocks and #[proptest] functions); the tests, build scripts and procedural macros of the project execute, so the result is self-reported and never cached; dependencies must already be in the cargo home. Proven on Rust crate fixtures with the real cargo 1.99.1 and proptest 1.x.",
       ptBR: "Toolchain fornecido pelo cliente (cargo, MIT OR Apache-2.0): roda cargo test --offline e lê a saída de texto estável do libtest; as propriedades do proptest são achadas de forma estática (blocos proptest! e funções #[proptest]); os testes, build scripts e macros procedurais do projeto executam, então o resultado é autodeclarado e nunca vem do cache; as dependências já precisam estar no cargo home. Provado em crates Rust de teste com o cargo 1.99.1 real e o proptest 1.x.",

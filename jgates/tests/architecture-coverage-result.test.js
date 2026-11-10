@@ -15,6 +15,8 @@ const repo = path.resolve(here, "..", "..");
 const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
 const VENV_BIN = path.join(repo, ".venv", process.platform === "win32" ? "Scripts" : "bin");
+// In-image mode (tests/setup/in-image.mjs): the repository's dependency-cruiser stands for the tools image's.
+const DEPCRUISE = path.join(repo, "node_modules", "dependency-cruiser", "bin", "dependency-cruiser.mjs");
 const PYTHON = path.join(VENV_BIN, process.platform === "win32" ? "python.exe" : "python");
 const adapter = await import(pathToFileURL(path.join(dist, "adapters", "dependency-cruiser", "index.js")).href);
 const catalog = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
@@ -61,7 +63,7 @@ function project(files, architectureYml, extraEnv = {}) {
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, content);
   }
-  const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_NO_CACHE: "1", PATH: emptyBin, ...extraEnv };
+  const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_DEPCRUISE: DEPCRUISE, JGATES_NO_CACHE: "1", PATH: emptyBin, ...extraEnv };
   const cli = (args) => {
     const r = spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", env, input: "", timeout: 240_000 });
     let doc = null;
@@ -132,7 +134,7 @@ test("a run without an architecture check has no architecture field", () => {
   const home = tmp("jgates-dc-none-home-");
   try {
     fs.writeFileSync(path.join(dir, "a.txt"), "x\n");
-    const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_NO_CACHE: "1" };
+    const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_DEPCRUISE: DEPCRUISE, JGATES_NO_CACHE: "1" };
     const r = spawnSync(process.execPath, [MAIN, "run", "--cwd", dir, "--no-interactive", "--json"], { encoding: "utf8", env, input: "", timeout: 240_000 });
     const doc = JSON.parse(r.stdout);
     assert.equal(doc.architecture, undefined);

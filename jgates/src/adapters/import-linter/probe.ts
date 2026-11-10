@@ -1,11 +1,15 @@
-// Finds the Import Linter executable (lint-imports) and the Python of the same environment (the graph helper needs
-// grimp, which comes with Import Linter), and asks for the version, without installing or changing anything.
+// Whether Import Linter (lint-imports) is in the tools image, and its version, from image.json (nothing starts); in
+// the image it lives in its own environment, whose Python imports grimp for the graph helper. Inside the image only,
+// JGATES_IMPORT_LINTER names another executable: it is asked for its version, with the Python of its environment.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath, resolveProjectPython } from "../../core/bridge/index.js";
-import { pythonEnvExecutable } from "../../core/install/paths.js";
+import { besideOverridePython, imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
+
+/** The interpreter of Import Linter's environment in the tools image (it imports grimp). */
+export const IMAGE_IMPORT_LINTER_PYTHON = "/opt/tools/python/import-linter/bin/python";
 
 export interface ImportLinterProbe {
   executable: string | null;
@@ -18,31 +22,12 @@ export interface ImportLinterProbe {
 
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
 const win = process.platform === "win32";
-const exeName = win ? "lint-imports.exe" : "lint-imports";
 const pythonName = win ? "python.exe" : "python";
 
-/**
- * JGATES_IMPORT_LINTER, then the folder of JGATES_PYTHON (same virtual environment), then PATH, then the JGates
- * environment (<JGATES_HOME>/tools/python, where `jgates doctor --fix` installs it: Import Linter only reads the
- * source, it never imports the project, so it does not need the project's own environment).
- */
+/** Inside the tools image only: the executable JGATES_IMPORT_LINTER names, else the one beside the JGATES_PYTHON override. */
 export function findImportLinter(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
-  const tried: string[] = [];
-  if (env.JGATES_IMPORT_LINTER) {
-    tried.push(env.JGATES_IMPORT_LINTER);
-    return { executable: findOnPath(env.JGATES_IMPORT_LINTER, env), tried };
-  }
-  if (env.JGATES_PYTHON) {
-    const sibling = path.join(path.dirname(env.JGATES_PYTHON), exeName);
-    tried.push(sibling);
-    if (fs.existsSync(sibling)) return { executable: path.resolve(sibling), tried };
-  }
-  tried.push("lint-imports on PATH");
-  const onPath = findOnPath("lint-imports", env);
-  if (onPath) return { executable: onPath, tried };
-  const own = pythonEnvExecutable("lint-imports", env);
-  if (own) tried.push(own);
-  return { executable: own, tried };
+  const override = inImageOverride(env, "JGATES_IMPORT_LINTER") ?? besideOverridePython(env, "lint-imports");
+  return override ? { executable: findOnPath(override, env), tried: [override] } : { executable: null, tried: [] };
 }
 
 /** The interpreter next to the executable (not resolved through symlinks: a virtual environment is found by its path). */
@@ -81,6 +66,8 @@ export function toolPath(parent: string | undefined): string {
 }
 
 export function probeImportLinter(env: NodeJS.ProcessEnv): ImportLinterProbe {
+  const image = imageProbeUnlessOverridden("import-linter", env, "JGATES_IMPORT_LINTER");
+  if (image) return { ...image, python: image.executable ? IMAGE_IMPORT_LINTER_PYTHON : null };
   const { executable, tried } = findImportLinter(env);
   if (!executable) return { executable: null, python: null, version: null, problem: "not_found", detail: tried.join(", ") };
   const python = pythonFor(executable, env);

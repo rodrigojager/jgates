@@ -1,6 +1,6 @@
 // The built-in PII detector (the quality sidecar, through the JSON bridge with a PII-only request), run over the
 // temporary copy of the files of `jgates pii check`. The answer carries rule, entity, file and line, never the value.
-import { resolvePython, resolveSidecarDir } from "../bridge/index.js";
+import { sidecarRuntime } from "../bridge/index.js";
 import { runSpec } from "../runner/process.js";
 import { exceptionLine } from "../runner/stderr.js";
 import { parsePiiResponse } from "../../adapters/builtin-pii/normalize.js";
@@ -20,16 +20,18 @@ const BRIDGE_ARGS = ["-m", "quality_sidecar", "bridge"];
 export const BUILTIN_TIMEOUT_SECONDS = 300;
 
 export async function runBuiltinDetector(target: string, config: Record<string, unknown>, env: NodeJS.ProcessEnv = process.env): Promise<BuiltinOutcome> {
-  const { interpreter } = resolvePython(env);
-  if (!interpreter) return { state: "unavailable", reason: `Python not found (${env.JGATES_PYTHON ?? "python"})` };
-  const sidecar = resolveSidecarDir(env);
-  if (!sidecar) return { state: "unavailable", reason: "the quality-gate package (sidecar) was not found" };
+  // The detector is the sidecar of the tools image: it runs natively only inside the image (no Python on the host).
+  const runtime = sidecarRuntime(env);
+  const interpreter = runtime.interpreter;
+  if (!runtime.native) return { state: "unavailable", reason: "the PII detector runs in the JGates tools image, not on this machine" };
+  if (!interpreter) return { state: "unavailable", reason: `Python not found (${runtime.tried.join(", ")})` };
+  const sidecar = runtime.pythonPath;
   const result = await runSpec(
     {
       executable: interpreter,
       args: [...BRIDGE_ARGS],
       cwd: target,
-      env: { PYTHONPATH: sidecar, PYTHONDONTWRITEBYTECODE: "1", PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" },
+      env: { ...(sidecar ? { PYTHONPATH: sidecar } : {}), PYTHONDONTWRITEBYTECODE: "1", PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" },
       stdin: JSON.stringify({ schemaVersion: 1, operation: "pii", target, config }),
       timeoutMs: BUILTIN_TIMEOUT_SECONDS * 1000,
     },

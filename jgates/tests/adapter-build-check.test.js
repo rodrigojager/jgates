@@ -167,7 +167,7 @@ test("build-check: a stack whose checker is missing is blocked with the way to g
   const built = plan(dir, "tsc", env);
   const item = built.groups.willRun.find((i) => i.id === "tsc#typecheck");
   assert.equal(item.availability.status, "unavailable");
-  assert.match(item.availability.reason, /npm install/);
+  assert.match(item.availability.reason, /jgates setup/);
   const result = await run(dir, built, env);
   assert.equal(result.stages.find((s) => s.id === "tsc#typecheck").state, "blocked");
   assert.notEqual(result.decision, "passed");
@@ -177,7 +177,7 @@ test("build-check: a stack whose checker is missing is blocked with the way to g
   const goDir = workspace("go", "clean");
   const goItem = plan(goDir, "go-build", goEnv).groups.willRun.find((i) => i.id === "go-build#typecheck");
   assert.equal(goItem.availability.status, "unavailable");
-  assert.match(goItem.availability.reason, /go\.dev\/doc\/install/);
+  assert.match(goItem.availability.reason, /jgates setup/);
 });
 
 test("build-check: a component without the evidence of the checker is skipped and said so, never passed", () => {

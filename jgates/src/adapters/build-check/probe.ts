@@ -1,10 +1,13 @@
-// Finds the compiler or type checker of a checker kind without installing or changing anything: the project's own
-// copy first (node_modules/.bin, the virtual environment of the component), then PATH. The version comes from the
-// package.json of the package (tsc) or from `<tool> --version`.
+// Finds the compiler or type checker of a checker kind without installing or changing anything. Container-first, it
+// is the tools image's copy, from image.json (nothing starts). Inside the image only: the JGATES_<CHECKER> override,
+// then the project's own copy (node_modules/typescript, the virtual environment of the component), then the image's;
+// a copy on disk gets its version from the package.json of the package (tsc) or from `<tool> --version`.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
+import { probeImageTool } from "../../core/tools-image/catalogue.js";
+import { stepMode } from "../../core/runner/in-image.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export const CHECKERS = ["tsc", "mypy", "pyright", "go", "cargo", "dotnet"] as const;
@@ -19,7 +22,18 @@ export interface CheckerProbe {
   problem: "not_found" | "no_answer" | null;
   /** What was tried (not_found) or the path that did not answer (no_answer). */
   detail: string;
-  source: "env" | "workspace" | "path" | null;
+  source: "env" | "workspace" | "path" | "image" | null;
+}
+
+/** The name of each checker's tool in the image's image.json. */
+const IMAGE_TOOL: Record<Checker, string> = { tsc: "typescript", mypy: "mypy", pyright: "pyright", go: "go", cargo: "cargo", dotnet: "dotnet" };
+
+/** The image's copy of the checker, from image.json. */
+function imageChecker(checker: Checker, env: NodeJS.ProcessEnv): CheckerProbe {
+  const image = probeImageTool(IMAGE_TOOL[checker], env);
+  return image.problem === null
+    ? { executable: image.executable, prefix: [], version: image.version, problem: null, detail: "", source: "image" }
+    : { executable: null, prefix: [], version: null, problem: "not_found", detail: image.detail, source: null };
 }
 
 /** The environment variable that points at a checker, and the program name it is looked for under. */
@@ -132,10 +146,10 @@ function probeTsc(workspace: string, componentRoot: string | null, env: NodeJS.P
     const pkg = tscPackage(candidate);
     if (pkg) return found(pkg, "workspace");
   }
-  tried.push("tsc on PATH");
-  // The npm shim (tsc, tsc.cmd) sits next to node_modules/typescript of the global prefix.
+  // The image's tsc: its npm shim on the PATH sits next to node_modules/typescript (a script Node runs); without one
+  // there, the image.json answer.
   const onPath = findOnPath("tsc", env);
-  if (onPath) {
+  if (onPath && imageChecker("tsc", env).problem === null) {
     const shimDir = path.dirname(onPath);
     let real = onPath;
     try {
@@ -146,13 +160,11 @@ function probeTsc(workspace: string, componentRoot: string | null, env: NodeJS.P
     const pkg =
       tscPackage(path.join(shimDir, "node_modules", "typescript")) ??
       tscPackage(path.resolve(shimDir, "..", "lib", "node_modules", "typescript")) ??
-      // A project shim (node_modules/.bin/tsc, which npm puts first on the PATH of its scripts).
       tscPackage(path.resolve(shimDir, "..", "typescript")) ??
       tscPackage(path.resolve(path.dirname(real), ".."));
-    if (pkg) return found(pkg, "path");
-    return { executable: null, prefix: [], version: null, problem: "no_answer", detail: onPath, source: "path" };
+    if (pkg) return found(pkg, "image");
   }
-  return { executable: null, prefix: [], version: null, problem: "not_found", detail: tried.join(", "), source: null };
+  return imageChecker("tsc", env);
 }
 
 /** The virtual environment folders of a Python component, nearest first, then VIRTUAL_ENV. */
@@ -187,13 +199,11 @@ function probeByName(checker: Exclude<Checker, "tsc">, workspace: string, compon
       }
     }
   }
-  tried.push(`${checker} on PATH`);
-  const onPath = findOnPath(checker, env);
-  if (onPath) return answer(onPath, "path");
-  return { executable: null, prefix: [], version: null, problem: "not_found", detail: tried.join(", "), source: null };
+  return imageChecker(checker, env);
 }
 
 /** Finds the checker for a component. Nothing is downloaded or installed. */
 export function probeChecker(checker: Checker, workspace: string, componentRoot: string | null, env: NodeJS.ProcessEnv, skipWorkspace = false): CheckerProbe {
+  if (stepMode(env) !== "in-image") return imageChecker(checker, env);
   return checker === "tsc" ? probeTsc(workspace, componentRoot, env, skipWorkspace) : probeByName(checker, workspace, componentRoot, env, skipWorkspace);
 }

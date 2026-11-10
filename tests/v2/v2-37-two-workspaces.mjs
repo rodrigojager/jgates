@@ -33,7 +33,7 @@ test("V2-37: two workspaces alternate with distinct volumes derived from their i
   const runtime = path.join(engine, "docker.cjs");
   const labels = JSON.stringify({ "org.jgates.version": CLI_VERSION });
   fs.writeFileSync(runtime, `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(log)};\nprocess.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};\nprocess.env.FAKE_DOCKER_LABELS = ${JSON.stringify(labels)};\nrequire(${JSON.stringify(FAKE)});\n`);
-  const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
+  const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
 
   const projects = { A: tmp("v2-37-a-"), B: tmp("v2-37-b-") };
   fs.writeFileSync(path.join(projects.A, "alpha.py"), "ALPHA = 1\n");

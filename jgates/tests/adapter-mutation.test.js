@@ -19,6 +19,7 @@ const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
 const FIXTURES = path.join(here, "fixtures", "mutation");
 const mutation = await import(pathToFileURL(path.join(dist, "adapters", "mutation", "index.js")).href);
+const { imageJsonWithout } = await import(pathToFileURL(path.join(here, "setup", "image-json.mjs")).href);
 
 const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 
@@ -90,13 +91,14 @@ const found = (result, rule) => result.findings.filter((f) => f.tool === "mutati
 test("mutation javascript: the weak suite leaves surviving mutants and the strengthened suite kills them [proves: mutation#mutation, mutation#mutation@javascript]", () => {
   const stryker = findStryker();
   if (!stryker) {
-    // Real Stryker is not installed here: the stage must be blocked with the guidance, never pass.
-    const p = project({ stack: "js", strong: false, minimum: 90 });
+    // No Stryker on this machine to stand for the image's: with an image that lacks it, the stage is blocked with the
+    // image's cause, never a pass.
+    const p = project({ stack: "js", strong: false, minimum: 90, env: { JGATES_IMAGE_JSON: imageJsonWithout("stryker") } });
     try {
       const ran = p.run();
       assert.notEqual(ran.code, 0, "an engine that is not installed is never a favorable result");
       assert.equal(stage(ran.doc).state, "blocked");
-      assert.match(stage(ran.doc).reason, /Stryker.*not installed/i);
+      assert.match(stage(ran.doc).reason, /StrykerJS.*JGates tools image/i);
       assert.equal(metric(ran.doc, "mutation.score").measured, false);
     } finally {
       p.cleanup();
@@ -197,7 +199,8 @@ test("mutation python: the mutmut results are read from real output and the engi
   assert.equal(strong.survivors.length, 0);
 
   const python = findMutmutPython();
-  const env = python ? { JGATES_PYTHON: python } : {};
+  // Without a Python that runs mutmut here (Windows), an image that lacks mutmut stands for the case it cannot run.
+  const env = python ? { JGATES_PYTHON: python } : { JGATES_IMAGE_JSON: imageJsonWithout("mutmut") };
   const p = project({ stack: "py", strong: false, minimum: 90, env });
   const q = project({ stack: "py", strong: true, minimum: 90, env });
   try {
@@ -206,7 +209,7 @@ test("mutation python: the mutmut results are read from real output and the engi
       // mutmut cannot run here (Windows, or no mutmut in JGATES_PYTHON): blocked with the reason, no score, never a pass.
       assert.notEqual(ranWeak.code, 0);
       assert.equal(stage(ranWeak.doc).state, "blocked");
-      assert.match(stage(ranWeak.doc).reason, /does not run natively on Windows|mutmut is not installed|no Python to run mutmut/i);
+      assert.match(stage(ranWeak.doc).reason, /does not run natively on Windows|mutmut is not installed|no Python to run mutmut|mutmut is not in the JGates tools image/i);
       assert.equal(metric(ranWeak.doc, "mutation.score").measured, false);
       return;
     }

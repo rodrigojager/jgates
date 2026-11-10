@@ -19,6 +19,7 @@ const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
 const VENV_BIN = path.join(repo, ".venv", process.platform === "win32" ? "Scripts" : "bin");
 const PYTHON = path.join(VENV_BIN, process.platform === "win32" ? "python.exe" : "python");
+const ESLINT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "node_modules", "eslint", "bin", "eslint.js");
 const exe = (name) => path.join(VENV_BIN, process.platform === "win32" ? `${name}.exe` : name);
 const NEEDS_TOOLS = fs.existsSync(exe("ruff")) && fs.existsSync(exe("semgrep")) ? false : "Ruff and Semgrep are not installed in the repository .venv";
 const require = createRequire(import.meta.url);
@@ -82,6 +83,9 @@ function setup(files, policy, extraEnv = {}) {
   write(policyDir, policy);
   const base = { ...process.env, ...NO_DOCKER, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_GIT: GIT, PATH: emptyBin, ...extraEnv };
   for (const name of ["JGATES_POLICY_DIR", "JGATES_POLICY_SHA256", "JGATES_NO_CACHE", "JGATES_ESLINT", "JGATES_RUFF", "JGATES_SEMGREP"]) delete base[name];
+  // In-image mode (tests/setup/in-image.mjs): the repository's ESLint stands for the tools image's (Ruff and Semgrep
+  // sit beside JGATES_PYTHON in the .venv); the project's own copy is never used by jgates ci.
+  if (!("JGATES_ESLINT" in extraEnv)) base.JGATES_ESLINT = ESLINT;
   const sha = () => readPolicyBundle(policyDir).bundle.sha256;
   const cli = (env, ...args) => {
     const r = spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", env: { ...base, ...env }, timeout: 600_000 });

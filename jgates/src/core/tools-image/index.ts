@@ -6,6 +6,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { detectEngineSync, inspectImageSync, type EngineContext, type EngineDetection } from "../engine/index.js";
 import { formatBytes, formatMegabytes, resolveReason, type ReasonAction } from "../reasons/index.js";
+import { stepMode } from "../runner/in-image.js";
+import { imageToolCatalogue, NOT_IMAGE_TOOLS, probeImageTool } from "./catalogue.js";
+
+export * from "./catalogue.js";
 
 export interface ToolsImagePin {
   schemaVersion: number;
@@ -46,11 +50,27 @@ export function toolsImageTarget(env: NodeJS.ProcessEnv = process.env, pin: Tool
 }
 
 /**
- * Whether the plan checks the engine and the tools image. Container-first execution is not the default yet: the
- * check is on when JGATES_TOOLS_IMAGE names an image (development) or JGATES_CONTAINER_FIRST=1 asks for the pinned one.
+ * Whether the plan checks the engine and the tools image, and the run syncs the project and launches every step in a
+ * container: always, except when JGates itself runs inside the tools image (in-image mode, where the same commands
+ * run natively and there is no engine to check).
  */
 export function toolsImageGateEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(env.JGATES_TOOLS_IMAGE?.trim()) || env.JGATES_CONTAINER_FIRST === "1";
+  return stepMode(env) !== "in-image";
+}
+
+/**
+ * The tools of a plan the tools image does not have (by their image.json names), or [] when the image has them all. A
+ * tool that is never in the image by design (CodeQL, customer supplied) counts as missing too.
+ */
+export function toolsMissingFromImage(tools: Iterable<string>, env: NodeJS.ProcessEnv = process.env): string[] {
+  return [...new Set(tools)].filter((tool) => !NOT_IMAGE_TOOLS.has(tool) && probeImageTool(tool, env).problem !== null).sort();
+}
+
+/** The one shared cause of tools the image lacks (TOOL_MISSING), with the image's version and its single action. */
+export function toolMissingReason(tools: string[], env: NodeJS.ProcessEnv = process.env, locale?: string): { code: "TOOL_MISSING"; message: string; action: ReasonAction } {
+  const version = imageToolCatalogue(env)?.imageVersion;
+  const resolved = resolveReason("TOOL_MISSING", { tools: tools.join(", "), image: version ? ` ${version}` : "" }, locale);
+  return { code: "TOOL_MISSING", message: resolved.message, action: resolved.action };
 }
 
 export interface ToolsImageBlocker {

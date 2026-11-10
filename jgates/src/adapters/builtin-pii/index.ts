@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { translator } from "../../i18n/index.js";
-import { resolvePython, resolveSidecarDir } from "../../core/bridge/index.js";
+import { sidecarAvailability } from "../../core/bridge/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { exceptionLine, runSpec, substituteTokens } from "../../core/runner/index.js";
@@ -43,32 +43,24 @@ function readFile(dir: string): PiiFile {
 /** What the plan builder hands over beyond the common input: the resolved configuration and its selection. */
 export type PiiPlanInput = ExternalPlanInput & { config?: Record<string, unknown>; selection?: SelectionResult };
 
-function sidecarVersion(sidecarDir: string | null): string | null {
-  if (!sidecarDir) return null;
-  try {
-    const text = fs.readFileSync(path.join(path.dirname(sidecarDir), "pyproject.toml"), "utf8");
-    return /^version\s*=\s*"([^"]+)"/m.exec(text)?.[1] ?? null;
-  } catch {
-    return null;
-  }
-}
-
 function planPii(input: PiiPlanInput): ExternalPlan {
   const t = translator("pii");
-  const { interpreter } = resolvePython(input.env);
-  const sidecarDir = resolveSidecarDir(input.env);
+  // The sidecar of the tools image (in the step's container on the host, natively inside the image).
+  const sidecar = sidecarAvailability(input.env);
+  const interpreter = sidecar.interpreter;
+  const sidecarDir = sidecar.pythonPath;
   const settings = readFile(input.dir);
   const root = input.componentRoot && input.componentRoot !== "." ? input.componentRoot : null;
   const availability: ExternalPlan["availability"] =
-    interpreter === null
-      ? { status: "unavailable", reason: t("pii_python_missing", { python: input.env.JGATES_PYTHON ?? "python" }) }
-      : sidecarDir === null
+    sidecar.problem === "python_missing"
+      ? { status: "unavailable", reason: t("pii_python_missing", { python: sidecar.tried.join(", ") }) }
+      : sidecar.problem === "sidecar_missing"
         ? { status: "unavailable", reason: t("pii_sidecar_missing") }
         : { status: "available", reason: null };
   return {
     label: t("pii_label"),
     command: {
-      executable: interpreter ?? input.env.JGATES_PYTHON ?? "python",
+      executable: interpreter ?? "python",
       args: [...BRIDGE_ARGS],
       cwd: RUN_DIR,
       env: sidecarDir ? { PYTHONPATH: sidecarDir } : {},
@@ -79,8 +71,8 @@ function planPii(input: PiiPlanInput): ExternalPlan {
         config: bridgeConfig(input.config, input.selection),
       },
     },
-    runtime: { name: "python", interpreter, available: interpreter !== null && sidecarDir !== null },
-    toolVersion: sidecarVersion(sidecarDir),
+    runtime: { name: "python", interpreter, available: sidecar.problem === null },
+    toolVersion: sidecar.version,
     configFiles: settings.file ? [{ file: settings.file, sha256: settings.sha256 }] : [],
     availability,
     blocksPlan: false,

@@ -96,7 +96,9 @@ test("V2-36 (real engine): the project folder is identical before and after a fu
     fs.writeFileSync(path.join(stubs, `${command}.cmd`), "@exit /b 99\r\n");
   }
   const pathKey = Object.keys(process.env).find((k) => k.toLowerCase() === "path") ?? "PATH";
-  const env = { ...process.env, [pathKey]: `${stubs}${path.delimiter}${process.env[pathKey] ?? ""}`, JGATES_HOME: home, JGATES_TOOLS_IMAGE: IMAGE, JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
+  const env = { ...process.env, [pathKey]: `${stubs}${path.delimiter}${process.env[pathKey] ?? ""}`, JGATES_HOME: home, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: IMAGE, JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
+  // The real engine (the node test runs name a missing engine client by default, tests/setup/in-image.mjs).
+  if (env.JGATES_CONTAINER_RUNTIME === "jgates-test-no-engine") delete env.JGATES_CONTAINER_RUNTIME;
   const cli = (args) => spawnSync(process.execPath, [MAIN, ...args], { cwd: project, encoding: "utf8", env, input: "", timeout: 600_000 });
 
   const files = {

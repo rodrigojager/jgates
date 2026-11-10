@@ -210,6 +210,7 @@ function planMutation(input: ExternalPlanInput): ExternalPlan {
     runtime = { name: "native", interpreter: probe.python, available: probe.python !== null && probe.version !== null && probe.problem === null };
     if (probe.problem === "python_missing") availability = { status: "unavailable", reason: t("mutation_python_missing", { detail: probe.detail }) };
     else if (probe.problem === "no_mutmut") availability = { status: "unavailable", reason: t("mutation_mutmut_missing", { python: probe.detail }) };
+    else if (probe.problem === "not_in_image") availability = { status: "unavailable", reason: t("mutation_mutmut_not_in_image", { detail: probe.detail }) };
     else if (probe.problem === "windows") availability = { status: "unavailable", reason: t("mutation_mutmut_windows", { version: probe.version ?? "?" }) };
     else if (probe.version !== null && satisfiesRange(probe.version, MUTMUT_RANGE) !== true) {
       availability = { status: "unavailable", reason: translator("prepare")("prepare_incompatible", { tool: "mutmut", version: probe.version, range: MUTMUT_RANGE, what: ADAPTER_ID }) };

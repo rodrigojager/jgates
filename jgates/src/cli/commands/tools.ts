@@ -318,18 +318,12 @@ async function runPrepare(ctx: CommandContext, projectDir: string, t: Translator
     else ctx.stderr(`ERROR ${error.code}\n${error.message}\n${error.fix ?? ""}\n`);
     return EXIT_USAGE;
   };
-  const image = typeof ctx.options.image === "string" && ctx.options.image !== "" ? ctx.options.image : undefined;
-  const options = { ...(image ? { image } : {}) };
   try {
-    const preview = previewPrepare(projectDir, instance, options);
+    const preview = previewPrepare(projectDir, instance);
     if (!ctx.json) {
       ctx.stdout(`${t("tools_prepare_header", { instance: preview.instance, adapter: preview.adapter })}\n`);
       ctx.stdout(`${t("tools_prepare_versions", { tool: preview.versions.tool, installed: preview.versions.installed ?? "-", range: preview.versions.range, pinned: preview.versions.pinned ?? "-" })}\n`);
-      if (preview.rules) ctx.stdout(`${t("tools_prepare_network", { ref: preview.rules.ref, url: preview.rules.url })}\n`);
-      if (preview.image) {
-        ctx.stdout(`${t(preview.image.present ? "tools_prepare_image_present" : "tools_prepare_image_absent", { image: preview.image.reference ?? "-", id: preview.image.id ?? "-" })}\n`);
-        ctx.stdout(`${preview.network.required ? t("tools_prepare_image_network", { hosts: preview.network.hosts.join(", ") }) : t("tools_prepare_image_no_network")}\n`);
-      }
+      ctx.stdout(`${t("tools_prepare_network", { ref: preview.rules.ref, url: preview.rules.url })}\n`);
       ctx.stdout(`${t("tools_prepare_writes", { paths: preview.writes.join(", ") })}\n`);
     }
     if (ctx.options["dry-run"] === true) {
@@ -343,14 +337,9 @@ async function runPrepare(ctx: CommandContext, projectDir: string, t: Translator
         return EXIT_USAGE;
       }
     }
-    const result = await prepareInstance(projectDir, instance, { ...options, allowVersionChange: ctx.options["allow-version-change"] === true });
+    const result = await prepareInstance(projectDir, instance, { allowVersionChange: ctx.options["allow-version-change"] === true });
     if (ctx.json) return ok(ctx, { dryRun: false, preview, result });
-    if (result.image) {
-      const key = result.changed ? "tools_prepare_image_done" : "tools_prepare_image_unchanged";
-      ctx.stdout(`${t(key, { image: result.image.reference, pinned: result.image.pinned, version: result.toolVersion ?? "-", lock: result.lockFile })}\n`);
-    } else if (result.rules) {
-      ctx.stdout(`${t(result.changed ? "tools_prepare_done" : "tools_prepare_unchanged", { ref: result.rules.ref, hash: result.rules.hash, lock: result.lockFile })}\n`);
-    }
+    ctx.stdout(`${t(result.changed ? "tools_prepare_done" : "tools_prepare_unchanged", { ref: result.rules.ref, hash: result.rules.hash, lock: result.lockFile })}\n`);
     return 0;
   } catch (error) {
     if (error instanceof PrepareError) return failure(error);
@@ -381,7 +370,6 @@ export const command: CommandModule = {
     { name: "instance", type: "string", description: tr("tools_option_instance") },
     { name: "dry-run", type: "boolean", description: tr("tools_option_dry_run") },
     { name: "allow-version-change", type: "boolean", description: tr("tools_option_allow_version_change") },
-    { name: "image", type: "string", description: tr("tools_option_image") },
     { name: "units", type: "boolean", description: tr("tools_option_units") },
     { name: "packs", type: "string", description: tr("tools_option_packs") },
   ],

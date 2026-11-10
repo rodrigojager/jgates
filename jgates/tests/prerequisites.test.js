@@ -5,9 +5,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-// The prerequisites the UI shows on top of the Overview and the Environment (Docker, Git's trust in the folder, the
-// tools JGates installs) and the coverage minimum read from the component's own `fail_under`. Pure functions over a
-// crafted assessment: no Docker, no pip and no Git repository are needed.
+// The prerequisites the UI shows on top of the Overview and the Environment (Docker, the JGates tools image, Git's trust
+// in the folder, an instance's data) and the coverage minimum read from the component's own `fail_under`. Pure
+// functions over a crafted assessment: no Docker and no Git repository are needed. Container-first: no tool is ever
+// offered for a host install.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = (...p) => pathToFileURL(path.resolve(here, "..", "dist", ...p)).href;
@@ -20,55 +21,59 @@ function recipe(id, kind, commands, extra = {}) {
   return { id, kind, commands, steps: commands.map((c) => c.split(" ")), network: { hosts: [], systemMirrors: false }, writes: [], system: kind.startsWith("docker"), available: true, reason: null, ...extra };
 }
 
-/** An assessment with Docker stopped (or absent), two missing Python tools and one tool JGates cannot install. */
-function assessment({ docker = "stopped", dockerCommands = ["open -a Docker"] } = {}) {
+/** An assessment with Docker stopped (or absent), the tools image missing, the Semgrep rules to prepare, and one tool
+ * the image does not have (its fix is the image, never a host install). */
+function assessment({ docker = "stopped", dockerCommands = ["open -a Docker"], image = { available: true } } = {}) {
   const dockerRecipe = recipe(docker === "stopped" ? "docker:start" : "docker:install", docker === "stopped" ? "docker-start" : "docker-install", dockerCommands);
-  const ruff = recipe("python:ruff", "python-packages", ["python -m pip install ruff"], { packages: ["ruff"], createEnv: null, network: { hosts: ["pypi.org"], systemMirrors: false } });
-  const lint = recipe("python:import-linter", "python-packages", ["python -m pip install import-linter"], { packages: ["import-linter"], createEnv: null, network: { hosts: ["pypi.org"], systemMirrors: false } });
+  const pull = recipe("image:pull", "image-pull", ["docker pull ghcr.io/example/jgates-tools@sha256:abc"], { steps: [], image: "ghcr.io/example/jgates-tools@sha256:abc", network: { hosts: ["ghcr.io"], systemMirrors: false }, available: image.available, reason: image.available ? null : "not published" });
+  const rules = recipe("prepare:semgrep", "prepare", ["jgates tools prepare --instance semgrep --cwd /p --no-interactive"], { steps: [], instance: "semgrep", projectDir: "/p", network: { hosts: ["semgrep.dev"], systemMirrors: false } });
   const preview = (r) => ({ id: r.id, kind: r.kind, commands: r.commands, network: r.network, writes: r.writes, system: r.system, available: r.available, reason: r.reason });
   const items = [
     { key: "runtime:docker", name: "docker", classification: "essential", missing: true, alternative: null, disable: null, recipe: preview(dockerRecipe) },
-    { key: "runtime:python", name: "python", classification: "essential", missing: false, alternative: null, disable: null, recipe: null },
-    { key: "tool:ruff", name: "ruff", classification: "essential", missing: true, alternative: null, disable: null, recipe: preview(ruff) },
-    { key: "tool:import-linter", name: "import-linter", classification: "essential", missing: true, alternative: null, disable: null, recipe: preview(lint) },
-    { key: "tool:pytest", name: "pytest", classification: "essential", missing: true, alternative: null, disable: null, recipe: null },
-    { key: "tool:semgrep", name: "semgrep", classification: "unused", missing: true, alternative: null, disable: null, recipe: null },
+    { key: "runtime:image", name: "image", classification: "essential", missing: true, alternative: null, disable: null, recipe: preview(pull) },
+    { key: "tool:semgrep", name: "semgrep", classification: "essential", missing: true, alternative: null, disable: null, recipe: preview(rules) },
+    { key: "tool:codeql", name: "codeql", classification: "essential", missing: true, alternative: null, disable: null, recipe: null },
+    { key: "tool:ruff", name: "ruff", classification: "unused", missing: true, alternative: null, disable: null, recipe: null },
   ];
   return {
     items,
     recipes: new Map([
       ["runtime:docker", dockerRecipe],
-      ["tool:ruff", ruff],
-      ["tool:import-linter", lint],
+      ["runtime:image", pull],
+      ["tool:semgrep", rules],
     ]),
     report: {
       runtimes: [
         { id: "docker", state: "absent", stopped: docker === "stopped", message: "Docker does not answer.", fix: "Start Docker." },
-        { id: "python", state: "ready", message: "", fix: null },
+        { id: "image", state: "absent", path: "ghcr.io/example/jgates-tools@sha256:abc", message: "The JGates tools have not been downloaded yet.", fix: "jgates setup" },
       ],
       tools: [
-        { instance: "ruff", message: "ruff is missing", fix: null },
-        { instance: "import-linter", message: "lint-imports is missing", fix: null },
-        { instance: "pytest", message: "pytest is not installed in the project's Python.", fix: "pip install pytest" },
         { instance: "semgrep", message: "", fix: null },
+        { instance: "codeql", message: "CodeQL is not in the JGates tools image.", fix: "jgates setup" },
+        { instance: "ruff", message: "", fix: null },
       ],
     },
   };
 }
 
-test("the list orders Docker, then the tools JGates installs, then what only a person can fix, and skips unused items", () => {
+test("the list orders Docker, then the tools image, then data, then what only a person can fix; no item installs a tool on the host", () => {
   const dir = tmp("jg-prq-");
   const r = listPrerequisites(dir, { assessment: assessment(), platform: "darwin", env: { PATH: "" } });
-  assert.deepEqual(r.items.map((i) => i.id), ["docker", "tools", "manual:tool:pytest"]);
+  assert.deepEqual(r.items.map((i) => i.id), ["docker", "image", "data", "manual:tool:codeql"]);
+  assert.deepEqual(r.items.map((i) => i.kind), ["docker-start", "image-pull", "data-prepare", "manual"]);
   assert.equal(r.ready, false);
   assert.equal(r.platform, "darwin");
-  const tools = r.items.find((i) => i.id === "tools");
-  assert.deepEqual(tools.names, ["ruff", "import-linter"]);
-  assert.equal(tools.action, "run");
-  assert.ok(tools.hosts.includes("pypi.org"));
-  const pytest = r.items.find((i) => i.id === "manual:tool:pytest");
-  assert.equal(pytest.action, null);
-  assert.equal(pytest.fix, "pip install pytest");
+  const image = r.items.find((i) => i.id === "image");
+  assert.equal(image.action, "run");
+  assert.deepEqual(image.hosts, ["ghcr.io"]);
+  const data = r.items.find((i) => i.id === "data");
+  assert.deepEqual(data.names, ["semgrep"]);
+  const codeql = r.items.find((i) => i.id === "manual:tool:codeql");
+  assert.equal(codeql.action, null);
+  assert.equal(codeql.fix, "jgates setup");
+  // An image this release cannot pull (not published) is shown, never run.
+  const unpublished = listPrerequisites(dir, { assessment: assessment({ image: { available: false } }), platform: "darwin", env: { PATH: "" } });
+  assert.equal(unpublished.items.find((i) => i.id === "image").action, null);
 });
 
 test("Docker that starts with sudo (Linux) is a command to copy, never one the UI runs", () => {
@@ -83,17 +88,22 @@ test("Docker that starts with sudo (Linux) is a command to copy, never one the U
   assert.equal(absent.items.find((i) => i.id === "docker").kind, "docker-install");
 });
 
-test("fixing the tools runs one merged pip recipe through the executor, and a copy-only item is refused", async () => {
+test("fixing the image pulls it through the executor (the engine), fixing data prepares it, and a copy-only item is refused", async () => {
   const dir = tmp("jg-prq-");
-  const executor = { run: () => ({ status: 0 }), prepare: async () => {} };
-  const home = tmp("jg-prq-home-");
-  const outcome = await fixPrerequisite(dir, "tools", { assessment: assessment(), env: { PATH: "", JGATES_HOME: home }, executor, platform: "darwin" });
-  // The two Python tools become one pip recipe; without a Python on this PATH it is skipped with its reason.
-  assert.deepEqual(outcome.outcomes.map((o) => o.id), ["python:packages"]);
-  assert.ok(outcome.status === "done" || (outcome.status === "skipped" && outcome.message));
+  const pulled = [];
+  const prepared = [];
+  const executor = { run: () => ({ status: 0 }), prepare: async (_dir, instance) => void prepared.push(instance), pull: async (reference) => (pulled.push(reference), { status: 0 }) };
+  const image = await fixPrerequisite(dir, "image", { assessment: assessment(), env: { PATH: "" }, executor, platform: "darwin" });
+  assert.equal(image.status, "done", image.message ?? "");
+  assert.deepEqual(image.outcomes.map((o) => o.kind), ["image-pull"]);
+  assert.deepEqual(pulled, ["ghcr.io/example/jgates-tools@sha256:abc"]);
+  const data = await fixPrerequisite(dir, "data", { assessment: assessment(), env: { PATH: "" }, executor, platform: "darwin" });
+  assert.equal(data.status, "done", data.message ?? "");
+  assert.deepEqual(prepared, ["semgrep"]);
   const linux = assessment({ dockerCommands: ["sudo systemctl start docker"] });
   await assert.rejects(fixPrerequisite(dir, "docker", { assessment: linux, env: { PATH: "" }, executor, platform: "linux" }), (e) => e instanceof PrerequisiteError && e.code === "PREREQUISITE_NOT_RUNNABLE");
   await assert.rejects(fixPrerequisite(dir, "git", { assessment: assessment(), env: { PATH: "" }, executor }), (e) => e instanceof PrerequisiteError && e.code === "PREREQUISITE_NOT_FOUND");
+  await assert.rejects(fixPrerequisite(dir, "tools", { assessment: assessment(), env: { PATH: "" }, executor }), (e) => e instanceof PrerequisiteError && e.code === "PREREQUISITE_NOT_FOUND");
 });
 
 test("the folder in Git's safe.directory hint is read without its quotes, and an option-like value is refused", () => {

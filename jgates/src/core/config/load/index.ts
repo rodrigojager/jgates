@@ -4,6 +4,7 @@ import { translator } from "../../../i18n/index.js";
 import { architectureReferenceProblems } from "../../architecture/references.js";
 import { formatPath, hasSchema, suggestName, validateDocument } from "./schema.js";
 import { parseYamlFile, type ParsedYaml } from "./yaml.js";
+import { migrateDocument, type ConfigNotice } from "./migrate.js";
 import {
   DEFAULT_LIMITS,
   FRAGMENT_FILES,
@@ -15,6 +16,7 @@ import {
 } from "./types.js";
 
 export * from "./types.js";
+export { migrateDocument, ROOT_SCHEMA_VERSION, type ConfigNotice } from "./migrate.js";
 export { parseYamlText, parseYamlFile } from "./yaml.js";
 export { validateDocument, suggestName, configSchemaDir, hasSchema } from "./schema.js";
 
@@ -69,6 +71,7 @@ export function loadProjectConfig(projectDir: string, options: LoadOptions = {})
   // Every configuration file, and every path a configuration file names, is relative to the configuration folder.
   const dir = options.configDir === undefined ? projectRoot : path.resolve(options.configDir);
   const diagnostics: ConfigDiagnostic[] = [];
+  const notices: ConfigNotice[] = [];
   const pending: Pending[] = [];
   const loaded = new Set<string>();
 
@@ -76,12 +79,15 @@ export function loadProjectConfig(projectDir: string, options: LoadOptions = {})
     loaded.add(absolute);
     const parsed = parseYamlFile(absolute, file, limits);
     diagnostics.push(...parsed.diagnostics);
-    const entry: Pending = { doc: { kind, file, value: parsed.value, schemaPending: !hasSchema(kind) }, parsed };
+    // The migration reader: an older document is read as the current schema, with a notice per dropped setting.
+    const migrated = parsed.diagnostics.length === 0 ? migrateDocument(kind, parsed.value, file) : { value: parsed.value, notices: [] };
+    notices.push(...migrated.notices);
+    const entry: Pending = { doc: { kind, file, value: migrated.value, schemaPending: !hasSchema(kind) }, parsed };
     if (parsed.diagnostics.length === 0) {
       if (parsed.value === null || asRecord(parsed.value) === undefined) {
         diagnostics.push({ kind: "schema", code: "TYPE", file, path: "", pathSegments: [], message: t("config_document_not_mapping") });
       } else {
-        diagnostics.push(...validateDocument(kind, parsed.value, file, { doc: parsed.doc, lineCounter: parsed.lineCounter }));
+        diagnostics.push(...validateDocument(kind, migrated.value, file, { doc: parsed.doc, lineCounter: parsed.lineCounter }));
       }
     }
     pending.push(entry);
@@ -137,7 +143,7 @@ export function loadProjectConfig(projectDir: string, options: LoadOptions = {})
 
   const byKind: Partial<Record<DocumentKind, LoadedDocument>> = {};
   for (const d of documents) byKind[d.kind] ??= d;
-  return { projectDir: projectRoot, configDir: dir, valid: diagnostics.length === 0, documents, byKind, diagnostics };
+  return { projectDir: projectRoot, configDir: dir, valid: diagnostics.length === 0, documents, byKind, diagnostics, notices };
 }
 
 type T = ReturnType<typeof translator>;

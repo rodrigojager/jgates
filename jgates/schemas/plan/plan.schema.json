@@ -642,7 +642,7 @@
           "additionalProperties": false,
           "required": ["kind", "adapter", "tools", "template", "templateState", "files", "docs"],
           "properties": {
-            "kind": { "enum": ["none", "prepare-tool", "add-files", "add-template", "configure-tool", "enable-check"] },
+            "kind": { "enum": ["none", "prepare-tool", "prepare-image", "add-files", "add-template", "configure-tool", "enable-check"] },
             "settings": { "$ref": "#/$defs/strings" },
             "prepareNext": { "type": "boolean" },
             "adapter": { "type": ["string", "null"] },

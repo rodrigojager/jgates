@@ -1,10 +1,13 @@
-// Finds the mutation testing engines on disk without installing or changing anything: Stryker (JS/TS) from the
-// project's node_modules (or JGATES_STRYKER), mutmut (Python) from the project's Python (JGATES_PYTHON or PATH).
-// The versions come from package.json / importlib.metadata, never from a mutation run.
+// Finds the mutation testing engines without installing or changing anything. Container-first, both come from the
+// tools image (image.json: stryker, mutmut), and mutmut runs in the Linux container, so Windows hosts are no longer
+// refused. Inside the image only: JGATES_STRYKER, then the project's node_modules, for Stryker; JGATES_PYTHON (the
+// project's Python, asked through importlib.metadata) for mutmut. Never a mutation run.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath, resolveProjectPython } from "../../core/bridge/index.js";
+import { imageProbeUnlessOverridden, inImageOverride, probeImageTool } from "../../core/tools-image/catalogue.js";
+import { stepMode } from "../../core/runner/in-image.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export const STRYKER_PACKAGE = "@stryker-mutator/core";
@@ -14,7 +17,7 @@ export interface StrykerProbe {
   executable: string | null;
   prefix: string[];
   version: string | null;
-  source: "env" | "workspace" | "path" | null;
+  source: "env" | "workspace" | "path" | "image" | null;
   problem: "not_found" | "no_version" | null;
   detail: string;
 }
@@ -22,7 +25,7 @@ export interface StrykerProbe {
 export interface MutmutProbe {
   python: string | null;
   version: string | null;
-  problem: "python_missing" | "no_mutmut" | "windows" | null;
+  problem: "python_missing" | "no_mutmut" | "windows" | "not_in_image" | null;
   detail: string;
 }
 
@@ -62,38 +65,36 @@ function fromNodeModules(nodeModules: string, source: "workspace" | "path"): Str
   return { executable: process.execPath, prefix: [entry], version, source, problem: version ? null : "no_version", detail: version ? "" : dir };
 }
 
-/** JGATES_STRYKER (a file), then node_modules/@stryker-mutator/core from the component folder up to the workspace root, then PATH. */
+/** Container-first: the tools image's Stryker. Inside the image only: JGATES_STRYKER (a file), then
+ * node_modules/@stryker-mutator/core from the component folder up to the workspace root, then the image's copy. */
 export function findStryker(workspace: string, componentRoot: string | null, env: NodeJS.ProcessEnv): StrykerProbe {
-  const tried: string[] = [];
-  if (env.JGATES_STRYKER) {
-    tried.push(env.JGATES_STRYKER);
-    const abs = findOnPath(env.JGATES_STRYKER, env);
-    if (!abs) return { executable: null, prefix: [], version: null, source: null, problem: "not_found", detail: tried.join(", ") };
+  const named = inImageOverride(env, "JGATES_STRYKER");
+  if (named) {
+    const abs = findOnPath(named, env);
+    if (!abs) return { executable: null, prefix: [], version: null, source: null, problem: "not_found", detail: named };
     const script = /\.(mjs|cjs|js)$/i.test(abs);
     const r = spawnSync(script ? process.execPath : abs, [...(script ? [abs] : []), "--version"], { encoding: "utf8", timeout: 30_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }), windowsHide: true, shell: !script && /\.(cmd|bat)$/i.test(abs) });
     const version = r.status === 0 ? (/(\d+\.\d+\.\d+\S*)/.exec(r.stdout)?.[1] ?? null) : null;
     return { executable: script ? process.execPath : abs, prefix: script ? [abs] : [], version, source: "env", problem: version ? null : "no_version", detail: version ? "" : abs };
   }
-  const start = componentRoot && componentRoot !== "." ? path.join(workspace, componentRoot) : workspace;
-  for (const dir of ancestors(start, workspace)) {
-    const nodeModules = path.join(dir, "node_modules");
-    tried.push(path.join(nodeModules, STRYKER_PACKAGE));
-    const hit = fromNodeModules(nodeModules, "workspace");
-    if (hit) return hit;
+  if (stepMode(env) === "in-image") {
+    const start = componentRoot && componentRoot !== "." ? path.join(workspace, componentRoot) : workspace;
+    for (const dir of ancestors(start, workspace)) {
+      const hit = fromNodeModules(path.join(dir, "node_modules"), "workspace");
+      if (hit) return hit;
+    }
   }
-  const onPath = findOnPath("stryker", env);
-  tried.push("stryker on PATH");
-  if (onPath) {
-    // A global install keeps its package next to the launcher: <prefix>/node_modules/@stryker-mutator/core.
-    const hit = fromNodeModules(path.join(path.dirname(onPath), "node_modules"), "path");
-    if (hit) return hit;
-  }
-  return { executable: null, prefix: [], version: null, source: null, problem: "not_found", detail: tried.join(", ") };
+  const image = probeImageTool("stryker", env);
+  return image.problem === null
+    ? { executable: image.executable, prefix: [], version: image.version, source: "image", problem: null, detail: "" }
+    : { executable: null, prefix: [], version: null, source: null, problem: "not_found", detail: image.detail };
 }
 
 const known = new Map<string, { mtimeMs: number; version: string | null }>();
 
 export function findMutmut(env: NodeJS.ProcessEnv): MutmutProbe {
+  const image = imageProbeUnlessOverridden("mutmut", env, "JGATES_PYTHON");
+  if (image) return image.problem === null ? { python: "python", version: image.version, problem: null, detail: "" } : { python: null, version: null, problem: "not_in_image", detail: image.detail };
   const { interpreter, tried } = resolveProjectPython(env);
   if (!interpreter) return { python: null, version: null, problem: "python_missing", detail: tried.join(", ") };
   let mtimeMs = 0;

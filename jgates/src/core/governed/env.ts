@@ -5,8 +5,10 @@ import { DEFAULT_ENV_ALLOWLIST } from "../runner/index.js";
 
 /** Variables the governed bridge keeps, besides the runner's default allowlist. */
 export const GOVERNED_BRIDGE_ENV: readonly string[] = [
-  // The interpreter and the sidecar the bridge starts (resolvePython, resolveSidecarDir, the bridge timeout).
+  // The interpreter and the sidecar the bridge starts (sidecarRuntime, the bridge timeout), and the image.json that
+  // tells the in-image mode (its location when it is not /etc/jgates/image.json).
   "JGATES_PYTHON",
+  "JGATES_IMAGE_JSON",
   "JGATES_SIDECAR_DIR",
   "JGATES_BRIDGE_TIMEOUT_MS",
   "JGATES_LOCALE",

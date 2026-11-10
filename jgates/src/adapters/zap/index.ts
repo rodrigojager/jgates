@@ -12,7 +12,7 @@ import { translator } from "../../i18n/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
-import { runtimeClientEnv } from "../../core/prepare/image.js";
+import { runtimeClientEnv } from "../container-scanner/image.js";
 import { DOCKER_CLIENT_ENV, DEFAULT_ENV_ALLOWLIST, runSpec, substituteTokens } from "../../core/runner/index.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { checkTarget, instanceBody, intSetting, isLoopbackHost, readAuth, safeRelative, type AuthSetting } from "../schemathesis/target.js";

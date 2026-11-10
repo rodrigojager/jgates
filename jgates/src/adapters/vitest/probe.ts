@@ -1,8 +1,10 @@
-// Finds Vitest and its coverage provider on disk, without running or installing anything: the versions come from
-// the package.json files, never from a process.
+// Finds Vitest and its coverage provider without running or installing anything: the tools image's copies come from
+// image.json; a copy on disk (inside the image only) gets its version from the package.json files, never a process.
 import fs from "node:fs";
 import path from "node:path";
 import { findOnPath } from "../../core/bridge/index.js";
+import { inImageOverride, probeImageTool } from "../../core/tools-image/catalogue.js";
+import { stepMode } from "../../core/runner/in-image.js";
 
 export const COVERAGE_PROVIDER = "@vitest/coverage-v8";
 
@@ -16,9 +18,11 @@ export interface VitestProbe {
   version: string | null;
   /** Folder of the vitest package (null when the executable is not inside one). */
   packageDir: string | null;
-  source: "env" | "workspace" | "path" | null;
+  source: "env" | "workspace" | "image" | null;
   problem: "not_found" | "no_version" | null;
   detail: string;
+  /** source image: the version of the image's coverage provider (null: the image has none). */
+  imageCoverage?: string | null;
 }
 
 export interface ProviderProbe {
@@ -98,29 +102,29 @@ function describe(entry: string, source: NonNullable<VitestProbe["source"]>): Vi
 }
 
 /**
- * JGATES_VITEST (a file), then node_modules/.bin/vitest from the component folder up to the workspace root, then
- * PATH. Only the project's own copy or the one the environment names is used.
+ * Container-first: the tools image's Vitest, from image.json. Inside the image only: JGATES_VITEST (a file), then the
+ * project's own node_modules/.bin/vitest from the component folder up to the workspace root, then the image's copy.
  */
 export function findVitest(workspace: string, componentRoot: string | null, env: NodeJS.ProcessEnv): VitestProbe {
-  const tried: string[] = [];
-  if (env.JGATES_VITEST) {
-    tried.push(env.JGATES_VITEST);
-    const abs = findOnPath(env.JGATES_VITEST, env);
+  const named = inImageOverride(env, "JGATES_VITEST");
+  if (named) {
+    const abs = findOnPath(named, env);
     if (abs) return describe(abs, "env");
-    return { executable: null, prefix: [], entry: null, version: null, packageDir: null, source: null, problem: "not_found", detail: tried.join(", ") };
+    return { executable: null, prefix: [], entry: null, version: null, packageDir: null, source: null, problem: "not_found", detail: named };
   }
-  const start = componentRoot && componentRoot !== "." ? path.join(workspace, componentRoot) : workspace;
-  for (const dir of ancestors(start, workspace)) {
-    for (const suffix of exeSuffix) {
-      const candidate = path.join(dir, "node_modules", ".bin", `vitest${suffix}`);
-      tried.push(candidate);
-      if (isFile(candidate)) return describe(candidate, "workspace");
+  if (stepMode(env) === "in-image") {
+    const start = componentRoot && componentRoot !== "." ? path.join(workspace, componentRoot) : workspace;
+    for (const dir of ancestors(start, workspace)) {
+      for (const suffix of exeSuffix) {
+        const candidate = path.join(dir, "node_modules", ".bin", `vitest${suffix}`);
+        if (isFile(candidate)) return describe(candidate, "workspace");
+      }
     }
   }
-  tried.push("vitest on PATH");
-  const onPath = findOnPath("vitest", env);
-  if (onPath) return describe(onPath, "path");
-  return { executable: null, prefix: [], entry: null, version: null, packageDir: null, source: null, problem: "not_found", detail: tried.join(", ") };
+  const image = probeImageTool("vitest", env);
+  if (image.problem !== null) return { executable: null, prefix: [], entry: null, version: null, packageDir: null, source: null, problem: "not_found", detail: image.detail };
+  const coverage = probeImageTool("vitest-coverage-v8", env);
+  return { executable: image.executable, prefix: [], entry: null, version: image.version, packageDir: null, source: "image", problem: null, detail: "", imageCoverage: coverage.version };
 }
 
 /**
@@ -128,6 +132,10 @@ export function findVitest(workspace: string, componentRoot: string | null, env:
  * there nothing installs it.
  */
 export function findCoverageProvider(workspace: string, componentRoot: string | null, vitest: VitestProbe): ProviderProbe {
+  if (vitest.source === "image") {
+    const version = vitest.imageCoverage ?? null;
+    return { installed: version !== null, version, mismatch: version !== null && vitest.version !== null && version !== vitest.version, dir: null };
+  }
   const start = componentRoot && componentRoot !== "." ? path.join(workspace, componentRoot) : workspace;
   const roots = ancestors(start, workspace).map((d) => path.join(d, "node_modules"));
   // Vitest resolves the provider from its own location too (hoisted or global installs).

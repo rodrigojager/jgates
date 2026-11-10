@@ -1,6 +1,6 @@
 // Shared plan and run of the security scanners that left the bridge (Gitleaks, Trivy, OSV-Scanner, Checkov): each one
-// runs on the container runner in the image `tools prepare` pinned in .jgates/lock.json (the sidecar image by default),
-// with the workspace read-only at /workspace and
+// runs on the container runner in the JGates tools image (whose image.json lists the scanner and its version; there is
+// no local runner and nothing to prepare per instance), with the workspace read-only at /workspace and
 // a writable /output in the run folder, where the tool writes its JSON report, its home, its temporary files and its
 // caches. The adapter of each tool only says how to build its arguments and how to read its report (running and
 // normalizing are the adapter's; reading and writing the configuration file stay with the codecs and the editor).
@@ -24,7 +24,7 @@ import { probeScannerImage, type ScannerImageProbe } from "./image.js";
 
 export { CACHE_RECORD, cacheDirOf, readCache, type CacheRecord, type DatabaseCacheSpec } from "./db-cache.js";
 
-export { probeScannerImage, runtimeClientEnv, SIDECAR_IMAGE, toolVersionLabel, type ScannerImageProbe } from "./image.js";
+export { probeScannerImage, runtimeClientEnv, SIDECAR_IMAGE, type ScannerImageProbe } from "./image.js";
 
 const WORKSPACE = "{workspace}";
 const RUN_DIR = "{runDir}";
@@ -215,12 +215,6 @@ export function versionProblem(manifest: AdapterManifest, planned: string | null
 }
 
 /** The runner the instance asked for in tools.yml: these scanners run only in a container. */
-function runnerOf(input: ExternalPlanInput): string | null {
-  const tools = isRec(input.config) && isRec(input.config.tools) ? input.config.tools : {};
-  const body = tools[input.tool];
-  return isRec(body) && typeof body.runner === "string" ? body.runner : null;
-}
-
 /** Capabilities the instance declares in tools.yml, the planned one first. */
 function declaredCapabilities(input: ExternalPlanInput): string[] {
   const tools = isRec(input.config) && isRec(input.config.tools) ? input.config.tools : {};
@@ -266,18 +260,10 @@ function chooseDocument(input: ExternalPlanInput, spec: DocumentSpec, root: stri
 }
 
 function imageAvailability(probe: ScannerImageProbe, manifest: AdapterManifest, instance: string, t: Translator): ExternalPlan["availability"] {
-  const params = { tool: manifest.displayName, instance, runtime: probe.runtimeName, image: probe.image ?? "-", detail: probe.detail, command: probe.command };
+  const params = { tool: manifest.displayName, instance, runtime: probe.runtimeName, image: probe.image ?? "-", detail: probe.detail };
   switch (probe.problem) {
-    case "runtime_missing":
-      return { status: "unavailable", reason: t("security_runtime_missing", params) };
-    case "lock_invalid":
-      return { status: "unavailable", reason: t("security_lock_invalid", params) };
-    case "image_unprepared":
-      return { status: "unavailable", reason: t("security_image_unprepared", params) };
-    case "image_missing":
-      return { status: "unavailable", reason: t("security_image_missing", params) };
-    case "image_changed":
-      return { status: "unavailable", reason: t("security_image_changed", params) };
+    case "not_in_image":
+      return { status: "unavailable", reason: t("security_not_in_image", params) };
     default:
       if (probe.version === null || satisfiesRange(probe.version, manifest.toolVersionRange) !== true) {
         return { status: "unavailable", reason: translator("prepare")("prepare_incompatible", { tool: manifest.toolName, version: probe.version ?? "?", range: manifest.toolVersionRange, what: manifest.id }) };
@@ -311,16 +297,14 @@ export function planScanner(def: ScannerDefinition, input: ExternalPlanInput): E
   const capabilities = runnable.filter((c) => uncredited[c] === undefined);
   const argsInput: ArgsInput = { documents, capabilities: capabilities.length > 0 ? capabilities : [input.capability], root };
 
-  const probe = probeScannerImage(input.env, input.dir, input.tool);
-  const runner = runnerOf(input);
+  const probe = probeScannerImage(input.env, manifest.toolName);
   let availability: ExternalPlan["availability"];
   let blocksPlan = false;
   if (documentProblem) {
     // A document the project bound that is not there or not usable: never fall back to another one silently.
     availability = { status: "unavailable", reason: documentProblem };
     blocksPlan = true;
-  } else if (runner !== null && runner !== "container") availability = { status: "unavailable", reason: t("security_container_only", { tool: manifest.displayName, runner }) };
-  else availability = imageAvailability(probe, manifest, input.tool, t);
+  } else availability = imageAvailability(probe, manifest, input.tool, t);
 
   const args = def.args(argsInput);
   const configFiles = Object.values(documents)

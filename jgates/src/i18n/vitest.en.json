@@ -1,6 +1,6 @@
 {
   "vitest_label": "Vitest (tests and coverage)",
-  "vitest_missing": "Vitest is not installed in the project ({detail}). Install it with: npm install --save-dev vitest (or point JGATES_VITEST to the executable).",
+  "vitest_missing": "Vitest is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
   "vitest_no_version": "Could not read the Vitest version at {path}. Reinstall with: npm install --save-dev vitest.",
   "vitest_blocked": "Vitest could not run: {detail}",
   "vitest_timeout": "Vitest exceeded the limit of {seconds} s and was ended.",

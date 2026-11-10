@@ -1,8 +1,10 @@
-// Finds the cargo executable and asks it for its version, without installing or changing anything. The Rust toolchain
-// is supplied by the customer: JGATES_CARGO, else cargo on the PATH (rustup's shim included).
+// Whether cargo is in the tools image, and its version, from image.json (nothing starts); a project's pinned Rust
+// toolchain comes from the toolchain volume when the run prepares it. Inside the image only, JGATES_CARGO names another
+// executable, which is asked for its version.
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
+import { imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface CargoProbe {
@@ -14,12 +16,15 @@ export interface CargoProbe {
 
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
 
+/** The executable JGATES_CARGO names, inside the tools image only. */
 export function findCargo(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
-  const name = env.JGATES_CARGO || "cargo";
-  return { executable: findOnPath(name, env), tried: [env.JGATES_CARGO ? env.JGATES_CARGO : "cargo on PATH"] };
+  const override = inImageOverride(env, "JGATES_CARGO");
+  return override ? { executable: findOnPath(override, env), tried: [override] } : { executable: null, tried: [] };
 }
 
 export function probeCargo(env: NodeJS.ProcessEnv): CargoProbe {
+  const image = imageProbeUnlessOverridden("cargo", env, "JGATES_CARGO");
+  if (image) return image;
   const { executable, tried } = findCargo(env);
   if (!executable) return { executable: null, version: null, problem: "not_found", detail: tried.join(", ") };
   let mtimeMs = 0;

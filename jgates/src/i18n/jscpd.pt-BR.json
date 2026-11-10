@@ -1,6 +1,6 @@
 {
   "jscpd_label": "jscpd (duplicação)",
-  "jscpd_missing": "O jscpd não está instalado no projeto ({detail}). Instale com: npm install --save-dev jscpd (ou aponte JGATES_JSCPD para o executável).",
+  "jscpd_missing": "jscpd não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
   "jscpd_no_version": "Não foi possível ler a versão do jscpd em {path}. Reinstale com: npm install --save-dev jscpd.",
   "jscpd_config_invalid": "O config do jscpd ({file}) não é um JSON válido: {detail}. Corrija o arquivo antes de planejar.",
   "jscpd_blocked": "O jscpd não pôde rodar: {detail}",

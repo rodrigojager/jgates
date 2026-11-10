@@ -18,6 +18,9 @@ const PYTHON = path.join(VENV_BIN, process.platform === "win32" ? "python.exe" :
 const adapter = await import(pathToFileURL(path.join(dist, "adapters", "dependency-cruiser", "index.js")).href);
 const catalog = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
 const FIXTURES = path.join(here, "fixtures", "parsers", "dependency-cruiser");
+// The tests run JGates in in-image mode (tests/setup/in-image.mjs): the repository's own copy of dependency-cruiser
+// stands for the one of the tools image, named the way an advanced CI setup names it.
+const DEPCRUISE = path.join(repo, "node_modules", "dependency-cruiser", "bin", "dependency-cruiser.mjs");
 
 const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 const json = (value) => JSON.stringify(value, null, 2) + "\n";
@@ -60,7 +63,7 @@ function project(files, architectureYml, extraEnv = {}) {
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, content);
   }
-  const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_NO_CACHE: "1", PATH: emptyBin, ...extraEnv };
+  const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_DEPCRUISE: DEPCRUISE, JGATES_NO_CACHE: "1", PATH: emptyBin, ...extraEnv };
   const cli = (args) => {
     const r = spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", env, input: "", timeout: 240_000 });
     let doc = null;
@@ -217,7 +220,7 @@ test("JGATES_DEPCRUISE points at another executable and a missing one blocks wit
     const item = p.item(p.plan());
     assert.equal(item.availability.status, "unavailable");
     assert.match(item.availability.reason, /dependency-cruiser/);
-    assert.match(item.availability.reason, /nunca baixa|JGATES_DEPCRUISE/);
+    assert.match(item.availability.reason, /jgates setup/);
     const ran = p.run();
     assert.notEqual(ran.doc.decision, "passed");
     assert.notEqual(ran.doc.decision, "failed");

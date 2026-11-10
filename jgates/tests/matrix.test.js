@@ -42,7 +42,8 @@ test("tools matrix --json lists every adapter with capabilities, support level a
   const ruff = doc.matrix.adapters.find((a) => a.id === "ruff");
   assert.equal(ruff.supportLevel, "assisted");
   assert.deepEqual(ruff.capabilities.map((c) => c.id), ["lint"]);
-  assert.deepEqual(ruff.runners, ["local", "container"]);
+  // Container-first: every adapter runs in the JGates tools image's step container.
+  assert.deepEqual(ruff.runners, ["container"]);
   // Proven by core-followups.test.js (the recorded license report); the bridge scanners are the declared ones now.
   assert.equal(doc.matrix.adapters.find((a) => a.id === "trivy").capabilities.find((c) => c.id === "licenses").status, "integrated");
   assert.equal(doc.matrix.adapters.find((a) => a.id === "quality-bridge").capabilities.find((c) => c.id === "lint").status, "declared");

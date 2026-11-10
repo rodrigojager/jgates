@@ -1,9 +1,9 @@
-// Finds the oasdiff executable and asks it for its version, without installing or changing anything.
+// Whether oasdiff is in the tools image, and its version, from image.json (nothing starts). Inside the image only,
+// JGATES_OASDIFF names another executable, which is asked for its version.
 import fs from "node:fs";
-import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
-import { resolveHome } from "../../core/home/index.js";
+import { imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface OasdiffProbe {
@@ -14,23 +14,15 @@ export interface OasdiffProbe {
 }
 
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
-const exeName = process.platform === "win32" ? "oasdiff.exe" : "oasdiff";
-
-/** JGATES_OASDIFF, then <JGATES_HOME>/tools/bin (where the customer may put the release binary), then PATH. */
+/** The executable JGATES_OASDIFF names, inside the tools image only. */
 export function findOasdiff(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
-  const tried: string[] = [];
-  if (env.JGATES_OASDIFF) {
-    tried.push(env.JGATES_OASDIFF);
-    return { executable: findOnPath(env.JGATES_OASDIFF, env), tried };
-  }
-  const own = path.join(resolveHome({ env }), "tools", "bin", exeName);
-  tried.push(own);
-  if (fs.existsSync(own)) return { executable: own, tried };
-  tried.push("oasdiff on PATH");
-  return { executable: findOnPath("oasdiff", env), tried };
+  const override = inImageOverride(env, "JGATES_OASDIFF");
+  return override ? { executable: findOnPath(override, env), tried: [override] } : { executable: null, tried: [] };
 }
 
 export function probeOasdiff(env: NodeJS.ProcessEnv): OasdiffProbe {
+  const image = imageProbeUnlessOverridden("oasdiff", env, "JGATES_OASDIFF");
+  if (image) return image;
   const { executable, tried } = findOasdiff(env);
   if (!executable) return { executable: null, version: null, problem: "not_found", detail: tried.join(", ") };
   let mtimeMs = 0;

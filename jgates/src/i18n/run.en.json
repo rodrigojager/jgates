@@ -57,7 +57,7 @@
   "run_option_waiver": "Waives findings in this run only, besides .jgates/waivers.json: key=value pairs separated by semicolons (rule, fingerprint, path, expires, reason). Can be repeated.",
   "run_bad_waiver": "Invalid waiver in --waiver \"{spec}\": {problem}.",
   "run_bad_waiver_fix": "Use, for example, --waiver \"rule=ruff.F401;path=src/**;expires=2026-12-31;reason=legacy under migration\".",
-  "run_install_hint": "Some checks did not run because a tool is missing. Run: jgates doctor --fix",
+  "run_install_hint": "Some checks did not run because the engine, the tools image or a tool of it is not ready. Run: jgates doctor",
   "run_install_again": "Run again now? [y/N] ",
   "run_option_ci": "Same as --no-interactive: never asks, not even to install a missing tool.",
   "run_option_plain": "Lean output for agents, logs and CI: no colors or animation, one line per event and a notice a minute while a long step runs. The default when the output is not a terminal, with NO_COLOR or in CI.",

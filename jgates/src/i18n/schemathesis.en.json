@@ -1,8 +1,8 @@
 {
   "schemathesis_label": "Schemathesis (API contract tests)",
   "schemathesis_no_target": "No target is configured: set tools.<instance>.target to the base URL of a running local or disposable environment. Without a target the API contract tests cannot run, so the stage is blocked, never passed.",
-  "schemathesis_missing": "Schemathesis is not installed ({detail}). Run jgates doctor --fix (pip install into the JGates environment), or install it with pip install schemathesis and point JGATES_SCHEMATHESIS to its st executable. JGates never installs it during a run. See https://schemathesis.readthedocs.io/en/stable/.",
-  "schemathesis_probe_failed": "Schemathesis at {path} did not answer --version. Reinstall it (jgates doctor --fix or pip install schemathesis).",
+  "schemathesis_missing": "Schemathesis is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
+  "schemathesis_probe_failed": "Schemathesis at {path} did not answer its version query.",
   "schemathesis_blocked": "Schemathesis could not run: {detail}",
   "schemathesis_no_spec": "No OpenAPI specification was found (openapi.yaml, openapi.json, swagger.* ...). Set tools.<instance>.spec to its path.",
   "schemathesis_auth_missing": "The authentication of the instance reads the environment variable {env}, which is not set. Set it for the run; JGates never tests without the declared authentication.",
@@ -26,7 +26,6 @@
   "schemathesis_setting_auth": "The auth of the instance {tool} must be { header: <HTTP header name>, valueEnv: <environment variable name> }; the secret itself is never written in the configuration.",
   "schemathesis_setting_number": "The {key} of the instance {tool} is {value}; use an integer from {min} to {max}.",
   "schemathesis_setting_checks": "The checks of the instance {tool} must be a non-empty list of: {allowed}.",
-  "schemathesis_fix": "Run jgates doctor --fix to install Schemathesis into the JGates environment (pip), or install it yourself (pip install schemathesis) and set JGATES_SCHEMATHESIS to its st executable, then run doctor again.",
   "schemathesis_form_title": "Schemathesis options",
   "schemathesis_form_section_api": "API",
   "schemathesis_form_section_advanced": "Advanced",

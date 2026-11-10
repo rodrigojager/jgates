@@ -291,7 +291,8 @@ function canAsk(ctx: CommandContext): boolean {
 /**
  * When the run left a stage blocked and something it needs is missing: on a terminal, lists it, offers the recipes of
  * `jgates doctor` and, after installing, asks whether to run again (returns true). Anywhere else it asks nothing and
- * only points to `jgates doctor --fix`. The exit code of the run is never changed here.
+ * only points to `jgates doctor`. A tool is never installed on the host (container-first): what can be prepared is the
+ * engine, the tools image and data. The exit code of the run is never changed here.
  */
 async function offerAfterMissingTools(ctx: CommandContext, result: RunResult, workspacePath: string): Promise<boolean> {
   if (!result.stages.some((s) => s.state === "blocked")) return false;

@@ -1,9 +1,11 @@
-// Finds a Node-based tool (ESLint, jscpd) on disk without running or installing anything: the version comes from the
-// package.json of the package that owns the entry file, never from a process.
+// Finds a Node-based tool (ESLint, jscpd) without running or installing anything: the tools image's copy comes from
+// image.json; a copy on disk (inside the image only) gets its version from the package.json of the package that owns
+// the entry file, never from a process.
 import fs from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import { findOnPath } from "../../core/bridge/index.js";
+import { inImageOverride, probeImageTool } from "../../core/tools-image/catalogue.js";
+import { stepMode } from "../../core/runner/in-image.js";
 
 export interface NodeToolProbe {
   /** What runs: Node plus the entry file, or the executable itself. */
@@ -15,7 +17,7 @@ export interface NodeToolProbe {
   version: string | null;
   /** Folder of the package (null when the executable is not inside one). */
   packageDir: string | null;
-  source: "env" | "workspace" | "path" | "jgates" | null;
+  source: "env" | "workspace" | "image" | null;
   problem: "not_found" | "no_version" | null;
   detail: string;
 }
@@ -92,24 +94,18 @@ function describe(entry: string, pkgName: string, source: NonNullable<NodeToolPr
   return { ...base, ...run, version: pkg.version, problem: null, detail: "" };
 }
 
-/** The copy of the package that ships with JGates itself, found through its bin entry. */
-function bundledEntry(pkgName: string, bin: string): string | null {
-  try {
-    const pkgFile = createRequire(import.meta.url).resolve(`${pkgName}/package.json`);
-    const pkg = readJson(pkgFile);
-    const field = pkg?.bin;
-    const rel = typeof field === "string" ? field : field && typeof field === "object" ? (field as Record<string, unknown>)[bin] : null;
-    if (typeof rel !== "string") return null;
-    const abs = path.resolve(path.dirname(pkgFile), rel);
-    return isFile(abs) ? abs : null;
-  } catch {
-    return null;
-  }
+/** A Node tool of the tools image, as image.json records it (its command on the image PATH, no entry file). */
+export function imageNodeTool(tool: string, env: NodeJS.ProcessEnv): NodeToolProbe {
+  const image = probeImageTool(tool, env);
+  return image.problem === null
+    ? { executable: image.executable, prefix: [], entry: null, version: image.version, packageDir: null, source: "image", problem: null, detail: "" }
+    : { executable: null, prefix: [], entry: null, version: null, packageDir: null, source: null, problem: "not_found", detail: image.detail };
 }
 
 /**
- * `envVar` (a file), then node_modules/.bin/<bin> from the component folder up to the workspace root, then PATH, then the
- * copy that ships with JGates. Nothing is downloaded.
+ * Container-first: the tools image's copy, from image.json (nothing starts, nothing is read on the host). Inside the
+ * image only: `envVar` (a file) first, then the project's own node_modules/.bin/<bin> from the component folder up to
+ * the workspace root (the project's installed dependencies), then the image's copy. Nothing is downloaded.
  */
 export function findNodeTool(opts: {
   pkgName: string;
@@ -120,30 +116,28 @@ export function findNodeTool(opts: {
   env: NodeJS.ProcessEnv;
   /** jgates ci: a copy installed in the analyzed project is the project's code, never the tool; it is not looked for. */
   skipWorkspace?: boolean;
+  /** The tool's name in image.json (default: the package name). */
+  imageTool?: string;
 }): NodeToolProbe {
   const { pkgName, bin, envVar, workspace, componentRoot, env } = opts;
   const tried: string[] = [];
-  const named = env[envVar];
+  const named = inImageOverride(env, envVar);
   if (named) {
     tried.push(named);
     const abs = findOnPath(named, env);
     if (abs) return describe(abs, pkgName, "env");
     return { executable: null, prefix: [], entry: null, version: null, packageDir: null, source: null, problem: "not_found", detail: tried.join(", ") };
   }
-  const start = componentRoot && componentRoot !== "." ? path.join(workspace, componentRoot) : workspace;
-  for (const dir of opts.skipWorkspace ? [] : ancestors(start, workspace)) {
-    for (const suffix of exeSuffix) {
-      const candidate = path.join(dir, "node_modules", ".bin", `${bin}${suffix}`);
-      tried.push(candidate);
-      if (isFile(candidate)) return describe(candidate, pkgName, "workspace");
+  if (stepMode(env) === "in-image" && !opts.skipWorkspace) {
+    const start = componentRoot && componentRoot !== "." ? path.join(workspace, componentRoot) : workspace;
+    for (const dir of ancestors(start, workspace)) {
+      for (const suffix of exeSuffix) {
+        const candidate = path.join(dir, "node_modules", ".bin", `${bin}${suffix}`);
+        if (isFile(candidate)) return describe(candidate, pkgName, "workspace");
+      }
     }
   }
-  tried.push(`${bin} on PATH`);
-  const onPath = findOnPath(bin, env);
-  if (onPath) return describe(onPath, pkgName, "path");
-  const bundled = bundledEntry(pkgName, bin);
-  if (bundled) return describe(bundled, pkgName, "jgates");
-  return { executable: null, prefix: [], entry: null, version: null, packageDir: null, source: null, problem: "not_found", detail: tried.join(", ") };
+  return imageNodeTool(opts.imageTool ?? pkgName, env);
 }
 
 export const findEslint = (workspace: string, componentRoot: string | null, env: NodeJS.ProcessEnv, skipWorkspace = false): NodeToolProbe =>

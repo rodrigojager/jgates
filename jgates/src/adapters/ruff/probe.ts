@@ -1,9 +1,9 @@
-// Finds the Ruff executable and asks it for its version, without installing or changing anything.
+// Whether Ruff is in the tools image, and its version, from image.json (nothing starts). Inside the image only,
+// JGATES_RUFF names another executable, which is asked for its version.
 import fs from "node:fs";
-import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
-import { pythonEnvExecutable } from "../../core/install/paths.js";
+import { besideOverridePython, imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface RuffProbe {
@@ -21,29 +21,16 @@ export function isNodeScript(executable: string): boolean {
 }
 
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
-const exeName = process.platform === "win32" ? "ruff.exe" : "ruff";
 
-/** JGATES_RUFF, then the folder of JGATES_PYTHON (same virtual environment), then the JGates environment
- * (<JGATES_HOME>/tools/python, from `jgates doctor --fix`), then PATH. */
+/** Inside the tools image only: the executable JGATES_RUFF names, else the one beside the JGATES_PYTHON override. */
 export function findRuff(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
-  const tried: string[] = [];
-  if (env.JGATES_RUFF) {
-    tried.push(env.JGATES_RUFF);
-    const found = findOnPath(env.JGATES_RUFF, env);
-    return { executable: found, tried };
-  }
-  if (env.JGATES_PYTHON) {
-    const sibling = path.join(path.dirname(env.JGATES_PYTHON), exeName);
-    tried.push(sibling);
-    if (fs.existsSync(sibling)) return { executable: path.resolve(sibling), tried };
-  }
-  const own = pythonEnvExecutable("ruff", env);
-  if (own) return { executable: own, tried: [...tried, own] };
-  tried.push("ruff on PATH");
-  return { executable: findOnPath("ruff", env), tried };
+  const override = inImageOverride(env, "JGATES_RUFF") ?? besideOverridePython(env, "ruff");
+  return override ? { executable: findOnPath(override, env), tried: [override] } : { executable: null, tried: [] };
 }
 
 export function probeRuff(env: NodeJS.ProcessEnv): RuffProbe {
+  const image = imageProbeUnlessOverridden("ruff", env, "JGATES_RUFF");
+  if (image) return image;
   const { executable, tried } = findRuff(env);
   if (!executable) return { executable: null, version: null, problem: "not_found", detail: tried.join(", ") };
   let mtimeMs = 0;

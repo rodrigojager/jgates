@@ -13,7 +13,7 @@ import { buildRequest, executeBridge } from "../../adapters/quality-bridge/index
 import { requestFromPlan } from "../../adapters/quality-bridge/from-plan.js";
 import { ADAPTER_ID, planSubchecks, type BridgeMode, type BridgeSelection, type SubcheckPlan } from "../../adapters/quality-bridge/requirements.js";
 import type { BridgeRequest } from "../bridge/index.js";
-import { resolvePython, resolveSidecarDir } from "../bridge/index.js";
+import { sidecarAvailability } from "../bridge/index.js";
 import { CORE_CAPABILITIES, subcheckLabel } from "../catalog/index.js";
 import { discoverWorkspace } from "../discovery/index.js";
 import { canonicalJson, canonicalPath, contentHash, workspaceId } from "../ids/index.js";
@@ -64,14 +64,15 @@ export function legacyPlan(workspacePath: string, selection: BridgeSelection, op
   const env = options.env ?? process.env;
   const dir = path.resolve(workspacePath);
   const inventory = discoverWorkspace(dir).inventory;
-  const { interpreter } = resolvePython(env);
-  const sidecarDir = resolveSidecarDir(env);
-  const toolVersion = sidecarVersion(sidecarDir);
-  const available = interpreter !== null && sidecarDir !== null;
+  const sidecar = sidecarAvailability(env);
+  const interpreter = sidecar.interpreter;
+  const sidecarDir = sidecar.pythonPath;
+  const toolVersion = sidecar.version;
+  const available = sidecar.problem === null;
   const legacy: BridgeSelection = { mode: selection.mode, pii: selection.pii, secrets: selection.secrets, iac: selection.iac, projectTests: selection.projectTests, coverage: selection.coverage };
   const command: PlanCommand = {
     invocation: ADAPTER_ID,
-    executable: interpreter ?? env.JGATES_PYTHON ?? "python",
+    executable: interpreter ?? "python",
     args: [...BRIDGE_ARGS],
     cwd: RUN_DIR_TOKEN,
     env: sidecarDir ? { PYTHONPATH: sidecarDir } : {},
@@ -132,7 +133,7 @@ export function legacyPlan(workspacePath: string, selection: BridgeSelection, op
         dependsOn: [],
         availability: available
           ? { status: "available", reason: null }
-          : { status: "unavailable", reason: interpreter === null ? tp("plan_python_missing", { python: env.JGATES_PYTHON ?? "python" }) : tp("plan_sidecar_missing") },
+          : { status: "unavailable", reason: sidecar.problem === "python_missing" ? tp("plan_python_missing", { python: sidecar.tried.join(", ") }) : tp("plan_sidecar_missing") },
         bridge: { skipMeans: plan.skipMeans, invoked: on },
       };
       (on ? willRun : off).push(item);

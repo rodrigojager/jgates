@@ -320,7 +320,8 @@ export function resolveToolBindings(dir: string, options: ResolveBindingsOptions
       componentRoot: component ? (inventoryRoots.get(component) ?? null) : null,
       enabled: rawTool.enabled !== false,
       required: rawTool.required === true,
-      runner: typeof rawTool.runner === "string" ? rawTool.runner : "local",
+      // Container-first: one runner (a `runner` key of an older tools.yml is dropped by the migration reader).
+      runner: "container",
       base: toolBase,
       supportLevel: supportLevelFor(adapter, bindings.some((b) => !b.refused), manifests),
       bindings,

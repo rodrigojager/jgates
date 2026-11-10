@@ -1,8 +1,8 @@
 {
   "schemathesis_label": "Schemathesis (testes de contrato de API)",
   "schemathesis_no_target": "Nenhum alvo configurado: defina tools.<instância>.target com a URL base de um ambiente local ou descartável em execução. Sem alvo os testes de contrato de API não podem rodar, então a etapa fica bloqueada, nunca aprovada.",
-  "schemathesis_missing": "O Schemathesis não está instalado ({detail}). Rode jgates doctor --fix (pip no ambiente do JGates), ou instale com pip install schemathesis e aponte JGATES_SCHEMATHESIS para o executável st. O JGates nunca o instala durante uma execução. Veja https://schemathesis.readthedocs.io/en/stable/.",
-  "schemathesis_probe_failed": "O Schemathesis em {path} não respondeu a --version. Reinstale (jgates doctor --fix ou pip install schemathesis).",
+  "schemathesis_missing": "Schemathesis não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
+  "schemathesis_probe_failed": "Schemathesis em {path} não respondeu à consulta de versão.",
   "schemathesis_blocked": "O Schemathesis não pôde rodar: {detail}",
   "schemathesis_no_spec": "Nenhuma especificação OpenAPI foi encontrada (openapi.yaml, openapi.json, swagger.* ...). Defina tools.<instância>.spec com o caminho dela.",
   "schemathesis_auth_missing": "A autenticação da instância lê a variável de ambiente {env}, que não está definida. Defina-a para a execução; o JGates nunca testa sem a autenticação declarada.",
@@ -26,7 +26,6 @@
   "schemathesis_setting_auth": "O auth da instância {tool} deve ser { header: <nome do cabeçalho HTTP>, valueEnv: <nome da variável de ambiente> }; o segredo nunca é escrito na configuração.",
   "schemathesis_setting_number": "O {key} da instância {tool} é {value}; use um inteiro de {min} a {max}.",
   "schemathesis_setting_checks": "As checks da instância {tool} devem ser uma lista não vazia de: {allowed}.",
-  "schemathesis_fix": "Rode jgates doctor --fix para instalar o Schemathesis no ambiente do JGates (pip), ou instale você mesmo (pip install schemathesis) e defina JGATES_SCHEMATHESIS com o executável st, depois rode o doctor de novo.",
   "schemathesis_form_title": "Opções do Schemathesis",
   "schemathesis_form_section_api": "API",
   "schemathesis_form_section_advanced": "Avançado",

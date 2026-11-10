@@ -17,6 +17,7 @@ const VENV_BIN = path.join(repo, ".venv", process.platform === "win32" ? "Script
 const PYTHON = path.join(VENV_BIN, process.platform === "win32" ? "python.exe" : "python");
 const HAS_SEMGREP = fs.existsSync(path.join(VENV_BIN, process.platform === "win32" ? "semgrep.exe" : "semgrep"));
 const rules = await import(pathToFileURL(path.join(dist, "core", "rules", "index.js")).href);
+const { imageJsonWithout } = await import(pathToFileURL(path.join(path.dirname(fileURLToPath(import.meta.url)), "setup", "image-json.mjs")).href);
 const documents = await import(pathToFileURL(path.join(dist, "core", "documents", "index.js")).href);
 const catalog = await import(pathToFileURL(path.join(dist, "core", "catalog", "index.js")).href);
 const semgrepAdapter = await import(pathToFileURL(path.join(dist, "adapters", "semgrep", "index.js")).href);
@@ -260,21 +261,21 @@ test("a rule id repeated across files is reported and blocks the plan", () => {
   }
 });
 
-test("without Semgrep installed the stage is blocked and the decision is incomplete, never passed", () => {
-  const p = project({ JGATES_PYTHON: path.join(os.tmpdir(), "jgates-no-such-venv", "bin", "python") }, { withSemgrep: false });
+test("with Semgrep absent from the tools image the stage is blocked and the decision is incomplete, never passed", () => {
+  const p = project({ JGATES_PYTHON: path.join(os.tmpdir(), "jgates-no-such-venv", "bin", "python"), JGATES_IMAGE_JSON: imageJsonWithout("semgrep") }, { withSemgrep: false });
   try {
     const planned = p.plan();
     assert.equal(planned.code, 0, planned.out + planned.err);
     const item = p.item(planned);
     assert.equal(item.availability.status, "unavailable");
-    assert.match(item.availability.reason, /jgates doctor --fix/);
-    assert.ok(planned.doc.plan.warnings.some((w) => w.code === "TOOL_UNAVAILABLE"));
+    assert.match(item.availability.reason, /jgates setup/);
+    assert.ok(planned.doc.plan.warnings.some((w) => w.code === "TOOL_MISSING"));
     const ran = p.run();
     assert.equal(ran.code, 2, ran.out + ran.err);
     assert.equal(ran.doc.decision, "incomplete");
     const stage = ran.doc.stages.find((s) => s.id === "semgrep#sast");
     assert.equal(stage.state, "blocked");
-    assert.match(stage.reason, /jgates doctor --fix/);
+    assert.match(stage.reason, /jgates setup/);
     assert.deepEqual(found(ran.doc), []);
   } finally {
     p.cleanup();

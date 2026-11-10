@@ -1,36 +1,26 @@
-// What is missing, and how badly: each runtime and tool of the diagnosis gets a classification from the project's
-// configuration (the instances of .jgates/tools.yml and how they run):
-//   - essential: an enabled check does not run without it, and there is no other runner;
-//   - optional: there is an alternative (the image when the local tool is missing, the local tool when the image or
-//     Docker is missing), and the text says which, with the line to change;
+// What is missing, and how badly (container-first, ADR-0004): the host needs Node, Git and a Docker-compatible engine;
+// every tool comes from the JGates tools image. Each runtime and tool of the diagnosis gets a classification:
+//   - essential: an enabled check does not run without it (the engine, the tools image, a required tool);
+//   - optional: a check on only "when available" (strict) lacks it;
 //   - unused: no enabled check needs it.
-// A missing item also gets the recipe that installs it (a preview: commands, hosts, what it writes) and the command
-// that switches its check off for one run. Read-only: nothing here installs anything.
+// A missing item gets the one recipe that prepares it, as a preview: the engine's install or start, the tools image's
+// download, an instance's data (Semgrep rules). A tool the image does not have is never installed on the host: its
+// fix is the image of this JGates release (the shared TOOL_MISSING cause). Also the command that switches a check off
+// for one run. Read-only: nothing here installs anything.
 import { translator } from "../../i18n/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
-import { probeRuff } from "../../adapters/ruff/probe.js";
 import type { AdapterManifest } from "../catalog/index.js";
-import { readLock } from "../lock/index.js";
-import {
-  CONTAINER_OPTIONAL_ADAPTERS,
-  diagnoseEnvironment,
-  probeLockedImage,
-  runsInContainer,
-  satisfiesRange,
-  type EnvironmentDiagnosis,
-  type RuntimeStatus,
-  type ToolStatus,
-} from "../prepare/index.js";
-import { dockerInstallRecipe, dockerStartRecipe, pipRequirement, prepareRecipe, previewOf, pythonPackagesRecipe, type Recipe, type RecipePreview } from "./recipes.js";
+import { readToolsImagePin, toolsImageTarget } from "../tools-image/index.js";
+import { diagnoseEnvironment, type EnvironmentDiagnosis, type RuntimeStatus, type ToolStatus } from "../prepare/index.js";
+import { dockerInstallRecipe, dockerStartRecipe, imagePullRecipe, prepareRecipe, previewOf, type Recipe, type RecipePreview } from "./recipes.js";
 import { detectSystem, type HostSystem } from "./system.js";
 
 export type Classification = "essential" | "optional" | "unused";
 
+/** Kept for the readers of the report: container-first leaves no alternative runner, so it is always null. */
 export interface Alternative {
-  /** container: run the instance in its image; local: run the local tool. */
   kind: "container" | "local";
   message: string;
-  /** The line to change in .jgates/tools.yml (and the preparation, when the image needs one). */
   command: string;
 }
 
@@ -72,19 +62,10 @@ export interface AssessOptions {
   diagnosis?: EnvironmentDiagnosis;
 }
 
-/** Adapters whose tool JGates installs with pip into its own environment, with the pip package name. */
-// Import Linter reads the source only (grimp never imports the project), so it can live in JGates's environment like
-// Ruff; pytest cannot: it runs the project's code and needs the project's own environment and dependencies.
-export const PYTHON_PACKAGES: Readonly<Record<string, string>> = { ruff: "ruff", semgrep: "semgrep", "import-linter": "import-linter", zizmor: "zizmor", schemathesis: "schemathesis" };
-/** Adapters that need a Python interpreter on the host. */
-const NEEDS_PYTHON = new Set(["quality-bridge", "builtin-pii", "pytest", "import-linter"]);
-/** The variable that chooses the executable of an adapter: when it is set, JGates does not install another one. */
-const CHOSEN_BY: Readonly<Record<string, string>> = { ruff: "JGATES_RUFF", semgrep: "JGATES_SEMGREP", "import-linter": "JGATES_IMPORT_LINTER", zizmor: "JGATES_ZIZMOR", schemathesis: "JGATES_SCHEMATHESIS", "quality-bridge": "JGATES_PYTHON" };
-
 function toolMissing(x: ToolStatus): boolean {
   if (x.state === "absent" || x.state === "incompatible") return true;
   // On "when available" the plan already found the tool missing here; without an environment check of its own, the
-  // plan is the evidence (offered as a manual step with the official link).
+  // plan is the evidence.
   if (x.whenAvailable === true && x.state === "not_checked") return true;
   return x.preparation.kind === "rules" && (x.preparation.state === "missing" || x.preparation.state === "corrupt");
 }
@@ -94,6 +75,30 @@ const TOOLS_FILE = ".jgates/tools.yml";
 /** The fields an assessment adds to a runtime or tool of the diagnosis. */
 const assessed = (i: ItemAssessment): Omit<ItemAssessment, "key" | "name"> => ({ classification: i.classification, missing: i.missing, alternative: i.alternative, disable: i.disable, recipe: i.recipe });
 
+/** The registry host a pull of the reference reaches (docker.io when the reference names none). */
+function registryOf(reference: string): string {
+  const name = reference.split("@")[0] ?? reference;
+  const first = name.split("/")[0] ?? "";
+  return name.includes("/") && (first.includes(".") || first.includes(":") || first === "localhost") ? first : "docker.io";
+}
+
+/** The tools image's download: only a published pin (or a reference JGATES_TOOLS_IMAGE names) can be pulled. */
+function imageRecipe(env: NodeJS.ProcessEnv): Recipe {
+  const t = translator("prepare");
+  const target = toolsImageTarget(env);
+  let published = target.source === "env";
+  if (!published) {
+    try {
+      published = readToolsImagePin().published === true;
+    } catch {
+      published = false;
+    }
+  }
+  const local = /^sha256:[0-9a-f]{64}$/.test(target.reference);
+  const available = published && !local;
+  return imagePullRecipe({ reference: target.reference, hosts: available ? [registryOf(target.reference)] : [], available, reason: available ? null : t("prepare_recipe_image_unpublished", { image: target.reference }) });
+}
+
 export function assessEnvironment(projectDir: string, options: AssessOptions = {}): Assessment {
   const t = translator("prepare");
   const env = options.env ?? process.env;
@@ -101,9 +106,6 @@ export function assessEnvironment(projectDir: string, options: AssessOptions = {
   const byAdapter = new Map(manifests.map((m) => [m.id, m]));
   const system = options.system ?? detectSystem();
   const d = options.diagnosis ?? diagnoseEnvironment(projectDir, { env, manifests });
-  const lock = readLock(projectDir);
-  const docker = d.runtimes.find((r) => r.id === "docker");
-  const dockerReady = docker?.state === "ready";
   const recipes = new Map<string, Recipe>();
   const items: ItemAssessment[] = [];
 
@@ -111,45 +113,12 @@ export function assessEnvironment(projectDir: string, options: AssessOptions = {
     const key = `tool:${x.instance}`;
     const manifest = byAdapter.get(x.adapter);
     const missing = x.enabled && toolMissing(x);
-    const container = runsInContainer(x.adapter, x.runner);
-    let alternative: Alternative | null = null;
-    if (missing && CONTAINER_OPTIONAL_ADAPTERS.has(x.adapter)) {
-      if (container) {
-        // The image or Docker is missing: the local tool, when it answers within the range, is the alternative.
-        const local = x.adapter === "ruff" ? probeRuff(env) : null;
-        const fits = local?.version && manifest ? satisfiesRange(local.version, manifest.toolVersionRange) === true : false;
-        if (local?.executable && fits) {
-          alternative = { kind: "local", message: t("prepare_alt_local", { tool: manifest?.toolName ?? x.adapter, path: local.executable }), command: t("prepare_alt_local_command", { instance: x.instance, file: TOOLS_FILE }) };
-        }
-      } else if (dockerReady && probeLockedImage({ env, dir: projectDir, instance: x.instance }).problem === null) {
-        // The local tool is missing, and the image pinned for the instance is in Docker.
-        alternative = { kind: "container", message: t("prepare_alt_container", { tool: manifest?.toolName ?? x.adapter }), command: t("prepare_alt_container_command", { instance: x.instance, file: TOOLS_FILE }) };
-      }
-    }
-    // On "when available" only: offered to prepare, never essential (the plan runs without it).
-    const classification: Classification = !x.enabled ? "unused" : alternative || x.whenAvailable ? "optional" : "essential";
+    // On "when available" only: offered, never essential (the plan runs without it).
+    const classification: Classification = !x.enabled ? "unused" : x.whenAvailable ? "optional" : "essential";
     let recipe: Recipe | null = null;
-    if (missing && manifest) {
-      const chosenBy = CHOSEN_BY[x.adapter];
-      const imageProblem = container && x.state !== "ready";
-      if (imageProblem || (x.preparation.kind === "rules" && x.state === "ready")) {
-        const kind = container ? "image" : "rules";
-        const needsDocker = kind === "image" && !dockerReady;
-        recipe = prepareRecipe({
-          instance: x.instance,
-          projectDir,
-          kind,
-          hosts: x.preparation.network.hosts,
-          available: !needsDocker,
-          reason: needsDocker ? t("prepare_recipe_needs_docker", { instance: x.instance }) : null,
-          env,
-        });
-      } else if (!container && (Object.hasOwn(PYTHON_PACKAGES, x.adapter) || x.adapter === "quality-bridge")) {
-        const pkg = PYTHON_PACKAGES[x.adapter];
-        const packages = pkg ? [pipRequirement(pkg, manifest.toolVersionRange, lock.lock.tools[x.instance]?.toolVersion ?? null)] : [];
-        recipe = pythonPackagesRecipe(`python:${x.instance}`, packages, env);
-        if (chosenBy && env[chosenBy]) recipe = { ...recipe, available: false, reason: t("prepare_recipe_chosen_by", { variable: chosenBy, value: env[chosenBy] ?? "" }) };
-      }
+    // The only per-instance preparation left is its data (the Semgrep rules), once the tool itself is there.
+    if (missing && manifest && x.preparation.kind === "rules" && x.state === "ready") {
+      recipe = prepareRecipe({ instance: x.instance, projectDir, hosts: x.preparation.network.hosts, available: true, reason: null, env });
     }
     if (recipe) recipes.set(key, recipe);
     const item: ItemAssessment = {
@@ -157,7 +126,7 @@ export function assessEnvironment(projectDir: string, options: AssessOptions = {
       name: x.instance,
       classification,
       missing,
-      alternative,
+      alternative: null,
       disable: missing ? { command: `jgates run --skip tool:${x.instance}`, message: t("prepare_disable", { instance: x.instance, file: TOOLS_FILE }) } : null,
       recipe: recipe ? previewOf(recipe) : null,
     };
@@ -165,33 +134,17 @@ export function assessEnvironment(projectDir: string, options: AssessOptions = {
     return { ...x, ...assessed(item) };
   });
 
-  const enabled = d.tools.filter((x) => x.enabled);
-  const containerUsers = enabled.filter((x) => runsInContainer(x.adapter, x.runner));
-  const pythonNeeded = d.tools.length === 0 || enabled.some((x) => NEEDS_PYTHON.has(x.adapter)) || [...recipes.values()].some((r) => r.kind === "python-packages" && r.createEnv);
-
   const runtimes: AssessedRuntime[] = d.runtimes.map((r) => {
     const key = `runtime:${r.id}`;
-    let classification: Classification = "essential";
-    let alternative: Alternative | null = null;
+    const classification: Classification = r.optional ? "unused" : "essential";
+    const missing = classification !== "unused" && r.state !== "ready" && r.state !== "not_checked";
     let recipe: Recipe | null = null;
-    if (r.id === "python") classification = pythonNeeded ? "essential" : "unused";
-    if (r.id === "docker") {
-      if (containerUsers.length === 0) classification = "unused";
-      else {
-        // Docker is optional only when every instance that runs in a container has the local tool as alternative.
-        const local = containerUsers.every((x) => tools.find((y) => y.instance === x.instance)?.alternative?.kind === "local");
-        classification = local ? "optional" : "essential";
-        if (local) alternative = { kind: "local", message: t("prepare_alt_docker_local", { instances: containerUsers.map((x) => x.instance).join(", ") }), command: t("prepare_alt_local_command", { instance: containerUsers.map((x) => x.instance).join(", "), file: TOOLS_FILE }) };
-      }
-    }
-    const missing = classification !== "unused" && r.state !== "ready";
-    if (missing && r.id === "docker") recipe = r.stopped ? dockerStartRecipe(system) : dockerInstallRecipe(system);
+    if (missing && r.id === "docker" && r.state === "absent") recipe = r.stopped ? dockerStartRecipe(system) : dockerInstallRecipe(system);
+    if (missing && r.id === "image") recipe = imageRecipe(env);
     if (recipe) recipes.set(key, recipe);
-    const item: ItemAssessment = { key, name: r.id, classification, missing, alternative, disable: null, recipe: recipe ? previewOf(recipe) : null };
+    const item: ItemAssessment = { key, name: r.id, classification, missing, alternative: null, disable: null, recipe: recipe ? previewOf(recipe) : null };
     items.push(item);
-    // The diagnosis calls a missing Docker optional; when an enabled check needs it, the text says so.
-    const needed = r.id === "docker" && classification === "essential" && r.state !== "ready" && !r.stopped ? { message: t("prepare_runtime_absent", { name: "Docker", detail: "docker on PATH" }), fix: t("prepare_fix_docker_required") } : {};
-    return { ...r, ...needed, ...assessed(item) };
+    return { ...r, ...assessed(item) };
   });
 
   const ordered = [...items.filter((i) => i.key.startsWith("runtime:")), ...items.filter((i) => i.key.startsWith("tool:"))];

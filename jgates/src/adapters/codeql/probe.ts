@@ -1,9 +1,10 @@
-// Finds the CodeQL CLI the customer supplied and asks it for its version, without installing or changing anything.
+// Whether the CodeQL CLI is available, without installing or changing anything. CodeQL is customer supplied and never
+// in the tools image (ADR-0005): image.json does not list it, so on the host it is missing until it is prepared into
+// its own volume. Inside the image only, JGATES_CODEQL names the executable, which is asked for its version.
 import fs from "node:fs";
-import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
-import { resolveHome } from "../../core/home/index.js";
+import { imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface CodeqlProbe {
@@ -14,24 +15,16 @@ export interface CodeqlProbe {
 }
 
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
-const exeName = process.platform === "win32" ? "codeql.exe" : "codeql";
-
-/** JGATES_CODEQL (the configured executable path), then <JGATES_HOME>/tools/bin, then PATH. */
+/** The executable JGATES_CODEQL names, inside the tools image only. */
 export function findCodeql(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
-  const tried: string[] = [];
-  if (env.JGATES_CODEQL) {
-    tried.push(env.JGATES_CODEQL);
-    return { executable: findOnPath(env.JGATES_CODEQL, env), tried };
-  }
-  const own = path.join(resolveHome({ env }), "tools", "bin", exeName);
-  tried.push(own);
-  if (fs.existsSync(own)) return { executable: own, tried };
-  tried.push("codeql on PATH");
-  return { executable: findOnPath("codeql", env), tried };
+  const override = inImageOverride(env, "JGATES_CODEQL");
+  return override ? { executable: findOnPath(override, env), tried: [override] } : { executable: null, tried: [] };
 }
 
 /** Readiness: `codeql version --format=terse` prints just the version (older CLIs print a banner; both are read). */
 export function probeCodeql(env: NodeJS.ProcessEnv): CodeqlProbe {
+  const image = imageProbeUnlessOverridden("codeql", env, "JGATES_CODEQL");
+  if (image) return image;
   const { executable, tried } = findCodeql(env);
   if (!executable) return { executable: null, version: null, problem: "not_found", detail: tried.join(", ") };
   let mtimeMs = 0;

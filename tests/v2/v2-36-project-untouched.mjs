@@ -62,7 +62,7 @@ test("V2-36: the project folder is identical before and after a full run whose t
     runtime,
     `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(log)};\nprocess.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};\nprocess.env.FAKE_DOCKER_LABELS = ${JSON.stringify(labels)};\nprocess.env.FAKE_DOCKER_WORKSPACE_WRITES = ${JSON.stringify(JSON.stringify(writes))};\nrequire(${JSON.stringify(FAKE)});\n`,
   );
-  const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
+  const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
 
   fs.mkdirSync(path.join(project, "src"), { recursive: true });
   fs.mkdirSync(path.join(project, "tests"), { recursive: true });

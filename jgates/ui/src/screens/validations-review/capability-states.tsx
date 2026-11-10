@@ -251,7 +251,7 @@ type PrepareStep =
  * result here and builds the plan again. A tool JGates cannot install by itself (a download it does not do, a
  * platform the tool does not support) is said plainly, with the install link. "Ver detalhes" opens the environment.
  */
-export function PrepareAction({ label, tools, toolName, docs, ctx }: { label: string; tools: string[]; toolName: string; docs: string | null; ctx: StateContext }) {
+export function PrepareAction({ label, tools, toolName, docs, ctx, image = false }: { label: string; tools: string[]; toolName: string; docs: string | null; ctx: StateContext; image?: boolean }) {
   const [state, setState] = useState<PrepareStep>({ step: "idle" });
   const [error, setError] = useState<unknown>(null);
   const toast = useToast();
@@ -263,7 +263,8 @@ export function PrepareAction({ label, tools, toolName, docs, ctx }: { label: st
     setState({ step: "checking" });
     try {
       const report = await api<{ items: PrerequisiteItem[] }>("GET", "/api/prerequisites");
-      const mine = (report.items ?? []).filter((i) => i.names.some((n) => tools.includes(n)));
+      // A tool the tools image lacks is prepared by the image itself (the download of this version), never per tool.
+      const mine = (report.items ?? []).filter((i) => (image && i.kind === "image-pull") || i.names.some((n) => tools.includes(n)));
       const runnable = mine.find((i) => i.action === "run");
       if (runnable) setState({ step: "confirm", item: runnable });
       else if (mine.length > 0) setState({ step: "manual", item: mine[0] as PrerequisiteItem });
@@ -441,11 +442,11 @@ export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext })
     if (tools.length === 0 && settingsOf(action).length > 0) hint = t("capst_settings_hint", { settings: settingsOf(action).map(settingLabel).join(", ") });
     // Configure first; the tool is also missing here, so it is prepared next (its own action appears then).
     if (tools.length > 0 && action.prepareNext === true) hint = t("capst_prepare_next", { tool: toolName });
-  } else if (action.kind === "prepare-tool") {
+  } else if (action.kind === "prepare-tool" || action.kind === "prepare-image") {
     const docsLink = ((action.docs ?? []) as string[]).find((d) => /^https?:\/\//.test(d)) ?? null;
     return (
       <div className="capst-action" data-action={action.kind}>
-        <PrepareAction label={state.label} tools={tools} toolName={tools.join(", ") || toolName} docs={docsLink} ctx={ctx} />
+        <PrepareAction label={state.label} tools={tools} toolName={tools.join(", ") || toolName} docs={docsLink} ctx={ctx} image={action.kind === "prepare-image"} />
       </div>
     );
   }

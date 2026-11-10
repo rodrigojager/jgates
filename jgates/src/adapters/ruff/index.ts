@@ -1,8 +1,7 @@
 // Ruff adapter: plans one `ruff check` per tool instance (configuration file chosen by the binding or by Ruff's own
-// resolution, cache in the run folder as the manifest declares, JSON on stdout) and normalizes its findings. The
-// instance runs on the local runner, or on the container runner when tools.yml says `runner: container` (the image
-// pinned in .jgates/lock.json by `tools prepare`, workspace read-only, the cache folder as the only writable mount).
-// Nothing is written in the workspace.
+// resolution, cache in the run folder as the manifest declares, JSON on stdout) and normalizes its findings. Ruff is
+// the tools image's (image.json); the run launches it in the step container like every other tool (container-first,
+// there is no runner option any more). Nothing is written in the workspace.
 import fs from "node:fs";
 import path from "node:path";
 import { translator } from "../../i18n/index.js";
@@ -13,7 +12,6 @@ import { CONTAINER_OUTPUT, CONTAINER_WORKSPACE, runContainer, runSpec, substitut
 import { createOutputPaths, outputPathFor, outputPathUnder, redirectionEnv, RUN_DIR_TOKEN } from "../../core/run/redirection.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { chooseRuffConfig } from "./config.js";
-import { probeRuffImage, type RuffImageProbe } from "./container.js";
 import { ruffManifest } from "./manifest.js";
 import { parseRuffOutput } from "./normalize.js";
 import { isNodeScript, probeRuff } from "./probe.js";
@@ -22,7 +20,6 @@ export { ruffManifest } from "./manifest.js";
 export { parseRuffOutput } from "./normalize.js";
 export { chooseRuffConfig } from "./config.js";
 export { findRuff, probeRuff } from "./probe.js";
-export { IMAGE_VERSION_LABEL, probeRuffImage } from "./container.js";
 
 const ADAPTER_ID = ruffManifest.id;
 const WORKSPACE = "{workspace}";
@@ -31,13 +28,6 @@ const WORKSPACE = "{workspace}";
 export type RuffPlanInput = ExternalPlanInput & { config?: Record<string, unknown> };
 
 const isRec = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
-
-/** The runner tools.yml chose for the instance: `container` or the default `local`. */
-export function runnerOf(input: RuffPlanInput): "local" | "container" {
-  const tools = isRec(input.config) && isRec(input.config.tools) ? input.config.tools : {};
-  const body = tools[input.tool];
-  return isRec(body) && body.runner === "container" ? "container" : "local";
-}
 
 /** The cache folder the manifest declares (run-folder relative). */
 const cachePath = (): NonNullable<ReturnType<typeof outputPathFor>> => {
@@ -51,25 +41,6 @@ function versionAvailability(version: string | null): ExternalPlan["availability
     return { status: "unavailable", reason: translator("prepare")("prepare_incompatible", { tool: ruffManifest.toolName, version, range: ruffManifest.toolVersionRange, what: ADAPTER_ID }) };
   }
   return null;
-}
-
-function containerAvailability(probe: RuffImageProbe, instance: string): ExternalPlan["availability"] {
-  const t = translator("ruff");
-  const params = { instance, image: probe.image ?? "-", detail: probe.detail, command: probe.command, runtime: probe.runtimeName };
-  switch (probe.problem) {
-    case "runtime_missing":
-      return { status: "unavailable", reason: t("ruff_container_runtime_missing", params) };
-    case "lock_invalid":
-      return { status: "unavailable", reason: t("ruff_container_lock_invalid", params) };
-    case "image_unprepared":
-      return { status: "unavailable", reason: t("ruff_container_image_unprepared", params) };
-    case "image_missing":
-      return { status: "unavailable", reason: t("ruff_container_image_missing", params) };
-    case "image_changed":
-      return { status: "unavailable", reason: t("ruff_container_image_changed", params) };
-    default:
-      return versionAvailability(probe.version) ?? { status: "available", reason: null };
-  }
 }
 
 /** The command the plan shows: executable and args (no shell), configuration chosen, cache in the run folder. */
@@ -92,48 +63,6 @@ function planRuff(input: RuffPlanInput): ExternalPlan {
     output: { format: "json", schema: null },
   };
   const cwd = root ? `${WORKSPACE}/${root}` : WORKSPACE;
-
-  if (runnerOf(input) === "container") {
-    // Inside the container the workspace is /workspace (read-only) and the cache folder of the run is /output.
-    // The image comes from the lock of the configuration folder (the policy's, under a CI policy).
-    const probe = probeRuffImage(input.env, input.policyDir ?? input.dir, input.tool);
-    const args = [
-      "check",
-      ...(config.file ? ["--config", config.source === "policy" ? config.file : toContainerPath(config.file)] : ["--isolated"]),
-      ...hardening,
-      "--no-fix",
-      "--output-format",
-      "json",
-      "--cache-dir",
-      CONTAINER_OUTPUT,
-      ".",
-    ];
-    return {
-      ...common,
-      command: {
-        executable: ruffManifest.toolName,
-        args,
-        cwd,
-        env: redirectionEnv(ruffManifest, RUN_DIR_TOKEN, () => CONTAINER_OUTPUT),
-        stdin: null,
-        container: {
-          runtime: probe.runtime ?? probe.runtimeName,
-          image: probe.image ?? "",
-          network: "none",
-          mounts: [
-            { source: WORKSPACE, target: CONTAINER_WORKSPACE, readOnly: true },
-            { source: outputPathUnder(RUN_DIR_TOKEN, cache), target: CONTAINER_OUTPUT, readOnly: false },
-          ],
-        },
-      },
-      runtime: { name: "container", interpreter: probe.runtime, available: probe.problem === null },
-      toolVersion: probe.version,
-      // The container sees only the workspace and the output folder: the policy's file cannot reach it.
-      availability: config.source === "policy" ? { status: "unavailable", reason: translator("governed")("governed_ruff_container_policy", { tool: input.tool }) } : containerAvailability(probe, input.tool),
-      ...(config.source === "policy" ? { blocksPlan: true } : {}),
-      conditions: [t("ruff_condition_python"), t("ruff_condition_container", { image: probe.image ?? "-" }), ...governedConditions],
-    };
-  }
 
   const probe = probeRuff(input.env);
   const args = [

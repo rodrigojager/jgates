@@ -8,7 +8,7 @@
   "runner_cwd_missing": "A pasta de trabalho {dir} não existe.",
   "runner_dir_unwritable": "Não foi possível criar ou gravar na pasta {dir}.",
   "runner_bridge_sidecar_missing": "O pacote do sidecar (quality_sidecar) não foi encontrado em {dir}; defina JGATES_SIDECAR_DIR ou instale o quality-gate.",
-  "runner_bridge_python_missing": "O Python da ponte ({python}) não foi encontrado; defina JGATES_PYTHON ou ponha o python no PATH.",
+  "runner_bridge_python_missing": "O Python da ponte ({python}) não foi encontrado.",
   "runner_not_run_cancelled": "Não executada: o run foi cancelado antes desta etapa.",
   "runner_cancelled_running": "Cancelada durante a execução: os processos da etapa foram encerrados e o que ela produziu não conta.",
   "runner_not_run_fail_fast": "Não executada: --fail-fast parou o run depois da falha em {step} ({detail}).",
@@ -19,6 +19,6 @@
   "runner_step_crashed": "Erro do adaptador: {detail}",
   "runner_invalid_output": "Saída ilegível, a etapa não prova nada: {detail}",
   "runner_step_timeout": "Interrompida: a etapa passou do limite de tempo de {seconds} s.",
-  "runner_engine_lost":"Incompleta: {message}",
+  "runner_engine_lost": "Incompleta: {message}",
   "runner_engine_lost_blocked": "Não executada: {message}"
 }

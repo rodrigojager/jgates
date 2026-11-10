@@ -21,8 +21,12 @@ const adapter = await load("adapters", "zizmor", "index.js");
 const install = await load("core", "install", "index.js");
 const manifests = await load("adapters", "manifests.js");
 
+const { imageJsonWithout } = await import(pathToFileURL(path.join(here, "setup", "image-json.mjs")).href);
+const prerequisites = await load("core", "prerequisites", "index.js");
+
+// In-image mode (tests/setup/in-image.mjs): a zizmor on this machine's PATH stands for the image's.
 const probe = adapter.probeZizmor(process.env);
-const REAL = probe.executable !== null && probe.version !== null;
+const REAL = probe.executable !== null && path.isAbsolute(probe.executable) && probe.version !== null;
 
 const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 const recorded = (name) => fs.readFileSync(path.join(FIXTURES, "recorded", name), "utf8");
@@ -86,7 +90,7 @@ test("zizmor: a template injection in a workflow is a normalized finding and the
   assert.deepEqual(clean.findings, []);
 
   if (!REAL) {
-    t.diagnostic(`zizmor is not installed (${probe.detail}): the live scan did not run; only the recorded zizmor 1.32.0 output was parsed. Install it with: jgates doctor --fix`);
+    t.diagnostic(`zizmor is not installed (${probe.detail}): the live scan did not run; only the recorded zizmor 1.32.0 output was parsed. It is in the tools image; put zizmor on the PATH to run it here.`);
     return;
   }
   // The real tool through the real plan and run: the injection fixture fails with the finding, the clean one passes.
@@ -217,24 +221,26 @@ test("zizmor settings: persona, minimum severity and offline reach the command; 
   assert.deepEqual({ persona: defaults.persona, minSeverity: defaults.minSeverity, offline: defaults.offline, problems: defaults.problems }, { persona: "regular", minSeverity: null, offline: true, problems: [] });
 });
 
-test("zizmor prerequisites: a missing tool is unavailable with the way to prepare it, and the preparation is a guided recipe", () => {
-  const ws = setup("injection", { env: { JGATES_ZIZMOR: path.join(os.tmpdir(), "jgates-no-such-zizmor") } });
+test("zizmor prerequisites: a tool the tools image lacks is unavailable with the image's cause, and nothing is offered to install on the host", () => {
+  const imageJson = imageJsonWithout("zizmor");
+  const ws = setup("injection", { env: { JGATES_ZIZMOR: "", JGATES_IMAGE_JSON: imageJson } });
   try {
     const item = itemOf(ws.plan());
     assert.equal(item.availability.status, "unavailable");
-    assert.match(item.availability.reason, /jgates doctor --fix/);
-    // The doctor offers a pip install into the JGates environment (never the system Python, never during a run).
-    const env = { ...ws.env };
-    delete env.JGATES_ZIZMOR;
-    env.PATH = os.tmpdir();
+    assert.match(item.availability.reason, /jgates setup/);
+    assert.doesNotMatch(item.availability.reason, /pip install|doctor --fix/);
+    // The doctor diagnoses it as missing, with no recipe: a tool is never installed on the host.
+    const env = { ...ws.env, PATH: os.tmpdir() };
     const assessment = install.assessEnvironment(ws.dir, { env });
     const tool = assessment.report.tools.find((x) => x.adapter === "zizmor");
     assert.ok(tool, "the instance is diagnosed");
     assert.equal(tool.missing, true);
-    assert.equal(tool.recipe?.kind, "python-packages");
-    const recipe = assessment.recipes.get("tool:zizmor");
-    assert.ok(recipe.packages.some((p) => /^zizmor(>=|==)/.test(p)), recipe.packages.join(", "));
-    assert.ok(recipe.writes.some((w) => w.startsWith(path.join(ws.home, "tools"))), recipe.writes.join(", "));
+    assert.equal(tool.recipe, null);
+    assert.equal(assessment.recipes.has("tool:zizmor"), false);
+    assert.equal(tool.fix, "jgates setup");
+    const report = prerequisites.listPrerequisites(ws.dir, { env, assessment });
+    assert.ok(report.items.every((i) => ["docker-install", "docker-start", "image-pull", "git-trust", "data-prepare", "manual"].includes(i.kind)), JSON.stringify(report.items));
+    assert.equal(report.items.find((i) => i.names.includes(tool.instance))?.kind, "manual");
   } finally {
     ws.cleanup();
   }

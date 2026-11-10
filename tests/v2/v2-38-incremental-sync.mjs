@@ -36,7 +36,7 @@ function setup() {
   const runtime = path.join(bin, "docker.cjs");
   const labels = JSON.stringify({ "org.jgates.version": CLI_VERSION });
   fs.writeFileSync(runtime, `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(log)};\nprocess.env.FAKE_DOCKER_STATE = ${JSON.stringify(bin)};\nprocess.env.FAKE_DOCKER_LABELS = ${JSON.stringify(labels)};\nrequire(${JSON.stringify(FAKE)});\n`);
-  const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
+  const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
   const sync = () => {
     const r = spawnSync(process.execPath, [MAIN, "internal", "sync", "--cwd", project, "--json"], { cwd: project, encoding: "utf8", env, input: "", timeout: 300_000 });
     assert.equal(r.status, 0, r.stdout + r.stderr);

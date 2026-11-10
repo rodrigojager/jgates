@@ -14,6 +14,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // registered for the run.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+// This file tests the container mode (the default outside the tools image): not the in-image mode of the other tests
+// (tests/setup/in-image.mjs); every engine call goes to the fake engine.
+const IN_IMAGE_JSON = process.env.JGATES_IMAGE_JSON;
+delete process.env.JGATES_IMAGE_JSON;
 const FAKE = path.join(here, "docker", "fake-docker.cjs");
 const dist = path.resolve(here, "..", "dist");
 const load = (...parts) => import(pathToFileURL(path.join(dist, ...parts)).href);
@@ -272,10 +276,10 @@ test("each container-first input changes the plan hash, the same inputs never do
   assert.deepEqual(written.provenance.container, reference.inputs.container);
 });
 
-test("a plan without container-first checks has no container inputs, so its hash is not tied to an engine", async () => {
+test("a plan made inside the tools image (in-image mode) has no container inputs, so its hash is not tied to an engine", async () => {
   const engine = fakeEngine();
   const ctx = await planProject(engine);
-  const plain = ctx.plan({ env: { ...ctx.env, JGATES_TOOLS_IMAGE: "", JGATES_CONTAINER_FIRST: "" } });
+  const plain = ctx.plan({ env: { ...ctx.env, JGATES_IMAGE_JSON: IN_IMAGE_JSON } });
   assert.equal(plain.inputs.container, undefined);
 });
 

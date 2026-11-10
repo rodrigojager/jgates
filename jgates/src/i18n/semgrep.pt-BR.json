@@ -1,7 +1,7 @@
 {
   "semgrep_label": "Semgrep (regras locais)",
-  "semgrep_missing": "O Semgrep não está instalado ({detail}). Rode: jgates doctor --fix (ou pip install semgrep no ambiente Python do projeto).",
-  "semgrep_probe_failed": "O Semgrep em {path} não respondeu a --version. Reinstale com: jgates doctor --fix.",
+  "semgrep_missing": "Semgrep não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
+  "semgrep_probe_failed": "Semgrep em {path} não respondeu à consulta de versão.",
   "semgrep_blocked": "O Semgrep não pôde rodar: {detail}",
   "semgrep_exit_error": "O Semgrep terminou com o código {code}: {detail}",
   "semgrep_timeout": "O Semgrep passou do limite de {seconds} s e foi encerrado.",

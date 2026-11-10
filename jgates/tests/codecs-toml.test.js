@@ -7,6 +7,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(here, "..", "dist", "core");
+// In-image mode (tests/setup/in-image.mjs): the repository .venv (quality-gate installed, with tomlkit) stands for the
+// sidecar environment of the tools image, named the way an advanced CI setup names it.
+const VENV_PYTHON = [path.join("Scripts", "python.exe"), path.join("bin", "python")].map((p) => path.resolve(here, "..", "..", ".venv", p)).find((p) => fs.existsSync(p));
+if (VENV_PYTHON && !process.env.JGATES_PYTHON) process.env.JGATES_PYTHON = VENV_PYTHON;
 const { createTomlCodec, tomlStructuredAvailable, TOML_UNAVAILABLE } = await import(pathToFileURL(path.join(dist, "codecs", "toml", "index.js")).href);
 const { validateText } = await import(pathToFileURL(path.join(dist, "documents", "validate.js")).href);
 

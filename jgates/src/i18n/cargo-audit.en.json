@@ -1,8 +1,7 @@
 {
   "cargo-audit_label": "cargo-audit (Rust advisories)",
-  "cargo-audit_missing": "cargo-audit is not installed ({detail}). Install it with: cargo install cargo-audit --locked (https://crates.io/crates/cargo-audit), put it on the PATH or in <JGATES_HOME>/tools/bin, or point JGATES_CARGO_AUDIT to it. JGates never installs it during a run.",
-  "cargo-audit_fix": "cargo-audit is supplied by you: run cargo install cargo-audit --locked (needs Rust, https://www.rust-lang.org/tools/install), put the binary on the PATH or in <JGATES_HOME>/tools/bin, or set JGATES_CARGO_AUDIT, then run doctor again.",
-  "cargo-audit_probe_failed": "cargo-audit at {path} did not answer --version. Reinstall it with: cargo install cargo-audit --locked.",
+  "cargo-audit_missing": "cargo-audit is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
+  "cargo-audit_probe_failed": "cargo-audit at {path} did not answer its version query.",
   "cargo-audit_no_lockfile": "No Cargo.lock was found in the scan root, so there is nothing to audit. Run cargo generate-lockfile and commit the lock file.",
   "cargo-audit_blocked": "cargo-audit could not run: {detail}",
   "cargo-audit_exit_error": "cargo-audit ended with code {code} without a valid report: {detail}",

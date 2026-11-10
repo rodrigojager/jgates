@@ -105,7 +105,7 @@ export async function offerInstall(assessment: Assessment, options: OfferOptions
   const { terminal } = options;
 
   const run = async (group: ItemAssessment[], confirmed: boolean) => {
-    const recipes = mergeRecipes(group.map((i) => assessment.recipes.get(i.key)).filter((r): r is Recipe => r !== undefined), options.env);
+    const recipes = mergeRecipes(group.map((i) => assessment.recipes.get(i.key)).filter((r): r is Recipe => r !== undefined));
     for (const recipe of recipes) {
       let ok = confirmed;
       if (recipe.system && !confirmed && terminal.interactive) {

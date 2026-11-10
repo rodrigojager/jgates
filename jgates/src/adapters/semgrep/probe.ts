@@ -1,9 +1,10 @@
-// Finds the Semgrep executable and asks it for its version, without installing or changing anything.
+// Whether Semgrep is in the tools image, and its version, from image.json (nothing starts). Inside the image only,
+// JGATES_SEMGREP names another executable, which is asked for its version.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
-import { pythonEnvExecutable } from "../../core/install/paths.js";
+import { besideOverridePython, imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface SemgrepProbe {
@@ -14,25 +15,11 @@ export interface SemgrepProbe {
 }
 
 const cache = new Map<string, { mtimeMs: number; version: string | null }>();
-const exeName = process.platform === "win32" ? "semgrep.exe" : "semgrep";
 
-/** JGATES_SEMGREP, then the folder of JGATES_PYTHON (same virtual environment), then the JGates environment
- * (<JGATES_HOME>/tools/python, from `jgates doctor --fix`), then PATH. */
+/** Inside the tools image only: the executable JGATES_SEMGREP names, else the one beside the JGATES_PYTHON override. */
 export function findSemgrep(env: NodeJS.ProcessEnv): { executable: string | null; tried: string[] } {
-  const tried: string[] = [];
-  if (env.JGATES_SEMGREP) {
-    tried.push(env.JGATES_SEMGREP);
-    return { executable: findOnPath(env.JGATES_SEMGREP, env), tried };
-  }
-  if (env.JGATES_PYTHON) {
-    const sibling = path.join(path.dirname(env.JGATES_PYTHON), exeName);
-    tried.push(sibling);
-    if (fs.existsSync(sibling)) return { executable: path.resolve(sibling), tried };
-  }
-  const own = pythonEnvExecutable("semgrep", env);
-  if (own) return { executable: own, tried: [...tried, own] };
-  tried.push("semgrep on PATH");
-  return { executable: findOnPath("semgrep", env), tried };
+  const override = inImageOverride(env, "JGATES_SEMGREP") ?? besideOverridePython(env, "semgrep");
+  return override ? { executable: findOnPath(override, env), tried: [override] } : { executable: null, tried: [] };
 }
 
 /** Semgrep's native core runs `uname`: the scanner's PATH always carries the system folders, even when the caller's is empty. */
@@ -44,6 +31,8 @@ export function scannerPath(parent: string | undefined): string {
 }
 
 export function probeSemgrep(env: NodeJS.ProcessEnv): SemgrepProbe {
+  const image = imageProbeUnlessOverridden("semgrep", env, "JGATES_SEMGREP");
+  if (image) return image;
   const { executable, tried } = findSemgrep(env);
   if (!executable) return { executable: null, version: null, problem: "not_found", detail: tried.join(", ") };
   let mtimeMs = 0;

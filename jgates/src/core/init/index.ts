@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
 import { builtinProfileBody, getBuiltinProfile, getBuiltinTemplate } from "../../builtin/index.js";
-import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE } from "../config/load/index.js";
+import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE, ROOT_SCHEMA_VERSION } from "../config/load/index.js";
 import { discoverWorkspace } from "../discovery/index.js";
 import { starterProfileText } from "../profiles/index.js";
 import { translator } from "../../i18n/index.js";
@@ -122,7 +122,7 @@ function rootText(profile: string, templates: TemplateEntry[]): string {
         : { id: t.id, source: t.source, activation: "always" },
   );
   const doc = YAML.stringify(
-    { schemaVersion: 1, extends: [PROFILES_FILE], selection: { profile }, templates: list },
+    { schemaVersion: ROOT_SCHEMA_VERSION, extends: [PROFILES_FILE], selection: { profile }, templates: list },
     { lineWidth: 0 },
   );
   return `${header(translator("init")("init_file_header_root"))}\n${doc}`;

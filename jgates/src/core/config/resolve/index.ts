@@ -45,6 +45,8 @@ export function resolveConfig(projectDir: string, options: ResolveOptions = {}):
     errors,
     diagnostics: load.diagnostics,
   };
+  // What the migration reader dropped from older documents: a warning, never an error.
+  for (const n of load.notices) warnings.push({ code: n.code, message: n.message, file: n.file, pointer: `/${n.pathSegments.join("/")}` });
   if (!load.valid) {
     errors.push({ code: "CONFIG_INVALID", message: t("resolve_config_invalid", { count: load.diagnostics.length }), fix: t("resolve_config_invalid_fix") });
     return result;

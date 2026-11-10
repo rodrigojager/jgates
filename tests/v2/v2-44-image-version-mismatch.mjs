@@ -42,6 +42,7 @@ function setup() {
     ...process.env,
     JGATES_HOME: home,
     JGATES_CONTAINER_RUNTIME: runtime,
+    JGATES_IMAGE_JSON: "",
     JGATES_TOOLS_IMAGE: "jgates-tools:dev",
     JGATES_NO_CACHE: "1",
     NO_COLOR: "1",

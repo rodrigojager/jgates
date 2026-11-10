@@ -8,7 +8,7 @@
   "mutation_limitation_executes": "Mutation testing executes project code: the component's tests run once per mutant.",
   "mutation_limitation_bounded": "The run is bounded by the timeoutSeconds of the instance; a run that exceeds it has no score.",
   "mutation_no_engine": "Cannot tell which mutation engine the component {dir} uses. Set engine: stryker or engine: mutmut on the instance.",
-  "mutation_stryker_missing": "StrykerJS is not installed ({detail}). Install @stryker-mutator/core in the project (npm install --save-dev @stryker-mutator/core) and give it a configuration; JGates installs nothing during a run.",
+  "mutation_stryker_missing": "StrykerJS is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
   "mutation_stryker_no_version": "The StrykerJS found at {detail} did not tell its version.",
   "mutation_python_missing": "There is no Python to run mutmut ({detail}). Set JGATES_PYTHON or put the project's Python on the PATH.",
   "mutation_mutmut_missing": "mutmut is not installed in Python {python}. Install it in the project's environment (pip install mutmut); JGates installs nothing during a run.",
@@ -37,5 +37,6 @@
   "mutation_setting_engine": "The engine of the instance {tool} is {value}; use one of: {allowed}.",
   "mutation_setting_mutate": "The mutate setting of the instance {tool} must be a list of relative patterns without commas, leading dashes or '..'.",
   "mutation_setting_minimum": "The minimumScore of the instance {tool} is {value}; use a number from 0 to 100.",
-  "mutation_condition_timeout": "Bounded to {seconds} s; a run that exceeds it has no score."
+  "mutation_condition_timeout": "Bounded to {seconds} s; a run that exceeds it has no score.",
+  "mutation_mutmut_not_in_image": "mutmut is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine."
 }

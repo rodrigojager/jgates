@@ -26,7 +26,8 @@ const manifests = await load("adapters", "manifests.js");
 const matrix = await load("core", "matrix", "index.js");
 
 const stProbe = st.probeSchemathesis(process.env);
-const REAL_ST = stProbe.executable !== null && stProbe.version !== null;
+// In-image mode (tests/setup/in-image.mjs): a tool on this machine's PATH (an absolute executable) stands for the image's.
+const REAL_ST = stProbe.executable !== null && path.isAbsolute(stProbe.executable) && stProbe.version !== null;
 const zapProbe = zap.probeZap(process.env);
 const REAL_ZAP = zapProbe.problem === null;
 

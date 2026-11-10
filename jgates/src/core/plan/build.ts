@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { translator, type Translator } from "../../i18n/index.js";
 import { readVersion } from "../../cli/version.js";
-import { toolsImageGateEnabled, toolsImagePreflight, toolsImageTarget } from "../tools-image/index.js";
+import { toolMissingReason, toolsImageGateEnabled, toolsImagePreflight, toolsImageTarget, toolsMissingFromImage } from "../tools-image/index.js";
 import { inspectImageSync } from "../engine/index.js";
 import { listBuiltinProfiles, listBuiltinTemplates, getBuiltinTemplate, isBuiltinRef } from "../../builtin/index.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
@@ -13,7 +13,7 @@ import { buildRequest } from "../../adapters/quality-bridge/index.js";
 import { bridgeToolConfigs, effectiveCommand, isConfigurable } from "../../adapters/quality-bridge/tool-configs.js";
 import { ADAPTER_ID, planSubchecks, type BridgeSelection, type SubcheckPlan } from "../../adapters/quality-bridge/requirements.js";
 import { duplicateLinters, duplicateScanners, supersededPairs } from "../../adapters/quality-bridge/superseded.js";
-import { resolvePython, resolveSidecarDir } from "../bridge/index.js";
+import { sidecarAvailability } from "../bridge/index.js";
 import { loadProjectConfig, parseYamlFile } from "../config/load/index.js";
 import { discoverFor, encodePointer, resolveConfig, type CallOverride, type ResolvedField, type ResolveResult } from "../config/resolve/index.js";
 import { ARCHITECTURE_FILE, readArchitecture } from "../architecture/index.js";
@@ -144,20 +144,17 @@ function checkRequest(request: PlanRequest, t: Translator): PlanError | null {
   return null;
 }
 
-/** The python and sidecar the bridge would use, found without starting anything. */
-function bridgeRuntime(env: NodeJS.ProcessEnv): { interpreter: string | null; logical: string; sidecarDir: string | null; toolVersion: string | null } {
-  const { interpreter } = resolvePython(env);
-  const sidecarDir = resolveSidecarDir(env);
-  let toolVersion: string | null = null;
-  if (sidecarDir) {
-    try {
-      const text = fs.readFileSync(path.join(path.dirname(sidecarDir), "pyproject.toml"), "utf8");
-      toolVersion = /^version\s*=\s*"([^"]+)"/m.exec(text)?.[1] ?? null;
-    } catch {
-      toolVersion = null;
-    }
-  }
-  return { interpreter, logical: env.JGATES_PYTHON ?? "python", sidecarDir, toolVersion };
+/** The python and sidecar the bridge would use (the tools image's sidecar), found without starting anything. */
+function bridgeRuntime(env: NodeJS.ProcessEnv): { interpreter: string | null; logical: string; sidecarDir: string | null; toolVersion: string | null; available: boolean; pythonMissing: boolean } {
+  const sidecar = sidecarAvailability(env);
+  return {
+    interpreter: sidecar.interpreter,
+    logical: sidecar.tried.join(", ") || "python",
+    sidecarDir: sidecar.pythonPath,
+    toolVersion: sidecar.version,
+    available: sidecar.problem === null,
+    pythonMissing: sidecar.problem === "python_missing",
+  };
 }
 
 /** Hashes of the configuration files of the plan, relative to the configuration folder `dir`. */
@@ -515,6 +512,8 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   // Tool instances of the adapters that run their own process (not the composite bridge): planned before the items.
   const toolsConfig = isPlainObject(config.tools) ? config.tools : {};
   const externals = new Map<string, { adapter: ExternalAdapter; plan: ExternalPlan }>();
+  /** The image.json name of an item's tool (the adapter manifest's toolName). */
+  const imageToolOf = (i: PlanItem): string => externals.get(i.tool)?.adapter.manifest.toolName ?? i.versions.tool ?? i.tool;
   for (const tool of universe.tools) {
     if (tool.parent) continue;
     const body = toolsConfig[tool.id];
@@ -633,7 +632,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     const granularity: PlanItem["granularity"] = p.tool.component ? "component" : "workspace";
     const languages = ext?.adapter.manifest.languages;
     const refs = (p.tool.component ? componentRefs.filter((c) => c.id === p.tool.component) : componentRefs).filter((c) => !languages || (c.language !== null && languages.includes(c.language)));
-    const available = runtime.interpreter !== null && runtime.sidecarDir !== null;
+    const available = runtime.available;
     items.push({
       id,
       identity: contentHash({
@@ -702,7 +701,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
           ? ext.plan.availability
           : available
           ? { status: "available", reason: null }
-          : { status: "unavailable", reason: runtime.interpreter === null ? t("plan_python_missing", { python: runtime.logical }) : t("plan_sidecar_missing") },
+          : { status: "unavailable", reason: runtime.pythonMissing ? t("plan_python_missing", { python: runtime.logical }) : t("plan_sidecar_missing") },
       bridge: bridge && subPlan ? { skipMeans: subPlan.skipMeans, invoked: invoked.has(subId as string), ...(effectiveCmd ? { effectiveCommand: effectiveCmd } : {}) } : null,
     });
   }
@@ -779,6 +778,19 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
           message: t(prepareNext ? "plan_na_configure_then_prepare" : "plan_na_configure_instance", { label, tool: unset.item.tool, settings: unset.settings.join(", "), what }),
           adapters: [],
           action: { ...prepareAction(unset.item.adapter, tools), kind: "configure-tool", settings: unset.settings, prepareNext },
+        });
+      } else if (missing.length > 0 && toolsMissingFromImage(missing.map(imageToolOf), env).length > 0) {
+        // The tools image lacks the tool: one shared cause and action (the image of this release), never a per-tool
+        // install offer.
+        const tools = uniqueSorted(missing.map((i) => i.tool));
+        const cause = toolMissingReason(toolsMissingFromImage(missing.map(imageToolOf), env), env);
+        notApplicableHere.push({
+          ...base,
+          disabledBy: null,
+          reasonCode: "TOOL_MISSING",
+          message: t("plan_na_tool_not_in_image", { label, tools: tools.join(", "), reason: cause.message }),
+          adapters: [],
+          action: { ...emptyAction("prepare-image"), adapter: missing[0]?.adapter ?? null, tools },
         });
       } else if (missing.length > 0) {
         const tools = uniqueSorted(missing.map((i) => i.tool));
@@ -892,6 +904,8 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   const effectiveScope: PlanScopeKind = willRun.length > 0 && willRun.every((i) => i.scope.effective === "full") ? "full" : request.scope;
   const scopeNote = effectiveScope !== request.scope ? t("plan_scope_widened", { scope: request.scope }) : null;
   if (scopeNote) warnings.push({ code: "SCOPE_WIDENED", message: scopeNote });
+  // Settings an older configuration had that the current schema dropped (the migration reader's notices).
+  for (const w of effective.warnings.filter((x) => x.code === "CONFIG_MIGRATED")) warnings.push({ code: w.code, message: w.message });
   const hard = uncovered.filter((u) => u.reason !== "DISABLED_FOR_RUN");
   if (hard.length > 0) blockers.push({ code: "REQUIREMENT_UNCOVERED", message: t("plan_blocker_uncovered", { count: hard.length, selectors: hard.map((u) => u.selector).join(", ") }), items: hard.map((u) => u.selector) });
   // A tool the adapter reports at run time (stage blocked, decision incomplete) is a warning here, not a blocker.
@@ -899,8 +913,11 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   // blocked by the runner's preflight (fail-closed, never passed), instead of being refused before it starts.
   const lateOnly = (i: PlanItem): boolean => i.adapter === ADAPTER_ID || externals.get(i.tool)?.plan.blocksPlan === false;
   const lateWarned = new Set<string>();
+  // Tools of these items the image does not have: one shared TOOL_MISSING warning (the image's cause and action).
+  const lateMissing = toolsMissingFromImage(willRun.filter((i) => i.availability.status !== "available" && lateOnly(i)).map(imageToolOf), env);
+  if (lateMissing.length > 0) warnings.push({ code: "TOOL_MISSING", message: toolMissingReason(lateMissing, env).message });
   for (const i of willRun) {
-    if (i.availability.status !== "available" && lateOnly(i)) {
+    if (i.availability.status !== "available" && lateOnly(i) && !lateMissing.includes(imageToolOf(i))) {
       const message = i.availability.reason ?? i.tool;
       // One warning per reason: the bridge's subchecks share the same missing runtime.
       if (lateWarned.has(message)) continue;
@@ -909,7 +926,15 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     }
   }
   const unavailable = willRun.filter((i) => i.availability.status !== "available" && !lateOnly(i));
-  if (unavailable.length > 0) blockers.push({ code: "TOOL_UNAVAILABLE", message: unavailable[0]?.availability.reason ?? t("plan_sidecar_missing"), items: unavailable.map((i) => i.id) });
+  // Tools the image does not have: one shared TOOL_MISSING blocker with the image's action, whatever their number.
+  const notInImage = toolsMissingFromImage(unavailable.map(imageToolOf), env);
+  const imageless = unavailable.filter((i) => notInImage.includes(imageToolOf(i)));
+  if (imageless.length > 0) {
+    const cause = toolMissingReason(notInImage, env);
+    blockers.push({ code: "TOOL_MISSING", message: cause.message, items: imageless.map((i) => i.id), action: cause.action });
+  }
+  const otherwise = unavailable.filter((i) => !imageless.includes(i));
+  if (otherwise.length > 0) blockers.push({ code: "TOOL_UNAVAILABLE", message: otherwise[0]?.availability.reason ?? t("plan_sidecar_missing"), items: otherwise.map((i) => i.id) });
   // A configuration file a planned tool reads that does not parse blocks the plan, with the file and the line.
   const configTools = [...new Set(willRun.map((i) => i.tool))];
   const bridgeFileOf = (tool: string): string[] => bridgeConfigs.files.filter((f) => `${ADAPTER_ID}.${f.subcheck}` === tool).map((f) => f.file);

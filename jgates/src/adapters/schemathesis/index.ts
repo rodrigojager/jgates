@@ -2,7 +2,7 @@
 // instance names, with a fixed seed, a bound on examples per operation, a request timeout and the stage timeout, and
 // normalizes the JSON and JUnit reports into findings that carry their reproduction. Without a target, or with an
 // authentication variable that is not set, the stage is blocked, never passed. The tool is prepared by
-// `jgates doctor --fix` (pip into the JGates environment); the run never installs it.
+// the JGates tools image (image.json); the run never installs it.
 import fs from "node:fs";
 import path from "node:path";
 import { translator } from "../../i18n/index.js";

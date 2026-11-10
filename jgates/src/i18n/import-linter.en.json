@@ -1,7 +1,7 @@
 {
   "il_label": "Import Linter (Python architecture)",
-  "il_missing": "Import Linter is not installed ({detail}). Run: jgates doctor --fix (or pip install import-linter in the project's Python environment).",
-  "il_probe_failed": "Import Linter at {path} did not answer --version. Reinstall with: jgates doctor --fix.",
+  "il_missing": "Import Linter is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
+  "il_probe_failed": "Import Linter at {path} did not answer its version query.",
   "il_incompatible": "Import Linter version {version} is outside the supported range ({range}); the output reader was only verified in that range.",
   "il_blocked": "Import Linter could not run: {detail}",
   "il_timeout": "Import Linter exceeded the limit of {seconds} s and was ended.",

@@ -1,6 +1,6 @@
 // zizmor adapter: plans one `zizmor --format json-v1` per tool instance (workflows and actions of the scan root, offline
 // by default, the finding severity kept out of the exit code) and normalizes its findings. The tool comes from the
-// guided preparation (`jgates doctor --fix`, which pip-installs it into JGates's own environment), never from the run.
+// JGates tools image (image.json), never installed by the run.
 // The home and the cache of zizmor are folders of the run folder; nothing is written in the workspace.
 import fs from "node:fs";
 import path from "node:path";

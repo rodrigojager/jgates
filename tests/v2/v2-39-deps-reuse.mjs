@@ -64,7 +64,7 @@ test("V2-39: dependencies install once, are reused while the key holds, reinstal
       `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(calls)};\nprocess.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};\nprocess.env.FAKE_DOCKER_LABELS = ${JSON.stringify(JSON.stringify({ "org.jgates.version": CLI_VERSION }))};\nprocess.env.FAKE_DOCKER_DEPS_EXIT = ${JSON.stringify(String(depsExit))};\nrequire(${JSON.stringify(FAKE)});\n`,
     );
   engineScript(0);
-  const baseEnv = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "pt-BR", NO_COLOR: "1" };
+  const baseEnv = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_NO_CACHE: "1", JGATES_LOCALE: "pt-BR", NO_COLOR: "1" };
   const cli = (args, extra = {}) => spawnSync(process.execPath, [MAIN, ...args], { cwd: project, encoding: "utf8", env: { ...baseEnv, ...extra }, input: "", timeout: 240_000 });
   const dockerCalls = () => (fs.existsSync(calls) ? fs.readFileSync(calls, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
   const objects = () => JSON.parse(fs.readFileSync(path.join(engine, "objects.json"), "utf8"));

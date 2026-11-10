@@ -1,5 +1,6 @@
-// Prerequisites: what has to be in place before a validation runs (Docker, Git's trust in the folder, the tools JGates
-// installs), shown on top of the Overview and the Environment, and the action of each one after a confirmation.
+// Prerequisites: what has to be in place before a validation runs (the container engine, the JGates tools image, Git's
+// trust in the folder, an instance's data), shown on top of the Overview and the Environment, and the action of each
+// one after a confirmation. No tool is ever installed on the host (container-first).
 import { fixPrerequisite, listPrerequisites, PrerequisiteError } from "../../core/prerequisites/index.js";
 import { refreshPath } from "../../core/env-refresh/index.js";
 import { HttpError } from "../http.js";
@@ -20,12 +21,12 @@ export const routes: RouteDefinition[] = [
     path: "/api/prerequisites/fix",
     body: {
       type: "object",
-      properties: { id: { type: "string", enum: ["docker", "git", "tools"] } },
+      properties: { id: { type: "string", enum: ["docker", "image", "git", "data"] } },
       required: ["id"],
       additionalProperties: false,
     },
-    // Installing the Python tools downloads packages: allow the time pip may take.
-    timeoutMs: 600_000,
+    // Downloading the tools image takes a while: allow the time a pull may take.
+    timeoutMs: 1_800_000,
     async handler({ body, server }) {
       const { id } = body as { id: string };
       if (!server.policyMode) refreshPath({ force: true });

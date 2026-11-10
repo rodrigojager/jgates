@@ -243,7 +243,7 @@ export function recipeFor(unit: InstallUnit, options: RecipeOptions): RecipeResu
           target,
           commands: [["dotnet", "restore", ...what, ...(locked ? ["--locked-mode"] : []), ...registryArgs]],
           installEnv: { ...dotnetEnv, NUGET_HTTP_CACHE_PATH: `${CACHE_TARGET}/nuget-http` },
-          // dotnet refuses to start without an existing HOME (NuGet migrations); /tmp/home does not exist in a step.
+          // dotnet refuses to start without an existing HOME (NuGet migrations); the step's HOME is /tmp, which exists.
           stepEnv: { ...dotnetEnv, HOME: "/tmp" },
           pathPrefix: [],
         },

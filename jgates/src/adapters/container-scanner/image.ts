@@ -1,17 +1,59 @@
-// Which container runtime and which image a security scanner runs in, looked up without starting a container.
-// The image comes only from .jgates/lock.json, where `jgates tools prepare` pinned it (repository digest or image id)
-// with the version of the tool read from the label org.jgates.tool.<tool>.version: the sidecar image
-// (quality-gate/Dockerfile) carries several tools, so one label per tool; jgates/docker/security/Dockerfile carries the
-// same labels.
-import { probeLockedImage, runtimeClientEnv, SIDECAR_IMAGE, toolVersionLabel, type LockedImageProbe, type LockedImageProblem } from "../../core/prepare/image.js";
+// Which container runtime and which image a security scanner runs in, looked up without starting anything. Every
+// scanner runs in the JGates tools image (container-first, ADR-0004): its image.json says whether the scanner is
+// there and which version (the package's mirror of it on the host, release/image-tools.json); the image reference is
+// the one the release pins (or JGATES_TOOLS_IMAGE for a development image). There is no local runner and no image to
+// prepare per instance.
+import { findOnPath } from "../../core/bridge/index.js";
+import { DOCKER_CLIENT_ENV } from "../../core/runner/index.js";
+import { probeImageTool } from "../../core/tools-image/catalogue.js";
+import { toolsImageTarget } from "../../core/tools-image/index.js";
 
-export { runtimeClientEnv, SIDECAR_IMAGE, toolVersionLabel };
+/** The engine itself (missing, stopped) is the plan's one preflight blocker, never a per-scanner problem. */
+export type ImageProblem = "not_in_image";
 
-export type ImageProblem = LockedImageProblem;
+/** The legacy sidecar image (quality-gate/Dockerfile) of the bridge's container mode and of `trivy image` scans. */
+export const SIDECAR_IMAGE = "jgates/quality-sidecar:latest";
 
-export type ScannerImageProbe = LockedImageProbe;
+/** JGATES_CONTAINER_RUNTIME (default docker), looked up on the PATH. */
+export function containerRuntime(env: NodeJS.ProcessEnv): { name: string; path: string | null } {
+  const name = env.JGATES_CONTAINER_RUNTIME?.trim() || "docker";
+  return { name, path: findOnPath(name, env) };
+}
 
-/** The image the lock pins for one scanner instance, checked against the runtime (JGATES_CONTAINER_RUNTIME, default docker). */
-export function probeScannerImage(env: NodeJS.ProcessEnv, dir: string, instance: string): ScannerImageProbe {
-  return probeLockedImage({ env, dir, instance });
+export interface ScannerImageProbe {
+  /** Absolute path of the container runtime client, or null when it was not found. */
+  runtime: string | null;
+  /** The runtime name or path that was looked up. */
+  runtimeName: string;
+  /** The tools image reference the runner starts. */
+  image: string | null;
+  /** The scanner's version in the image (image.json). */
+  version: string | null;
+  problem: ImageProblem | null;
+  detail: string;
+}
+
+/** Environment of the runtime client: the basic variables and the Docker connection settings, nothing else. */
+export function runtimeClientEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const name of ["PATH", "HOME", "USERPROFILE", "SYSTEMROOT", ...DOCKER_CLIENT_ENV]) {
+    const value = env[name];
+    if (value !== undefined) out[name] = value;
+  }
+  return out;
+}
+
+/** The tools image and the scanner's version in it, with the runtime client (JGATES_CONTAINER_RUNTIME, default docker). */
+export function probeScannerImage(env: NodeJS.ProcessEnv, toolName: string): ScannerImageProbe {
+  const { name: runtimeName, path: runtime } = containerRuntime(env);
+  let image: string | null;
+  try {
+    image = toolsImageTarget(env).reference;
+  } catch {
+    image = null;
+  }
+  const tool = probeImageTool(toolName, env);
+  const base = { runtime, runtimeName, image, version: tool.version };
+  if (tool.problem !== null) return { ...base, problem: "not_in_image", detail: tool.detail };
+  return { ...base, problem: null, detail: "" };
 }

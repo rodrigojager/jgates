@@ -76,12 +76,9 @@ export interface Matrix {
 const testsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "tests");
 const templatesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "builtin", "templates");
 
-function runnersOf(m: AdapterManifest): Array<"local" | "container"> {
-  const out: Array<"local" | "container"> = [];
-  const rt = m.runtimes ?? [];
-  if (rt.some((r) => r === "native" || r === "node" || r === "python")) out.push("local");
-  if (rt.includes("container") || rt.includes("docker")) out.push("container");
-  return out.length > 0 ? out : ["local"];
+/** Container-first (ADR-0004): every adapter runs in the JGates tools image's step container. */
+function runnersOf(_m: AdapterManifest): Array<"local" | "container"> {
+  return ["container"];
 }
 
 function stacks(): MatrixStack[] {

@@ -17,7 +17,9 @@ export const DEV_TOOLS_IMAGE = "jgates-tools:dev";
 export const IMAGE_USER = "10001:10001";
 export const DEFAULT_RESOURCES = { memoryMb: 4096, cpus: 2, pids: 1024, tmpfsMb: 256 } as const;
 /** Environment every container gets: caches and bytecode kept out of the sources and out of the read-only root. */
-export const BASE_CONTAINER_ENV: Readonly<Record<string, string>> = { HOME: "/tmp/home", PYTHONDONTWRITEBYTECODE: "1" };
+// HOME is the tmpfs itself: a folder under it would not exist in a fresh container (--read-only, --tmpfs /tmp), and
+// tools such as dotnet refuse to start without an existing home.
+export const BASE_CONTAINER_ENV: Readonly<Record<string, string>> = { HOME: "/tmp", PYTHONDONTWRITEBYTECODE: "1" };
 /** Connection settings of the engine client; they stay on the host side and never reach a container. */
 export const ENGINE_CLIENT_ENV: readonly string[] = ["DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG", "DOCKER_TLS_VERIFY", "DOCKER_CERT_PATH", "XDG_RUNTIME_DIR"];
 

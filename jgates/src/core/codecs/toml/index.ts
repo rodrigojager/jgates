@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { resolvePython, resolveSidecarDir } from "../../bridge/index.js";
+import { findQualityGateDir, sidecarRuntime } from "../../bridge/index.js";
 import { translator } from "../../../i18n/index.js";
 import {
   CodecError,
@@ -48,17 +48,20 @@ export interface TomlCodecOptions {
   env?: NodeJS.ProcessEnv;
 }
 
-function unavailableReason(key: "codecs_toml_no_python" | "codecs_toml_no_sidecar" | "codecs_toml_no_tomlkit" | "failed", detail = ""): string {
+function unavailableReason(key: "codecs_toml_no_python" | "codecs_toml_needs_image" | "codecs_toml_no_tomlkit" | "failed", detail = ""): string {
   const t = translator("codecs-toml");
   const reason = key === "failed" ? t("codecs_toml_helper_failed", { reason: detail }) : t(key);
   return t("codecs_toml_unavailable", { reason });
 }
 
 function callHelper(request: Record<string, unknown>, env: NodeJS.ProcessEnv): CallResult {
-  const { interpreter } = resolvePython(env);
+  // tomlkit lives in the sidecar's environment of the tools image: natively only inside the image (no Python on the host).
+  const runtime = sidecarRuntime(env);
+  if (!runtime.native) return { kind: "unavailable", reason: unavailableReason("codecs_toml_needs_image") };
+  const interpreter = runtime.interpreter;
   if (!interpreter) return { kind: "unavailable", reason: unavailableReason("codecs_toml_no_python") };
-  const sidecarDir = resolveSidecarDir(env);
-  if (!sidecarDir) return { kind: "unavailable", reason: unavailableReason("codecs_toml_no_sidecar") };
+  const sidecarDir = runtime.pythonPath;
+  const helperDir = sidecarDir ?? findQualityGateDir() ?? process.cwd();
   const result = spawnSync(interpreter, ["-m", "quality_sidecar.toml_edit"], {
     input: JSON.stringify({ schemaVersion: 1, ...request }),
     encoding: "utf8",
@@ -66,10 +69,10 @@ function callHelper(request: Record<string, unknown>, env: NodeJS.ProcessEnv): C
     maxBuffer: 64 * 1024 * 1024,
     windowsHide: true,
     // The helper runs in the folder of the sidecar, never in the workspace.
-    cwd: path.resolve(sidecarDir),
+    cwd: path.resolve(helperDir),
     env: {
       ...env,
-      PYTHONPATH: env.PYTHONPATH ? `${sidecarDir}${path.delimiter}${env.PYTHONPATH}` : sidecarDir,
+      ...(sidecarDir ? { PYTHONPATH: env.PYTHONPATH ? `${sidecarDir}${path.delimiter}${env.PYTHONPATH}` : sidecarDir } : {}),
       PYTHONDONTWRITEBYTECODE: "1",
       PYTHONIOENCODING: "utf-8",
       PYTHONUTF8: "1",

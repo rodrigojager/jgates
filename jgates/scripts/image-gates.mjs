@@ -501,8 +501,8 @@ export function smokeInImage(work = fs.mkdtempSync(path.join(os.tmpdir(), "jgate
     git(dir, "commit", "-qm", "smoke");
     const ran = spawnSync("jgates", ["ci", "--cwd", dir, "--policy", policyDir, "--json"], {
       encoding: "utf8",
-      // The bridge needs the quality sidecar environment (defusedxml, tomlkit); `python` on PATH is the default runtime without them.
-      env: { ...process.env, JGATES_HOME: home, JGATES_POLICY_SHA256: sha, JGATES_PYTHON: "/opt/tools/python/quality-sidecar/bin/python", NO_COLOR: "1" },
+      // In the image the bridge starts the quality sidecar's own environment (/opt/tools/python/quality-sidecar) by itself.
+      env: { ...process.env, JGATES_HOME: home, JGATES_POLICY_SHA256: sha, NO_COLOR: "1" },
       maxBuffer: 64 * 1024 * 1024,
       timeout: 10 * 60_000,
     });

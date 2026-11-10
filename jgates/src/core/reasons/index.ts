@@ -52,6 +52,9 @@ export const REASONS: Readonly<Record<string, ReasonEntry>> = Object.freeze({
   IMAGE_PULLING: entry("IMAGE_PULLING", { kind: "none" }),
   IMAGE_PULL_FAILED: entry("IMAGE_PULL_FAILED", { kind: "command", command: "jgates setup" }),
   IMAGE_VERSION_MISMATCH: entry("IMAGE_VERSION_MISMATCH", { kind: "command", command: "jgates setup" }),
+  // A tool the plan needs that the tools image does not have: one shared cause, fixed by the image of this release
+  // (never by a host install of the tool).
+  TOOL_MISSING: entry("TOOL_MISSING", { kind: "command", command: "jgates setup" }),
   ENGINE_LOST: entry("ENGINE_LOST", { kind: "link", url: DOCKER_DESKTOP_URL }),
   DEPENDENCIES_NOT_READY: entry("DEPENDENCIES_NOT_READY", { kind: "command", command: "jgates deps status" }),
   DEPENDENCIES_FAILED: entry("DEPENDENCIES_FAILED", { kind: "command", command: "jgates deps prepare" }),

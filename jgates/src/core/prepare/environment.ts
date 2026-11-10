@@ -1,7 +1,8 @@
-// The environment diagnosis behind `jgates doctor` and the Environment screen: runtimes, binaries and tool versions
-// against the adapter ranges and the lock file. It only reads: it never installs, downloads or creates anything
-// (not the data folder, not the workspace). What to install, and how, is core/install (`jgates doctor --fix`).
-import { spawnSync } from "node:child_process";
+// The environment diagnosis behind `jgates doctor` and the Environment screen: the container engine and the JGates tools
+// image (container-first, ADR-0004: the host needs only Node, Git and a Docker-compatible engine), and the tool
+// versions the image records in its image.json against the adapter ranges and the lock file. It only reads: it never
+// installs, downloads or creates anything (not the data folder, not the workspace), and it never starts a tool. What
+// can be prepared, and how, is core/install (engine install or start, the image download, data preparation).
 import fs from "node:fs";
 import { translator } from "../../i18n/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
@@ -17,28 +18,34 @@ import { probeCargoAudit } from "../../adapters/cargo-audit/probe.js";
 import { probeCargo } from "../../adapters/cargo-test/probe.js";
 import { probeSchemathesis } from "../../adapters/schemathesis/probe.js";
 import { probeZap } from "../../adapters/zap/probe.js";
-import { findOnPath, resolvePython, resolveSidecarDir } from "../bridge/index.js";
-import { probeEnv } from "../runner/probe-env.js";
+import { readVersion } from "../../cli/version.js";
+import { findOnPath, sidecarAvailability } from "../bridge/index.js";
+import { detectEngineSync, inspectImageSync, type EngineContext } from "../engine/index.js";
+import { resolveReason } from "../reasons/index.js";
+import { readImageJson, stepMode } from "../runner/in-image.js";
+import { IMAGE_VERSION_LABEL, toolsImageTarget } from "../tools-image/index.js";
 import type { AdapterManifest } from "../catalog/index.js";
 import { resolveHome } from "../home/index.js";
 import { readLock, LOCK_FILE, type LockRead } from "../lock/index.js";
 import { buildPlan } from "../plan/build.js";
 import { resolveToolBindings } from "../tools/index.js";
-import { probeLockedImage, runsInContainer, runtimeClientEnv, type LockedImageProbe } from "./image.js";
 import { satisfiesRange } from "./semver.js";
 import { hostOf, preparedRulesOf, semgrepRulesUrl, SEMGREP_RULES_REF, type PreparedState } from "./store.js";
 
 export type EnvState = "ready" | "absent" | "incompatible" | "not_checked";
 
 export interface RuntimeStatus {
-  id: "node" | "python" | "git" | "docker";
+  /** docker: the container engine every check runs in; image: the JGates tools image this release pins. */
+  id: "node" | "git" | "docker" | "image";
   state: EnvState;
   version: string | null;
   path: string | null;
-  /** Docker is optional: its absence does not make the environment not ready. */
+  /** An optional runtime's absence does not make the environment not ready (the engine inside the tools image). */
   optional: boolean;
   /** Docker only: the client is on the PATH but its daemon does not answer (installed and stopped). */
   stopped?: boolean;
+  /** The reason code of a runtime that is not ready (ENGINE_NOT_INSTALLED, IMAGE_MISSING...), from the shared catalogue. */
+  reasonCode?: string;
   message: string;
   /** Command or instruction that fixes it; the doctor never runs it. */
   fix: string | null;
@@ -46,8 +53,8 @@ export interface RuntimeStatus {
 
 export interface PreparationStatus {
   supported: boolean;
-  /** What the preparation pins: a rule set (Semgrep) or the container image of the instance. */
-  kind: "rules" | "image" | null;
+  /** What the preparation pins: a rule set (Semgrep). */
+  kind: "rules" | null;
   /** What was prepared: the pinned rule set or image state. */
   state: PreparedState | "n/a";
   /** The rule set ref, or the image reference that was prepared. */
@@ -70,7 +77,7 @@ export interface ToolStatus {
    * but never makes the environment not ready.
    */
   whenAvailable?: boolean;
-  /** Runner of the instance in tools.yml (local or container). */
+  /** Where the instance runs: always the tools image's container (kept for the readers of older reports). */
   runner: string;
   state: EnvState;
   executable: string | null;
@@ -102,31 +109,8 @@ interface ToolProbe {
   detail: string;
 }
 
-/** The fix of a Python tool JGates can install in its own environment (<JGATES_HOME>/tools/python). */
-export const INSTALL_FIX = "jgates doctor --fix";
-
-/** The Python packages the quality sidecar imports (quality-gate/pyproject.toml), as import names. */
-export const SIDECAR_IMPORTS = ["defusedxml", "tomlkit"];
-
-const depsCache = new Map<string, { mtimeMs: number; ok: boolean }>();
-
-/** Whether the interpreter imports the sidecar's packages. Read-only: it runs `python -c "import ..."`. */
-export function sidecarDependenciesPresent(interpreter: string, env: NodeJS.ProcessEnv): boolean {
-  let mtimeMs = 0;
-  try {
-    mtimeMs = fs.statSync(interpreter).mtimeMs;
-  } catch {
-    mtimeMs = 0;
-  }
-  const hit = depsCache.get(interpreter);
-  if (hit && hit.mtimeMs === mtimeMs) return hit.ok;
-  const r = spawnSync(interpreter, ["-c", `import ${SIDECAR_IMPORTS.join(", ")}`], { encoding: "utf8", timeout: 30_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "", PYTHONDONTWRITEBYTECODE: "1" }), windowsHide: true });
-  const ok = r.status === 0;
-  depsCache.set(interpreter, { mtimeMs, ok });
-  return ok;
-}
-
-/** What the doctor can check for an adapter without running anything but `--version`. */
+/** What the doctor can check for an adapter: the image's image.json (nothing starts; an override inside the image only
+ * is asked for its version). */
 function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, projectDir: string): ToolProbe | null {
   if (manifest.id === "ruff") return probeRuff(env);
   if (manifest.id === "semgrep") return probeSemgrep(env);
@@ -140,7 +124,7 @@ function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, project
   if (manifest.id === "cargo-test") return probeCargo(env);
   if (manifest.id === "schemathesis") return probeSchemathesis(env);
   if (manifest.id === "zap") {
-    // The default image; an instance that names another one is checked when it is planned.
+    // The ZAP image the adapter starts (the image's own copy replaces it with the adapter migration).
     const p = probeZap(env);
     return { executable: p.runtime, version: null, problem: p.problem === null ? null : "not_found", detail: p.problem === null ? "" : p.detail };
   }
@@ -157,11 +141,11 @@ function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, project
     return { executable: p.python, version: p.version, problem: null, detail: "" };
   }
   if (manifest.id === "quality-bridge") {
-    const python = resolvePython(env);
-    if (!python.interpreter) return { executable: null, version: null, problem: "not_found", detail: python.tried.join(", ") };
-    if (!resolveSidecarDir(env)) return { executable: python.interpreter, version: null, problem: "no_answer", detail: "sidecar" };
-    if (!sidecarDependenciesPresent(python.interpreter, env)) return { executable: python.interpreter, version: null, problem: "not_found", detail: `${SIDECAR_IMPORTS.join(", ")} (${python.interpreter})` };
-    return { executable: python.interpreter, version: null, problem: null, detail: "" };
+    // The sidecar's environment in the tools image (quality_sidecar, tomlkit, defusedxml).
+    const sidecar = sidecarAvailability(env);
+    if (sidecar.problem === "python_missing") return { executable: null, version: null, problem: "not_found", detail: sidecar.tried.join(", ") };
+    if (sidecar.problem === "sidecar_missing") return { executable: sidecar.interpreter, version: null, problem: "not_found", detail: "quality-sidecar" };
+    return { executable: sidecar.interpreter, version: sidecar.version, problem: null, detail: "" };
   }
   // The supply-chain check reads the lockfiles in-process: nothing to prepare.
   if (manifest.id === "supply-chain") return { executable: "builtin", version: null, problem: null, detail: "" };
@@ -169,37 +153,11 @@ function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, project
   return null;
 }
 
-/** The image of a container instance as a probe: the runtime, the pinned version, or what is missing. */
-function containerProbe(image: LockedImageProbe): ToolProbe {
-  if (image.problem !== null) return { executable: image.runtime, version: null, problem: "not_found", detail: image.detail };
-  return { executable: image.runtime, version: image.version, problem: null, detail: "" };
-}
-
+/** A tool missing from the image is fixed by the image of this release, never by a host install. */
 function fixFor(manifest: AdapterManifest): string | null {
-  if (manifest.id === "ruff" || manifest.id === "semgrep" || manifest.id === "import-linter" || manifest.id === "zizmor" || manifest.id === "schemathesis" || manifest.id === "quality-bridge") return INSTALL_FIX;
-  if (manifest.id === "pytest") return translator("prepare")("prepare_fix_pytest");
-  // A customer-supplied binary: the guidance names the official release and where JGates looks for it.
-  if (manifest.id === "oasdiff") return translator("oasdiff")("oasdiff_fix");
-  if (manifest.id === "govulncheck") return translator("govulncheck")("govulncheck_fix");
-  if (manifest.id === "cargo-audit") return translator("cargo-audit")("cargo-audit_fix");
-  if (manifest.id === "cargo-test") return translator("cargo-test")("cargo-test_fix");
   if (manifest.id === "codeql") return translator("codeql")("codeql_fix");
   if (manifest.id === "zap") return translator("zap")("zap_fix");
-  return null;
-}
-
-/** Whether the Docker daemon answers (`docker info`), and its server version. */
-function dockerDaemon(docker: string, env: NodeJS.ProcessEnv): { running: boolean; version: string | null } {
-  const r = spawnSync(docker, ["info", "--format", "{{.ServerVersion}}"], { encoding: "utf8", timeout: 15_000, env: runtimeClientEnv(env), windowsHide: true });
-  if (r.status !== 0) return { running: false, version: null };
-  const version = r.stdout.trim().split(/\r?\n/)[0] ?? "";
-  return { running: true, version: version === "" ? null : version };
-}
-
-function pythonVersion(interpreter: string, env: NodeJS.ProcessEnv): string | null {
-  const r = spawnSync(interpreter, ["--version"], { encoding: "utf8", timeout: 15_000, env: probeEnv(env, { PATH: env.PATH ?? "", HOME: env.HOME ?? "" }), windowsHide: true });
-  if (r.status !== 0) return null;
-  return /(\d+\.\d+\.\d+)/.exec(`${r.stdout}${r.stderr}`)?.[1] ?? null;
+  return resolveReason("TOOL_MISSING", { tools: manifest.toolName, image: "" }).action.command ?? null;
 }
 
 function diagnoseRuntimes(env: NodeJS.ProcessEnv): RuntimeStatus[] {
@@ -215,23 +173,6 @@ function diagnoseRuntimes(env: NodeJS.ProcessEnv): RuntimeStatus[] {
     message: nodeOk ? t("prepare_runtime_ready", { name: "Node.js", version: process.versions.node }) : t("prepare_incompatible", { tool: "Node.js", version: process.versions.node, range: ">=18.17.0", what: "jgates" }),
     fix: nodeOk ? null : "https://nodejs.org/",
   });
-  const python = resolvePython(env);
-  const pyVersion = python.interpreter ? pythonVersion(python.interpreter, env) : null;
-  const pyRange = ">=3.11.0";
-  const pyFit = pyVersion ? satisfiesRange(pyVersion, pyRange) : null;
-  out.push({
-    id: "python",
-    state: !python.interpreter ? "absent" : pyFit === false ? "incompatible" : "ready",
-    version: pyVersion,
-    path: python.interpreter,
-    optional: false,
-    message: !python.interpreter
-      ? t("prepare_runtime_absent", { name: "Python", detail: python.tried.join(", ") })
-      : pyFit === false
-        ? t("prepare_incompatible", { tool: "Python", version: pyVersion ?? "?", range: pyRange, what: "quality-bridge" })
-        : t("prepare_runtime_ready", { name: "Python", version: pyVersion ?? "?" }),
-    fix: python.interpreter && pyFit !== false ? null : t("prepare_fix_python"),
-  });
   const git = findOnPath("git", env);
   out.push({
     id: "git",
@@ -242,24 +183,56 @@ function diagnoseRuntimes(env: NodeJS.ProcessEnv): RuntimeStatus[] {
     message: git ? t("prepare_runtime_ready", { name: "Git", version: "-" }) : t("prepare_runtime_absent", { name: "Git", detail: "git on PATH" }),
     fix: git ? null : t("prepare_fix_git"),
   });
-  const docker = findOnPath("docker", env);
-  const daemon = docker ? dockerDaemon(docker, env) : null;
-  const dockerReady = daemon?.running === true;
-  out.push({
-    id: "docker",
-    state: dockerReady ? "ready" : "absent",
-    version: daemon?.version ?? null,
-    path: docker,
-    optional: true,
-    ...(docker && !dockerReady ? { stopped: true } : {}),
-    message: dockerReady
-      ? t("prepare_runtime_ready", { name: "Docker", version: daemon?.version ?? "-" })
-      : docker
-        ? t("prepare_docker_stopped", { path: docker })
-        : t("prepare_runtime_absent_optional", { name: "Docker" }),
-    fix: dockerReady ? null : docker ? t("prepare_fix_docker_stopped") : t("prepare_fix_docker"),
-  });
+  out.push(...engineRuntimes(env));
   return out;
+}
+
+/**
+ * The container engine and the tools image, with the reason codes of the shared catalogue. Inside the tools image the
+ * engine is not needed (steps run natively) and the image is the one JGates runs in.
+ */
+function engineRuntimes(env: NodeJS.ProcessEnv): RuntimeStatus[] {
+  const t = translator("prepare");
+  const reason = (code: string, params: Record<string, string | number> = {}) => resolveReason(code, params);
+  if (stepMode(env) === "in-image") {
+    const own = readImageJson(env);
+    const version = typeof own?.imageVersion === "string" ? own.imageVersion : null;
+    return [
+      { id: "docker", state: "not_checked", version: null, path: null, optional: true, message: t("prepare_engine_in_image"), fix: null },
+      { id: "image", state: "ready", version, path: null, optional: false, message: t("prepare_runtime_ready", { name: "JGates tools", version: version ?? "-" }), fix: null },
+    ];
+  }
+  const context: EngineContext = { runnerOptions: { parentEnv: env } };
+  const engine = detectEngineSync({ requiredMemoryMb: 0, requiredDiskMb: 0 }, context);
+  const runtimeName = env.JGATES_CONTAINER_RUNTIME?.trim() || "docker";
+  const client = findOnPath(runtimeName, env);
+  const target = toolsImageTarget(env);
+  const notChecked: RuntimeStatus = { id: "image", state: "not_checked", version: null, path: target.reference, optional: false, message: t("prepare_image_needs_engine", { image: target.reference }), fix: null };
+  if (engine.code === "ENGINE_NOT_INSTALLED" || engine.code === "ENGINE_STOPPED") {
+    const r = reason(engine.code);
+    const stopped = engine.code === "ENGINE_STOPPED";
+    return [
+      { id: "docker", state: "absent", version: null, path: client, optional: false, ...(stopped ? { stopped: true } : {}), reasonCode: engine.code, message: r.message, fix: stopped ? t("prepare_fix_docker_stopped") : t("prepare_fix_docker_required") },
+      notChecked,
+    ];
+  }
+  if (engine.code === "UNSUPPORTED_PLATFORM") {
+    const r = reason(engine.code, { platform: `${engine.facts.os ?? "?"}/${engine.facts.arch ?? "?"}` });
+    return [{ id: "docker", state: "incompatible", version: engine.facts.serverVersion, path: client, optional: false, reasonCode: engine.code, message: r.message, fix: r.action.url ?? null }, notChecked];
+  }
+  const docker: RuntimeStatus = { id: "docker", state: "ready", version: engine.facts.serverVersion, path: client, optional: false, message: t("prepare_runtime_ready", { name: "Docker", version: engine.facts.serverVersion ?? "-" }), fix: null };
+  const found = inspectImageSync(target.reference, context);
+  if (!found) {
+    const r = reason("IMAGE_MISSING", { size: "-", reference: target.reference });
+    return [docker, { id: "image", state: "absent", version: null, path: target.reference, optional: false, reasonCode: "IMAGE_MISSING", message: r.message, fix: r.action.command ?? null }];
+  }
+  const actual = found.labels[IMAGE_VERSION_LABEL] ?? null;
+  const expected = readVersion();
+  if (actual !== expected) {
+    const r = reason("IMAGE_VERSION_MISMATCH", { actual: actual ?? "?", expected, reference: target.reference });
+    return [docker, { id: "image", state: "incompatible", version: actual, path: target.reference, optional: false, reasonCode: "IMAGE_VERSION_MISMATCH", message: r.message, fix: r.action.command ?? null }];
+  }
+  return [docker, { id: "image", state: "ready", version: actual, path: target.reference, optional: false, message: t("prepare_runtime_ready", { name: "JGates tools", version: actual ?? "-" }), fix: null }];
 }
 
 export function prepareCommand(instance: string, projectDir: string): string {
@@ -269,24 +242,16 @@ export function prepareCommand(instance: string, projectDir: string): string {
 /** Adapters that have a preparation step for rule sets to download (the container images are the other kind). */
 export const PREPARABLE_ADAPTERS = new Set(["semgrep"]);
 
-/** What `tools prepare` pins for an instance: the rule set of the adapter, its container image, or nothing. */
-export function preparationKindOf(adapter: string, runner: string | null | undefined): "rules" | "image" | null {
-  if (PREPARABLE_ADAPTERS.has(adapter)) return "rules";
-  if (runsInContainer(adapter, runner)) return "image";
-  return null;
+/** What `tools prepare` pins for an instance: the rule set of the adapter, or nothing. */
+export function preparationKindOf(adapter: string): "rules" | null {
+  return PREPARABLE_ADAPTERS.has(adapter) ? "rules" : null;
 }
 
 const NO_PREPARATION: PreparationStatus = { supported: false, kind: null, state: "n/a", ref: null, hash: null, network: { hosts: [], url: null }, command: null };
 
-function imagePreparation(probe: LockedImageProbe, instance: string, projectDir: string): PreparationStatus {
-  const state: PreparedState = probe.locked === null ? "none" : probe.problem === "image_missing" ? "missing" : probe.problem === "image_changed" ? "corrupt" : "ready";
-  return { supported: true, kind: "image", state, ref: probe.locked?.reference ?? null, hash: probe.locked?.id ?? null, network: { hosts: [], url: null }, command: prepareCommand(instance, projectDir) };
-}
-
-function preparationOf(manifest: AdapterManifest, instance: string, runner: string, projectDir: string, lock: LockRead, home: string, env: NodeJS.ProcessEnv): PreparationStatus {
-  const kind = preparationKindOf(manifest.id, runner);
+function preparationOf(manifest: AdapterManifest, instance: string, projectDir: string, lock: LockRead, home: string, env: NodeJS.ProcessEnv): PreparationStatus {
+  const kind = preparationKindOf(manifest.id);
   if (kind === null) return NO_PREPARATION;
-  if (kind === "image") return imagePreparation(probeLockedImage({ env, dir: projectDir, instance }), instance, projectDir);
   const prepared = preparedRulesOf(lock.lock, instance, home);
   const url = semgrepRulesUrl(env);
   return {
@@ -337,7 +302,7 @@ function plannedInstances(projectDir: string, env: NodeJS.ProcessEnv): PlannedIn
       component: item.subcheck ? null : (item.components[0]?.id ?? null),
       enabled: true,
       required,
-      runner: invocation?.command.container ? "container" : "local",
+      runner: "container",
     });
   }
   // On "when available" with the tool missing here: not in willRun, yet it is what "Preparar" must offer to install.
@@ -350,7 +315,7 @@ function plannedInstances(projectDir: string, env: NodeJS.ProcessEnv): PlannedIn
       component: item.components[0]?.id ?? null,
       enabled: true,
       required: false,
-      runner: invocation?.command.container || item.command?.container ? "container" : "local",
+      runner: "container",
       whenAvailable: true,
     });
   }
@@ -399,9 +364,8 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
       });
       continue;
     }
-    // An instance that runs in a container is checked through the image the lock pins, not a local binary.
-    const container = runsInContainer(manifest.id, instance.runner) ? probeLockedImage({ env, dir: projectDir, instance: instance.id }) : null;
-    const probe = container ? containerProbe(container) : probeAdapter(manifest, env, projectDir);
+    // Every instance runs in the tools image: its tool is what the image's image.json records.
+    const probe = probeAdapter(manifest, env, projectDir);
     const range = manifest.toolVersionRange;
     const fit = probe?.version ? satisfiesRange(probe.version, range) : null;
     let state: EnvState;
@@ -411,13 +375,6 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
       state = "not_checked";
       message = instance.whenAvailable ? t("prepare_when_available_missing", { tool: instance.id }) : t("prepare_not_checked", { tool: manifest.toolName });
       fix = null;
-    } else if (container && container.problem !== null) {
-      state = "absent";
-      message = t(`prepare_image_${container.problem}`, { tool: manifest.toolName, image: container.image ?? "-", detail: container.detail, runtime: container.runtimeName });
-      fix = container.problem === "runtime_missing" ? t("prepare_fix_docker_required") : prepareCommand(instance.id, projectDir);
-    } else if (probe.problem === "not_found" && manifest.id === "quality-bridge" && probe.executable) {
-      state = "absent";
-      message = t("prepare_sidecar_deps_missing", { python: probe.executable, packages: SIDECAR_IMPORTS.join(", ") });
     } else if (probe.problem === "not_found") {
       state = "absent";
       message = t("prepare_tool_absent", { tool: manifest.toolName, detail: probe.detail });
@@ -442,7 +399,7 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
       enabled: instance.enabled,
       required: instance.required,
       ...(instance.whenAvailable ? { whenAvailable: true } : {}),
-      runner: instance.runner,
+      runner: "container",
       state,
       executable: probe?.executable ?? null,
       version: probe?.version ?? null,
@@ -450,7 +407,7 @@ export function diagnoseEnvironment(projectDir: string, options: { env?: NodeJS.
       message,
       fix,
       lock: { pinned, drift, message: drift ? t("prepare_lock_drift", { tool: instance.id, pinned: pinned ?? "-", found: probe?.version ?? "-", file: LOCK_FILE }) : null },
-      preparation: preparationOf(manifest, instance.id, instance.runner, projectDir, lock, home, env),
+      preparation: preparationOf(manifest, instance.id, projectDir, lock, home, env),
     });
   }
   const count = (s: EnvState, list: Array<{ state: EnvState; optional?: boolean; enabled?: boolean; whenAvailable?: boolean }>) => list.filter((x) => x.state === s && !x.optional && !x.whenAvailable && x.enabled !== false).length;

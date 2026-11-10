@@ -6,6 +6,7 @@ import type { Document } from "yaml";
 import { isMap, isNode, isPair, type LineCounter } from "yaml";
 import { translator } from "../../../i18n/index.js";
 import type { ConfigDiagnostic, DocumentKind } from "./types.js";
+import { migrateDocument } from "./migrate.js";
 
 /** Kinds with a schema: the configuration documents plus template documents (read by the resolver). */
 export type SchemaKind = DocumentKind | "template";
@@ -133,6 +134,8 @@ export function validateDocument(
   const validate = validatorFor(kind);
   if (!validate) return [];
   const t = translator("config");
+  // An older document is validated as the current schema it is read as (the migration reader).
+  if (kind === "root" || kind === "tools") value = migrateDocument(kind, value, file).value;
   validate(value);
   const out: ConfigDiagnostic[] = [];
   for (const error of validate.errors ?? []) {

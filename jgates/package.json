@@ -28,7 +28,7 @@
     "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs && npm run build:ui",
     "build:ui": "vite build --config ui/vite.config.ts",
     "typecheck:ui": "tsc -p ui/tsconfig.json --noEmit",
-    "test": "node --test tests/*.test.js",
+    "test": "node --import ./tests/setup/in-image.mjs --test tests/*.test.js",
     "setup:dev-tools": "node dev-tools/setup.mjs",
     "docs:compat": "node scripts/gen-compat-docs.mjs",
     "test:ui": "npm run build && playwright test --config tests/ui/playwright.config.ts",

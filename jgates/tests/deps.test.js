@@ -13,6 +13,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // comes from (the project's pytest, JGates's mypy). Engine calls go to the fake engine (tests/docker/fake-docker.cjs).
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+// This file tests the container mode (the default outside the tools image): not the in-image mode of the other tests
+// (tests/setup/in-image.mjs); every engine call goes to the fake engine.
+const IN_IMAGE_JSON = process.env.JGATES_IMAGE_JSON;
+delete process.env.JGATES_IMAGE_JSON;
 const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
 const FAKE = path.join(here, "docker", "fake-docker.cjs");
@@ -305,8 +309,8 @@ test("jgates plan --json says the project's pytest runs where the project declar
   assert.equal(mypy.toolSource.origin, "image");
   assert.equal(mypy.toolSource.declaredIn, null);
   assert.equal(mypy.toolSource.message, "usa o mypy do JGates (o projeto não declara mypy)");
-  // Without the container-first gate the plan says nothing about it (the host runs whatever it has).
-  const host = cli(["plan", "--cwd", project, "--json", "--only", "tool:pytest", "--only", "tool:mypy"], { JGATES_TOOLS_IMAGE: "", JGATES_CONTAINER_FIRST: "" });
+  // Inside the tools image (in-image mode) there are no dependency volumes: the plan says nothing about it.
+  const host = cli(["plan", "--cwd", project, "--json", "--only", "tool:pytest", "--only", "tool:mypy"], { JGATES_IMAGE_JSON: IN_IMAGE_JSON });
   const hostItems = [...JSON.parse(host.stdout).plan.groups.willRun, ...JSON.parse(host.stdout).plan.groups.notApplicableOrDisabled];
   assert.ok(hostItems.every((i) => i.toolSource === undefined));
 });

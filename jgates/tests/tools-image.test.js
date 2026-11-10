@@ -10,6 +10,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // engine (jgates/tests/docker/fake-docker.cjs, which records every call), the reasons catalogue and the package.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+// This file tests the container mode (the default outside the tools image): not the in-image mode of the other tests
+// (tests/setup/in-image.mjs); every engine call goes to the fake engine.
+const IN_IMAGE_JSON = process.env.JGATES_IMAGE_JSON;
+delete process.env.JGATES_IMAGE_JSON;
 const packageRoot = path.resolve(here, "..");
 const repoRoot = path.resolve(packageRoot, "..");
 const MAIN = path.join(packageRoot, "dist", "cli", "main.js");
@@ -39,7 +43,6 @@ function setup({ fake = {}, runtime } = {}) {
   fs.writeFileSync(path.join(dir, "mod.py"), "import os\n");
   const base = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime ?? wrapper, JGATES_NO_CACHE: "1", NO_COLOR: "1" };
   delete base.JGATES_TOOLS_IMAGE;
-  delete base.JGATES_CONTAINER_FIRST;
   const cli = (args, env = {}) => {
     const r = spawnSync(process.execPath, [MAIN, ...args], { cwd: dir, encoding: "utf8", env: { ...base, ...env }, timeout: 120_000 });
     let doc = null;
@@ -63,9 +66,9 @@ function setup({ fake = {}, runtime } = {}) {
 
 const codes = (plan) => plan.blockers.map((b) => b.code);
 
-test("without JGATES_TOOLS_IMAGE the plan does not look at the engine (container-first is not the default yet)", () => {
+test("inside the tools image (in-image mode) the plan does not look at the engine: the checks run natively there", () => {
   const w = setup({ fake: { FAKE_DOCKER_LABELS: "none" } });
-  const plan = w.plan();
+  const plan = w.plan({ JGATES_IMAGE_JSON: IN_IMAGE_JSON });
   assert.ok(!codes(plan).some((c) => c.startsWith("IMAGE_") || c.startsWith("ENGINE_")), JSON.stringify(plan.blockers));
   assert.ok(!w.calls().some((c) => c[0] === "image"), "no engine call was made");
 });
@@ -124,7 +127,7 @@ test("an image of this JGates version leaves the plan without engine or image bl
   assert.deepEqual(codes(plan).filter((c) => c.startsWith("ENGINE_") || c.startsWith("IMAGE_") || c === "DISK_LOW"), []);
 });
 
-test("JGATES_TOOLS_IMAGE picks the image the preflight inspects; JGATES_CONTAINER_FIRST=1 alone uses the pin file's", async () => {
+test("JGATES_TOOLS_IMAGE picks the image the preflight inspects; without it the pin file's image is checked (container-first by default)", async () => {
   const { readToolsImagePin } = await load("core", "tools-image", "index.js");
   const pin = readToolsImagePin();
   const w = setup({ fake: { FAKE_DOCKER_LABELS: JSON.stringify({ "org.jgates.version": VERSION }) } });
@@ -133,7 +136,7 @@ test("JGATES_TOOLS_IMAGE picks the image the preflight inspects; JGATES_CONTAINE
   const inspected = w.calls().filter((c) => c[0] === "image" && c[1] === "inspect").map((c) => c[c.length - 1]);
   assert.ok(inspected.includes("jgates-tools:dev"), JSON.stringify(inspected));
   assert.ok(inspected.includes("registry.example/custom-tools:7"), JSON.stringify(inspected));
-  w.plan({ JGATES_CONTAINER_FIRST: "1" });
+  w.plan();
   const last = w.calls().filter((c) => c[0] === "image" && c[1] === "inspect").pop();
   assert.equal(last[last.length - 1], pin.reference);
 });

@@ -37,10 +37,13 @@ function runValidate(ctx: CommandContext, projectDir: string, t: Translator): nu
       projectDir: result.projectDir,
       files: result.documents.map((d) => ({ file: d.file, kind: d.kind, schemaPending: d.schemaPending })),
       diagnostics: result.diagnostics,
+      notices: result.notices,
     });
   } else if (valid) {
     ctx.stdout(t("config_valid", { count: result.documents.length }) + "\n");
+    for (const n of result.notices) ctx.stdout(`${n.message}\n`);
   } else {
+    for (const n of result.notices) ctx.stderr(`${n.message}\n`);
     ctx.stderr(t("config_invalid", { count: result.diagnostics.length }) + "\n");
     for (const d of result.diagnostics) {
       const where = `${d.file}${d.line ? `:${d.line}` : ""}${d.path ? ` (${d.path})` : ""}`;

@@ -286,8 +286,9 @@ test("normalization from a plan: items the plan turned off are disabled with the
 test("an empty or not approvable plan never runs: run exits 3, creates no run and names the blocker (no approval of an empty plan)", () => {
   const p = project();
   try {
-    // Every check off for this run: the plan is empty with selected requirements.
-    const empty = p.cli("run", "--cwd", p.dir, "--skip", "tool:quality-bridge,tool:ruff,tool:builtin-pii,tool:tsc","--no-interactive", "--json");
+    // Every check off for this run: the plan is empty with selected requirements (mypy is in the tools image, so the
+    // project's typecheck plans it with its defaults and it is switched off too, like the history scan of Gitleaks).
+    const empty = p.cli("run", "--cwd", p.dir, "--skip", "tool:quality-bridge,tool:ruff,tool:builtin-pii,tool:tsc,tool:mypy,tool:gitleaks-history","--no-interactive", "--json");
     assert.equal(empty.code, 3, empty.out + empty.err);
     const err = one(empty);
     assert.equal(err.error?.code ?? err.code, "PLAN_NOT_APPROVABLE");
@@ -297,7 +298,7 @@ test("an empty or not approvable plan never runs: run exits 3, creates no run an
 
     // The same plan saved with --out is refused by run --plan as well.
     const file = path.join(p.planDir, "vazio.json");
-    const saved = p.cli("plan", "--cwd", p.dir, "--skip", "tool:quality-bridge,tool:ruff,tool:builtin-pii,tool:tsc","--out", file, "--no-interactive", "--json");
+    const saved = p.cli("plan", "--cwd", p.dir, "--skip", "tool:quality-bridge,tool:ruff,tool:builtin-pii,tool:tsc,tool:mypy,tool:gitleaks-history","--out", file, "--no-interactive", "--json");
     assert.equal(saved.code, 3);
     if (fs.existsSync(file)) {
       const viaFile = p.cli("run", "--cwd", p.dir, "--plan", file, "--no-interactive", "--json");

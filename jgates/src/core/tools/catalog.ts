@@ -26,9 +26,6 @@ export interface CatalogEntry {
   limitations: string[];
 }
 
-/** Adapters that also run on the container runner (runner: container in tools.yml). */
-const CONTAINER_ADAPTERS = new Set(["ruff", "gitleaks", "trivy", "osv-scanner", "checkov"]);
-
 export function toolCatalog(): CatalogEntry[] {
   const manifests = builtinManifests();
   const creatable = new Set(instanceAdapters());
@@ -41,7 +38,8 @@ export function toolCatalog(): CatalogEntry[] {
       categories: m.categories,
       capabilities: m.capabilities,
       runtimes: m.runtimes ?? [],
-      runners: (CONTAINER_ADAPTERS.has(m.id) ? ["local", "container"] : ["local"]) as Array<"local" | "container">,
+      // Container-first (ADR-0004): every instance runs in the JGates tools image.
+      runners: ["container"] as Array<"local" | "container">,
       supportLevel: supportLevelFor(m.id, true, manifests),
       platformSupported: m.platforms.includes(process.platform),
       instantiable: creatable.has(m.id),
