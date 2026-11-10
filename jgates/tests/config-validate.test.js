@@ -176,7 +176,7 @@ test("a missing jgates.yml is invalid; the architecture fragment is checked by i
 test("the schemas live in jgates/schemas/config, one per document", () => {
   const dir = path.resolve(here, "..", "schemas", "config");
   const names = fs.readdirSync(dir).sort();
-  assert.deepEqual(names, ["architecture.schema.json", "jgates.schema.json", "lock.schema.json", "pii.schema.json", "policy.schema.json", "profiles.schema.json", "template.schema.json", "tools.schema.json", "workspace.schema.json"]);
+  assert.deepEqual(names, ["architecture.schema.json", "dependencies.schema.json", "jgates.schema.json", "lock.schema.json", "pii.schema.json", "policy.schema.json", "profiles.schema.json", "template.schema.json", "tools.schema.json", "workspace.schema.json"]);
   for (const n of names) assert.equal(JSON.parse(fs.readFileSync(path.join(dir, n), "utf8")).$schema, "https://json-schema.org/draft/2020-12/schema");
 });
 

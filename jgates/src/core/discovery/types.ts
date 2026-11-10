@@ -1,3 +1,5 @@
+import type { DependencyInfo, DependencyOverride } from "./dependencies.js";
+
 export const DETECTOR_VERSION = "discovery/1.0.0";
 
 export type ClassificationStatus = "explicit" | "detected" | "ambiguous" | "unsupported" | "ignored";
@@ -19,6 +21,8 @@ export interface Classification {
   classificationStatus: ClassificationStatus;
   /** True only for explicit or detected entries, when the mode allows templates and the entry is enabled. */
   approvable: boolean;
+  /** How the component's dependencies install; null when its language has no supported package manager. */
+  dependencies: DependencyInfo | null;
 }
 
 export interface Inconsistency {
@@ -57,6 +61,8 @@ export interface DeclaredComponent {
   framework?: string;
   kind?: string;
   enabled?: boolean;
+  /** components[].dependencies in workspace.yml: the manager the user chose. */
+  dependencies?: DependencyOverride;
 }
 
 /** What the discovery needs from .jgates/workspace.yml (see schemas/config/workspace.schema.json). */

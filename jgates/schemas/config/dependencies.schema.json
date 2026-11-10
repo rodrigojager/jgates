@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/config/dependencies.schema.json",
+  "title": ".jgates/dependencies.yml",
+  "description": "Optional. Private registries and install overrides per ecosystem. Secret values are never written here: only the name of the secret that holds the token.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "registries": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "python": { "$ref": "#/$defs/registry" },
+        "node": { "$ref": "#/$defs/registry" },
+        "go": { "$ref": "#/$defs/registry" },
+        "rust": { "$ref": "#/$defs/registry" },
+        "dotnet": { "$ref": "#/$defs/registry" }
+      }
+    },
+    "install": {
+      "type": "object",
+      "description": "Advanced: an install command for a manager JGates does not support (for example bun).",
+      "additionalProperties": false,
+      "properties": {
+        "command": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "registry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": { "type": "string", "pattern": "^https://", "minLength": 9 },
+        "tokenSecret": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }
+      }
+    }
+  }
+}

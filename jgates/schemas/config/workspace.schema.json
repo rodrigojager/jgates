@@ -29,6 +29,14 @@
           "framework": { "type": "string", "minLength": 1 },
           "kind": { "type": "string", "minLength": 1 },
           "enabled": { "type": "boolean" },
+          "dependencies": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "manager": { "enum": ["uv", "poetry", "pdm", "pipenv", "pip", "npm", "pnpm", "yarn", "bun", "go", "cargo", "dotnet"] },
+              "groups": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+            }
+          },
           "include": { "type": "array", "items": { "type": "string", "minLength": 1 } },
           "exclude": { "type": "array", "items": { "type": "string", "minLength": 1 } }
         }

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { loadProjectConfig, type ConfigDiagnostic } from "../config/load/index.js";
 import { buildContext, detectCargo, detectDotnet, detectGo, detectNode, detectPython, detectUnsupported, isUnder, type Candidate } from "./detectors.js";
+import { detectDependencies } from "./dependencies.js";
 import { matchesPathOrParent } from "./glob.js";
 import { compareStrings, defaultReadDir, walkProject } from "./walk.js";
 import {
@@ -17,6 +18,7 @@ import {
 } from "./types.js";
 
 export * from "./types.js";
+export * from "./dependencies.js";
 export { matchesPathOrParent, matchesExactly } from "./glob.js";
 export { DETECTOR_TABLES, buildVocabulary, labelOf, type DetectorTables, type DiscoveryVocabulary, type VocabularyFramework, type VocabularyLanguage } from "./vocabulary.js";
 
@@ -145,6 +147,7 @@ export function discoverWithSettings(projectDir: string, settings: WorkspaceSett
   );
 
   const used = new Set<string>(sorted.flatMap((e) => (e.id ? [e.id] : [])));
+  const overrides = new Map(settings.components.flatMap((d) => (d.dependencies ? [[d.id, d.dependencies] as const] : [])));
   const classifications: Classification[] = sorted.map((e) => {
     const id = e.id ?? uniqueId(makeId(e.root, e.language), e.language, used);
     const evidencePaths = [...new Set(e.evidence)].sort(compareStrings);
@@ -161,6 +164,7 @@ export function discoverWithSettings(projectDir: string, settings: WorkspaceSett
       reasonCode: e.reasonCode,
       classificationStatus: e.status,
       approvable: mode !== "report-only" && e.enabled && (e.status === "explicit" || e.status === "detected"),
+      dependencies: e.status === "ignored" || e.status === "unsupported" ? null : detectDependencies(ctx, e.root, e.language, e.id ? overrides.get(e.id) : undefined),
     };
   });
 
