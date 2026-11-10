@@ -3,6 +3,7 @@ import { api } from "../../api";
 import { currentQuery, navigate } from "../../app/route";
 import { ErrorNotice, Loading, Pill, Spinner, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
+import { Stepper } from "../../components/Stepper";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { RunChoicesForm, methodLabel, type MethodApplicability, type SemanticOptions } from "../semantic-config/RunChoicesForm";
@@ -333,17 +334,12 @@ export default function SemanticSetupScreen() {
         <h1>{t("semsetup_title")}</h1>
         <p>{t("semsetup_lead")}</p>
       </div>
-      <nav aria-label={t("semsetup_steps")}>
-        <ol className="sem-steps">
-          {STEPS.map((s) => (
-            <li key={s}>
-              <button type="button" onClick={() => go(s)} disabled={busy !== null || (s !== "provider" && !configured) || (s === "preview" && problems.length > 0)} {...(step === s ? { "aria-current": "step" as const } : {})}>
-                {t(`semsetup_step_${s}`)}
-              </button>
-            </li>
-          ))}
-        </ol>
-      </nav>
+      <Stepper
+        label={t("semsetup_steps")}
+        current={step}
+        onSelect={(id) => go(id as Step)}
+        steps={STEPS.map((s) => ({ id: s, label: t(`semsetup_step_${s}`), disabled: busy !== null || (s !== "provider" && !configured) || (s === "preview" && problems.length > 0) }))}
+      />
       {(options.loading && !options.data) || (!sem && !semantic.error) ? <Loading /> : null}
       {options.error ? <ErrorNotice error={options.error} onRetry={options.reload} /> : null}
       {semantic.error ? <ErrorNotice error={semantic.error} onRetry={semantic.reload} /> : null}

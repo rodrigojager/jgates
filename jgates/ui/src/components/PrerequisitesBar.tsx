@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
+import { useRecheckOnFocus } from "../api/environment";
 import { Dialog, ErrorNotice, Pill, useAsync, Spinner } from "./common";
 import { DoctorAvatar } from "./DoctorAvatar";
 import { Icon, type IconName } from "./icons";
@@ -199,6 +200,10 @@ const READY_LINGER_MS = 4_000;
  */
 export function PrerequisitesBar({ showReady = false, inEnvironment = false, onChanged }: { showReady?: boolean; inEnvironment?: boolean; onChanged?: () => void }) {
   const loaded = useAsync(() => api<Report>("GET", "/api/prerequisites"), "prerequisites");
+  // Back to the tab (or the window): check again, so a Docker installed or started meanwhile is seen without a restart.
+  useRecheckOnFocus(() => {
+    if (!loaded.loading) loaded.reload();
+  });
   const [report, setReport] = useState<Report | null>(null);
   const [confirm, setConfirm] = useState<PrerequisiteItem | null>(null);
   const [dockerSince, setDockerSince] = useState<number | null>(null);

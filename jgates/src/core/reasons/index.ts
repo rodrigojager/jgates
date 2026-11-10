@@ -62,6 +62,12 @@ export const REASONS: Readonly<Record<string, ReasonEntry>> = Object.freeze({
   DATA_STALE: entry("DATA_STALE", { kind: "command", command: "jgates tools update-data" }),
   // A customer-supplied tool (CodeQL) that was not prepared: the user accepts its terms and prepares it into its volume.
   CUSTOMER_SUPPLIED: entry("CUSTOMER_SUPPLIED", { kind: "command", command: "jgates tools prepare-codeql" }),
+  EXTENSION_OUTDATED: entry("EXTENSION_OUTDATED", { kind: "route", route: "tools" }),
+  SERVICES_NOT_READY: entry("SERVICES_NOT_READY", { kind: "route", route: "environment" }),
+  SERVICES_REQUIRED: entry("SERVICES_REQUIRED", { kind: "route", route: "environment" }),
+  NOT_APPLICABLE_TO_PROJECT: entry("NOT_APPLICABLE_TO_PROJECT", { kind: "route", route: "validations/review" }),
+  // Developer-facing: a step that would run outside the container is a defect, with nothing to click.
+  HOST_EXECUTION_REFUSED: entry("HOST_EXECUTION_REFUSED", { kind: "none" }),
   UNSUPPORTED_PLATFORM: entry("UNSUPPORTED_PLATFORM", { kind: "link", url: DOCKER_RESOURCES_URL }),
 });
 

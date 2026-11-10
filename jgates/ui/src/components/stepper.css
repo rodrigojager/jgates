@@ -1,0 +1,51 @@
+/* The Stepper: a numbered list of steps; the current one is marked, finished ones show a check, blocked ones are inert. */
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: stepper-step;
+}
+.stepper li {
+  counter-increment: stepper-step;
+}
+.stepper button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line, #d9e0dc);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: inherit;
+  padding: 6px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+.stepper button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.stepper button::before {
+  content: counter(stepper-step);
+  display: inline-grid;
+  place-items: center;
+  width: 1.4em;
+  height: 1.4em;
+  border-radius: 50%;
+  background: var(--mint, #e6efe7);
+  font-size: 0.85em;
+  font-weight: 600;
+}
+.stepper button[data-state="done"]::before {
+  content: "\2713";
+}
+.stepper button[aria-current="step"] {
+  border-color: var(--accent, #20674f);
+  font-weight: 600;
+}
+.stepper button[aria-current="step"]::before {
+  background: var(--accent, #20674f);
+  color: var(--surface, #fff);
+}
