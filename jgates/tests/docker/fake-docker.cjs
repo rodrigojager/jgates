@@ -15,6 +15,8 @@
 //   FAKE_DOCKER_DAEMON=stopped   every command that needs the daemon fails like "Cannot connect to the Docker daemon"
 //   FAKE_DOCKER_MEMORY_MB (default 8192), FAKE_DOCKER_CPUS (4), FAKE_DOCKER_OS (linux), FAKE_DOCKER_ARCH (x86_64),
 //   FAKE_DOCKER_DISK_FREE_MB (default 102400): free space the helper `df -Pk /` reports
+// Image transfer (`save --output <file> <ref>`, `load --input <file>`): see the save / load section; FAKE_DOCKER_SAVE_FAIL=1,
+//   FAKE_DOCKER_LOAD_FAIL=1; a load is recorded in FAKE_DOCKER_STATE/loaded.jsonl
 // Pulls (`pull`, `manifest inspect`):
 //   FAKE_DOCKER_PULL_LAYERS  JSON [{ "id": "<12 hex>", "size": <bytes> }] (default: three layers)
 //   FAKE_DOCKER_PULL_DROPS   how many pull attempts drop mid-way (default 0); FAKE_DOCKER_PULL_DROP_AFTER: layers
@@ -132,6 +134,40 @@ if (argv[0] === "info") {
 if (argv[0] === "version") {
   needDaemon();
   process.stdout.write("27.0.1-fake\n");
+  process.exit(0);
+}
+
+// ---- save / load -----------------------------------------------------------------------------------------------
+// `save --output <file> <reference>` writes a small archive naming the image (FAKE_DOCKER_SAVE_FAIL=1: fails); `load --input
+// <file>` reads one back, prints "Loaded image: <reference>" and records the load in FAKE_DOCKER_STATE/loaded.jsonl (a wrapper
+// that wants the image to exist only after a load looks for that file; FAKE_DOCKER_LOAD_FAIL=1: fails).
+const valueOf = (names) => {
+  for (const name of names) {
+    const at = argv.indexOf(name);
+    if (at >= 0 && argv[at + 1]) return argv[at + 1];
+  }
+  return null;
+};
+if (argv[0] === "save") {
+  needDaemon();
+  if (env("FAKE_DOCKER_SAVE_FAIL", "") === "1") fail("Error response from daemon: save failed");
+  const out = valueOf(["--output", "-o"]);
+  const reference = argv[argv.length - 1];
+  const labels = process.env.FAKE_DOCKER_LABELS || '{"org.jgates.tool.version":"0.17.2"}';
+  const id = process.env.FAKE_DOCKER_IMAGE_ID || `sha256:${crypto.createHash("sha256").update(labels).digest("hex")}`;
+  if (!out) fail("save: --output is required");
+  fs.writeFileSync(out, `fake image archive\nreference=${reference}\nid=${id}\npadding=${"x".repeat(4096)}\n`);
+  process.exit(0);
+}
+if (argv[0] === "load") {
+  needDaemon();
+  if (env("FAKE_DOCKER_LOAD_FAIL", "") === "1") fail("Error processing tar file: unexpected EOF");
+  const input = valueOf(["--input", "-i"]);
+  if (!input || !fs.existsSync(input)) fail("open: no such file or directory");
+  const text = fs.readFileSync(input, "utf8");
+  const reference = /^reference=(.*)$/m.exec(text)?.[1] || "image";
+  fs.appendFileSync(path.join(state, "loaded.jsonl"), JSON.stringify({ file: input, reference }) + "\n");
+  process.stdout.write(`Loaded image: ${reference}\n`);
   process.exit(0);
 }
 

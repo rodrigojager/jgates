@@ -5,6 +5,8 @@ import { EXIT_USAGE, reportError, writeJson } from "../output.js";
 import { translator } from "../../i18n/index.js";
 import { assessEnvironment, lineTerminal, NO_TERMINAL, offerInstall, type Assessment, type EnvironmentAssessment, type InstallSession, type InstallTerminal } from "../../core/install/index.js";
 
+import { collectStatus, renderStatus } from "../../core/lifecycle/index.js";
+
 const tr = translator("doctor");
 
 /** Exit code of `doctor --fix` when an installation that ran failed. */
@@ -102,10 +104,22 @@ export const command: CommandModule = {
     }
     const after = session?.ran ? assessEnvironment(projectDir).report : assessment.report;
     const missingCount = after.install.essential.length + after.install.optional.length;
+    // `doctor` is the old name of `status`: the same readiness report, with a note that says so.
+    const readiness = await collectStatus({ version: ctx.version, projectDir });
+    const lifecycle = translator("lifecycle");
     if (ctx.json) {
-      writeJson(ctx, { status: "OK", tool: "jgates", version: ctx.version, ...after, session: session ? sessionJson(session) : null });
+      writeJson(ctx, {
+        status: "OK",
+        tool: "jgates",
+        version: ctx.version,
+        ...after,
+        session: session ? sessionJson(session) : null,
+        readiness,
+        deprecated: { replacedBy: "jgates status", message: lifecycle("lifecycle_doctor_deprecated") },
+      });
       return session?.failed ? EXIT_INSTALL_FAILED : 0;
     }
+    ctx.stdout(`\n${renderStatus(readiness)}\n${lifecycle("lifecycle_doctor_deprecated")}\n`);
     if (session?.ran) {
       ctx.stdout(`\n${missingCount === 0 ? tr("doctor_after_ready") : tr("doctor_after_missing", { essential: after.install.essential.join(", ") || "-", optional: after.install.optional.join(", ") || "-" })}\n`);
     } else if (missingCount > 0 && (session?.asked.length ?? 0) === 0 && (session?.accepted.length ?? 0) === 0) {

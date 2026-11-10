@@ -13,6 +13,8 @@ import { PrepareError, prepareInstance, previewPrepare } from "../../core/prepar
 import { decodeBytes, DocumentError, openDocument, saveDocument, validateDocument, type DocumentValidation } from "../../core/documents/index.js";
 
 import { CODEQL_VOLUME, prepareCodeql, type PrepareResult } from "../../core/codeql-prepare/index.js";
+import { exportImage, importImage, TransferError } from "../../core/lifecycle/transfer.js";
+import { formatBytes } from "../../core/reasons/index.js";
 import { DATABASE_IDS, updateData, type DatabaseId, type UpdateProgress, type UpdateResult } from "../../core/data/index.js";
 
 const tr = translator("tools");
@@ -417,7 +419,34 @@ async function runPrepareCodeql(ctx: CommandContext): Promise<number> {
   return status === "OK" ? 0 : 2;
 }
 
+/** `jgates tools export <file>` / `import <file>`: the tools image as a tarball plus its record, verified by digest on import. */
+async function runTransfer(ctx: CommandContext, direction: "export" | "import"): Promise<number> {
+  const l = translator("lifecycle");
+  const file = ctx.args[1];
+  if (!file) return reportError(ctx, ctx.json, "MISSING_FILE", l(`lifecycle_${direction}_usage`), l(`lifecycle_${direction}_usage`), EXIT_USAGE);
+  try {
+    if (direction === "export") {
+      const record = await exportImage({ version: ctx.version, file });
+      if (ctx.json) return ok(ctx, { file: path.resolve(file), record });
+      ctx.stdout(l("lifecycle_export_done", { image: record.reference, file: path.resolve(file), sha256: record.sha256, size: formatBytes(record.bytes) }) + "\n");
+      return 0;
+    }
+    const record = await importImage({ version: ctx.version, file });
+    if (ctx.json) return ok(ctx, { file: path.resolve(file), verified: true, record, loadedId: record.loadedId });
+    ctx.stdout(l("lifecycle_import_done", { image: record.reference, id: record.loadedId }) + "\n");
+    return 0;
+  } catch (error) {
+    if (!(error instanceof TransferError)) throw error;
+    const fix = error.code === "IMAGE_MISSING" ? translator("reasons")("reason_IMAGE_MISSING_action") : l("lifecycle_import_fix");
+    if (ctx.json) writeJson(ctx, { ...errorPayload(error.code, error.message, fix, 2), ...(error.details ? { details: error.details } : {}) });
+    else ctx.stderr(`ERROR ${error.code}\n${error.message}\n${fix}\n${error.details ? `${error.details}\n` : ""}`);
+    return 2;
+  }
+}
+
 const SUBCOMMANDS: Record<string, Subcommand> = {
+  export: { run: (ctx) => runTransfer(ctx, "export"), args: 1 },
+  import: { run: (ctx) => runTransfer(ctx, "import"), args: 1 },
   "update-data": { run: (ctx) => runUpdateData(ctx), args: 0 },
   "prepare-codeql": { run: (ctx) => runPrepareCodeql(ctx), args: 0 },
   prepare: { run: runPrepare, args: 0 },
