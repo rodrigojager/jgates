@@ -7,6 +7,8 @@ import type { ExecutionResult, ExecutionSpec, RunnerOptions } from "./process.js
 export interface StepLaunchFacts {
   network?: "none" | "bridge";
   resources?: { memoryMb?: number; cpus?: number; tmpfsMb?: number };
+  /** The step's timeoutSeconds in ms: the default timeout of every process of the step that sets none itself. */
+  timeoutMs?: number;
 }
 
 /**
@@ -16,6 +18,16 @@ export interface StepLaunchFacts {
 export interface StepLauncherHook {
   handles(spec: ExecutionSpec): boolean;
   run(spec: ExecutionSpec, options: RunnerOptions): Promise<ExecutionResult>;
+  /**
+   * The engine vanished while a process of the run was running (the daemon stopped, Docker Desktop quit): the engine
+   * client's own text, or null while the engine is fine. Once set, no further container is started.
+   */
+  engineLost?(): string | null;
+  /**
+   * Adds the in-container command and the docker run line to the stderr logs of a step that the adapter wrote itself
+   * (logs relative to the run folder). A log whose process already got the header from the runner is left alone.
+   */
+  annotateLogs?(stepId: string, logs: string[]): void;
 }
 
 export interface ProcessRecord {

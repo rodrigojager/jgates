@@ -58,6 +58,7 @@ function writeFixture(dir) {
     "pyproject.toml": '[tool.ruff]\nline-length = 88\n\n[tool.pytest.ini_options]\ntestpaths = ["tests"]\npythonpath = ["."]\n',
     "app/__init__.py": "",
     "app/core.py": "import os\n\n\ndef double(value):\n    return value * 2\n",
+    "scripts/run.sh": "#!/bin/sh\necho hi\n",
     "tests/test_core.py": "import iniconfig\n\nfrom app.core import double\n\n\ndef test_double():\n    assert double(2) == 4\n\n\ndef test_dependency_is_installed():\n    assert iniconfig.IniConfig\n",
     // Host environments and caches that must never reach the source volume.
     ".venv/pyvenv.cfg": "home = C:\\Python\n",
@@ -68,6 +69,8 @@ function writeFixture(dir) {
     fs.mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
     fs.writeFileSync(path.join(dir, name), content);
   }
+  // A repository whose index marks one script executable: the copy must carry exactly that bit, as Windows has none.
+  for (const args of [["init", "-q"], ["add", "-A"], ["update-index", "--chmod=+x", "scripts/run.sh"]]) assert.equal(spawnSync("git", args, { cwd: dir }).status, 0, `git ${args.join(" ")}`);
 }
 
 function cleanup() {
@@ -160,7 +163,10 @@ test("S0: sync, uv dependencies, ruff and pytest in --network none containers le
   const cold = await sync.syncProject({ projectDir, workspace: ws, image: imageId, version: VERSION, extraLabels: TEST_LABELS });
   assert.equal(cold.createdVolume, true);
   assert.ok(cold.totalFiles > 0 && cold.changedFiles === cold.totalFiles, `cold sync copies every file: ${JSON.stringify({ total: cold.totalFiles, changed: cold.changedFiles })}`);
-  assert.ok(cold.container.args.includes(`type=bind,src=${path.resolve(projectDir)},dst=/host,readonly`), "the project is mounted read-only");
+  // The project is streamed from the host (T04): no container gets the project folder, the helper only sees a stage folder read-only.
+  const syncMounts = cold.container.args.filter((a, i) => cold.container.args[i - 1] === "--mount");
+  assert.ok(!syncMounts.some((m) => m.includes(path.resolve(projectDir))), `the project folder is never mounted: ${syncMounts.join(" | ")}`);
+  assert.ok(syncMounts.some((m) => /dst=\/stage,readonly$/.test(m)), "the stage folder is mounted read-only");
   const warm = await sync.syncProject({ projectDir, workspace: ws, image: imageId, version: VERSION, extraLabels: TEST_LABELS });
   assert.equal(warm.createdVolume, false);
   assert.equal(warm.changedFiles, 0, "a second sync with no change copies nothing");
@@ -169,8 +175,13 @@ test("S0: sync, uv dependencies, ruff and pytest in --network none containers le
   const listing = volumeListing("find /workspace \\( -name node_modules -o -name __pycache__ -o -name pyvenv.cfg -o -path /workspace/.git \\) -print -prune");
   assert.doesNotMatch(listing, /node_modules|__pycache__|pyvenv\.cfg/, "host environments and caches are never copied");
   if (fs.existsSync(path.join(projectDir, ".git"))) assert.match(listing, /\/workspace\/\.git/, ".git is copied");
-  // A Windows bind mount shows every file as executable; the copy must not (tools would report it).
-  assert.equal(volumeListing("find /workspace -path /workspace/.git -prune -o -type f -perm /111 -print").trim(), "", "no synchronized file is executable");
+  // Executable bits follow the Git index (a Windows bind mount would show every file as executable, which tools report):
+  // what is executable in the volume is exactly the set the index marks 100755, and never anything else.
+  const executable = volumeListing("find /workspace -path /workspace/.git -prune -o -type f -perm /111 -print").split("\n").map((l) => l.trim().replace(/^\/workspace\//, "")).filter(Boolean).sort();
+  const indexed = sync.gitIndexModes(projectDir);
+  const expectedExecutable = indexed ? [...indexed].filter(([, exec]) => exec).map(([p]) => p).filter((p) => fs.existsSync(path.join(projectDir, p))).sort() : [];
+  for (const file of executable) assert.ok(expectedExecutable.includes(file), `${file} is executable in the volume but not in the Git index`);
+  if (!process.env.JGATES_S0_PROJECT) assert.deepEqual(executable, ["scripts/run.sh"], "the script the index marks executable is, and nothing else");
 
   const requirementFiles = fs.existsSync(path.join(projectDir, "requirements-dev.txt")) ? ["requirements-dev.txt"] : ["requirements.txt"];
   const depsInput = { componentDir: projectDir, requirementFiles, workspace: ws, component: "root", image: imageId, imageId, pythonVersion: manifest.runtimes.python, version: VERSION, cacheVolume, extraLabels: TEST_LABELS };

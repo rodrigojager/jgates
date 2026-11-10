@@ -10,6 +10,8 @@
   "sync_log_skipped": "Files that could not be read and stay for the next run: {count}",
   "sync_log_timing": "Time: {scan} ms reading the project, {copy} ms copying, {total} ms in total; {bytes} bytes sent",
   "sync_log_exclusions": "Never copied (directory names): {names}",
+  "sync_log_build_outputs": "Left out only when the project's ignore files list them: {names}",
+  "sync_log_patterns": "Left out by the exclusions of .jgates/workspace.yml: {patterns}",
   "sync_log_excluded_found": "Left out in this project: {paths}",
   "sync_log_failed": "Failed: {message}",
   "sync_cmd_done": "{total} files, {changed} changed, {deleted} deleted ({volume}).",

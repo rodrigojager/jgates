@@ -15,6 +15,8 @@
   "reason_IMAGE_PULL_FAILED_action": "Try again",
   "reason_IMAGE_VERSION_MISMATCH": "These tools are version {actual}; this JGates uses {expected}.",
   "reason_IMAGE_VERSION_MISMATCH_action": "Download the tools of this version",
+  "reason_ENGINE_LOST": "Docker stopped during the run; this check is incomplete.",
+  "reason_ENGINE_LOST_action": "Open Docker Desktop and run again",
   "reason_UNSUPPORTED_PLATFORM": "This Docker runs {platform}; JGates needs Linux amd64.",
   "reason_UNSUPPORTED_PLATFORM_action": "How to set up Docker"
 }

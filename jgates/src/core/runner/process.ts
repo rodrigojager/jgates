@@ -3,7 +3,7 @@
 // a timeout and cancellation that stop the whole process tree, and the facts of the execution.
 import fs from "node:fs";
 import { spawn } from "node:child_process";
-import { BoundedCapture, BoundedLog } from "./log-sink.js";
+import { BoundedCapture, BoundedLog, processHeader } from "./log-sink.js";
 import { currentScope, type ProcessRecord } from "./scope.js";
 import { treeStopper, type TreeStopper } from "./tree.js";
 
@@ -24,6 +24,8 @@ export interface ExecutionSpec {
   /** Called with each chunk of output as it arrives (live progress); the full output is still captured. */
   onStdout?: (chunk: string) => void;
   onStderr?: (chunk: string) => void;
+  /** Header of the stderr log instead of the default (a step container shows its in-container command and the docker run line). */
+  logHeader?: string;
 }
 
 export interface ExecutionResult {
@@ -117,7 +119,7 @@ export function substituteTokens(text: string, tokens: Record<string, string>): 
   return out;
 }
 
-const header = (spec: ExecutionSpec): string => `executable: ${spec.executable}\nargs: ${JSON.stringify(spec.args)}\ncwd: ${spec.cwd}\n---\n`;
+const header = (spec: ExecutionSpec): string => spec.logHeader ?? processHeader(spec);
 
 function notify(callback: ((chunk: string) => void) | undefined, chunk: Buffer): void {
   if (!callback) return;

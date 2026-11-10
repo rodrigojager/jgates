@@ -5,6 +5,7 @@ import path from "node:path";
 import { translator } from "../../i18n/index.js";
 import { EngineError, engineRuntime, inspectImageSync, type EngineContext } from "../engine/index.js";
 import type { PhaseOutcome, RunPhase } from "../runner/executor.js";
+import { loadWorkspaceSettings } from "../discovery/index.js";
 import { toolsImageTarget } from "../tools-image/index.js";
 import { SyncError, syncProject, type SyncResult } from "./index.js";
 
@@ -37,6 +38,8 @@ export function syncDetails(result: SyncResult): Record<string, unknown> {
     skippedFiles: result.skippedFiles,
     bytes: result.bytes,
     exclusions: result.exclusions,
+    buildOutputs: result.buildOutputs,
+    excludePatterns: result.excludePatterns,
     excludedPaths: result.excludedPaths,
     scanMs: result.scanMs,
     copyMs: result.copyMs,
@@ -64,6 +67,8 @@ export function syncLogText(result: SyncResult, locale?: string): string {
       ...(result.skippedFiles > 0 ? [t("sync_log_skipped", { count: result.skippedFiles })] : []),
       t("sync_log_timing", { scan: result.scanMs, copy: result.copyMs, total: result.durationMs, bytes: result.bytes }),
       t("sync_log_exclusions", { names: result.exclusions.join(", ") }),
+      t("sync_log_build_outputs", { names: result.buildOutputs.join(", ") }),
+      ...(result.excludePatterns.length > 0 ? [t("sync_log_patterns", { patterns: result.excludePatterns.join(", ") })] : []),
       ...(result.excludedPaths.length > 0 ? [t("sync_log_excluded_found", { paths: result.excludedPaths.slice(0, 50).join(", ") })] : []),
     ].join("\n") + "\n"
   );
@@ -90,6 +95,7 @@ export function createSyncPhase(input: SyncPhaseInput): RunPhase {
           run: input.runId,
           home: input.home,
           context: engine,
+          excludePatterns: loadWorkspaceSettings(input.projectDir).settings.exclude,
         });
         return { ok: true, details: syncDetails(result), logs: writeLog(input.runDir, syncLogText(result)) };
       } catch (error) {

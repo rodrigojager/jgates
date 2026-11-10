@@ -252,6 +252,7 @@ export function describeAnalysis(prep: PreparedAnalysis, input: DescribeInput): 
     identity,
     snapshot: snapshotId,
     hashes,
+    container: input.plan?.inputs.container ?? null,
   });
   return { analyzed, provenance };
 }

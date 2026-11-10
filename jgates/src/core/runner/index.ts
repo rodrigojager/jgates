@@ -34,7 +34,8 @@ export {
   type ContainerResult,
   type ContainerSpec,
 } from "./container.js";
-export { BoundedCapture, BoundedLog, TRUNCATION_MARKER } from "./log-sink.js";
+export { BoundedCapture, BoundedLog, TRUNCATION_MARKER, containerHeader, processHeader, shellQuote } from "./log-sink.js";
+export { cancelRunInEngine, forgetRunServices, registerRunServices, runServices, type EngineCancelInput, type EngineCancelResult, type ServicesProject } from "./cancel.js";
 export { preflight, resolveExecutable, type PreflightCode, type PreflightProblem, type PreflightSpec } from "./preflight.js";
 export { currentScope, runInScope, type ExecutionScope, type ProcessRecord, type StepLauncherHook, type StepLaunchFacts } from "./scope.js";
 export { HOST_EXECUTION_REFUSED, HostExecutionRefused, IMAGE_JSON_PATH, assertNativeAllowed, imageJsonPath, readImageJson, stepMode, type ImageJson, type StepMode } from "./in-image.js";

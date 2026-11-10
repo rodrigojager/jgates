@@ -7,7 +7,7 @@
 import path from "node:path";
 import { FRAGMENT_FILES, ROOT_FILE } from "../config/load/index.js";
 import { contentHash } from "../ids/index.js";
-import type { Plan } from "../plan/types.js";
+import type { ContainerInputs, Plan } from "../plan/types.js";
 
 export const PROVENANCE_SCHEMA_VERSION = 1;
 const LOCK_FILE = ".jgates/lock.json";
@@ -71,6 +71,8 @@ export function hashesOfPlan(plan: Plan): AnalysisHashes {
       invocations: plan.invocations.map((i) => ({ id: i.id, adapter: i.adapter, executable: i.command.executable, args: i.command.args, env: i.command.env })),
       items: items.map((i) => ({ id: i.id, versions: i.versions, runtime: i.runtime })),
       files: groups.tools,
+      // The image digests, dependency keys, data timestamps and services selection (container-first runs only).
+      ...(plan.inputs.container ? { container: plan.inputs.container } : {}),
     }),
     nativeFiles: contentHash({ files: groups.native }),
     inventory: plan.inputs.inventoryHash,
@@ -133,6 +135,11 @@ export interface Provenance {
   identity: string;
   snapshot: string;
   hashes: AnalysisHashes | null;
+  /**
+   * The container-first inputs of the plan, value by value: tools image digest, extension image digests, dependency
+   * keys, advisory data timestamps and the services selection. Absent when the run did not use containers.
+   */
+  container?: ContainerInputs;
   /** The prompts of the semantic review, when the run had one ($.semantic.prompts). */
   semanticPrompts?: SemanticPromptsProvenance;
 }
@@ -145,10 +152,12 @@ export interface ProvenanceInput {
   identity: string;
   snapshot: string;
   hashes: AnalysisHashes | null;
+  container?: ContainerInputs | null;
 }
 
 export function buildProvenance(input: ProvenanceInput): Provenance {
   return {
+    ...(input.container ? { container: input.container } : {}),
     schemaVersion: PROVENANCE_SCHEMA_VERSION,
     sourceCommit: input.sourceCommit,
     producer: "jgates",

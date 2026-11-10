@@ -24,6 +24,7 @@ import {
   type EngineContext,
   type EngineRunResult,
 } from "../engine/index.js";
+import { matchesPathOrParent } from "../discovery/glob.js";
 import { TarWriter } from "./tar.js";
 
 /** Directory names never copied into the source volume: host environments, platform builds and tool caches. */
@@ -103,13 +104,73 @@ export function gitIndexModes(projectDir: string): Map<string, boolean> | null {
   return modes;
 }
 
+/**
+ * Build output directories that are copied unless the project's own ignore files list them: they are platform-specific
+ * only when generated, and some projects keep sources in a folder named `build` or `dist`.
+ */
+export const SYNC_BUILD_OUTPUT_DIRECTORIES: readonly string[] = ["dist", "build"];
+
+/** The ignore files read for the build output directories, in each folder (the Docker one only at the root). */
+const IGNORE_FILES = [".gitignore", ".dockerignore"];
+
+/** The build output names an ignore file lists: for its folder and below (`anywhere`), or for its folder only (`here`). */
+export function ignoredBuildOutputs(text: string, names: readonly string[] = SYNC_BUILD_OUTPUT_DIRECTORIES): { anywhere: Set<string>; here: Set<string> } {
+  const anywhere = new Set<string>();
+  const here = new Set<string>();
+  for (const raw of text.split(/\r?\n/)) {
+    let line = raw.trim();
+    if (line === "" || line.startsWith("#")) continue;
+    const negated = line.startsWith("!");
+    if (negated) line = line.slice(1);
+    // "/dist", "dist/", "**/dist", "dist/*" and "dist/**" all name the directory.
+    line = line.replace(/\/\*{1,2}$/, "").replace(/\/+$/, "");
+    const anchored = line.startsWith("/");
+    line = line.replace(/^\/+/, "").replace(/^(\*\*\/)+/, "");
+    if (!names.includes(line)) continue;
+    const target = anchored ? here : anywhere;
+    if (negated) {
+      anywhere.delete(line);
+      here.delete(line);
+    } else target.add(line);
+  }
+  return { anywhere, here };
+}
+
+export interface ScanOptions {
+  /** Patterns of `exclude` in .jgates/workspace.yml: a name without `/` matches at any depth, otherwise from the project root. `.git` is never excluded. */
+  excludePatterns?: readonly string[];
+  /** Skip `dist` and `build` when the project's ignore files list them (default true). */
+  honorIgnoreFiles?: boolean;
+}
+
+function readIgnoreNames(dir: string, root: boolean): { anywhere: Set<string>; here: Set<string> } {
+  const anywhere = new Set<string>();
+  const here = new Set<string>();
+  for (const file of IGNORE_FILES) {
+    if (file === ".dockerignore" && !root) continue;
+    let text: string;
+    try {
+      text = fs.readFileSync(path.join(dir, file), "utf8");
+    } catch {
+      continue;
+    }
+    const found = ignoredBuildOutputs(text);
+    for (const n of found.anywhere) anywhere.add(n);
+    for (const n of found.here) here.add(n);
+  }
+  return { anywhere, here };
+}
+
 /** Walks the project (excluded directories are not entered) and returns what the sync would copy. */
-export function scanProject(projectDir: string, excluded: readonly string[] = SYNC_EXCLUDED_DIRECTORIES): ScanResult {
+export function scanProject(projectDir: string, excluded: readonly string[] = SYNC_EXCLUDED_DIRECTORIES, options: ScanOptions = {}): ScanResult {
   const skip = new Set(excluded);
+  const patterns = options.excludePatterns ?? [];
+  const honorIgnoreFiles = options.honorIgnoreFiles !== false;
   const index = gitIndexModes(projectDir);
   const entries = new Map<string, ManifestEntry>();
   const excludedFound: string[] = [];
-  const walk = (dir: string, rel: string): void => {
+  const excludedByPattern = (relPath: string): boolean => relPath !== ".git" && !relPath.startsWith(".git/") && patterns.some((p) => matchesPathOrParent(p, relPath));
+  const walk = (dir: string, rel: string, inherited: ReadonlySet<string>): void => {
     let children: fs.Dirent[];
     try {
       children = fs.readdirSync(dir, { withFileTypes: true });
@@ -121,16 +182,22 @@ export function scanProject(projectDir: string, excluded: readonly string[] = SY
       entries.delete(rel);
       return;
     }
+    // `dist` and `build` are left out only where an ignore file of this folder or a parent lists them.
+    const own = honorIgnoreFiles && children.some((c) => c.isFile() && IGNORE_FILES.includes(c.name)) ? readIgnoreNames(dir, rel === "") : { anywhere: new Set<string>(), here: new Set<string>() };
+    const ignoredHere = new Set([...inherited, ...own.anywhere, ...own.here]);
+    const passDown = new Set([...inherited, ...own.anywhere]);
     for (const child of children) {
       const childRel = rel === "" ? child.name : `${rel}/${child.name}`;
       const full = path.join(dir, child.name);
       if (child.isDirectory()) {
-        if (skip.has(child.name)) {
+        if (skip.has(child.name) || ignoredHere.has(child.name) || excludedByPattern(childRel)) {
           excludedFound.push(childRel);
           continue;
         }
         entries.set(childRel, ["d", 0, 0, 0o755]);
-        walk(full, childRel);
+        walk(full, childRel, passDown);
+      } else if (excludedByPattern(childRel)) {
+        excludedFound.push(childRel);
       } else if (child.isSymbolicLink()) {
         try {
           const stat = fs.lstatSync(full);
@@ -150,7 +217,7 @@ export function scanProject(projectDir: string, excluded: readonly string[] = SY
       }
     }
   };
-  walk(projectDir, "");
+  walk(projectDir, "", new Set());
   return { entries, excludedFound: excludedFound.sort() };
 }
 
@@ -222,6 +289,8 @@ export interface SyncInput {
   extraLabels?: Record<string, string>;
   /** Directory names never copied (default: SYNC_EXCLUDED_DIRECTORIES). */
   excluded?: readonly string[];
+  /** The `exclude` patterns of .jgates/workspace.yml (see ScanOptions). */
+  excludePatterns?: readonly string[];
   timeoutMs?: number;
   context?: EngineContext;
 }
@@ -237,6 +306,10 @@ export interface SyncResult extends SyncCounts {
   bytes: number;
   /** Directory names of the exclusion list and the paths found and left out. */
   exclusions: string[];
+  /** `dist` and `build`: left out only where the project's ignore files list them. */
+  buildOutputs: string[];
+  /** The workspace.yml exclusion patterns that applied. */
+  excludePatterns: string[];
   excludedPaths: string[];
   /** Time spent on the host (walking, comparing, packing) and in the helper container. */
   scanMs: number;
@@ -296,7 +369,7 @@ export async function syncProject(input: SyncInput): Promise<SyncResult> {
   const previous = createdVolume ? null : readManifest(manifestFile, volume);
 
   const scanStarted = Date.now();
-  const scan = scanProject(projectDir, exclusions);
+  const scan = scanProject(projectDir, exclusions, { excludePatterns: input.excludePatterns ?? [] });
   const plan = planSync(previous, scan.entries);
   const nextEntries = new Map(scan.entries);
 
@@ -363,6 +436,8 @@ export async function syncProject(input: SyncInput): Promise<SyncResult> {
     skippedFiles,
     bytes,
     exclusions,
+    buildOutputs: [...SYNC_BUILD_OUTPUT_DIRECTORIES],
+    excludePatterns: [...(input.excludePatterns ?? [])],
     excludedPaths: scan.excludedFound,
     scanMs,
     copyMs,

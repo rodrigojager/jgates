@@ -30,6 +30,8 @@ export interface StageExecution {
   logTruncated?: boolean;
   /** Number of processes the step started. */
   processes?: number;
+  /** Shared reason code of the catalogue when the step ended for a reason of the environment (ENGINE_LOST). */
+  reasonCode?: string;
   notRun?: { cause: NotRunCause; detail: string; steps?: string[]; problems?: Array<{ code: string; message: string }> };
 }
 

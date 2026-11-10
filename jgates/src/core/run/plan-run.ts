@@ -147,6 +147,12 @@ function networkOf(items: PlanItem[]): "none" | "bridge" {
   return items.some((i) => i.network) ? "bridge" : "none";
 }
 
+/** The step's timeout: the smallest timeoutSeconds of its items (the executor enforces it for every adapter). */
+function timeoutOf(items: PlanItem[]): { timeoutSeconds?: number } {
+  const seconds = items.map((i) => i.limits?.timeoutSeconds).filter((s): s is number => typeof s === "number" && s > 0);
+  return seconds.length > 0 ? { timeoutSeconds: Math.min(...seconds) } : {};
+}
+
 /** The `resources` of the adapter's manifest, as a step field (nothing when the manifest has none). */
 function resourcesOf(adapterId: string): { resources?: NonNullable<ReturnType<typeof manifestResources>> } {
   const resources = manifestResources(adapterId);
@@ -173,6 +179,7 @@ export function planSteps(context: AdapterContext, plan: Plan): CacheableStep[] 
       skeleton: () => bridgeSkeleton(plan),
       run: () => runBridgeFromPlan(context, plan),
       network: networkOf(items),
+      ...timeoutOf(items),
       ...resourcesOf(BRIDGE_ID),
       cacheSubject: cacheSubject(plan, hashes, bridge, items),
     });
@@ -190,6 +197,7 @@ export function planSteps(context: AdapterContext, plan: Plan): CacheableStep[] 
       skeleton: () => externalSkeleton(plan, invocation.adapter, invocation.id),
       run: () => adapter.run(context, plan, invocation.id),
       network: networkOf(items),
+      ...timeoutOf(items),
       ...resourcesOf(invocation.adapter),
       cacheSubject: cacheSubject(plan, hashes, invocation, items),
     });

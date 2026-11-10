@@ -4,6 +4,37 @@ import fs from "node:fs";
 
 export const TRUNCATION_MARKER = "[jgates] output truncated";
 
+/** The line of a container header that names the full docker run line (the UI's "Comando executado"). */
+export const CONTAINER_HEADER_MARK = "Comando executado: ";
+
+/** Quotes an argument the way a shell user would type it (for the `docker run` line of a log header). */
+export function shellQuote(arg: string): string {
+  return /^[A-Za-z0-9_@%+=:,./\\-]+$/.test(arg) ? arg : `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+/** The header of a host process log: what was started and where. */
+export function processHeader(spec: { executable: string; args: string[]; cwd: string }): string {
+  return `executable: ${spec.executable}\nargs: ${JSON.stringify(spec.args)}\ncwd: ${spec.cwd}\n---\n`;
+}
+
+/**
+ * The header of a step container log: the command as run inside the container (executable, args, working directory)
+ * and, under "Comando executado", the full `docker run` line of the engine client (what the UI shows as the command).
+ */
+export function containerHeader(input: { command: string[]; workdir: string; container: string; image: string; runtime: string; dockerArgs: string[] }): string {
+  const [executable = "", ...args] = input.command;
+  return [
+    `executable: ${executable}`,
+    `args: ${JSON.stringify(args)}`,
+    `cwd: ${input.workdir}`,
+    `container: ${input.container}`,
+    `image: ${input.image}`,
+    `${CONTAINER_HEADER_MARK}${[input.runtime, ...input.dockerArgs].map(shellQuote).join(" ")}`,
+    "---",
+    "",
+  ].join("\n");
+}
+
 export class BoundedLog {
   private fd: number | null;
   private kept = 0;

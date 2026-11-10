@@ -333,11 +333,28 @@ export interface PlanBody {
   network: { policy: string; required: boolean; items: string[] };
   /** The rules of .jgates/architecture.yml with their state and where it is decided; null without the file. */
   architecture?: PlanArchitecture | null;
-  inputs: { configFiles: Array<{ file: string; sha256: string | null }>; inventoryHash: string; configHash: string };
+  inputs: { configFiles: Array<{ file: string; sha256: string | null }>; inventoryHash: string; configHash: string; container?: ContainerInputs };
   approvable: boolean;
   blocked: PlanBlocker | null;
   blockers: PlanBlocker[];
   warnings: Array<{ code: string; message: string }>;
+}
+
+/**
+ * What a container-first run depends on besides the files: the tools image, the extension images, the dependency
+ * volumes' keys, the advisory data and the compose services selected. Part of the plan hash and recorded in the
+ * provenance of every result (present only when container-first checks are on).
+ */
+export interface ContainerInputs {
+  /** Content digest (image id) of the tools image; null when the engine did not have it. */
+  toolsImage: string | null;
+  extensionImages: Array<{ name: string; digest: string }>;
+  /** Dependency key per component (hash of lockfiles + interpreter version + image digest). */
+  dependencyKeys: Record<string, string>;
+  /** Last update time (ISO 8601) per advisory database; null when never updated. */
+  dataTimestamps: Record<string, string | null>;
+  /** Names of the compose services the plan selected. */
+  services: string[];
 }
 
 export interface PlanChanges {
@@ -404,6 +421,8 @@ export interface BuildPlanOptions {
    * and its sha256), so the analyzed project's own quality policy file is never read.
    */
   bridgePolicy?: { file: string; sha256: string };
+  /** Container-first inputs the planning does not read itself yet (extension images, dependency keys, data timestamps, services); the tools image is read from the engine. */
+  container?: Partial<ContainerInputs>;
 }
 
 export interface PlanError {

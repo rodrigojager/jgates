@@ -17,5 +17,8 @@
   "runner_dependency_cycle": "Blocked: circular dependency between {steps}.",
   "runner_blocked_preflight": "Blocked before starting: {detail}",
   "runner_step_crashed": "Adapter error: {detail}",
-  "runner_invalid_output": "Unreadable output, the stage proves nothing: {detail}"
+  "runner_invalid_output": "Unreadable output, the stage proves nothing: {detail}",
+  "runner_step_timeout": "Stopped: the step exceeded its time limit of {seconds} s.",
+  "runner_engine_lost":"Incomplete: {message}",
+  "runner_engine_lost_blocked": "Not run: {message}"
 }

@@ -4,11 +4,13 @@
 // container never gets --privileged, extra capabilities or the Docker socket. Cancelling or timing out removes the
 // container by name (not only the client process). Nothing from the parent environment reaches the container.
 import { randomBytes } from "node:crypto";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
   DEFAULT_RESOURCES,
   engineLabels,
+  engineReachable,
   engineRuntime,
   IMAGE_USER,
   inspectImageSync,
@@ -19,6 +21,7 @@ import {
 } from "../engine/index.js";
 import { toolsImageTarget } from "../tools-image/index.js";
 import { HOST_EXECUTION_REFUSED, stepMode } from "./in-image.js";
+import { CONTAINER_HEADER_MARK, containerHeader } from "./log-sink.js";
 import { DEFAULT_ENV_ALLOWLIST, runSpec, type ExecutionResult, type ExecutionSpec, type RunnerOptions } from "./process.js";
 import { currentScope, type StepLauncherHook } from "./scope.js";
 
@@ -313,6 +316,12 @@ function refusal(spec: ExecutionSpec, message: string): ExecutionResult {
   };
 }
 
+export const ENGINE_LOST = "ENGINE_LOST";
+
+function lostResult(spec: ExecutionSpec, message: string): ExecutionResult {
+  return { ...refusal(spec, message), spawnError: { code: ENGINE_LOST, message } };
+}
+
 function containerStepName(run: string, step: string, ordinal: number): string {
   const clean = `${run}-${step}`.replace(/[^A-Za-z0-9_.-]+/g, "-").replace(/^[^A-Za-z0-9]+/, "");
   const suffix = ordinal > 1 ? `-${ordinal}` : "";
@@ -341,12 +350,39 @@ export function createStepLauncher(input: StepLauncherInput): StepLauncherHook |
   ];
   const ordinals = new Map<string, number>();
   const user = stepUser();
+  // Set once the engine stopped answering while a container of the run was running; nothing else is started after it.
+  let lost: string | null = null;
+  // The header of every process, per step: written by runSpec when the caller asked for a stderr file, otherwise added to the
+  // adapter's own stderr log after the step (annotate).
+  const headers = new Map<string, Array<{ text: string; written: boolean }>>();
 
   return {
     handles(spec) {
       return spec.executable !== runtime && !ENGINE_CLIENT.test(path.basename(spec.executable));
     },
+    engineLost() {
+      return lost;
+    },
+    annotateLogs(stepId, logs) {
+      const pending = (headers.get(stepId) ?? []).filter((h) => !h.written && h.text !== "");
+      const stderrLogs = logs.filter((l) => l.endsWith(".stderr.log"));
+      if (pending.length === 0 || stderrLogs.length === 0) return;
+      stderrLogs.forEach((log, index) => {
+        // One log per process, in order; otherwise every log gets the headers of all the step's processes.
+        const mine = pending.length === stderrLogs.length ? [pending[index] as { text: string }] : pending;
+        try {
+          const file = path.join(input.runDir, ...log.split("/"));
+          const current = fs.readFileSync(file, "utf8");
+          if (current.includes(CONTAINER_HEADER_MARK)) return;
+          fs.writeFileSync(file, mine.map((h) => h.text).join("") + current);
+        } catch {
+          // A log that cannot be annotated stays as the adapter wrote it.
+        }
+      });
+      headers.delete(stepId);
+    },
     async run(spec) {
+      if (lost) return lostResult(spec, lost);
       const resolved = resolveImage();
       if (!resolved) return refusal(spec, "the tools image is not available in the engine; a tool is never run as a host process");
       const scope = currentScope();
@@ -366,11 +402,17 @@ export function createStepLauncher(input: StepLauncherInput): StepLauncherHook |
       const env: Record<string, string> = {};
       for (const [k, v] of Object.entries(spec.env ?? {})) env[k] = mapHostPaths(v, pairs);
       const resources = scope?.launch?.resources;
+      const command = [spec.executable, ...spec.args].map((a) => mapHostPaths(a, pairs));
+      const stepContainer = containerStepName(input.runId, step, ordinal);
+      const record = { text: "", written: spec.stderrFile !== undefined };
+      headers.set(step, [...(headers.get(step) ?? []), record]);
+      const timeoutMs = spec.timeoutMs ?? scope?.launch?.timeoutMs;
       const result = await runInEngine(
         {
           image: resolved,
-          command: [spec.executable, ...spec.args].map((a) => mapHostPaths(a, pairs)),
-          name: containerStepName(input.runId, step, ordinal),
+          command,
+          name: stepContainer,
+          logHeader: (docker) => (record.text = containerHeader({ command, workdir, container: stepContainer, image: resolved, runtime: docker.runtime, dockerArgs: docker.args })),
           labels: engineLabels({ kind: "step", version: input.version, workspace: input.workspaceId, run: input.runId }),
           mounts,
           network: scope?.launch?.network ?? "none",
@@ -382,7 +424,7 @@ export function createStepLauncher(input: StepLauncherInput): StepLauncherHook |
             cpus: resources?.cpus ?? DEFAULT_RESOURCES.cpus,
             ...(resources?.tmpfsMb !== undefined ? { tmpfsMb: resources.tmpfsMb } : {}),
           },
-          ...(spec.timeoutMs !== undefined ? { timeoutMs: spec.timeoutMs } : {}),
+          ...(timeoutMs !== undefined ? { timeoutMs } : {}),
           ...(spec.signal ? { signal: spec.signal } : {}),
           ...(spec.stdoutFile ? { stdoutFile: spec.stdoutFile } : {}),
           ...(spec.stderrFile ? { stderrFile: spec.stderrFile } : {}),
@@ -392,6 +434,12 @@ export function createStepLauncher(input: StepLauncherInput): StepLauncherHook |
         },
         context,
       );
+      // A container that did not end well while the engine no longer answers: the engine was lost, the tool's own
+      // verdict (if any) proves nothing.
+      if (!result.cancelled && !result.timedOut && result.exitCode !== 0 && !lost && !(await engineReachable(context))) {
+        lost = (result.stderr.trim().split("\n").filter(Boolean).pop() ?? "the container engine stopped answering").slice(0, 400);
+        return { ...result, spawnError: { code: ENGINE_LOST, message: lost } };
+      }
       return result;
     },
   };

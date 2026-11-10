@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildEnv, DEFAULT_ENV_ALLOWLIST, runSpec, type ExecutionResult, type RunnerOptions } from "../runner/process.js";
-import { currentScope } from "../runner/scope.js";
+import { currentScope, runInScope } from "../runner/scope.js";
 
 /** Development image, used when JGATES_TOOLS_IMAGE asks for it (and until the pin file exists). */
 export const DEV_TOOLS_IMAGE = "jgates-tools:dev";
@@ -132,6 +132,8 @@ export interface EngineRunSpec {
   stdin?: string | null;
   onStdout?: (chunk: string) => void;
   onStderr?: (chunk: string) => void;
+  /** Header of the stderr log, built from the exact `docker run` line that is started. */
+  logHeader?: (docker: { runtime: string; args: string[]; name: string }) => string;
 }
 
 function positive(value: number | undefined, fallback: number, name: string, integer: boolean): number {
@@ -228,9 +230,13 @@ function clientOptions(context: EngineContext): RunnerOptions {
 /** Never-aborting signal: cleanup must run even when the run itself was cancelled. */
 const NEVER = new AbortController().signal;
 
-/** One engine client command (not a container run): inspect, volume create/rm, and so on. */
+/**
+ * One engine client command (not a container run): inspect, volume create/rm, and so on. It runs outside the execution
+ * scope of the step that may be calling it, so it is never taken for one of the step's processes (its exit code is not
+ * the step's) and is never handed to the step launcher.
+ */
 export function engineCommand(args: string[], context: EngineContext = {}, timeoutMs = 60_000): Promise<ExecutionResult> {
-  return runSpec({ executable: context.runtime ?? engineRuntime(), args, cwd: os.tmpdir(), timeoutMs, signal: NEVER }, clientOptions(context));
+  return runInScope({}, () => runSpec({ executable: context.runtime ?? engineRuntime(), args, cwd: os.tmpdir(), timeoutMs, signal: NEVER }, clientOptions(context)));
 }
 
 export interface EngineSyncResult {
@@ -268,6 +274,15 @@ export function engineCommandSync(args: string[], context: EngineContext = {}, t
   };
 }
 
+/** Seconds `docker stop -t` waits before SIGKILL when a step timed out. */
+export const STOP_GRACE_SEC = 5;
+
+/** Whether the engine answers right now (`docker version` reaches the daemon); false after it vanished. */
+export async function engineReachable(context: EngineContext = {}): Promise<boolean> {
+  const result = await engineCommand(["version", "--format", "{{.Server.Version}}"], context, 15_000).catch(() => null);
+  return result !== null && result.exitCode === 0 && !result.spawnError;
+}
+
 export type EngineRunResult =ExecutionResult & { name: string; args: string[]; removalRequested: boolean; runtimeFailure: boolean };
 
 /** Runs one container under the contract; a cancelled or timed-out run also removes the container by name. */
@@ -277,7 +292,12 @@ export async function runInEngine(spec: EngineRunSpec, context: EngineContext = 
   const options = clientOptions(context);
   const abort = spec.signal ?? currentScope()?.signal;
   let removal: Promise<unknown> | null = null;
-  const requestRemoval = (): Promise<unknown> => (removal ??= engineCommand(["rm", "--force", name], { ...context, runtime }, 30_000).catch(() => undefined));
+  // A timeout stops the container first (`docker stop -t`: SIGTERM, then SIGKILL after the grace), then removes it by name.
+  const requestRemoval = (timedOut = false): Promise<unknown> =>
+    (removal ??= (async () => {
+      if (timedOut) await engineCommand(["stop", "--time", String(STOP_GRACE_SEC), name], { ...context, runtime }, (STOP_GRACE_SEC + 20) * 1000).catch(() => undefined);
+      await engineCommand(["rm", "--force", name], { ...context, runtime }, 30_000).catch(() => undefined);
+    })());
   const onAbort = (): void => void requestRemoval();
   abort?.addEventListener("abort", onAbort, { once: true });
   try {
@@ -293,10 +313,12 @@ export async function runInEngine(spec: EngineRunSpec, context: EngineContext = 
         ...(spec.stderrFile ? { stderrFile: spec.stderrFile } : {}),
         ...(spec.onStdout ? { onStdout: spec.onStdout } : {}),
         ...(spec.onStderr ? { onStderr: spec.onStderr } : {}),
+        ...(spec.logHeader ? { logHeader: spec.logHeader({ runtime, args, name }) } : {}),
       },
       options,
     );
-    if (result.cancelled || result.timedOut || (result.exitCode === null && !result.spawnError)) await requestRemoval();
+    if (result.timedOut) await requestRemoval(true);
+    else if (result.cancelled || (result.exitCode === null && !result.spawnError)) await requestRemoval();
     else if (removal) await removal;
     return { ...result, name, args, removalRequested: removal !== null, runtimeFailure: result.exitCode !== null && result.exitCode >= 125 && result.exitCode <= 127 };
   } finally {

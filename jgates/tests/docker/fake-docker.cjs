@@ -7,6 +7,10 @@
 //   FAKE_DOCKER_LABELS     the labels `image inspect` reports (JSON labels; "none": no such image); with --format it
 //                          prints them, without it the JSON array of the runtime (Id, RepoDigests, Config.Labels)
 //   FAKE_DOCKER_IMAGE_ID   the image id of that array (default: sha256 of the labels); FAKE_DOCKER_REPO_DIGESTS: JSON list
+//   FAKE_DOCKER_STEP_MODE  hang|vanish for step containers only (label org.jgates.kind=step), optionally only those whose name
+//                          contains FAKE_DOCKER_STEP_NAME; a hung container is registered in objects.json with its labels so
+//                          kill/rm by label finds it; `stop` and `kill` end it. vanish: after FAKE_DOCKER_VANISH_MS (150) the
+//                          engine stops answering for good (state/daemon.lost) and the client dies with a connection error.
 // Engine facts (`info`, and the `df` of the helper container):
 //   FAKE_DOCKER_DAEMON=stopped   every command that needs the daemon fails like "Cannot connect to the Docker daemon"
 //   FAKE_DOCKER_MEMORY_MB (default 8192), FAKE_DOCKER_CPUS (4), FAKE_DOCKER_OS (linux), FAKE_DOCKER_ARCH (x86_64),
@@ -41,7 +45,8 @@ const fail = (message, code = 1) => {
   process.exit(code);
 };
 const needDaemon = () => {
-  if (env("FAKE_DOCKER_DAEMON", "running") === "stopped") fail("Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?");
+  // daemon.lost: a step run in FAKE_DOCKER_STEP_MODE=vanish took the engine away for good.
+  if (env("FAKE_DOCKER_DAEMON", "running") === "stopped" || fs.existsSync(path.join(state, "daemon.lost"))) fail("Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?");
 };
 
 // ---- the object registry ---------------------------------------------------------------------------------------
@@ -258,6 +263,7 @@ if (argv[0] === "kill") {
   needDaemon();
   const ids = lastNonFlags(argv.slice(1));
   const objects = loadObjects();
+  for (const c of objects.containers) if (ids.includes(c.id) || ids.includes(c.name)) fs.rmSync(marker(c.name), { force: true });
   objects.containers = objects.containers.map((c) => (ids.includes(c.id) || ids.includes(c.name) ? { ...c, state: "exited" } : c));
   saveObjects(objects);
   process.exit(0);
@@ -270,6 +276,12 @@ if (argv[0] === "compose") {
 }
 
 // ---- rm / run ---------------------------------------------------------------------------------------------------
+if (argv[0] === "stop") {
+  needDaemon();
+  // `docker stop -t N name`: the container ends; its client (a `run` process polling the marker) exits like a stopped one.
+  for (const name of lastNonFlags(argv.slice(1).filter((a, i, all) => all[i - 1] !== "--time" && all[i - 1] !== "-t"))) fs.rmSync(marker(name), { force: true });
+  process.exit(0);
+}
 if (argv[0] === "rm") {
   const name = argv[argv.length - 1];
   fs.rmSync(marker(name), { force: true });
@@ -284,8 +296,24 @@ if (argv[0] === "rm") {
 if (argv[0] === "run") {
   needDaemon();
   const name = argv[argv.indexOf("--name") + 1];
-  if ((process.env.FAKE_DOCKER_MODE || "ok") === "hang") {
+  const runLabels = labelsOfFlags(argv);
+  // FAKE_DOCKER_STEP_MODE (hang|vanish) applies only to step containers (label org.jgates.kind=step) whose name contains
+  // FAKE_DOCKER_STEP_NAME (when set); every other run (the sync helper, other steps) uses FAKE_DOCKER_MODE.
+  const stepMode = process.env.FAKE_DOCKER_STEP_MODE;
+  const isTarget = runLabels["org.jgates.kind"] === "step" && stepMode && (!process.env.FAKE_DOCKER_STEP_NAME || name.includes(process.env.FAKE_DOCKER_STEP_NAME));
+  const mode = isTarget ? stepMode : process.env.FAKE_DOCKER_MODE || "ok";
+  if (mode === "vanish") {
+    // The engine disappears while the step runs (Docker Desktop quit): from now on the daemon does not answer.
+    setTimeout(() => {
+      fs.writeFileSync(path.join(state, "daemon.lost"), "lost");
+      fail("error during connect: Post \"http://%2F%2F.%2Fpipe%2Fdocker_engine/v1.51/containers/create\": EOF", 1);
+    }, Number(env("FAKE_DOCKER_VANISH_MS", "150")));
+  } else if (mode === "hang") {
     fs.writeFileSync(marker(name), "running");
+    // The container is registered with its labels, like a daemon does, so a kill/rm by label finds it.
+    const registry = loadObjects();
+    registry.containers = registry.containers.filter((c) => c.name !== name).concat([{ id: crypto.createHash("sha1").update(name).digest("hex").slice(0, 12), name, state: "running", labels: runLabels }]);
+    saveObjects(registry);
     process.on("SIGTERM", () => process.exit(143));
     const poll = setInterval(() => {
       if (!fs.existsSync(marker(name))) {

@@ -15,6 +15,8 @@
   "reason_IMAGE_PULL_FAILED_action": "Tentar de novo",
   "reason_IMAGE_VERSION_MISMATCH": "Estas ferramentas são da versão {actual}; este JGates usa a {expected}.",
   "reason_IMAGE_VERSION_MISMATCH_action": "Baixar as ferramentas desta versão",
+  "reason_ENGINE_LOST": "O Docker parou durante a execução; esta verificação ficou incompleta.",
+  "reason_ENGINE_LOST_action": "Abrir o Docker Desktop e executar de novo",
   "reason_UNSUPPORTED_PLATFORM": "Este Docker roda {platform}; o JGates precisa de Linux amd64.",
   "reason_UNSUPPORTED_PLATFORM_action": "Como configurar o Docker"
 }

@@ -52,6 +52,7 @@ export const REASONS: Readonly<Record<string, ReasonEntry>> = Object.freeze({
   IMAGE_PULLING: entry("IMAGE_PULLING", { kind: "none" }),
   IMAGE_PULL_FAILED: entry("IMAGE_PULL_FAILED", { kind: "command", command: "jgates setup" }),
   IMAGE_VERSION_MISMATCH: entry("IMAGE_VERSION_MISMATCH", { kind: "command", command: "jgates setup" }),
+  ENGINE_LOST: entry("ENGINE_LOST", { kind: "link", url: DOCKER_DESKTOP_URL }),
   UNSUPPORTED_PLATFORM: entry("UNSUPPORTED_PLATFORM", { kind: "link", url: DOCKER_RESOURCES_URL }),
 });
 

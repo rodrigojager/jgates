@@ -17,5 +17,8 @@
   "runner_dependency_cycle": "Bloqueada: dependência circular entre {steps}.",
   "runner_blocked_preflight": "Bloqueada antes de iniciar: {detail}",
   "runner_step_crashed": "Erro do adaptador: {detail}",
-  "runner_invalid_output": "Saída ilegível, a etapa não prova nada: {detail}"
+  "runner_invalid_output": "Saída ilegível, a etapa não prova nada: {detail}",
+  "runner_step_timeout": "Interrompida: a etapa passou do limite de tempo de {seconds} s.",
+  "runner_engine_lost":"Incompleta: {message}",
+  "runner_engine_lost_blocked": "Não executada: {message}"
 }

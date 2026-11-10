@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { translator, type Translator } from "../../i18n/index.js";
 import { readVersion } from "../../cli/version.js";
-import { toolsImageGateEnabled, toolsImagePreflight } from "../tools-image/index.js";
+import { toolsImageGateEnabled, toolsImagePreflight, toolsImageTarget } from "../tools-image/index.js";
+import { inspectImageSync } from "../engine/index.js";
 import { listBuiltinProfiles, listBuiltinTemplates, getBuiltinTemplate, isBuiltinRef } from "../../builtin/index.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
 import { createCoreCatalog, subcheckLabel } from "../catalog/index.js";
@@ -43,6 +44,7 @@ import {
   PLAN_SCHEMA_VERSION,
   type BuildPlanOptions,
   type BuildPlanResult,
+  type ContainerInputs,
   type Inclusion,
   type NotApplicableRequirement,
   type Plan,
@@ -81,6 +83,25 @@ function stringList(value: unknown): string[] {
 }
 
 const uniqueSorted = (values: Iterable<string>): string[] => [...new Set(values)].sort();
+
+const sortedRecord = <T>(record: Record<string, T> | undefined): Record<string, T> =>
+  Object.fromEntries(Object.entries(record ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+
+/**
+ * The container-first inputs of the plan: the content digest of the tools image the engine has (the same image the
+ * steps will run), plus what the caller knows (extension images, dependency keys, data timestamps, services). Sorted,
+ * so the same inputs always give the same plan hash.
+ */
+function containerInputs(env: NodeJS.ProcessEnv, given: BuildPlanOptions["container"]): ContainerInputs {
+  const toolsImage = given?.toolsImage !== undefined ? given.toolsImage : (inspectImageSync(toolsImageTarget(env).reference, { runnerOptions: { parentEnv: env } })?.id ?? null);
+  return {
+    toolsImage,
+    extensionImages: [...(given?.extensionImages ?? [])].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)),
+    dependencyKeys: sortedRecord(given?.dependencyKeys),
+    dataTimestamps: sortedRecord(given?.dataTimestamps),
+    services: uniqueSorted(given?.services ?? []),
+  };
+}
 
 /** Body of the plan without the fields outside the hash. */
 export function planBody(plan: Plan | PlanBody): PlanBody {
@@ -960,6 +981,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
         inconsistencies: inventory.inconsistencies,
       }),
       configHash: contentHash(effective.config),
+      ...(toolsImageGateEnabled(env) ? { container: containerInputs(env, options.container) } : {}),
     },
     approvable: blocked === null && blockers.length === 0,
     blocked,

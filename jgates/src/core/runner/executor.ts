@@ -7,6 +7,7 @@
 // - an output the adapter could not interpret is an error, never a completed stage with zero findings.
 import { translator } from "../../i18n/index.js";
 import type { EventType } from "../events/index.js";
+import { resolveReason } from "../reasons/index.js";
 import type { AdapterOutput, NotRunCause, ResultStage, StageExecution } from "../run/types.js";
 import type { PreflightProblem } from "./preflight.js";
 import { runInScope, type ProcessRecord, type StepLauncherHook, type StepLaunchFacts } from "./scope.js";
@@ -27,6 +28,8 @@ export interface RunStep {
   network?: "none" | "bridge";
   /** Resources of the step container (the adapter manifest's `resources`); 4096 MB / 2 CPUs when absent. */
   resources?: StepLaunchFacts["resources"];
+  /** The step's timeout (the smallest timeoutSeconds of its items): enforced for every process of the step that sets no timeout itself. */
+  timeoutSeconds?: number;
 }
 
 /**
@@ -92,6 +95,12 @@ export interface ExecuteStepsResult {
 }
 
 const INERT = new Set(["disabled", "not_applicable"]);
+const ENGINE_LOST_CODE = "ENGINE_LOST";
+
+/** The text of the ENGINE_LOST reason in the current language (the raw engine text never is the main text). */
+function engineLostMessage(): string {
+  return resolveReason(ENGINE_LOST_CODE).message;
+}
 /** Preflight problems about a tool on the host PATH; in container-first mode the image provides the tool. */
 const HOST_TOOL_PROBLEMS = new Set<string>(["RUNTIME_MISSING", "BINARY_NOT_FOUND", "BINARY_NOT_EXECUTABLE", "VERSION_MISMATCH", "VERSION_UNKNOWN"]);
 
@@ -317,6 +326,18 @@ export async function executeSteps(steps: RunStep[], options: ExecuteStepsOption
         record({ step, status: "not-run", cause: "dependency", output: notRun(skeletonOf(step), step.id, "blocked", "dependency", detail, { steps: badDeps }) });
         continue;
       }
+      // The engine vanished during an earlier step: nothing else starts, and the step says why.
+      const lostEarlier = options.launcher?.engineLost?.();
+      if (lostEarlier) {
+        const message = engineLostMessage();
+        record({
+          step,
+          status: "not-run",
+          cause: "preflight",
+          output: notRun(skeletonOf(step), step.id, "blocked", "preflight", t("runner_engine_lost_blocked", { message }), { problems: [{ code: ENGINE_LOST_CODE, message }] }),
+        });
+        continue;
+      }
       let found: PreflightProblem[] = [];
       try {
         found = step.preflight?.() ?? [];
@@ -344,7 +365,16 @@ export async function executeSteps(steps: RunStep[], options: ExecuteStepsOption
               ...(signal ? { signal } : {}),
               ...(options.maxLogBytes !== undefined ? { maxLogBytes: options.maxLogBytes } : {}),
               killGraceMs: graceMs,
-              ...(options.launcher ? { launcher: options.launcher, launch: { network: step.network ?? "none", ...(step.resources ? { resources: step.resources } : {}) } } : {}),
+              ...(options.launcher
+                ? {
+                    launcher: options.launcher,
+                    launch: {
+                      network: step.network ?? "none",
+                      ...(step.resources ? { resources: step.resources } : {}),
+                      ...(step.timeoutSeconds !== undefined && step.timeoutSeconds > 0 ? { timeoutMs: step.timeoutSeconds * 1000 } : {}),
+                    },
+                  }
+                : {}),
               onProcessStart: (p) => emit("process-started", { step: step.id, pid: p.pid, executable: p.executable }),
               onProcessEnd: (r) => {
                 processes.push(r);
@@ -363,6 +393,12 @@ export async function executeSteps(steps: RunStep[], options: ExecuteStepsOption
       }
       const finishedAt = new Date();
       const execution = executionOf(step.id, startedAt, finishedAt, processes);
+      // The stderr logs the adapter wrote itself start with the in-container command and the docker run line.
+      try {
+        options.launcher?.annotateLogs?.(step.id, output.logs);
+      } catch {
+        // A log that cannot be annotated stays as the adapter wrote it.
+      }
       let stepStatus: StepStatus;
       if (signal?.aborted) {
         // Stopped while running: whatever the step produced does not count.
@@ -370,8 +406,26 @@ export async function executeSteps(steps: RunStep[], options: ExecuteStepsOption
         output = notRun(output, step.id, "cancelled", "cancelled", t("runner_cancelled_running"));
         output.stages = output.stages.map((s) => (INERT.has(s.state) ? s : { ...s, execution: { ...execution, ...(s.execution?.notRun ? { notRun: s.execution.notRun } : {}) } }));
         stepStatus = "failed";
+      } else if (options.launcher?.engineLost?.()) {
+        // The engine disappeared while the step ran: whatever the tool said proves nothing. The step ends incomplete
+        // (an errored stage, never completed, never a violation), with the shared reason code.
+        const message = engineLostMessage();
+        const base = skeletonOf(step);
+        output = {
+          ...base,
+          findings: [],
+          stages: base.stages.map((s) =>
+            INERT.has(s.state) ? s : { ...s, state: "error", reason: t("runner_engine_lost", { message }), interpreted: false, execution: { ...execution, reasonCode: ENGINE_LOST_CODE } },
+          ),
+        };
+        stepStatus = "failed";
       } else {
         output = failClosed(output);
+        // timeoutSeconds holds for every adapter: a process the executor's timeout stopped never leaves a completed stage.
+        if (execution.timedOut && step.timeoutSeconds !== undefined) {
+          const detail = t("runner_step_timeout", { seconds: step.timeoutSeconds });
+          output = { ...output, findings: [], stages: output.stages.map((s) => (INERT.has(s.state) || s.state === "timeout" ? s : { ...s, state: "timeout", reason: detail, blockingViolations: 0 })) };
+        }
         output.stages = output.stages.map((s) => (s.state === "disabled" ? s : { ...s, execution: { ...execution, ...(s.execution ?? {}), step: step.id } }));
         stepStatus = stepSucceeded(output) ? "succeeded" : "failed";
       }

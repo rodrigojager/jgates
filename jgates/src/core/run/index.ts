@@ -13,7 +13,8 @@ import { createRunDir, resolveHome, touchWorkspace } from "../home/index.js";
 import { newRunId } from "../ids/index.js";
 import { listRuns } from "../artifacts/index.js";
 import { compareWithBaseline, findingMetrics, finalizeFindings, loadWaiverFile, markBaselineState, WAIVERS_FILE, type Waiver } from "../results/index.js";
-import { createStepLauncher, executeSteps, mergeOutputs, type RunPhase, type RunStep } from "../runner/index.js";
+import { engineRuntime } from "../engine/index.js";
+import { cancelRunInEngine, createStepLauncher, executeSteps, mergeOutputs, type EngineCancelResult, type RunPhase, type RunStep } from "../runner/index.js";
 import { toolsImageGateEnabled } from "../tools-image/index.js";
 import { createSyncPhase } from "../sync/phase.js";
 import type { Plan } from "../plan/types.js";
@@ -349,6 +350,32 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
       : [];
   // Container-first (same gate as the sync phase): every process of every step is launched in a step container.
   const launcher = opts.plan && toolsImageGateEnabled(env) ? createStepLauncher({ env, workspaceId: workspace.id, runId, runDir, projectDir: prep.path, version: opts.version }) : null;
+  // A cancellation also reaches the engine: the containers carrying this run's label are killed and the run's services
+  // taken down (nothing else is touched). Whatever the steps finished before stays in the partial result.
+  const engineContext = { runtime: engineRuntime(env), runnerOptions: { parentEnv: env } };
+  let engineCancel: Promise<EngineCancelResult> | null = null;
+  const cancelInEngine = (): Promise<EngineCancelResult> | null => {
+    if (!launcher) return null;
+    events.emit("phase-started", { phase: "cancel" });
+    const started = Date.now();
+    const pending = cancelRunInEngine({ runId, context: engineContext }).then((outcome) => {
+      events.emit("phase-finished", {
+        phase: "cancel",
+        status: outcome.errors.length === 0 ? "succeeded" : "failed",
+        durationMs: Date.now() - started,
+        details: { killed: outcome.killed.map((c) => c.name), servicesDown: outcome.servicesDown, errors: outcome.errors },
+      });
+      return outcome;
+    });
+    return pending;
+  };
+  const onEngineAbort = (): void => {
+    engineCancel ??= cancelInEngine();
+  };
+  if (launcher) {
+    if (signal?.aborted) onEngineAbort();
+    else signal?.addEventListener("abort", onEngineAbort, { once: true });
+  }
   try {
     executed = await executeSteps(steps, {
       phases,
@@ -365,12 +392,19 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
         checkpoint(done);
       },
     });
+    if (signal?.aborted) {
+      onEngineAbort();
+      await engineCancel;
+      // A container started in the instant of the cancellation is caught by a last sweep (it finds nothing otherwise).
+      await cancelRunInEngine({ runId, context: engineContext }).catch(() => undefined);
+    }
     verified = verifyInputs(prep);
     // Results enter the cache only when what was analyzed did not change while the steps ran.
     if (executed.cancelled || signal?.aborted || verified.changes.changed) cache.discard();
     else cache.commit();
   } finally {
     signal?.removeEventListener("abort", onAbort);
+    signal?.removeEventListener("abort", onEngineAbort);
     // A step threw: the run stops here, and it must not look alive.
     if (!executed) heartbeat.stop();
     // A snapshot never outlives its run, even when a step threw (JGATES_KEEP_SNAPSHOTS=1 keeps it for diagnosis).
