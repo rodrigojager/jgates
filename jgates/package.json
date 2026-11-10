@@ -32,7 +32,8 @@
     "docs:compat": "node scripts/gen-compat-docs.mjs",
     "test:ui": "npm run build && playwright test --config tests/ui/playwright.config.ts",
     "test:docker": "npm run build && node --test --test-concurrency=1 tests/docker/*.test.js",
-    "test:build": "npm run build && npm run test"
+    "test:build": "npm run build && npm run test",
+    "image:build": "node scripts/image-build.mjs"
   },
   "engines": {
     "node": ">=22"
