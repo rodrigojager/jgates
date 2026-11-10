@@ -1,8 +1,7 @@
 // Checkov adapter: one `checkov --directory` per tool instance in the container runner, offline (--skip-download),
 // with the project's .checkov.yaml as its document and the JSON report written to the run folder's output mount.
-import { CONTAINER_OUTPUT, toContainerPath } from "../../core/runner/index.js";
 import type { ExternalAdapter } from "../../core/plan/adapters.js";
-import { planScanner, runScanner, type ScannerDefinition } from "../container-scanner/index.js";
+import { planScanner, runScanner, workspaceToken, type ScannerDefinition } from "../container-scanner/index.js";
 import { checkovManifest } from "./manifest.js";
 import { parseCheckovReport } from "./normalize.js";
 
@@ -21,13 +20,13 @@ export const checkovScanner: ScannerDefinition = {
   args(input) {
     const config = input.documents.config?.file ?? null;
     return [
-      ...(config ? ["--config-file", toContainerPath(config)] : []),
+      ...(config ? ["--config-file", workspaceToken(config)] : []),
       "--directory",
       ".",
       "--output",
       "json",
       "--output-file-path",
-      CONTAINER_OUTPUT,
+      input.out,
       "--quiet",
       "--compact",
       "--skip-download",

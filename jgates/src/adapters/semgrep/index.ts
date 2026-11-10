@@ -15,6 +15,7 @@ import { LOCK_FILE, readLock } from "../../core/lock/index.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
 import { SEMGREP_RULES_REF, preparedRulesOf } from "../../core/prepare/store.js";
 import { runSpec, substituteTokens } from "../../core/runner/index.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 import { createOutputPaths, redirectionEnv } from "../../core/run/redirection.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { semgrepManifest } from "./manifest.js";
@@ -169,6 +170,28 @@ function planSemgrep(input: ExternalPlanInput): ExternalPlan {
 
 const relToRun = (runDir: string, p: string): string => path.relative(runDir, p).split(path.sep).join("/");
 
+const insideAny = (roots: string[], target: string): boolean =>
+  roots.some((root) => {
+    const rel = path.relative(path.resolve(root), path.resolve(target));
+    return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+  });
+
+/** Copies every `--config <path>` outside the given roots (and present on the host) under `into`, and points the argument at the copy. */
+function stageRules(args: string[], visible: string[], into: string): string[] {
+  const out = [...args];
+  let n = 0;
+  for (let i = 0; i < out.length - 1; i += 1) {
+    const value = out[i + 1] as string;
+    if (out[i] !== "--config" || !path.isAbsolute(value) || insideAny(visible, value) || !fs.existsSync(value)) continue;
+    n += 1;
+    const target = path.join(into, String(n), path.basename(value));
+    fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
+    fs.cpSync(value, target, { recursive: true });
+    out[i + 1] = target;
+  }
+  return out;
+}
+
 async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Promise<AdapterOutput> {
   const t = translator("semgrep");
   const invocation = plan.invocations.find((i) => i.adapter === ADAPTER_ID && i.id === tool);
@@ -178,7 +201,7 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
   const tokens = { runDir: context.runDir, workspace: context.workspacePath };
   const command = invocation.command;
   const cwd = substituteTokens(command.cwd, tokens);
-  const args = command.args.map((a) => substituteTokens(a, tokens));
+  let args = command.args.map((a) => substituteTokens(a, tokens));
   const env: Record<string, string> = { PATH: scannerPath(context.env.PATH) };
   for (const [name, value] of Object.entries(command.env)) env[name] = substituteTokens(value, tokens);
   const timeoutSeconds = Math.min(...items.map((i) => i.limits.timeoutSeconds));
@@ -213,6 +236,9 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
   const unavailable = items.find((i) => i.availability.status !== "available");
   if (unavailable) return blockedAll(unavailable.availability.reason ?? t("semgrep_blocked", { detail: command.executable }));
 
+  // The step container sees the synchronized project and the run folder only: rules that live elsewhere on the host (a
+  // bundled pack, the rules `tools prepare` stored, the policy's under jgates ci) are copied into the run folder first.
+  args = stageRules(args, [context.workspacePath, context.runDir], path.join(outDir, "rules"));
   // The runner streams both outputs to the log files with its size limit (JGATES_MAX_LOG_BYTES) and the process facts.
   const result = await runSpec(
     { executable: command.executable, args, cwd, env, stdin: command.stdin === null ? null : JSON.stringify(command.stdin), timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog },
@@ -233,7 +259,9 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
   } catch (error) {
     return { ...base, stages: items.map((i) => stageFor(i, "completed", t("semgrep_invalid_output", { detail: (error as Error).message }), { interpreted: false, nativeStatus: "exit 0" })), findings: [] };
   }
-  const parsed = parseSemgrepOutput(json, { stageId: items[0]?.id as string, version, workspace: context.workspacePath, cwd });
+  // Semgrep prints the paths it was given: /workspace/... in the step container, the host paths inside the image.
+  const view = (p: string): string => stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, p);
+  const parsed = parseSemgrepOutput(json, { stageId: items[0]?.id as string, version, workspace: view(context.workspacePath), cwd: view(cwd) });
   if (!parsed.ok || result.truncated) {
     const detail = result.truncated ? "output truncated" : (parsed.problem ?? "");
     return { ...base, stages: items.map((i) => stageFor(i, "completed", t("semgrep_invalid_output", { detail }), { interpreted: false, nativeStatus: "exit 0" })), findings: [] };

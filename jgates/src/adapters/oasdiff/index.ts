@@ -5,7 +5,6 @@
 // supplied by the customer (see the manifest); the run never installs it.
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { translator } from "../../i18n/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
@@ -140,7 +139,7 @@ interface Reference {
 }
 
 /** Puts the reference specification in the run folder (git show) or points at the reference file; never guesses one. */
-function resolveReference(settings: OasdiffSettings, spec: string, cwd: string, outDir: string, env: NodeJS.ProcessEnv): Reference {
+async function resolveReference(settings: OasdiffSettings, spec: string, cwd: string, outDir: string, env: NodeJS.ProcessEnv): Promise<Reference> {
   const t = translator("oasdiff");
   if (settings.baseSpec) {
     const file = path.join(cwd, ...settings.baseSpec.split("/"));
@@ -148,13 +147,15 @@ function resolveReference(settings: OasdiffSettings, spec: string, cwd: string, 
     return { file, problem: null };
   }
   if (!settings.baseRef) return { file: null, problem: t("oasdiff_reference_unset") };
-  const gitEnv = { ...env, GIT_TERMINAL_PROMPT: "0", GIT_OPTIONAL_LOCKS: "0" };
-  const git = (args: string[]) => spawnSync("git", args, { cwd, env: gitEnv, timeout: 60_000, maxBuffer: 256 * 1024 * 1024, windowsHide: true });
-  const ref = git(["rev-parse", "--verify", "--quiet", `${settings.baseRef}^{commit}`]);
-  if (ref.error || ref.status !== 0) return { file: null, problem: t("oasdiff_reference_ref_missing", { ref: settings.baseRef }) };
+  // The reference is read with the image's git from the synchronized project (.git is copied with it), in a step
+  // container like the comparison itself: nothing starts on the host.
+  const git = (args: string[]) =>
+    runSpec({ executable: "git", args, cwd, env: { GIT_TERMINAL_PROMPT: "0", GIT_OPTIONAL_LOCKS: "0" }, stdin: null, timeoutMs: 60_000 }, { parentEnv: env });
+  const ref = await git(["rev-parse", "--verify", "--quiet", `${settings.baseRef}^{commit}`]);
+  if (ref.spawnError || ref.exitCode !== 0) return { file: null, problem: t("oasdiff_reference_ref_missing", { ref: settings.baseRef }) };
   // "./<path>" is relative to the scan root, so a component works like the workspace.
-  const shown = git(["show", `${settings.baseRef}:./${spec}`]);
-  if (shown.error || shown.status !== 0) return { file: null, problem: t("oasdiff_reference_spec_missing", { ref: settings.baseRef, spec }) };
+  const shown = await git(["show", `${settings.baseRef}:./${spec}`]);
+  if (shown.spawnError || shown.exitCode !== 0 || shown.truncated) return { file: null, problem: t("oasdiff_reference_spec_missing", { ref: settings.baseRef, spec }) };
   const file = path.join(outDir, `base-spec${path.extname(spec)}`);
   fs.writeFileSync(file, shown.stdout, { mode: 0o600 });
   return { file, problem: null };
@@ -211,7 +212,7 @@ async function runOasdiff(context: AdapterContext, plan: Plan, tool: string): Pr
   if (!spec) return blockedAll(t("oasdiff_no_spec"), "no-spec");
 
   // Without a reference there is nothing to compare with: blocked, never passed.
-  const reference = resolveReference(settings, spec, cwd, outDir, context.env);
+  const reference = await resolveReference(settings, spec, cwd, outDir, context.env);
   if (reference.file === null) return blockedAll(reference.problem ?? t("oasdiff_reference_unset"), "no-reference");
 
   const args = command.args.map((a) => (a === BASE_TOKEN ? reference.file as string : substituteTokens(a, tokens)));

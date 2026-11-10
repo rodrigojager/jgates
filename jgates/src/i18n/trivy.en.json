@@ -5,11 +5,12 @@
   "trivy_image_tarball_invalid": "{tool}: imageTarball {value} is not a valid path.",
   "trivy_image_tarball_missing": "{tool}: the image tarball {file} does not exist. Build the image and save it with docker save; JGates never builds or pulls it.",
   "trivy_image_only_vulnerabilities": "Final-image mode scans vulnerabilities only; {capability} is not credited in this mode.",
-  "trivy_image_limitation": "Final-image mode: needs the vulnerability database (network) and Trivy, native or in the sidecar image through a running container runtime; without them the stage is blocked, never passed. The scan itself is not cancellable once started; the stage timeout bounds it.",
+  "trivy_image_tarball_outside": "{tool}: the image tarball {file} is outside the project; the check only sees the project's own files. Put the tarball inside the project folder.",
+  "trivy_image_limitation": "Final-image mode: needs the vulnerability database (network) and Trivy from the JGates tools image through a running container engine; without them the stage is blocked, never passed. The scan itself is not cancellable once started; the stage timeout bounds it.",
   "trivy_image_condition": "Scans the final image {target} with trivy image.",
   "trivy_image_no_invocation": "The plan has no Trivy image invocation for the instance {tool}.",
   "trivy_image_blocked": "The Trivy image scan could not run.",
-  "trivy_image_missing_tool": "{reason}. Install Trivy (https://trivy.dev/latest/getting-started/installation/) or start the container runtime and prepare the sidecar image with: jgates tools prepare.",
+  "trivy_image_missing_tool": "{reason}. Start the container engine and download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
   "trivy_image_error": "The Trivy image scan failed: {reason}",
   "trivy_image_reason_completed": "Trivy {version}: {count} finding(s) in the final image (runner: {runner})."
 }

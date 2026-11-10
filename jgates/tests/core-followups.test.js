@@ -86,149 +86,18 @@ const itemOf = (plan, id) => allItems(plan).find((i) => i.id === id);
 const lockOf = (dir) => readJson(path.join(dir, ".jgates", "lock.json"));
 
 // ---------------------------------------------------------------------------------------------------------------
-// Images by the lock file.
-
-test("tools prepare pins the image of a container instance by digest with its version in .jgates/lock.json, and the next plan runs it with no JGATES_*_IMAGE", { skip: POSIX ? false : NO_POSIX }, () => {
-  const id = `sha256:${"e1".repeat(32)}`;
-  const p = workspace({ vars: { FAKE_DOCKER_IMAGE_ID: id } });
-  try {
-    assert.ok(!Object.keys(p.env).some((k) => IMAGE_VARS.test(k)), "no image variable in the environment");
-    write(p.dir, "mod.py", "import os\n");
-    assert.equal(p.cli(["init", "--cwd", p.dir, "--profile", "minimal", "--no-interactive", "--json"]).code, 0);
-    write(p.dir, ".jgates/tools.yml", "schemaVersion: 1\ntools:\n  ruff:\n    adapter: ruff\n    capabilities: [lint]\n    runner: container\n");
-
-    // Not prepared: the item is unavailable and says how to prepare it.
-    const before = p.cli(["plan", "--cwd", p.dir, "--only", "tool:ruff", "--json"]).doc.plan;
-    const unprepared = itemOf(before, "ruff#lint");
-    assert.equal(unprepared.availability.status, "unavailable");
-    assert.match(unprepared.availability.reason, /jgates tools prepare --instance ruff/);
-    const doctor = p.cli(["doctor", "--cwd", p.dir, "--json"]).doc;
-    const status = doctor.tools.find((t) => t.instance === "ruff");
-    assert.deepEqual([status.state, status.preparation.supported, status.preparation.kind, status.preparation.state], ["absent", true, "image", "none"]);
-
-    // A tag is resolved to the image id (a local build has no repository digest); the tag itself is never what runs.
-    const dry = p.cli(["tools", "prepare", "--cwd", p.dir, "--instance", "ruff", "--image", "jgates-dev/ruff:0.17.2", "--dry-run", "--json"]);
-    assert.equal(dry.code, 0, dry.out + dry.err);
-    assert.deepEqual([dry.doc.preview.kind, dry.doc.preview.image.present, dry.doc.preview.network.required, dry.doc.preview.versions.installed], ["image", true, false, "0.17.2"]);
-    assert.ok(!fs.existsSync(path.join(p.dir, ".jgates", "lock.json")), "a dry run writes nothing");
-    const prepared = p.cli(["tools", "prepare", "--cwd", p.dir, "--instance", "ruff", "--image", "jgates-dev/ruff:0.17.2", "--no-interactive", "--json"]);
-    assert.equal(prepared.code, 0, prepared.out + prepared.err);
-    assert.equal(p.calls().filter((c) => c[0] === "pull").length, 0, "an image the runtime has is not pulled");
-    const locked = lockOf(p.dir).tools.ruff;
-    assert.deepEqual(locked.image, { reference: "jgates-dev/ruff:0.17.2", id, pinned: id, versionLabel: "org.jgates.tool.version" });
-    assert.equal(locked.toolVersion, "0.17.2");
-    assert.equal(locked.adapter, "ruff");
-
-    const plan = p.cli(["plan", "--cwd", p.dir, "--only", "tool:ruff", "--json"]).doc.plan;
-    const item = itemOf(plan, "ruff#lint");
-    assert.equal(item.availability.status, "available", item.availability.reason);
-    assert.equal(item.command.container.image, id, "the plan runs the pinned image");
-    assert.equal(item.versions.toolVersion, "0.17.2");
-    assert.notEqual(plan.planHash, before.planHash);
-    assert.equal(p.cli(["doctor", "--cwd", p.dir, "--json"]).doc.tools.find((t) => t.instance === "ruff").preparation.state, "ready");
-
-    // A registry image is pinned by its repository digest; a second prepare of the same image changes nothing.
-    const repoDigest = `registry.example/jgates/ruff@sha256:${"f2".repeat(32)}`;
-    p.setRuntime({ FAKE_DOCKER_IMAGE_ID: id, FAKE_DOCKER_REPO_DIGESTS: JSON.stringify([`other.example/x@sha256:${"aa".repeat(32)}`, repoDigest]) });
-    const byRegistry = p.cli(["tools", "prepare", "--cwd", p.dir, "--instance", "ruff", "--image", "registry.example/jgates/ruff:0.17.2", "--no-interactive", "--json"]);
-    assert.equal(byRegistry.code, 0, byRegistry.out);
-    assert.equal(byRegistry.doc.result.image.pinned, repoDigest);
-    const again = p.cli(["tools", "prepare", "--cwd", p.dir, "--instance", "ruff", "--no-interactive", "--json"]);
-    assert.equal(again.code, 0, again.out);
-    assert.equal(again.doc.result.image.reference, "registry.example/jgates/ruff:0.17.2", "without --image the lock's reference is prepared again");
-    assert.equal(again.doc.result.changed, false);
-    assert.equal(itemOf(p.cli(["plan", "--cwd", p.dir, "--only", "tool:ruff", "--json"]).doc.plan, "ruff#lint").command.container.image, repoDigest);
-
-    // An image without the version label is refused, and the lock keeps what it had.
-    p.setRuntime({ FAKE_DOCKER_LABELS: JSON.stringify({ "org.jgates.dev": "true" }) });
-    const unlabeled = p.cli(["tools", "prepare", "--cwd", p.dir, "--instance", "ruff", "--image", "jgates-dev/ruff:other", "--no-interactive", "--json"]);
-    assert.equal(unlabeled.code, 3);
-    assert.equal(unlabeled.doc.error.code, "IMAGE_NO_VERSION");
-    assert.equal(lockOf(p.dir).tools.ruff.image.pinned, repoDigest);
-  } finally {
-    p.cleanup();
-  }
-});
-
-test("a scanner instance without a prepared image is unavailable with the instruction, and a local Ruff instance has nothing to prepare", { skip: POSIX ? false : NO_POSIX }, () => {
-  const p = workspace();
-  try {
-    assert.equal(p.cli(["init", "--cwd", p.dir, "--profile", "minimal", "--no-interactive", "--json"]).code, 0);
-    write(p.dir, ".jgates/tools.yml", "schemaVersion: 1\ntools:\n  gitleaks:\n    adapter: gitleaks\n    capabilities: [secrets]\n  ruff:\n    adapter: ruff\n    capabilities: [lint]\n");
-    const plan = p.cli(["plan", "--cwd", p.dir, "--only", "tool:gitleaks", "--json"]).doc.plan;
-    const item = itemOf(plan, "gitleaks#secrets");
-    assert.equal(item.availability.status, "unavailable");
-    assert.match(item.availability.reason, /jgates tools prepare --instance gitleaks/);
-    assert.equal(item.command.container.image, "");
-    const ran = p.cli(["run", "--cwd", p.dir, "--only", "tool:gitleaks", "--no-interactive", "--json"]).doc;
-    assert.equal(ran.stages.find((s) => s.id === "gitleaks#secrets").state, "blocked");
-    assert.notEqual(ran.decision, "passed");
-    assert.equal(p.calls().filter((c) => c[0] === "run").length, 0);
-    const local = p.cli(["tools", "prepare", "--cwd", p.dir, "--instance", "ruff", "--no-interactive", "--json"]);
-    assert.equal(local.code, 3);
-    assert.equal(local.doc.error.code, "PREPARE_NOT_SUPPORTED");
-  } finally {
-    p.cleanup();
-  }
-});
-
-/** The labels of the final stage of quality-gate/Dockerfile, with the build arguments resolved to their defaults. */
-function sidecarLabels() {
-  const text = fs.readFileSync(path.join(repo, "quality-gate", "Dockerfile"), "utf8").replace(/\\\r?\n/g, " ");
-  const args = {};
-  for (const m of text.matchAll(/^ARG\s+([A-Z0-9_]+)=(\S+)/gm)) if (!(m[1] in args)) args[m[1]] = m[2];
-  const labels = {};
-  for (const line of text.split(/\r?\n/).filter((l) => /^LABEL\s/.test(l))) {
-    for (const m of line.matchAll(/([a-z0-9.\-]+)="([^"]*)"/g)) labels[m[1]] = m[2].replace(/\$\{(\w+)\}/g, (_, n) => args[n] ?? "");
-  }
-  return { labels, args };
-}
-
-test("quality-gate/Dockerfile declares org.jgates.tool.<tool>.version for each scanner, and the scanners accept the sidecar image as is", { skip: POSIX ? false : NO_POSIX }, () => {
-  const { labels, args } = sidecarLabels();
-  const expected = { gitleaks: "GITLEAKS_INSTALL_VERSION", trivy: "TRIVY_INSTALL_VERSION", "osv-scanner": "OSV_SCANNER_INSTALL_VERSION", checkov: "CHECKOV_INSTALL_VERSION", semgrep: "SEMGREP_INSTALL_VERSION", jscpd: "JSCPD_INSTALL_VERSION" };
-  for (const [tool, arg] of Object.entries(expected)) {
-    assert.match(args[arg] ?? "", /^\d+\.\d+\.\d+$/, arg);
-    assert.equal(labels[`org.jgates.tool.${tool}.version`], args[arg], `${tool} label`);
-  }
-  const manifests = new Map(builtinManifests().map((m) => [m.id, m]));
-  // The fake runtime answers with exactly those labels for the default reference (the sidecar image).
-  const p = workspace({ runtime: FAKE_SECURITY_RUNTIME, prefix: "FAKE_", vars: { FAKE_LABELS: JSON.stringify(labels) } });
-  try {
-    assert.equal(p.cli(["init", "--cwd", p.dir, "--profile", "standard", "--no-interactive", "--json"]).code, 0);
-    write(p.dir, ".jgates/tools.yml", "schemaVersion: 1\ntools:\n  gitleaks:\n    adapter: gitleaks\n    capabilities: [secrets]\n  trivy:\n    adapter: trivy\n    capabilities: [dependencies]\n  osv-scanner:\n    adapter: osv-scanner\n    capabilities: [dependencies]\n  checkov:\n    adapter: checkov\n    capabilities: [iac]\n");
-    for (const tool of ["gitleaks", "trivy", "osv-scanner", "checkov"]) {
-      const prepared = p.cli(["tools", "prepare", "--cwd", p.dir, "--instance", tool, "--no-interactive", "--json"]);
-      assert.equal(prepared.code, 0, `${tool}: ${prepared.out}${prepared.err}`);
-      assert.equal(prepared.doc.result.image.reference, prepare.SIDECAR_IMAGE, "the default image is the sidecar's");
-      assert.equal(prepared.doc.result.toolVersion, args[expected[tool]]);
-      assert.equal(prepared.doc.result.image.versionLabel, `org.jgates.tool.${tool}.version`);
-      assert.equal(prepare.satisfiesRange(prepared.doc.result.toolVersion, manifests.get(tool).toolVersionRange), true, `${tool} of the sidecar fits the adapter range`);
-    }
-    assert.equal(p.calls().filter((c) => c[0] === "pull").length, 0, "the default sidecar name is never pulled from a registry");
-    const plan = p.cli(["plan", "--cwd", p.dir, "--json"]).doc.plan;
-    for (const id of ["gitleaks#secrets", "trivy#dependencies", "osv-scanner#dependencies", "checkov#iac"]) {
-      const item = itemOf(plan, id);
-      assert.equal(item.availability.status, "available", `${id}: ${item.availability.reason}`);
-      assert.match(item.command.container.image, /^sha256:[0-9a-f]{64}$/, id);
-    }
-  } finally {
-    p.cleanup();
-  }
-});
-
-// ---------------------------------------------------------------------------------------------------------------
 // Trivy: database cache and licenses.
 
 const TRIVY_TOOLS = (capabilities) => `schemaVersion: 1\ntools:\n  trivy:\n    adapter: trivy\n    capabilities: [${capabilities.join(", ")}]\n`;
 
 function trivyWorkspace(capabilities, vars = {}) {
   const p = workspace({ runtime: FAKE_SECURITY_RUNTIME, prefix: "FAKE_", vars });
+  // Tests run JGates "inside the image" (tests/setup/in-image.mjs): Trivy starts natively, here a stand-in that writes
+  // the recorded report (and the database, like Trivy does when it downloads) where the real one would.
+  script(p.bin, "trivy", `Object.assign(process.env, ${JSON.stringify({ FAKE_LOG: path.join(p.bin, "calls.jsonl"), ...vars })});\nrequire(${JSON.stringify(path.join(SECURITY_FIXTURES, "fake-scanner.cjs"))});`);
   assert.equal(p.cli(["init", "--cwd", p.dir, "--profile", "standard", "--no-interactive", "--json"]).code, 0);
   write(p.dir, "package-lock.json", '{"lockfileVersion":3,"packages":{}}\n');
   write(p.dir, ".jgates/tools.yml", TRIVY_TOOLS(capabilities));
-  const prepared = p.cli(["tools", "prepare", "--cwd", p.dir, "--instance", "trivy", "--image", `registry.example/jgates/security@sha256:${"cd".repeat(32)}`, "--no-interactive", "--json"]);
-  assert.equal(prepared.code, 0, prepared.out + prepared.err);
   return p;
 }
 
@@ -246,7 +115,7 @@ test("Trivy's vulnerability database stays in the data folder between runs with 
     FAKE_STDERR: '2026-10-25T21:14:51Z\tINFO\t[vulndb] Artifact successfully downloaded\trepo="mirror.gcr.io/aquasec/trivy-db:2"\n',
   });
   const cacheDir = path.join(p.home, "tools", "cache", "trivy-db");
-  const runs = () => p.calls().filter((c) => c[0] === "run");
+  const runs = () => p.calls().filter((c) => c[0] === "trivy");
   try {
     const run = () => {
       const r = p.cli(["run", "--cwd", p.dir, "--only", "tool:trivy", "--no-interactive", "--json"]);
@@ -321,7 +190,7 @@ test("Trivy licenses: the recorded license report of 0.72.0 becomes a finding of
     assert.deepEqual(ran.findings.filter((f) => f.stageId === "trivy#licenses").map((f) => [f.ruleId, f.location.path, f.normalizedSeverity]), [["license:GPL-3.0-only", "package-lock.json", "high"]]);
     assert.equal(ran.decision, "failed", "a restricted license blocks");
     // The license scan reads no vulnerability database: nothing is cached and no update flag is added.
-    assert.ok(!p.calls().find((c) => c[0] === "run").includes("--skip-db-update"));
+    assert.ok(!p.calls().find((c) => c[0] === "trivy").includes("--skip-db-update"));
     assert.ok(!fs.existsSync(path.join(p.home, "tools", "cache", "trivy-db")));
   } finally {
     p.cleanup();

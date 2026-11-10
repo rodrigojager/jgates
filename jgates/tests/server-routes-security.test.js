@@ -539,7 +539,8 @@ test("supply chain: Python tools are pinned with == and every image is pinned by
   assert.ok(reqs.length >= 5);
   for (const line of reqs) assert.match(line, /^[A-Za-z0-9_.-]+==\d+(\.\d+)*$/, `Python tool not pinned exactly: ${line}`);
 
-  const dockerfiles = [path.join(jgatesDir, "docker", "ruff", "Dockerfile"), path.join(jgatesDir, "docker", "security", "Dockerfile"), path.join(repoDir, "quality-gate", "Dockerfile")];
+  // The small ruff and security images are retired (the tools image replaces them); the sidecar's recipe remains.
+  const dockerfiles = [path.join(repoDir, "quality-gate", "Dockerfile")];
   for (const file of dockerfiles) {
     const text = fs.readFileSync(file, "utf8");
     const args = Object.fromEntries([...text.matchAll(/^ARG\s+([A-Z0-9_]+)=(\S+)/gm)].map((m) => [m[1], m[2]]));
@@ -558,8 +559,6 @@ test("supply chain: Python tools are pinned with == and every image is pinned by
     assert.ok(!/:latest\b/.test(text), `${file} uses :latest`);
     for (const m of text.matchAll(/pip install[^\n"]*"([^"]+)"/g)) assert.match(m[1], /==/, `${file}: pip install ${m[1]} is not pinned`);
   }
-  // The images carry the dev label that makes them removable without touching other projects.
-  for (const file of dockerfiles.slice(0, 2)) assert.match(fs.readFileSync(file, "utf8"), /org\.jgates\.dev="true"/);
 });
 
 // ---- the CI policy routes ---------------------------------------------------------------------------------------

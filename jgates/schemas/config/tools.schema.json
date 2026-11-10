@@ -151,7 +151,7 @@
             "type": "boolean"
           },
           "image": {
-            "description": "zap: the ZAP image to run (default ghcr.io/zaproxy/zaproxy:stable); it must be present locally, it is never pulled during a run.",
+            "description": "zap: no longer used. ZAP runs in the JGates tools image and no other image can be named; setting it blocks the plan with the reason.",
             "type": "string",
             "minLength": 1
           },

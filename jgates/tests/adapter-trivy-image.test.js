@@ -17,7 +17,8 @@ const TARBALL = path.join(IMAGE, "tiny-image.tar");
 const { scanImage, trivyImageArgs } = await import(pathToFileURL(path.join(dist, "adapters", "trivy", "index.js")).href);
 const report = fs.readFileSync(path.join(IMAGE, "trivy-image-report.json"), "utf8");
 
-const enoent = { status: null, stdout: "", stderr: "", errorCode: "ENOENT" };
+const enoent = { status: null, stdout: "", stderr: "", errorCode: "ENOENT", errorMessage: "spawn trivy ENOENT" };
+const refused = { status: null, stdout: "", stderr: "", errorCode: "HOST_EXECUTION_REFUSED", errorMessage: "trivy: the tools image is not available in the engine" };
 
 test("trivy image: the saved tarball fixture is a docker archive", () => {
   const head = fs.readFileSync(TARBALL);
@@ -25,58 +26,52 @@ test("trivy image: the saved tarball fixture is a docker archive", () => {
   assert.ok(head.includes(Buffer.from("manifest.json")));
 });
 
-test("trivy image: a tarball scan yields normalized findings", () => {
+test("trivy image: a tarball scan yields normalized findings", async () => {
   const calls = [];
-  const result = scanImage({ tarball: TARBALL }, { env: {}, run: (exe, args) => (calls.push([exe, args]), { status: 0, stdout: report, stderr: "" }) });
+  const result = await scanImage({ tarball: TARBALL }, { run: async (args) => (calls.push(args), { status: 0, stdout: report, stderr: "" }), cacheDir: "/cache" });
   assert.equal(result.state, "completed");
   assert.equal(result.network, true);
+  assert.equal(result.runner, "container");
   assert.equal(result.findings.length, 1);
   const f = result.findings[0];
   assert.equal(f.ruleId, "CVE-2024-0001");
   assert.equal(f.capability, "dependencies");
   assert.equal(f.normalizedSeverity, "high");
   assert.match(f.message, /busybox@1\.36\.1-r0/);
-  assert.deepEqual(calls[0][1], trivyImageArgs({ tarball: TARBALL }));
-  assert.ok(calls[0][1].includes("--input"));
+  assert.deepEqual(calls[0], trivyImageArgs({ tarball: TARBALL }, "/cache"));
+  assert.ok(calls[0].includes("--input") && calls[0][calls[0].indexOf("--cache-dir") + 1] === "/cache", "the cache is a place the step may write");
 });
 
-test("trivy image: Trivy is missing natively and in the container runtime -> structured missing-tool state", () => {
-  const result = scanImage({ tarball: TARBALL }, { env: { JGATES_TRIVY: "trivy-not-here" }, run: () => enoent });
-  assert.equal(result.state, "missing-tool");
-  assert.equal(result.tried.length, 2);
-  assert.match(result.reason, /not available/);
+test("trivy image: a reference scan closes the arguments with the reference", async () => {
+  const calls = [];
+  const result = await scanImage({ reference: "registry.example/app:1.0" }, { run: async (args) => (calls.push(args), { status: 0, stdout: report, stderr: "" }) });
+  assert.equal(result.state, "completed");
+  assert.equal(calls[0].at(-1), "registry.example/app:1.0");
+  assert.ok(!calls[0].includes("--input"));
 });
 
-test("trivy image: a stopped container runtime is a missing tool, not a clean scan", () => {
-  const run = (exe) => (exe === "trivy" ? enoent : { status: 1, stdout: "", stderr: "failed to connect to the docker API" });
-  const result = scanImage({ tarball: TARBALL }, { env: {}, run });
+test("trivy image: Trivy cannot be started (not found, or no step container could start) -> structured missing-tool state", async () => {
+  for (const failure of [enoent, refused]) {
+    const result = await scanImage({ tarball: TARBALL }, { run: async () => failure });
+    assert.equal(result.state, "missing-tool");
+    assert.match(result.reason, new RegExp(failure.errorCode));
+  }
+});
+
+test("trivy image: a container runtime that failed is a missing tool, not a clean scan", async () => {
+  const result = await scanImage({ tarball: TARBALL }, { run: async () => ({ status: 125, stdout: "", stderr: "failed to connect to the docker API" }) });
   assert.equal(result.state, "missing-tool");
   assert.match(result.reason, /docker API/);
 });
 
-test("trivy image: the container fallback mounts the tarball read-only and labels the container", () => {
-  const calls = [];
-  const run = (exe, args) => {
-    calls.push([exe, args]);
-    return exe === "trivy" ? enoent : { status: 0, stdout: report, stderr: "" };
-  };
-  const result = scanImage({ tarball: TARBALL }, { env: {}, run });
-  assert.equal(result.state, "completed");
-  assert.equal(result.runner, "container");
-  const args = calls[1][1];
-  assert.ok(args.includes("--rm") && args.includes("jproject.project=jgates"));
-  assert.ok(args.some((a) => a.endsWith(":/input:ro")));
-  assert.ok(args.includes("/input/tiny-image.tar"));
-});
-
-test("trivy image: a filesystem report is not accepted as an image scan", () => {
+test("trivy image: a filesystem report is not accepted as an image scan", async () => {
   const fsReport = JSON.stringify({ ...JSON.parse(report), ArtifactType: "filesystem" });
-  const result = scanImage({ tarball: TARBALL }, { env: {}, run: () => ({ status: 0, stdout: fsReport, stderr: "" }) });
+  const result = await scanImage({ tarball: TARBALL }, { run: async () => ({ status: 0, stdout: fsReport, stderr: "" }) });
   assert.equal(result.state, "error");
 });
 
-test("trivy image: a missing tarball is an error", () => {
-  assert.equal(scanImage({ tarball: path.join(IMAGE, "nope.tar") }, { env: {}, run: () => enoent }).state, "error");
+test("trivy image: a missing tarball is an error", async () => {
+  assert.equal((await scanImage({ tarball: path.join(IMAGE, "nope.tar") }, { run: async () => enoent })).state, "error");
 });
 
 const MAIN = path.join(dist, "cli", "main.js");
@@ -90,8 +85,8 @@ function setup(settings, env = {}) {
   fs.copyFileSync(TARBALL, path.join(dir, "app.tar"));
   assert.equal(spawnSync("git", ["init", "-q"], { cwd: dir }).status, 0);
   const runEnv = { ...process.env, JGATES_HOME: home, JGATES_NO_CACHE: "1", NO_COLOR: "1", ...env };
-  const cli = (args) => {
-    const r = spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", env: runEnv, input: "", timeout: 240_000 });
+  const cli = (args, overrides = {}) => {
+    const r = spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", env: { ...runEnv, ...overrides }, input: "", timeout: 240_000 });
     let doc = null;
     try {
       doc = JSON.parse(r.stdout);
@@ -106,7 +101,7 @@ function setup(settings, env = {}) {
   return {
     dir,
     plan: () => cli(["plan", "--cwd", dir, "--only", "tool:trivy-image", "--json"]),
-    run: () => cli(["run", "--cwd", dir, "--only", "tool:trivy-image", "--no-interactive", "--json"]),
+    run: (overrides = {}) => cli(["run", "--cwd", dir, "--only", "tool:trivy-image", "--no-interactive", "--json"], overrides),
     cleanup: () => [dir, home].forEach((d) => fs.rmSync(d, { recursive: true, force: true })),
   };
 }
@@ -139,33 +134,36 @@ test("trivy final-image setting: imageRef and imageTarball select the image mode
 });
 
 test("trivy final-image run: a missing Trivy and container runtime is a blocked stage, never a clean image", () => {
-  // No Docker daemon is needed (nor started): both executables are pointed at names that do not exist, which is also
-  // the honest result on a machine where the daemon is stopped.
-  const ws = setup("    imageTarball: app.tar\n", { JGATES_TRIVY: "trivy-does-not-exist", JGATES_CONTAINER_RUNTIME: "runtime-does-not-exist" });
+  // The test run is "inside the image" (tests/setup/in-image.mjs): the tool starts natively, and with an empty PATH there
+  // is none. The real step container of the image is exercised by tests/docker.
+  const empty = tmp("jgates-ti-empty-");
+  const ws = setup("    imageTarball: app.tar\n");
   try {
-    const ran = ws.run();
+    const ran = ws.run({ PATH: empty });
     const stage = ran.doc.stages.find((s) => s.id === "trivy-image#dependencies");
     assert.ok(stage, ran.out + ran.err);
     assert.equal(stage.state, "blocked");
-    assert.match(stage.reason, /runtime-does-not-exist|trivy-does-not-exist/);
+    // The step is blocked before it starts (the executable is not there) with the reason in the user's language.
+    assert.match(stage.reason, /trivy/i);
     assert.notEqual(ran.doc.decision, "passed");
     assert.equal(ran.doc.findings.filter((f) => f.tool === "trivy").length, 0);
   } finally {
     ws.cleanup();
+    fs.rmSync(empty, { recursive: true, force: true });
   }
 });
 
 test("trivy final-image run: a Trivy that answers with the recorded image report yields normalized findings (POSIX stand-in)", (t) => {
   if (process.platform === "win32") {
-    t.diagnostic("a shell stand-in for the Trivy executable cannot be spawned directly on Windows; the report parsing is covered by the scanImage tests above, and no real Trivy image smoke ran (the Docker daemon was not available)");
+    t.diagnostic("a shell stand-in for the Trivy executable cannot be spawned directly on Windows; the report parsing is covered by the scanImage tests above, and the real Trivy runs in tests/docker/adapters-b.test.js");
     return;
   }
   const bin = tmp("jgates-ti-bin-");
   const stand = path.join(bin, "trivy");
   fs.writeFileSync(stand, `#!/bin/sh\ncat "${path.join(IMAGE, "trivy-image-report.json")}"\n`, { mode: 0o755 });
-  const ws = setup("    imageTarball: app.tar\n", { JGATES_TRIVY: stand });
+  const ws = setup("    imageTarball: app.tar\n");
   try {
-    const ran = ws.run();
+    const ran = ws.run({ PATH: `${bin}:/usr/bin:/bin` });
     const found = ran.doc.findings.filter((f) => f.tool === "trivy");
     assert.equal(found.length, 1, ran.out + ran.err);
     assert.equal(found[0].ruleId, "CVE-2024-0001");

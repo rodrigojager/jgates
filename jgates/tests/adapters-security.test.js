@@ -11,8 +11,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // plan builds the container command with the documents chosen in tools.yml, the run normalizes the recorded reports
 // of the pinned versions (tests/fixtures/parsers/security/<tool>/<version>), a cut report or one of another version is
 // an error and never "zero findings", the bridge leaves out the subcheck an adapter runs (and says why), and the
-// vulnerability database of Trivy and OSV-Scanner is recorded. The container runtime is a fake that writes the
-// recorded report into the /output mount; npm run test:docker runs the real scanners.
+// vulnerability database of Trivy and OSV-Scanner is recorded. These tests run JGates "inside the image" (the default
+// of tests/setup/in-image.mjs): the scanner starts natively and a stand-in (fake-scanner.cjs) writes the recorded report
+// where the tool would. The real scanners run in step containers in tests/docker/adapters-b.test.js.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "..", "..");
@@ -20,6 +21,7 @@ const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
 const FIXTURES = path.join(here, "fixtures", "parsers", "security");
 const FAKE_RUNTIME = path.join(FIXTURES, "fake-runtime.cjs");
+const FAKE_SCANNER = path.join(FIXTURES, "fake-scanner.cjs");
 const VENV_BIN = path.join(repo, ".venv", process.platform === "win32" ? "Scripts" : "bin");
 const PYTHON = path.join(VENV_BIN, process.platform === "win32" ? "python.exe" : "python");
 const require = createRequire(import.meta.url);
@@ -31,6 +33,7 @@ const { parseOsvReport } = await import(pathToFileURL(path.join(dist, "adapters"
 const { parseCheckovReport } = await import(pathToFileURL(path.join(dist, "adapters", "checkov", "index.js")).href);
 const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
 const catalog = await import(pathToFileURL(path.join(dist, "core", "catalog", "index.js")).href);
+const { writeImageJson, imageJsonWithout } = await import(pathToFileURL(path.join(here, "setup", "image-json.mjs")).href);
 
 const validateResult = new Ajv2020({ strict: true, allErrors: true }).compile(JSON.parse(fs.readFileSync(path.join(here, "..", "schemas", "result", "result.schema.json"), "utf8")));
 const validatePlan = new Ajv2020({ strict: false, allErrors: true }).compile(JSON.parse(fs.readFileSync(path.join(here, "..", "schemas", "plan", "plan.schema.json"), "utf8")));
@@ -41,7 +44,6 @@ const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 const rm = (...dirs) => dirs.forEach((d) => fs.rmSync(d, { recursive: true, force: true }));
 const fixture = (...p) => path.join(FIXTURES, ...p);
 const read = (...p) => fs.readFileSync(fixture(...p), "utf8");
-const IMAGE = `registry.example/jgates/security@sha256:${"cd".repeat(32)}`;
 const PARSE = (version, capabilities = ["secrets"]) => ({ version, cwd: "/workspace", capabilities });
 
 const TOOLS_YML = `schemaVersion: 1
@@ -217,12 +219,16 @@ function project({ profile = "standard", tools = TOOLS_YML } = {}) {
   const home = tmp("jgates-sec-home-");
   const bin = tmp("jgates-sec-bin-");
   const log = path.join(bin, "calls.jsonl");
-  /** Points the runtime at a scenario: what it answers and which recorded report it writes. */
+  /** Points the container runtime (the bridge's) at a scenario: what it answers and which recorded report it writes. */
   const runtime = (vars = {}) => script(bin, "docker", `Object.assign(process.env, ${JSON.stringify({ FAKE_LOG: log, ...vars })});\nrequire(${JSON.stringify(FAKE_RUNTIME)});`);
   runtime();
-  // No JGATES_*_IMAGE: each instance's image is pinned in .jgates/lock.json by `tools prepare` (below).
+  /** The four scanners, as stand-ins that write the recorded report of the scenario where the tool would. */
+  const scanners = (vars = {}) => {
+    for (const name of ["gitleaks", "trivy", "osv-scanner", "checkov"]) script(bin, name, `Object.assign(process.env, ${JSON.stringify({ FAKE_LOG: log, ...vars })});\nrequire(${JSON.stringify(FAKE_SCANNER)});`);
+  };
+  scanners();
+  // In-image mode (tests/setup/in-image.mjs): the scanners are the image's, found on the PATH, and image.json is the package's mirror.
   const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_CONTAINER_RUNTIME: path.join(bin, "docker"), JGATES_NO_CACHE: "1", PATH: bin };
-  for (const name of Object.keys(env)) if (/^JGATES_.*_IMAGE$/.test(name)) delete env[name];
   const cli = cliIn(env);
   const init = cli(["init", "--cwd", dir, "--profile", profile, "--no-interactive", "--json"]);
   assert.equal(init.code, 0, init.out + init.err);
@@ -239,54 +245,52 @@ function project({ profile = "standard", tools = TOOLS_YML } = {}) {
   };
   for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(dir, name), text);
   fs.writeFileSync(path.join(dir, ".jgates", "tools.yml"), tools);
-  for (const [, instance] of tools.matchAll(/^ {2}([a-z0-9-]+):\n {4}adapter: (?:gitleaks|trivy|osv-scanner|checkov)$/gm)) {
-    const prepared = cli(["tools", "prepare", "--cwd", dir, "--instance", instance, "--image", IMAGE, "--no-interactive", "--json"]);
-    assert.equal(prepared.code, 0, prepared.out + prepared.err);
-  }
   const calls = () => (fs.existsSync(log) ? fs.readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
-  return { dir, home, bin, env, cli, runtime, calls, cleanup: () => rm(dir, home, bin) };
+  return { dir, home, bin, env, cli, runtime, scanners, calls, cleanup: () => rm(dir, home, bin) };
 }
 
 const itemOf = (plan, id) => [...plan.groups.willRun, ...plan.groups.notApplicableOrDisabled].find((i) => i.id === id);
 const stageOf = (result, id) => result.stages.find((s) => s.id === id);
 
-test("each adapter plans the container command with the documents chosen in tools.yml (fake runtime)", { skip: POSIX ? false : NO_POSIX }, () => {
+test("each adapter plans the step command with the documents chosen in tools.yml", () => {
   const p = project();
   try {
     const planned = p.cli(["plan", "--cwd", p.dir, "--json"]);
     assert.equal(planned.code, 0, planned.out + planned.err);
     const plan = planned.doc.plan;
     assert.ok(validatePlan(plan), JSON.stringify(validatePlan.errors));
+    // The plan writes the workspace and the instance's output folder as tokens; the step launcher maps them to /workspace
+    // and /output in the step container (and nothing is mapped inside the image).
+    const out = (tool) => `{runDir}/outputs/${tool}/${tool}`;
     const expected = {
-      "gitleaks#secrets": ["dir", "--redact=100", "--no-banner", "--no-color", "--log-level", "warn", "--exit-code", "3", "--report-format", "json", "--report-path", "/output/report.json", "--config", "/workspace/.gitleaks.toml", "--gitleaks-ignore-path", "/workspace/.gitleaksignore", "."],
-      "trivy#dependencies": ["--config", "/workspace/trivy.yaml", "fs", "--scanners", "vuln,misconfig", "--format", "json", "--output", "/output/report.json", "--exit-code", "0", "--cache-dir", "/output/cache", "--skip-version-check", "--disable-telemetry", "--no-progress", "--ignorefile", "/workspace/.trivyignore", "."],
-      "osv-scanner#dependencies": ["scan", "source", "--recursive", "--allow-no-lockfiles", "--format", "json", "--output-file", "/output/report.json", "--config", "/workspace/osv-scanner.toml", "."],
-      "checkov#iac": ["--config-file", "/workspace/.checkov.yaml", "--directory", ".", "--output", "json", "--output-file-path", "/output", "--quiet", "--compact", "--skip-download"],
+      "gitleaks#secrets": ["dir", "--redact=100", "--no-banner", "--no-color", "--log-level", "warn", "--exit-code", "3", "--report-format", "json", "--report-path", `${out("gitleaks")}/report.json`, "--config", "{workspace}/.gitleaks.toml", "--gitleaks-ignore-path", "{workspace}/.gitleaksignore", "."],
+      "trivy#dependencies": ["--config", "{workspace}/trivy.yaml", "fs", "--scanners", "vuln,misconfig", "--format", "json", "--output", `${out("trivy")}/report.json`, "--exit-code", "0", "--cache-dir", `${out("trivy")}/cache`, "--skip-version-check", "--disable-telemetry", "--no-progress", "--ignorefile", "{workspace}/.trivyignore", "."],
+      "osv-scanner#dependencies": ["scan", "source", "--recursive", "--allow-no-lockfiles", "--format", "json", "--output-file", `${out("osv-scanner")}/report.json`, "--config", "{workspace}/osv-scanner.toml", "."],
+      "checkov#iac": ["--config-file", "{workspace}/.checkov.yaml", "--directory", ".", "--output", "json", "--output-file-path", out("checkov"), "--quiet", "--compact", "--skip-download"],
     };
     for (const [id, args] of Object.entries(expected)) {
       const item = plan.groups.willRun.find((i) => i.id === id);
       assert.ok(item, `${id} in ${JSON.stringify(plan.groups.willRun.map((i) => i.id))}`);
       assert.equal(item.availability.status, "available", item.availability.reason);
       assert.deepEqual(item.command.args, args, id);
-      assert.equal(item.command.container.image, IMAGE);
-      assert.deepEqual(item.command.container.mounts[0], { source: "{workspace}", target: "/workspace", readOnly: true });
-      assert.equal(item.command.container.mounts[1].target, "/output");
+      assert.equal(item.command.container, undefined, "no per-instance container: the step launcher owns it");
+      assert.equal(item.command.executable, id.split("#")[0]);
       assert.equal(item.runtime.name, "container");
-      assert.ok(item.versions.toolVersion, "the version comes from the image label");
+      assert.ok(item.versions.toolVersion, "the version comes from image.json");
     }
     // The documents are hashed into the plan; the network need is declared.
     assert.deepEqual(itemOf(plan, "gitleaks#secrets").configFiles.map((f) => f.file).filter((f) => !f.startsWith(".jgates") && !f.startsWith("builtin:") && f !== "jgates.yml"), [".gitleaks.toml", ".gitleaksignore"]);
-    assert.equal(itemOf(plan, "trivy#iac").command.container.network, "bridge");
-    assert.equal(itemOf(plan, "checkov#iac").command.container.network, "none");
+    assert.equal(itemOf(plan, "trivy#iac").network, true);
+    assert.equal(itemOf(plan, "checkov#iac").network, false);
     assert.ok(plan.network.items.includes("trivy#dependencies") && plan.network.items.includes("osv-scanner#dependencies"));
     assert.ok(itemOf(plan, "gitleaks#secrets").conditions.some((c) => c.includes("--redact=100")), "the plan says the redaction is fixed");
-    assert.equal(p.calls().filter((c) => c[0] === "run").length, 0, "planning starts no container");
+    assert.equal(p.calls().length, 0, "planning starts no scanner");
   } finally {
     p.cleanup();
   }
 });
 
-test("with the Gitleaks adapter on, the bridge's gitleaks subcheck is left out of the plan and the JSON says why", { skip: POSIX ? false : NO_POSIX }, () => {
+test("with the Gitleaks adapter on, the bridge's gitleaks subcheck is left out of the plan and the JSON says why", () => {
   const p = project();
   try {
     const plan = p.cli(["plan", "--cwd", p.dir, "--json"]).doc.plan;
@@ -311,7 +315,7 @@ test("with the Gitleaks adapter on, the bridge's gitleaks subcheck is left out o
   }
 });
 
-test("a Trivy instance with only dependencies leaves Trivy's iac in the bridge, and the plan says the tool runs twice", { skip: POSIX ? false : NO_POSIX }, () => {
+test("a Trivy instance with only dependencies leaves Trivy's iac in the bridge, and the plan says the tool runs twice", () => {
   const p = project({ tools: "schemaVersion: 1\ntools:\n  trivy:\n    adapter: trivy\n    capabilities: [dependencies]\n" });
   try {
     const plan = p.cli(["plan", "--cwd", p.dir, "--json"]).doc.plan;
@@ -328,7 +332,7 @@ test("a Trivy instance with only dependencies leaves Trivy's iac in the bridge, 
 test("Gitleaks runs in the container and its finding comes out with the masked value [proves: gitleaks#secrets]", { skip: POSIX ? false : NO_POSIX }, () => {
   const p = project();
   try {
-    p.runtime({ FAKE_REPORT: fixture("gitleaks", "8.30.1", "dir-leak.json"), FAKE_EXIT: "3", FAKE_STDERR: "WRN leaks found: 1\n" });
+    p.scanners({ FAKE_REPORT: fixture("gitleaks", "8.30.1", "dir-leak.json"), FAKE_EXIT: "3", FAKE_STDERR: "WRN leaks found: 1\n" });
     const ran = p.cli(["run", "--cwd", p.dir, "--only", "tool:gitleaks", "--no-interactive", "--json"]);
     const result = ran.doc;
     assert.ok(result, ran.out + ran.err);
@@ -339,10 +343,10 @@ test("Gitleaks runs in the container and its finding comes out with the masked v
     const findings = result.findings.filter((f) => f.tool === "gitleaks");
     assert.deepEqual(findings.map((f) => [f.ruleId, f.location.path, f.location.line, f.normalizedSeverity, f.evidence]), [["github-pat", "settings.py", 1, "critical", "REDACTED"]]);
     assert.equal(result.decision, "failed");
-    const call = p.calls().find((c) => c[0] === "run");
-    assert.ok(call.includes("--read-only") && call.includes("none"), "read-only root, no network");
-    assert.ok(call.includes("--redact=100"));
-    assert.ok(call.some((a) => a === `type=bind,src=${p.dir},dst=/workspace,readonly` || a.endsWith(",dst=/workspace,readonly")));
+    // The scanner started natively (in-image mode) with the plan's command: redaction fixed, report in the run folder.
+    const call = p.calls().find((c) => c[0] === "gitleaks");
+    assert.ok(call.includes("--redact=100") && call.includes("--report-path"), call.join(" "));
+    assert.ok(call[call.indexOf("--report-path") + 1].startsWith(result.runDir), "the report goes to the instance's output folder in the run");
     assert.ok(result.artifacts.logs.includes("logs/gitleaks.stdout.log"));
     assert.match(fs.readFileSync(path.join(result.runDir, "logs", "gitleaks.stderr.log"), "utf8"), /leaks found/);
   } finally {
@@ -353,7 +357,7 @@ test("Gitleaks runs in the container and its finding comes out with the masked v
 test("Trivy and OSV-Scanner record the source and the date of the vulnerability database in the result", { skip: POSIX ? false : NO_POSIX }, () => {
   const p = project();
   try {
-    p.runtime({
+    p.scanners({
       FAKE_REPORT: fixture("trivy", "0.72.0", "fs-report.json"),
       FAKE_DB_META: fixture("trivy", "0.72.0", "db-metadata.json"),
       FAKE_STDERR: '2026-10-25T21:14:51Z\tINFO\t[vulndb] Artifact successfully downloaded\trepo="mirror.gcr.io/aquasec/trivy-db:2"\n',
@@ -386,7 +390,7 @@ test("Trivy and OSV-Scanner record the source and the date of the vulnerability 
     assert.ok(!fs.existsSync(path.join(out, "cache", "db", "trivy.db")), "the database file does not stay in the run folder");
     assert.ok(fs.existsSync(path.join(out, "cache", "db", "metadata.json")), "its metadata does");
 
-    p.runtime({ FAKE_REPORT: fixture("osv-scanner", "2.4.0", "source-vulns.json"), FAKE_EXIT: "1" });
+    p.scanners({ FAKE_REPORT: fixture("osv-scanner", "2.4.0", "source-vulns.json"), FAKE_EXIT: "1" });
     const osv = p.cli(["run", "--cwd", p.dir, "--only", "tool:osv-scanner", "--no-interactive", "--json"]).doc;
     assert.ok(validateResult(osv), JSON.stringify(validateResult.errors));
     const stage = stageOf(osv, "osv-scanner#dependencies");
@@ -405,7 +409,7 @@ test("Trivy and OSV-Scanner record the source and the date of the vulnerability 
 test("Checkov reads its results_json.json from the output mount", { skip: POSIX ? false : NO_POSIX }, () => {
   const p = project();
   try {
-    p.runtime({ FAKE_REPORT: fixture("checkov", "3.3.8", "terraform-failed.json"), FAKE_REPORT_NAME: "results_json.json", FAKE_EXIT: "1" });
+    p.scanners({ FAKE_REPORT: fixture("checkov", "3.3.8", "terraform-failed.json"), FAKE_REPORT_NAME: "results_json.json", FAKE_EXIT: "1" });
     const result = p.cli(["run", "--cwd", p.dir, "--only", "tool:checkov", "--no-interactive", "--json"]).doc;
     assert.ok(validateResult(result), JSON.stringify(validateResult.errors));
     const stage = stageOf(result, "checkov#iac");
@@ -419,6 +423,7 @@ test("Checkov reads its results_json.json from the output mount", { skip: POSIX 
 test("a cut report, a report of another version, a missing report or an error exit is an error in the stage, never zero findings", { skip: POSIX ? false : NO_POSIX }, () => {
   const p = project();
   const scratch = tmp("jgates-sec-bad-");
+  const scratchFiles = [];
   try {
     const newer = path.join(scratch, "trivy-1.2.json");
     fs.writeFileSync(newer, JSON.stringify({ ...JSON.parse(read("trivy", "0.72.0", "fs-report.json")), Trivy: { Version: "1.2.0" } }));
@@ -429,7 +434,7 @@ test("a cut report, a report of another version, a missing report or an error ex
       ["tool:checkov", "checkov#iac", { FAKE_REPORT: fixture("checkov", "3.3.8", "empty.json"), FAKE_REPORT_NAME: "results_json.json", FAKE_EXIT: "2", FAKE_STDERR: "Traceback: boom\n" }, /código 2/],
     ];
     for (const [only, id, vars, reason] of scenarios) {
-      p.runtime(vars);
+      p.scanners(vars);
       const result = p.cli(["run", "--cwd", p.dir, "--only", only, "--no-interactive", "--json"]).doc;
       assert.ok(result && validateResult(result), `${id}: ${JSON.stringify(validateResult.errors)}`);
       const stage = stageOf(result, id);
@@ -439,32 +444,26 @@ test("a cut report, a report of another version, a missing report or an error ex
       assert.notEqual(result.decision, "passed", id);
       assert.equal(result.findings.filter((f) => f.stageId === id).length, 0, id);
     }
-    // An image whose label says a version outside the manifest's range is never pinned (prepare refuses it), and a
-    // pinned image that now says another version never runs (blocked, not passed).
-    p.runtime({ FAKE_LABELS: JSON.stringify({ "org.jgates.tool.gitleaks.version": "9.1.0" }) });
-    const refused = p.cli(["tools", "prepare", "--cwd", p.dir, "--instance", "gitleaks", "--image", IMAGE, "--no-interactive", "--json"]);
-    assert.equal(refused.code, 3, refused.out);
-    assert.equal(refused.doc.error.code, "IMAGE_INCOMPATIBLE");
-    assert.match(refused.doc.error.message, /9\.1\.0/);
-    const blocked = p.cli(["run", "--cwd", p.dir, "--only", "tool:gitleaks", "--no-interactive", "--json"]).doc;
-    assert.equal(stageOf(blocked, "gitleaks#secrets").state, "blocked");
-    assert.match(stageOf(blocked, "gitleaks#secrets").reason, /9\.1\.0/);
-    assert.notEqual(blocked.decision, "passed");
-    // The same version range check holds for a pinned version outside it (an adapter upgraded after the prepare).
-    const lockFile = path.join(p.dir, ".jgates", "lock.json");
-    const lock = JSON.parse(fs.readFileSync(lockFile, "utf8"));
-    lock.tools.gitleaks.toolVersion = "9.1.0";
-    fs.writeFileSync(lockFile, JSON.stringify(lock));
-    const outOfRange = p.cli(["run", "--cwd", p.dir, "--only", "tool:gitleaks", "--no-interactive", "--json"]).doc;
-    assert.equal(stageOf(outOfRange, "gitleaks#secrets").state, "blocked");
-    assert.notEqual(outOfRange.decision, "passed");
+    // An image.json that says a version outside the manifest's range, or no gitleaks at all, never runs it (blocked, not passed).
+    const oldImage = writeImageJson({ gitleaks: "9.1.0" });
+    const noImage = imageJsonWithout("gitleaks");
+    scratchFiles.push(path.dirname(oldImage), path.dirname(noImage));
+    p.scanners({ FAKE_REPORT: fixture("gitleaks", "8.30.1", "dir-leak.json"), FAKE_EXIT: "3" });
+    for (const [imageJson, reason] of [[oldImage, /9\.1\.0/], [noImage, /gitleaks/i]]) {
+      const blocked = cliIn({ ...p.env, JGATES_IMAGE_JSON: imageJson })(["run", "--cwd", p.dir, "--only", "tool:gitleaks", "--no-interactive", "--json"]).doc;
+      assert.equal(stageOf(blocked, "gitleaks#secrets").state, "blocked", JSON.stringify(stageOf(blocked, "gitleaks#secrets")));
+      assert.match(stageOf(blocked, "gitleaks#secrets").reason, reason);
+      assert.notEqual(blocked.decision, "passed");
+      assert.equal(blocked.findings.length, 0);
+    }
   } finally {
+    rm(...scratchFiles);
     p.cleanup();
     rm(scratch);
   }
 });
 
-test("a bound document that does not exist blocks the plan instead of falling back to another one", { skip: POSIX ? false : NO_POSIX }, () => {
+test("a bound document that does not exist blocks the plan instead of falling back to another one", () => {
   const p = project({ tools: "schemaVersion: 1\ntools:\n  gitleaks:\n    adapter: gitleaks\n    capabilities: [secrets]\n    config: missing.toml\n" });
   try {
     const planned = p.cli(["plan", "--cwd", p.dir, "--json"]);

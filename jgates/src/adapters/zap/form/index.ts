@@ -1,10 +1,9 @@
 import type { FormDefinition, FormFieldSpec, JsonSchema } from "../../../core/forms/types.js";
 import { HTTP_URL, OPENAPI_FILES, RELATIVE_PATH, capabilitiesField } from "../../schemathesis/form/shared.js";
 import { RISK_LEVELS } from "../normalize.js";
-import { DEFAULT_ZAP_IMAGE } from "../probe.js";
 
 // Form of a ZAP instance: its settings live in tools.<id> of .jgates/tools.yml (scope "instance"), with exactly the
-// names zapSettings reads (target, mode, allowActive, spec, blockingRisk, spiderMinutes, image). The authentication
+// names zapSettings reads (target, mode, allowActive, spec, blockingRisk, spiderMinutes). The authentication
 // header (auth) stays in the YAML: it is listed as "not in the form" and never touched.
 
 const key = (name: string) => `zap:zap_form_${name}`;
@@ -38,7 +37,6 @@ export const zapForm: FormDefinition = {
       options: Object.fromEntries(RISK_LEVELS.map((r) => [r, { label: key(`risk_${r}`) }])),
     }),
     field("spiderMinutes", { type: "integer", minimum: 1, maximum: 60, default: 1 }, { widget: "number", order: 60, group: "advanced", section: "advanced", unit: key("unit_minutes") }),
-    field("image", { type: "string", pattern: "^[a-z0-9][a-z0-9._/-]*(?::[A-Za-z0-9._-]+)?(?:@sha256:[0-9a-f]{64})?$", default: DEFAULT_ZAP_IMAGE }, { widget: "text", order: 70, group: "advanced", section: "advanced", format: "image-ref", example: DEFAULT_ZAP_IMAGE }),
   ],
   rules: [{ when: { field: "mode", equals: "active" }, require: { field: "allowActive", equals: true }, message: key("rule_active") }],
 };

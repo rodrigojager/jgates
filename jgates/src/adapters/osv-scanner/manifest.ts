@@ -57,11 +57,11 @@ export const osvScannerManifest: AdapterManifest = {
   license: "Apache-2.0",
   kind: "tool",
   limitations: [
-    "runs only on the container runner, in the image `jgates tools prepare` pins in .jgates/lock.json (the sidecar image by default)",
+    "runs only in a step container of the JGates tools image, never as a process of the host",
     "online mode: queries the osv.dev API, which reports no database date",
   ],
   stackSupport: [
-    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)", "the osv.dev advisory database"] },
+    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)", "the osv.dev advisory database"] },
   ],
   distribution: {
     mode: "prepared-from-authorized-source",

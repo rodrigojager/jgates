@@ -2,9 +2,8 @@
 // instance, in the container runner, with the project's .gitleaks.toml and ignore file as two separate documents.
 // The redaction (--redact=100), the report in the run folder and the exit code of a leak (3, so that 1 stays an
 // error) are part of the command: no configuration file or editor change can turn them off.
-import { CONTAINER_OUTPUT, toContainerPath } from "../../core/runner/index.js";
 import type { ExternalAdapter } from "../../core/plan/adapters.js";
-import { planScanner, REPORT_FILE, runScanner, type ArgsInput, type ScannerDefinition } from "../container-scanner/index.js";
+import { planScanner, REPORT_FILE, runScanner, workspaceToken, type ArgsInput, type ScannerDefinition } from "../container-scanner/index.js";
 import { gitleaksManifest } from "./manifest.js";
 import { parseGitleaksReport } from "./normalize.js";
 
@@ -31,9 +30,9 @@ export const gitleaksScanner: ScannerDefinition = {
       modeOf(input),
       ...GITLEAKS_FIXED_FLAGS,
       "--report-path",
-      `${CONTAINER_OUTPUT}/${REPORT_FILE}`,
-      ...(config ? ["--config", toContainerPath(config)] : []),
-      ...(ignore ? ["--gitleaks-ignore-path", toContainerPath(ignore)] : []),
+      `${input.out}/${REPORT_FILE}`,
+      ...(config ? ["--config", workspaceToken(config)] : []),
+      ...(ignore ? ["--gitleaks-ignore-path", workspaceToken(ignore)] : []),
       ".",
     ];
   },

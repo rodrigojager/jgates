@@ -15,7 +15,8 @@ import type { AdapterManifest } from "../../core/catalog/index.js";
 import type { ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
-import { CONTAINER_OUTPUT, CONTAINER_WORKSPACE, DEFAULT_MAX_LOG_BYTES, runContainer, substituteTokens, toContainerPath, type ContainerResult } from "../../core/runner/index.js";
+import { CONTAINER_WORKSPACE, DEFAULT_MAX_LOG_BYTES, runSpec, substituteTokens, type ExecutionResult } from "../../core/runner/index.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 import { resolveToolBindings, type ResolvedBinding } from "../../core/tools/index.js";
 import type { AdapterContext, AdapterOutput, NormalizedSeverity, ResultFinding, ResultStage, StageAnalysisInput } from "../../core/run/types.js";
 import { resolveHome } from "../../core/home/index.js";
@@ -28,10 +29,10 @@ export { probeScannerImage, runtimeClientEnv, SIDECAR_IMAGE, type ScannerImagePr
 
 const WORKSPACE = "{workspace}";
 const RUN_DIR = "{runDir}";
-/** Folders of the output mount the tool uses instead of its home, /tmp (a small tmpfs) and its cache. */
-export const OUTPUT_HOME = `${CONTAINER_OUTPUT}/home`;
-export const OUTPUT_TMP = `${CONTAINER_OUTPUT}/tmp`;
-export const OUTPUT_CACHE = `${CONTAINER_OUTPUT}/cache`;
+/** The instance's output folder in the run, as the plan writes it (the run replaces {runDir}); the step sees it under /output. */
+export const outputToken = (adapter: string, tool: string): string => `${RUN_DIR}/outputs/${adapter}/${tool}`;
+/** A workspace-relative file as the plan writes it (the run replaces {workspace}; the step sees it under /workspace). */
+export const workspaceToken = (relative: string): string => (relative === "." || relative === "" ? WORKSPACE : `${WORKSPACE}/${relative}`);
 export const REPORT_FILE = "report.json";
 /** Name of the file, next to the report, where the run records the facts of the analysis input (database, scope). */
 export const FACTS_FILE = "analysis-input.json";
@@ -72,6 +73,8 @@ export interface ArgsInput {
   capabilities: string[];
   /** Workspace-relative scan root ("." or the component root). */
   root: string;
+  /** The instance's output folder ({runDir}/outputs/<adapter>/<tool>): the tool's report, home, temporary files and cache. */
+  out: string;
 }
 
 /** Facts the run records about what the analysis read besides the code (a vulnerability database): the stage's
@@ -123,10 +126,8 @@ export interface ScannerDefinition {
   limitations(input: ArgsInput, t: Translator): string[];
   /** Capabilities of one instance that cannot run together with the first one in the same invocation. */
   exclusive?(capabilities: string[], t: Translator): Record<string, string>;
-  /** Extra environment of the tool (inside the container). */
+  /** Extra environment of the tool (inside the step container). */
   env?: Record<string, string>;
-  /** Container limits (Trivy needs more than the defaults). */
-  limits?: { memoryMb?: number; cpus?: number; pids?: number; tmpfsMb?: number };
   /** Reads the report the tool wrote in /output/report.json. */
   parse(text: string, options: ParseOptions): ParseResult;
   /** Reads the facts of the analysis input after the run (outputDir: the host folder mounted at /output). */
@@ -295,7 +296,8 @@ export function planScanner(def: ScannerDefinition, input: ExternalPlanInput): E
   const runnable = selected.filter((c) => def.capabilities.includes(c));
   Object.assign(uncredited, def.exclusive?.(runnable, t) ?? {});
   const capabilities = runnable.filter((c) => uncredited[c] === undefined);
-  const argsInput: ArgsInput = { documents, capabilities: capabilities.length > 0 ? capabilities : [input.capability], root };
+  const out = outputToken(manifest.id, input.tool);
+  const argsInput: ArgsInput = { documents, capabilities: capabilities.length > 0 ? capabilities : [input.capability], root, out };
 
   const probe = probeScannerImage(input.env, manifest.toolName);
   let availability: ExternalPlan["availability"];
@@ -319,17 +321,8 @@ export function planScanner(def: ScannerDefinition, input: ExternalPlanInput): E
       executable: manifest.toolName,
       args,
       cwd: root === "." ? WORKSPACE : `${WORKSPACE}/${root}`,
-      env: { HOME: OUTPUT_HOME, TMPDIR: OUTPUT_TMP, ...(def.env ?? {}) },
+      env: { HOME: `${out}/home`, TMPDIR: `${out}/tmp`, ...(def.env ?? {}) },
       stdin: null,
-      container: {
-        runtime: probe.runtime ?? probe.runtimeName,
-        image: probe.image ?? "",
-        network: def.network ? "bridge" : "none",
-        mounts: [
-          { source: WORKSPACE, target: CONTAINER_WORKSPACE, readOnly: true },
-          { source: `${RUN_DIR}/outputs/${manifest.id}/${input.tool}`, target: CONTAINER_OUTPUT, readOnly: false },
-        ],
-      },
     },
     runtime: { name: "container", interpreter: probe.runtime, available: probe.problem === null },
     toolVersion: probe.version,
@@ -347,7 +340,7 @@ export function planScanner(def: ScannerDefinition, input: ExternalPlanInput): E
     ],
     output: { format: "json", schema: null },
     ...(Object.keys(uncredited).length > 0 ? { uncredited } : {}),
-    contract: { report: `${CONTAINER_OUTPUT}/${def.report ?? REPORT_FILE}`, exitCodes: [...def.exitCodes], parser: manifest.toolVersionRange, capabilities: argsInput.capabilities },
+    contract: { report: `${out}/${def.report ?? REPORT_FILE}`, exitCodes: [...def.exitCodes], parser: manifest.toolVersionRange, capabilities: argsInput.capabilities },
   };
 }
 
@@ -377,7 +370,6 @@ export async function runScanner(def: ScannerDefinition, context: AdapterContext
   if (!invocation || items.length === 0) throw new Error(t("security_no_invocation", { tool }));
   const tokens = { runDir: context.runDir, workspace: context.workspacePath };
   const command = invocation.command;
-  const container = command.container;
   const timeoutSeconds = Math.min(...items.map((i) => i.limits.timeoutSeconds));
   const version = items[0]?.versions.toolVersion ?? null;
   const label = def.manifest.displayName;
@@ -406,13 +398,9 @@ export async function runScanner(def: ScannerDefinition, context: AdapterContext
 
   const unavailable = items.find((i) => i.availability.status !== "available");
   if (unavailable) return all("blocked", unavailable.availability.reason ?? t("security_blocked", { tool: label, detail: command.executable }));
-  if (!container) return all("blocked", t("security_blocked", { tool: label, detail: t("security_no_container") }));
 
-  const mount = (target: string): string => substituteTokens(container.mounts.find((m) => m.target === target)?.source ?? "", tokens);
-  const workspace = mount(CONTAINER_WORKSPACE);
-  const outputDir = mount(CONTAINER_OUTPUT) || outDir;
+  const outputDir = outDir;
   const cwd = substituteTokens(command.cwd, tokens);
-  const relCwd = slash(path.relative(workspace, cwd)) || ".";
   const env: Record<string, string> = {};
   for (const [name, value] of Object.entries(command.env)) env[name] = substituteTokens(value, tokens);
   // A report left by an earlier attempt must never be read as this run's.
@@ -433,31 +421,12 @@ export async function runScanner(def: ScannerDefinition, context: AdapterContext
   let args = command.args.map((a) => substituteTokens(a, tokens));
   if (dbSpec && cache?.state === "reused") args = [...args.slice(0, -1), ...dbSpec.skipArgs, ...args.slice(-1)];
 
-  let result: ContainerResult;
-  try {
-    result = await runContainer(
-      {
-        runtime: container.runtime,
-        image: container.image,
-        command: [command.executable, ...args],
-        workspace,
-        outputDir,
-        cwd: relCwd,
-        env,
-        network: container.network,
-        timeoutMs: timeoutSeconds * 1000,
-        labels: { "org.jgates.adapter": id },
-        ...(def.limits ? { limits: def.limits } : {}),
-        stdin: null,
-        stdoutFile: stdoutLog,
-        stderrFile: stderrLog,
-      },
-      { parentEnv: context.env },
-    );
-  } catch (error) {
-    // A spec the container runner refuses (an image not pinned, a bad mount) never starts.
-    return all("blocked", t("security_blocked", { tool: label, detail: (error as Error).message }));
-  }
+  // The runner starts the tool in the step container (the launcher maps the workspace and the run folder to /workspace
+  // and /output) or, inside the tools image, natively. The tool's own network need is the step's (the plan item).
+  const result: ExecutionResult = await runSpec(
+    { executable: command.executable, args, cwd, env, stdin: null, timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog },
+    { parentEnv: context.env },
+  );
   base.logs = [relToRun(context.runDir, stdoutLog), relToRun(context.runDir, stderrLog)];
   // The facts are read before the cleanup removes what they come from (the database the tool downloaded).
   const facts = def.facts?.(outputDir, result.stderr) ?? {};
@@ -480,7 +449,7 @@ export async function runScanner(def: ScannerDefinition, context: AdapterContext
   if (result.cancelled) return { ...all("cancelled", t("security_cancelled", { tool: label })), logs: base.logs };
   if (result.exitCode === null || !def.exitCodes.includes(result.exitCode)) {
     const detail = result.stderr.trim().split(/\r?\n/).slice(-3).join(" ") || String(result.signal ?? "");
-    const key = result.container.runtimeFailure ? "security_runtime_failed" : "security_exit_error";
+    const key = result.exitCode !== null && result.exitCode >= 125 && result.exitCode <= 127 ? "security_runtime_failed" : "security_exit_error";
     return uninterpreted(t(key, { tool: label, code: result.exitCode ?? "-", detail }));
   }
 
@@ -492,7 +461,14 @@ export async function runScanner(def: ScannerDefinition, context: AdapterContext
   } catch (error) {
     return uninterpreted(t("security_report_missing", { tool: label, detail: (error as NodeJS.ErrnoException).code ?? (error as Error).message }));
   }
-  const cwdInContainer = toContainerPath(relCwd);
+  // The tool prints the paths it was given: /workspace/... under the launcher, the host paths inside the image.
+  const roots = { workspace: context.workspacePath, runDir: context.runDir };
+  let cwdInContainer = stepViewOfPaths(context.env, roots, cwd);
+  if (cwdInContainer === cwd && path.resolve(cwd) !== CONTAINER_WORKSPACE && cwd.startsWith(context.workspacePath)) {
+    // Inside the tools image nothing is mapped: the report speaks of host paths, the parsers of /workspace.
+    text = text.split(context.workspacePath).join(CONTAINER_WORKSPACE);
+    cwdInContainer = cwd.split(context.workspacePath).join(CONTAINER_WORKSPACE);
+  }
   const parsed = def.parse(text, { version, cwd: cwdInContainer, capabilities });
   if (!parsed.ok) return uninterpreted(t("security_invalid_report", { tool: label, detail: parsed.problem ?? "-" }));
 

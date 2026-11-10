@@ -28,8 +28,6 @@ const matrix = await load("core", "matrix", "index.js");
 const stProbe = st.probeSchemathesis(process.env);
 // In-image mode (tests/setup/in-image.mjs): a tool on this machine's PATH (an absolute executable) stands for the image's.
 const REAL_ST = stProbe.executable !== null && path.isAbsolute(stProbe.executable) && stProbe.version !== null;
-const zapProbe = zap.probeZap(process.env);
-const REAL_ZAP = zapProbe.problem === null;
 
 const recorded = (name) => fs.readFileSync(path.join(FIXTURES, "recorded", name), "utf8");
 
@@ -242,8 +240,8 @@ test("schemathesis auth: the header value comes from its environment variable, a
   }
 });
 
-test("zap: the passive API scan of a target missing security headers yields alerts and the hardened twin none [proves: zap#dast]", async (t) => {
-  // The recorded real report of ZAP 2.17.0 (zap-api-scan.py -S) against the violating fixture: always parsed.
+test("zap: the passive API scan of a target missing security headers yields alerts and the hardened twin none [proves: zap#dast]", () => {
+  // The recorded real report of ZAP 2.17.0 (traditional JSON, passive API scan) against the violating fixture: always parsed.
   const low = zap.parseZapReport(recorded("zap-api-violating.json"), { stageId: "zap#dast", blockingRisk: "low" });
   assert.equal(low.ok, true, low.problem);
   // The missing nosniff (10021) and CORP (90004) headers are low-risk alerts; the informational one (10049) never blocks.
@@ -260,37 +258,8 @@ test("zap: the passive API scan of a target missing security headers yields aler
   const medium = zap.parseZapReport(recorded("zap-api-violating.json"), { stageId: "zap#dast", blockingRisk: "medium" });
   assert.equal(medium.findings.every((f) => f.blocking === false), true, "low alerts do not block at medium");
 
-  if (!REAL_ZAP) {
-    t.diagnostic(`ZAP is not available (${zapProbe.problem}: ${zapProbe.detail}): the live scan did not run; only the recorded ZAP 2.17.0 report was parsed. Pull it with docker pull ghcr.io/zaproxy/zaproxy:stable.`);
-    return;
-  }
-  const violating = await startTarget("violating");
-  const conforming = await startTarget("conforming");
-  const settings = (url) => `    target: ${url}\n    spec: openapi.yaml\n    blockingRisk: low\n`;
-  const wsBad = setup(toolsYml(zapTool(settings(violating.url))));
-  const wsGood = setup(toolsYml(zapTool(settings(conforming.url))));
-  try {
-    const failed = wsBad.run("zap");
-    assert.equal(failed.doc?.decision, "failed", failed.out + failed.err);
-    const live = failed.doc.findings.filter((f) => f.tool === "zap");
-    assert.deepEqual(blockingOf(live), ["10021", "90004"], JSON.stringify(live));
-    // The URLs the container saw are mapped back to the target the plan names.
-    for (const f of live) assert.ok(f.evidence.includes(`${violating.url}/users/`), f.evidence);
-    const passed = wsGood.run("zap");
-    assert.equal(passed.doc?.decision, "passed", passed.out + passed.err);
-    // The hardened twin: no alert of risk low or higher (informational notes may remain and never block).
-    assert.deepEqual(blockingOf(passed.doc.findings.filter((f) => f.tool === "zap")), []);
-    assert.ok(passed.doc.findings.filter((f) => f.tool === "zap").every((f) => f.normalizedSeverity === "info"));
-    assert.equal(stageOf(passed.doc, "zap#dast").state, "completed");
-    // --rm and the run-owned name: no ZAP container is left behind.
-    const left = spawnSync("docker", ["ps", "-a", "--filter", "label=org.jgates.adapter=zap", "--format", "{{.Names}}"], { encoding: "utf8" });
-    assert.equal(left.stdout.trim(), "");
-  } finally {
-    violating.stop();
-    conforming.stop();
-    wsBad.cleanup();
-    wsGood.cleanup();
-  }
+  // The live scan (ZAP of the tools image, in a step container, against a page without and with the headers) is
+  // tests/docker/adapters-b.test.js; this suite never starts ZAP.
 });
 
 test("zap active mode: refused unless explicitly allowed, and then the plan lists its effects", () => {
@@ -320,17 +289,31 @@ test("zap active mode: refused unless explicitly allowed, and then the plan list
     assert.ok(item.conditions.some((c) => /ACTIVE/.test(c)), item.conditions.join(" | "));
     assert.ok(item.conditions.some((c) => /attack payloads/.test(c)), item.conditions.join(" | "));
     assert.ok(item.conditions.some((c) => /change or delete data/.test(c)), item.conditions.join(" | "));
-    assert.ok(item.command.args.includes("zap-api-scan.py") && !item.command.args.includes("-S"), item.command.args.join(" "));
-    assert.ok(item.command.args.includes("never") && item.command.args.includes("--rm"));
-    assert.ok(item.command.args.includes("http://host.docker.internal:8765"), item.command.args.join(" "));
+    // ZAP of the tools image is driven by an automation plan the run writes in the instance's output folder.
+    assert.equal(item.command.executable, "zap.sh");
+    assert.ok(item.command.args.includes("-autorun") && item.command.args.some((a) => a.endsWith("/automation.yaml")), item.command.args.join(" "));
+    assert.equal(item.network, true);
+    assert.equal(item.runtime.name, "container");
   } finally {
     allowed.cleanup();
   }
-  // Passive: the safe API scan (-S) or the baseline, never the attack scripts.
-  const passive = zap.zapScript({ mode: "passive", spec: "openapi.yaml", spiderMinutes: 1 }, "http://localhost:3000");
-  assert.ok(passive.includes("-S") && passive.includes("http://host.docker.internal:3000"));
-  assert.equal(zap.zapScript({ mode: "passive", spec: null, spiderMinutes: 2 }, "https://staging.example.test")[0], "zap-baseline.py");
-  assert.equal(zap.zapScript({ mode: "active", spec: null, spiderMinutes: 2 }, "https://staging.example.test")[0], "zap-full-scan.py");
+  // Passive: the spider (or the API import) and the passive rules, never the active scan; active adds it.
+  const paths = { spec: "/output/outputs/zap/zap/openapi.yaml", reportDir: "/output/outputs/zap/zap" };
+  const jobs = (plan) => [...plan.matchAll(/^ {2}- type: (\S+)/gm)].map((m) => m[1]);
+  const passive = zap.zapAutomationPlan({ mode: "passive", spec: "openapi.yaml", spiderMinutes: 1 }, "http://host.docker.internal:3000", paths);
+  assert.deepEqual(jobs(passive), ["openapi", "passiveScan-wait", "report"]);
+  assert.match(passive, /targetUrl: "http:\/\/host\.docker\.internal:3000"/);
+  assert.deepEqual(jobs(zap.zapAutomationPlan({ mode: "passive", spec: null, spiderMinutes: 2 }, "https://staging.example.test", paths)), ["spider", "passiveScan-wait", "report"]);
+  assert.deepEqual(jobs(zap.zapAutomationPlan({ mode: "active", spec: null, spiderMinutes: 2 }, "https://staging.example.test", paths)), ["spider", "activeScan", "passiveScan-wait", "report"]);
+  assert.deepEqual(jobs(zap.zapAutomationPlan({ mode: "active", spec: "openapi.yaml", spiderMinutes: 2 }, "https://staging.example.test", paths)), ["openapi", "activeScan", "passiveScan-wait", "report"]);
+  // The loopback of this machine is the host alias for the step container (container mode: no image.json given).
+  assert.equal(zap.containerTarget("http://localhost:3000", { JGATES_IMAGE_JSON: "" }), "http://host.docker.internal:3000");
+  assert.equal(zap.containerTarget("https://staging.example.test", { JGATES_IMAGE_JSON: "" }), "https://staging.example.test");
+  // The authentication header reaches ZAP's command line from the environment of the step, never as a literal.
+  const launch = zap.zapLaunch("zap.sh", ["-cmd"], { header: "Authorization" });
+  assert.equal(launch.executable, "sh");
+  assert.ok(launch.args.join(" ").includes("$JGATES_RUNTIME_AUTH"));
+  assert.deepEqual(zap.zapLaunch("zap.sh", ["-cmd"], null), { executable: "zap.sh", args: ["-cmd"] });
 });
 
 test("zap report: fail-closed on other documents and on a report without any scanned site", () => {

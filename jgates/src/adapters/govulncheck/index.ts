@@ -9,6 +9,7 @@ import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../cor
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
 import { runSpec, substituteTokens } from "../../core/runner/index.js";
+import { stepMode } from "../../core/runner/in-image.js";
 import { createOutputPaths, redirectionEnv } from "../../core/run/redirection.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { govulncheckManifest } from "./manifest.js";
@@ -23,6 +24,8 @@ const ADAPTER_ID = govulncheckManifest.id;
 const WORKSPACE = "{workspace}";
 /** Variables that tell Go where its toolchain, module cache and proxy are; the allowlist of the runner drops them. */
 export const GO_ENV_FORWARD = ["GOPATH", "GOMODCACHE", "GOROOT", "GOPROXY", "GONOSUMDB", "GONOSUMCHECK", "GOSUMDB", "GOPRIVATE", "GOTOOLCHAIN", "GOVULNDB", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "SSL_CERT_FILE"] as const;
+
+const GO_HOST_FOLDERS: ReadonlySet<string> = new Set(["GOPATH", "GOMODCACHE", "GOROOT", "SSL_CERT_FILE"]);
 
 /** The command the plan shows: executable and args (no shell), the Go build cache in the run folder. */
 function planGovulncheck(input: ExternalPlanInput): ExternalPlan {
@@ -74,9 +77,12 @@ async function runGovulncheck(context: AdapterContext, plan: Plan, tool: string)
   const cwd = substituteTokens(command.cwd, tokens);
   const args = command.args.map((a) => substituteTokens(a, tokens));
   const env: Record<string, string> = {};
+  // Variables that point at folders of the host mean nothing in the step container (its toolchain and caches are the
+  // image's and the toolchains volume's); only inside the image itself are they the tool's own.
+  const hostFolders = stepMode(context.env) === "in-image" ? new Set<string>() : GO_HOST_FOLDERS;
   for (const name of GO_ENV_FORWARD) {
     const value = context.env[name];
-    if (value !== undefined) env[name] = value;
+    if (value !== undefined && !hostFolders.has(name)) env[name] = value;
   }
   for (const [name, value] of Object.entries(command.env)) env[name] = substituteTokens(value, tokens);
   const timeoutSeconds = Math.min(...items.map((i) => i.limits.timeoutSeconds));

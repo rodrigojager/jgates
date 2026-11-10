@@ -9,6 +9,7 @@ import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../cor
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
 import { runSpec, substituteTokens } from "../../core/runner/index.js";
+import { stepMode } from "../../core/runner/in-image.js";
 import { createOutputPaths, outputPathFor, outputPathUnder, redirectionEnv, RUN_DIR_TOKEN } from "../../core/run/redirection.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { cargoAuditManifest } from "./manifest.js";
@@ -24,7 +25,9 @@ const WORKSPACE = "{workspace}";
 /** Variables that tell cargo where its home, toolchain and proxy are; the allowlist of the runner drops them. */
 export const CARGO_ENV_FORWARD = ["CARGO_HOME", "RUSTUP_HOME", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "SSL_CERT_FILE", "CARGO_HTTP_CAINFO"] as const;
 
-const cacheEntry = (): NonNullable<ReturnType<typeof outputPathFor>> => {
+const CARGO_HOST_FOLDERS: ReadonlySet<string> = new Set(["CARGO_HOME", "RUSTUP_HOME", "SSL_CERT_FILE", "CARGO_HTTP_CAINFO"]);
+
+const cacheEntry = ():NonNullable<ReturnType<typeof outputPathFor>> => {
   const entry = outputPathFor(cargoAuditManifest, "cache");
   if (!entry) throw new Error("the cargo-audit manifest declares no cache output path");
   return entry;
@@ -80,9 +83,11 @@ async function runCargoAudit(context: AdapterContext, plan: Plan, tool: string):
   const cwd = substituteTokens(command.cwd, tokens);
   const args = command.args.map((a) => substituteTokens(a, tokens));
   const env: Record<string, string> = {};
+  // Variables that point at folders of the host mean nothing in the step container; only the proxy settings travel.
+  const hostFolders = stepMode(context.env) === "in-image" ? new Set<string>() : CARGO_HOST_FOLDERS;
   for (const name of CARGO_ENV_FORWARD) {
     const value = context.env[name];
-    if (value !== undefined) env[name] = value;
+    if (value !== undefined && !hostFolders.has(name)) env[name] = value;
   }
   for (const [name, value] of Object.entries(command.env)) env[name] = substituteTokens(value, tokens);
   const timeoutSeconds = Math.min(...items.map((i) => i.limits.timeoutSeconds));

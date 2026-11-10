@@ -53,12 +53,12 @@ export const checkovManifest: AdapterManifest = {
   license: "Apache-2.0",
   kind: "tool",
   limitations: [
-    "runs only on the container runner, in the image `jgates tools prepare` pins in .jgates/lock.json (the sidecar image by default)",
+    "runs only in a step container of the JGates tools image, never as a process of the host",
     "offline (--skip-download): no severities from Prisma Cloud, every failed check is MEDIUM",
     "skip comments in the code (checkov:skip) are scanner exceptions, not waivers of the gate",
   ],
   stackSupport: [
-    { capability: "iac", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)"] },
+    { capability: "iac", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
   ],
   distribution: {
     mode: "prepared-from-authorized-source",

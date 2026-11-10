@@ -72,8 +72,8 @@ Limits and notes:
 
 ## Scanners and tools (sidecar image, JGates tool images, dev tools)
 
-The sidecar image (`quality-gate/Dockerfile`) is based on MegaLinter and adds the scanners below; `jgates/docker/security`
-and `jgates/docker/ruff` are small images with a subset. Licenses marked "upstream" come from the project pages and were
+The sidecar image (`quality-gate/Dockerfile`) is based on MegaLinter and adds the scanners below; the JGates tools image
+(`jgates/docker/tools`) carries them too. Licenses marked "upstream" come from the project pages and were
 not re-verified offline.
 
 | Component | Version | License | Where | Required notice and limit |
@@ -81,12 +81,12 @@ not re-verified offline.
 | MegaLinter (OX Security) | 9.6.0 | AGPL-3.0 (upstream) | base of the sidecar image | Limit: AGPL-3.0 is network copyleft. The image is the unmodified upstream image plus pinned tools; if the image is redistributed, the corresponding source offer and license text of MegaLinter and of the tools it bundles must go with it. JGates runs the image as a separate process and does not link it. |
 | Semgrep (engine, `semgrep`) | 1.170.0 image, 1.182.1 dev | LGPL-2.1-or-later (dev: read from METADATA; image: upstream) | sidecar image, `jgates/dev-tools` | Keep the LGPL notice. JGates only runs the CLI as a separate process. |
 | Semgrep Registry rules | rules fetched at run time | Semgrep Rules License v1.0 (upstream) | not bundled | Limit: the registry rules are not under the engine license. The rules license restricts use to internal business purposes and forbids offering the rules as part of a competing product or a hosted service. JGates does not ship the registry rules; a project that enables them accepts those terms itself. |
-| Gitleaks | 8.30.1 | MIT (upstream) | sidecar and security image | Keep the MIT notice. Built from source in the sidecar image. |
-| Trivy | 0.72.0 | Apache-2.0 (upstream) | sidecar and security image | Keep the license and `NOTICE`. Limit: the vulnerability databases Trivy downloads (trivy-db, from GitHub/ghcr) have their own terms; JGates does not ship them. |
-| OSV-Scanner | 2.4.0 | Apache-2.0 (upstream) | sidecar and security image | Keep the license. Limit: it queries OSV.dev data, which carries its own licenses (mostly CC-BY 4.0 or CC0 per source); the data is not bundled. |
-| Checkov | 3.3.8 | Apache-2.0 (upstream) | sidecar and security image | Keep the license. Its policies are part of the package; the hosted Prisma Cloud features are separate and not used. |
+| Gitleaks | 8.30.1 | MIT (upstream) | sidecar and tools image | Keep the MIT notice. Built from source in the sidecar image. |
+| Trivy | 0.72.0 | Apache-2.0 (upstream) | sidecar and tools image | Keep the license and `NOTICE`. Limit: the vulnerability databases Trivy downloads (trivy-db, from GitHub/ghcr) have their own terms; JGates does not ship them. |
+| OSV-Scanner | 2.4.0 | Apache-2.0 (upstream) | sidecar and tools image | Keep the license. Limit: it queries OSV.dev data, which carries its own licenses (mostly CC-BY 4.0 or CC0 per source); the data is not bundled. |
+| Checkov | 3.3.8 | Apache-2.0 (upstream) | sidecar and tools image | Keep the license. Its policies are part of the package; the hosted Prisma Cloud features are separate and not used. |
 | jscpd | 5.0.12 (image), 5.3.3 (dev) | MIT (dev: read from package.json; image: upstream) | sidecar image, dev | Keep the MIT notice. |
-| Ruff | 0.17.2 | MIT (read from METADATA) | `jgates/docker/ruff`, dev | Keep the MIT notice. |
+| Ruff | 0.17.2 | MIT (read from METADATA) | tools image, dev | Keep the MIT notice. |
 | Import Linter (`import-linter`) | 2.15 | BSD-2-Clause (read from METADATA) | dev | Keep the BSD notice. |
 | pytest, pytest-cov | 9.1.1, 7.1.0 | MIT (read from METADATA) | dev | Test only. |
 | dependency-cruiser | 18.7.0 | MIT | dev | See the table above. |

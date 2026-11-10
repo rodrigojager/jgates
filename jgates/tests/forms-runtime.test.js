@@ -51,7 +51,7 @@ test("the ZAP form edits tools.zap of tools.yml: fields named as the adapter rea
     assert.deepEqual(view.section, ["tools", "zap"]);
     assert.equal(view.available, true);
     const ids = view.fields.map((f) => f.id);
-    assert.deepEqual(ids, ["capabilities", "target", "mode", "allowActive", "spec", "blockingRisk", "spiderMinutes", "image"]);
+    assert.deepEqual(ids, ["capabilities", "target", "mode", "allowActive", "spec", "blockingRisk", "spiderMinutes"]);
     const target = view.fields.find((f) => f.id === "target");
     assert.equal(target.required, true);
     assert.equal(target.format, "http-url");

@@ -5,11 +5,12 @@
   "trivy_image_tarball_invalid": "{tool}: imageTarball {value} não é um caminho válido.",
   "trivy_image_tarball_missing": "{tool}: o tarball da imagem {file} não existe. Construa a imagem e salve com docker save; o JGates nunca a constrói nem a baixa.",
   "trivy_image_only_vulnerabilities": "O modo de imagem final varre apenas vulnerabilidades; {capability} não é creditada neste modo.",
-  "trivy_image_limitation": "Modo de imagem final: precisa do banco de vulnerabilidades (rede) e do Trivy, nativo ou na imagem sidecar por um runtime de contêiner em execução; sem eles a etapa fica bloqueada, nunca aprovada. A varredura não é cancelável depois de iniciada; o timeout da etapa a limita.",
+  "trivy_image_tarball_outside": "{tool}: o tarball da imagem {file} está fora do projeto; a verificação só enxerga os arquivos do próprio projeto. Coloque o tarball dentro da pasta do projeto.",
+  "trivy_image_limitation": "Modo de imagem final: precisa do banco de vulnerabilidades (rede) e do Trivy da imagem de ferramentas do JGates, por um motor de contêiner em execução; sem eles a etapa fica bloqueada, nunca aprovada. A varredura não é cancelável depois de iniciada; o timeout da etapa a limita.",
   "trivy_image_condition": "Varre a imagem final {target} com trivy image.",
   "trivy_image_no_invocation": "O plano não tem invocação de imagem do Trivy para a instância {tool}.",
   "trivy_image_blocked": "A varredura de imagem do Trivy não pôde rodar.",
-  "trivy_image_missing_tool": "{reason}. Instale o Trivy (https://trivy.dev/latest/getting-started/installation/) ou inicie o runtime de contêiner e prepare a imagem sidecar com: jgates tools prepare.",
+  "trivy_image_missing_tool": "{reason}. Inicie o motor de contêiner e baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
   "trivy_image_error": "A varredura de imagem do Trivy falhou: {reason}",
   "trivy_image_reason_completed": "Trivy {version}: {count} achado(s) na imagem final (executor: {runner})."
 }

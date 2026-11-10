@@ -4,9 +4,8 @@
 // vulnerabilities (the osv.dev API); the API reports no database date.
 import fs from "node:fs";
 import path from "node:path";
-import { CONTAINER_OUTPUT, toContainerPath } from "../../core/runner/index.js";
 import type { ExternalAdapter } from "../../core/plan/adapters.js";
-import { planScanner, REPORT_FILE, runScanner, type ArgsInput, type ScannerDefinition } from "../container-scanner/index.js";
+import { planScanner, REPORT_FILE, runScanner, workspaceToken, type ArgsInput, type ScannerDefinition } from "../container-scanner/index.js";
 import { osvScannerManifest } from "./manifest.js";
 import { parseOsvReport } from "./normalize.js";
 
@@ -58,8 +57,8 @@ export const osvScanner: ScannerDefinition = {
       "--format",
       "json",
       "--output-file",
-      `${CONTAINER_OUTPUT}/${REPORT_FILE}`,
-      ...(config ? ["--config", toContainerPath(config)] : []),
+      `${input.out}/${REPORT_FILE}`,
+      ...(config ? ["--config", workspaceToken(config)] : []),
       ".",
     ];
   },

@@ -51,15 +51,15 @@ export const trivyManifest: AdapterManifest = {
   license: "Apache-2.0",
   kind: "tool",
   limitations: [
-    "runs only on the container runner, in the image `jgates tools prepare` pins in .jgates/lock.json (the sidecar image by default)",
-    "final-image mode: tools.<id>.imageRef (an image reference) or imageTarball (a docker save archive) replaces the filesystem scan with `trivy image` (vulnerabilities only, network for the database); Trivy runs natively (JGATES_TRIVY or PATH) or in the sidecar image through a running container runtime, otherwise the stage is blocked, never passed; JGates never builds or pulls the image, and the scan cannot be cancelled once started (the stage timeout bounds it)",
+    "runs only in a step container of the JGates tools image, never as a process of the host",
+    "final-image mode: tools.<id>.imageRef (an image reference) or imageTarball (a docker save archive) replaces the filesystem scan with `trivy image` (vulnerabilities only, network for the database); Trivy runs in a step container of the JGates tools image, and without a running container engine the stage is blocked, never passed; JGates never builds or pulls the scanned image (a registry reference is read by Trivy itself, over the network), and the scan cannot be cancelled once started (the stage timeout bounds it)",
     "the vulnerability database is cached in the data folder (tools/cache/trivy-db) and reused while its NextUpdate is in the future (--skip-db-update); the checks bundle and the Java database are still downloaded on every run",
   ],
   stackSupport: [
-    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)", "the Trivy vulnerability database"] },
-    { capability: "iac", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)"] },
-    { capability: "secrets", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)"] },
-    { capability: "licenses", stack: "any", state: "validated", prerequisites: ["Docker", "the security-scanners image prepared with tools prepare (by digest)"] },
+    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)", "the Trivy vulnerability database"] },
+    { capability: "iac", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
+    { capability: "secrets", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
+    { capability: "licenses", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
   ],
   distribution: {
     mode: "prepared-from-authorized-source",

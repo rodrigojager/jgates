@@ -13,6 +13,7 @@ import { contentHash } from "../../core/ids/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { resolveExecutable, runSpec, substituteTokens } from "../../core/runner/index.js";
+import { stepMode } from "../../core/runner/in-image.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { genericCommandManifest } from "./manifest.js";
 
@@ -136,7 +137,10 @@ function planGeneric(input: ExternalPlanInput): ExternalPlan {
   const capabilities = Array.isArray(body.capabilities) ? body.capabilities.filter((c): c is string => typeof c === "string") : [];
   const uncredited = evidence ? unprovenCapabilities(capabilities, evidence) : {};
 
-  const found = executableText ? resolveExecutable(executable, input.env) : null;
+  // The command runs in the step container of the tools image, so the host's PATH says nothing about it: only inside
+  // the image (where the command runs natively) can the plan look it up. A command the image does not have ends the
+  // step with the shell's 126 or 127, which the run reports as an error, never as a pass.
+  const found = executableText ? (stepMode(input.env) === "in-image" ? resolveExecutable(executable, input.env) : executable) : null;
   let availability: ExternalPlan["availability"] = { status: "available", reason: null };
   let blocksPlan = false;
   if (problems.length > 0) {
@@ -234,6 +238,10 @@ async function runGeneric(context: AdapterContext, plan: Plan, tool: string): Pr
     // A signal or a missing code proves nothing; a different code is the command's own "no".
     if (code === null) {
       return { ...base, stages: items.map((i) => stageFor(i, "error", t("generic_blocked", { detail: String(result.signal ?? "-") }), { interpreted: false })), findings: [] };
+    }
+    if (code === 126 || code === 127) {
+      const detail = result.stderr.trim().split(/\r?\n/).slice(-2).join(" ") || `exit ${code}`;
+      return { ...base, stages: items.map((i) => stageFor(i, "error", t("generic_blocked", { detail: `${command.executable}: ${detail}` }), { interpreted: false, nativeStatus: `exit ${code}` })), findings: [] };
     }
     const reason = t("generic_reason_failed", { executable: command.executable, code, expected: contract.successExitCodes.join(", ") });
     return { ...base, stages: items.map((i) => stageFor(i, "completed", reason, { blockingViolations: 1, findings: 0, nativeStatus: `exit ${code}` })), findings: [] };

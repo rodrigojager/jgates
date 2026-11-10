@@ -6,13 +6,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { translator } from "../../i18n/index.js";
-import { CONTAINER_OUTPUT, resolveExecutable, substituteTokens, toContainerPath } from "../../core/runner/index.js";
+import { runSpec, substituteTokens } from "../../core/runner/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
+import { satisfiesRange } from "../../core/prepare/semver.js";
 import type { AdapterContext, AdapterOutput, ResultFinding, ResultStage } from "../../core/run/types.js";
 import { scanImage, trivyImageArgs, type TrivyImageTarget } from "./image.js";
-import { SIDECAR_IMAGE } from "../container-scanner/image.js";
-import { OUTPUT_CACHE, planScanner, REPORT_FILE, runScanner, type DatabaseCacheSpec, type ScannerDefinition } from "../container-scanner/index.js";
+import { outputToken, planScanner, probeScannerImage, REPORT_FILE, runScanner, workspaceToken, type DatabaseCacheSpec, type ScannerDefinition } from "../container-scanner/index.js";
 import { trivyManifest } from "./manifest.js";
 import { parseTrivyReport, trivyFacts } from "./normalize.js";
 
@@ -72,22 +72,22 @@ export const trivyScanner: ScannerDefinition = {
     const ignore = input.documents.ignore?.file ?? null;
     const scanners = input.capabilities.map((c) => TRIVY_SCANNERS[c]).filter((s): s is string => s !== undefined);
     return [
-      ...(config ? ["--config", toContainerPath(config)] : []),
+      ...(config ? ["--config", workspaceToken(config)] : []),
       "fs",
       "--scanners",
       scanners.join(","),
       "--format",
       "json",
       "--output",
-      `${CONTAINER_OUTPUT}/${REPORT_FILE}`,
+      `${input.out}/${REPORT_FILE}`,
       "--exit-code",
       "0",
       "--cache-dir",
-      OUTPUT_CACHE,
+      `${input.out}/cache`,
       "--skip-version-check",
       "--disable-telemetry",
       "--no-progress",
-      ...(ignore ? ["--ignorefile", toContainerPath(ignore)] : []),
+      ...(ignore ? ["--ignorefile", workspaceToken(ignore)] : []),
       ".",
     ];
   },
@@ -144,28 +144,35 @@ function planTrivyImage(input: ExternalPlanInput, settings: TrivyImageSettings):
   let availability: ExternalPlan["availability"] = { status: "available", reason: null };
   if (blocksPlan) availability = { status: "unavailable", reason: settings.problems.join(" ") };
   else if (settings.tarballPath !== null && !fs.existsSync(settings.tarballPath)) availability = { status: "unavailable", reason: t("trivy_image_tarball_missing", { tool: input.tool, file: settings.tarballPath }) };
-  const args = settings.target ? trivyImageArgs(settings.target) : [];
+  const out = outputToken(trivyManifest.id, input.tool);
+  // The step sees the synchronized project, not the host: a tarball outside the workspace is out of its reach.
+  if (!blocksPlan && availability.status === "available" && settings.target && "tarball" in settings.target && path.isAbsolute(settings.target.tarball)) {
+    availability = { status: "unavailable", reason: t("trivy_image_tarball_outside", { tool: input.tool, file: settings.target.tarball }) };
+  }
+  const args = settings.target ? trivyImageArgs(settings.target, `${out}/cache`) : [];
+  const probe = probeScannerImage(input.env, trivyManifest.toolName);
+  if (availability.status === "available") {
+    if (probe.problem !== null) availability = { status: "unavailable", reason: translator("security")("security_not_in_image", { tool: trivyManifest.displayName, instance: input.tool, runtime: probe.runtimeName, image: probe.image ?? "-", detail: probe.detail }) };
+    else if (probe.version === null || satisfiesRange(probe.version, trivyManifest.toolVersionRange) !== true) {
+      availability = { status: "unavailable", reason: translator("prepare")("prepare_incompatible", { tool: trivyManifest.toolName, version: probe.version ?? "?", range: trivyManifest.toolVersionRange, what: trivyManifest.id }) };
+    }
+  }
   const uncredited: Record<string, string> = {};
   for (const cap of new Set([input.capability, ...Object.keys(TRIVY_SCANNERS)])) {
     if (cap !== "dependencies") uncredited[cap] = t("trivy_image_only_vulnerabilities", { capability: cap });
   }
-  // The scan runs through scanImage: a native Trivy (JGATES_TRIVY or PATH), otherwise the sidecar image in the container
-  // runtime. The plan says which one, so the preflight checks the executable that will really be started.
-  const native = input.env.JGATES_TRIVY && input.env.JGATES_TRIVY !== "" ? input.env.JGATES_TRIVY : "trivy";
-  const nativePath = resolveExecutable(native, input.env);
-  const runtimeName = input.env.JGATES_CONTAINER_RUNTIME && input.env.JGATES_CONTAINER_RUNTIME !== "" ? input.env.JGATES_CONTAINER_RUNTIME : "docker";
+  // The scan runs in the step container of the tools image (like every other tool): the plan only names the command.
   return {
     label: t("trivy_image_label"),
     command: {
-      executable: nativePath ?? native,
+      executable: trivyManifest.toolName,
       args,
       cwd: WORKSPACE,
-      env: {},
+      env: { HOME: `${out}/home`, TMPDIR: `${out}/tmp` },
       stdin: null,
-      ...(nativePath === null ? { container: { runtime: runtimeName, image: SIDECAR_IMAGE, network: "bridge" as const, mounts: [] } } : {}),
     },
-    runtime: { name: nativePath === null ? "container" : "native", interpreter: nativePath ?? runtimeName, available: availability.status === "available" },
-    toolVersion: null,
+    runtime: { name: "container", interpreter: probe.runtime, available: availability.status === "available" },
+    toolVersion: probe.version,
     configFiles: [],
     availability,
     blocksPlan,
@@ -206,7 +213,21 @@ async function runTrivyImage(context: AdapterContext, plan: Plan, tool: string):
   const input = args.indexOf("--input");
   const target: TrivyImageTarget = input >= 0 ? { tarball: args[input + 1] as string } : { reference: args[args.length - 1] as string };
   const timeoutSeconds = Math.min(...items.map((i) => i.limits.timeoutSeconds));
-  const scan = scanImage(target, { env: context.env, timeoutMs: timeoutSeconds * 1000 });
+  const outDir = path.join(context.outputsDir, trivyManifest.id, tool);
+  for (const sub of ["", "home", "tmp", "cache"]) fs.mkdirSync(path.join(outDir, sub), { recursive: true, mode: 0o700 });
+  const env: Record<string, string> = {};
+  for (const [name, value] of Object.entries(invocation.command.env)) env[name] = substituteTokens(value, tokens);
+  const stdoutLog = path.join(context.logsDir, `${tool}.stdout.log`);
+  const stderrLog = path.join(context.logsDir, `${tool}.stderr.log`);
+  const cwd = substituteTokens(invocation.command.cwd, tokens);
+  const scan = await scanImage(target, {
+    cacheDir: path.join(outDir, "cache"),
+    run: async (scanArgs) => {
+      const r = await runSpec({ executable: invocation.command.executable, args: scanArgs, cwd, env, stdin: null, timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog }, { parentEnv: context.env });
+      return { status: r.exitCode, stdout: r.stdout, stderr: r.stderr, ...(r.spawnError ? { errorCode: r.spawnError.code, errorMessage: r.spawnError.message } : {}) };
+    },
+  });
+  base.logs = [stdoutLog, stderrLog].filter((f) => fs.existsSync(f)).map((f) => path.relative(context.runDir, f).split(path.sep).join("/"));
   if (scan.state === "missing-tool") {
     // A missing Trivy (or a stopped container runtime) is a blocked stage with the way to fix it, never a clean image.
     return { ...base, stages: items.map((i) => stageFor(i, "blocked", t("trivy_image_missing_tool", { reason: scan.reason }))), findings: [] };
@@ -214,8 +235,6 @@ async function runTrivyImage(context: AdapterContext, plan: Plan, tool: string):
   if (scan.state === "error") {
     return { ...base, stages: items.map((i) => stageFor(i, "error", t("trivy_image_error", { reason: scan.reason }), { interpreted: false })), findings: [] };
   }
-  const outDir = path.join(context.outputsDir, trivyManifest.id, tool);
-  fs.mkdirSync(outDir, { recursive: true, mode: 0o700 });
   fs.writeFileSync(path.join(outDir, "image-findings.json"), JSON.stringify(scan.findings, null, 2), { mode: 0o600 });
   const stage = items.find((i) => i.capabilities[0] === "dependencies") ?? (items[0] as PlanItem);
   const findings: ResultFinding[] = scan.findings.map(({ capability: _capability, ...f }) => ({ stageId: stage.id, ...f }));
