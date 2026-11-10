@@ -21,6 +21,9 @@ export interface ExecutionSpec {
   stderrFile?: string;
   /** Cancels the process tree; defaults to the signal of the execution scope. */
   signal?: AbortSignal;
+  /** Called with each chunk of output as it arrives (live progress); the full output is still captured. */
+  onStdout?: (chunk: string) => void;
+  onStderr?: (chunk: string) => void;
 }
 
 export interface ExecutionResult {
@@ -115,6 +118,15 @@ export function substituteTokens(text: string, tokens: Record<string, string>): 
 }
 
 const header = (spec: ExecutionSpec): string => `executable: ${spec.executable}\nargs: ${JSON.stringify(spec.args)}\ncwd: ${spec.cwd}\n---\n`;
+
+function notify(callback: ((chunk: string) => void) | undefined, chunk: Buffer): void {
+  if (!callback) return;
+  try {
+    callback(chunk.toString("utf8"));
+  } catch {
+    // A failing observer never changes the execution.
+  }
+}
 
 export function runSpec(spec: ExecutionSpec, options: RunnerOptions = {}): Promise<ExecutionResult> {
   const scope = currentScope();
@@ -259,11 +271,13 @@ export function runSpec(spec: ExecutionSpec, options: RunnerOptions = {}): Promi
       outBytes += chunk.length;
       out.write(chunk);
       outLog?.write(chunk);
+      notify(spec.onStdout, chunk);
     });
     child.stderr.on("data", (chunk: Buffer) => {
       errBytes += chunk.length;
       err.write(chunk);
       errLog?.write(chunk);
+      notify(spec.onStderr, chunk);
     });
     child.on("exit", (code, signal) => {
       exited = { code, signal };

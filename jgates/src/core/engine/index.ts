@@ -2,8 +2,9 @@
 // This is the S0 skeleton: runtime and tools image selection, the JGates labels, labelled volumes initialized by a
 // root helper, image inspection and one `docker run` per container under the step contract (`--pull never`,
 // read-only root, tmpfs /tmp, no capabilities, no new privileges, limits, network off unless declared, a minimal
-// environment). Detection, pulls with progress, kill by run label, compose and pruning come with the complete module.
+// environment), plus detection, pulls with progress and retry, listing/removal/kill/prune by JGates label, sizes and compose.
 import { randomBytes } from "node:crypto";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DEFAULT_ENV_ALLOWLIST, runSpec, type ExecutionResult, type RunnerOptions } from "../runner/process.js";
@@ -343,4 +344,467 @@ export async function ensureVolume(
 export async function removeVolume(name: string, context: EngineContext = {}): Promise<void> {
   checkedVolumeName(name);
   await engineCommand(["volume", "rm", "--force", name], context);
+}
+
+// ---- detection ---------------------------------------------------------------------------------------------------
+
+/** Engine reason codes of the shared catalogue (PLAN-guided-ux.md section 9) this module can produce. */
+export type EngineReasonCode = "ENGINE_NOT_INSTALLED" | "ENGINE_STOPPED" | "ENGINE_LOW_MEMORY" | "DISK_LOW" | "UNSUPPORTED_PLATFORM" | "IMAGE_PULL_FAILED";
+
+/** The memory a default step asks for (4096 MB); a daemon reports a little less than it was given, hence the margin. */
+export const DEFAULT_REQUIRED_MEMORY_MB = 4096;
+const MEMORY_MARGIN = 0.9;
+/** Free disk required when the caller does not say (the pull needs compressed + unpacked size + 10 %). */
+export const DEFAULT_REQUIRED_DISK_MB = 5120;
+
+export interface EngineDetectionOptions {
+  /** Memory the plan's largest step needs. */
+  requiredMemoryMb?: number;
+  /** Free disk the next download needs; 0 skips the check. */
+  requiredDiskMb?: number;
+  /** A local image to measure the engine's storage with (`df` in a helper container); without it the host disk is read. */
+  image?: string;
+  /** Labels of the helper container (kind `helper`); required with `image`. */
+  helperLabels?: Record<string, string>;
+  /** Host path whose free space stands in for the engine's storage when no image is available. */
+  hostDiskPath?: string;
+}
+
+export interface EngineFacts {
+  /** The client executable started (the CLI exists). */
+  installed: boolean;
+  /** The daemon answered. */
+  running: boolean;
+  serverVersion: string | null;
+  os: string | null;
+  arch: string | null;
+  memoryMb: number | null;
+  cpus: number | null;
+  /** Free space of the engine's storage in MB; null when it could not be measured. */
+  diskFreeMb: number | null;
+  diskSource: "engine" | "host" | null;
+}
+
+export interface EngineDetection {
+  /** null when the engine is ready for the requested work. */
+  code: EngineReasonCode | null;
+  facts: EngineFacts;
+  /** Raw engine text (details only). */
+  details: string;
+}
+
+const NO_FACTS: EngineFacts = { installed: false, running: false, serverVersion: null, os: null, arch: null, memoryMb: null, cpus: null, diskFreeMb: null, diskSource: null };
+
+/** Parses the Available column of `df -Pk /` (1 KiB blocks) into MB. */
+function parseDfFreeMb(text: string): number | null {
+  const line = text
+    .split(/\r?\n/)
+    .map((l) => l.trim().split(/\s+/))
+    .find((cols) => cols.length >= 6 && /^\d+$/.test(cols[3] ?? ""));
+  return line ? Math.floor(Number(line[3]) / 1024) : null;
+}
+
+async function measureDisk(options: EngineDetectionOptions, context: EngineContext): Promise<{ mb: number | null; source: "engine" | "host" | null }> {
+  if (options.image && options.helperLabels) {
+    try {
+      const result = await runInEngine(
+        { image: options.image, command: ["df", "-Pk", "/"], labels: options.helperLabels, resources: { memoryMb: 64, cpus: 1, pids: 16 }, timeoutMs: 30_000 },
+        context,
+      );
+      const mb = result.exitCode === 0 ? parseDfFreeMb(result.stdout) : null;
+      if (mb !== null) return { mb, source: "engine" };
+    } catch {
+      // Fall through to the host disk.
+    }
+  }
+  try {
+    const stats = await fs.promises.statfs(options.hostDiskPath ?? os.homedir());
+    return { mb: Math.floor((Number(stats.bavail) * Number(stats.bsize)) / (1024 * 1024)), source: "host" };
+  } catch {
+    return { mb: null, source: null };
+  }
+}
+
+/**
+ * Detects the engine: CLI present, daemon reachable, version, OS/arch, memory, CPUs and free disk, and maps what is
+ * wrong to one reason code (not installed, stopped, unsupported platform, low memory, low disk, in that order).
+ */
+export async function detectEngine(options: EngineDetectionOptions = {}, context: EngineContext = {}): Promise<EngineDetection> {
+  const info = await engineCommand(["info", "--format", "{{json .}}"], context, 20_000);
+  if (info.spawnError) return { code: "ENGINE_NOT_INSTALLED", facts: NO_FACTS, details: info.spawnError.message };
+  if (info.exitCode !== 0 || info.timedOut) {
+    return { code: "ENGINE_STOPPED", facts: { ...NO_FACTS, installed: true }, details: (info.stderr || info.stdout).trim() || (info.timedOut ? "the engine did not answer in time" : `exit code ${info.exitCode}`) };
+  }
+  let parsed: { ServerVersion?: string; OSType?: string; Architecture?: string; MemTotal?: number; NCPU?: number };
+  try {
+    parsed = JSON.parse(info.stdout) as typeof parsed;
+  } catch {
+    return { code: "ENGINE_STOPPED", facts: { ...NO_FACTS, installed: true }, details: `unreadable engine info: ${info.stdout.slice(0, 200)}` };
+  }
+  const memoryMb = parsed.MemTotal ? Math.round(parsed.MemTotal / (1024 * 1024)) : null;
+  const arch = parsed.Architecture ?? null;
+  const facts: EngineFacts = {
+    installed: true,
+    running: true,
+    serverVersion: parsed.ServerVersion ?? null,
+    os: parsed.OSType ?? null,
+    arch,
+    memoryMb,
+    cpus: parsed.NCPU ?? null,
+    diskFreeMb: null,
+    diskSource: null,
+  };
+  const details = `engine ${facts.serverVersion ?? "?"}, ${facts.os ?? "?"}/${arch ?? "?"}, ${memoryMb ?? "?"} MB, ${facts.cpus ?? "?"} CPUs`;
+  if (facts.os !== "linux" || !(arch === "x86_64" || arch === "amd64")) return { code: "UNSUPPORTED_PLATFORM", facts, details };
+  const requiredMemory = options.requiredMemoryMb ?? DEFAULT_REQUIRED_MEMORY_MB;
+  const requiredDisk = options.requiredDiskMb ?? DEFAULT_REQUIRED_DISK_MB;
+  if (requiredDisk > 0) {
+    const disk = await measureDisk(options, context);
+    facts.diskFreeMb = disk.mb;
+    facts.diskSource = disk.source;
+  }
+  if (memoryMb !== null && memoryMb < requiredMemory * MEMORY_MARGIN) return { code: "ENGINE_LOW_MEMORY", facts, details };
+  if (requiredDisk > 0 && facts.diskFreeMb !== null && facts.diskFreeMb < requiredDisk) return { code: "DISK_LOW", facts, details };
+  return { code: null, facts, details };
+}
+
+// ---- pull with progress ------------------------------------------------------------------------------------------
+
+export type PullPhase = "resolving" | "downloading" | "extracting" | "retrying" | "done";
+
+/** The object the UI streams while an image is pulled. Downloaded bytes never decrease, even across retries. */
+export interface PullProgress {
+  phase: PullPhase;
+  layer?: string;
+  downloaded: number;
+  total: number;
+  /** Set on `retrying`: the attempt that is about to start (2 for the first retry). */
+  attempt?: number;
+}
+
+export interface PullOptions {
+  onProgress?: (event: PullProgress) => void;
+  /** Total attempts; a dropped connection starts the next one, and the engine resumes the layers already complete. */
+  attempts?: number;
+  retryDelayMs?: number;
+  /** Total size to report when the registry manifest cannot be read (the pin file's size). */
+  expectedBytes?: number;
+  signal?: AbortSignal;
+  /** Per attempt. */
+  timeoutMs?: number;
+}
+
+export interface PullResult {
+  attempts: number;
+  total: number;
+  downloaded: number;
+}
+
+/** `repo` and, when present, the tag of a reference, without a digest. */
+function referenceParts(reference: string): { repo: string; suffix: string } {
+  const noDigest = reference.split("@")[0] ?? reference;
+  const slash = noDigest.lastIndexOf("/");
+  const colon = noDigest.indexOf(":", slash + 1);
+  return colon === -1 ? { repo: noDigest, suffix: "" } : { repo: noDigest.slice(0, colon), suffix: noDigest.slice(colon) };
+}
+
+interface ManifestLayer {
+  digest?: string;
+  size?: number;
+}
+interface ManifestDoc {
+  layers?: ManifestLayer[];
+  manifests?: Array<{ digest?: string; platform?: { os?: string; architecture?: string } }>;
+}
+
+/** Compressed layer sizes by the 12-character id the pull output uses; empty when the registry cannot be read. */
+export async function readLayerSizes(reference: string, context: EngineContext = {}): Promise<Map<string, number>> {
+  const sizes = new Map<string, number>();
+  const read = async (ref: string): Promise<ManifestDoc | null> => {
+    const result = await engineCommand(["manifest", "inspect", ref], context, 60_000);
+    if (result.spawnError || result.exitCode !== 0) return null;
+    try {
+      return JSON.parse(result.stdout) as ManifestDoc;
+    } catch {
+      return null;
+    }
+  };
+  let doc = await read(reference);
+  if (doc?.manifests && !doc.layers) {
+    const pick = doc.manifests.find((m) => m.platform?.os === "linux" && m.platform.architecture === "amd64") ?? doc.manifests[0];
+    doc = pick?.digest ? await read(`${referenceParts(reference).repo}@${pick.digest}`) : null;
+  }
+  for (const layer of doc?.layers ?? []) {
+    const hex = layer.digest?.replace(/^sha256:/, "");
+    if (hex && typeof layer.size === "number") sizes.set(hex.slice(0, 12), layer.size);
+  }
+  return sizes;
+}
+
+/**
+ * Pulls an image, turning the engine's layer lines into aggregated byte progress. A dropped pull is retried: layers
+ * already complete are not downloaded again, so the downloaded figure only goes up. Throws EngineError
+ * (IMAGE_PULL_FAILED) when every attempt fails.
+ */
+export async function pullImage(reference: string, options: PullOptions = {}, context: EngineContext = {}): Promise<PullResult> {
+  const runtime = context.runtime ?? engineRuntime();
+  const emit = options.onProgress ?? (() => undefined);
+  const sizes = await readLayerSizes(reference, context);
+  let total = 0;
+  for (const size of sizes.values()) total += size;
+  if (total === 0) total = options.expectedBytes ?? 0;
+  let downloaded = 0;
+  const complete = new Set<string>();
+  const send = (phase: PullPhase, layer?: string, attempt?: number): void => emit({ phase, ...(layer ? { layer } : {}), downloaded, total, ...(attempt ? { attempt } : {}) });
+  send("resolving");
+  const attempts = Math.max(1, options.attempts ?? 3);
+  let lastError = "";
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    if (attempt > 1) {
+      send("retrying", undefined, attempt);
+      if ((options.retryDelayMs ?? 1000) > 0) await new Promise((r) => setTimeout(r, options.retryDelayMs ?? 1000));
+    }
+    let pending = "";
+    const handle = (line: string): void => {
+      const match = /^([0-9a-f]{12}): (.+)$/.exec(line.trim());
+      if (!match) return;
+      const id = match[1] as string;
+      const status = match[2] as string;
+      if (/^(Download complete|Pull complete|Already exists)/.test(status)) {
+        if (!complete.has(id)) {
+          complete.add(id);
+          downloaded += sizes.get(id) ?? 0;
+        }
+        send("downloading", id);
+      } else if (/^Extracting/.test(status)) send("extracting", id);
+      else if (/^(Pulling fs layer|Waiting|Downloading)/.test(status)) send("downloading", id);
+    };
+    const feed = (chunk: string): void => {
+      pending += chunk;
+      const lines = pending.split(/\r?\n|\r/);
+      pending = lines.pop() ?? "";
+      lines.forEach(handle);
+    };
+    const result = await runSpec(
+      {
+        executable: runtime,
+        args: ["pull", reference],
+        cwd: os.tmpdir(),
+        ...(options.signal ? { signal: options.signal } : {}),
+        ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
+        onStdout: feed,
+      },
+      clientOptions(context),
+    );
+    if (pending) handle(pending);
+    if (result.spawnError) throw new EngineError("IMAGE_PULL_FAILED", result.spawnError.message);
+    if (result.cancelled) throw new EngineError("IMAGE_PULL_FAILED", "the pull was cancelled");
+    if (result.exitCode === 0) {
+      downloaded = Math.max(downloaded, total);
+      send("done");
+      return { attempts: attempt, total, downloaded };
+    }
+    lastError = (result.stderr || result.stdout).trim();
+  }
+  throw new EngineError("IMAGE_PULL_FAILED", lastError);
+}
+
+// ---- objects by label --------------------------------------------------------------------------------------------
+
+export type EngineResource = "container" | "volume" | "image" | "network";
+
+/** Which managed objects an operation concerns: always `org.jgates.managed=true`, narrowed by these. */
+export interface ManagedScope {
+  kind?: EngineObjectKind;
+  workspace?: string;
+  run?: string;
+  /** Extra label filters, `key=value` (development tests mark their objects with org.jgates.test=<name>). */
+  extraLabels?: Record<string, string>;
+}
+
+/** The `--filter label=...` arguments of a scope. Every list, remove, kill and prune call goes through this. */
+export function managedFilterArgs(scope: ManagedScope = {}): string[] {
+  const labels: Record<string, string> = { [LABEL_MANAGED]: "true", ...(scope.extraLabels ?? {}) };
+  if (scope.kind) labels[LABEL_KIND] = scope.kind;
+  if (scope.workspace) labels[LABEL_WORKSPACE] = scope.workspace;
+  if (scope.run) labels[LABEL_RUN] = scope.run;
+  return Object.entries(labels).flatMap(([k, v]) => {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(k) || /[\n\r\0]/.test(v)) throw new EngineSpecError("BAD_LABEL", `invalid label filter: ${k}`);
+    return ["--filter", `label=${k}=${v}`];
+  });
+}
+
+export interface ManagedObject {
+  resource: EngineResource;
+  /** Identifier to act on: the id of containers, images and networks, the name of volumes. */
+  id: string;
+  name: string;
+  labels: Record<string, string>;
+  /** Containers only. */
+  state?: string;
+  /** Images only (parsed from the engine's human size text). */
+  sizeBytes?: number;
+}
+
+/** Docker's human sizes ("1.5GB", "230kB", "12B"; decimal units) in bytes. */
+export function parseEngineSize(text: string | undefined): number {
+  const match = /^\s*([\d.]+)\s*([kKMGTP]?i?)B\s*$/.exec(text ?? "");
+  if (!match) return 0;
+  const unit = (match[2] ?? "").toUpperCase().replace("I", "");
+  const power = ["", "K", "M", "G", "T", "P"].indexOf(unit);
+  return Math.round(Number(match[1]) * 1000 ** Math.max(0, power));
+}
+
+function parseLabels(text: string | undefined): Record<string, string> {
+  const labels: Record<string, string> = {};
+  for (const part of (text ?? "").split(",")) {
+    const at = part.indexOf("=");
+    if (at > 0) labels[part.slice(0, at)] = part.slice(at + 1);
+  }
+  return labels;
+}
+
+function jsonLines(text: string): Array<Record<string, string>> {
+  return text
+    .split(/\r?\n/)
+    .filter((l) => l.trim().startsWith("{"))
+    .map((l) => JSON.parse(l) as Record<string, string>);
+}
+
+const LIST_COMMAND: Record<EngineResource, string[]> = {
+  container: ["container", "ls", "--all", "--no-trunc"],
+  volume: ["volume", "ls"],
+  image: ["image", "ls", "--no-trunc"],
+  network: ["network", "ls", "--no-trunc"],
+};
+
+/** Lists the objects of one resource that carry the JGates labels (and the scope's); never anything else. */
+export async function listManaged(resource: EngineResource, scope: ManagedScope = {}, context: EngineContext = {}): Promise<ManagedObject[]> {
+  const result = await engineCommand([...LIST_COMMAND[resource], "--format", "{{json .}}", ...managedFilterArgs(scope)], context);
+  const text = must(result, `listing ${resource}s`);
+  return jsonLines(text).map((row) => {
+    const name = row.Name ?? row.Names ?? row.Repository ?? "";
+    return {
+      resource,
+      id: resource === "volume" ? (row.Name ?? "") : (row.ID ?? ""),
+      name,
+      labels: parseLabels(row.Labels),
+      ...(row.State ? { state: row.State } : {}),
+      ...(resource === "image" ? { sizeBytes: parseEngineSize(row.Size) } : {}),
+    };
+  });
+}
+
+const REMOVE_COMMAND: Record<EngineResource, string[]> = {
+  container: ["container", "rm", "--force"],
+  volume: ["volume", "rm", "--force"],
+  image: ["image", "rm"],
+  network: ["network", "rm"],
+};
+
+/** Removes the managed objects of a resource and scope: selected by label, then removed by the ids that selection gave. */
+export async function removeManaged(resource: EngineResource, scope: ManagedScope = {}, context: EngineContext = {}): Promise<ManagedObject[]> {
+  const objects = await listManaged(resource, scope, context);
+  if (objects.length === 0) return [];
+  must(await engineCommand([...REMOVE_COMMAND[resource], ...objects.map((o) => o.id)], context, 120_000), `removing ${resource}s`);
+  return objects;
+}
+
+/** Stops every running container of a run (label `org.jgates.run`), then removes them. Returns what was killed. */
+export async function killRun(run: string, context: EngineContext = {}): Promise<ManagedObject[]> {
+  const result = await engineCommand(["container", "ls", "--no-trunc", "--format", "{{json .}}", ...managedFilterArgs({ run })], context);
+  const running = jsonLines(must(result, "listing the containers of the run")).map((row) => ({
+    resource: "container" as const,
+    id: row.ID ?? "",
+    name: row.Names ?? "",
+    labels: parseLabels(row.Labels),
+    ...(row.State ? { state: row.State } : {}),
+  }));
+  if (running.length === 0) return [];
+  const ids = running.map((o) => o.id);
+  await engineCommand(["kill", ...ids], context, 30_000);
+  await engineCommand(["container", "rm", "--force", ...ids], context, 60_000);
+  return running;
+}
+
+/**
+ * Prunes what the engine considers unused among the managed objects: stopped containers, unused networks, dangling
+ * images and unused volumes. Always filtered by the JGates labels; nothing else is ever pruned.
+ */
+export async function pruneManaged(resources: EngineResource[], scope: ManagedScope = {}, context: EngineContext = {}): Promise<void> {
+  const filters = managedFilterArgs(scope);
+  for (const resource of resources) {
+    const args = resource === "volume" ? ["volume", "prune", "--all", "--force"] : [resource, "prune", "--force"];
+    must(await engineCommand([...args, ...filters], context, 120_000), `pruning ${resource}s`);
+  }
+}
+
+export interface ManagedUsage {
+  volumes: Array<{ name: string; sizeBytes: number; labels: Record<string, string> }>;
+  images: Array<{ id: string; name: string; sizeBytes: number; labels: Record<string, string> }>;
+  containers: Array<{ id: string; name: string; state: string | undefined }>;
+  totalBytes: number;
+}
+
+/** Sizes of the managed objects: `system df -v` for volumes (filtered by label here), the label-filtered list for images. */
+export async function managedUsage(scope: ManagedScope = {}, context: EngineContext = {}): Promise<ManagedUsage> {
+  const result = await engineCommand(["system", "df", "-v", "--format", "{{json .}}"], context, 120_000);
+  const doc = JSON.parse(must(result, "reading the engine disk usage")) as { Volumes?: Array<Record<string, string>> };
+  const wanted = managedFilterArgs(scope)
+    .filter((a) => a !== "--filter")
+    .map((a) => a.replace(/^label=/, ""))
+    .map((a) => [a.slice(0, a.indexOf("=")), a.slice(a.indexOf("=") + 1)] as const);
+  const volumes = (doc.Volumes ?? [])
+    .map((v) => ({ name: v.Name ?? "", sizeBytes: parseEngineSize(v.Size), labels: parseLabels(v.Labels) }))
+    .filter((v) => wanted.every(([k, val]) => v.labels[k] === val));
+  const images = (await listManaged("image", scope, context)).map((o) => ({ id: o.id, name: o.name, sizeBytes: o.sizeBytes ?? 0, labels: o.labels }));
+  const containers = (await listManaged("container", scope, context)).map((o) => ({ id: o.id, name: o.name, state: o.state }));
+  const totalBytes = volumes.reduce((sum, v) => sum + v.sizeBytes, 0) + images.reduce((sum, i) => sum + i.sizeBytes, 0);
+  return { volumes, images, containers, totalBytes };
+}
+
+// ---- compose -----------------------------------------------------------------------------------------------------
+
+export interface ComposeSpec {
+  /** Compose project name (`jgates-<ws>-services`); `down` touches only this project. */
+  project: string;
+  files: string[];
+  /** Service names; each gets the JGates labels through a generated override file. */
+  services: string[];
+  labels: Record<string, string>;
+  /** Folder of the generated label override (a run folder; never the project). */
+  overrideDir: string;
+  /** Seconds to wait for health checks. */
+  waitTimeoutSec?: number;
+  pull?: "never" | "missing";
+  env?: Record<string, string>;
+}
+
+/** The compose override that puts the JGates labels on every service and on the default network. */
+export function composeLabelOverride(services: string[], labels: Record<string, string>): string {
+  const block = (indent: string): string => Object.entries(labels).map(([k, v]) => `${indent}${JSON.stringify(k)}: ${JSON.stringify(v)}`).join("\n");
+  for (const service of services) if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(service)) throw new EngineSpecError("BAD_NAME", `invalid service name: ${service}`);
+  return `services:\n${services.map((s) => `  ${s}:\n    labels:\n${block("      ")}`).join("\n")}\nnetworks:\n  default:\n    labels:\n${block("      ")}\n`;
+}
+
+function composeBase(spec: ComposeSpec, override: string | null): string[] {
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(spec.project)) throw new EngineSpecError("BAD_NAME", `invalid compose project: ${spec.project}`);
+  if (spec.labels[LABEL_MANAGED] !== "true") throw new EngineSpecError("BAD_LABEL", "compose objects carry the JGates labels");
+  return ["compose", "--project-name", spec.project, ...[...spec.files, ...(override ? [override] : [])].flatMap((f) => ["-f", f])];
+}
+
+export async function composeUp(spec: ComposeSpec, context: EngineContext = {}): Promise<{ args: string[]; overrideFile: string }> {
+  fs.mkdirSync(spec.overrideDir, { recursive: true });
+  const overrideFile = path.join(spec.overrideDir, `${spec.project}.labels.yml`);
+  fs.writeFileSync(overrideFile, composeLabelOverride(spec.services, spec.labels));
+  const args = [...composeBase(spec, overrideFile), "up", "--detach", "--wait", "--wait-timeout", String(spec.waitTimeoutSec ?? 120), "--pull", spec.pull ?? "never"];
+  must(await engineCommand(args, context, ((spec.waitTimeoutSec ?? 120) + 60) * 1000), "starting the compose services");
+  return { args, overrideFile };
+}
+
+/** Stops and removes the services of the project, its networks and its volumes (project scope only). */
+export async function composeDown(spec: Pick<ComposeSpec, "project" | "files" | "labels">, context: EngineContext = {}): Promise<string[]> {
+  const args = [...composeBase({ ...spec, services: [], overrideDir: "" }, null), "down", "--volumes", "--remove-orphans", "--timeout", "10"];
+  must(await engineCommand(args, context, 180_000), "stopping the compose services");
+  return args;
 }
