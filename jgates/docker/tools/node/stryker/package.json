@@ -1,0 +1,12 @@
+{
+  "name": "jgates-tools-stryker",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of stryker in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/jest-runner": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1"
+  }
+}

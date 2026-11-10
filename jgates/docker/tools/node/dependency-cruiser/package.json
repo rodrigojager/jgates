@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-dependency-cruiser",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of dependency-cruiser in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "dependency-cruiser": "18.7.2"
+  }
+}

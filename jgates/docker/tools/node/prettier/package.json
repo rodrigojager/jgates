@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-prettier",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of prettier in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "prettier": "3.9.10"
+  }
+}

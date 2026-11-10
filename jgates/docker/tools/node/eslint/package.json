@@ -1,0 +1,14 @@
+{
+  "name": "jgates-tools-eslint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of eslint in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.14.0",
+    "globals": "17.14.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2"
+  }
+}

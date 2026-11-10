@@ -1,0 +1,5 @@
+# BuildKit configuration of the dedicated `jgates-dev` builder (image-build.mjs creates the builder with it).
+# One build step at a time: the full tools image runs many heavy steps (Rust and Go compiles, npm and uv installs) that
+# would otherwise run in parallel and exhaust the memory of a development machine.
+[worker.oci]
+  max-parallelism = 1

@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-fast-check",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of fast-check in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "fast-check": "4.10.2"
+  }
+}
