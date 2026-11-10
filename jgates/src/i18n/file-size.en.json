@@ -1,0 +1,13 @@
+{
+  "file_size_label": "File size (lines per file)",
+  "file_size_setting_max_lines": "The instance {tool} must set maxLines to a whole number of 1 or more; it has \"{value}\".",
+  "file_size_blocked": "The file-size check could not run.",
+  "file_size_analysis_failed": "The file-size analysis failed: {detail}",
+  "file_size_no_invocation": "The plan has no file-size invocation for the instance {tool}.",
+  "file_size_finding": "{file} has {lines, plural, one {# line} other {# lines}}, over the limit of {limit, plural, one {# line} other {# lines}}. Split the file.",
+  "file_size_reason_completed": "{checked, plural, one {# file checked} other {# files checked}}, {count} over the limit of {limit, plural, one {# line} other {# lines}}",
+  "file_size_skipped": "{count, plural, one {# file was not measured (binary or unreadable)} other {# files were not measured (binary or unreadable)}}",
+  "file_size_truncated": "the tree is too big to walk whole, so the answer is incomplete",
+  "file_size_limitation_text_only": "Counts the lines of text files; binary files are skipped and listed, and generated or third-party folders (.git, node_modules, virtual environments, target, vendor, dist, build, obj) are not entered.",
+  "file_size_condition_limit": "Limit: {limit, plural, one {# line} other {# lines}} per file."
+}

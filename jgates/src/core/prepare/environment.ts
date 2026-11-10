@@ -148,7 +148,7 @@ function probeAdapter(manifest: AdapterManifest, env: NodeJS.ProcessEnv, project
     return { executable: sidecar.interpreter, version: sidecar.version, problem: null, detail: "" };
   }
   // The supply-chain check reads the lockfiles in-process: nothing to prepare.
-  if (manifest.id === "supply-chain") return { executable: "builtin", version: null, problem: null, detail: "" };
+  if (manifest.id === "supply-chain" || manifest.id === "file-size") return { executable: "builtin", version: null, problem: null, detail: "" };
   if (manifest.id === "builtin-pii") return { executable: "builtin", version: null, problem: null, detail: "" };
   return null;
 }

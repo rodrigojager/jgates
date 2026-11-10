@@ -43,7 +43,7 @@ test("init --no-interactive --json creates a valid minimal configuration (fixtur
     const out = JSON.parse(r.out);
     assert.equal(out.status, "OK");
     assert.deepEqual(out.created, ["jgates.yml", ".jgates/profiles.yml"]);
-    assert.deepEqual([...out.templates].sort(), ["base", "gitleaks-history", "python", "python-codeql", "python-import-linter", "python-mutmut", "python-mypy", "python-mypy-defaults", "python-pyright", "python-pytest", "typescript", "typescript-codeql", "typescript-dependency-cruiser", "typescript-eslint", "typescript-stryker", "typescript-tsc", "typescript-vitest"]);
+    assert.deepEqual([...out.templates].sort(), ["base", "gitleaks-history", "python", "python-codeql", "python-format", "python-import-linter", "python-mutmut", "python-mypy", "python-mypy-defaults", "python-pyright", "python-pytest", "typescript", "typescript-codeql", "typescript-dependency-cruiser", "typescript-eslint", "typescript-prettier", "typescript-stryker", "typescript-tsc", "typescript-vitest"]);
 
     const root = fs.readFileSync(path.join(dir, "jgates.yml"), "utf8");
     assert.match(root, /^# .+/);

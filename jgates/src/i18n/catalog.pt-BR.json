@@ -166,5 +166,17 @@
   "template_go-codeql_label": "Go com fluxo de dados do CodeQL",
   "template_go-codeql_description": "Análise interprocedural de fluxo de dados dos componentes Go com o CodeQL (suíte security-extended). Entra pela linguagem e roda onde dataflow está ligado (o perfil Rigoroso o liga quando disponível). O CodeQL CLI e os pacotes de consultas são fornecidos por você.",
   "template_dotnet-codeql_label": "C# com fluxo de dados do CodeQL",
-  "template_dotnet-codeql_description": "Análise interprocedural de fluxo de dados dos componentes C# com o CodeQL (suíte security-extended). Entra pela linguagem e roda onde dataflow está ligado (o perfil Rigoroso o liga quando disponível). O CodeQL CLI e os pacotes de consultas são fornecidos por você."
+  "template_dotnet-codeql_description": "Análise interprocedural de fluxo de dados dos componentes C# com o CodeQL (suíte security-extended). Entra pela linguagem e roda onde dataflow está ligado (o perfil Rigoroso o liga quando disponível). O CodeQL CLI e os pacotes de consultas são fornecidos por você.",
+  "template_python-format_label": "Python com ruff format",
+  "template_python-format_description": "Verifica a formatação dos componentes Python com ruff format --check e as configurações [tool.ruff] do projeto. Os arquivos que o ruff reformataria são achados localizados; nada é reescrito. Entra pela linguagem Python e roda onde format-check está ligado (o perfil Rigoroso o liga quando disponível).",
+  "template_typescript-prettier_label": "TypeScript e JavaScript com prettier",
+  "template_typescript-prettier_description": "Verifica a formatação dos componentes TypeScript e JavaScript com prettier --check e a configuração do próprio projeto. Os arquivos que o prettier reformataria são achados localizados; nada é reescrito. Entra pela linguagem e roda onde format-check está ligado (o perfil Rigoroso o liga quando disponível).",
+  "template_go-gofmt_label": "Go com gofmt",
+  "template_go-gofmt_description": "Verifica a formatação dos componentes Go com gofmt -l. Os arquivos que o gofmt mudaria são achados localizados; nada é reescrito. Entra pela linguagem e roda onde format-check está ligado (o perfil Rigoroso o liga quando disponível).",
+  "template_rust-rustfmt_label": "Rust com cargo fmt",
+  "template_rust-rustfmt_description": "Verifica a formatação dos componentes Rust com cargo fmt --check e o rustfmt.toml do projeto. Os arquivos que o rustfmt mudaria são achados localizados; nada é reescrito. Entra pela linguagem e roda onde format-check está ligado (o perfil Rigoroso o liga quando disponível).",
+  "template_dotnet-format_label": ".NET com dotnet format",
+  "template_dotnet-format_description": "Verifica a formatação de espaços dos componentes C# e Visual Basic com dotnet format whitespace --verify-no-changes e o .editorconfig do projeto. Os arquivos que ele mudaria são achados localizados; nada é reescrito. Entra pela linguagem e roda onde format-check está ligado (o perfil Rigoroso o liga quando disponível).",
+  "template_file-size_label": "Tamanho de arquivo",
+  "template_file-size_description": "Aponta arquivos de texto acima de um limite de linhas (5000 por padrão; defina maxLines na instância para mudar). Offline e no próprio processo: lê o workspace, não executa nada e não escreve nada. Vai substituir a subverificação file-size da ponte de qualidade, que continua no template base até a ponte ser aposentada; por isso este template é opcional."
 }

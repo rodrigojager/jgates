@@ -62,7 +62,7 @@ export function imageToolCatalogue(env: NodeJS.ProcessEnv = process.env): ImageT
 
 /** Adapter tool names that are not tools of the image: JGates's own checks, the user's command, the per-stack compiler
  * (build-check probes each compiler under its own name). */
-export const NOT_IMAGE_TOOLS: ReadonlySet<string> = new Set(["compiler", "generic-command", "quality-gate", "quality-sidecar-pii", "jgates-supply-chain"]);
+export const NOT_IMAGE_TOOLS: ReadonlySet<string> = new Set(["compiler", "formatter", "jgates-file-size", "generic-command", "quality-gate", "quality-sidecar-pii", "jgates-supply-chain"]);
 
 /** The command of a tool on the image's PATH, where it differs from the tool's image.json name. */
 const IMAGE_COMMANDS: Readonly<Record<string, string>> = {

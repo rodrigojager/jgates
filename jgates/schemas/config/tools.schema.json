@@ -222,6 +222,15 @@
             "description": "build-check: which compiler or type checker the instance runs (tsc, mypy, pyright, go, cargo, dotnet). It checks every unit of its stack that carries the project's configuration for it.",
             "enum": ["tsc", "mypy", "pyright", "go", "cargo", "dotnet"]
           },
+          "formatter": {
+            "description": "format-check: which formatter the instance runs in check mode (ruff: ruff format --check; prettier: prettier --check; gofmt: gofmt -l; rustfmt: cargo fmt --check; dotnet: dotnet format whitespace --verify-no-changes). It checks the whole component with the project's own style configuration.",
+            "enum": ["ruff", "prettier", "gofmt", "rustfmt", "dotnet"]
+          },
+          "maxLines": {
+            "description": "file-size: the most lines a text file may have before it is a finding (default 5000).",
+            "type": "integer",
+            "minimum": 1
+          },
           "tsconfig": {
             "description": "build-check (tsc): the tsconfig file to pass to tsc -p, relative to the component (default: tsconfig.json).",
             "$ref": "#/$defs/pathText"

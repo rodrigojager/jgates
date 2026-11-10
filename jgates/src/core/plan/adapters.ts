@@ -29,6 +29,8 @@ import { supplyChainAdapter } from "../../adapters/supply-chain/index.js";
 import { govulncheckAdapter } from "../../adapters/govulncheck/index.js";
 import { cargoAuditAdapter } from "../../adapters/cargo-audit/index.js";
 import { cargoTestAdapter } from "../../adapters/cargo-test/index.js";
+import { formatCheckAdapter } from "../../adapters/format-check/index.js";
+import { fileSizeAdapter } from "../../adapters/file-size/index.js";
 
 export interface ExternalPlanInput {
   /** Workspace directory (absolute). */
@@ -70,6 +72,11 @@ export interface ExternalPlan {
    * counts, but it does not cover the capability (or its category) as a requirement.
    */
   uncredited?: Record<string, string>;
+  /**
+   * The image.json name of the tool this instance runs, when it differs from the adapter's `toolName` (an adapter that
+   * drives a different tool per instance, like format-check): a tool the image lacks is then the shared TOOL_MISSING cause.
+   */
+  imageTool?: string;
   /** What the run needs to judge the result besides the command (recorded in the plan, so it is hashed and reviewable). */
   contract?: Record<string, unknown>;
 }
@@ -107,6 +114,8 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [govulncheckAdapter.manifest.id, govulncheckAdapter],
   [cargoAuditAdapter.manifest.id, cargoAuditAdapter],
   [cargoTestAdapter.manifest.id, cargoTestAdapter],
+  [formatCheckAdapter.manifest.id, formatCheckAdapter],
+  [fileSizeAdapter.manifest.id, fileSizeAdapter],
 ]);
 
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {

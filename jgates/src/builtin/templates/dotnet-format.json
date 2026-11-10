@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet-format",
+  "label": ".NET with dotnet format",
+  "description": "Checks the whitespace formatting of C# and Visual Basic components with dotnet format whitespace --verify-no-changes and the project's .editorconfig. The files it would change are located findings; nothing is rewritten. Comes in by the language and runs only where format-check is switched on (the strict profile turns it on when available); it never turns the check on by itself.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "csharp",
+      "visualbasic"
+    ]
+  },
+  "config": {
+    "tools": {
+      "dotnet-format": {
+        "adapter": "format-check",
+        "capabilities": [
+          "format-check"
+        ],
+        "config": {
+          "formatter": "dotnet"
+        }
+      }
+    }
+  }
+}

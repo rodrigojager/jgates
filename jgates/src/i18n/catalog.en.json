@@ -166,5 +166,17 @@
   "template_go-codeql_label": "Go with CodeQL dataflow",
   "template_go-codeql_description": "Interprocedural dataflow analysis of the Go components with CodeQL (security-extended suite). Comes in by the language and runs where dataflow is switched on (the strict profile turns it on when available). The CodeQL CLI and its query packs are customer-supplied.",
   "template_dotnet-codeql_label": "C# with CodeQL dataflow",
-  "template_dotnet-codeql_description": "Interprocedural dataflow analysis of the C# components with CodeQL (security-extended suite). Comes in by the language and runs where dataflow is switched on (the strict profile turns it on when available). The CodeQL CLI and its query packs are customer-supplied."
+  "template_dotnet-codeql_description": "Interprocedural dataflow analysis of the C# components with CodeQL (security-extended suite). Comes in by the language and runs where dataflow is switched on (the strict profile turns it on when available). The CodeQL CLI and its query packs are customer-supplied.",
+  "template_python-format_label": "Python with ruff format",
+  "template_python-format_description": "Checks the formatting of Python components with ruff format --check and the project's [tool.ruff] settings. The files ruff would reformat are located findings; nothing is rewritten. Comes in by the Python language and runs where format-check is switched on (the strict profile turns it on when available).",
+  "template_typescript-prettier_label": "TypeScript and JavaScript with prettier",
+  "template_typescript-prettier_description": "Checks the formatting of TypeScript and JavaScript components with prettier --check and the project's own prettier configuration. The files prettier would reformat are located findings; nothing is rewritten. Comes in by the language and runs where format-check is switched on (the strict profile turns it on when available).",
+  "template_go-gofmt_label": "Go with gofmt",
+  "template_go-gofmt_description": "Checks the formatting of Go components with gofmt -l. The files gofmt would change are located findings; nothing is rewritten. Comes in by the language and runs where format-check is switched on (the strict profile turns it on when available).",
+  "template_rust-rustfmt_label": "Rust with cargo fmt",
+  "template_rust-rustfmt_description": "Checks the formatting of Rust components with cargo fmt --check and the project's rustfmt.toml. The files rustfmt would change are located findings; nothing is rewritten. Comes in by the language and runs where format-check is switched on (the strict profile turns it on when available).",
+  "template_dotnet-format_label": ".NET with dotnet format",
+  "template_dotnet-format_description": "Checks the whitespace formatting of C# and Visual Basic components with dotnet format whitespace --verify-no-changes and the project's .editorconfig. The files it would change are located findings; nothing is rewritten. Comes in by the language and runs where format-check is switched on (the strict profile turns it on when available).",
+  "template_file-size_label": "File size",
+  "template_file-size_description": "Flags text files over a line limit (5000 lines by default; set maxLines on the instance to change it). Offline and in-process: it reads the workspace, runs nothing and writes nothing. It will replace the file-size subcheck of the quality bridge, which stays in the base template until the bridge is retired, so this template is opt-in."
 }

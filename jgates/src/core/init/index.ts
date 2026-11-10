@@ -40,6 +40,7 @@ const PYTHON: TemplateEntry[] = [
   { id: "python-pyright", source: "builtin:python-pyright", evidence: true },
   // Checks the strict profile turns on when available: off in the other profiles unless they switch them on.
   { id: "python-mypy-defaults", source: "builtin:python-mypy-defaults", evidence: true },
+  { id: "python-format", source: "builtin:python-format", evidence: true },
   { id: "python-mutmut", source: "builtin:python-mutmut", evidence: true },
   { id: "python-codeql", source: "builtin:python-codeql", evidence: true },
 ];
@@ -50,23 +51,27 @@ const TYPESCRIPT: TemplateEntry[] = [
   { id: "typescript-vitest", source: "builtin:typescript-vitest", evidence: true },
   { id: "typescript-tsc", source: "builtin:typescript-tsc", evidence: true },
   { id: "typescript-stryker", source: "builtin:typescript-stryker", evidence: true },
+  { id: "typescript-prettier", source: "builtin:typescript-prettier", evidence: true },
   { id: "typescript-codeql", source: "builtin:typescript-codeql", evidence: true },
 ];
 const DOTNET: TemplateEntry[] = [
   { id: "dotnet", source: "builtin:dotnet", languages: DOTNET_LANGUAGES },
   { id: "dotnet-build", source: "builtin:dotnet-build", evidence: true },
+  { id: "dotnet-format", source: "builtin:dotnet-format", evidence: true },
   { id: "dotnet-codeql", source: "builtin:dotnet-codeql", evidence: true },
 ];
 /** Go and Rust have no stack template in init yet; the build check comes in by the language of the component. */
 const GO: TemplateEntry[] = [
   { id: "go-build", source: "builtin:go-build", evidence: true },
   { id: "go-govulncheck", source: "builtin:go-govulncheck", evidence: true },
+  { id: "go-gofmt", source: "builtin:go-gofmt", evidence: true },
   { id: "go-codeql", source: "builtin:go-codeql", evidence: true },
 ];
 const RUST: TemplateEntry[] = [
   { id: "rust-cargo-check", source: "builtin:rust-cargo-check", evidence: true },
   { id: "rust-cargo-audit", source: "builtin:rust-cargo-audit", evidence: true },
   { id: "rust-cargo-test", source: "builtin:rust-cargo-test", evidence: true },
+  { id: "rust-rustfmt", source: "builtin:rust-rustfmt", evidence: true },
 ];
 
 /**

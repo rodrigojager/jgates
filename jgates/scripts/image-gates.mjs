@@ -35,6 +35,8 @@ export const DEFAULT_BUDGET = { uncompressedBytes: 7 * GB, compressedBytes: 3 * 
 export const NOT_IN_IMAGE = {
   codeql: "customer supplied, never in the image (ADR-0005)",
   compiler: "build-check drives the compiler of each stack (tsc, go, cargo, dotnet, mypy, pyright), each one checked on its own",
+  formatter: "format-check drives the formatter of each stack (ruff, prettier, gofmt, cargo fmt, dotnet format), each one checked on its own",
+  "jgates-file-size": "the built-in file-size check, versioned with JGates itself",
   "generic-command": "runs whatever command the user registers",
   "quality-gate": "the legacy bridge adapter, versioned with JGates itself",
   "quality-sidecar-pii": "the built-in PII scan, versioned with JGates itself",

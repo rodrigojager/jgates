@@ -76,6 +76,16 @@ export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
     config: "the policy's instance (specification, base reference and fail-on level); oasdiff reads no configuration file of the project",
     suppressions: "none: the adapter passes no error-ignore file",
   },
+  "format-check": {
+    treatment: "self-reported",
+    config: "the formatter reads the project's own style configuration (ruff.toml or [tool.ruff], .prettierrc, rustfmt.toml, .editorconfig): the project decides what counts as formatted",
+    suppressions: "honored: the formatter's own ignore mechanisms (# fmt: off, // prettier-ignore, #[rustfmt::skip], .prettierignore, .gitignore)",
+  },
+  "file-size": {
+    treatment: "trusted",
+    config: "the policy's instance (the maxLines limit); the analysis reads the files as data and no configuration file of the project",
+    suppressions: "none: the analysis honors no comment or ignore file of the analyzed code",
+  },
   "supply-chain": {
     treatment: "trusted",
     config: "the policy's instance; the analysis is an offline read of the lockfiles and manifests, with no configuration file of the project",

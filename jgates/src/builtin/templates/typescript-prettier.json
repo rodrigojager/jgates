@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript-prettier",
+  "label": "TypeScript and JavaScript with prettier",
+  "description": "Checks the formatting of TypeScript and JavaScript components with prettier --check and the project's own prettier configuration. The files prettier would reformat are located findings; nothing is rewritten. Comes in by the language and runs only where format-check is switched on (the strict profile turns it on when available); it never turns the check on by itself.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ]
+  },
+  "config": {
+    "tools": {
+      "prettier": {
+        "adapter": "format-check",
+        "capabilities": [
+          "format-check"
+        ],
+        "config": {
+          "formatter": "prettier"
+        }
+      }
+    }
+  }
+}

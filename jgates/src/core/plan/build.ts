@@ -514,7 +514,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   const toolsConfig = isPlainObject(config.tools) ? config.tools : {};
   const externals = new Map<string, { adapter: ExternalAdapter; plan: ExternalPlan }>();
   /** The image.json name of an item's tool (the adapter manifest's toolName). */
-  const imageToolOf = (i: PlanItem): string => externals.get(i.tool)?.adapter.manifest.toolName ?? i.versions.tool ?? i.tool;
+  const imageToolOf = (i: PlanItem): string => externals.get(i.tool)?.plan.imageTool ?? externals.get(i.tool)?.adapter.manifest.toolName ?? i.versions.tool ?? i.tool;
   for (const tool of universe.tools) {
     if (tool.parent) continue;
     const body = toolsConfig[tool.id];

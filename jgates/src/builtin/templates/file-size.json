@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "file-size",
+  "label": "File size",
+  "description": "Flags text files over a line limit (5000 lines by default; set maxLines on the instance to change it). Offline and in-process: it reads the workspace, runs nothing and writes nothing. It takes the place of the file-size subcheck of the quality bridge, which stays in the base template until the bridge is retired, so this template is opt-in.",
+  "extends": [
+    "builtin:base"
+  ],
+  "config": {
+    "tools": {
+      "file-size": {
+        "adapter": "file-size",
+        "enabled": true,
+        "capabilities": [
+          "file-size"
+        ]
+      }
+    }
+  }
+}

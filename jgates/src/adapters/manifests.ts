@@ -25,6 +25,8 @@ import { govulncheckManifest } from "./govulncheck/manifest.js";
 import { cargoAuditManifest } from "./cargo-audit/manifest.js";
 import { cargoTestManifest } from "./cargo-test/manifest.js";
 import { supplyChainManifest } from "./supply-chain/manifest.js";
+import { formatCheckManifest } from "./format-check/manifest.js";
+import { fileSizeManifest } from "./file-size/manifest.js";
 
 /** Resources of the step container of an adapter (its manifest's `resources`); undefined: the defaults apply (4096 MB / 2 CPUs). */
 export function manifestResources(adapterId: string): AdapterManifest["resources"] {
@@ -38,5 +40,5 @@ export function manifestResources(adapterId: string): AdapterManifest["resources
  * binding) is unchanged.
  */
 export function builtinManifests(): AdapterManifest[] {
-  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest, supplyChainManifest, govulncheckManifest, cargoAuditManifest, cargoTestManifest];
+  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest, supplyChainManifest, govulncheckManifest, cargoAuditManifest, cargoTestManifest, formatCheckManifest, fileSizeManifest];
 }

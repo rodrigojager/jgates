@@ -1,0 +1,13 @@
+{
+  "file_size_label": "Tamanho de arquivo (linhas por arquivo)",
+  "file_size_setting_max_lines": "A instância {tool} precisa definir maxLines com um número inteiro de 1 ou mais; ela tem \"{value}\".",
+  "file_size_blocked": "A verificação de tamanho de arquivo não pôde rodar.",
+  "file_size_analysis_failed": "A análise de tamanho de arquivo falhou: {detail}",
+  "file_size_no_invocation": "O plano não tem invocação de file-size para a instância {tool}.",
+  "file_size_finding": "{file} tem {lines, plural, one {# linha} other {# linhas}}, acima do limite de {limit, plural, one {# linha} other {# linhas}}. Divida o arquivo.",
+  "file_size_reason_completed": "{checked, plural, one {# arquivo verificado} other {# arquivos verificados}}, {count} acima do limite de {limit, plural, one {# linha} other {# linhas}}",
+  "file_size_skipped": "{count, plural, one {# arquivo não foi medido (binário ou ilegível)} other {# arquivos não foram medidos (binários ou ilegíveis)}}",
+  "file_size_truncated": "a árvore é grande demais para ser percorrida inteira, então a resposta está incompleta",
+  "file_size_limitation_text_only": "Conta as linhas de arquivos de texto; arquivos binários são pulados e listados, e pastas geradas ou de terceiros (.git, node_modules, ambientes virtuais, target, vendor, dist, build, obj) não são percorridas.",
+  "file_size_condition_limit": "Limite: {limit, plural, one {# linha} other {# linhas}} por arquivo."
+}

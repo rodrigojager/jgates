@@ -53,6 +53,12 @@ const BC_GO = t("adapter-build-check.test.js", "build-check go: go build reports
 const BC_RUST = t("adapter-build-check.test.js", "build-check rust: cargo check reports the type error with its location and the clean twin none");
 const BC_CSHARP = t("adapter-build-check.test.js", "build-check csharp: dotnet build reports the type error with its location and the clean twin none");
 
+const FC_PYTHON = t("adapter-format-check.test.js", "format-check python: ruff format --check flags the unformatted module and passes the formatted twin [proves: format-check#format-check, format-check#format-check@python]");
+const FC_TS = t("adapter-format-check.test.js", "format-check typescript: prettier --check flags the unformatted module and passes the formatted twin [proves: format-check#format-check, format-check#format-check@typescript]");
+const FC_GO = t("adapter-format-check.test.js", "format-check go: gofmt -l flags the unformatted file and passes the formatted twin [proves: format-check#format-check, format-check#format-check@go]");
+const FC_RUST = t("adapter-format-check.test.js", "format-check rust: cargo fmt --check flags the unformatted crate and passes the formatted twin [proves: format-check#format-check, format-check#format-check@rust]");
+const FC_CSHARP = t("adapter-format-check.test.js", "format-check csharp: dotnet format whitespace flags the unformatted file and passes the formatted twin [proves: format-check#format-check, format-check#format-check@csharp]");
+
 /** A bridge capability that runs only in the sidecar image: no test of the default suite exercises its scanner. */
 const bridgeDeclared = (scanners: string): CapabilityEvidence => ({
   tests: [],
@@ -356,6 +362,34 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       ptBR: "Toolchain fornecido pelo cliente (cargo, MIT OR Apache-2.0): roda cargo test --offline e lê a saída de texto estável do libtest; as propriedades do proptest são achadas de forma estática (blocos proptest! e funções #[proptest]); os testes, build scripts e macros procedurais do projeto executam, então o resultado é autodeclarado e nunca vem do cache; as dependências já precisam estar no cargo home. Provado em crates Rust de teste com o cargo 1.99.1 real e o proptest 1.x.",
     },
     external: { en: "cargo and rustc 1.60+ (rustup; customer-supplied), proptest 1.x fetched in the cargo home", ptBR: "cargo e rustc 1.60+ (rustup; do cliente), proptest 1.x baixado no cargo home" },
+  },
+  "format-check": {
+    capabilities: {
+      "format-check": {
+        tests: [FC_PYTHON, FC_TS, FC_GO, FC_RUST, FC_CSHARP],
+        stacks: { python: [FC_PYTHON], typescript: [FC_TS], go: [FC_GO], rust: [FC_RUST], csharp: [FC_CSHARP] },
+      },
+    },
+    limitation: {
+      en: "Check mode only, with the project's own style configuration: the files the formatter would reformat are blocking findings and nothing is rewritten; dotnet format checks whitespace only; a formatter output the adapter cannot explain is an error, never a pass. Proven on a bad and a clean fixture per stack with the real formatters, and through the real engine in the tools image.",
+      ptBR: "Somente modo de verificação, com a configuração de estilo do próprio projeto: os arquivos que o formatador reformataria são achados que bloqueiam e nada é reescrito; o dotnet format verifica só espaços; uma saída do formatador que o adaptador não consegue explicar é erro, nunca aprovação. Provado em um fixture ruim e um limpo por stack com os formatadores reais, e pelo motor real na imagem de ferramentas.",
+    },
+    external: { en: "ruff, prettier, gofmt (Go), cargo fmt (rustfmt) and the .NET SDK (dotnet format), all in the JGates tools image", ptBR: "ruff, prettier, gofmt (Go), cargo fmt (rustfmt) e o SDK .NET (dotnet format), todos na imagem de ferramentas do JGates" },
+    otherTests: [
+      t("adapter-format-check.test.js", "format-check parsers: each formatter's output lists the files it would change and anything else is a problem"),
+      t("adapter-format-check.test.js", "format-check: a formatter that is not in the image is a blocked stage with the cause, never a pass"),
+    ],
+  },
+  "file-size": {
+    capabilities: {
+      "file-size": proven(["any"], t("adapter-file-size.test.js", "file-size: a file over the line limit is a located blocking finding and the clean tree none [proves: file-size#file-size, file-size#file-size@any]")),
+    },
+    limitation: {
+      en: "Counts the lines of text files in-process; binary files are skipped and listed, generated and third-party folders are not entered, and a tree too big to walk leaves the stage not interpreted instead of passed. One limit for every file; bytes per file and change-size budgets stay with the quality bridge until it is retired.",
+      ptBR: "Conta as linhas de arquivos de texto no próprio processo; arquivos binários são pulados e listados, pastas geradas e de terceiros não são percorridas, e uma árvore grande demais para percorrer deixa a etapa não interpretada em vez de aprovada. Um limite para todos os arquivos; bytes por arquivo e orçamentos de tamanho da mudança continuam com a ponte de qualidade até ela ser aposentada.",
+    },
+    external: { en: "None: shipped with JGates (reads the files in-process, no network)", ptBR: "Nenhuma: vem com o JGates (lê os arquivos no processo, sem rede)" },
+    otherTests: [t("adapter-file-size.test.js", "file-size: an unreadable setting blocks the plan and a tree over the walk limit is never counted as clean")],
   },
   jscpd: {
     capabilities: { duplication: proven(["typescript"], t("adapters-quality.test.js", "jscpd: the duplications of a fixture come out")) },

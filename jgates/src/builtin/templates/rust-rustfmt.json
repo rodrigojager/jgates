@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "rust-rustfmt",
+  "label": "Rust with cargo fmt",
+  "description": "Checks the formatting of Rust components (Cargo.toml) with cargo fmt --check and the project's rustfmt.toml. The files rustfmt would change are located findings; nothing is rewritten. Comes in by the Rust language and runs only where format-check is switched on (the strict profile turns it on when available); it never turns the check on by itself.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "rust"
+    ]
+  },
+  "config": {
+    "tools": {
+      "cargo-fmt": {
+        "adapter": "format-check",
+        "capabilities": [
+          "format-check"
+        ],
+        "config": {
+          "formatter": "rustfmt"
+        }
+      }
+    }
+  }
+}

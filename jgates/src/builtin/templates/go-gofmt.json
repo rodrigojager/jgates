@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "go-gofmt",
+  "label": "Go with gofmt",
+  "description": "Checks the formatting of Go components (go.mod) with gofmt -l. The files gofmt would change are located findings; nothing is rewritten. Comes in by the Go language and runs only where format-check is switched on (the strict profile turns it on when available); it never turns the check on by itself.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "go"
+    ]
+  },
+  "config": {
+    "tools": {
+      "gofmt": {
+        "adapter": "format-check",
+        "capabilities": [
+          "format-check"
+        ],
+        "config": {
+          "formatter": "gofmt"
+        }
+      }
+    }
+  }
+}
