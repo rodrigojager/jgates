@@ -25,6 +25,35 @@ export interface RunStep {
   run: () => Promise<AdapterOutput>;
 }
 
+/**
+ * A phase of the run before the steps (the sync of the project into the source volume). It runs once, in order; when it
+ * fails no step starts and every step is recorded as not run with the phase's reason, never as an empty success.
+ */
+export interface RunPhase {
+  id: string;
+  label?: string;
+  run: () => Promise<PhaseOutcome>;
+}
+
+export interface PhaseOutcome {
+  ok: boolean;
+  /** Why it failed (shown as the reason of the blocked steps). */
+  reason?: string;
+  /** Machine code of the failure. */
+  code?: string;
+  /** Facts of the phase for the events and the result (counts, exclusion list, engine text on failure). */
+  details: Record<string, unknown>;
+  /** Log files the phase wrote, relative to the run folder. */
+  logs?: string[];
+}
+
+export interface PhaseReport {
+  id: string;
+  status: "succeeded" | "failed" | "cancelled";
+  durationMs: number;
+  outcome: PhaseOutcome;
+}
+
 export type StepStatus = "succeeded" | "failed" | "not-run";
 
 export interface StepReport {
@@ -45,9 +74,12 @@ export interface ExecuteStepsOptions {
   emit?: (type: EventType, data: Record<string, unknown>) => void;
   /** Called after each step (the run writes its partial result there). */
   onStep?: (report: StepReport) => void;
+  /** Phases that run once before the steps (sync, ...); a failed phase blocks every step. */
+  phases?: RunPhase[];
 }
 
 export interface ExecuteStepsResult {
+  phases: PhaseReport[];
   reports: StepReport[];
   cancelled: boolean;
   failFast: { stepId: string; detail: string } | null;
@@ -221,8 +253,38 @@ export async function executeSteps(steps: RunStep[], options: ExecuteStepsOption
     options.onStep?.(report);
   };
 
+  // Phases first. The first one that does not end well stops the others and blocks every step.
+  const phaseReports: PhaseReport[] = [];
+  let phaseFailure: { id: string; reason: string; code: string } | null = null;
+  for (const phase of options.phases ?? []) {
+    if (phaseFailure || signal?.aborted) break;
+    const startedAt = Date.now();
+    emit("phase-started", { phase: phase.id, ...(phase.label ? { label: phase.label } : {}) });
+    let outcome: PhaseOutcome;
+    try {
+      outcome = await phase.run();
+    } catch (error) {
+      outcome = { ok: false, code: "PHASE_CRASHED", reason: error instanceof Error ? error.message : String(error), details: {} };
+    }
+    const durationMs = Date.now() - startedAt;
+    const status: PhaseReport["status"] = signal?.aborted ? "cancelled" : outcome.ok ? "succeeded" : "failed";
+    emit("phase-finished", { phase: phase.id, status, durationMs, details: outcome.details, ...(outcome.reason ? { reason: outcome.reason } : {}), ...(outcome.code ? { code: outcome.code } : {}) });
+    phaseReports.push({ id: phase.id, status, durationMs, outcome });
+    if (status === "failed") phaseFailure = { id: phase.id, reason: outcome.reason ?? phase.id, code: outcome.code ?? "PHASE_FAILED" };
+  }
+
   try {
     for (const step of ordered) {
+      if (phaseFailure && !signal?.aborted) {
+        const detail = t("runner_blocked_preflight", { detail: phaseFailure.reason });
+        record({
+          step,
+          status: "not-run",
+          cause: "preflight",
+          output: notRun(skeletonOf(step), step.id, "blocked", "preflight", detail, { problems: [{ code: phaseFailure.code, message: phaseFailure.reason }] }),
+        });
+        continue;
+      }
       if (signal?.aborted) {
         cancelled = true;
         record({ step, status: "not-run", cause: "cancelled", output: notRun(skeletonOf(step), step.id, "cancelled", "cancelled", t("runner_not_run_cancelled")) });
@@ -308,7 +370,7 @@ export async function executeSteps(steps: RunStep[], options: ExecuteStepsOption
   } finally {
     signal?.removeEventListener("abort", sweep);
   }
-  return { reports, cancelled, failFast };
+  return { phases: phaseReports, reports, cancelled, failFast };
 }
 
 /** Merges the outputs of the steps, in order. */

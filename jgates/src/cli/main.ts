@@ -54,7 +54,7 @@ export async function main(argv: string[]): Promise<number> {
       lists: parsed.lists,
       json,
       version,
-      commands: modules.map(({ name, description, options }) => ({ name, description, options })),
+      commands: modules.filter((m) => m.hidden !== true).map(({ name, description, options }) => ({ name, description, options })),
       t,
       ...sink,
     };

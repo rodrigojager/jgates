@@ -15,6 +15,8 @@ export const EVENT_TYPES = [
   "stage",
   "step-finished",
   "step-skipped",
+  "phase-started",
+  "phase-finished",
   "cancel-requested",
   "run-finished",
 ] as const;

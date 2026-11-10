@@ -36,5 +36,7 @@ export interface CommandContext {
  * `run` returns the process exit code.
  */
 export interface CommandModule extends CommandInfo {
+  /** Not listed by help (internal helper commands); still dispatched by name. */
+  hidden?: boolean;
   run(context: CommandContext): number | Promise<number>;
 }

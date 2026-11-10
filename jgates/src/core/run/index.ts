@@ -13,7 +13,9 @@ import { createRunDir, resolveHome, touchWorkspace } from "../home/index.js";
 import { newRunId } from "../ids/index.js";
 import { listRuns } from "../artifacts/index.js";
 import { compareWithBaseline, findingMetrics, finalizeFindings, loadWaiverFile, markBaselineState, WAIVERS_FILE, type Waiver } from "../results/index.js";
-import { executeSteps, mergeOutputs, type RunStep } from "../runner/index.js";
+import { executeSteps, mergeOutputs, type RunPhase, type RunStep } from "../runner/index.js";
+import { toolsImageGateEnabled } from "../tools-image/index.js";
+import { createSyncPhase } from "../sync/phase.js";
 import type { Plan } from "../plan/types.js";
 import { describeAnalysis, planOutputs, prepareAnalysis, verifyInputs, type PreparedAnalysis } from "./analysis.js";
 import type { AdapterContext, AdapterOutput, CacheableStep, ResultDisabled, ResultPolicy, RunResult, SemanticHook } from "./types.js";
@@ -80,6 +82,8 @@ export interface RunOptions {
   signal?: AbortSignal;
   /** Stop at the first failure; the rest is recorded as not run because of it. */
   failFast?: boolean;
+  /** Phases that run before the steps; by default a plan run synchronizes the project when container-first checks are on. */
+  phases?: (context: AdapterContext) => RunPhase[];
   /** Another file that receives a copy of the event stream (--events-jsonl). */
   eventsFile?: string;
   /** Called with every event, after it is on disk. */
@@ -338,8 +342,14 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
   const killGraceMs = positiveInt(env.JGATES_KILL_GRACE_MS);
   let executed;
   let verified: ReturnType<typeof verifyInputs> | null = null;
+  const phases = opts.phases
+    ? opts.phases(context)
+    : opts.plan && toolsImageGateEnabled(env)
+      ? [createSyncPhase({ projectDir: prep.path, workspace: workspace.id, runId, runDir, version: opts.version, home, env })]
+      : [];
   try {
     executed = await executeSteps(steps, {
+      phases,
       ...(signal ? { signal } : {}),
       failFast: opts.failFast === true,
       ...(maxLogBytes !== undefined ? { maxLogBytes } : {}),
@@ -366,6 +376,8 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
 
   const output = mergeOutputs(executed.reports.map((r) => r.output));
   output.disabled.push(...extraDisabled);
+  // The log blocks of the phases (the sync) come before those of the steps.
+  output.logs.unshift(...executed.phases.flatMap((p) => p.outcome.logs ?? []));
   const after = takeManifest(workspace.path);
   let stopped: RunResult["stopped"] | null = null;
   if (executed.cancelled) {

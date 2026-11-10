@@ -17,6 +17,11 @@
 //                            completed before a drop (default 1). Completed layers survive in the state folder and print
 //                            "Already exists" on the next attempt, like the real engine resuming.
 //   FAKE_DOCKER_MANIFEST=none    `manifest inspect` fails (no layer sizes)
+// Volume contents (`run` with --mount): a volume is the folder FAKE_DOCKER_STATE/volumes/<name>/.
+//   the sync helper (mounts /stage and /dst) deletes the paths of removed.lst and unpacks changes.tar into the volume with an
+//   independent tar reader; the modes it unpacked are kept in volumes/<name>.modes.json (a Windows file system has none)
+//   FAKE_DOCKER_WORKSPACE_WRITES  JSON list of relative paths a container that mounts a volume at /workspace writes there
+//   (plays a test step that writes files)
 // Objects: volumes, containers, networks and images live in FAKE_DOCKER_STATE/objects.json
 //   { containers: [{ id, name, state, labels }], volumes: [{ name, labels }], networks: [...], images: [...] };
 //   `volume create`, `volume rm`, `ps`/`container ls`, `volume ls`, `network ls`, `image ls`, `kill`, `rm`, `*  prune`
@@ -87,7 +92,10 @@ if (argv[0] === "image" && argv[1] === "inspect") {
     process.stderr.write("Error: No such image\n");
     process.exit(1);
   }
-  if (argv.includes("--format")) process.stdout.write(labels + "\n");
+  const formatAt = argv.indexOf("--format");
+  const asObject = () => ({ Id: process.env.FAKE_DOCKER_IMAGE_ID || `sha256:${crypto.createHash("sha256").update(labels).digest("hex")}`, Size: 1000, Config: { Labels: JSON.parse(labels) } });
+  if (formatAt >= 0 && argv[formatAt + 1] === "{{json .}}") process.stdout.write(JSON.stringify(asObject()) + "\n");
+  else if (formatAt >= 0) process.stdout.write(labels + "\n");
   else {
     const id = process.env.FAKE_DOCKER_IMAGE_ID || `sha256:${crypto.createHash("sha256").update(labels).digest("hex")}`;
     const repoDigests = JSON.parse(process.env.FAKE_DOCKER_REPO_DIGESTS || "[]");
@@ -182,6 +190,10 @@ if (argv[0] === "volume") {
   if (sub === "rm") {
     const names = lastNonFlags(rest);
     objects.volumes = objects.volumes.filter((v) => !names.includes(v.name));
+    for (const name of names) {
+      fs.rmSync(path.join(state, "volumes", name), { recursive: true, force: true });
+      fs.rmSync(path.join(state, "volumes", `${name}.modes.json`), { force: true });
+    }
     saveObjects(objects);
     process.exit(0);
   }
@@ -282,6 +294,90 @@ if (argv[0] === "run") {
       }
     }, 25);
   } else {
+    // Mounts of the container: volumes live in FAKE_DOCKER_STATE/volumes/<name>/, bind mounts are their host folders.
+    const mounts = [];
+    for (let i = 0; i < argv.length - 1; i++) {
+      if (argv[i] !== "--mount") continue;
+      const fields = Object.fromEntries(argv[i + 1].split(",").map((part) => { const at = part.indexOf("="); return at < 0 ? [part, true] : [part.slice(0, at), part.slice(at + 1)]; }));
+      mounts.push({ type: fields.type, source: fields.src, target: fields.dst, readonly: fields.readonly === true });
+    }
+    const volumeDir = (name) => {
+      const dir = path.join(state, "volumes", name);
+      fs.mkdirSync(dir, { recursive: true });
+      return dir;
+    };
+    const hostOf = (mount) => (mount.type === "volume" ? volumeDir(mount.source) : mount.source);
+    const stage = mounts.find((m) => m.target === "/stage");
+    const dst = mounts.find((m) => m.target === "/dst");
+    const workspaceMount = mounts.find((m) => m.target === "/workspace" && m.type === "volume");
+    if (stage && dst) {
+      // The sync helper (jgates/src/core/sync): removes the listed paths, unpacks changes.tar into the volume, and records
+      // the modes in <volume>/../<volume>.modes.json because the host file system may not carry them.
+      // An independent tar reader (ustar + GNU long names), so the archive the host writes is checked by other code.
+      const readTar = (buffer) => {
+        const entries = [];
+        let offset = 0;
+        let base = 0;
+        let longName = null;
+        const text = (start, width) => {
+          const slice = buffer.subarray(base + start, base + start + width);
+          const end = slice.indexOf(0);
+          return slice.subarray(0, end < 0 ? width : end).toString("utf8");
+        };
+        while (offset + 512 <= buffer.length) {
+          base = offset;
+          const block = buffer.subarray(offset, offset + 512);
+          if (block.every((b) => b === 0)) break;
+          const checksum = parseInt(text(148, 8).trim(), 8);
+          const sum = block.reduce((t, b, i) => t + (i >= 148 && i < 156 ? 32 : b), 0);
+          if (checksum !== sum) fail("tar: bad header checksum");
+          const type = text(156, 1) || "0";
+          const size = parseInt(text(124, 12).trim() || "0", 8);
+          const data = buffer.subarray(offset + 512, offset + 512 + size);
+          offset += 512 + size + ((512 - (size % 512)) % 512);
+          if (type === "L") {
+            longName = data.toString("utf8").replace(/\0+$/, "");
+            continue;
+          }
+          entries.push({ path: (longName ?? text(0, 100)).replace(/\/$/, ""), type, mode: parseInt(text(100, 8).trim() || "0", 8), link: text(157, 100), data });
+          longName = null;
+        }
+        return entries;
+      };
+      const root = hostOf(dst);
+      const modesFile = path.join(state, "volumes", `${dst.source}.modes.json`);
+      const modes = fs.existsSync(modesFile) ? JSON.parse(fs.readFileSync(modesFile, "utf8")) : {};
+      const removedFile = path.join(stage.source, "removed.lst");
+      const removed = fs.existsSync(removedFile) ? fs.readFileSync(removedFile, "utf8").split("\0").filter(Boolean) : [];
+      for (const rel of removed) {
+        fs.rmSync(path.join(root, rel), { recursive: true, force: true });
+        for (const key of Object.keys(modes)) if (key === rel || key.startsWith(rel + "/")) delete modes[key];
+      }
+      const archive = path.join(stage.source, "changes.tar");
+      for (const entry of fs.existsSync(archive) ? readTar(fs.readFileSync(archive)) : []) {
+        const target = path.join(root, entry.path);
+        if (entry.type === "5") fs.mkdirSync(target, { recursive: true });
+        else if (entry.type === "2") {
+          fs.mkdirSync(path.dirname(target), { recursive: true });
+          fs.rmSync(target, { force: true });
+          fs.writeFileSync(target, `symlink:${entry.link}`);
+        } else {
+          fs.mkdirSync(path.dirname(target), { recursive: true });
+          fs.writeFileSync(target, entry.data);
+        }
+        modes[entry.path] = entry.mode & 0o777;
+      }
+      fs.writeFileSync(modesFile, JSON.stringify(modes));
+      process.exit(0);
+    }
+    if (workspaceMount && process.env.FAKE_DOCKER_WORKSPACE_WRITES) {
+      // A step container whose tests write files: they land in the source volume, never anywhere else.
+      for (const rel of JSON.parse(process.env.FAKE_DOCKER_WORKSPACE_WRITES)) {
+        const target = path.join(hostOf(workspaceMount), rel);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, "written by the step\n");
+      }
+    }
     // The disk probe of the engine module: `df -Pk /` in a helper container prints the free space of the storage.
     const commandAt = argv.findIndex((a, i) => a === "df" && argv[i - 1] !== "--name");
     if (commandAt > 0) {
