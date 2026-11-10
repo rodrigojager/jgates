@@ -178,5 +178,15 @@
   "template_dotnet-format_label": ".NET with dotnet format",
   "template_dotnet-format_description": "Checks the whitespace formatting of C# and Visual Basic components with dotnet format whitespace --verify-no-changes and the project's .editorconfig. The files it would change are located findings; nothing is rewritten. Comes in by the language and runs where format-check is switched on (the strict profile turns it on when available).",
   "template_file-size_label": "File size",
-  "template_file-size_description": "Flags text files over a line limit (5000 lines by default; set maxLines on the instance to change it). Offline and in-process: it reads the workspace, runs nothing and writes nothing. It will replace the file-size subcheck of the quality bridge, which stays in the base template until the bridge is retired, so this template is opt-in."
+  "template_file-size_description": "Flags text files over a line limit (5000 lines by default; set maxLines on the instance to change it). Offline and in-process: it reads the workspace, runs nothing and writes nothing. It will replace the file-size subcheck of the quality bridge, which stays in the base template until the bridge is retired, so this template is opt-in.",
+  "template_go-golangci-lint_label": "Go with golangci-lint",
+  "template_go-golangci-lint_description": "Lints Go components with golangci-lint run ./... and the project's .golangci.yml (the default linters without one). Every issue is a located finding; nothing is rewritten. Comes in by the language and runs where lint is switched on.",
+  "template_rust-clippy_label": "Rust with clippy",
+  "template_rust-clippy_description": "Lints Rust components with cargo clippy and the project's clippy.toml and [lints] tables. Every compiler and clippy diagnostic is a located finding; nothing is rewritten. Comes in by the language and runs where lint is switched on.",
+  "template_dotnet-analyzers_label": ".NET with analyzers",
+  "template_dotnet-analyzers_description": "Lints C# and Visual Basic components with dotnet build and the .NET code analyzers at the recommended level, with the severities of the project's .editorconfig. Every diagnostic is a located finding; nothing is rewritten. Comes in by the language and runs where lint is switched on.",
+  "template_shell-shellcheck_label": "Shell scripts with ShellCheck",
+  "template_shell-shellcheck_description": "Lints shell scripts (*.sh, *.bash, *.ksh) with ShellCheck and the project's .shellcheckrc. Every issue is a located finding; nothing is rewritten. Comes in by evidence: a shell script at the root of the workspace.",
+  "template_docker-hadolint_label": "Dockerfiles with Hadolint",
+  "template_docker-hadolint_description": "Lints Dockerfiles with Hadolint and the project's .hadolint.yaml, without building an image. Every rule that fires is a located finding; nothing is rewritten. Comes in by evidence: a Dockerfile at the root of the workspace."
 }

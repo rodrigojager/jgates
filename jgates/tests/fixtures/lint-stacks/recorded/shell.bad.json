@@ -1,0 +1,13 @@
+{
+ "tool": "shellcheck",
+ "executable": "shellcheck",
+ "args": [
+  "--format",
+  "json1",
+  "--color=never",
+  "--",
+  "deploy.sh"
+ ],
+ "exit": 1,
+ "stdout": "{\"comments\":[{\"file\":\"deploy.sh\",\"line\":3,\"endLine\":3,\"column\":16,\"endColumn\":21,\"level\":\"info\",\"code\":2086,\"message\":\"Double quote to prevent globbing and word splitting.\",\"fix\":{\"replacements\":[{\"column\":16,\"endColumn\":16,\"endLine\":3,\"insertionPoint\":\"afterEnd\",\"line\":3,\"precedence\":7,\"replacement\":\"\\\"\"},{\"column\":21,\"endColumn\":21,\"endLine\":3,\"insertionPoint\":\"beforeStart\",\"line\":3,\"precedence\":7,\"replacement\":\"\\\"\"}]}},{\"file\":\"deploy.sh\",\"line\":4,\"endLine\":4,\"column\":8,\"endColumn\":13,\"level\":\"info\",\"code\":2086,\"message\":\"Double quote to prevent globbing and word splitting.\",\"fix\":{\"replacements\":[{\"column\":8,\"endColumn\":8,\"endLine\":4,\"insertionPoint\":\"afterEnd\",\"line\":4,\"precedence\":7,\"replacement\":\"\\\"\"},{\"column\":13,\"endColumn\":13,\"endLine\":4,\"insertionPoint\":\"beforeStart\",\"line\":4,\"precedence\":7,\"replacement\":\"\\\"\"}]}}]}\n"
+}

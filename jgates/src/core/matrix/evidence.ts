@@ -59,6 +59,23 @@ const FC_GO = t("adapter-format-check.test.js", "format-check go: gofmt -l flags
 const FC_RUST = t("adapter-format-check.test.js", "format-check rust: cargo fmt --check flags the unformatted crate and passes the formatted twin [proves: format-check#format-check, format-check#format-check@rust]");
 const FC_CSHARP = t("adapter-format-check.test.js", "format-check csharp: dotnet format whitespace flags the unformatted file and passes the formatted twin [proves: format-check#format-check, format-check#format-check@csharp]");
 
+const LINT_FILE = "adapter-lint-stacks.test.js";
+const LINT_GO = t(LINT_FILE, "golangci-lint go: errcheck flags the unchecked error and the clean twin passes [proves: golangci-lint#lint, golangci-lint#lint@go]");
+const LINT_RUST = t(LINT_FILE, "clippy rust: clippy::len_zero flags the length comparison and the clean twin passes [proves: clippy#lint, clippy#lint@rust]");
+const LINT_CSHARP = t(LINT_FILE, "dotnet-analyzers csharp: CA1806 flags the ignored result and the clean twin passes [proves: dotnet-analyzers#lint, dotnet-analyzers#lint@csharp]");
+const LINT_SHELL = t(LINT_FILE, "shellcheck any: SC2086 flags the unquoted variable and the clean twin passes [proves: shellcheck#lint, shellcheck#lint@any]");
+const LINT_DOCKER = t(LINT_FILE, "hadolint any: DL3007 flags the latest tag and the clean twin passes [proves: hadolint#lint, hadolint#lint@any]");
+const LINT_PARSERS = t(LINT_FILE, "lint parsers: each linter's output lists its findings and anything the exit code does not explain is a problem");
+const LINT_MISSING = t(LINT_FILE, "lint adapters: a linter that is not in the image is a blocked stage with the cause, never a pass");
+
+/** One stack lint adapter: its lint capability proven on one stack, with the parser and the missing-tool tests. */
+const lintEvidence = (stack: string, proof: TestRef, limitation: Bilingual, external: Bilingual): AdapterEvidence => ({
+  capabilities: { lint: proven([stack], proof) },
+  limitation,
+  external,
+  otherTests: [LINT_PARSERS, LINT_MISSING],
+});
+
 /** A bridge capability that runs only in the sidecar image: no test of the default suite exercises its scanner. */
 const bridgeDeclared = (scanners: string): CapabilityEvidence => ({
   tests: [],
@@ -380,6 +397,51 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       t("adapter-format-check.test.js", "format-check: a formatter that is not in the image is a blocked stage with the cause, never a pass"),
     ],
   },
+  "golangci-lint": lintEvidence(
+    "go",
+    LINT_GO,
+    {
+      en: "golangci-lint run ./... with the project's own configuration (the default linters without one), read from its JSON report: every issue is a blocking, located finding and nothing is rewritten. The modules must be in the dependency volume (the run is offline); a version 1 configuration or a module that does not load is an error stage, never a pass. Proven on a bad and a clean Go fixture with the real golangci-lint 2.15.0 through the real engine in the tools image.",
+      ptBR: "golangci-lint run ./... com a configuração do próprio projeto (os linters padrão sem ela), lido do relatório JSON: cada problema é um achado localizado que bloqueia e nada é reescrito. Os módulos precisam estar no volume de dependências (a execução é offline); uma configuração versão 1 ou um módulo que não carrega vira etapa com erro, nunca aprovação. Provado em um fixture Go ruim e um limpo com o golangci-lint 2.15.0 real pelo motor real na imagem de ferramentas.",
+    },
+    { en: "golangci-lint 2.x and the Go toolchain, in the JGates tools image", ptBR: "golangci-lint 2.x e o toolchain Go, na imagem de ferramentas do JGates" },
+  ),
+  clippy: lintEvidence(
+    "rust",
+    LINT_RUST,
+    {
+      en: "cargo clippy --offline with the project's clippy.toml and [lints] tables, read from the JSON message stream: every compiler and clippy diagnostic is a blocking, located finding and nothing is rewritten. The crate is compiled (build scripts and procedural macros of the project run), so the result is self-reported; a crate that does not compile is an error stage, never a pass. Proven on a bad and a clean crate with the real clippy 0.1.99 through the real engine in the tools image.",
+      ptBR: "cargo clippy --offline com o clippy.toml e as tabelas [lints] do projeto, lido do fluxo de mensagens em JSON: cada diagnóstico do compilador e do clippy é um achado localizado que bloqueia e nada é reescrito. O crate é compilado (build scripts e macros procedurais do projeto rodam), então o resultado é autodeclarado; um crate que não compila vira etapa com erro, nunca aprovação. Provado em um crate ruim e um limpo com o clippy 0.1.99 real pelo motor real na imagem de ferramentas.",
+    },
+    { en: "cargo with clippy (Rust 1.99.1), in the JGates tools image", ptBR: "cargo com clippy (Rust 1.99.1), na imagem de ferramentas do JGates" },
+  ),
+  "dotnet-analyzers": lintEvidence(
+    "csharp",
+    LINT_CSHARP,
+    {
+      en: "dotnet build with the .NET analyzers at the recommended level, in the one solution or project of the component: every compiler and analyzer diagnostic is a blocking, located finding, with the severities of the project's .editorconfig, and nothing is rewritten. The build runs the project's MSBuild targets and analyzers, so the result is self-reported; a build that fails on the compiler or on restore is an error stage, never a pass. Proven on a bad and a clean project with the real .NET SDK 10.0.403 through the real engine in the tools image.",
+      ptBR: "dotnet build com os analisadores .NET no nível recomendado, na única solução ou projeto do componente: cada diagnóstico do compilador e dos analisadores é um achado localizado que bloqueia, com as severidades do .editorconfig do projeto, e nada é reescrito. O build roda os targets MSBuild e os analisadores do projeto, então o resultado é autodeclarado; um build que falha no compilador ou no restore vira etapa com erro, nunca aprovação. Provado em um projeto ruim e um limpo com o SDK .NET 10.0.403 real pelo motor real na imagem de ferramentas.",
+    },
+    { en: "the .NET SDK (10.0.403), in the JGates tools image", ptBR: "o SDK .NET (10.0.403), na imagem de ferramentas do JGates" },
+  ),
+  shellcheck: lintEvidence(
+    "any",
+    LINT_SHELL,
+    {
+      en: "ShellCheck over the *.sh, *.bash and *.ksh files of the workspace (up to 500) with the project's .shellcheckrc, read from its JSON report: every finding, whatever its level, is a blocking, located finding and nothing is rewritten. Proven on a bad and a clean script with the real ShellCheck through the real engine in the tools image.",
+      ptBR: "ShellCheck sobre os arquivos *.sh, *.bash e *.ksh do workspace (até 500) com o .shellcheckrc do projeto, lido do relatório JSON: todo achado, de qualquer nível, é um achado localizado que bloqueia e nada é reescrito. Provado em um script ruim e um limpo com o ShellCheck real pelo motor real na imagem de ferramentas.",
+    },
+    { en: "shellcheck, in the JGates tools image", ptBR: "shellcheck, na imagem de ferramentas do JGates" },
+  ),
+  hadolint: lintEvidence(
+    "any",
+    LINT_DOCKER,
+    {
+      en: "Hadolint over the Dockerfiles of the workspace (up to 500) with the project's .hadolint.yaml, read from its JSON report: every rule that fires, whatever its level, is a blocking, located finding; no image is built and nothing is rewritten. Proven on a bad and a clean Dockerfile with the real Hadolint 2.15.1 through the real engine in the tools image.",
+      ptBR: "Hadolint sobre os Dockerfiles do workspace (até 500) com o .hadolint.yaml do projeto, lido do relatório JSON: cada regra que dispara, de qualquer nível, é um achado localizado que bloqueia; nenhuma imagem é construída e nada é reescrito. Provado em um Dockerfile ruim e um limpo com o Hadolint 2.15.1 real pelo motor real na imagem de ferramentas.",
+    },
+    { en: "hadolint, in the JGates tools image", ptBR: "hadolint, na imagem de ferramentas do JGates" },
+  ),
   "file-size": {
     capabilities: {
       "file-size": proven(["any"], t("adapter-file-size.test.js", "file-size: a file over the line limit is a located blocking finding and the clean tree none [proves: file-size#file-size, file-size#file-size@any]")),

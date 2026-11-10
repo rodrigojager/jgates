@@ -16,6 +16,9 @@ export const SUPERSEDING_ADAPTERS: Readonly<Record<string, readonly string[]>> =
   "osv-scanner": ["osv-scanner"],
   checkov: ["checkov"],
   jscpd: ["jscpd"],
+  // MegaLinter's lint is the generic, container-flavored copy of the stack linters: when a stack linter runs lint, the plan
+  // prefers it (it uses the project's own configuration and the tools image) and the bridge's lint stays out.
+  megalinter: ["golangci-lint", "clippy", "dotnet-analyzers", "shellcheck", "hadolint"],
   "project-tests": ["pytest", "vitest"],
   coverage: ["pytest", "vitest"],
 };

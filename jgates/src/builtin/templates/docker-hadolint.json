@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "docker-hadolint",
+  "label": "Dockerfiles with Hadolint",
+  "description": "Lints Dockerfiles with Hadolint and the project's .hadolint.yaml, without building any image. Every rule that fires is a located finding; nothing is rewritten. Comes in by evidence: only when a Dockerfile sits at the root of the workspace; Dockerfiles in other folders are listed by the instance once it is declared in the configuration.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "files": [
+      "Dockerfile",
+      "Dockerfile.*",
+      "*.Dockerfile"
+    ]
+  },
+  "config": {
+    "tools": {
+      "hadolint": {
+        "adapter": "hadolint",
+        "enabled": true,
+        "capabilities": [
+          "lint"
+        ]
+      }
+    }
+  }
+}

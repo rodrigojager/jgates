@@ -1,0 +1,18 @@
+{
+ "tool": "dotnet-analyzers",
+ "executable": "dotnet",
+ "args": [
+  "build",
+  "LintFixture.csproj",
+  "--no-incremental",
+  "-nologo",
+  "-v:q",
+  "-consoleloggerparameters:NoSummary",
+  "-nodeReuse:false",
+  "-p:UseSharedCompilation=false",
+  "-p:EnableNETAnalyzers=true",
+  "-p:AnalysisLevel=latest-recommended"
+ ],
+ "exit": 0,
+ "stdout": "/workspace/Program.cs(2,6): warning CA1311: Specify a culture or use an invariant version to avoid implicit dependency on current culture (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1311) [/workspace/LintFixture.csproj]\n/workspace/Program.cs(2,1): warning CA1304: The behavior of 'string.ToUpper()' could vary based on the current user's locale settings. Replace this call in '<top-level-statements-entry-point>' with a call to 'string.ToUpper(CultureInfo)'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1304) [/workspace/LintFixture.csproj]\n/workspace/Program.cs(2,1): warning CA1806: <Main>$ calls ToUpper but does not use the new string instance that the method returns. Pass the instance as an argument to another method, assign the instance to a variable, or remove the call if it is unnecessary. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1806) [/workspace/LintFixture.csproj]\n\nBuild succeeded.\n\n/workspace/Program.cs(2,6): warning CA1311: Specify a culture or use an invariant version to avoid implicit dependency on current culture (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1311) [/workspace/LintFixture.csproj]\n/workspace/Program.cs(2,1): warning CA1304: The behavior of 'string.ToUpper()' could vary based on the current user's locale settings. Replace this call in '<top-level-statements-entry-point>' with a call to 'string.ToUpper(CultureInfo)'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1304) [/workspace/LintFixture.csproj]\n/workspace/Program.cs(2,1): warning CA1806: <Main>$ calls ToUpper but does not use the new string instance that the method returns. Pass the instance as an argument to another method, assign the instance to a variable, or remove the call if it is unnecessary. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1806) [/workspace/LintFixture.csproj]\n    3 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:09.71\n"
+}

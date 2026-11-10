@@ -30,6 +30,11 @@ import { govulncheckAdapter } from "../../adapters/govulncheck/index.js";
 import { cargoAuditAdapter } from "../../adapters/cargo-audit/index.js";
 import { cargoTestAdapter } from "../../adapters/cargo-test/index.js";
 import { formatCheckAdapter } from "../../adapters/format-check/index.js";
+import { golangciLintAdapter } from "../../adapters/golangci-lint/index.js";
+import { clippyAdapter } from "../../adapters/clippy/index.js";
+import { dotnetAnalyzersAdapter } from "../../adapters/dotnet-analyzers/index.js";
+import { shellcheckAdapter } from "../../adapters/shellcheck/index.js";
+import { hadolintAdapter } from "../../adapters/hadolint/index.js";
 import { fileSizeAdapter } from "../../adapters/file-size/index.js";
 
 export interface ExternalPlanInput {
@@ -115,6 +120,11 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [cargoAuditAdapter.manifest.id, cargoAuditAdapter],
   [cargoTestAdapter.manifest.id, cargoTestAdapter],
   [formatCheckAdapter.manifest.id, formatCheckAdapter],
+  [golangciLintAdapter.manifest.id, golangciLintAdapter],
+  [clippyAdapter.manifest.id, clippyAdapter],
+  [dotnetAnalyzersAdapter.manifest.id, dotnetAnalyzersAdapter],
+  [shellcheckAdapter.manifest.id, shellcheckAdapter],
+  [hadolintAdapter.manifest.id, hadolintAdapter],
   [fileSizeAdapter.manifest.id, fileSizeAdapter],
 ]);
 

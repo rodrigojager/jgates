@@ -178,5 +178,15 @@
   "template_dotnet-format_label": ".NET com dotnet format",
   "template_dotnet-format_description": "Verifica a formatação de espaços dos componentes C# e Visual Basic com dotnet format whitespace --verify-no-changes e o .editorconfig do projeto. Os arquivos que ele mudaria são achados localizados; nada é reescrito. Entra pela linguagem e roda onde format-check está ligado (o perfil Rigoroso o liga quando disponível).",
   "template_file-size_label": "Tamanho de arquivo",
-  "template_file-size_description": "Aponta arquivos de texto acima de um limite de linhas (5000 por padrão; defina maxLines na instância para mudar). Offline e no próprio processo: lê o workspace, não executa nada e não escreve nada. Vai substituir a subverificação file-size da ponte de qualidade, que continua no template base até a ponte ser aposentada; por isso este template é opcional."
+  "template_file-size_description": "Aponta arquivos de texto acima de um limite de linhas (5000 por padrão; defina maxLines na instância para mudar). Offline e no próprio processo: lê o workspace, não executa nada e não escreve nada. Vai substituir a subverificação file-size da ponte de qualidade, que continua no template base até a ponte ser aposentada; por isso este template é opcional.",
+  "template_go-golangci-lint_label": "Go com golangci-lint",
+  "template_go-golangci-lint_description": "Faz o lint dos componentes Go com golangci-lint run ./... e o .golangci.yml do projeto (os linters padrão sem ele). Cada problema é um achado localizado; nada é reescrito. Entra pela linguagem e roda onde lint está ligado.",
+  "template_rust-clippy_label": "Rust com clippy",
+  "template_rust-clippy_description": "Faz o lint dos componentes Rust com cargo clippy e o clippy.toml e as tabelas [lints] do projeto. Cada diagnóstico do compilador e do clippy é um achado localizado; nada é reescrito. Entra pela linguagem e roda onde lint está ligado.",
+  "template_dotnet-analyzers_label": ".NET com analisadores",
+  "template_dotnet-analyzers_description": "Faz o lint dos componentes C# e Visual Basic com dotnet build e os analisadores de código do .NET no nível recomendado, com as severidades do .editorconfig do projeto. Cada diagnóstico é um achado localizado; nada é reescrito. Entra pela linguagem e roda onde lint está ligado.",
+  "template_shell-shellcheck_label": "Scripts de shell com ShellCheck",
+  "template_shell-shellcheck_description": "Faz o lint de scripts de shell (*.sh, *.bash, *.ksh) com ShellCheck e o .shellcheckrc do projeto. Cada problema é um achado localizado; nada é reescrito. Entra por evidência: um script de shell na raiz do workspace.",
+  "template_docker-hadolint_label": "Dockerfiles com Hadolint",
+  "template_docker-hadolint_description": "Faz o lint de Dockerfiles com Hadolint e o .hadolint.yaml do projeto, sem construir imagem. Cada regra que dispara é um achado localizado; nada é reescrito. Entra por evidência: um Dockerfile na raiz do workspace."
 }

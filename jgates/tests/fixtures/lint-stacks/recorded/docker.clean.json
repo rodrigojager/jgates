@@ -1,0 +1,14 @@
+{
+ "tool": "hadolint",
+ "executable": "hadolint",
+ "args": [
+  "--format",
+  "json",
+  "--failure-threshold",
+  "style",
+  "--no-color",
+  "Dockerfile"
+ ],
+ "exit": 0,
+ "stdout": "[]"
+}

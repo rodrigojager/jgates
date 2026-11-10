@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "rust-clippy",
+  "label": "Rust with clippy",
+  "description": "Lints Rust components (Cargo.toml) with cargo clippy and the project's clippy.toml and [lints] tables. Every compiler and clippy diagnostic is a located finding; nothing is rewritten. Comes in by the Rust language and runs where lint is switched on; in a strict plan it takes the place of the bridge's lint for Rust.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "rust"
+    ]
+  },
+  "config": {
+    "tools": {
+      "clippy": {
+        "adapter": "clippy",
+        "enabled": true,
+        "capabilities": [
+          "lint"
+        ]
+      }
+    }
+  }
+}

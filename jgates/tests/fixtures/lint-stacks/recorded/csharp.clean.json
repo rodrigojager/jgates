@@ -1,0 +1,18 @@
+{
+ "tool": "dotnet-analyzers",
+ "executable": "dotnet",
+ "args": [
+  "build",
+  "LintFixture.csproj",
+  "--no-incremental",
+  "-nologo",
+  "-v:q",
+  "-consoleloggerparameters:NoSummary",
+  "-nodeReuse:false",
+  "-p:UseSharedCompilation=false",
+  "-p:EnableNETAnalyzers=true",
+  "-p:AnalysisLevel=latest-recommended"
+ ],
+ "exit": 0,
+ "stdout": "\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:06.30\n"
+}

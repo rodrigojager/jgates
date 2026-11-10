@@ -1,0 +1,13 @@
+{
+ "tool": "shellcheck",
+ "executable": "shellcheck",
+ "args": [
+  "--format",
+  "json1",
+  "--color=never",
+  "--",
+  "deploy.sh"
+ ],
+ "exit": 0,
+ "stdout": "{\"comments\":[]}\n"
+}

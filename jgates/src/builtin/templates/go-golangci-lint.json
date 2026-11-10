@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "go-golangci-lint",
+  "label": "Go with golangci-lint",
+  "description": "Lints Go components (go.mod) with golangci-lint run ./... and the project's .golangci.yml (the default linters without one). Every issue is a located finding; nothing is rewritten. Comes in by the Go language and runs where lint is switched on; in a strict plan it takes the place of the bridge's lint for Go.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "go"
+    ]
+  },
+  "config": {
+    "tools": {
+      "golangci-lint": {
+        "adapter": "golangci-lint",
+        "enabled": true,
+        "capabilities": [
+          "lint"
+        ]
+      }
+    }
+  }
+}

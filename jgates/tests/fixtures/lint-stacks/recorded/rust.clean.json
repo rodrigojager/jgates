@@ -1,0 +1,14 @@
+{
+ "tool": "clippy",
+ "executable": "cargo",
+ "args": [
+  "clippy",
+  "--offline",
+  "--message-format",
+  "json",
+  "--color",
+  "never"
+ ],
+ "exit": 0,
+ "stdout": "{\"reason\":\"compiler-artifact\",\"package_id\":\"path+file:///workspace#lintfixture@0.1.0\",\"manifest_path\":\"/workspace/Cargo.toml\",\"target\":{\"kind\":[\"bin\"],\"crate_types\":[\"bin\"],\"name\":\"lintfixture\",\"src_path\":\"/workspace/src/main.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":false,\"test\":true},\"profile\":{\"opt_level\":\"0\",\"debuginfo\":2,\"debug_assertions\":true,\"overflow_checks\":true,\"test\":false},\"features\":[],\"filenames\":[\"/tmp/run/cache/clippy/target/debug/deps/liblintfixture-498dddc0747a9595.rmeta\"],\"executable\":null,\"fresh\":false}\n{\"reason\":\"build-finished\",\"success\":true}\n"
+}

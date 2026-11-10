@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet-analyzers",
+  "label": ".NET with analyzers",
+  "description": "Lints C# and Visual Basic components with dotnet build and the .NET code analyzers at the recommended level, using the project's .editorconfig for the severities. Every compiler and analyzer diagnostic is a located finding; nothing is rewritten. Comes in by the language and runs where lint is switched on; in a strict plan it takes the place of the bridge's lint for .NET.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "csharp",
+      "visualbasic"
+    ]
+  },
+  "config": {
+    "tools": {
+      "dotnet-analyzers": {
+        "adapter": "dotnet-analyzers",
+        "enabled": true,
+        "capabilities": [
+          "lint"
+        ]
+      }
+    }
+  }
+}

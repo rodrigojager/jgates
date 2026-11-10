@@ -10,7 +10,7 @@ import type { Classification } from "../discovery/types.js";
  * Adapters whose checks run with the project's environment (tests, type checks, mutation, lint plugins, and govulncheck,
  * which loads the project's Go modules from the dependency volume because its step has no network).
  */
-const DEPENDENT_ADAPTERS = new Set(["pytest", "vitest", "eslint", "mutation", "build-check", "cargo-test", "govulncheck"]);
+const DEPENDENT_ADAPTERS = new Set(["pytest", "vitest", "eslint", "mutation", "build-check", "cargo-test", "govulncheck", "golangci-lint", "clippy", "dotnet-analyzers"]);
 
 export interface ToolItem {
   adapter: string | null;

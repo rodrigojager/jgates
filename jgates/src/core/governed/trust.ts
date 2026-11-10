@@ -81,6 +81,31 @@ export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
     config: "the formatter reads the project's own style configuration (ruff.toml or [tool.ruff], .prettierrc, rustfmt.toml, .editorconfig): the project decides what counts as formatted",
     suppressions: "honored: the formatter's own ignore mechanisms (# fmt: off, // prettier-ignore, #[rustfmt::skip], .prettierignore, .gitignore)",
   },
+  "golangci-lint": {
+    treatment: "self-reported",
+    config: "golangci-lint reads the project's .golangci.yml / .yaml / .toml / .json: the project decides which linters run and what is excluded",
+    suppressions: "honored: //nolint comments and the exclusions of the project's configuration",
+  },
+  clippy: {
+    treatment: "self-reported",
+    config: "cargo clippy compiles the crate (build scripts and procedural macros run) and reads clippy.toml, the [lints] tables of Cargo.toml and the lint attributes: the project decides the levels",
+    suppressions: "honored: #[allow] and #[expect] attributes and the lint levels of the project's configuration",
+  },
+  "dotnet-analyzers": {
+    treatment: "self-reported",
+    config: "dotnet build runs the project's MSBuild targets, source generators and analyzers and reads .editorconfig, .globalconfig and rulesets: the project decides the severities",
+    suppressions: "honored: #pragma warning disable, [SuppressMessage] and the severities of the project's configuration files",
+  },
+  shellcheck: {
+    treatment: "self-reported",
+    config: "ShellCheck reads the project's .shellcheckrc and the # shellcheck directives of the scripts: the project decides which checks count",
+    suppressions: "honored: # shellcheck disable= directives and the disable lines of .shellcheckrc",
+  },
+  hadolint: {
+    treatment: "self-reported",
+    config: "Hadolint reads the project's .hadolint.yaml: the project decides the ignored rules, severity overrides and trusted registries",
+    suppressions: "honored: # hadolint ignore= comments and the ignored rules of the configuration",
+  },
   "file-size": {
     treatment: "trusted",
     config: "the policy's instance (the maxLines limit); the analysis reads the files as data and no configuration file of the project",

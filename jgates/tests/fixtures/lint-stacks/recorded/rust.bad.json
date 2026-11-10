@@ -1,0 +1,14 @@
+{
+ "tool": "clippy",
+ "executable": "cargo",
+ "args": [
+  "clippy",
+  "--offline",
+  "--message-format",
+  "json",
+  "--color",
+  "never"
+ ],
+ "exit": 0,
+ "stdout": "{\"reason\":\"compiler-message\",\"package_id\":\"path+file:///workspace#lintfixture@0.1.0\",\"manifest_path\":\"/workspace/Cargo.toml\",\"target\":{\"kind\":[\"bin\"],\"crate_types\":[\"bin\"],\"name\":\"lintfixture\",\"src_path\":\"/workspace/src/main.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":false,\"test\":true},\"message\":{\"rendered\":\"warning: length comparison to zero\\n --> src/main.rs:3:8\\n  |\\n3 |     if items.len() == 0 {\\n  |        ^^^^^^^^^^^^^^^^ help: using `is_empty` is clearer and more explicit: `items.is_empty()`\\n  |\\n  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#len_zero\\n  = note: `#[warn(clippy::len_zero)]` on by default\\n\\n\",\"$message_type\":\"diagnostic\",\"children\":[{\"children\":[],\"code\":null,\"level\":\"help\",\"message\":\"for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#len_zero\",\"rendered\":null,\"spans\":[]},{\"children\":[],\"code\":null,\"level\":\"note\",\"message\":\"`#[warn(clippy::len_zero)]` on by default\",\"rendered\":null,\"spans\":[]},{\"children\":[],\"code\":null,\"level\":\"help\",\"message\":\"using `is_empty` is clearer and more explicit\",\"rendered\":null,\"spans\":[{\"byte_end\":72,\"byte_start\":56,\"column_end\":24,\"column_start\":8,\"expansion\":null,\"file_name\":\"src/main.rs\",\"is_primary\":true,\"label\":null,\"line_end\":3,\"line_start\":3,\"suggested_replacement\":\"items.is_empty()\",\"suggestion_applicability\":\"MachineApplicable\",\"text\":[{\"highlight_end\":24,\"highlight_start\":8,\"text\":\"    if items.len() == 0 {\"}]}]}],\"level\":\"warning\",\"message\":\"length comparison to zero\",\"spans\":[{\"byte_end\":72,\"byte_start\":56,\"column_end\":24,\"column_start\":8,\"expansion\":null,\"file_name\":\"src/main.rs\",\"is_primary\":true,\"label\":null,\"line_end\":3,\"line_start\":3,\"suggested_replacement\":null,\"suggestion_applicability\":null,\"text\":[{\"highlight_end\":24,\"highlight_start\":8,\"text\":\"    if items.len() == 0 {\"}]}],\"code\":{\"code\":\"clippy::len_zero\",\"explanation\":null}}}\n{\"reason\":\"compiler-artifact\",\"package_id\":\"path+file:///workspace#lintfixture@0.1.0\",\"manifest_path\":\"/workspace/Cargo.toml\",\"target\":{\"kind\":[\"bin\"],\"crate_types\":[\"bin\"],\"name\":\"lintfixture\",\"src_path\":\"/workspace/src/main.rs\",\"edition\":\"2021\",\"doc\":true,\"doctest\":false,\"test\":true},\"profile\":{\"opt_level\":\"0\",\"debuginfo\":2,\"debug_assertions\":true,\"overflow_checks\":true,\"test\":false},\"features\":[],\"filenames\":[\"/tmp/run/cache/clippy/target/debug/deps/liblintfixture-498dddc0747a9595.rmeta\"],\"executable\":null,\"fresh\":false}\n{\"reason\":\"build-finished\",\"success\":true}\n"
+}

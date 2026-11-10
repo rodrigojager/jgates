@@ -58,6 +58,7 @@ const DOTNET: TemplateEntry[] = [
   { id: "dotnet", source: "builtin:dotnet", languages: DOTNET_LANGUAGES },
   { id: "dotnet-build", source: "builtin:dotnet-build", evidence: true },
   { id: "dotnet-format", source: "builtin:dotnet-format", evidence: true },
+  { id: "dotnet-analyzers", source: "builtin:dotnet-analyzers", evidence: true },
   { id: "dotnet-codeql", source: "builtin:dotnet-codeql", evidence: true },
 ];
 /** Go and Rust have no stack template in init yet; the build check comes in by the language of the component. */
@@ -65,6 +66,7 @@ const GO: TemplateEntry[] = [
   { id: "go-build", source: "builtin:go-build", evidence: true },
   { id: "go-govulncheck", source: "builtin:go-govulncheck", evidence: true },
   { id: "go-gofmt", source: "builtin:go-gofmt", evidence: true },
+  { id: "go-golangci-lint", source: "builtin:go-golangci-lint", evidence: true },
   { id: "go-codeql", source: "builtin:go-codeql", evidence: true },
 ];
 const RUST: TemplateEntry[] = [
@@ -72,6 +74,7 @@ const RUST: TemplateEntry[] = [
   { id: "rust-cargo-audit", source: "builtin:rust-cargo-audit", evidence: true },
   { id: "rust-cargo-test", source: "builtin:rust-cargo-test", evidence: true },
   { id: "rust-rustfmt", source: "builtin:rust-rustfmt", evidence: true },
+  { id: "rust-clippy", source: "builtin:rust-clippy", evidence: true },
 ];
 
 /**
@@ -184,6 +187,9 @@ export function planInit(projectDir: string, profile: string): InitPlan {
   // Git history and dependency manifests are evidence of the gitleaks history scan and of the Trivy license scan.
   if (hasEvidenceOf(projectDir, "gitleaks-history")) templates.push({ id: "gitleaks-history", source: "builtin:gitleaks-history", evidence: true });
   if (hasEvidenceOf(projectDir, "trivy-licenses")) templates.push({ id: "trivy-licenses", source: "builtin:trivy-licenses", evidence: true });
+  // Shell scripts and Dockerfiles are not a language: their lint templates come in by the files themselves.
+  if (hasEvidenceOf(projectDir, "shell-shellcheck")) templates.push({ id: "shell-shellcheck", source: "builtin:shell-shellcheck", evidence: true });
+  if (hasEvidenceOf(projectDir, "docker-hadolint")) templates.push({ id: "docker-hadolint", source: "builtin:docker-hadolint", evidence: true });
   return {
     profile,
     templates: templates.map((t) => t.id),
