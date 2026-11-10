@@ -4,6 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { translator } from "../../i18n/index.js";
+import { toolsImageGateEnabled, toolsImagePreflight } from "../tools-image/index.js";
 
 export type PreflightCode =
   | "RUNTIME_MISSING"
@@ -14,7 +15,14 @@ export type PreflightCode =
   | "CONFIG_MISSING"
   | "CWD_MISSING"
   | "DIR_UNWRITABLE"
-  | "PREREQUISITE_MISSING";
+  | "PREREQUISITE_MISSING"
+  | "ENGINE_NOT_INSTALLED"
+  | "ENGINE_STOPPED"
+  | "ENGINE_LOW_MEMORY"
+  | "UNSUPPORTED_PLATFORM"
+  | "DISK_LOW"
+  | "IMAGE_MISSING"
+  | "IMAGE_VERSION_MISMATCH";
 
 export interface PreflightProblem {
   code: PreflightCode;
@@ -121,4 +129,13 @@ export function preflight(spec: PreflightSpec): PreflightProblem[] {
     }
   }
   return problems;
+}
+
+/**
+ * The engine and tools image problems as preflight problems (the same checks as the plan's blockers), for a step
+ * that is about to start in a container. Empty when container-first checks are off (see toolsImageGateEnabled).
+ */
+export function toolsImageProblems(version: string, env: NodeJS.ProcessEnv = process.env): PreflightProblem[] {
+  if (!toolsImageGateEnabled(env)) return [];
+  return toolsImagePreflight({ env, version }).map((b) => ({ code: b.code as PreflightCode, message: b.message }));
 }

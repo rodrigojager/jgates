@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "name": "jgates-tools",
+  "reference": "jgates-tools:dev",
+  "digest": "sha256:1d52516f7ac78559fb0cce793ac3e368a5409129d6925daa2adc74f777d1529a",
+  "imageVersion": "0.3.0-dev",
+  "jgatesVersion": "0.3.0",
+  "platform": "linux/amd64",
+  "sizeBytes": 113744376,
+  "published": false
+}

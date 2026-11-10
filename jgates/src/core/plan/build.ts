@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { translator, type Translator } from "../../i18n/index.js";
 import { readVersion } from "../../cli/version.js";
+import { toolsImageGateEnabled, toolsImagePreflight } from "../tools-image/index.js";
 import { listBuiltinProfiles, listBuiltinTemplates, getBuiltinTemplate, isBuiltinRef } from "../../builtin/index.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
 import { createCoreCatalog, subcheckLabel } from "../catalog/index.js";
@@ -905,6 +906,8 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     blockers.push({ code: problem.code, message: t(`plan_blocker_${problem.code.toLowerCase()}`, { subcheck: problem.subcheck, file: problem.declared }), items });
   }
   if (networkPolicy === "deny" && networkItems.length > 0) blockers.push({ code: "NETWORK_DENIED", message: t("plan_network_denied", { items: networkItems.join(", ") }), items: networkItems });
+  // The engine and the tools image (container-first): one blocker per problem with its reason and action, never one per item.
+  if (willRun.length > 0 && toolsImageGateEnabled(env)) blockers.push(...toolsImagePreflight({ env, version: options.version ?? readVersion() }));
   const blocked: PlanBlocker | null =
     willRun.length === 0
       ? requirements.length > 0

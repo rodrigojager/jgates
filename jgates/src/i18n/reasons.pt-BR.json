@@ -1,0 +1,20 @@
+{
+  "reason_ENGINE_NOT_INSTALLED": "O Docker não está instalado. O JGates precisa dele para rodar as verificações sem mexer na sua máquina.",
+  "reason_ENGINE_NOT_INSTALLED_action": "Baixar o Docker Desktop",
+  "reason_ENGINE_STOPPED": "O Docker está instalado, mas parado.",
+  "reason_ENGINE_STOPPED_action": "Abrir o Docker Desktop",
+  "reason_ENGINE_LOW_MEMORY": "O Docker tem {have} de memória; algumas verificações deste plano precisam de {need}.",
+  "reason_ENGINE_LOW_MEMORY_action": "Como aumentar a memória",
+  "reason_DISK_LOW": "Faltam {missing} livres para baixar as ferramentas.",
+  "reason_DISK_LOW_action": "Abrir Armazenamento",
+  "reason_IMAGE_MISSING": "As ferramentas do JGates ainda não foram baixadas ({size}).",
+  "reason_IMAGE_MISSING_action": "Baixar agora",
+  "reason_IMAGE_PULLING": "Baixando as ferramentas: {done} de {total}.",
+  "reason_IMAGE_PULLING_action": "Continuar configurando",
+  "reason_IMAGE_PULL_FAILED": "O download das ferramentas parou: {reason}.",
+  "reason_IMAGE_PULL_FAILED_action": "Tentar de novo",
+  "reason_IMAGE_VERSION_MISMATCH": "Estas ferramentas são da versão {actual}; este JGates usa a {expected}.",
+  "reason_IMAGE_VERSION_MISMATCH_action": "Baixar as ferramentas desta versão",
+  "reason_UNSUPPORTED_PLATFORM": "Este Docker roda {platform}; o JGates precisa de Linux amd64.",
+  "reason_UNSUPPORTED_PLATFORM_action": "Como configurar o Docker"
+}

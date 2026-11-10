@@ -7,7 +7,8 @@ import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { DEFAULT_ENV_ALLOWLIST, runSpec, type ExecutionResult, type RunnerOptions } from "../runner/process.js";
+import { spawnSync } from "node:child_process";
+import { buildEnv, DEFAULT_ENV_ALLOWLIST, runSpec, type ExecutionResult, type RunnerOptions } from "../runner/process.js";
 import { currentScope } from "../runner/scope.js";
 
 /** Development image, used when JGATES_TOOLS_IMAGE asks for it (and until the pin file exists). */
@@ -227,7 +228,42 @@ export function engineCommand(args: string[], context: EngineContext = {}, timeo
   return runSpec({ executable: context.runtime ?? engineRuntime(), args, cwd: os.tmpdir(), timeoutMs, signal: NEVER }, clientOptions(context));
 }
 
-export type EngineRunResult = ExecutionResult & { name: string; args: string[]; removalRequested: boolean; runtimeFailure: boolean };
+export interface EngineSyncResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  timedOut: boolean;
+  spawnError: { code: string; message: string } | null;
+}
+
+/**
+ * A synchronous engine client command, for the plan (which is built synchronously) to ask the engine two cheap
+ * questions: `info` and `image inspect`. Never used to run containers.
+ */
+export function engineCommandSync(args: string[], context: EngineContext = {}, timeoutMs = 20_000): EngineSyncResult {
+  const executable = context.runtime ?? engineRuntime(context.runnerOptions?.parentEnv ?? process.env);
+  const script = /\.(?:mjs|cjs|js)$/i.test(executable);
+  const result = spawnSync(script ? process.execPath : executable, script ? [executable, ...args] : args, {
+    cwd: os.tmpdir(),
+    env: buildEnv({ env: {} }, clientOptions(context)),
+    encoding: "utf8",
+    timeout: timeoutMs,
+    windowsHide: true,
+    shell: false,
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  const error = result.error as NodeJS.ErrnoException | undefined;
+  const timedOut = error?.code === "ETIMEDOUT";
+  return {
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+    exitCode: result.status,
+    timedOut,
+    spawnError: error && !timedOut ? { code: error.code ?? "SPAWN", message: error.message } : null,
+  };
+}
+
+export type EngineRunResult =ExecutionResult & { name: string; args: string[]; removalRequested: boolean; runtimeFailure: boolean };
 
 /** Runs one container under the contract; a cancelled or timed-out run also removes the container by name. */
 export async function runInEngine(spec: EngineRunSpec, context: EngineContext = {}): Promise<EngineRunResult> {
@@ -431,15 +467,61 @@ async function measureDisk(options: EngineDetectionOptions, context: EngineConte
  */
 export async function detectEngine(options: EngineDetectionOptions = {}, context: EngineContext = {}): Promise<EngineDetection> {
   const info = await engineCommand(["info", "--format", "{{json .}}"], context, 20_000);
-  if (info.spawnError) return { code: "ENGINE_NOT_INSTALLED", facts: NO_FACTS, details: info.spawnError.message };
+  const classified = classifyInfo(info);
+  if ("done" in classified) return classified.done;
+  const { facts, details } = classified;
+  const requiredMemory = options.requiredMemoryMb ?? DEFAULT_REQUIRED_MEMORY_MB;
+  const requiredDisk = options.requiredDiskMb ?? DEFAULT_REQUIRED_DISK_MB;
+  if (requiredDisk > 0) {
+    const disk = await measureDisk(options, context);
+    facts.diskFreeMb = disk.mb;
+    facts.diskSource = disk.source;
+  }
+  return verdict(facts, details, requiredMemory, requiredDisk);
+}
+
+/**
+ * The same detection for callers that cannot await (the plan): the disk is the host's, read with statfs, because no
+ * helper container is started. Memory and disk are judged exactly like detectEngine.
+ */
+export function detectEngineSync(options: EngineDetectionOptions = {}, context: EngineContext = {}): EngineDetection {
+  const info = engineCommandSync(["info", "--format", "{{json .}}"], context, 20_000);
+  const classified = classifyInfo(info);
+  if ("done" in classified) return classified.done;
+  const { facts, details } = classified;
+  const requiredMemory = options.requiredMemoryMb ?? DEFAULT_REQUIRED_MEMORY_MB;
+  const requiredDisk = options.requiredDiskMb ?? DEFAULT_REQUIRED_DISK_MB;
+  if (requiredDisk > 0) {
+    try {
+      const stats = fs.statfsSync(options.hostDiskPath ?? os.homedir());
+      facts.diskFreeMb = Math.floor((Number(stats.bavail) * Number(stats.bsize)) / (1024 * 1024));
+      facts.diskSource = "host";
+    } catch {
+      facts.diskFreeMb = null;
+      facts.diskSource = null;
+    }
+  }
+  return verdict(facts, details, requiredMemory, requiredDisk);
+}
+
+type InfoAnswer = Pick<ExecutionResult, "stdout" | "stderr" | "exitCode" | "timedOut" | "spawnError">;
+
+function classifyInfo(info: InfoAnswer): { done: EngineDetection } | { facts: EngineFacts; details: string } {
+  if (info.spawnError) return { done: { code: "ENGINE_NOT_INSTALLED", facts: NO_FACTS, details: info.spawnError.message } };
   if (info.exitCode !== 0 || info.timedOut) {
-    return { code: "ENGINE_STOPPED", facts: { ...NO_FACTS, installed: true }, details: (info.stderr || info.stdout).trim() || (info.timedOut ? "the engine did not answer in time" : `exit code ${info.exitCode}`) };
+    return {
+      done: {
+        code: "ENGINE_STOPPED",
+        facts: { ...NO_FACTS, installed: true },
+        details: (info.stderr || info.stdout).trim() || (info.timedOut ? "the engine did not answer in time" : `exit code ${info.exitCode}`),
+      },
+    };
   }
   let parsed: { ServerVersion?: string; OSType?: string; Architecture?: string; MemTotal?: number; NCPU?: number };
   try {
     parsed = JSON.parse(info.stdout) as typeof parsed;
   } catch {
-    return { code: "ENGINE_STOPPED", facts: { ...NO_FACTS, installed: true }, details: `unreadable engine info: ${info.stdout.slice(0, 200)}` };
+    return { done: { code: "ENGINE_STOPPED", facts: { ...NO_FACTS, installed: true }, details: `unreadable engine info: ${info.stdout.slice(0, 200)}` } };
   }
   const memoryMb = parsed.MemTotal ? Math.round(parsed.MemTotal / (1024 * 1024)) : null;
   const arch = parsed.Architecture ?? null;
@@ -454,18 +536,29 @@ export async function detectEngine(options: EngineDetectionOptions = {}, context
     diskFreeMb: null,
     diskSource: null,
   };
-  const details = `engine ${facts.serverVersion ?? "?"}, ${facts.os ?? "?"}/${arch ?? "?"}, ${memoryMb ?? "?"} MB, ${facts.cpus ?? "?"} CPUs`;
-  if (facts.os !== "linux" || !(arch === "x86_64" || arch === "amd64")) return { code: "UNSUPPORTED_PLATFORM", facts, details };
-  const requiredMemory = options.requiredMemoryMb ?? DEFAULT_REQUIRED_MEMORY_MB;
-  const requiredDisk = options.requiredDiskMb ?? DEFAULT_REQUIRED_DISK_MB;
-  if (requiredDisk > 0) {
-    const disk = await measureDisk(options, context);
-    facts.diskFreeMb = disk.mb;
-    facts.diskSource = disk.source;
-  }
-  if (memoryMb !== null && memoryMb < requiredMemory * MEMORY_MARGIN) return { code: "ENGINE_LOW_MEMORY", facts, details };
+  return { facts, details: `engine ${facts.serverVersion ?? "?"}, ${facts.os ?? "?"}/${arch ?? "?"}, ${memoryMb ?? "?"} MB, ${facts.cpus ?? "?"} CPUs` };
+}
+
+function verdict(facts: EngineFacts, details: string, requiredMemory: number, requiredDisk: number): EngineDetection {
+  if (facts.os !== "linux" || !(facts.arch === "x86_64" || facts.arch === "amd64")) return { code: "UNSUPPORTED_PLATFORM", facts, details };
+  if (facts.memoryMb !== null && facts.memoryMb < requiredMemory * MEMORY_MARGIN) return { code: "ENGINE_LOW_MEMORY", facts, details };
   if (requiredDisk > 0 && facts.diskFreeMb !== null && facts.diskFreeMb < requiredDisk) return { code: "DISK_LOW", facts, details };
   return { code: null, facts, details };
+}
+
+/** Facts of a local image, synchronously (the plan); null when the engine does not have it. */
+export function inspectImageSync(reference: string, context: EngineContext = {}): ImageFacts | null {
+  // No --format: the JSON array every engine prints, which the fake engine prints too.
+  const result = engineCommandSync(["image", "inspect", reference], context);
+  if (result.spawnError || result.exitCode !== 0) return null;
+  try {
+    const parsed = JSON.parse(result.stdout) as Array<{ Id: string; Size?: number; Config?: { Labels?: Record<string, string> | null } }>;
+    const facts = parsed[0];
+    if (!facts) return null;
+    return { id: facts.Id, labels: facts.Config?.Labels ?? {}, sizeBytes: facts.Size ?? 0 };
+  } catch {
+    return null;
+  }
 }
 
 // ---- pull with progress ------------------------------------------------------------------------------------------

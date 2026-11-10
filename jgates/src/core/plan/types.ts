@@ -1,3 +1,4 @@
+import type { ReasonAction } from "../reasons/index.js";
 import type { LayerName } from "../config/resolve/index.js";
 import type { CheckCondition, LockInfo, SelectionDecision, SelectionIssue, SelectionReason } from "../selection/index.js";
 
@@ -299,6 +300,10 @@ export interface PlanBlocker {
   code: string;
   message: string;
   items?: string[];
+  /** The one action that clears the blocker (reasons catalogue), with its label in the language of the plan. */
+  action?: ReasonAction;
+  /** Raw engine text, for a "Details" fold; never the main text. */
+  details?: string;
 }
 
 export interface PlanBody {

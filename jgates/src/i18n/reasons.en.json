@@ -1,0 +1,20 @@
+{
+  "reason_ENGINE_NOT_INSTALLED": "Docker is not installed. JGates needs it to run the checks without touching your machine.",
+  "reason_ENGINE_NOT_INSTALLED_action": "Download Docker Desktop",
+  "reason_ENGINE_STOPPED": "Docker is installed, but it is stopped.",
+  "reason_ENGINE_STOPPED_action": "Open Docker Desktop",
+  "reason_ENGINE_LOW_MEMORY": "Docker has {have} of memory; some checks of this plan need {need}.",
+  "reason_ENGINE_LOW_MEMORY_action": "How to increase the memory",
+  "reason_DISK_LOW": "{missing} more free space is needed to download the tools.",
+  "reason_DISK_LOW_action": "Open Storage",
+  "reason_IMAGE_MISSING": "The JGates tools have not been downloaded yet ({size}).",
+  "reason_IMAGE_MISSING_action": "Download now",
+  "reason_IMAGE_PULLING": "Downloading the tools: {done} of {total}.",
+  "reason_IMAGE_PULLING_action": "Keep configuring",
+  "reason_IMAGE_PULL_FAILED": "The download of the tools stopped: {reason}.",
+  "reason_IMAGE_PULL_FAILED_action": "Try again",
+  "reason_IMAGE_VERSION_MISMATCH": "These tools are version {actual}; this JGates uses {expected}.",
+  "reason_IMAGE_VERSION_MISMATCH_action": "Download the tools of this version",
+  "reason_UNSUPPORTED_PLATFORM": "This Docker runs {platform}; JGates needs Linux amd64.",
+  "reason_UNSUPPORTED_PLATFORM_action": "How to set up Docker"
+}
