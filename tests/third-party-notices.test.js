@@ -66,3 +66,26 @@ test('every Quality integration of V2 has a row in THIRD_PARTY_NOTICES.md', () =
     assert.match(row, /MIT|Apache-2\.0|BSD|CodeQL Terms/, `${tool} row names a license`);
   }
 });
+
+test('every tool shipped in the tools image has a row with a license and a source URL', () => {
+  const image = JSON.parse(fs.readFileSync(path.join(root, 'jgates', 'release', 'image-tools.json'), 'utf8'));
+  const tools = Object.keys(image.tools);
+  assert.ok(tools.length >= 60, `image-tools.json lists ${tools.length} tools`);
+  const start = notices.indexOf('## Tools shipped in the tools image');
+  assert.ok(start >= 0, 'the tools image section exists');
+  const rows = new Map();
+  for (const line of notices.slice(start).split('\n')) {
+    const cells = line.split('|').map((c) => c.trim());
+    const name = cells[1] && cells[1].match(/^`([^`]+)`$/);
+    if (name) rows.set(name[1], cells);
+  }
+  const problems = [];
+  for (const tool of tools) {
+    const cells = rows.get(tool);
+    if (!cells) problems.push(`${tool}: no row`);
+    else if (!cells[2]) problems.push(`${tool}: no license`);
+    else if (!/^<https:\/\/[^>\s]+>$/.test(cells[3] || '')) problems.push(`${tool}: no source URL`);
+  }
+  assert.deepEqual(problems, []);
+  for (const gpl of ['git', 'rsync', 'shellcheck', 'hadolint', 'golangci-lint']) assert.match(rows.get(gpl)[2], /GPL/, `${gpl} is marked GPL`);
+});

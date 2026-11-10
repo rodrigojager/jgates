@@ -7,7 +7,9 @@
 //    `final` target into the engine with one org.jgates.tool.<tool>.version label per tool (the second build reuses
 //    the first one's cache);
 // 4. prunes only the dangling images of this project, selected by its label (no unfiltered prune);
-// 5. verifies the labels and the image.json of the loaded image, and prints its size.
+// 5. verifies the labels and the image.json of the loaded image, and prints its size;
+// 6. runs the gates of image-gates.mjs (versions, licenses, forbidden content, size, image scan, smoke) and fails the
+//    build when one fails.
 // The build runs on the dedicated buildx builder `jgates-dev`, so its cache is JGates's own. The image carries the
 // labels org.jgates.dev=true and jproject.project=jgates.
 import { spawnSync } from "node:child_process";
@@ -15,6 +17,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runGates } from "./image-gates.mjs";
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = path.resolve(packageRoot, "..");
@@ -195,6 +198,10 @@ try {
   // Only dangling images of this project, selected by its label.
   run(runtime, ["image", "prune", "-f", "--filter", "label=jproject.project=jgates"]);
   verify(document);
+  // The gates of PLAN-image.md section 5 on the loaded image; the reports go to _work/00-tmp/v2-container-image/.
+  const gates = await runGates({ image: TAG });
+  console.log(`image:build: gates ${gates.passed ? "passed" : "FAILED"}; reports in ${gates.outDir}`);
+  if (!gates.passed) fail("the image failed a build gate (see above and gates-report.json)");
 } catch (error) {
   if (!(error instanceof BuildFailure)) throw error;
   console.error(`image:build: ${error.message}`);

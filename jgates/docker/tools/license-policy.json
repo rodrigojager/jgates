@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 1,
+  "description": "License allow-list of the JGates tools image (PLAN-image.md sections 2 and 5). image-gates.mjs checks every component of the image's SPDX SBOM against it. An identifier that is not listed fails the build; adding one is a decision of the user, never of the build.",
+  "allowedSpdx": {
+    "permissive": [
+      "0BSD",
+      "AFL-2.0",
+      "AFL-2.1",
+      "Apache-2.0",
+      "Artistic-2.0",
+      "Beerware",
+      "BlueOak-1.0.0",
+      "BSD-1-Clause",
+      "BSD-2-Clause",
+      "BSD-2-Clause-NetBSD",
+      "BSD-3-Clause",
+      "BSD-3-Clause-Attribution",
+      "BSD-3-Clause-Clear",
+      "BSD-4-Clause",
+      "BSD-4-Clause-UC",
+      "BSL-1.0",
+      "bzip2-1.0.6",
+      "CC-BY-3.0",
+      "CC-BY-3.0-US",
+      "CC-BY-4.0",
+      "CC0-1.0",
+      "CNRI-Python",
+      "curl",
+      "FSFAP",
+      "FSFUL",
+      "FSFULLR",
+      "FTL",
+      "HPND-sell-variant",
+      "ICU",
+      "IJG",
+      "ISC",
+      "Kazlib",
+      "Libpng",
+      "libtiff",
+      "MIT",
+      "MIT-0",
+      "MIT-CMU",
+      "MIT-Modern-Variant",
+      "MIT-open-group",
+      "NTP",
+      "OFL-1.1",
+      "OLDAP-2.8",
+      "PostgreSQL",
+      "PSF-2.0",
+      "Python-2.0",
+      "RSA-MD",
+      "Sleepycat",
+      "SMAIL-GPL",
+      "snprintf",
+      "SunPro",
+      "SWL",
+      "TCL",
+      "TU-Berlin-2.0",
+      "Unicode-3.0",
+      "Unicode-DFS-2016",
+      "Unlicense",
+      "UPL-1.0",
+      "X11",
+      "Zlib",
+      "zlib-acknowledgement",
+      "ZPL-2.1",
+      "WTFPL",
+      "Apache-1.1"
+    ],
+    "weakCopyleft": [
+      "CC-BY-SA-3.0",
+      "CC-BY-SA-4.0",
+      "EPL-1.0",
+      "EPL-2.0",
+      "LGPL-2.0-only",
+      "LGPL-2.0-or-later",
+      "LGPL-2.1-only",
+      "LGPL-2.1-or-later",
+      "LGPL-3.0-only",
+      "LGPL-3.0-or-later",
+      "MPL-1.0",
+      "MPL-1.1",
+      "MPL-2.0",
+      "MS-PL",
+      "NPL-1.1",
+      "CDDL-1.0",
+      "CDDL-1.1"
+    ],
+    "gpl": [
+      "GPL-1.0-only",
+      "GPL-1.0-or-later",
+      "GPL-2.0-only",
+      "GPL-2.0-or-later",
+      "GPL-3.0-only",
+      "GPL-3.0-or-later",
+      "GFDL-1.1-or-later",
+      "GFDL-1.2-only",
+      "GFDL-1.2-or-later",
+      "GFDL-1.3-only",
+      "GFDL-1.3-or-later",
+      "GFDL-1.3-no-invariants-only",
+      "GFDL-1.3-no-invariants-or-later"
+    ]
+  },
+  "allowedExceptions": [
+    "Classpath-exception-2.0",
+    "GCC-exception-3.1",
+    "LLVM-exception",
+    "Libtool-exception",
+    "Autoconf-exception-macro",
+    "Autoconf-exception-generic",
+    "Bison-exception-2.2",
+    "Font-exception-2.0",
+    "OpenSSL-exception",
+    "Linux-syscall-note"
+  ],
+  "forbiddenPatterns": [
+    "AGPL",
+    "Affero",
+    "SSPL",
+    "Server-Side-Public",
+    "BUSL",
+    "Business[-_ ]Source",
+    "Commons[-_ ]Clause",
+    "Elastic-2",
+    "(^|[-_ ])NC([-_ ]|$)",
+    "Non[-_ ]?Commercial",
+    "Proprietary",
+    "^JSON$",
+    "RPL-",
+    "Confluent"
+  ],
+  "allowedLicenseRefNames": [
+    "^Python-Software-Foundation-License$"
+  ],
+  "operatingSystem": {
+    "packageTypes": [
+      "debian"
+    ],
+    "rule": "Debian packages come from Debian main, which only contains free software. Their per-file licenses are free-form names taken from the copyright files, so they are checked against forbiddenPatterns only; the apt Section of every installed package is verified to be main by the forbidden-content gate."
+  },
+  "declaredByTool": {
+    "packageTypes": [
+      "gobinary",
+      "rustbinary",
+      "dotnet-core",
+      "application"
+    ],
+    "rule": "Dependency lists read from a compiled tool (Go modules, Rust crates, .NET assemblies) carry no license data. Their license is the one of the tool that contains them, which THIRD_PARTY_NOTICES.md lists with license and source URL."
+  },
+  "gplPackages": [
+    {
+      "name": "javax.help:javahelp",
+      "reason": "GPL-2.0 with Classpath exception, bundled unmodified by ZAP (PLAN-image.md section 2)"
+    }
+  ],
+  "resolved": {
+    "CacheControl": {
+      "license": "Apache-2.0",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "certifi": {
+      "license": "MPL-2.0",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "distlib": {
+      "license": "PSF-2.0",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "distro": {
+      "license": "Apache-2.0",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "face": {
+      "license": "BSD-3-Clause",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "idna": {
+      "license": "BSD-3-Clause",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "junit-xml": {
+      "license": "MIT",
+      "evidence": "METADATA says License: MIT; the extra classifier 'License :: Freely Distributable' is a trove classifier that Trivy turns into an unknown name"
+    },
+    "msgpack": {
+      "license": "Apache-2.0",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "packaging": {
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "peewee": {
+      "license": "MIT",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "platformdirs": {
+      "license": "MIT",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "pygments": {
+      "license": "BSD-2-Clause",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "pyproject-hooks": {
+      "license": "MIT",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "requests": {
+      "license": "Apache-2.0",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "resolvelib": {
+      "license": "ISC",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "rich": {
+      "license": "MIT",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "setuptools": {
+      "license": "MIT",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "tomli": {
+      "license": "MIT",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "tomli-w": {
+      "license": "MIT",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "truststore": {
+      "license": "MIT",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "urllib3": {
+      "license": "MIT",
+      "evidence": "METADATA of the package in the image (License / License-Expression), or the vendor.txt of pip for its vendored copies"
+    },
+    "javax.help:javahelp": {
+      "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+      "evidence": "Maven POM / project license of the jar bundled by ZAP 2.17.0 (identified by the build team, no license data in the jar)"
+    },
+    "net.sf.json-lib:json-lib": {
+      "license": "Apache-2.0",
+      "evidence": "Maven POM / project license of the jar bundled by ZAP 2.17.0 (identified by the build team, no license data in the jar)"
+    },
+    "org.hsqldb:hsqldb": {
+      "license": "BSD-3-Clause",
+      "evidence": "Maven POM / project license of the jar bundled by ZAP 2.17.0 (identified by the build team, no license data in the jar)"
+    },
+    "org.swinglabs.swingx:swingx-all": {
+      "license": "LGPL-2.1-only",
+      "evidence": "Maven POM / project license of the jar bundled by ZAP 2.17.0 (identified by the build team, no license data in the jar)"
+    },
+    "org.zaproxy:zap": {
+      "license": "Apache-2.0",
+      "evidence": "ZAP project license (PLAN-image.md section 2)"
+    },
+    "xom:xom": {
+      "license": "LGPL-2.1-only",
+      "evidence": "Maven POM / project license of the jar bundled by ZAP 2.17.0 (identified by the build team, no license data in the jar)"
+    },
+    "jgates": {
+      "license": "MIT",
+      "evidence": "the JGates CLI of this repository (LICENSE)"
+    },
+    "qrcode-terminal": {
+      "license": "Apache-2.0",
+      "evidence": "package.json of the package in the JGates CLI dependencies"
+    }
+  },
+  "forbiddenContentAllow": [
+    "/opt/jgates"
+  ],
+  "gitleaksRoots": [
+    "/etc",
+    "/opt/jgates",
+    "/root",
+    "/home",
+    "/workspace",
+    "/output",
+    "/usr/local/etc",
+    "/usr/share/jgates",
+    "/srv",
+    "/var/lib"
+  ],
+  "forbiddenContentAllowPatterns": [
+    {
+      "pattern": "^/usr/local/go/src/(.+/)?testdata/",
+      "reason": "test fixtures of the Go standard library source (sample keys and certificates used by its own tests)"
+    },
+    {
+      "pattern": "^/usr/local/go/src/crypto/x509/platform_root_key\\.pem$",
+      "reason": "sample key of the Go standard library tests"
+    }
+  ]
+}

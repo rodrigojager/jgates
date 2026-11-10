@@ -103,7 +103,15 @@ RUN set -eux; \
 # govulncheck by module version: `go install` verifies every module against the Go checksum database (sum.golang.org).
 FROM go AS go-tools
 ARG GOVULNCHECK_VERSION=1.9.0
+# gitleaks 8.30.1 (the newest release) is published built with Go 1.24.11, whose crypto/tls has a critical CVE fixed in
+# 1.24.13 (CVE-2025-68121, found by the image scan gate). Built here from the same module version with the image's Go
+# (the build flags of its goreleaser file), the binary carries the fixed standard library.
+ARG GITLEAKS_VERSION=8.30.1
 RUN set -eux; \
+    GOTOOLCHAIN=local GOBIN=/out CGO_ENABLED=0 GOPATH=/tmp/gopath GOCACHE=/tmp/gocache \
+      /usr/local/go/bin/go install -trimpath -tags gore2regex \
+        -ldflags="-s -w -X=github.com/zricethezav/gitleaks/v8/version.Version=${GITLEAKS_VERSION}" \
+        "github.com/zricethezav/gitleaks/v8@v${GITLEAKS_VERSION}"; \
     GOTOOLCHAIN=local GOBIN=/out CGO_ENABLED=0 GOPATH=/tmp/gopath GOCACHE=/tmp/gocache \
       /usr/local/go/bin/go install -trimpath -ldflags='-s -w' "golang.org/x/vuln/cmd/govulncheck@v${GOVULNCHECK_VERSION}"; \
     rm -rf /tmp/gopath /tmp/gocache
@@ -120,8 +128,6 @@ RUN set -eux; \
 
 # --- Cross-stack security, API and runtime tools (2.5): release binaries --------------------------------------------
 FROM fetch AS binaries
-ARG GITLEAKS_VERSION=8.30.1
-ARG GITLEAKS_SHA256_AMD64=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
 ARG TRIVY_VERSION=0.76.2
 ARG TRIVY_SHA256_AMD64=bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf
 ARG OSV_SCANNER_VERSION=2.7.1
@@ -135,8 +141,6 @@ ARG SQUAWK_SHA256_AMD64=a61661808119a82515565503111099b070c869f73698f61cb1785de5
 RUN set -eux; \
     mkdir -p /out; \
     cd /tmp; \
-    fetch "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" "${GITLEAKS_SHA256_AMD64}" gitleaks.tar.gz; \
-    tar -xzf gitleaks.tar.gz -C /out gitleaks; \
     fetch "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" "${TRIVY_SHA256_AMD64}" trivy.tar.gz; \
     tar -xzf trivy.tar.gz -C /out trivy; \
     fetch "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" "${OSV_SCANNER_SHA256_AMD64}" /out/osv-scanner; \
@@ -268,7 +272,7 @@ COPY --from=node /opt/node /opt/node
 COPY --from=uv /out/uv /out/uvx /usr/local/bin/
 COPY --from=binaries /out/ /usr/local/bin/
 COPY --from=golangci-lint /out/golangci-lint /usr/local/bin/golangci-lint
-COPY --from=go-tools /out/govulncheck /usr/local/bin/govulncheck
+COPY --from=go-tools /out/govulncheck /out/gitleaks /usr/local/bin/
 COPY --from=rust-tools /out/bin/cargo-audit /usr/local/bin/cargo-audit
 COPY --from=python-tools /opt/tools /opt/tools
 COPY --from=node-tools /opt/tools/node /opt/tools/node
@@ -331,6 +335,10 @@ RUN set -eux; \
     ln -s /opt/jgates/jgates/dist/cli/main.js /usr/local/bin/jgates; \
     /usr/local/bin/python3 -m compileall -q /opt/jgates/quality-gate/sidecar; \
     PYTHONDONTWRITEBYTECODE= /opt/tools/python/quality-sidecar/bin/python -c 'import quality_sidecar.cli, tomlkit, defusedxml'
+
+# The license and notice files of everything the image ships (license gate of PLAN-image.md section 5).
+COPY collect-notices.sh /usr/share/jgates/collect-notices.sh
+RUN sh /usr/share/jgates/collect-notices.sh
 
 # Changes on every build (version and source revision): last, so the layers above stay cached. The versions of the
 # pinned tools are the build arguments above; write-image-json.py checks each tool against its pin and fails the build

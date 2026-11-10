@@ -166,3 +166,81 @@ upstream files, every modification and how the ShareAlike and attribution obliga
 whose record does not state its modifications and obligations. The Semantic methods `differential-review`,
 `variant-analysis` and `insecure-defaults` (`jgates/src/core/semantic-modules/`) read this material as data at run time;
 the `cross-component` method and the root-cause correlation are original JGates work.
+
+## Tools shipped in the tools image (jgates-tools)
+
+Every tool listed in /etc/jgates/image.json of the image, with its license and the place its source is published.
+Tools are installed unmodified, from the pinned release or package, and run only as separate processes: JGates never
+links to them. The GPL tools (git, make, rsync, shellcheck, hadolint, golangci-lint, gcc, the Java runtime with its
+Classpath Exception) are shipped unmodified; their source is available at the URL of the row and, for Debian packages,
+from Debian. The image carries the license and notice files of what it ships in /usr/share/jgates/notices/
+(this file, the JGates license, the license files of the Python and Node packages of the tool environments, and the
+Debian copyright files). The image build checks every component of its SPDX SBOM against
+jgates/docker/tools/license-policy.json: AGPL and unknown licenses fail the build. Never in the image: CodeQL,
+the official Semgrep rules, vulnerability databases, MegaLinter, credentials.
+
+| Tool | License | Source |
+| --- | --- | --- |
+| `cargo` | MIT OR Apache-2.0 | <https://github.com/rust-lang/cargo> |
+| `cargo-audit` | Apache-2.0 OR MIT | <https://github.com/rustsec/rustsec> |
+| `checkov` | Apache-2.0 | <https://github.com/bridgecrewio/checkov> |
+| `clippy` | MIT OR Apache-2.0 | <https://github.com/rust-lang/rust-clippy> |
+| `corepack` | MIT | <https://github.com/nodejs/corepack> |
+| `coverage` | Apache-2.0 | <https://github.com/nedbat/coveragepy> |
+| `curl` | curl | <https://github.com/curl/curl> |
+| `dependency-cruiser` | MIT | <https://github.com/sverweij/dependency-cruiser> |
+| `dotnet` | MIT | <https://github.com/dotnet/sdk> |
+| `dotnet-format` | MIT | <https://github.com/dotnet/format> |
+| `eslint` | MIT | <https://github.com/eslint/eslint> |
+| `fast-check` | MIT | <https://github.com/dubzzz/fast-check> |
+| `gcc` | GPL-3.0-or-later with the GCC Runtime Library Exception | <https://gcc.gnu.org/git.html> |
+| `git` | GPL-2.0-only | <https://git.kernel.org/pub/scm/git/git.git> |
+| `gitleaks` | MIT | <https://github.com/gitleaks/gitleaks> |
+| `go` | BSD-3-Clause | <https://github.com/golang/go> |
+| `golangci-lint` | GPL-3.0 | <https://github.com/golangci/golangci-lint> |
+| `govulncheck` | BSD-3-Clause | <https://github.com/golang/vuln> |
+| `hadolint` | GPL-3.0 | <https://github.com/hadolint/hadolint> |
+| `hypothesis` | MPL-2.0 | <https://github.com/HypothesisWorks/hypothesis> |
+| `import-linter` | BSD-2-Clause | <https://github.com/seddonym/import-linter> |
+| `java` | GPL-2.0-only with the Classpath Exception (Eclipse Temurin JRE) | <https://github.com/adoptium/jdk21u> |
+| `jgates` | MIT | <https://github.com/rodrigojager/jgates> |
+| `jq` | MIT | <https://github.com/jqlang/jq> |
+| `jscpd` | MIT | <https://github.com/kucherenko/jscpd> |
+| `make` | GPL-3.0-or-later | <https://git.savannah.gnu.org/cgit/make.git> |
+| `mutmut` | BSD-3-Clause | <https://github.com/boxed/mutmut> |
+| `mypy` | MIT | <https://github.com/python/mypy> |
+| `node` | MIT | <https://github.com/nodejs/node> |
+| `npm` | Artistic-2.0 | <https://github.com/npm/cli> |
+| `oasdiff` | Apache-2.0 | <https://github.com/oasdiff/oasdiff> |
+| `osv-scanner` | Apache-2.0 | <https://github.com/google/osv-scanner> |
+| `pkg-config` | ISC (pkgconf) | <https://github.com/pkgconf/pkgconf> |
+| `prettier` | MIT | <https://github.com/prettier/prettier> |
+| `pyright` | MIT | <https://github.com/microsoft/pyright> |
+| `pytest` | MIT | <https://github.com/pytest-dev/pytest> |
+| `pytest-cov` | MIT | <https://github.com/pytest-dev/pytest-cov> |
+| `python` | PSF-2.0 | <https://github.com/python/cpython> |
+| `quality-sidecar` | MIT | <https://github.com/rodrigojager/jgates> |
+| `rsync` | GPL-3.0-or-later | <https://github.com/RsyncProject/rsync> |
+| `ruff` | MIT | <https://github.com/astral-sh/ruff> |
+| `rustc` | MIT OR Apache-2.0 | <https://github.com/rust-lang/rust> |
+| `rustfmt` | MIT OR Apache-2.0 | <https://github.com/rust-lang/rustfmt> |
+| `rustup` | MIT OR Apache-2.0 | <https://github.com/rust-lang/rustup> |
+| `schemathesis` | MIT | <https://github.com/schemathesis/schemathesis> |
+| `semgrep` | LGPL-2.1-only (engine only, no Registry rules) | <https://github.com/semgrep/semgrep> |
+| `shellcheck` | GPL-3.0-or-later | <https://github.com/koalaman/shellcheck> |
+| `squawk` | Apache-2.0 | <https://github.com/sbdchd/squawk> |
+| `stryker` | Apache-2.0 | <https://github.com/stryker-mutator/stryker-js> |
+| `stryker-jest-runner` | Apache-2.0 | <https://github.com/stryker-mutator/stryker-js> |
+| `stryker-vitest-runner` | Apache-2.0 | <https://github.com/stryker-mutator/stryker-js> |
+| `tini` | MIT | <https://github.com/krallin/tini> |
+| `tomlkit` | MIT | <https://github.com/python-poetry/tomlkit> |
+| `trivy` | Apache-2.0 | <https://github.com/aquasecurity/trivy> |
+| `typescript` | Apache-2.0 | <https://github.com/microsoft/TypeScript> |
+| `typescript-eslint` | MIT | <https://github.com/typescript-eslint/typescript-eslint> |
+| `unzip` | Info-ZIP | <https://sourceforge.net/projects/infozip/> |
+| `uv` | MIT OR Apache-2.0 | <https://github.com/astral-sh/uv> |
+| `vitest` | MIT | <https://github.com/vitest-dev/vitest> |
+| `vitest-coverage-v8` | MIT | <https://github.com/vitest-dev/vitest> |
+| `xz` | 0BSD (liblzma) and GPL-2.0-or-later (xz tools) | <https://github.com/tukaani-project/xz> |
+| `zap` | Apache-2.0 | <https://github.com/zaproxy/zaproxy> |
+| `zizmor` | MIT | <https://github.com/zizmorcore/zizmor> |
