@@ -151,6 +151,34 @@ test("fix mode without a correction tool falls back to blocking, with the explan
   assert.ok(!p.git("log", "--format=%s").stdout.includes("add clients.txt"));
 });
 
+test("container mode (the default outside the image): the hook checks the staged files in a helper container, with no Python on the host", () => {
+  const p = project();
+  const engine = tmp("jgates-hooks-engine-");
+  const calls = path.join(engine, "calls.jsonl");
+  const runtime = path.join(engine, "docker.cjs");
+  fs.writeFileSync(runtime, `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(calls)};\nprocess.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};\nrequire(${JSON.stringify(path.join(here, "docker", "fake-docker.cjs"))});\n`);
+  const env = { ...p.env, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: "jgates-tools:dev" };
+  delete env.JGATES_PYTHON;
+  assert.equal(p.cli("install", "pre-commit").code, 0);
+  const commit = (file, text) => {
+    fs.writeFileSync(path.join(p.dir, file), text);
+    assert.equal(spawnSync("git", ["add", file], { cwd: p.dir, env }).status, 0);
+    const r = spawnSync("git", ["commit", "-qm", `add ${file}`], { cwd: p.dir, encoding: "utf8", env });
+    return { code: r.status, out: r.stdout + r.stderr };
+  };
+  const helperRuns = () => (fs.existsSync(calls) ? fs.readFileSync(calls, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []).filter((c) => c[0] === "run" && c.includes("org.jgates.kind=helper"));
+
+  const blocked = commit("clients.txt", `client: ${CPF}\n`);
+  assert.notEqual(blocked.code, 0, blocked.out);
+  assert.match(blocked.out, /clients\.txt/);
+  assert.ok(!blocked.out.includes(CPF));
+  assert.equal(helperRuns().length, 1);
+  p.git("reset", "-q");
+  fs.rmSync(path.join(p.dir, "clients.txt"));
+  assert.equal(commit("notes.txt", "plain text\n").code, 0);
+  assert.equal(helperRuns().length, 2);
+});
+
 test("mode off writes no hook", () => {
   const p = project({ hookMode: "off" });
   const r = p.cli("install", "pre-commit", "--json");

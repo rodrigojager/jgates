@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { findQualityGateDir, sidecarRuntime } from "../../bridge/index.js";
 import { translator } from "../../../i18n/index.js";
+import { runTomlHelper } from "../../pii-fix/helper.js";
 import {
   CodecError,
   applyEditsToValue,
@@ -54,10 +55,32 @@ function unavailableReason(key: "codecs_toml_no_python" | "codecs_toml_needs_ima
   return t("codecs_toml_unavailable", { reason });
 }
 
+/** Outside the tools image: the same helper in a short container (no network, nothing mounted); the text travels on stdin. */
+function callContainerHelper(request: Record<string, unknown>, env: NodeJS.ProcessEnv): CallResult {
+  const answer = runTomlHelper({ schemaVersion: 1, ...request }, TIMEOUT_MS, env);
+  if (answer.kind === "unavailable") return { kind: "unavailable", reason: unavailableReason("failed", answer.reason) };
+  if (answer.kind === "timeout") return { kind: "unavailable", reason: unavailableReason("failed", `no answer within ${TIMEOUT_MS / 1000} s`) };
+  return parseResponse(answer.stdout, answer.stderr, answer.exitCode);
+}
+
+function parseResponse(stdout: string, stderr: string, status: number | null): CallResult {
+  let response: HelperResponse;
+  try {
+    response = JSON.parse(stdout.trim()) as HelperResponse;
+  } catch {
+    const detail = (stderr || stdout || `exit ${status}`).trim().split("\n").pop() ?? "";
+    return { kind: "unavailable", reason: unavailableReason("failed", detail) };
+  }
+  if (!response.ok && response.error?.code === "TOMLKIT_MISSING") {
+    return { kind: "unavailable", reason: unavailableReason("codecs_toml_no_tomlkit") };
+  }
+  return { kind: "response", response };
+}
+
 function callHelper(request: Record<string, unknown>, env: NodeJS.ProcessEnv): CallResult {
   // tomlkit lives in the sidecar's environment of the tools image: natively only inside the image (no Python on the host).
   const runtime = sidecarRuntime(env);
-  if (!runtime.native) return { kind: "unavailable", reason: unavailableReason("codecs_toml_needs_image") };
+  if (!runtime.native) return callContainerHelper(request, env);
   const interpreter = runtime.interpreter;
   if (!interpreter) return { kind: "unavailable", reason: unavailableReason("codecs_toml_no_python") };
   const sidecarDir = runtime.pythonPath;
@@ -79,17 +102,7 @@ function callHelper(request: Record<string, unknown>, env: NodeJS.ProcessEnv): C
     },
   });
   if (result.error) return { kind: "unavailable", reason: unavailableReason("failed", result.error.message) };
-  let response: HelperResponse;
-  try {
-    response = JSON.parse(result.stdout.trim()) as HelperResponse;
-  } catch {
-    const detail = (result.stderr || result.stdout || `exit ${result.status}`).trim().split("\n").pop() ?? "";
-    return { kind: "unavailable", reason: unavailableReason("failed", detail) };
-  }
-  if (!response.ok && response.error?.code === "TOMLKIT_MISSING") {
-    return { kind: "unavailable", reason: unavailableReason("codecs_toml_no_tomlkit") };
-  }
-  return { kind: "response", response };
+  return parseResponse(result.stdout, result.stderr, result.status);
 }
 
 /** True when Python and tomlkit are reachable for structured TOML edits. */

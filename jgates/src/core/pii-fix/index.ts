@@ -165,7 +165,7 @@ export async function checkPii(options: PiiOptions): Promise<CheckOutcome> {
       if (!settings.builtin.enabled || settings.builtin.entities.length === 0) {
         outcome.detectors.push({ id: "builtin-pii", kind: "builtin", state: "disabled", counts: {} });
       } else {
-        const builtin = await runBuiltinDetector(workspace.dir, settings.builtin.config, env);
+        const builtin = await runBuiltinDetector(workspace.dir, settings.builtin.config, env, files.map((f) => ({ path: f.path, bytes: f.bytes })));
         if (builtin.state === "completed") {
           const counts: Record<string, number> = {};
           for (const finding of builtin.findings) {

@@ -3,6 +3,11 @@
 // core.hooksPath is set: in both cases the command shows the line to add and changes nothing. The hook carries a mark,
 // so uninstall removes only the hook this command wrote.
 //
+// Where the check runs: the hook only calls `jgates pii check --staged` (or `pii fix --staged --yes`). Outside the JGates tools
+// image that command sends the staged files, read from the Git index, to one short helper container of the tools image
+// (core/pii-fix/helper.ts) and reads the findings back, so the commit needs no Python on this machine. If the engine or the
+// image is missing, the check is incomplete and the hook blocks the commit, saying why (fail closed).
+//
 // How the hook finds jgates: the absolute path of the node and of the CLI file that ran `hooks install` is written into
 // the hook (not a PATH lookup), so the hook runs the same jgates that installed it, in Git Bash on Windows too (the path
 // is written with forward slashes). If that file is gone, the hook blocks the commit and says how to reinstall or remove it.

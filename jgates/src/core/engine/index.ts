@@ -276,6 +276,49 @@ export function engineCommandSync(args: string[], context: EngineContext = {}, t
   };
 }
 
+export interface EngineRunSyncResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  timedOut: boolean;
+  spawnError: { code: string; message: string } | null;
+  name: string;
+  args: string[];
+}
+
+/**
+ * One container run, synchronously, for the callers that cannot await (structured TOML editing is a synchronous codec).
+ * The same contract and arguments as runInEngine; the text of `stdin` is the container's standard input. A timeout
+ * removes the container by name.
+ */
+export function runInEngineSync(spec: EngineRunSpec, context: EngineContext = {}, maxBufferBytes = 64 * 1024 * 1024): EngineRunSyncResult {
+  const runtime = context.runtime ?? engineRuntime(context.runnerOptions?.parentEnv ?? process.env);
+  const { args, name } = buildRunArgs(spec);
+  const script = /\.(?:mjs|cjs|js)$/i.test(runtime);
+  const result = spawnSync(script ? process.execPath : runtime, script ? [runtime, ...args] : args, {
+    cwd: os.tmpdir(),
+    env: buildEnv({ env: {} }, clientOptions(context)),
+    encoding: "utf8",
+    input: spec.stdin ?? undefined,
+    timeout: spec.timeoutMs ?? 120_000,
+    windowsHide: true,
+    shell: false,
+    maxBuffer: maxBufferBytes,
+  });
+  const error = result.error as NodeJS.ErrnoException | undefined;
+  const timedOut = error?.code === "ETIMEDOUT";
+  if (timedOut) engineCommandSync(["rm", "--force", name], { ...context, runtime }, 30_000);
+  return {
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
+    exitCode: result.status,
+    timedOut,
+    spawnError: error && !timedOut ? { code: error.code ?? "SPAWN", message: error.message } : null,
+    name,
+    args,
+  };
+}
+
 /** Seconds `docker stop -t` waits before SIGKILL when a step timed out. */
 export const STOP_GRACE_SEC = 5;
 

@@ -277,6 +277,37 @@ if (argv[0] === "compose") {
   process.exit(Number(env("FAKE_DOCKER_COMPOSE_EXIT", "0")));
 }
 
+// An independent tar reader (ustar + GNU long names): the archives the host writes are checked by other code.
+const readTarBuffer = (buffer) => {
+  const entries = [];
+  let offset = 0;
+  let longName = null;
+  const text = (base, start, width) => {
+    const slice = buffer.subarray(base + start, base + start + width);
+    const end = slice.indexOf(0);
+    return slice.subarray(0, end < 0 ? width : end).toString("utf8");
+  };
+  while (offset + 512 <= buffer.length) {
+    const block = buffer.subarray(offset, offset + 512);
+    if (block.every((b) => b === 0)) break;
+    const checksum = parseInt(text(offset, 148, 8).trim(), 8);
+    const sum = block.reduce((t, b, i) => t + (i >= 148 && i < 156 ? 32 : b), 0);
+    if (checksum !== sum) fail("tar: bad header checksum");
+    const type = text(offset, 156, 1) || "0";
+    const size = parseInt(text(offset, 124, 12).trim() || "0", 8);
+    const data = buffer.subarray(offset + 512, offset + 512 + size);
+    const name = text(offset, 0, 100);
+    offset += 512 + size + ((512 - (size % 512)) % 512);
+    if (type === "L") {
+      longName = data.toString("utf8").replace(/\0+$/, "");
+      continue;
+    }
+    entries.push({ path: (longName ?? name).replace(/\/$/, ""), type, data });
+    longName = null;
+  }
+  return entries;
+};
+
 // ---- rm / run ---------------------------------------------------------------------------------------------------
 if (argv[0] === "stop") {
   needDaemon();
@@ -337,6 +368,27 @@ if (argv[0] === "run") {
       return dir;
     };
     const hostOf = (mount) => (mount.type === "volume" ? volumeDir(mount.source) : mount.source);
+    const piiScript = argv.find((a) => a.includes("quality_sidecar bridge"));
+    if (piiScript && argv.includes("--interactive")) {
+      // The PII helper container (jgates/src/core/pii-fix/helper.ts): standard input is one request line and then a base64 tar
+      // of the files to scan. The fake unpacks it with its own reader, "detects" a formatted CPF (nnn.nnn.nnn-nn) and answers like the
+      // bridge does: rule, entity, path and line, never the value. It records the request and the paths (never the content) in
+      // pii-helper.jsonl, and fails like a crashed helper when FAKE_DOCKER_PII_EXIT is set.
+      const input = fs.readFileSync(0, "utf8");
+      const at = input.indexOf("\n");
+      const request = JSON.parse(input.slice(0, at));
+      const files = readTarBuffer(Buffer.from(input.slice(at + 1).trim(), "base64")).filter((e) => e.type === "0");
+      fs.appendFileSync(path.join(state, "pii-helper.jsonl"), JSON.stringify({ target: request.target, operation: request.operation, files: files.map((f) => f.path), mounts: mounts.length }) + "\n");
+      if (process.env.FAKE_DOCKER_PII_EXIT) fail("helper crashed", Number(process.env.FAKE_DOCKER_PII_EXIT));
+      const findings = [];
+      for (const file of files) {
+        file.data.toString("utf8").split("\n").forEach((line, index) => {
+          if (/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/.test(line)) findings.push({ rule: "pii.cpf", entity: "cpf", severity: "medium", path: file.path, line: index + 1, message: "CPF found" });
+        });
+      }
+      process.stdout.write(JSON.stringify({ schemaVersion: 1, operation: "pii", ok: true, status: findings.length ? "FINDINGS" : "OK", exitCode: 0, entities: ["cpf"], findings }) + "\n");
+      process.exit(0);
+    }
     const stage = mounts.find((m) => m.target === "/stage");
     const dst = mounts.find((m) => m.target === "/dst");
     const workspaceMount = mounts.find((m) => m.target === "/workspace" && m.type === "volume");
