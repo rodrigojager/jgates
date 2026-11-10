@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { CREDENTIALS_DIR, type ResolvedRegistry } from "./credentials.js";
+import type { ToolchainPin } from "./toolchains.js";
 import type { InstallUnit } from "./units.js";
 
 /** Bumped whenever a recipe changes what it installs: part of every key. */
@@ -37,6 +38,8 @@ export interface InstallRecipe {
   keyFiles: string[];
   /** "frozen" (lockfile) or "manifest" (no lockfile, local mode only). */
   mode: "frozen" | "manifest";
+  /** Language versions and browsers this unit takes from the toolchain volume (toolchains.ts), when it pins any. */
+  toolchains?: ToolchainPin[];
 }
 
 export type RecipeResult = { ok: true; recipe: InstallRecipe } | { ok: false; code: "DEPENDENCIES_NOT_READY"; reasonKey: string; params: Record<string, string> };

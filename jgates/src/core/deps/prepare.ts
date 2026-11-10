@@ -24,6 +24,22 @@ import { maskSecrets, registryScript, resolveRegistry, type ResolvedRegistry } f
 import { dependencyKey, shortKey } from "./key.js";
 import { CACHE_TARGET, MARKER_FILE, filesIn, recipeFor, type InstallRecipe } from "./recipes.js";
 import { readDepsState, updateDepsState } from "./state.js";
+import {
+  TOOLCHAINS_VOLUME,
+  ToolchainError,
+  declaresPlaywright,
+  ensureToolchain,
+  playwrightMounts,
+  playwrightPin,
+  resolveToolchain,
+  toolchainActions,
+  toolchainMount,
+  withToolchains,
+  type ToolchainAction,
+  type ToolchainContext,
+  type ToolchainFetch,
+  type ToolchainPin,
+} from "./toolchains.js";
 import type { InstallUnit } from "./units.js";
 
 export const LABEL_DEPS_UNIT = "org.jgates.deps.unit";
@@ -67,6 +83,12 @@ export interface UnitOutcome {
   durationMs: number;
   /** The recipe of a prepared unit (the steps' environment comes from it). */
   recipe: InstallRecipe | null;
+  /** What the user can do about a not-ready state ("use the default version this time", "fix .python-version"). */
+  actions: ToolchainAction[];
+  /** The language versions and browsers taken from the toolchain volume for this unit. */
+  toolchains: ToolchainFetch[];
+  /** The toolchain volume the steps mount (when `toolchains` is not empty). */
+  toolchainsVolume: string | null;
 }
 
 export interface UnitPlan {
@@ -76,6 +98,7 @@ export interface UnitPlan {
   volume: string | null;
   /** Why it cannot be installed: the reason key of the deps catalogue and its parameters. */
   blocked: { reasonKey: string; params: Record<string, string> } | null;
+  actions?: ToolchainAction[];
   registry: ResolvedRegistry | null;
 }
 
@@ -106,10 +129,15 @@ export function planUnit(unit: InstallUnit, input: UnitPlanInput): UnitPlan {
   };
   const result = recipeFor(unit, { governed: input.governed, files: filesIn(input.projectDir, unit.installRoot), installCommand: input.settings.installCommand, registry, read });
   if (!result.ok) return { unit, recipe: null, key: null, volume: null, blocked: { reasonKey: result.reasonKey, params: result.params }, registry };
-  const key = dependencyKey({ projectDir: input.projectDir, unit, recipe: result.recipe, imageId: input.imageId, governed: input.governed, registryUrl: settingsRegistry?.url ?? null });
+  // A pinned language version (or Playwright) comes from the toolchain volume; a version that cannot be obtained blocks the unit.
+  const resolution = resolveToolchain(unit, { env: input.env });
+  if (resolution.kind === "invalid") return { unit, recipe: null, key: null, volume: null, blocked: { reasonKey: resolution.reasonKey, params: resolution.params }, actions: resolution.actions, registry };
+  const pins: ToolchainPin[] = [...(resolution.kind === "pinned" ? [resolution.pin] : []), ...(declaresPlaywright(unit, input.projectDir) ? [playwrightPin(unit.installRoot, result.recipe.target)] : [])];
+  const recipe = withToolchains(result.recipe, pins);
+  const key = dependencyKey({ projectDir: input.projectDir, unit, recipe, imageId: input.imageId, governed: input.governed, registryUrl: settingsRegistry?.url ?? null });
   const volume = `${dependencyVolumeName(input.workspace, unit.id)}-${shortKey(key)}`;
-  if (!resolved.ok) return { unit, recipe: result.recipe, key, volume, blocked: { reasonKey: "deps_not_ready_secret", params: { unit: unit.id, secret: resolved.secret } }, registry: null };
-  return { unit, recipe: result.recipe, key, volume, blocked: null, registry };
+  if (!resolved.ok) return { unit, recipe, key, volume, blocked: { reasonKey: "deps_not_ready_secret", params: { unit: unit.id, secret: resolved.secret } }, registry: null };
+  return { unit, recipe, key, volume, blocked: null, registry };
 }
 
 const quote = (text: string): string => `'${text.replace(/'/g, `'\\''`)}'`;
@@ -120,6 +148,8 @@ export function installScript(unit: InstallUnit, recipe: InstallRecipe, registry
   return [
     "set -eu",
     'mkdir -p "$HOME"',
+    // The pinned Node, Go or .NET of the toolchain volume come first on PATH for the install commands.
+    ...(recipe.toolchains ?? []).filter((p) => p.pathPrefix.length > 0).map((p) => `export PATH=${quote(p.pathPrefix.join(":"))}:"$PATH"`),
     `target=${quote(recipe.target)}`,
     `marker="$target/${MARKER_FILE}"`,
     `if [ -f "$marker" ] && grep -q "\\"key\\": \\"$JGATES_DEPS_KEY\\"" "$marker"; then echo ${quote(UP_TO_DATE)}; exit 0; fi`,
@@ -140,6 +170,8 @@ export interface PrepareInput extends UnitPlanInput {
   engine: EngineContext;
   /** The package cache volume (default jgates-cache). */
   cacheVolume?: string;
+  /** The volume of pinned language versions and Playwright browsers (default jgates-toolchains). */
+  toolchainsVolume?: string;
   /** Extra labels of every object created (development tests mark theirs). */
   extraLabels?: Record<string, string>;
   /** Folder the install logs are written to, and the root their relative names start from. */
@@ -168,6 +200,9 @@ function outcomeBase(unit: InstallUnit): Omit<UnitOutcome, "status" | "code" | "
     log: null,
     durationMs: 0,
     recipe: null,
+    actions: [],
+    toolchains: [],
+    toolchainsVolume: null,
   };
 }
 
@@ -183,6 +218,7 @@ export function notReadyOutcome(plan: UnitPlan): UnitOutcome {
     details: why,
     key: plan.key,
     volume: plan.volume,
+    actions: plan.actions ?? [],
   };
 }
 
@@ -198,12 +234,71 @@ function writeLog(input: PrepareInput, unit: InstallUnit, text: string): string 
   }
 }
 
-/** Installs (or reuses) the dependencies of one unit; the source volume must already hold the project. Never throws. */
+/**
+ * Prepares one unit: the pinned language version first (fetched once into the toolchain volume, or found there), then the
+ * install into the unit's volume, then the Playwright browsers of the installed version. The source volume must already hold
+ * the project. Never throws.
+ */
 export async function prepareUnit(unit: InstallUnit, input: PrepareInput): Promise<UnitOutcome> {
+  const t = translator("deps");
+  const plan = planUnit(unit, input);
+  if (plan.blocked || !plan.recipe || !plan.key || !plan.volume) return notReadyOutcome(plan);
+  const pins = plan.recipe.toolchains ?? [];
+  if (pins.length === 0) return installPlanned(unit, input, plan);
+  const volume = input.toolchainsVolume ?? TOOLCHAINS_VOLUME;
+  const ctx: ToolchainContext = {
+    home: input.home,
+    version: input.version,
+    workspace: input.workspace,
+    run: input.run,
+    imageId: input.imageId,
+    engine: input.engine,
+    volume,
+    extraLabels: input.extraLabels,
+    signal: input.signal,
+    timeoutMs: input.timeoutMs,
+    now: input.now,
+  };
+  const fetched: ToolchainFetch[] = [];
+  const started = Date.now();
+  for (const pin of pins.filter((p) => p.phase === "before-install")) {
+    try {
+      fetched.push(await ensureToolchain(pin, ctx));
+    } catch (error) {
+      const cause = error instanceof ToolchainError ? error : new ToolchainError(error instanceof Error ? error.message : String(error), "", pin);
+      const failure = t("toolchain_fetch_failed", { language: pin.ecosystem, version: pin.request, message: maskSecrets(cause.message, [plan.registry?.token]) });
+      const base = notReadyOutcome(plan);
+      const log = writeLog(input, unit, `${t("toolchain_log_failed", { id: pin.id })}\n${failure}\n${cause.details}\n`);
+      return { ...base, message: `${resolveReason(DEPS_NOT_READY, { component: unit.components.join(", ") }).message} ${failure}`, details: cause.details || failure, actions: toolchainActions(unit), log, durationMs: Date.now() - started, toolchainsVolume: volume };
+    }
+  }
+  const outcome = await installPlanned(unit, input, plan, volume);
+  if (outcome.status !== "installed" && outcome.status !== "reused") return { ...outcome, toolchains: fetched, toolchainsVolume: volume };
+  for (const pin of pins.filter((p) => p.phase === "after-install")) {
+    try {
+      fetched.push(await ensureToolchain(pin, ctx, { recordKey: `${pin.id}:${plan.key}`, mounts: playwrightMounts(input.workspace, plan.volume, plan.recipe.target), workdir: "/workspace" }));
+    } catch (error) {
+      const cause = error instanceof ToolchainError ? error : new ToolchainError(error instanceof Error ? error.message : String(error), "", pin);
+      const failure = t("toolchain_playwright_failed", { browsers: pin.request, message: cause.message });
+      return {
+        ...outcome,
+        status: "failed",
+        code: DEPS_FAILED,
+        message: `${resolveReason(DEPS_FAILED, { component: unit.components.join(", ") }).message} ${failure}`,
+        details: cause.details || failure,
+        toolchains: fetched,
+        toolchainsVolume: volume,
+      };
+    }
+  }
+  return { ...outcome, toolchains: fetched, toolchainsVolume: volume };
+}
+
+/** Installs (or reuses) the dependencies of a planned unit in its own volume. Never throws. */
+async function installPlanned(unit: InstallUnit, input: PrepareInput, plan: UnitPlan, toolchainsVolume: string | null = null): Promise<UnitOutcome> {
   const t = translator("deps");
   const started = Date.now();
   const now = input.now ?? (() => new Date());
-  const plan = planUnit(unit, input);
   if (plan.blocked || !plan.recipe || !plan.key || !plan.volume) return notReadyOutcome(plan);
   const { recipe, key, volume, registry } = plan;
   const secrets = [registry?.token];
@@ -252,6 +347,7 @@ export async function prepareUnit(unit: InstallUnit, input: PrepareInput): Promi
       { type: "volume", source: sourceVolumeName(input.workspace), target: "/workspace" },
       { type: "volume", source: volume, target: recipe.target },
       { type: "volume", source: cacheVolume, target: CACHE_TARGET },
+      ...(toolchainsVolume && recipe.toolchains?.some((p) => p.phase === "before-install") ? [toolchainMount(toolchainsVolume)] : []),
     ];
     const result = await runInEngine(
       {

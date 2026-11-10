@@ -18,6 +18,7 @@ import { unitsNeeded } from "./plan.js";
 import { CACHE_TARGET } from "./recipes.js";
 import { DEFAULT_CACHE_VOLUME, DEPS_NOT_READY, notReadyOutcome, planUnit, prepareUnit, type UnitOutcome } from "./prepare.js";
 import { needsDependencies } from "./tools.js";
+import { toolchainMount } from "./toolchains.js";
 import type { InstallUnit } from "./units.js";
 
 export const DEPS_PHASE_ID = "deps";
@@ -41,6 +42,8 @@ export interface DepsRunInput {
   engine?: EngineContext;
   signal?: AbortSignal;
   cacheVolume?: string;
+  /** The volume of pinned language versions and Playwright browsers (default jgates-toolchains). */
+  toolchainsVolume?: string;
 }
 
 export interface DepsRun {
@@ -124,6 +127,7 @@ export function createDepsRun(input: DepsRunInput): DepsRun | null {
             vault: !input.governed,
             engine,
             cacheVolume,
+            ...(input.toolchainsVolume ? { toolchainsVolume: input.toolchainsVolume } : {}),
             logs: { dir: path.join(input.runDir, "logs"), root: input.runDir },
             ...(input.signal ? { signal: input.signal } : {}),
           });
@@ -192,6 +196,9 @@ export function createDepsRun(input: DepsRunInput): DepsRun | null {
         prefix.push(...recipe.pathPrefix);
       }
       mounts.push({ type: "volume", source: cacheVolume, target: CACHE_TARGET });
+      // Pinned language versions and Playwright browsers live in the toolchain volume (read-only for steps).
+      const toolchains = ready.find((o) => o.toolchains.length > 0 && o.toolchainsVolume);
+      if (toolchains) mounts.push(toolchainMount(toolchains.toolchainsVolume as string));
       env.PATH = [...prefix, pathOfImage].join(":");
       return { mounts, env };
     },

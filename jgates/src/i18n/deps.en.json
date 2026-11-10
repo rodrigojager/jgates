@@ -42,5 +42,13 @@
   "deps_cmd_preparing": "Preparing the dependencies of {unit} ({components})...",
   "deps_cmd_log": "(log: {file})",
   "deps_cmd_no_units": "No component of this project has dependencies to install.",
-  "deps_cmd_cleaned": "Dependency volumes removed: {count}."
+  "deps_cmd_cleaned": "Dependency volumes removed: {count}.",
+  "toolchain_unknown_version": "{language} {version} (from {source}) is not a version JGates can fetch.",
+  "toolchain_invalid_request": "Could not understand the {language} version {version} in {source}.",
+  "toolchain_fetch_failed": "Could not fetch {language} {version}: {message}",
+  "toolchain_fetch_exit": "the download ended with exit code {exit}",
+  "toolchain_action_default": "Use the default version {version} this time",
+  "toolchain_action_fix": "Fix {file}",
+  "toolchain_log_failed": "Language version {id} could not be fetched into the toolchain volume.",
+  "toolchain_playwright_failed": "Could not download the Playwright browsers ({browsers}) for the installed version: {message}"
 }

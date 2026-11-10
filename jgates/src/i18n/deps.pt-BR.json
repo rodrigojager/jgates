@@ -42,5 +42,13 @@
   "deps_cmd_preparing": "Preparando as dependências de {unit} ({components})...",
   "deps_cmd_log": "(log: {file})",
   "deps_cmd_no_units": "Nenhum componente deste projeto tem dependências para instalar.",
-  "deps_cmd_cleaned": "Volumes de dependências apagados: {count}."
+  "deps_cmd_cleaned": "Volumes de dependências apagados: {count}.",
+  "toolchain_unknown_version": "{language} {version} (vindo de {source}) não é uma versão que o JGates consiga baixar.",
+  "toolchain_invalid_request": "Não foi possível entender a versão {version} do {language} em {source}.",
+  "toolchain_fetch_failed": "Não foi possível baixar o {language} {version}: {message}",
+  "toolchain_fetch_exit": "o download terminou com o código {exit}",
+  "toolchain_action_default": "Usar a versão padrão {version} desta vez",
+  "toolchain_action_fix": "Corrigir {file}",
+  "toolchain_log_failed": "A versão {id} da linguagem não pôde ser baixada para o volume de toolchains.",
+  "toolchain_playwright_failed": "Não foi possível baixar os navegadores do Playwright ({browsers}) para a versão instalada: {message}"
 }

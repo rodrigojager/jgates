@@ -8,6 +8,7 @@ export * from "./credentials.js";
 export * from "./recipes.js";
 export * from "./key.js";
 export * from "./state.js";
+export * from "./toolchains.js";
 export * from "./prepare.js";
 export * from "./tools.js";
 export * from "./plan.js";
