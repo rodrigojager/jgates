@@ -28,6 +28,18 @@ const ADAPTER_ID = dependencyCruiserManifest.id;
 const RUN_DIR = "{runDir}";
 const WORKSPACE = "{workspace}";
 
+// The image installs each Node tool in its own npm prefix, so dependency-cruiser cannot see the image's TypeScript and
+// would read .ts files as plain text (an empty graph). Its transpiler probe asks Node to resolve "typescript" from its
+// own folder: NODE_PATH answers the version check (a CommonJS require) and a resolve hook answers the import.
+const IMAGE_TYPESCRIPT_PREFIX = "/opt/tools/node/typescript/node_modules";
+const RESOLVE_HOOK = `export async function resolve(s,c,n){try{return await n(s,c)}catch(e){if(s==="typescript")return n("file://${IMAGE_TYPESCRIPT_PREFIX}/typescript/lib/typescript.js",c);throw e}}`;
+const REGISTER_HOOK = `import{register}from"node:module";register("data:text/javascript,${encodeURIComponent(RESOLVE_HOOK)}")`;
+/** The environment that lets the image's dependency-cruiser parse TypeScript with the image's TypeScript. */
+export const IMAGE_TYPESCRIPT_ENV: Readonly<Record<string, string>> = {
+  NODE_PATH: IMAGE_TYPESCRIPT_PREFIX,
+  NODE_OPTIONS: `--import=data:text/javascript,${encodeURIComponent(REGISTER_HOOK)} --disable-warning=DEP0205`,
+};
+
 const sha256 = (abs: string): string | null => {
   try {
     return crypto.createHash("sha256").update(fs.readFileSync(abs)).digest("hex");
@@ -98,7 +110,7 @@ function planDepcruise(input: ExternalPlanInput): ExternalPlan {
       executable: probe.executable ?? "depcruise",
       args,
       cwd: WORKSPACE,
-      env: {},
+      env: probe.source === "image" ? { ...IMAGE_TYPESCRIPT_ENV } : {},
       stdin: null,
     },
     runtime: { name: "node", interpreter: probe.executable, available: probe.executable !== null && probe.version !== null },
@@ -157,7 +169,8 @@ async function runDepcruise(context: AdapterContext, plan: Plan, tool: string): 
   const command = invocation.command;
   const cwd = substituteTokens(command.cwd, tokens);
   const args = command.args.map((a) => substituteTokens(a, tokens));
-  // Node's folder is the only thing the tool needs on PATH; nothing else leaks from the caller.
+  // Nothing of the caller's environment leaks into the tool; Node's folder is its PATH when it runs natively (in the
+  // tools image, or a project copy); a step container has the image's own.
   const env: Record<string, string> = { PATH: path.dirname(process.execPath) };
   for (const [name, value] of Object.entries(command.env)) env[name] = substituteTokens(value, tokens);
   const timeoutSeconds = Math.min(...items.map((i) => i.limits.timeoutSeconds));

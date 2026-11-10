@@ -10,6 +10,7 @@ import { translator } from "../../i18n/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { DEFAULT_ENV_ALLOWLIST, runSpec, substituteTokens } from "../../core/runner/index.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 import type { AdapterContext, AdapterOutput, ResultFinding, ResultStage } from "../../core/run/types.js";
 import { buildCheckManifest } from "./manifest.js";
 import { parseCargo, parseDotnet, parseGo, parseMypy, parsePyright, parseTsc, toFindings, type DiagnosticParse } from "./normalize.js";
@@ -245,7 +246,7 @@ async function runBuildCheck(context: AdapterContext, plan: Plan, tool: string):
         note("error", t("build_check_exit_error", { unit: unit.component, tool: step.label, code: result.exitCode ?? "-", detail: detail || String(result.signal ?? "") }), { interpreted: false, nativeStatus: `exit ${result.exitCode ?? "-"}` });
         break;
       }
-      findings.push(...toFindings(parsed.diagnostics, { stageId: items[0]?.id as string, checker, version: unit.version, workspace: context.workspacePath, unitRoot: unit.root, step: step.id }));
+      findings.push(...toFindings(parsed.diagnostics, { stageId: items[0]?.id as string, checker, version: unit.version, workspace: stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, context.workspacePath), unitRoot: unit.root, step: step.id }));
       previousClean = result.exitCode === 0;
     }
   }

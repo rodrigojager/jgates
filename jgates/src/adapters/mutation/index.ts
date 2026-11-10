@@ -201,8 +201,9 @@ function planMutation(input: ExternalPlanInput): ExternalPlan {
     const probe = findMutmut(input.env);
     toolVersion = probe.version;
     command = {
+      // The image's own `mutmut` (its private Python); `python -m mutmut` for the interpreter an override names.
       executable: probe.python ?? "python",
-      args: ["-m", "mutmut", "run", ...settings.mutate],
+      args: [...(probe.command ? [] : ["-m", "mutmut"]), "run", ...settings.mutate],
       cwd: RUN_DIR,
       env: { PYTHONDONTWRITEBYTECODE: "1", PYTHONIOENCODING: "utf-8" },
       stdin: null,
@@ -391,8 +392,9 @@ async function runMutation(context: AdapterContext, plan: Plan, tool: string): P
     reading = parseStrykerReport(text);
   } else {
     if (result.exitCode !== 0) return stopped("error", t("mutation_exit_error", { code: result.exitCode ?? "-", detail }), { interpreted: false, nativeStatus: `exit ${result.exitCode ?? "-"}` });
-    const results = await spawn({ executable: command.executable, args: ["-m", "mutmut", "results"] }, null);
-    const stats = await spawn({ executable: command.executable, args: ["-m", "mutmut", "export-cicd-stats"] }, null);
+    const sub = (name: string): string[] => (args[0] === "-m" ? ["-m", "mutmut", name] : [name]);
+    const results = await spawn({ executable: command.executable, args: sub("results") }, null);
+    const stats = await spawn({ executable: command.executable, args: sub("export-cicd-stats") }, null);
     let statsText = "";
     try {
       statsText = fs.readFileSync(path.join(cwd, "mutants", "mutmut-cicd-stats.json"), "utf8");

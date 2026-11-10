@@ -19,6 +19,13 @@ export interface PytestProbe {
   detail: string;
   /** pytest-cov answers `--cov` with the configuration of the component. */
   coverage: boolean;
+  /**
+   * The tools image's pytest: the `pytest` command of the step container (the project's own pytest from its dependency
+   * environment comes first on the step's PATH when the project declares it). Absent or false: `python -m pytest`.
+   */
+  command?: boolean;
+  /** Minor version of the image's Python (the dependency environments are created with it), e.g. "3.15". */
+  pythonMinor?: string | null;
 }
 
 const versions = new Map<string, { mtimeMs: number; version: string | null; detail: string }>();
@@ -31,7 +38,16 @@ export function probePytest(env: NodeJS.ProcessEnv, cwd: string): PytestProbe {
   const image = imageProbeUnlessOverridden("pytest", env, "JGATES_PYTHON");
   if (image) {
     if (image.problem !== null) return { python: null, version: null, problem: "no_pytest", detail: image.detail, coverage: false };
-    return { python: "python", version: image.version, problem: null, detail: "", coverage: probeImageTool("pytest-cov", env).problem === null };
+    const python = probeImageTool("python", env).version;
+    return {
+      python: "python",
+      version: image.version,
+      problem: null,
+      detail: "",
+      coverage: probeImageTool("pytest-cov", env).problem === null,
+      command: true,
+      pythonMinor: python ? (/^(\d+\.\d+)/.exec(python)?.[1] ?? null) : null,
+    };
   }
   const { interpreter, tried } = resolveProjectPython(env);
   if (!interpreter) return { python: null, version: null, problem: "python_missing", detail: tried.join(", "), coverage: false };

@@ -98,8 +98,7 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
   const junit = `${out}/junit.xml`;
   const report = `${out}/coverage.json`;
   const args = [
-    "-m",
-    "pytest",
+    ...(probe.command ? [] : ["-m", "pytest"]),
     // Nothing is cached in the workspace (.pytest_cache); the manifest declares the flag.
     "-p",
     "no:cacheprovider",
@@ -114,8 +113,16 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
     COVERAGE_FILE: `${out}/.coverage`,
     // Hypothesis keeps its example database in .hypothesis of the working folder unless told otherwise.
     HYPOTHESIS_STORAGE_DIRECTORY: `${out}/hypothesis`,
-    ...(hasSrc ? { PYTHONPATH: `${WORKSPACE}/${root ? `${root}/` : ""}src` } : {}),
   };
+  // PYTHONPATH: the component's src folder, and (the image's pytest has its own environment) the site-packages of the
+  // project's dependency environment, which the dependency layer builds as .venv of the install root (the component or
+  // the workspace). A folder that does not exist is ignored by Python. The project's own pytest, when it declares one,
+  // comes first on the step's PATH and needs none of this.
+  const pythonPath = [
+    ...(hasSrc ? [`${WORKSPACE}/${root ? `${root}/` : ""}src`] : []),
+    ...(probe.command && probe.pythonMinor ? [...new Set([root ? `${WORKSPACE}/${root}` : null, WORKSPACE].filter((d): d is string => d !== null))].map((d) => `${d}/.venv/lib/python${probe.pythonMinor}/site-packages`) : []),
+  ];
+  if (pythonPath.length > 0) env.PYTHONPATH = pythonPath.join(process.platform === "win32" && !probe.command ? ";" : ":");
 
   const files = new Map<string, string | null>();
   if (config.file) files.set(config.file, sha256File(path.join(input.dir, config.file)));
@@ -141,7 +148,7 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
   };
   return {
     label: t("pytest_label"),
-    command: { executable: probe.python ?? "python", args, cwd: root ? `${WORKSPACE}/${root}` : WORKSPACE, env, stdin: null },
+    command: { executable: probe.command ? "pytest" : (probe.python ?? "python"), args, cwd: root ? `${WORKSPACE}/${root}` : WORKSPACE, env, stdin: null },
     runtime: { name: "native", interpreter: probe.python, available: probe.python !== null && probe.version !== null },
     toolVersion: probe.version,
     configFiles: [...files].map(([file, sha256]) => ({ file, sha256 })),

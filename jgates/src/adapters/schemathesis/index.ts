@@ -15,7 +15,8 @@ import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/
 import { schemathesisManifest } from "./manifest.js";
 import { parseSchemathesisReports } from "./normalize.js";
 import { probeSchemathesis } from "./probe.js";
-import { checkTarget, instanceBody, intSetting, readAuth, safeRelative, type AuthSetting } from "./target.js";
+import { stepMode } from "../../core/runner/in-image.js";
+import { checkTarget, instanceBody, intSetting, isLoopbackHost, readAuth, safeRelative, type AuthSetting } from "./target.js";
 
 export { schemathesisManifest } from "./manifest.js";
 export { parseSchemathesisReports, parseJUnit } from "./normalize.js";
@@ -93,6 +94,20 @@ export function schemathesisSettings(input: Pick<ExternalPlanInput, "config" | "
   return { target: target.url, spec, auth: auth.auth, seed, maxExamples, requestTimeoutSeconds, checks, problems };
 }
 
+/** What the step container calls the machine of the user (Docker Desktop and Docker Engine 20.10+ with host-gateway). */
+export const HOST_ALIAS = "host.docker.internal";
+
+/**
+ * The target as the tool sees it. A step container has its own loopback, so a target on this machine (localhost,
+ * 127.0.0.1) is reached through the host alias; inside the tools image the target is used as written.
+ */
+export function urlAsStepSees(target: string, env: NodeJS.ProcessEnv): string {
+  if (stepMode(env) === "in-image" || !isLoopbackHost(target)) return target;
+  const url = new URL(target);
+  url.hostname = HOST_ALIAS;
+  return url.toString().replace(/\/+$/, "");
+}
+
 function findSpec(settings: SchemathesisSettings, scanDir: string): string | null {
   if (settings.spec) return settings.spec;
   return SPEC_CANDIDATES.find((c) => fs.existsSync(path.join(scanDir, ...c.split("/")))) ?? null;
@@ -113,7 +128,7 @@ function planSchemathesis(input: ExternalPlanInput): ExternalPlan {
     "run",
     specArg,
     "--url",
-    settings.target ?? "<target>",
+    settings.target ? urlAsStepSees(settings.target, input.env) : "<target>",
     "--checks",
     settings.checks.join(","),
     "--max-examples",

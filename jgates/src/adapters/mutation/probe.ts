@@ -24,6 +24,8 @@ export interface StrykerProbe {
 
 export interface MutmutProbe {
   python: string | null;
+  /** The image's `mutmut` command (its own environment); false or absent: `python -m mutmut` of the named interpreter. */
+  command?: boolean;
   version: string | null;
   problem: "python_missing" | "no_mutmut" | "windows" | "not_in_image" | null;
   detail: string;
@@ -94,7 +96,7 @@ const known = new Map<string, { mtimeMs: number; version: string | null }>();
 
 export function findMutmut(env: NodeJS.ProcessEnv): MutmutProbe {
   const image = imageProbeUnlessOverridden("mutmut", env, "JGATES_PYTHON");
-  if (image) return image.problem === null ? { python: "python", version: image.version, problem: null, detail: "" } : { python: null, version: null, problem: "not_in_image", detail: image.detail };
+  if (image) return image.problem === null ? { python: "mutmut", command: true, version: image.version, problem: null, detail: "" } : { python: null, version: null, problem: "not_in_image", detail: image.detail };
   const { interpreter, tried } = resolveProjectPython(env);
   if (!interpreter) return { python: null, version: null, problem: "python_missing", detail: tried.join(", ") };
   let mtimeMs = 0;

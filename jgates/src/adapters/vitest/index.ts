@@ -11,6 +11,7 @@ import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
 import { resolveToolBindings } from "../../core/tools/index.js";
 import { runSpec, substituteTokens } from "../../core/runner/index.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 import { ratioMetric } from "../../core/results/index.js";
 import type { AdapterContext, AdapterOutput, ResultFinding, ResultStage } from "../../core/run/types.js";
 import { vitestManifest } from "./manifest.js";
@@ -233,7 +234,7 @@ async function runVitest(context: AdapterContext, plan: Plan, tool: string): Pro
   let report: VitestReport | null = null;
   let reportProblem = "";
   try {
-    report = parseVitestReport(fs.readFileSync(reportFile, "utf8"), context.workspacePath);
+    report = parseVitestReport(fs.readFileSync(reportFile, "utf8"), stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, context.workspacePath));
     if (!report.ok) {
       reportProblem = report.problem ?? "";
       report = null;

@@ -12,6 +12,7 @@ import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
 import { resolveToolBindings } from "../../core/tools/index.js";
 import { runSpec, substituteTokens } from "../../core/runner/index.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { eslintManifest } from "./manifest.js";
 import { parseEslintOutput } from "./normalize.js";
@@ -210,7 +211,7 @@ async function runEslint(context: AdapterContext, plan: Plan, tool: string): Pro
   } catch (error) {
     return { ...all("error", t("eslint_invalid_output", { detail: (error as Error).message }), { interpreted: false, nativeStatus: `exit ${result.exitCode}` }), logs: base.logs };
   }
-  const parsed = parseEslintOutput(text, { stageId: items[0]?.id as string, version, workspace: context.workspacePath });
+  const parsed = parseEslintOutput(text, { stageId: items[0]?.id as string, version, workspace: stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, context.workspacePath) });
   if (!parsed.ok || result.truncated) {
     const detail = result.truncated ? "output truncated" : (parsed.problem ?? "");
     return { ...all("error", t("eslint_invalid_output", { detail }), { interpreted: false, nativeStatus: `exit ${result.exitCode}` }), logs: base.logs };

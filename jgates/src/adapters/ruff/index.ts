@@ -8,7 +8,8 @@ import { translator } from "../../i18n/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
-import { CONTAINER_OUTPUT, CONTAINER_WORKSPACE, runContainer, runSpec, substituteTokens, toContainerPath, type ExecutionResult } from "../../core/runner/index.js";
+import { runSpec, substituteTokens, type ExecutionResult } from "../../core/runner/index.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 import { createOutputPaths, outputPathFor, outputPathUnder, redirectionEnv, RUN_DIR_TOKEN } from "../../core/run/redirection.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { chooseRuffConfig } from "./config.js";
@@ -145,43 +146,13 @@ async function runRuff(context: AdapterContext, plan: Plan, tool: string): Promi
   if (unavailable) return blockedAll(unavailable.availability.reason ?? t("ruff_blocked", { detail: command.executable }));
 
   // The runner streams both outputs to the log files with its size limit (JGATES_MAX_LOG_BYTES) and the process facts.
-  const container = command.container;
-  let result: ExecutionResult;
-  let parseRoots = { workspace: context.workspacePath, cwd };
-  if (container) {
-    const mount = (target: string): string => substituteTokens(container.mounts.find((m) => m.target === target)?.source ?? "", tokens);
-    const workspace = mount(CONTAINER_WORKSPACE);
-    const outputDir = mount(CONTAINER_OUTPUT);
-    const relCwd = path.relative(workspace, cwd).split(path.sep).join("/") || ".";
-    try {
-      result = await runContainer(
-        {
-          runtime: container.runtime,
-          image: container.image,
-          command: args,
-          workspace,
-          ...(outputDir ? { outputDir } : {}),
-          cwd: relCwd,
-          env,
-          network: container.network,
-          timeoutMs: timeoutSeconds * 1000,
-          stdin: null,
-          stdoutFile: stdoutLog,
-          stderrFile: stderrLog,
-        },
-        { parentEnv: context.env },
-      );
-    } catch (error) {
-      // A spec the container runner refuses (an image not pinned, a bad mount) never starts.
-      return blockedAll(t("ruff_blocked", { detail: (error as Error).message }));
-    }
-    parseRoots = { workspace: CONTAINER_WORKSPACE, cwd: toContainerPath(relCwd) };
-  } else {
-    result = await runSpec(
-      { executable: command.executable, args, cwd, env, stdin: command.stdin === null ? null : JSON.stringify(command.stdin), timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog },
-      { parentEnv: context.env },
-    );
-  }
+  // Under the step launcher the process is a step container: the tool prints the paths it was given (/workspace/...).
+  const result: ExecutionResult = await runSpec(
+    { executable: command.executable, args, cwd, env, stdin: command.stdin === null ? null : JSON.stringify(command.stdin), timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog },
+    { parentEnv: context.env },
+  );
+  const view = (p: string): string => stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, p);
+  const parseRoots = { workspace: view(context.workspacePath), cwd: view(cwd) };
   base.logs = [relToRun(context.runDir, stdoutLog), relToRun(context.runDir, stderrLog)];
 
   if (result.spawnError) return { ...blockedAll(t("ruff_blocked", { detail: `${result.spawnError.code}: ${result.spawnError.message}` })), logs: base.logs };

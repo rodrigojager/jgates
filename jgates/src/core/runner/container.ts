@@ -283,7 +283,10 @@ export function stepUser(): string {
   return IMAGE_USER;
 }
 
-const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** Variables whose host value is never handed to a step container. */
+const HOST_ONLY_ENV: ReadonlySet<string> = new Set(["PATH", "PATHEXT", "HOME", "TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "WINDIR", "APPDATA", "LOCALAPPDATA", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMW6432", "PROGRAMDATA", "ALLUSERSPROFILE"]);
+
+const escapeRegExp =(text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Replaces host path prefixes in a text by their container paths (the rest of the path gets forward slashes). */
 export function mapHostPaths(text: string, pairs: Array<{ host: string; target: string }>): string {
@@ -296,6 +299,20 @@ export function mapHostPaths(text: string, pairs: Array<{ host: string; target: 
     }
   }
   return out;
+}
+
+/**
+ * A host path (or a text holding host paths) as the tool sees it: inside the step container, the workspace is
+ * /workspace and the run folder /output; inside the tools image itself nothing is mapped. Adapters use it for paths
+ * they hand to a tool in a place the launcher cannot rewrite (inside a JSON argument) and for the roots they give to an
+ * output parser, since the tool prints the paths it was given.
+ */
+export function stepViewOfPaths(env: NodeJS.ProcessEnv, roots: { workspace: string; runDir: string }, text: string): string {
+  if (stepMode(env) === "in-image") return text;
+  return mapHostPaths(text, [
+    { host: path.resolve(roots.runDir), target: CONTAINER_OUTPUT },
+    { host: path.resolve(roots.workspace), target: CONTAINER_WORKSPACE },
+  ]);
 }
 
 const ENGINE_CLIENT = /^(?:docker|podman)(?:\.exe)?$/i;
@@ -405,7 +422,10 @@ export function createStepLauncher(input: StepLauncherInput): StepLauncherHook |
         { type: "bind", source: path.resolve(input.runDir), target: CONTAINER_OUTPUT },
       ];
       const env: Record<string, string> = {};
-      for (const [k, v] of Object.entries(spec.env ?? {})) env[k] = mapHostPaths(v, pairs);
+      // The host's own variables (PATH, HOME, the Windows essentials the probes pass) mean nothing in the image: the
+      // image's PATH, or the one the step's dependency environment sets below, resolves the tool, and HOME and TMP
+      // are the container's.
+      for (const [k, v] of Object.entries(spec.env ?? {})) if (!HOST_ONLY_ENV.has(k.toUpperCase())) env[k] = mapHostPaths(v, pairs);
       // The step's dependency volumes and package cache, with their variables (they win over the adapter's: the tool
       // must find the project's environment inside the container, not a host value).
       const extra = scope?.stepId ? input.stepEnvironment?.(scope.stepId) : null;

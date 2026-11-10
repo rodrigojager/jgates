@@ -13,6 +13,7 @@ import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../cor
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
 import { runSpec, substituteTokens } from "../../core/runner/index.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 import type { AdapterContext, AdapterOutput, ArchitectureCoverageRecord, ResultFinding, ResultStage } from "../../core/run/types.js";
 import { chooseNativeConfig, generateConfig, sha256File, translatableRules } from "./config.js";
 import { buildImportGraph, discoverPythonRoots, type PythonRoot } from "./graph.js";
@@ -164,14 +165,16 @@ async function runImportLinter(context: AdapterContext, plan: Plan, tool: string
   const contract: ArchitectureContract = declaration?.contract ?? {};
 
   // 1. The normalized graph (it also tells which layers cover which modules, for the generated configuration).
-  const python = pythonFor(command.executable, context.env);
+  // The tools image's Import Linter environment (it imports grimp); an override inside the image brings its own.
+  const python = probeImportLinter(context.env).python ?? pythonFor(command.executable, context.env);
+  const view = (p: string): string => stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, p);
   const graphFile = path.join(outDir, "normalized-graph.json");
   let graph: NormalizedGraph;
   if (!python) graph = { nodes: [], edges: [], unresolved: [], coverage: { extractor: ADAPTER_ID, complete: false, reason: t("il_no_python", { executable: command.executable }) } };
   else if (roots.length === 0) graph = { nodes: [], edges: [], unresolved: [], coverage: { extractor: ADAPTER_ID, complete: false, reason: t("il_no_packages") } };
   else {
     const userSite = pythonBeside(command.executable) === null;
-    const built = await buildImportGraph({ python, workspace: context.workspacePath, roots, env: context.env, cwd: context.runDir, outFile: graphFile, errFile: graphLog, timeoutMs: timeoutSeconds * 1000, userSite });
+    const built = await buildImportGraph({ python, workspace: view(context.workspacePath), roots, env: context.env, cwd: context.runDir, outFile: graphFile, errFile: graphLog, timeoutMs: timeoutSeconds * 1000, userSite });
     graph = built.graph;
   }
   assignComponents(graph, (items[0]?.components ?? []).map((c) => ({ id: c.id, root: c.root })));
