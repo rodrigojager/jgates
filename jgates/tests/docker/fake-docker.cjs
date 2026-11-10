@@ -487,6 +487,59 @@ if (argv[0] === "run") {
       if (code !== 0) process.stderr.write("fake install: the package index refused the request\n");
       process.exit(code);
     }
+    const codeqlMount = mounts.find((m) => m.type === "volume" && m.target === "/codeql");
+    if (runLabels["org.jgates.kind"] === "data" && codeqlMount) {
+      // The CodeQL containers (jgates/src/core/codeql-prepare). The status read (`cat /codeql/jgates-codeql.json`, volume
+      // mounted read-only) prints the file of the volume or fails like a missing file. The preparation (`python3 -c <script>`,
+      // volume mounted for writing, with a network, JGATES_CODEQL_URL and JGATES_CODEQL_CHECKSUM_URL in its environment)
+      // plays the real script: it fetches the bundle and its checksum file from the (local) release server, refuses a bundle
+      // whose SHA-256 differs, and only then writes the bundle (codeql/bundle.fake), a codeql/codeql launcher and the status
+      // file into the volume. Every verified preparation is recorded in codeql-prepare.jsonl. FAKE_DOCKER_CODEQL_VERSION
+      // (default 2.18.4) is the version the status reports.
+      const root = volumeDir(codeqlMount.source);
+      const statusFile = path.join(root, "jgates-codeql.json");
+      const catAt = argv.indexOf("cat");
+      if (catAt > 0 && argv[catAt + 1] === "/codeql/jgates-codeql.json") {
+        if (!fs.existsSync(statusFile)) fail("cat: /codeql/jgates-codeql.json: No such file or directory");
+        process.stdout.write(fs.readFileSync(statusFile, "utf8"));
+        process.exit(0);
+      }
+      if (argv.indexOf("python3") > 0) {
+        const envOf = (name) => {
+          for (let i = 0; i < argv.length - 1; i++) if (argv[i] === "--env" && argv[i + 1].startsWith(`${name}=`)) return argv[i + 1].slice(name.length + 1);
+          return undefined;
+        };
+        if (codeqlMount.readonly) fail("python3: the CodeQL volume is mounted read-only");
+        const url = envOf("JGATES_CODEQL_URL");
+        const sumUrl = envOf("JGATES_CODEQL_CHECKSUM_URL");
+        if (!url || !sumUrl) fail("jgates-codeql: no release URL");
+        const get = (target) => {
+          const fetcher =
+            "const u=process.argv[1];const m=u.startsWith('https')?require('https'):require('http');" +
+            "m.get(u,res=>{if(res.statusCode!==200){process.stderr.write('HTTP '+res.statusCode+' for '+u);process.exit(22)}" +
+            "const c=[];res.on('data',d=>c.push(d));res.on('end',()=>process.stdout.write(Buffer.concat(c)))}).on('error',e=>{process.stderr.write(String(e.message));process.exit(1)})";
+          const r = require("node:child_process").spawnSync(process.execPath, ["-e", fetcher, target], { maxBuffer: 1 << 28 });
+          if (r.status !== 0) fail(`jgates-codeql: could not download ${target}: ${r.stderr.toString("utf8")}`);
+          return r.stdout;
+        };
+        const name = url.slice(url.lastIndexOf("/") + 1);
+        const line = get(sumUrl).toString("utf8").split(/\r?\n/).map((l) => l.trim().split(/\s+/)).find((p) => p[0] && p[0].length === 64 && (p.length === 1 || p[p.length - 1].replace(/^\*/, "") === name));
+        if (!line) fail(`jgates-codeql: the checksum file of the release has no SHA-256 for ${name}`);
+        const bundle = get(url);
+        const actual = crypto.createHash("sha256").update(bundle).digest("hex");
+        if (actual !== line[0].toLowerCase()) fail(`jgates-codeql: checksum mismatch for ${name} (expected ${line[0]}, got ${actual}); nothing was installed`);
+        fs.mkdirSync(path.join(root, "codeql"), { recursive: true });
+        fs.writeFileSync(path.join(root, "codeql", "bundle.fake"), bundle);
+        fs.writeFileSync(path.join(root, "codeql", "codeql"), "#!/bin/sh\necho fake codeql\n");
+        fs.writeFileSync(
+          statusFile,
+          JSON.stringify({ schemaVersion: 1, version: env("FAKE_DOCKER_CODEQL_VERSION", "2.18.4"), sha256: actual, bytes: bundle.length, source: url, termsAcceptedAt: envOf("JGATES_CODEQL_TERMS_ACCEPTED_AT") || "", preparedAt: new Date().toISOString().replace(/\.\d+Z$/, "Z") }, null, 2),
+        );
+        fs.appendFileSync(path.join(state, "codeql-prepare.jsonl"), JSON.stringify({ volume: codeqlMount.source, url, checksumUrl: sumUrl, sha256: actual, bytes: bundle.length, verified: true, network: argv[argv.indexOf("--network") + 1] }) + "\n");
+        process.stdout.write(`jgates-codeql: ${name} ${actual} verified and installed\n`);
+        process.exit(0);
+      }
+    }
     if (runLabels["org.jgates.kind"] === "data") {
       // The advisory data containers (jgates/src/core/data). The status read (`cat /data/jgates-data.json`, volume mounted
       // read-only) prints the file of the volume or fails like a missing file. The refresh (`python3 -c <script> <database>`,

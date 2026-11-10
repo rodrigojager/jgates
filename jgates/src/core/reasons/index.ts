@@ -60,6 +60,8 @@ export const REASONS: Readonly<Record<string, ReasonEntry>> = Object.freeze({
   DEPENDENCIES_FAILED: entry("DEPENDENCIES_FAILED", { kind: "command", command: "jgates deps prepare" }),
   DATA_MISSING: entry("DATA_MISSING", { kind: "command", command: "jgates tools update-data" }),
   DATA_STALE: entry("DATA_STALE", { kind: "command", command: "jgates tools update-data" }),
+  // A customer-supplied tool (CodeQL) that was not prepared: the user accepts its terms and prepares it into its volume.
+  CUSTOMER_SUPPLIED: entry("CUSTOMER_SUPPLIED", { kind: "command", command: "jgates tools prepare-codeql" }),
   UNSUPPORTED_PLATFORM: entry("UNSUPPORTED_PLATFORM", { kind: "link", url: DOCKER_RESOURCES_URL }),
 });
 

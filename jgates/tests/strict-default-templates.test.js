@@ -104,6 +104,13 @@ test("templates added: strict plans every new check or reports it TOOL_MISSING w
       if (runs) continue;
       const n = na[cap];
       assert.ok(n, `${cap} is planned or reported`);
+      if (cap === "dataflow") {
+        // CodeQL is customer supplied, not part of the image: CUSTOMER_SUPPLIED, fixed by preparing it into its volume.
+        assert.equal(n.reasonCode, "CUSTOMER_SUPPLIED", `${cap}: ${n.message}`);
+        assert.equal(n.action.kind, "prepare-codeql", JSON.stringify(n));
+        assert.equal(n.action.command, "jgates tools prepare-codeql");
+        continue;
+      }
       assert.equal(n.reasonCode, "TOOL_MISSING", `${cap}: ${n.message}`);
       // The tool is not in the tools image: the image of this release is the one shared action, never a host install.
       assert.equal(n.action.kind, "prepare-image", JSON.stringify(n));

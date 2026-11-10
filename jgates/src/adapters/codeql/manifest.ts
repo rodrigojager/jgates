@@ -44,7 +44,7 @@ export const codeqlManifest: AdapterManifest = {
     mayChangeCode: false,
     // Compiled languages are built by CodeQL (buildCommand or autobuild): the project's build runs.
     executesProjectCode: true,
-    // Query packs come from the customer's own CodeQL installation; JGates runs it with --no-download.
+    // Query packs come with the prepared bundle (volume jgates-codeql); JGates runs it with --no-download.
     usesNetwork: false,
     needsService: false,
     usesAi: false,
@@ -65,16 +65,16 @@ export const codeqlManifest: AdapterManifest = {
   license: "GitHub CodeQL Terms and Conditions (customer-supplied; not redistributed by JGates)",
   kind: "tool",
   limitations: [
-    "customer-supplied: the CodeQL CLI and its query packs are never installed or downloaded by JGates, and a run without them is blocked with setup guidance, never passed",
+    "customer-supplied: JGates never bundles CodeQL or installs it on the host; it downloads the bundle of the official release (checksum verified) into the jgates-codeql volume only after you accept the CodeQL terms with `jgates tools prepare-codeql --accept-terms`, and a run without it is blocked (CUSTOMER_SUPPLIED), never passed",
     "the CodeQL terms restrict use to public repositories and licensed organizational private use; the customer owns that entitlement",
     "one database per language per tool instance; compiled languages need a working build (buildCommand or autobuild)",
-    "the query packs must already be installed in the customer's CodeQL setup (JGates passes --no-download)",
+    "the query packs come with the prepared bundle (JGates passes --no-download), which the step mounts read-only at /codeql",
   ],
   stackSupport: ["python", "javascript", "typescript", "java", "go", "csharp", "ruby"].map((stack) => ({
     capability: "dataflow",
     stack,
     state: "customer-setup-required" as const,
-    prerequisites: ["CodeQL CLI 2.15+ (customer-supplied; JGATES_CODEQL or the PATH)", "the CodeQL query pack of the language installed in the customer's CodeQL setup", "an entitlement that covers the repository under the CodeQL terms"],
+    prerequisites: ["CodeQL CLI 2.15+ prepared into the jgates-codeql volume (jgates tools prepare-codeql --accept-terms)", "the CodeQL query pack of the language, which the CodeQL bundle carries", "an entitlement that covers the repository under the CodeQL terms"],
     limitations: ["No JGates test runs a real CodeQL here: the adapter is exercised with a stand-in executable that replays a SARIF in the CodeQL shape."],
   })),
   distribution: {

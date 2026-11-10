@@ -5,6 +5,7 @@ import { translator, type Translator } from "../../i18n/index.js";
 import { readVersion } from "../../cli/version.js";
 import { toolMissingReason, toolsImageGateEnabled, toolsImagePreflight, toolsImageTarget, toolsMissingFromImage } from "../tools-image/index.js";
 import { inspectImageSync } from "../engine/index.js";
+import { resolveReason } from "../reasons/index.js";
 import { listBuiltinProfiles, listBuiltinTemplates, getBuiltinTemplate, isBuiltinRef } from "../../builtin/index.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
 import { createCoreCatalog, subcheckLabel } from "../catalog/index.js";
@@ -779,6 +780,19 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
           message: t(prepareNext ? "plan_na_configure_then_prepare" : "plan_na_configure_instance", { label, tool: unset.item.tool, settings: unset.settings.join(", "), what }),
           adapters: [],
           action: { ...prepareAction(unset.item.adapter, tools), kind: "configure-tool", settings: unset.settings, prepareNext },
+        });
+      } else if (missing.some((i) => i.adapter === "codeql")) {
+        // CodeQL is customer supplied and prepared into its own volume after the user accepts its terms: one cause
+        // (CUSTOMER_SUPPLIED) and one action (prepare it), never a TOOL_MISSING offer of the tools image.
+        const tools = uniqueSorted(missing.filter((i) => i.adapter === "codeql").map((i) => i.tool));
+        const cause = resolveReason("CUSTOMER_SUPPLIED", { tool: "CodeQL" });
+        notApplicableHere.push({
+          ...base,
+          disabledBy: null,
+          reasonCode: "CUSTOMER_SUPPLIED",
+          message: cause.message,
+          adapters: [],
+          action: { ...prepareAction("codeql", tools), kind: "prepare-codeql", command: cause.action.command ?? "", label: cause.action.label },
         });
       } else if (missing.length > 0 && toolsMissingFromImage(missing.map(imageToolOf), env).length > 0) {
         // The tools image lacks the tool: one shared cause and action (the image of this release), never a per-tool

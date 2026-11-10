@@ -1,11 +1,14 @@
 // Whether the CodeQL CLI is available, without installing or changing anything. CodeQL is customer supplied and never
 // in the tools image (ADR-0005): image.json does not list it, so on the host it is missing until it is prepared into
-// its own volume. Inside the image only, JGATES_CODEQL names the executable, which is asked for its version.
+// the jgates-codeql volume (`jgates tools prepare-codeql`), whose status file carries its version. Inside the image
+// only, JGATES_CODEQL names the executable, which is asked for its version.
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
 import { imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
+import { stepMode } from "../../core/runner/in-image.js";
+import { CODEQL_EXECUTABLE, CODEQL_VOLUME, codeqlStatusForPlan } from "../../core/codeql-prepare/index.js";
 
 export interface CodeqlProbe {
   executable: string | null;
@@ -23,6 +26,15 @@ export function findCodeql(env: NodeJS.ProcessEnv): { executable: string | null;
 
 /** Readiness: `codeql version --format=terse` prints just the version (older CLIs print a banner; both are read). */
 export function probeCodeql(env: NodeJS.ProcessEnv): CodeqlProbe {
+  // On the host (container mode) CodeQL is whatever `jgates tools prepare-codeql` put in the jgates-codeql volume; the
+  // step container mounts it read-only at /codeql. Nothing is ever looked up on the host's PATH.
+  if (stepMode(env) !== "in-image") {
+    const read = codeqlStatusForPlan(env);
+    if (read.state !== "ok" || !read.status) return { executable: null, version: null, problem: "not_found", detail: `the ${CODEQL_VOLUME} volume is not prepared (${read.state})` };
+    return read.status.version
+      ? { executable: CODEQL_EXECUTABLE, version: read.status.version, problem: null, detail: "" }
+      : { executable: CODEQL_EXECUTABLE, version: null, problem: "no_answer", detail: CODEQL_EXECUTABLE };
+  }
   const image = imageProbeUnlessOverridden("codeql", env, "JGATES_CODEQL");
   if (image) return image;
   const { executable, tried } = findCodeql(env);

@@ -1,6 +1,6 @@
 {
   "codeql_label": "CodeQL (dataflow, customer-supplied)",
-  "codeql_missing": "Setup required: CodeQL CLI is not available ({detail}). Tool: CodeQL CLI; supported versions: {range}. CodeQL is customer-supplied (its terms restrict use to public repositories and licensed organizational private use), so JGates never installs, downloads or bundles it, and no CodeQL coverage is claimed until it is set up. Download: {download}. Setup guide: {docs}. Then put codeql on the PATH or in <JGATES_HOME>/tools/bin, or set JGATES_CODEQL to the executable, and run doctor again.",
+  "codeql_missing": "Setup required: CodeQL CLI is not available ({detail}). Tool: CodeQL CLI; supported versions: {range}. CodeQL is customer-supplied (its terms restrict use to public repositories and licensed organizational private use), so JGates never installs it on your machine and never bundles it, and no CodeQL coverage is claimed until it is prepared. Release: {download}. Setup guide: {docs}. To prepare it, accept the CodeQL terms and run `jgates tools prepare-codeql --accept-terms`: JGates downloads the bundle of the official release, verifies its checksum and keeps it in the jgates-codeql volume, which the checks mount read-only.",
   "codeql_probe_failed": "The CodeQL executable at {path} did not answer `codeql version`. Supported versions: {range}. Reinstall it from https://github.com/github/codeql-action/releases.",
   "codeql_blocked": "CodeQL could not run: {detail}",
   "codeql_exit_error": "CodeQL {step} ended with code {code}: {detail}",
@@ -9,7 +9,7 @@
   "codeql_invalid_output": "The CodeQL output is not the expected SARIF 2.1.0 of a CodeQL analysis: {detail}",
   "codeql_no_invocation": "The plan has no CodeQL invocation for the instance {tool}.",
   "codeql_reason_completed": "CodeQL {version}: {count, plural, one {# finding} other {# findings}}",
-  "codeql_limitation_customer": "CodeQL is customer-supplied: without the CLI, its query packs and an entitlement under the CodeQL terms the stage is blocked with setup guidance, never passed.",
+  "codeql_limitation_customer": "CodeQL is customer-supplied: until you accept its terms and run `jgates tools prepare-codeql --accept-terms` (the bundle then lives in the jgates-codeql volume), and without an entitlement under the CodeQL terms, the stage is blocked with setup guidance, never passed.",
   "codeql_condition_scope": "Database of the language {language}, query suite {suite}; query packs are not downloaded.",
   "codeql_condition_build": "The database build runs the command: {command}",
   "codeql_condition_autobuild": "Compiled languages are built by CodeQL itself (autobuild); interpreted languages need no build.",
@@ -18,5 +18,13 @@
   "codeql_setting_language": "The language of the instance {tool} is {value}; use one of: {allowed}.",
   "codeql_setting_suite": "The suite of the instance {tool} is {value}; use one of: {allowed}.",
   "codeql_setting_build_command": "The buildCommand of the instance {tool} must be a single-line command.",
-  "codeql_fix": "CodeQL is supplied by you: download the CodeQL CLI bundle from https://github.com/github/codeql-action/releases (setup: https://docs.github.com/en/code-security/codeql-cli), check that your use is covered by the CodeQL terms, put codeql on the PATH or in <JGATES_HOME>/tools/bin, or set JGATES_CODEQL, then run doctor again."
+  "codeql_fix": "CodeQL is supplied by you: check that your use is covered by the CodeQL terms (setup: https://docs.github.com/en/code-security/codeql-cli), then run `jgates tools prepare-codeql --accept-terms`; the bundle of the official release is verified and kept in the jgates-codeql volume. Then run doctor again.",
+  "codeql_prepare_terms_required": "CodeQL is not prepared and its terms have not been accepted. GitHub releases CodeQL under the GitHub CodeQL Terms and Conditions ({terms}): use is limited to public repositories and licensed organizational private use, and that entitlement is yours. Nothing was downloaded. To accept the terms and prepare CodeQL from {source}, run: jgates tools prepare-codeql --accept-terms",
+  "codeql_prepare_no_image": "The JGates tools image is not in the container engine, so CodeQL cannot be prepared yet. Run jgates setup first.",
+  "codeql_prepare_accepted": "CodeQL terms accepted on {date} (recorded in the JGates data folder).",
+  "codeql_prepare_failed": "CodeQL could not be prepared: {error}",
+  "codeql_prepare_unreadable": "The CodeQL bundle was written, but its status could not be read back from the jgates-codeql volume.",
+  "codeql_prepare_done": "CodeQL {version} is prepared in the jgates-codeql volume (SHA-256 {sha256} verified).",
+  "codeql_prepare_engine_error": "The container engine failed while preparing CodeQL: {error}",
+  "codeql_option_accept_terms": "tools prepare-codeql: accept the GitHub CodeQL terms and prepare CodeQL"
 }

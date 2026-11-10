@@ -28,5 +28,7 @@
   "reason_DATA_MISSING": "Os dados de vulnerabilidades do {database} nunca foram baixados; esta verificação ficou incompleta.",
   "reason_DATA_MISSING_action": "Baixar os dados de vulnerabilidades",
   "reason_DATA_STALE": "Os dados de vulnerabilidades do {database} têm {days, plural, one {# dia} other {# dias}} (o limite é {max, plural, one {# dia} other {# dias}}); esta verificação ficou incompleta.",
-  "reason_DATA_STALE_action": "Atualizar os dados de vulnerabilidades"
+  "reason_DATA_STALE_action": "Atualizar os dados de vulnerabilidades",
+  "reason_CUSTOMER_SUPPLIED": "{tool} é fornecido por você e ainda não foi preparado; esta verificação fica incompleta até você aceitar os termos e prepará-lo.",
+  "reason_CUSTOMER_SUPPLIED_action": "Preparar o CodeQL"
 }

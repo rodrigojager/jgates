@@ -60,7 +60,8 @@ export function toolsImageGateEnabled(env: NodeJS.ProcessEnv = process.env): boo
 
 /**
  * The tools of a plan the tools image does not have (by their image.json names), or [] when the image has them all. A
- * tool that is never in the image by design (CodeQL, customer supplied) counts as missing too.
+ * tool that is never in the image by design (NOT_IMAGE_TOOLS: JGates's own checks and CodeQL, which is customer supplied
+ * and prepared into its own volume) is not the image's to supply and never counts as missing.
  */
 export function toolsMissingFromImage(tools: Iterable<string>, env: NodeJS.ProcessEnv = process.env): string[] {
   return [...new Set(tools)].filter((tool) => !NOT_IMAGE_TOOLS.has(tool) && probeImageTool(tool, env).problem !== null).sort();

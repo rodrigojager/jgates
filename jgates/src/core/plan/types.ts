@@ -197,10 +197,12 @@ export interface PlanRequirement {
  *   OpenAPI file... see `adapters[].prerequisites` and `action`);
  * - TOOL_MISSING: an instance is declared and on, but its tool is not available: the tools image does not have it
  *   (one shared cause, action prepare-image) or, inside the image, an override names nothing;
+ * - CUSTOMER_SUPPLIED: an instance of a customer-supplied tool (CodeQL) is declared and on, but the tool was not prepared
+ *   (the user has not accepted its terms and run `jgates tools prepare-codeql`); action prepare-codeql;
  * - CHECKS_DISABLED / DISABLED_FOR_RUN: the checks that would cover it are off (saved setting / --skip, --only);
  * - EVIDENCE_MISSING: the only check claiming it has no verifiable evidence contract (generic command).
  */
-export type NotApplicableReason = "NO_TOOL" | "NO_TOOL_FOR_LANGUAGES" | "SETUP_REQUIRED" | "TOOL_MISSING" | "CHECKS_DISABLED" | "DISABLED_FOR_RUN" | "EVIDENCE_MISSING";
+export type NotApplicableReason = "NO_TOOL" | "NO_TOOL_FOR_LANGUAGES" | "SETUP_REQUIRED" | "TOOL_MISSING" | "CUSTOMER_SUPPLIED" | "CHECKS_DISABLED" | "DISABLED_FOR_RUN" | "EVIDENCE_MISSING";
 
 /** An adapter of JGates that covers the capability, and whether it can apply to this project's languages. */
 export interface NotApplicableAdapter {
@@ -224,6 +226,8 @@ export interface NotApplicableAdapter {
  * - prepare-tool: prepare the data of `tools` (instances) of `adapter` (prerequisites / doctor screens);
  * - prepare-image: the tools image lacks the tool of `tools` (instances): download the tools image of this JGates
  *   release (one shared action, TOOL_MISSING); a tool is never installed on the host;
+ * - prepare-codeql: CodeQL is customer supplied and was not prepared: `command` (jgates tools prepare-codeql) shows its
+ *   terms and, with --accept-terms, prepares the bundle into the jgates-codeql volume; `label` is the control's text;
  * - add-files: add one of `files` so the built-in `template` activates (templateState "absent": also add the template
  *   to jgates.yml templates);
  * - add-template: add the built-in `template` (a "builtin:<id>" reference, templateState "absent") to the templates
@@ -239,7 +243,7 @@ export interface NotApplicableAdapter {
  * Unused fields are null or empty lists, so the shape is the same for every kind.
  */
 export interface NotApplicableAction {
-  kind: "none" | "prepare-tool" | "prepare-image" | "add-files" | "add-template" | "configure-tool" | "enable-check";
+  kind: "none" | "prepare-tool" | "prepare-image" | "prepare-codeql" | "add-files" | "add-template" | "configure-tool" | "enable-check";
   adapter: string | null;
   tools: string[];
   template: string | null;
@@ -257,6 +261,10 @@ export interface NotApplicableAction {
    * prepared, because it is not available on this machine either (configure first, then prepare). Absent: false.
    */
   prepareNext?: boolean;
+  /** prepare-codeql: the JGates command line that fixes it. */
+  command?: string;
+  /** prepare-codeql: the label of the control, in the language of the plan. */
+  label?: string;
 }
 
 /**

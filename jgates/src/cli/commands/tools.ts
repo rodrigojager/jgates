@@ -12,6 +12,7 @@ import { discoverWorkspace } from "../../core/discovery/index.js";
 import { PrepareError, prepareInstance, previewPrepare } from "../../core/prepare/index.js";
 import { decodeBytes, DocumentError, openDocument, saveDocument, validateDocument, type DocumentValidation } from "../../core/documents/index.js";
 
+import { CODEQL_VOLUME, prepareCodeql, type PrepareResult } from "../../core/codeql-prepare/index.js";
 import { DATABASE_IDS, updateData, type DatabaseId, type UpdateProgress, type UpdateResult } from "../../core/data/index.js";
 
 const tr = translator("tools");
@@ -383,8 +384,42 @@ async function runUpdateData(ctx: CommandContext): Promise<number> {
   return status === "OK" ? 0 : 2;
 }
 
+/**
+ * `jgates tools prepare-codeql [--accept-terms]`: prepares the CodeQL bundle into the jgates-codeql volume. Without an
+ * acceptance of GitHub's CodeQL terms (now, or recorded earlier in the JGates data folder) it refuses and downloads nothing.
+ */
+async function runPrepareCodeql(ctx: CommandContext): Promise<number> {
+  const c = translator("codeql");
+  let result: PrepareResult;
+  try {
+    result = await prepareCodeql({ env: process.env, version: ctx.version, acceptTerms: ctx.options["accept-terms"] === true });
+  } catch (error) {
+    const message = c("codeql_prepare_engine_error", { error: error instanceof Error ? error.message : String(error) });
+    return reportError(ctx, ctx.json, "CODEQL_PREPARE_FAILED", message, message, 2);
+  }
+  if (result.state === "refused") return reportError(ctx, ctx.json, "TERMS_NOT_ACCEPTED", result.message, result.message, EXIT_USAGE);
+  const status = result.state === "prepared" ? "OK" : "INCOMPLETE";
+  if (ctx.json) {
+    writeJson(ctx, {
+      schemaVersion: 1,
+      status,
+      tool: "jgates",
+      version: ctx.version,
+      source: result.source,
+      termsAcceptedAt: result.acceptance?.acceptedAt ?? null,
+      codeql: result.status ? { version: result.status.version, sha256: result.status.sha256, preparedAt: result.status.preparedAt, volume: CODEQL_VOLUME } : null,
+      ...(result.state !== "prepared" ? { message: result.message, ...(result.error ? { error: result.error } : {}) } : {}),
+    });
+  } else {
+    if (result.acceptance) ctx.stdout(c("codeql_prepare_accepted", { date: result.acceptance.acceptedAt }) + "\n");
+    (result.state === "prepared" ? ctx.stdout : ctx.stderr)(result.message + "\n");
+  }
+  return status === "OK" ? 0 : 2;
+}
+
 const SUBCOMMANDS: Record<string, Subcommand> = {
   "update-data": { run: (ctx) => runUpdateData(ctx), args: 0 },
+  "prepare-codeql": { run: (ctx) => runPrepareCodeql(ctx), args: 0 },
   prepare: { run: runPrepare, args: 0 },
   list: { run: runList, args: 0 },
   inspect: { run: runInspect, args: 1 },
@@ -410,6 +445,7 @@ export const command: CommandModule = {
     { name: "units", type: "boolean", description: tr("tools_option_units") },
     { name: "packs", type: "string", description: tr("tools_option_packs") },
     { name: "database", type: "string", description: translator("data")("data_option_database") },
+    { name: "accept-terms", type: "boolean", description: translator("codeql")("codeql_option_accept_terms") },
   ],
   async run(ctx) {
     const t = tr;
