@@ -6,8 +6,11 @@ import path from "node:path";
 import { translator } from "../../i18n/index.js";
 import type { Classification } from "../discovery/types.js";
 
-/** Adapters whose checks run with the project's environment (tests, type checks, mutation, lint plugins). */
-const DEPENDENT_ADAPTERS = new Set(["pytest", "vitest", "eslint", "mutation", "build-check", "cargo-test"]);
+/**
+ * Adapters whose checks run with the project's environment (tests, type checks, mutation, lint plugins, and govulncheck,
+ * which loads the project's Go modules from the dependency volume because its step has no network).
+ */
+const DEPENDENT_ADAPTERS = new Set(["pytest", "vitest", "eslint", "mutation", "build-check", "cargo-test", "govulncheck"]);
 
 export interface ToolItem {
   adapter: string | null;

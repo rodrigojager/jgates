@@ -58,6 +58,8 @@ export const REASONS: Readonly<Record<string, ReasonEntry>> = Object.freeze({
   ENGINE_LOST: entry("ENGINE_LOST", { kind: "link", url: DOCKER_DESKTOP_URL }),
   DEPENDENCIES_NOT_READY: entry("DEPENDENCIES_NOT_READY", { kind: "command", command: "jgates deps status" }),
   DEPENDENCIES_FAILED: entry("DEPENDENCIES_FAILED", { kind: "command", command: "jgates deps prepare" }),
+  DATA_MISSING: entry("DATA_MISSING", { kind: "command", command: "jgates tools update-data" }),
+  DATA_STALE: entry("DATA_STALE", { kind: "command", command: "jgates tools update-data" }),
   UNSUPPORTED_PLATFORM: entry("UNSUPPORTED_PLATFORM", { kind: "link", url: DOCKER_RESOURCES_URL }),
 });
 

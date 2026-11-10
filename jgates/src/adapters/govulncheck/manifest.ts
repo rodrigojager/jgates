@@ -47,8 +47,8 @@ export const govulncheckManifest: AdapterManifest = {
     mayChangeCode: false,
     // It loads (type-checks) the packages of the module; it does not build or run them.
     executesProjectCode: false,
-    // The vulnerability database (vuln.go.dev) and the modules missing from the module cache.
-    usesNetwork: true,
+    // Offline: the vulnerability database is the jgates-data volume, the modules come from the dependency volume.
+    usesNetwork: false,
     needsService: false,
     usesAi: false,
     needsLicense: false,
@@ -67,7 +67,7 @@ export const govulncheckManifest: AdapterManifest = {
   limitations: [
     "source mode only: a binary is not scanned; the findings are the vulnerabilities whose symbol the code reaches, and the ones in code that is required or imported but never called are only counted",
     "the Go vulnerability database has no severity: a reachable vulnerability blocks, and its severity stays unknown",
-    "needs the Go toolchain, the network for vuln.go.dev and the modules in the module cache (go.sum must be complete: the run never rewrites it)",
+    "needs the Go toolchain, the Go vulnerability database from the jgates-data volume (mounted read-only, no network; DATA_MISSING / DATA_STALE block the stage) and the modules in the module cache (go.sum must be complete: the run never rewrites it)",
     "vulnerabilities of the Go standard library are judged against the toolchain that runs the analysis, so they depend on the installed Go version",
   ],
   stackSupport: [
@@ -75,7 +75,7 @@ export const govulncheckManifest: AdapterManifest = {
       capability: "dependencies",
       stack: "go",
       state: "validated",
-      prerequisites: ["govulncheck 1.0+ (customer-supplied: go install golang.org/x/vuln/cmd/govulncheck@latest)", "the Go toolchain on the PATH", "go.mod and a complete go.sum", "network access to vuln.go.dev"],
+      prerequisites: ["govulncheck 1.0+ (customer-supplied: go install golang.org/x/vuln/cmd/govulncheck@latest)", "the Go toolchain on the PATH", "go.mod and a complete go.sum", "the Go vulnerability database (jgates tools update-data)"],
       limitations: ["reachable (called) vulnerabilities only; binary mode is not supported", "validated with the real govulncheck 1.9.0 and Go 1.26.2 on Windows; the tool itself is customer-setup-required on every machine (never shipped or installed by JGates)"],
     },
   ],

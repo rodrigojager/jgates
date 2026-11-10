@@ -218,6 +218,8 @@ function project({ profile = "standard", tools = TOOLS_YML } = {}) {
   const dir = tmp("jgates-sec-ws-");
   const home = tmp("jgates-sec-home-");
   const bin = tmp("jgates-sec-bin-");
+  // The advisory data inside the image (JGATES_DATA_DIR): where the stand-in Trivy writes its database metadata.
+  const data = tmp("jgates-sec-data-");
   const log = path.join(bin, "calls.jsonl");
   /** Points the container runtime (the bridge's) at a scenario: what it answers and which recorded report it writes. */
   const runtime = (vars = {}) => script(bin, "docker", `Object.assign(process.env, ${JSON.stringify({ FAKE_LOG: log, ...vars })});\nrequire(${JSON.stringify(FAKE_RUNTIME)});`);
@@ -228,7 +230,7 @@ function project({ profile = "standard", tools = TOOLS_YML } = {}) {
   };
   scanners();
   // In-image mode (tests/setup/in-image.mjs): the scanners are the image's, found on the PATH, and image.json is the package's mirror.
-  const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_CONTAINER_RUNTIME: path.join(bin, "docker"), JGATES_NO_CACHE: "1", PATH: bin };
+  const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_CONTAINER_RUNTIME: path.join(bin, "docker"), JGATES_NO_CACHE: "1", PATH: bin, JGATES_DATA_DIR: data };
   const cli = cliIn(env);
   const init = cli(["init", "--cwd", dir, "--profile", profile, "--no-interactive", "--json"]);
   assert.equal(init.code, 0, init.out + init.err);
@@ -246,7 +248,7 @@ function project({ profile = "standard", tools = TOOLS_YML } = {}) {
   for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(dir, name), text);
   fs.writeFileSync(path.join(dir, ".jgates", "tools.yml"), tools);
   const calls = () => (fs.existsSync(log) ? fs.readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
-  return { dir, home, bin, env, cli, runtime, scanners, calls, cleanup: () => rm(dir, home, bin) };
+  return { dir, home, bin, data, env, cli, runtime, scanners, calls, cleanup: () => rm(dir, home, bin, data) };
 }
 
 const itemOf = (plan, id) => [...plan.groups.willRun, ...plan.groups.notApplicableOrDisabled].find((i) => i.id === id);
@@ -264,8 +266,8 @@ test("each adapter plans the step command with the documents chosen in tools.yml
     const out = (tool) => `{runDir}/outputs/${tool}/${tool}`;
     const expected = {
       "gitleaks#secrets": ["dir", "--redact=100", "--no-banner", "--no-color", "--log-level", "warn", "--exit-code", "3", "--report-format", "json", "--report-path", `${out("gitleaks")}/report.json`, "--config", "{workspace}/.gitleaks.toml", "--gitleaks-ignore-path", "{workspace}/.gitleaksignore", "."],
-      "trivy#dependencies": ["--config", "{workspace}/trivy.yaml", "fs", "--scanners", "vuln,misconfig", "--format", "json", "--output", `${out("trivy")}/report.json`, "--exit-code", "0", "--cache-dir", `${out("trivy")}/cache`, "--skip-version-check", "--disable-telemetry", "--no-progress", "--ignorefile", "{workspace}/.trivyignore", "."],
-      "osv-scanner#dependencies": ["scan", "source", "--recursive", "--allow-no-lockfiles", "--format", "json", "--output-file", `${out("osv-scanner")}/report.json`, "--config", "{workspace}/osv-scanner.toml", "."],
+      "trivy#dependencies": ["--config", "{workspace}/trivy.yaml", "fs", "--scanners", "vuln,misconfig", "--format", "json", "--output", `${out("trivy")}/report.json`, "--exit-code", "0", "--cache-dir", `${p.data}/trivy`, "--cache-backend", "memory", "--skip-db-update", "--offline-scan", "--skip-check-update", "--skip-java-db-update", "--skip-version-check", "--disable-telemetry", "--no-progress", "--ignorefile", "{workspace}/.trivyignore", "."],
+      "osv-scanner#dependencies": ["scan", "source", "--recursive", "--allow-no-lockfiles", "--offline-vulnerabilities", "--format", "json", "--output-file", `${out("osv-scanner")}/report.json`, "--config", "{workspace}/osv-scanner.toml", "."],
       "checkov#iac": ["--config-file", "{workspace}/.checkov.yaml", "--directory", ".", "--output", "json", "--output-file-path", out("checkov"), "--quiet", "--compact", "--skip-download"],
     };
     for (const [id, args] of Object.entries(expected)) {
@@ -280,9 +282,9 @@ test("each adapter plans the step command with the documents chosen in tools.yml
     }
     // The documents are hashed into the plan; the network need is declared.
     assert.deepEqual(itemOf(plan, "gitleaks#secrets").configFiles.map((f) => f.file).filter((f) => !f.startsWith(".jgates") && !f.startsWith("builtin:") && f !== "jgates.yml"), [".gitleaks.toml", ".gitleaksignore"]);
-    assert.equal(itemOf(plan, "trivy#iac").network, true);
-    assert.equal(itemOf(plan, "checkov#iac").network, false);
-    assert.ok(plan.network.items.includes("trivy#dependencies") && plan.network.items.includes("osv-scanner#dependencies"));
+    // Offline: the vulnerability databases are the jgates-data volume, so no scanner here declares a network.
+    for (const id of ["trivy#iac", "trivy#dependencies", "osv-scanner#dependencies", "checkov#iac"]) assert.equal(itemOf(plan, id).network, false, id);
+    assert.ok(!["trivy#dependencies", "osv-scanner#dependencies"].some((id) => plan.network.items.includes(id)));
     assert.ok(itemOf(plan, "gitleaks#secrets").conditions.some((c) => c.includes("--redact=100")), "the plan says the redaction is fixed");
     assert.equal(p.calls().length, 0, "planning starts no scanner");
   } finally {
@@ -374,7 +376,7 @@ test("Trivy and OSV-Scanner record the source and the date of the vulnerability 
     for (const id of ["trivy#dependencies", "trivy#iac"]) {
       const db = stageOf(result, id).analysisInput?.database;
       assert.ok(db, `${id}: ${JSON.stringify(stageOf(result, id))}`);
-      assert.deepEqual({ source: db.source, updatedAt: db.updatedAt, reported: db.reported, networkRequired: db.networkRequired }, { source: "mirror.gcr.io/aquasec/trivy-db:2", updatedAt: "2026-10-25T19:10:35.479132794Z", reported: true, networkRequired: true }, id);
+      assert.deepEqual({ source: db.source, updatedAt: db.updatedAt, reported: db.reported, networkRequired: db.networkRequired }, { source: "mirror.gcr.io/aquasec/trivy-db:2", updatedAt: "2026-10-25T19:10:35.479132794Z", reported: true, networkRequired: false }, id);
     }
     assert.equal(deps.findings, 2);
     assert.equal(stageOf(result, "trivy#iac").findings, 2);
@@ -387,8 +389,8 @@ test("Trivy and OSV-Scanner record the source and the date of the vulnerability 
       { source: facts.database.source, updatedAt: facts.database.updatedAt, reported: facts.database.reported },
       { source: "mirror.gcr.io/aquasec/trivy-db:2", updatedAt: "2026-10-25T19:10:35.479132794Z", reported: true },
     );
-    assert.ok(!fs.existsSync(path.join(out, "cache", "db", "trivy.db")), "the database file does not stay in the run folder");
-    assert.ok(fs.existsSync(path.join(out, "cache", "db", "metadata.json")), "its metadata does");
+    assert.ok(!fs.existsSync(path.join(out, "cache", "db", "trivy.db")), "the database file never reaches the run folder: it is the data volume");
+    assert.ok(fs.existsSync(path.join(p.data, "trivy", "db", "metadata.json")), "the database and its metadata are in the data folder");
 
     p.scanners({ FAKE_REPORT: fixture("osv-scanner", "2.4.0", "source-vulns.json"), FAKE_EXIT: "1" });
     const osv = p.cli(["run", "--cwd", p.dir, "--only", "tool:osv-scanner", "--no-interactive", "--json"]).doc;
@@ -396,11 +398,11 @@ test("Trivy and OSV-Scanner record the source and the date of the vulnerability 
     const stage = stageOf(osv, "osv-scanner#dependencies");
     assert.equal(stage.state, "completed", JSON.stringify(stage));
     assert.equal(stage.findings, 3);
-    assert.match(stage.reason, /api\.osv\.dev/);
-    assert.match(stage.reason, /não informa a data/);
-    assert.deepEqual(stage.analysisInput, { database: { source: "https://api.osv.dev", updatedAt: null, reported: false, networkRequired: true } });
-    const osvFacts = JSON.parse(fs.readFileSync(path.join(osv.runDir, "outputs", "osv-scanner", "osv-scanner", "analysis-input.json"), "utf8"));
-    assert.deepEqual(osvFacts.database, { source: "https://api.osv.dev", updatedAt: null, reported: false, networkRequired: true });
+    // Offline: the scanner reads the data folder (--offline-vulnerabilities). Inside the image no gate records the fetch
+    // times (the container runs record them from the jgates-data volume, see V2-49), so the stage carries no database.
+    const osvCall = p.calls().filter((c) => c[0] === "osv-scanner").at(-1);
+    assert.ok(osvCall.includes("--offline-vulnerabilities"), osvCall.join(" "));
+    assert.equal(stage.analysisInput, undefined);
   } finally {
     p.cleanup();
   }

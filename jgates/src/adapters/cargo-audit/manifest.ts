@@ -44,8 +44,8 @@ export const cargoAuditManifest: AdapterManifest = {
     writesOutputs: true,
     mayChangeCode: false,
     executesProjectCode: false,
-    // The advisory database is fetched with git from github.com into the run folder.
-    usesNetwork: true,
+    // Offline: the RustSec advisory database is the jgates-data volume.
+    usesNetwork: false,
     needsService: false,
     usesAi: false,
     needsLicense: false,
@@ -65,7 +65,7 @@ export const cargoAuditManifest: AdapterManifest = {
   limitations: [
     "reads Cargo.lock only: a project without a lock file has nothing to audit and the stage is blocked, never passed",
     "advisories are matched on package versions, not on the call graph: an advisory blocks even when the code never calls the affected function",
-    "the RustSec advisory database is cloned on every run into the run folder (network needed); the ignore list of .cargo/audit.toml is a scanner exception, not a waiver of the gate",
+    "the RustSec advisory database is read from the jgates-data volume (mounted read-only, --no-fetch, no network; DATA_MISSING / DATA_STALE block the stage); the ignore list of .cargo/audit.toml is a scanner exception, not a waiver of the gate",
     "unmaintained, unsound and yanked packages are reported as non-blocking findings",
   ],
   stackSupport: [
@@ -73,7 +73,7 @@ export const cargoAuditManifest: AdapterManifest = {
       capability: "dependencies",
       stack: "rust",
       state: "validated",
-      prerequisites: ["cargo-audit 0.20+ (customer-supplied: cargo install cargo-audit --locked)", "a Cargo.lock in the scan root", "network access to github.com for the RustSec advisory database"],
+      prerequisites: ["cargo-audit 0.20+ (customer-supplied: cargo install cargo-audit --locked)", "a Cargo.lock in the scan root", "the RustSec advisory database (jgates tools update-data)"],
       limitations: ["package-version matching only; no reachability analysis", "validated with the real cargo-audit 0.22.2 on Windows; the tool itself is customer-setup-required on every machine (never shipped or installed by JGates)"],
     },
   ],

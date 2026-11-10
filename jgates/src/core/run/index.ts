@@ -13,11 +13,12 @@ import { createRunDir, resolveHome, touchWorkspace } from "../home/index.js";
 import { newRunId } from "../ids/index.js";
 import { listRuns } from "../artifacts/index.js";
 import { compareWithBaseline, findingMetrics, finalizeFindings, loadWaiverFile, markBaselineState, WAIVERS_FILE, type Waiver } from "../results/index.js";
-import { engineRuntime } from "../engine/index.js";
+import { engineRuntime, type EngineMount } from "../engine/index.js";
 import { cancelRunInEngine, createStepLauncher, executeSteps, mergeOutputs, type EngineCancelResult, type RunPhase, type RunStep } from "../runner/index.js";
 import { toolsImageGateEnabled } from "../tools-image/index.js";
 import { createSyncPhase } from "../sync/phase.js";
 import { createDepsRun, type DepsRun } from "../deps/run.js";
+import { createDataRun, dataMaxAgeDaysOf, type DataRun } from "../data/index.js";
 import type { Plan } from "../plan/types.js";
 import { describeAnalysis, planOutputs, prepareAnalysis, verifyInputs, type PreparedAnalysis } from "./analysis.js";
 import type { AdapterContext, AdapterOutput, CacheableStep, ResultDisabled, ResultPolicy, RunResult, SemanticHook } from "./types.js";
@@ -347,10 +348,20 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
   // Container-first (same gate as the sync phase): every process of every step is launched in a step container, with
   // the dependency volumes the deps phase prepared for the checks that need them.
   let deps: DepsRun | null = null;
+  let data: DataRun | null = null;
+  // What a step container gets besides the source volume and the run folder: its dependency volumes, and the advisory data
+  // (read-only) for the scanners that read a database.
+  const stepEnvironment = (stepId: string): { mounts: EngineMount[]; env: Record<string, string> } | null => {
+    const own = deps?.stepEnvironment(stepId) ?? null;
+    const advisory = data?.stepEnvironment(stepId) ?? null;
+    if (!own || !advisory) return own ?? advisory;
+    return { mounts: [...own.mounts, ...advisory.mounts], env: { ...advisory.env, ...own.env } };
+  };
   const launcher =
     opts.plan && toolsImageGateEnabled(env)
-      ? createStepLauncher({ env, workspaceId: workspace.id, runId, runDir, projectDir: prep.path, version: opts.version, stepEnvironment: (stepId) => deps?.stepEnvironment(stepId) ?? null })
+      ? createStepLauncher({ env, workspaceId: workspace.id, runId, runDir, projectDir: prep.path, version: opts.version, stepEnvironment })
       : null;
+  data = opts.plan && launcher ? createDataRun({ plan: opts.plan, env, runDir, maxAgeDays: dataMaxAgeDaysOf(opts.policy?.source.dir ?? prep.path), version: opts.version }) : null;
   // The project's dependencies (after the sync): only when a planned check needs them and the steps run in containers.
   deps =
     !opts.phases && opts.plan && launcher
@@ -401,7 +412,7 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
   }
   try {
     // A check that needs dependencies does not start without them (DEPENDENCIES_FAILED / DEPENDENCIES_NOT_READY).
-    const steps = deps ? deps.gate(cachedSteps) : cachedSteps;
+    const steps = data ? data.gate(deps ? deps.gate(cachedSteps) : cachedSteps) : deps ? deps.gate(cachedSteps) : cachedSteps;
     executed = await executeSteps(steps, {
       phases,
       ...(launcher ? { launcher } : {}),

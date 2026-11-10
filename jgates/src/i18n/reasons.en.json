@@ -24,5 +24,9 @@
   "reason_DEPENDENCIES_NOT_READY": "The dependencies of component {component} are not ready; this check is incomplete.",
   "reason_DEPENDENCIES_NOT_READY_action": "See the state of the dependencies",
   "reason_DEPENDENCIES_FAILED": "Installing the dependencies of component {component} failed; this check is incomplete.",
-  "reason_DEPENDENCIES_FAILED_action": "Prepare the dependencies again"
+  "reason_DEPENDENCIES_FAILED_action": "Prepare the dependencies again",
+  "reason_DATA_MISSING": "The advisory data of {database} was never downloaded; this check is incomplete.",
+  "reason_DATA_MISSING_action": "Download the advisory data",
+  "reason_DATA_STALE": "The advisory data of {database} is {days, plural, one {# day} other {# days}} old (the limit is {max, plural, one {# day} other {# days}}); this check is incomplete.",
+  "reason_DATA_STALE_action": "Update the advisory data"
 }

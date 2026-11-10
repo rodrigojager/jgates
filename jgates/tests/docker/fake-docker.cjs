@@ -28,6 +28,10 @@
 //   (plays a test step that writes files)
 //   FAKE_DOCKER_DEPS_EXIT  exit code of the dependency install containers (label org.jgates.kind=deps; default 0); on
 //   success they write {"key": $JGATES_DEPS_KEY} at $JGATES_DEPS_MARKER in the volume mounted there, like the real script
+//   FAKE_DOCKER_DATA_FAIL  comma list of advisory databases whose refresh container (label org.jgates.kind=data, `python3 -c
+//   <script> <database>`) fails; a refresh that works writes a marker database and stamps its fetch time (now, or
+//   FAKE_DOCKER_DATA_FETCHED) in /data/jgates-data.json of the volume mounted there; `cat /data/jgates-data.json` in a data
+//   container prints that file (fails when the volume has none)
 // Objects: volumes, containers, networks and images live in FAKE_DOCKER_STATE/objects.json
 //   { containers: [{ id, name, state, labels }], volumes: [{ name, labels }], networks: [...], images: [...] };
 //   `volume create`, `volume rm`, `ps`/`container ls`, `volume ls`, `network ls`, `image ls`, `kill`, `rm`, `*  prune`
@@ -482,6 +486,38 @@ if (argv[0] === "run") {
       process.stdout.write(code === 0 ? "jgates-deps: installed\n" : "");
       if (code !== 0) process.stderr.write("fake install: the package index refused the request\n");
       process.exit(code);
+    }
+    if (runLabels["org.jgates.kind"] === "data") {
+      // The advisory data containers (jgates/src/core/data). The status read (`cat /data/jgates-data.json`, volume mounted
+      // read-only) prints the file of the volume or fails like a missing file. The refresh (`python3 -c <script> <database>`,
+      // volume mounted for writing, with a network) writes a small marker database and stamps its fetch time in the status
+      // file (now, or FAKE_DOCKER_DATA_FETCHED); FAKE_DOCKER_DATA_FAIL (comma list of databases) makes those refreshes fail.
+      const dataMount = mounts.find((m) => m.type === "volume" && m.target === "/data");
+      const statusFile = dataMount ? path.join(volumeDir(dataMount.source), "jgates-data.json") : null;
+      const catAt = argv.indexOf("cat");
+      if (catAt > 0 && argv[catAt + 1] === "/data/jgates-data.json") {
+        if (!statusFile || !fs.existsSync(statusFile)) fail("cat: /data/jgates-data.json: No such file or directory");
+        process.stdout.write(fs.readFileSync(statusFile, "utf8"));
+        process.exit(0);
+      }
+      const updateAt = argv.indexOf("python3");
+      if (updateAt > 0 && statusFile) {
+        const database = argv[argv.length - 1];
+        if (env("FAKE_DOCKER_DATA_FAIL", "").split(",").includes(database)) fail(`fake refresh: ${database} could not be downloaded`);
+        const dir = path.join(path.dirname(statusFile), database);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, "marker"), "fake database\n");
+        let doc = { schemaVersion: 1, databases: {} };
+        try {
+          doc = JSON.parse(fs.readFileSync(statusFile, "utf8"));
+        } catch {
+          // the first refresh
+        }
+        doc.databases[database] = { fetchedAt: env("FAKE_DOCKER_DATA_FETCHED", new Date().toISOString().replace(/\.\d+Z$/, "Z")), source: `fake://${database}` };
+        fs.writeFileSync(statusFile, JSON.stringify(doc, null, 2));
+        process.stdout.write(`jgates-data: ${database} updated\n`);
+        process.exit(0);
+      }
     }
     // The disk probe of the engine module: `df -Pk /` in a helper container prints the free space of the storage.
     const commandAt = argv.findIndex((a, i) => a === "df" && argv[i - 1] !== "--name");

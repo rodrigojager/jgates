@@ -43,21 +43,27 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | govulncheck (Go dependency vulnerabilities) (`govulncheck`) | govulncheck >=1.0.0 <2.0.0 | - | dependencies (adapter-stack-extensions.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Customer-supplied binary (BSD-3-Clause), source mode: only vulnerabilities whose symbol the code reaches are findings, with an unknown severity because the Go database has none; needs the Go toolchain, a complete go.sum and the network for vuln.go.dev. Proven on a Go module fixture with govulncheck 1.9.0. | govulncheck 1.0+ (go install; customer-supplied), the Go toolchain, network to vuln.go.dev |
 | cargo-audit (Rust advisories) (`cargo-audit`) | cargo-audit >=0.20.0 <1.0.0 | - | dependencies (adapter-stack-extensions.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Customer-supplied binary (Apache-2.0 OR MIT): advisories are matched on the versions locked in Cargo.lock, not on the call graph; the RustSec database is cloned on every run (network); unmaintained, unsound and yanked packages are non-blocking findings. Proven on a Cargo.lock fixture with cargo-audit 0.22.2. | cargo-audit 0.20+ (cargo install; customer-supplied), network to github.com |
 | cargo test (Rust tests and proptest properties) (`cargo-test`) | cargo >=1.60.0 | rust | tests (adapter-cargo-test.test.js); properties (adapter-cargo-test.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Customer-supplied toolchain (cargo, MIT OR Apache-2.0): runs cargo test --offline and parses the stable libtest text output; proptest properties are found statically (proptest! blocks and #[proptest] functions); the tests, build scripts and procedural macros of the project execute, so the result is self-reported and never cached; dependencies must already be in the cargo home. Proven on Rust crate fixtures with the real cargo 1.99.1 and proptest 1.x. | cargo and rustc 1.60+ (rustup; customer-supplied), proptest 1.x fetched in the cargo home |
+| Format check (ruff, prettier, gofmt, rustfmt, dotnet format) (`format-check`) | formatter >=0.9.0 | - | format-check (adapter-format-check.test.js, adapter-format-check.test.js, adapter-format-check.test.js, adapter-format-check.test.js, adapter-format-check.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Check mode only, with the project's own style configuration: the files the formatter would reformat are blocking findings and nothing is rewritten; dotnet format checks whitespace only; a formatter output the adapter cannot explain is an error, never a pass. Proven on a bad and a clean fixture per stack with the real formatters, and through the real engine in the tools image. | ruff, prettier, gofmt (Go), cargo fmt (rustfmt) and the .NET SDK (dotnet format), all in the JGates tools image |
+| File size (lines per file) (`file-size`) | jgates-file-size | - | file-size (adapter-file-size.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Counts the lines of text files in-process; binary files are skipped and listed, generated and third-party folders are not entered, and a tree too big to walk leaves the stage not interpreted instead of passed. One limit for every file; bytes per file and change-size budgets stay with the quality bridge until it is retired. | None: shipped with JGates (reads the files in-process, no network) |
 
 | Stack | Support | Not covered |
 | --- | --- | --- |
 | Base (`base`) | full | - |
 | .NET build (`dotnet-build`) | full | - |
 | C# with CodeQL dataflow (`dotnet-codeql`) | full | - |
+| .NET with dotnet format (`dotnet-format`) | full | - |
 | .NET (`dotnet`) | partial | Testes do projeto (dotnet test); Cobertura de testes; Analisadores Roslyn e regras do .editorconfig |
+| File size (`file-size`) | full | - |
 | GitHub Actions with zizmor (`github-actions-zizmor`) | full | - |
 | Secrets in the Git history (Gitleaks) (`gitleaks-history`) | full | - |
 | Go build and vet (`go-build`) | full | - |
 | Go with CodeQL dataflow (`go-codeql`) | full | - |
+| Go with gofmt (`go-gofmt`) | full | - |
 | Go with govulncheck (`go-govulncheck`) | full | - |
 | Go (`go`) | partial | Cobertura de testes; Licenças e integridade de dependências (as vulnerabilidades entram pelo template go-govulncheck); Linters (staticcheck, golangci-lint) |
 | OpenAPI with oasdiff (`openapi-oasdiff`) | full | - |
 | Python with CodeQL dataflow (`python-codeql`) | full | - |
+| Python with ruff format (`python-format`) | full | - |
 | Python com Import Linter (`python-import-linter`) | full | - |
 | Python mutation testing (mutmut) (`python-mutmut`) | full | - |
 | Python with mypy (defaults) (`python-mypy-defaults`) | full | - |
@@ -69,12 +75,14 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | Rust with cargo-audit (`rust-cargo-audit`) | full | - |
 | Rust with cargo check (`rust-cargo-check`) | full | - |
 | Rust with cargo test (`rust-cargo-test`) | full | - |
+| Rust with cargo fmt (`rust-rustfmt`) | full | - |
 | Rust (`rust`) | partial | clippy; Cobertura de testes; Licenças e políticas de dependências (cargo deny; os avisos do RustSec entram pelo template rust-cargo-audit) |
 | Supply chain of the lockfiles (`supply-chain`) | full | - |
 | Dependency licenses (Trivy) (`trivy-licenses`) | full | - |
 | TypeScript and JavaScript with CodeQL dataflow (`typescript-codeql`) | full | - |
 | TypeScript com dependency-cruiser (`typescript-dependency-cruiser`) | full | - |
 | TypeScript com ESLint (`typescript-eslint`) | full | - |
+| TypeScript and JavaScript with prettier (`typescript-prettier`) | full | - |
 | TypeScript and JavaScript mutation testing (Stryker) (`typescript-stryker`) | full | - |
 | TypeScript with tsc (`typescript-tsc`) | full | - |
 | TypeScript com Vitest (`typescript-vitest`) | full | - |

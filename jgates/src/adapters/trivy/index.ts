@@ -1,8 +1,7 @@
 // Trivy adapter: one `trivy fs` per tool instance in the container runner, with the scanners its capabilities ask
-// for, the project's trivy.yaml and ignore file as two documents, the cache in the run folder's output mount and the
-// vulnerability database recorded (source and date) after the run. The database file itself (over a gigabyte) never
-// stays in the run folder: it is kept in the data folder (tools/cache/trivy-db) and reused, hard-linked into the
-// output mount with --skip-db-update, while it is fresh; only its metadata stays in the run.
+// for, the project's trivy.yaml and ignore file as two documents. The scan is offline (--network none): the
+// vulnerability database is the jgates-data volume mounted read-only (core/data), and the fetch time of the database the
+// run read is recorded in the result.
 import fs from "node:fs";
 import path from "node:path";
 import { translator } from "../../i18n/index.js";
@@ -12,52 +11,16 @@ import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
 import type { AdapterContext, AdapterOutput, ResultFinding, ResultStage } from "../../core/run/types.js";
 import { scanImage, trivyImageArgs, type TrivyImageTarget } from "./image.js";
-import { outputToken, planScanner, probeScannerImage, REPORT_FILE, runScanner, workspaceToken, type DatabaseCacheSpec, type ScannerDefinition } from "../container-scanner/index.js";
+import { outputToken, planScanner, probeScannerImage, REPORT_FILE, runScanner, workspaceToken, type ScannerDefinition } from "../container-scanner/index.js";
 import { trivyManifest } from "./manifest.js";
 import { parseTrivyReport, trivyFacts } from "./normalize.js";
+import { databaseDir, recordedDatabaseFacts } from "../../core/data/index.js";
 
 export { trivyManifest } from "./manifest.js";
 export { databaseSource, parseTrivyReport, trivyFacts, TRIVY_DEFAULT_DB, TRIVY_SCHEMA_VERSION } from "./normalize.js";
 
 /** Trivy scanner of each capability. */
 export const TRIVY_SCANNERS: Record<string, string> = { dependencies: "vuln", iac: "misconfig", secrets: "secret", licenses: "license" };
-
-/** Everything of the cache folder except the metadata files (the database, the checks bundle, the scan cache). */
-function removeCacheContent(dir: string): void {
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const e of entries) {
-    const p = path.join(dir, e.name);
-    if (e.isDirectory()) {
-      removeCacheContent(p);
-      try {
-        fs.rmdirSync(p);
-      } catch {
-        // keeps a folder that still holds a metadata file
-      }
-    } else if (e.name !== "metadata.json") fs.rmSync(p, { force: true });
-  }
-}
-
-const text = (v: unknown): string | null => (typeof v === "string" && v !== "" ? v : null);
-
-/** The vulnerability database (db/trivy.db and db/metadata.json under --cache-dir), shared between runs. */
-export const TRIVY_DATABASE: DatabaseCacheSpec = {
-  name: "trivy-db",
-  dir: "cache/db",
-  files: ["trivy.db", "metadata.json"],
-  metadata: "metadata.json",
-  needed: (capabilities) => capabilities.includes("dependencies"),
-  skipArgs: ["--skip-db-update"],
-  dates(meta) {
-    const m = meta && typeof meta === "object" ? (meta as Record<string, unknown>) : {};
-    return { updatedAt: text(m.UpdatedAt), nextUpdate: text(m.NextUpdate), downloadedAt: text(m.DownloadedAt) };
-  },
-};
 
 export const trivyScanner: ScannerDefinition = {
   manifest: trivyManifest,
@@ -71,6 +34,7 @@ export const trivyScanner: ScannerDefinition = {
     const config = input.documents.config?.file ?? null;
     const ignore = input.documents.ignore?.file ?? null;
     const scanners = input.capabilities.map((c) => TRIVY_SCANNERS[c]).filter((s): s is string => s !== undefined);
+    const withDatabase = input.capabilities.includes("dependencies");
     return [
       ...(config ? ["--config", workspaceToken(config)] : []),
       "fs",
@@ -82,8 +46,12 @@ export const trivyScanner: ScannerDefinition = {
       `${input.out}/${REPORT_FILE}`,
       "--exit-code",
       "0",
-      "--cache-dir",
-      `${input.out}/cache`,
+      // The vulnerability database is the jgates-data volume (read-only): the scan never downloads anything, and the scan
+      // cache stays in memory because the database folder cannot be written. Without the vulnerability scanner the
+      // cache is the instance's output folder.
+      ...(withDatabase ? ["--cache-dir", databaseDir("trivy", input.env), "--cache-backend", "memory", "--skip-db-update", "--offline-scan"] : ["--cache-dir", `${input.out}/cache`]),
+      "--skip-check-update",
+      "--skip-java-db-update",
       "--skip-version-check",
       "--disable-telemetry",
       "--no-progress",
@@ -92,7 +60,7 @@ export const trivyScanner: ScannerDefinition = {
     ];
   },
   exitCodes: [0],
-  network: true,
+  network: false,
   conditions(input, t) {
     const scanners = input.capabilities.map((c) => TRIVY_SCANNERS[c]).filter(Boolean).join(", ");
     return [t("trivy_condition_scanners", { scanners }), ...(input.capabilities.includes("dependencies") ? [t("trivy_condition_database")] : [])];
@@ -101,9 +69,7 @@ export const trivyScanner: ScannerDefinition = {
     return [t("trivy_limitation_download"), t("trivy_limitation_exceptions")];
   },
   parse: parseTrivyReport,
-  facts: (outputDir, stderr) => trivyFacts(path.join(outputDir, "cache"), stderr),
-  cleanup: (outputDir) => removeCacheContent(path.join(outputDir, "cache")),
-  database: TRIVY_DATABASE,
+  facts: (outputDir, stderr) => recordedDatabaseFacts(outputDir, "trivy") ?? trivyFacts(databaseDir("trivy"), stderr),
 };
 
 const isRec = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -149,7 +115,7 @@ function planTrivyImage(input: ExternalPlanInput, settings: TrivyImageSettings):
   if (!blocksPlan && availability.status === "available" && settings.target && "tarball" in settings.target && path.isAbsolute(settings.target.tarball)) {
     availability = { status: "unavailable", reason: t("trivy_image_tarball_outside", { tool: input.tool, file: settings.target.tarball }) };
   }
-  const args = settings.target ? trivyImageArgs(settings.target, `${out}/cache`) : [];
+  const args = settings.target ? trivyImageArgs(settings.target, databaseDir("trivy", input.env)) : [];
   const probe = probeScannerImage(input.env, trivyManifest.toolName);
   if (availability.status === "available") {
     if (probe.problem !== null) availability = { status: "unavailable", reason: translator("security")("security_not_in_image", { tool: trivyManifest.displayName, instance: input.tool, runtime: probe.runtimeName, image: probe.image ?? "-", detail: probe.detail }) };
@@ -176,7 +142,8 @@ function planTrivyImage(input: ExternalPlanInput, settings: TrivyImageSettings):
     configFiles: [],
     availability,
     blocksPlan,
-    network: true,
+    // A tarball is read from the workspace; only a registry reference needs the network (the database never does).
+    network: settings.target !== null && "reference" in settings.target,
     limitations: [t("trivy_image_limitation")],
     conditions: [t("trivy_image_condition", { target: settings.target ? ("reference" in settings.target ? settings.target.reference : settings.target.tarball) : "-" })],
     output: { format: "json", schema: null },
@@ -221,7 +188,7 @@ async function runTrivyImage(context: AdapterContext, plan: Plan, tool: string):
   const stderrLog = path.join(context.logsDir, `${tool}.stderr.log`);
   const cwd = substituteTokens(invocation.command.cwd, tokens);
   const scan = await scanImage(target, {
-    cacheDir: path.join(outDir, "cache"),
+    cacheDir: databaseDir("trivy", context.env),
     run: async (scanArgs) => {
       const r = await runSpec({ executable: invocation.command.executable, args: scanArgs, cwd, env, stdin: null, timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog }, { parentEnv: context.env });
       return { status: r.exitCode, stdout: r.stdout, stderr: r.stderr, ...(r.spawnError ? { errorCode: r.spawnError.code, errorMessage: r.spawnError.message } : {}) };

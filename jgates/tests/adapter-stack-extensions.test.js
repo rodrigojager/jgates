@@ -86,8 +86,8 @@ test("govulncheck: a vulnerable yaml.v2 the code calls is a normalized finding a
     assert.ok(item, "govulncheck#dependencies is in the plan of a Go module");
     assert.equal(item.adapter, "govulncheck");
     assert.equal(item.category, "dependencies");
-    assert.deepEqual(item.command.args, ["-format", "json", "./..."]);
-    assert.equal(item.network, true);
+    assert.deepEqual(item.command.args, ["-db", "file:///data/govulndb", "-format", "json", "./..."]);
+    assert.equal(item.network, false, "offline: the Go vulnerability database is the jgates-data volume");
     if (!GO_REAL) {
       assert.equal(item.availability.status, "unavailable");
       assert.match(item.availability.reason, /jgates setup/);
@@ -170,7 +170,8 @@ test("cargo-audit: a RustSec-advised crate in Cargo.lock is a normalized finding
     assert.equal(item.category, "dependencies");
     assert.equal(item.command.args[0], "audit");
     assert.ok(item.command.args.includes("--json"));
-    assert.equal(item.network, true);
+    assert.ok(item.command.args.includes("--no-fetch") && item.command.args[item.command.args.indexOf("--db") + 1] === "/data/rustsec", "the RustSec database is the jgates-data volume, never fetched");
+    assert.equal(item.network, false);
     if (!CARGO_REAL) {
       assert.equal(item.availability.status, "unavailable");
       assert.match(item.availability.reason, /jgates setup/);

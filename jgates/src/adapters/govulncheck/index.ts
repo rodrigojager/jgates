@@ -12,6 +12,7 @@ import { runSpec, substituteTokens } from "../../core/runner/index.js";
 import { stepMode } from "../../core/runner/in-image.js";
 import { createOutputPaths, redirectionEnv } from "../../core/run/redirection.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
+import { databaseDir, recordedDatabaseFacts } from "../../core/data/index.js";
 import { govulncheckManifest } from "./manifest.js";
 import { parseGovulncheckOutput } from "./normalize.js";
 import { probeGovulncheck } from "./probe.js";
@@ -33,7 +34,8 @@ function planGovulncheck(input: ExternalPlanInput): ExternalPlan {
   const probe = probeGovulncheck(input.env);
   const root = input.componentRoot && input.componentRoot !== "." ? input.componentRoot : null;
   const scanDir = root ? path.join(input.dir, ...root.split("/")) : input.dir;
-  const args = ["-format", "json", "./..."];
+  // The Go vulnerability database is the jgates-data volume (file://, read-only); the modules come from the dependency volume.
+  const args = ["-db", `file://${databaseDir("govulndb", input.env)}`, "-format", "json", "./..."];
   let availability: ExternalPlan["availability"];
   if (probe.problem === "not_found") availability = { status: "unavailable", reason: t("govulncheck_missing", { detail: probe.detail }) };
   else if (probe.problem === "no_answer") availability = { status: "unavailable", reason: t("govulncheck_probe_failed", { path: probe.detail }) };
@@ -49,7 +51,7 @@ function planGovulncheck(input: ExternalPlanInput): ExternalPlan {
       executable: probe.executable ?? govulncheckManifest.toolName,
       args,
       cwd: root ? `${WORKSPACE}/${root}` : WORKSPACE,
-      env: { ...redirectionEnv(govulncheckManifest), GOTELEMETRY: "off", NO_COLOR: "1" },
+      env: { ...redirectionEnv(govulncheckManifest), GOTELEMETRY: "off", NO_COLOR: "1", GOPROXY: "off" },
       stdin: null,
     },
     runtime: { name: "native", interpreter: probe.executable, available: probe.executable !== null && probe.version !== null && probe.go !== null },
@@ -57,7 +59,7 @@ function planGovulncheck(input: ExternalPlanInput): ExternalPlan {
     configFiles: [],
     availability,
     blocksPlan: false,
-    network: true,
+    network: false,
     limitations: [t("govulncheck_limitation_reachable")],
     conditions: [t("govulncheck_condition_network")],
     output: { format: "json", schema: null },
@@ -137,12 +139,13 @@ async function runGovulncheck(context: AdapterContext, plan: Plan, tool: string)
     const detail = result.truncated ? "output truncated" : (parsed.problem ?? "");
     return { ...base, stages: items.map((i) => stageFor(i, "completed", t("govulncheck_invalid_output", { detail }), { interpreted: false, nativeStatus: "exit 0" })), findings: [] };
   }
+  const dbFacts = recordedDatabaseFacts(outDir, "govulndb");
   const count = parsed.findings.length;
   const blocking = parsed.findings.filter((f) => f.blocking).length;
   const reason = t("govulncheck_reason_completed", { version: version ?? "?", count }) + (parsed.notCalled > 0 ? `; ${t("govulncheck_not_called", { count: parsed.notCalled })}` : "");
   return {
     ...base,
-    stages: items.map((i) => stageFor(i, "completed", reason, { blockingViolations: blocking, findings: count, nativeStatus: "exit 0" })),
+    stages: items.map((i) => stageFor(i, "completed", reason, { blockingViolations: blocking, findings: count, nativeStatus: "exit 0", ...(dbFacts ? { analysisInput: dbFacts } : {}) })),
     findings: parsed.findings,
   };
 }

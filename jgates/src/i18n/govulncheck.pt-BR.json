@@ -13,5 +13,5 @@
   "govulncheck_reason_completed": "govulncheck {version}: {count, plural, one {# vulnerabilidade alcançável} other {# vulnerabilidades alcançáveis}}",
   "govulncheck_not_called": "mais {count} em código requerido ou importado que nunca é chamado (não são achados)",
   "govulncheck_limitation_reachable": "Só são achados as vulnerabilidades cujo símbolo o código alcança; o banco de vulnerabilidades do Go não tem severidade, então uma alcançável bloqueia com severidade desconhecida.",
-  "govulncheck_condition_network": "Rede: o banco de vulnerabilidades do Go (vuln.go.dev) é consultado e os módulos que faltam no cache de módulos são baixados."
+  "govulncheck_condition_network": "Offline: o banco de vulnerabilidades do Go vem do volume jgates-data (somente leitura, sem rede) e os módulos do volume de dependências. Sem os dados a verificação fica incompleta (DATA_MISSING); mais velhos que o limite (padrão 7 dias), DATA_STALE."
 }

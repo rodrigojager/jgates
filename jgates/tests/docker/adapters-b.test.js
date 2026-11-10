@@ -15,11 +15,10 @@ import { docker, dockerAvailable } from "./dev-docker.mjs";
 // byte for byte the same afterwards, and every step is a `docker run` of the image with the step container contract.
 //
 // The image carries no Semgrep rules, no CodeQL and no vulnerability database (the advisory data is the jgates-data
-// volume of a later task). So: Semgrep runs the rules the fixture supplies; CodeQL is checked as absent (blocked, never
-// passed); and the scanners that need advisories (OSV-Scanner, govulncheck, cargo-audit) are marked "needs advisory
-// data": while the data volume does not exist they read the public advisory service over the step's network, and when
-// that service cannot be reached from this machine the test asserts the fail-closed outcome instead (the run never
-// passes), so the test is never skipped and never reports a favourable result it did not get.
+// volume, filled by `jgates tools update-data`). So: Semgrep runs the rules the fixture supplies; CodeQL is checked as
+// absent (blocked, never passed); and the scanners that need advisories (OSV-Scanner, govulncheck, cargo-audit) run
+// offline (`--network none`) against the data volume, which the suite fills first when a database is missing or older
+// than the limit (the same call a user makes), so their known-bad fixtures are detected with no network.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, "..", "..");
@@ -195,14 +194,19 @@ function scenario(name, { bad, clean, tool, rule, badStage = "completed", blocki
 
 const toolsYml = (id, adapter, capabilities, extra = "") => `schemaVersion: 1\ntools:\n  ${id}:\n    adapter: ${adapter}\n    capabilities: [${capabilities}]\n${extra}`;
 
-/** Whether a public service answers from this machine (the step containers use the same network). */
-async function reachable(url) {
-  try {
-    const response = await fetch(url, { method: "GET", signal: AbortSignal.timeout(8000) });
-    return response.status > 0;
-  } catch {
-    return false;
+const dataModule = await load("core", "data", "index.js");
+
+/** Fills the jgates-data volume with the databases that are missing or older than the limit (real downloads, once per suite). */
+const ensured = new Set();
+function ensureAdvisoryData(ids) {
+  const env = { ...process.env, JGATES_TOOLS_IMAGE: IMAGE, JGATES_LOCALE: "en" };
+  const ages = dataModule.agesOf(dataModule.readDataStatusSync(env, "0.0.0").status, new Date(), dataModule.DEFAULT_DATA_MAX_AGE_DAYS);
+  const stale = ids.filter((id) => !ensured.has(id) && ages.find((a) => a.id === id).state !== "fresh");
+  if (stale.length > 0) {
+    const r = spawnSync(process.execPath, [MAIN, "tools", "update-data", "--database", stale.join(","), "--json"], { encoding: "utf8", env, timeout: 1_800_000 });
+    assert.equal(r.status, 0, `update-data ${stale.join(",")}: ${r.stdout.slice(-1500)}${r.stderr.slice(-1500)}`);
   }
+  for (const id of ids) ensured.add(id);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -275,38 +279,36 @@ scenario("zizmor: a template injection in a workflow is a finding and the clean 
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Dependencies (advisory data: a later task supplies it as a volume; until then the public services answer)
+// Dependencies (advisory data: the jgates-data volume, offline scanners)
 // ---------------------------------------------------------------------------------------------------------------------
 
 /**
- * Known-bad / clean pair of a scanner that needs advisory data. With the data reachable it behaves like `scenario`; when
- * the service cannot be reached from this machine, the only honest outcome is the fail-closed one, which is asserted.
+ * Known-bad / clean pair of a scanner that reads advisory data: the data volume is filled first, then the pair behaves
+ * like `scenario`, with the step started with no network and the volume mounted read-only.
  */
-function advisoryScenario(name, { service, tool, rule, bad, clean, containers = true }) {
-  test(`${name} [needs advisory data: reads ${service} until the jgates-data volume exists]`, async () => {
-    const online = await reachable(service);
+function advisoryScenario(name, { database, tool, rule, bad, clean }) {
+  test(`${name} [advisory data: ${database}, offline]`, () => {
+    ensureAdvisoryData([database]);
     for (const kind of ["bad", "clean"]) {
       const p = makeProject(kind === "bad" ? bad : clean);
       const before = treeHash(p.project);
       const { doc } = p.run(tool);
       assert.equal(treeHash(p.project), before, `${kind}: the project folder is identical after the run`);
-      if (containers) assertRanInContainers(doc, p.ws);
+      assertRanInContainers(doc, p.ws);
+      const logs = logsOf(doc);
+      assert.ok(/--network\s+none/.test(logs), `${kind}: the scanner step has no network\n${logs.slice(-1500)}`);
+      assert.ok(logs.includes("type=volume,src=jgates-data,dst=/data,readonly"), `${kind}: the data volume is mounted read-only`);
       const stage = doc.stages.find((s) => s.id.startsWith(`${tool}#`));
       assert.ok(stage, `${kind}: the stage of ${tool} exists: ${summary(doc)}`);
-      if (!online) {
-        assert.notEqual(doc.decision, "passed", `${kind}: without the advisory data the run never passes: ${summary(doc)}`);
-        assert.ok(stage.reason, `${kind}: the stage says why`);
-        continue;
-      }
+      assert.equal(stage.state, "completed", `${kind}: ${summary(doc)}\n${logs.slice(-2500)}`);
+      assert.ok(stage.analysisInput?.database?.updatedAt, `${kind}: the stage records the fetch time of the database: ${JSON.stringify(stage)}`);
       if (kind === "bad") {
-        assert.equal(stage.state, "completed", `bad: ${summary(doc)}\n${logsOf(doc).slice(-2500)}`);
         const mine = found(doc, rule.tool ?? tool);
-        assert.ok(mine.length > 0 && mine.some((f) => (rule.id instanceof RegExp ? rule.id.test(f.ruleId) : f.ruleId === rule.id)), `bad: ${rule.id} among ${JSON.stringify(mine.map((f) => f.ruleId))}\n${logsOf(doc).slice(-2500)}`);
+        assert.ok(mine.length > 0 && mine.some((f) => (rule.id instanceof RegExp ? rule.id.test(f.ruleId) : f.ruleId === rule.id)), `bad: ${rule.id} among ${JSON.stringify(mine.map((f) => f.ruleId))}\n${logs.slice(-2500)}`);
         assert.notEqual(doc.decision, "passed", `bad: ${summary(doc)}`);
       } else {
-        assert.equal(stage.state, "completed", `clean: ${summary(doc)}\n${logsOf(doc).slice(-2500)}`);
         assert.equal(found(doc, rule.tool ?? tool).length, 0, `clean: ${summary(doc)}`);
-        assert.equal(doc.decision, "passed", `clean: ${summary(doc)}\n${logsOf(doc).slice(-2500)}`);
+        assert.equal(doc.decision, "passed", `clean: ${summary(doc)}\n${logs.slice(-2500)}`);
       }
     }
   });
@@ -316,7 +318,7 @@ const npmLock = (version) =>
   JSON.stringify({ name: "demo", version: "1.0.0", lockfileVersion: 3, requires: true, packages: { "": { name: "demo", version: "1.0.0", dependencies: { lodash: version } }, "node_modules/lodash": { version, resolved: `https://registry.npmjs.org/lodash/-/lodash-${version}.tgz` } } }, null, 2) + "\n";
 
 advisoryScenario("osv-scanner: a lockfile with a vulnerable lodash is a finding and the current lodash passes", {
-  service: "https://api.osv.dev/v1/query",
+  database: "osv",
   tool: "osv-scanner",
   rule: { id: /^(GHSA|CVE|OSV)/ },
   bad: { files: { "package-lock.json": npmLock("4.17.15"), "package.json": '{"name":"demo","version":"1.0.0","dependencies":{"lodash":"4.17.15"}}\n' }, tools: toolsYml("osv-scanner", "osv-scanner", "dependencies") },
@@ -330,7 +332,7 @@ const GO_BAD = 'package main\n\nimport (\n\t"fmt"\n\n\t"golang.org/x/text/langua
 const GO_CLEAN = 'package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("hello")\n}\n';
 
 advisoryScenario("govulncheck: a reachable vulnerable call is a finding and a module without dependencies passes", {
-  service: "https://vuln.go.dev/index/db.json.gz",
+  database: "govulndb",
   tool: "govulncheck",
   rule: { id: /^GO-/ },
   bad: { files: { "go.mod": GO_MOD, "go.sum": GO_SUM, "main.go": GO_BAD }, tools: toolsYml("govulncheck", "govulncheck", "dependencies") },
@@ -342,7 +344,7 @@ const cargoLock = (crates) =>
 const CARGO_TOML = '[package]\nname = "demo"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\n';
 
 advisoryScenario("cargo-audit: a lockfile with a vulnerable crate is a finding and one without dependencies passes", {
-  service: "https://github.com/rustsec/advisory-db",
+  database: "rustsec",
   tool: "cargo-audit",
   rule: { id: /^RUSTSEC-/ },
   bad: { files: { "Cargo.toml": CARGO_TOML, "Cargo.lock": cargoLock([{ name: "time", version: "0.1.43" }]), "src/lib.rs": "pub fn id() {}\n" }, tools: toolsYml("cargo-audit", "cargo-audit", "dependencies") },

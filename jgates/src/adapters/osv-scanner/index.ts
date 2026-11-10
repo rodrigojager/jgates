@@ -1,11 +1,12 @@
-// OSV-Scanner adapter: one `osv-scanner scan source --recursive` per tool instance in the container runner. A bound
+// OSV-Scanner adapter: one `osv-scanner scan source --recursive --offline-vulnerabilities` per tool instance in the
+// container runner, with no network: the databases are the jgates-data volume (read-only, core/data). A bound
 // osv-scanner.toml goes with --config (and then applies to every lockfile); without one the tool reads the file next
-// to each lockfile, and the plan hashes every one it would read. The report records the source of the
-// vulnerabilities (the osv.dev API); the API reports no database date.
+// to each lockfile, and the plan hashes every one it would read. The result records the fetch time of the databases.
 import fs from "node:fs";
 import path from "node:path";
 import type { ExternalAdapter } from "../../core/plan/adapters.js";
 import { planScanner, REPORT_FILE, runScanner, workspaceToken, type ArgsInput, type ScannerDefinition } from "../container-scanner/index.js";
+import { databaseDir, recordedDatabaseFacts } from "../../core/data/index.js";
 import { osvScannerManifest } from "./manifest.js";
 import { parseOsvReport } from "./normalize.js";
 
@@ -54,6 +55,7 @@ export const osvScanner: ScannerDefinition = {
       "source",
       "--recursive",
       "--allow-no-lockfiles",
+      "--offline-vulnerabilities",
       "--format",
       "json",
       "--output-file",
@@ -63,7 +65,9 @@ export const osvScanner: ScannerDefinition = {
     ];
   },
   exitCodes: [0, 1],
-  network: true,
+  network: false,
+  // The offline databases: the jgates-data volume (read-only), or where the image mounts the data.
+  env: (input) => ({ OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY: databaseDir("osv", input.env) }),
   conditions(input, t) {
     return [input.documents.config?.source === "binding" ? t("osv_condition_config_flag") : t("osv_condition_per_directory"), t("osv_condition_online")];
   },
@@ -71,8 +75,8 @@ export const osvScanner: ScannerDefinition = {
     return [t("osv_limitation_no_date")];
   },
   parse: parseOsvReport,
-  // The API does not report the date of its data: only the source is recorded.
-  facts: () => ({ database: { source: OSV_API, updatedAt: null, reported: false, networkRequired: true } }),
+  // The offline databases carry the fetch time stored in the volume when the run started.
+  facts: (outputDir) => recordedDatabaseFacts(outputDir, "osv") ?? {},
 };
 
 export const osvScannerAdapter: ExternalAdapter = {

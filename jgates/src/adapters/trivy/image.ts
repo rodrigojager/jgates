@@ -1,6 +1,6 @@
 // Trivy final-image mode (Infrastructure/images): `trivy image` over a saved image tarball (--input) or an image
-// reference, with the normalized results of the same report parser the filesystem mode uses. The scan needs the
-// vulnerability database (network, declared). Trivy is the tools image's: the run starts it in the step container like
+// reference, with the normalized results of the same report parser the filesystem mode uses. The scan reads the
+// vulnerability database from the jgates-data volume (a registry reference still needs the network to be read). Trivy is the tools image's: the run starts it in the step container like
 // every other tool (natively when JGates itself runs in the image), and a launch that cannot happen (no engine, no
 // image) is a structured state, never a clean result.
 import fs from "node:fs";
@@ -33,7 +33,9 @@ export interface TrivyImageOptions {
   cacheDir?: string;
 }
 
-const COMMON = ["--format", "json", "--exit-code", "0", "--skip-version-check", "--disable-telemetry", "--no-progress"];
+// The vulnerability database is the read-only jgates-data volume (core/data): nothing is downloaded, and the scan cache
+// is kept in memory because the database folder cannot be written.
+const COMMON = ["--format", "json", "--exit-code", "0", "--skip-db-update", "--skip-check-update", "--skip-java-db-update", "--offline-scan", "--cache-backend", "memory", "--skip-version-check", "--disable-telemetry", "--no-progress"];
 
 /** Arguments of `trivy image` for the target; the reference (or the tarball behind --input) closes the list. */
 export function trivyImageArgs(target: TrivyImageTarget, cacheDir?: string): string[] {

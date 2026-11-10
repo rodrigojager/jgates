@@ -71,14 +71,16 @@ function workspace({ runtime = FAKE_DOCKER, prefix = "FAKE_DOCKER_", vars = {} }
   const dir = tmp("jgates-cf-ws-");
   const home = tmp("jgates-cf-home-");
   const bin = tmp("jgates-cf-bin-");
+  // Where the advisory data is inside the image (JGATES_DATA_DIR; the real one is the jgates-data volume at /data).
+  const data = tmp("jgates-cf-data-");
   const log = path.join(bin, "calls.jsonl");
   const setRuntime = (extra = {}) =>
     script(bin, "docker", `Object.assign(process.env, ${JSON.stringify({ [`${prefix}LOG`]: log, FAKE_LOG: log, ...vars, ...extra })});\nrequire(${JSON.stringify(runtime)});`);
   setRuntime();
-  const env = { ...process.env, ...NO_DOCKER, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_CONTAINER_RUNTIME: path.join(bin, "docker"), JGATES_NO_CACHE: "1", PATH: bin };
+  const env = { ...process.env, ...NO_DOCKER, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_CONTAINER_RUNTIME: path.join(bin, "docker"), JGATES_NO_CACHE: "1", JGATES_DATA_DIR: data, PATH: bin };
   for (const name of Object.keys(env)) if (IMAGE_VARS.test(name)) delete env[name];
   const calls = () => (fs.existsSync(log) ? fs.readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
-  return { dir, home, bin, env, cli: cliIn(env), setRuntime, calls, cleanup: () => rm(dir, home, bin) };
+  return { dir, home, bin, data, env, cli: cliIn(env), setRuntime, calls, cleanup: () => rm(dir, home, bin, data) };
 }
 
 const allItems = (plan) => [...plan.groups.willRun, ...plan.groups.notApplicableOrDisabled];
@@ -101,67 +103,35 @@ function trivyWorkspace(capabilities, vars = {}) {
   return p;
 }
 
-test("Trivy's vulnerability database stays in the data folder between runs with its dates, and the second run does not download it again", { skip: POSIX ? false : NO_POSIX }, () => {
+test("Trivy scans offline against the data folder: it is told not to update anything, never downloads, and the dates are the database's own", { skip: POSIX ? false : NO_POSIX }, () => {
   const scratch = tmp("jgates-cf-db-");
   const meta = path.join(scratch, "metadata.json");
   const next = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
   fs.writeFileSync(meta, JSON.stringify({ Version: 2, NextUpdate: next, UpdatedAt: "2026-10-25T19:10:35.479132794Z", DownloadedAt: "2026-10-25T21:14:51.366240096Z" }));
-  const downloads = path.join(scratch, "downloads.log");
-  const count = () => (fs.existsSync(downloads) ? fs.readFileSync(downloads, "utf8").split("\n").filter(Boolean).length : 0);
   const p = trivyWorkspace(["dependencies"], {
     FAKE_REPORT: path.join(SECURITY_FIXTURES, "trivy", "0.72.0", "fs-report.json"),
     FAKE_DB_META: meta,
-    FAKE_DOWNLOADS: downloads,
     FAKE_STDERR: '2026-10-25T21:14:51Z\tINFO\t[vulndb] Artifact successfully downloaded\trepo="mirror.gcr.io/aquasec/trivy-db:2"\n',
   });
-  const cacheDir = path.join(p.home, "tools", "cache", "trivy-db");
   const runs = () => p.calls().filter((c) => c[0] === "trivy");
   try {
-    const run = () => {
-      const r = p.cli(["run", "--cwd", p.dir, "--only", "tool:trivy", "--no-interactive", "--json"]);
-      assert.ok(r.doc, r.out + r.err);
-      assert.ok(validateResult(r.doc), JSON.stringify(validateResult.errors));
-      const stage = r.doc.stages.find((s) => s.id === "trivy#dependencies");
-      assert.equal(stage.state, "completed", JSON.stringify(stage));
-      return { doc: r.doc, stage };
-    };
-    // First run: Trivy downloads, and the copy moves into the data folder with the record of its dates.
-    const first = run();
-    assert.equal(count(), 1);
-    assert.ok(!runs()[0].includes("--skip-db-update"));
-    assert.ok(fs.existsSync(path.join(cacheDir, "trivy.db")) && fs.existsSync(path.join(cacheDir, "metadata.json")));
-    const record = readJson(path.join(cacheDir, "jgates-cache.json"));
-    assert.deepEqual(
-      { source: record.source, updatedAt: record.updatedAt, nextUpdate: record.nextUpdate, downloadedAt: record.downloadedAt },
-      { source: "mirror.gcr.io/aquasec/trivy-db:2", updatedAt: "2026-10-25T19:10:35.479132794Z", nextUpdate: next, downloadedAt: "2026-10-25T21:14:51.366240096Z" },
-    );
-    assert.ok(Date.parse(record.storedAt) > 0);
-    assert.equal(first.stage.analysisInput.database.networkRequired, true);
-    assert.match(first.stage.reason, /guardada em cache/);
-    assert.ok(!fs.existsSync(path.join(first.doc.runDir, "outputs", "trivy", "trivy", "cache", "db", "trivy.db")), "the database is not left in the run folder");
-
-    // Second run: the fresh copy is used, Trivy is told not to download, and the dates are the recorded ones.
-    const second = run();
-    assert.equal(count(), 1, "the second run does not download the database again");
-    const call = runs()[1];
-    assert.ok(call.includes("--skip-db-update"), call.join(" "));
+    const r = p.cli(["run", "--cwd", p.dir, "--only", "tool:trivy", "--no-interactive", "--json"]);
+    assert.ok(r.doc, r.out + r.err);
+    assert.ok(validateResult(r.doc), JSON.stringify(validateResult.errors));
+    const stage = r.doc.stages.find((s) => s.id === "trivy#dependencies");
+    assert.equal(stage.state, "completed", JSON.stringify(stage));
+    // One scan, offline: the database is the data folder, whatever the host or the run folder has.
+    assert.equal(runs().length, 1);
+    const call = runs()[0];
+    for (const flag of ["--skip-db-update", "--offline-scan", "--skip-check-update", "--skip-java-db-update"]) assert.ok(call.includes(flag), `${flag} in ${call.join(" ")}`);
+    assert.equal(call[call.indexOf("--cache-dir") + 1], path.join(p.data, "trivy").replace(/\\/g, "/"));
     assert.equal(call[call.length - 1], ".", "the scan target stays last");
-    const db = second.stage.analysisInput.database;
-    assert.deepEqual({ source: db.source, updatedAt: db.updatedAt, downloadedAt: db.downloadedAt, networkRequired: db.networkRequired }, { source: "mirror.gcr.io/aquasec/trivy-db:2", updatedAt: record.updatedAt, downloadedAt: record.downloadedAt, networkRequired: false });
-    assert.match(second.stage.reason, /cache na pasta de dados, baixada em 2026-10-25T21:14:51/);
-    assert.equal(second.stage.findings, first.stage.findings);
-    assert.ok(fs.existsSync(path.join(cacheDir, "trivy.db")), "the cached copy stays after the run");
-    assert.ok(Date.parse(readJson(path.join(cacheDir, "jgates-cache.json")).lastUsedAt) >= Date.parse(record.lastUsedAt));
-    // The plan is the same for both runs: the cache is a decision of the run, never a change of the plan.
-    assert.equal(second.doc.selection.planHash, first.doc.selection.planHash);
-
-    // A copy past its next update is downloaded again (and replaces the cached one).
-    const stale = readJson(path.join(cacheDir, "jgates-cache.json"));
-    fs.writeFileSync(path.join(cacheDir, "jgates-cache.json"), JSON.stringify({ ...stale, nextUpdate: "2020-01-01T00:00:00Z" }));
-    run();
-    assert.equal(count(), 2);
-    assert.ok(!runs()[2].includes("--skip-db-update"));
-    assert.equal(readJson(path.join(cacheDir, "jgates-cache.json")).nextUpdate, next);
+    // The dates come from the database's own metadata, and no network was needed to read it.
+    const db = stage.analysisInput.database;
+    assert.deepEqual({ source: db.source, updatedAt: db.updatedAt, downloadedAt: db.downloadedAt, networkRequired: db.networkRequired }, { source: "mirror.gcr.io/aquasec/trivy-db:2", updatedAt: "2026-10-25T19:10:35.479132794Z", downloadedAt: "2026-10-25T21:14:51.366240096Z", networkRequired: false });
+    assert.ok(!fs.existsSync(path.join(r.doc.runDir, "outputs", "trivy", "trivy", "cache", "db", "trivy.db")), "the database is not left in the run folder");
+    // The old host-side cache of the database is gone: the volume is the one place.
+    assert.ok(!fs.existsSync(path.join(p.home, "tools", "cache", "trivy-db")));
   } finally {
     p.cleanup();
     rm(scratch);

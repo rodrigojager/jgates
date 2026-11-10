@@ -75,6 +75,8 @@ export interface ArgsInput {
   root: string;
   /** The instance's output folder ({runDir}/outputs/<adapter>/<tool>): the tool's report, home, temporary files and cache. */
   out: string;
+  /** The environment of the plan (where the advisory data is: core/data). */
+  env: NodeJS.ProcessEnv;
 }
 
 /** Facts the run records about what the analysis read besides the code (a vulnerability database): the stage's
@@ -127,7 +129,7 @@ export interface ScannerDefinition {
   /** Capabilities of one instance that cannot run together with the first one in the same invocation. */
   exclusive?(capabilities: string[], t: Translator): Record<string, string>;
   /** Extra environment of the tool (inside the step container). */
-  env?: Record<string, string>;
+  env?: Record<string, string> | ((input: ArgsInput) => Record<string, string>);
   /** Reads the report the tool wrote in /output/report.json. */
   parse(text: string, options: ParseOptions): ParseResult;
   /** Reads the facts of the analysis input after the run (outputDir: the host folder mounted at /output). */
@@ -297,7 +299,7 @@ export function planScanner(def: ScannerDefinition, input: ExternalPlanInput): E
   Object.assign(uncredited, def.exclusive?.(runnable, t) ?? {});
   const capabilities = runnable.filter((c) => uncredited[c] === undefined);
   const out = outputToken(manifest.id, input.tool);
-  const argsInput: ArgsInput = { documents, capabilities: capabilities.length > 0 ? capabilities : [input.capability], root, out };
+  const argsInput: ArgsInput = { documents, capabilities: capabilities.length > 0 ? capabilities : [input.capability], root, out, env: input.env };
 
   const probe = probeScannerImage(input.env, manifest.toolName);
   let availability: ExternalPlan["availability"];
@@ -321,7 +323,7 @@ export function planScanner(def: ScannerDefinition, input: ExternalPlanInput): E
       executable: manifest.toolName,
       args,
       cwd: root === "." ? WORKSPACE : `${WORKSPACE}/${root}`,
-      env: { HOME: `${out}/home`, TMPDIR: `${out}/tmp`, ...(def.env ?? {}) },
+      env: { HOME: `${out}/home`, TMPDIR: `${out}/tmp`, ...(typeof def.env === "function" ? def.env(argsInput) : (def.env ?? {})) },
       stdin: null,
     },
     runtime: { name: "container", interpreter: probe.runtime, available: probe.problem === null },

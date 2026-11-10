@@ -13,5 +13,5 @@
   "govulncheck_reason_completed": "govulncheck {version}: {count, plural, one {# reachable vulnerability} other {# reachable vulnerabilities}}",
   "govulncheck_not_called": "{count} more in required or imported code that is never called (not findings)",
   "govulncheck_limitation_reachable": "Only vulnerabilities whose symbol the code reaches are findings; the Go vulnerability database has no severity, so a reachable one blocks with an unknown severity.",
-  "govulncheck_condition_network": "Network: the Go vulnerability database (vuln.go.dev) is fetched, and the modules missing from the module cache are downloaded."
+  "govulncheck_condition_network": "Offline: the Go vulnerability database comes from the jgates-data volume (read-only, no network) and the modules from the dependency volume. Without the data the check is incomplete (DATA_MISSING); older than the limit (default 7 days) it is DATA_STALE."
 }

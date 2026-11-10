@@ -39,6 +39,7 @@ import { governExternalPlan } from "../governed/plan.js";
 import { diffPlans } from "./diff.js";
 import { readLastPlan } from "./store.js";
 import { planDependencies } from "../deps/plan.js";
+import { databaseOfItem, readDataTimestampsSync, type DatabaseId } from "../data/index.js";
 import {
   PLAN_KIND,
   PLAN_SCOPES,
@@ -977,6 +978,15 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       if (source) item.toolSource = source;
     }
     if (options.container?.dependencyKeys === undefined) container.dependencyKeys = sortedRecord(deps.keys);
+    // The fetch time of every advisory database a planned check reads (null: never fetched), so the plan hash and the
+    // provenance of the results change when the data does.
+    if (options.container?.dataTimestamps === undefined) {
+      const needed = new Set(unique.map((item) => databaseOfItem(item)).filter((id): id is DatabaseId => id !== null));
+      if (needed.size > 0) {
+        const fetched = readDataTimestampsSync(env, options.version ?? readVersion());
+        container.dataTimestamps = sortedRecord(Object.fromEntries([...needed].map((id) => [id, fetched[id] ?? null])));
+      }
+    }
     blockers.push(...deps.blockers);
   }
   const blocked: PlanBlocker | null =

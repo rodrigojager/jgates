@@ -1,0 +1,13 @@
+{
+  "data_update_no_image": "A imagem de ferramentas do JGates não está no motor de contêineres; rode jgates setup antes.",
+  "data_update_cancelled": "cancelado antes de começar",
+  "data_update_started": "Atualizando os dados de vulnerabilidades do {database}...",
+  "data_update_done": "{database}: atualizado ({date})",
+  "data_update_failed": "{database}: falhou ({error}); a cópia anterior, se existia, foi mantida",
+  "data_update_summary_ok": "Dados de vulnerabilidades atualizados: {count, plural, one {# base} other {# bases}}.",
+  "data_update_summary_failed": "{failed, plural, one {# base não foi atualizada} other {# bases não foram atualizadas}}.",
+  "data_update_blocked": "Nada foi atualizado: {reason}",
+  "data_unknown_database": "Base desconhecida {name}; escolha uma entre: {known}.",
+  "data_option_database": "Com tools update-data: atualiza só esta base (trivy, osv, govulndb ou rustsec); repita separando por vírgulas.",
+  "data_engine_error": "O motor de contêineres recusou a atualização: {error}"
+}

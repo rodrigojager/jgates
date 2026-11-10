@@ -12,6 +12,8 @@ import { discoverWorkspace } from "../../core/discovery/index.js";
 import { PrepareError, prepareInstance, previewPrepare } from "../../core/prepare/index.js";
 import { decodeBytes, DocumentError, openDocument, saveDocument, validateDocument, type DocumentValidation } from "../../core/documents/index.js";
 
+import { DATABASE_IDS, updateData, type DatabaseId, type UpdateProgress, type UpdateResult } from "../../core/data/index.js";
+
 const tr = translator("tools");
 
 /** Catalog with the core entries and the built-in adapters. */
@@ -347,7 +349,42 @@ async function runPrepare(ctx: CommandContext, projectDir: string, t: Translator
   }
 }
 
+/** `jgates tools update-data`: refreshes the advisory databases into the jgates-data volume (the only step with a network there). */
+async function runUpdateData(ctx: CommandContext): Promise<number> {
+  const d = translator("data");
+  const requested = (ctx.lists.database ?? []).flatMap((v) => v.split(",")).map((v) => v.trim()).filter(Boolean);
+  const unknown = requested.find((v) => !(DATABASE_IDS as readonly string[]).includes(v));
+  if (unknown) return reportError(ctx, ctx.json, "UNKNOWN_DATABASE", d("data_unknown_database", { name: unknown, known: DATABASE_IDS.join(", ") }), d("data_unknown_database", { name: unknown, known: DATABASE_IDS.join(", ") }), EXIT_USAGE);
+  const progress = (event: UpdateProgress): void => {
+    if (ctx.json) {
+      ctx.stderr(JSON.stringify({ type: "data-update", ...event }) + "\n");
+      return;
+    }
+    if (event.state === "started") ctx.stderr(d("data_update_started", { database: event.database }) + "\n");
+  };
+  let result: UpdateResult;
+  try {
+    result = await updateData({ env: process.env, version: ctx.version, ...(requested.length > 0 ? { only: requested as DatabaseId[] } : {}), onProgress: progress });
+  } catch (error) {
+    const message = d("data_engine_error", { error: error instanceof Error ? error.message : String(error) });
+    return reportError(ctx, ctx.json, "DATA_UPDATE_FAILED", message, message, 2);
+  }
+  const failed = result.databases.filter((db) => !db.ok);
+  const status = result.blocked || failed.length > 0 ? "INCOMPLETE" : "OK";
+  if (ctx.json) {
+    writeJson(ctx, { schemaVersion: 1, status, tool: "jgates", version: ctx.version, databases: result.databases, ...(result.blocked ? { blocked: result.blocked } : {}) });
+  } else if (result.blocked) {
+    ctx.stderr(d("data_update_blocked", { reason: result.blocked }) + "\n");
+  } else {
+    const lines = result.databases.map((db) => (db.ok ? d("data_update_done", { database: db.id, date: db.fetchedAt ?? "-" }) : d("data_update_failed", { database: db.id, error: db.error ?? "-" })));
+    lines.push(failed.length > 0 ? d("data_update_summary_failed", { failed: failed.length }) : d("data_update_summary_ok", { count: result.databases.length }));
+    ctx.stdout(lines.join("\n") + "\n");
+  }
+  return status === "OK" ? 0 : 2;
+}
+
 const SUBCOMMANDS: Record<string, Subcommand> = {
+  "update-data": { run: (ctx) => runUpdateData(ctx), args: 0 },
   prepare: { run: runPrepare, args: 0 },
   list: { run: runList, args: 0 },
   inspect: { run: runInspect, args: 1 },
@@ -372,6 +409,7 @@ export const command: CommandModule = {
     { name: "allow-version-change", type: "boolean", description: tr("tools_option_allow_version_change") },
     { name: "units", type: "boolean", description: tr("tools_option_units") },
     { name: "packs", type: "string", description: tr("tools_option_packs") },
+    { name: "database", type: "string", description: translator("data")("data_option_database") },
   ],
   async run(ctx) {
     const t = tr;

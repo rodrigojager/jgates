@@ -12,5 +12,5 @@
   "cargo-audit_reason_completed": "cargo-audit {version}: {count, plural, one {# advisory finding} other {# advisory findings}} in {packages, plural, one {# locked package} other {# locked packages}}",
   "cargo-audit_warnings": "{count} of them are non-blocking warnings (unmaintained, unsound or yanked)",
   "cargo-audit_limitation_matching": "Advisories are matched on the locked package versions, not on the call graph; the ignore list of .cargo/audit.toml is a scanner exception, not a waiver of the gate.",
-  "cargo-audit_condition_network": "Network: the RustSec advisory database (github.com/RustSec/advisory-db) is cloned into the run folder."
+  "cargo-audit_condition_network": "Offline: the RustSec advisory database comes from the jgates-data volume (read-only, no network, --no-fetch). Without it the check is incomplete (DATA_MISSING); older than the limit (default 7 days) it is DATA_STALE."
 }

@@ -139,7 +139,7 @@ export function trivyFacts(cacheDir: string, stderr: string): AnalysisFacts {
       nextUpdate: str(meta.NextUpdate),
       downloadedAt: str(meta.DownloadedAt),
       reported: str(meta.UpdatedAt) !== null,
-      networkRequired: true,
+      networkRequired: false,
     },
   };
 }

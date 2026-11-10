@@ -4,8 +4,9 @@ import type { AdapterManifest } from "../../core/catalog/index.js";
  * OSV-Scanner as its own adapter (it leaves the bridge's osv-scanner subcheck): `osv-scanner scan source --recursive`
  * over the lockfiles of the scan root. Configuration follows the real tool: a bound osv-scanner.toml is passed with
  * --config and then applies to every lockfile; without a binding OSV-Scanner reads the osv-scanner.toml next to each
- * lockfile (no inheritance between directories), and the plan lists and hashes the ones it finds. Online mode: the
- * vulnerabilities come from the osv.dev API, which reports no database date. Runs on the container runner only.
+ * lockfile (no inheritance between directories), and the plan lists and hashes the ones it finds. Offline mode: the
+ * vulnerabilities come from the OSV databases in the jgates-data volume (read-only, `jgates tools update-data`), whose fetch
+ * time the result records. Runs on the container runner only.
  */
 export const osvScannerManifest: AdapterManifest = {
   schemaVersion: 1,
@@ -45,7 +46,7 @@ export const osvScannerManifest: AdapterManifest = {
     writesOutputs: true,
     mayChangeCode: false,
     executesProjectCode: false,
-    usesNetwork: true,
+    usesNetwork: false,
     needsService: false,
     usesAi: false,
     needsLicense: false,
@@ -58,10 +59,10 @@ export const osvScannerManifest: AdapterManifest = {
   kind: "tool",
   limitations: [
     "runs only in a step container of the JGates tools image, never as a process of the host",
-    "online mode: queries the osv.dev API, which reports no database date",
+    "offline mode (--offline-vulnerabilities, no network): the OSV databases come from the jgates-data volume, mounted read-only; without the data the stage is blocked (DATA_MISSING), older than execution.dataMaxAgeDays it is DATA_STALE",
   ],
   stackSupport: [
-    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)", "the osv.dev advisory database"] },
+    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)", "the OSV offline databases (jgates tools update-data)"] },
   ],
   distribution: {
     mode: "prepared-from-authorized-source",

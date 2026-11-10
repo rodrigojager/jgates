@@ -4,7 +4,7 @@ import type { AdapterManifest } from "../../core/catalog/index.js";
  * Trivy as its own adapter (it leaves the bridge's trivy subcheck): `trivy fs` with the scanners the instance's
  * capabilities ask for (dependencies: vuln, iac: misconfig, secrets: secret, licenses: license), the project's
  * trivy.yaml and ignore file as two documents, and the vulnerability database it downloads recorded (source, date)
- * in the result. Needs network (the database and the checks bundle); runs on the container runner only.
+ * in the result. Offline: the database is the jgates-data volume (read-only, `jgates tools update-data`); runs on the container runner only.
  */
 export const trivyManifest: AdapterManifest = {
   schemaVersion: 1,
@@ -39,7 +39,7 @@ export const trivyManifest: AdapterManifest = {
     writesOutputs: true,
     mayChangeCode: false,
     executesProjectCode: false,
-    usesNetwork: true,
+    usesNetwork: false,
     needsService: false,
     usesAi: false,
     needsLicense: false,
@@ -53,10 +53,10 @@ export const trivyManifest: AdapterManifest = {
   limitations: [
     "runs only in a step container of the JGates tools image, never as a process of the host",
     "final-image mode: tools.<id>.imageRef (an image reference) or imageTarball (a docker save archive) replaces the filesystem scan with `trivy image` (vulnerabilities only, network for the database); Trivy runs in a step container of the JGates tools image, and without a running container engine the stage is blocked, never passed; JGates never builds or pulls the scanned image (a registry reference is read by Trivy itself, over the network), and the scan cannot be cancelled once started (the stage timeout bounds it)",
-    "the vulnerability database is cached in the data folder (tools/cache/trivy-db) and reused while its NextUpdate is in the future (--skip-db-update); the checks bundle and the Java database are still downloaded on every run",
+    "offline: the vulnerability database is read from the jgates-data volume (mounted read-only, --skip-db-update --offline-scan, no network); the checks embedded in Trivy are used and the Java database is not read; without the data the stage is blocked (DATA_MISSING) and older than execution.dataMaxAgeDays it is DATA_STALE",
   ],
   stackSupport: [
-    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)", "the Trivy vulnerability database"] },
+    { capability: "dependencies", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)", "the Trivy vulnerability database (jgates tools update-data)"] },
     { capability: "iac", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
     { capability: "secrets", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
     { capability: "licenses", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },

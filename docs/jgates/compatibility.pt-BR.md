@@ -43,21 +43,27 @@ Go e Rust têm suporte parcial: descoberta, configuração explícita e o comand
 | govulncheck (Go dependency vulnerabilities) (`govulncheck`) | govulncheck >=1.0.0 <2.0.0 | - | dependencies (adapter-stack-extensions.test.js) | text | editable-file | container | testado / ainda não testado / não testado em máquina real | Binário fornecido pelo cliente (BSD-3-Clause), modo código-fonte: só as vulnerabilidades cujo símbolo o código alcança são achados, com severidade desconhecida porque o banco do Go não tem; precisa do toolchain Go, de um go.sum completo e de rede para vuln.go.dev. Provado em um módulo Go de teste com govulncheck 1.9.0. | govulncheck 1.0+ (go install; do cliente), toolchain Go, rede para vuln.go.dev |
 | cargo-audit (Rust advisories) (`cargo-audit`) | cargo-audit >=0.20.0 <1.0.0 | - | dependencies (adapter-stack-extensions.test.js) | text | editable-file | container | testado / ainda não testado / não testado em máquina real | Binário fornecido pelo cliente (Apache-2.0 OR MIT): os avisos são casados com as versões travadas no Cargo.lock, não com o grafo de chamadas; o banco do RustSec é clonado a cada execução (rede); pacotes sem manutenção, inseguros ou removidos são achados que não bloqueiam. Provado em um Cargo.lock de teste com cargo-audit 0.22.2. | cargo-audit 0.20+ (cargo install; do cliente), rede para github.com |
 | cargo test (Rust tests and proptest properties) (`cargo-test`) | cargo >=1.60.0 | rust | tests (adapter-cargo-test.test.js); properties (adapter-cargo-test.test.js) | text | editable-file | container | testado / ainda não testado / não testado em máquina real | Toolchain fornecido pelo cliente (cargo, MIT OR Apache-2.0): roda cargo test --offline e lê a saída de texto estável do libtest; as propriedades do proptest são achadas de forma estática (blocos proptest! e funções #[proptest]); os testes, build scripts e macros procedurais do projeto executam, então o resultado é autodeclarado e nunca vem do cache; as dependências já precisam estar no cargo home. Provado em crates Rust de teste com o cargo 1.99.1 real e o proptest 1.x. | cargo e rustc 1.60+ (rustup; do cliente), proptest 1.x baixado no cargo home |
+| Format check (ruff, prettier, gofmt, rustfmt, dotnet format) (`format-check`) | formatter >=0.9.0 | - | format-check (adapter-format-check.test.js, adapter-format-check.test.js, adapter-format-check.test.js, adapter-format-check.test.js, adapter-format-check.test.js) | text | editable-file | container | testado / ainda não testado / não testado em máquina real | Somente modo de verificação, com a configuração de estilo do próprio projeto: os arquivos que o formatador reformataria são achados que bloqueiam e nada é reescrito; o dotnet format verifica só espaços; uma saída do formatador que o adaptador não consegue explicar é erro, nunca aprovação. Provado em um fixture ruim e um limpo por stack com os formatadores reais, e pelo motor real na imagem de ferramentas. | ruff, prettier, gofmt (Go), cargo fmt (rustfmt) e o SDK .NET (dotnet format), todos na imagem de ferramentas do JGates |
+| File size (lines per file) (`file-size`) | jgates-file-size | - | file-size (adapter-file-size.test.js) | text | editable-file | container | testado / ainda não testado / não testado em máquina real | Conta as linhas de arquivos de texto no próprio processo; arquivos binários são pulados e listados, pastas geradas e de terceiros não são percorridas, e uma árvore grande demais para percorrer deixa a etapa não interpretada em vez de aprovada. Um limite para todos os arquivos; bytes por arquivo e orçamentos de tamanho da mudança continuam com a ponte de qualidade até ela ser aposentada. | Nenhuma: vem com o JGates (lê os arquivos no processo, sem rede) |
 
 | Stack | Suporte | Não coberto |
 | --- | --- | --- |
 | Base (`base`) | completo | - |
 | .NET build (`dotnet-build`) | completo | - |
 | C# with CodeQL dataflow (`dotnet-codeql`) | completo | - |
+| .NET with dotnet format (`dotnet-format`) | completo | - |
 | .NET (`dotnet`) | parcial | Testes do projeto (dotnet test); Cobertura de testes; Analisadores Roslyn e regras do .editorconfig |
+| File size (`file-size`) | completo | - |
 | GitHub Actions with zizmor (`github-actions-zizmor`) | completo | - |
 | Secrets in the Git history (Gitleaks) (`gitleaks-history`) | completo | - |
 | Go build and vet (`go-build`) | completo | - |
 | Go with CodeQL dataflow (`go-codeql`) | completo | - |
+| Go with gofmt (`go-gofmt`) | completo | - |
 | Go with govulncheck (`go-govulncheck`) | completo | - |
 | Go (`go`) | parcial | Cobertura de testes; Licenças e integridade de dependências (as vulnerabilidades entram pelo template go-govulncheck); Linters (staticcheck, golangci-lint) |
 | OpenAPI with oasdiff (`openapi-oasdiff`) | completo | - |
 | Python with CodeQL dataflow (`python-codeql`) | completo | - |
+| Python with ruff format (`python-format`) | completo | - |
 | Python com Import Linter (`python-import-linter`) | completo | - |
 | Python mutation testing (mutmut) (`python-mutmut`) | completo | - |
 | Python with mypy (defaults) (`python-mypy-defaults`) | completo | - |
@@ -69,12 +75,14 @@ Go e Rust têm suporte parcial: descoberta, configuração explícita e o comand
 | Rust with cargo-audit (`rust-cargo-audit`) | completo | - |
 | Rust with cargo check (`rust-cargo-check`) | completo | - |
 | Rust with cargo test (`rust-cargo-test`) | completo | - |
+| Rust with cargo fmt (`rust-rustfmt`) | completo | - |
 | Rust (`rust`) | parcial | clippy; Cobertura de testes; Licenças e políticas de dependências (cargo deny; os avisos do RustSec entram pelo template rust-cargo-audit) |
 | Supply chain of the lockfiles (`supply-chain`) | completo | - |
 | Dependency licenses (Trivy) (`trivy-licenses`) | completo | - |
 | TypeScript and JavaScript with CodeQL dataflow (`typescript-codeql`) | completo | - |
 | TypeScript com dependency-cruiser (`typescript-dependency-cruiser`) | completo | - |
 | TypeScript com ESLint (`typescript-eslint`) | completo | - |
+| TypeScript and JavaScript with prettier (`typescript-prettier`) | completo | - |
 | TypeScript and JavaScript mutation testing (Stryker) (`typescript-stryker`) | completo | - |
 | TypeScript with tsc (`typescript-tsc`) | completo | - |
 | TypeScript com Vitest (`typescript-vitest`) | completo | - |

@@ -90,6 +90,7 @@
         "concurrency": { "type": "integer", "minimum": 1 },
         "network": { "enum": ["explicit", "allow", "deny"] },
         "timeoutSeconds": { "type": "integer", "minimum": 1 },
+        "dataMaxAgeDays": { "type": "integer", "minimum": 1, "default": 7, "description": "Advisory data (vulnerability databases of the offline scanners) older than this many days makes the checks that read it incomplete (DATA_STALE). A governed policy can require less. Default 7." },
         "failFast": { "type": "boolean", "description": "Stop at the first failed stage; the rest is recorded as not run." },
         "trustSelfReported": {
           "type": "boolean",

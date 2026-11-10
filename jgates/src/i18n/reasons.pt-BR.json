@@ -24,5 +24,9 @@
   "reason_DEPENDENCIES_NOT_READY": "As dependências do componente {component} não estão prontas; esta verificação ficou incompleta.",
   "reason_DEPENDENCIES_NOT_READY_action": "Ver o estado das dependências",
   "reason_DEPENDENCIES_FAILED": "A instalação das dependências do componente {component} falhou; esta verificação ficou incompleta.",
-  "reason_DEPENDENCIES_FAILED_action": "Preparar as dependências de novo"
+  "reason_DEPENDENCIES_FAILED_action": "Preparar as dependências de novo",
+  "reason_DATA_MISSING": "Os dados de vulnerabilidades do {database} nunca foram baixados; esta verificação ficou incompleta.",
+  "reason_DATA_MISSING_action": "Baixar os dados de vulnerabilidades",
+  "reason_DATA_STALE": "Os dados de vulnerabilidades do {database} têm {days, plural, one {# dia} other {# dias}} (o limite é {max, plural, one {# dia} other {# dias}}); esta verificação ficou incompleta.",
+  "reason_DATA_STALE_action": "Atualizar os dados de vulnerabilidades"
 }

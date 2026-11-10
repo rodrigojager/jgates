@@ -1,5 +1,5 @@
-// cargo-audit adapter: plans one `cargo-audit audit --json` per tool instance (the Cargo.lock of the scan root, the
-// RustSec advisory database cloned into the run folder) and normalizes its advisories. The tool is supplied by the
+// cargo-audit adapter: plans one `cargo-audit audit --json --no-fetch` per tool instance (the Cargo.lock of the scan root,
+// the RustSec advisory database of the jgates-data volume, read-only, no network) and normalizes its advisories. The tool is supplied by the
 // customer (see the manifest); the run never installs it. cargo-audit exits 1 both for vulnerabilities found and for an
 // error, so the JSON document decides: a valid report is an audit, anything else is an error.
 import fs from "node:fs";
@@ -10,8 +10,9 @@ import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
 import { runSpec, substituteTokens } from "../../core/runner/index.js";
 import { stepMode } from "../../core/runner/in-image.js";
-import { createOutputPaths, outputPathFor, outputPathUnder, redirectionEnv, RUN_DIR_TOKEN } from "../../core/run/redirection.js";
+import { createOutputPaths, redirectionEnv } from "../../core/run/redirection.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
+import { databaseDir, recordedDatabaseFacts } from "../../core/data/index.js";
 import { cargoAuditManifest } from "./manifest.js";
 import { parseCargoAuditOutput } from "./normalize.js";
 import { probeCargoAudit } from "./probe.js";
@@ -27,19 +28,13 @@ export const CARGO_ENV_FORWARD = ["CARGO_HOME", "RUSTUP_HOME", "HTTP_PROXY", "HT
 
 const CARGO_HOST_FOLDERS: ReadonlySet<string> = new Set(["CARGO_HOME", "RUSTUP_HOME", "SSL_CERT_FILE", "CARGO_HTTP_CAINFO"]);
 
-const cacheEntry = ():NonNullable<ReturnType<typeof outputPathFor>> => {
-  const entry = outputPathFor(cargoAuditManifest, "cache");
-  if (!entry) throw new Error("the cargo-audit manifest declares no cache output path");
-  return entry;
-};
-
 /** The command the plan shows: executable and args (no shell), the advisory database in the run folder. */
 function planCargoAudit(input: ExternalPlanInput): ExternalPlan {
   const t = translator("cargo-audit");
   const probe = probeCargoAudit(input.env);
   const root = input.componentRoot && input.componentRoot !== "." ? input.componentRoot : null;
   const scanDir = root ? path.join(input.dir, ...root.split("/")) : input.dir;
-  const args = ["audit", "--json", "--color", "never", "--file", "Cargo.lock", "--db", `${outputPathUnder(RUN_DIR_TOKEN, cacheEntry())}/advisory-db`];
+  const args = ["audit", "--json", "--color", "never", "--file", "Cargo.lock", "--no-fetch", "--db", databaseDir("rustsec", input.env)];
   let availability: ExternalPlan["availability"];
   if (probe.problem === "not_found") availability = { status: "unavailable", reason: t("cargo-audit_missing", { detail: probe.detail }) };
   else if (probe.problem === "no_answer") availability = { status: "unavailable", reason: t("cargo-audit_probe_failed", { path: probe.detail }) };
@@ -55,7 +50,8 @@ function planCargoAudit(input: ExternalPlanInput): ExternalPlan {
       executable: probe.executable ?? cargoAuditManifest.toolName,
       args,
       cwd: root ? `${WORKSPACE}/${root}` : WORKSPACE,
-      env: { ...redirectionEnv(cargoAuditManifest), NO_COLOR: "1" },
+      // The clone in the volume belongs to another user than the one that reads it: git must not refuse it for that.
+      env: { ...redirectionEnv(cargoAuditManifest), NO_COLOR: "1", GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "safe.directory", GIT_CONFIG_VALUE_0: "*" },
       stdin: null,
     },
     runtime: { name: "native", interpreter: probe.executable, available: probe.executable !== null && probe.version !== null },
@@ -63,7 +59,7 @@ function planCargoAudit(input: ExternalPlanInput): ExternalPlan {
     configFiles: configFile && input.policyDir === undefined ? [{ file: configFile, sha256: null }] : [],
     availability,
     blocksPlan: false,
-    network: true,
+    network: false,
     limitations: [t("cargo-audit_limitation_matching")],
     conditions: [t("cargo-audit_condition_network")],
     output: { format: "json", schema: null },
@@ -145,12 +141,13 @@ async function runCargoAudit(context: AdapterContext, plan: Plan, tool: string):
     const detail = result.truncated ? "output truncated" : (parsed.problem ?? "");
     return { ...base, stages: items.map((i) => stageFor(i, "completed", t("cargo-audit_invalid_output", { detail }), { interpreted: false, nativeStatus: `exit ${result.exitCode}` })), findings: [] };
   }
+  const dbFacts = recordedDatabaseFacts(outDir, "rustsec");
   const count = parsed.findings.length;
   const blocking = parsed.findings.filter((f) => f.blocking).length;
   const reason = t("cargo-audit_reason_completed", { version: version ?? "?", count, packages: parsed.dependencyCount ?? "?" }) + (parsed.warnings > 0 ? `; ${t("cargo-audit_warnings", { count: parsed.warnings })}` : "");
   return {
     ...base,
-    stages: items.map((i) => stageFor(i, "completed", reason, { blockingViolations: blocking, findings: count, nativeStatus: `exit ${result.exitCode}` })),
+    stages: items.map((i) => stageFor(i, "completed", reason, { blockingViolations: blocking, findings: count, nativeStatus: `exit ${result.exitCode}`, ...(dbFacts ? { analysisInput: dbFacts } : {}) })),
     findings: parsed.findings,
   };
 }

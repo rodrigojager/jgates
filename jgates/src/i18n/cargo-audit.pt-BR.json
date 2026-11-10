@@ -12,5 +12,5 @@
   "cargo-audit_reason_completed": "cargo-audit {version}: {count, plural, one {# achado} other {# achados}} de avisos em {packages, plural, one {# pacote travado} other {# pacotes travados}}",
   "cargo-audit_warnings": "{count} deles são avisos que não bloqueiam (sem manutenção, inseguro ou removido)",
   "cargo-audit_limitation_matching": "Os avisos são casados com as versões travadas dos pacotes, não com o grafo de chamadas; a lista de ignorados de .cargo/audit.toml é exceção do scanner, não dispensa do gate.",
-  "cargo-audit_condition_network": "Rede: o banco de avisos do RustSec (github.com/RustSec/advisory-db) é clonado na pasta da execução."
+  "cargo-audit_condition_network": "Offline: o banco de avisos do RustSec vem do volume jgates-data (somente leitura, sem rede, --no-fetch). Sem ele a verificação fica incompleta (DATA_MISSING); mais velho que o limite (padrão 7 dias), DATA_STALE."
 }

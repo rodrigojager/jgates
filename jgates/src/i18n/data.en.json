@@ -1,0 +1,13 @@
+{
+  "data_update_no_image": "The JGates tools image is not in the container engine; run jgates setup first.",
+  "data_update_cancelled": "cancelled before it started",
+  "data_update_started": "Updating the advisory data of {database}...",
+  "data_update_done": "{database}: updated ({date})",
+  "data_update_failed": "{database}: failed ({error}); the previous copy, if any, was kept",
+  "data_update_summary_ok": "Advisory data updated: {count, plural, one {# database} other {# databases}}.",
+  "data_update_summary_failed": "{failed, plural, one {# database was} other {# databases were}} not updated.",
+  "data_update_blocked": "Nothing was updated: {reason}",
+  "data_unknown_database": "Unknown database {name}; choose one of: {known}.",
+  "data_option_database": "With tools update-data: refresh only this database (trivy, osv, govulndb or rustsec); repeat with commas.",
+  "data_engine_error": "The container engine refused the update: {error}"
+}
