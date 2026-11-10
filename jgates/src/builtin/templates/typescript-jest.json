@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript-jest",
+  "label": "TypeScript/JavaScript with Jest",
+  "description": "Runs the project's own Jest in TypeScript and JavaScript components with line coverage, the fast-check property tests, and the integration tests (a project named integration or *.integration.test.* files) in a step of their own. Comes in by evidence: only when there is a jest.config or a jest key in package.json; JGates never installs or migrates the test framework.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ],
+    "files": [
+      "jest.config.js",
+      "jest.config.cjs",
+      "jest.config.mjs",
+      "jest.config.ts",
+      "jest.config.json",
+      {
+        "path": "package.json",
+        "contains": "\"jest\":"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "jest": {
+        "adapter": "jest",
+        "enabled": true,
+        "capabilities": [
+          "unit",
+          "coverage",
+          "properties"
+        ]
+      },
+      "jest-integration": {
+        "adapter": "jest",
+        "enabled": true,
+        "capabilities": [
+          "integration"
+        ]
+      }
+    }
+  }
+}

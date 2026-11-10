@@ -1,0 +1,25 @@
+{
+ "stack": "jest",
+ "kind": "clean",
+ "tool": "jest",
+ "adapter": "jest",
+ "args": [
+  "--ci",
+  "--json",
+  "--outputFile={runDir}/outputs/jest/jest/jest.json",
+  "--testLocationInResults",
+  "--no-cache",
+  "--watchman=false",
+  "--testPathIgnorePatterns=/node_modules/",
+  "--testPathIgnorePatterns=/[^/]*\\.integration\\.(?:test|spec)\\.(?:js|jsx|ts|tsx|mjs|cjs|mts|cts)$",
+  "--coverage",
+  "--coverageReporters=json-summary",
+  "--coverageDirectory={runDir}/outputs/jest/jest/coverage"
+ ],
+ "exit": 0,
+ "stdout": "",
+ "files": {
+  "outputs/jest/jest/coverage/coverage-summary.json": "{\"total\": {\"lines\":{\"total\":3,\"covered\":3,\"skipped\":0,\"pct\":100},\"statements\":{\"total\":3,\"covered\":3,\"skipped\":0,\"pct\":100},\"functions\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"branches\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"branchesTrue\":{\"total\":0,\"covered\":0,\"skipped\":0,\"pct\":\"Unknown\"}}\n,\"/workspace/src/calc.js\": {\"lines\":{\"total\":3,\"covered\":3,\"skipped\":0,\"pct\":100},\"functions\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"statements\":{\"total\":3,\"covered\":3,\"skipped\":0,\"pct\":100},\"branches\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100}}\n}\n",
+  "outputs/jest/jest/jest.json": "{\"numFailedTestSuites\":0,\"numFailedTests\":0,\"numPassedTestSuites\":1,\"numPassedTests\":3,\"numPendingTestSuites\":0,\"numPendingTests\":0,\"numRuntimeErrorTestSuites\":0,\"numTodoTests\":0,\"numTotalTestSuites\":1,\"numTotalTests\":3,\"openHandles\":[],\"snapshot\":{\"added\":0,\"didUpdate\":false,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0},\"startTime\":1794349729947,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[],\"duration\":2,\"failing\":false,\"failureDetails\":[],\"failureMessages\":[],\"fullName\":\"adds two numbers\",\"invocations\":1,\"location\":{\"column\":1,\"line\":4},\"numPassingAsserts\":1,\"retryMessages\":[],\"retryReasons\":[],\"status\":\"passed\",\"title\":\"adds two numbers\",\"startAt\":1794349730321},{\"ancestorTitles\":[],\"duration\":0,\"failing\":false,\"failureDetails\":[],\"failureMessages\":[],\"fullName\":\"absolute value\",\"invocations\":1,\"location\":{\"column\":1,\"line\":8},\"numPassingAsserts\":2,\"retryMessages\":[],\"retryReasons\":[],\"status\":\"passed\",\"title\":\"absolute value\",\"startAt\":1794349730324},{\"ancestorTitles\":[],\"duration\":3,\"failing\":false,\"failureDetails\":[],\"failureMessages\":[],\"fullName\":\"addition is commutative\",\"invocations\":1,\"location\":{\"column\":1,\"line\":13},\"numPassingAsserts\":0,\"retryMessages\":[],\"retryReasons\":[],\"status\":\"passed\",\"title\":\"addition is commutative\",\"startAt\":1794349730325}],\"endTime\":1794349730330,\"message\":\"\",\"name\":\"/workspace/src/calc.test.js\",\"startTime\":1794349730109,\"status\":\"passed\",\"summary\":\"\"}],\"wasInterrupted\":false,\"coverageMap\":{\"/workspace/src/calc.js\":{\"path\":\"/workspace/src/calc.js\",\"statementMap\":{\"0\":{\"start\":{\"line\":2,\"column\":2},\"end\":{\"line\":2,\"column\":15}},\"1\":{\"start\":{\"line\":6,\"column\":2},\"end\":{\"line\":6,\"column\":24}},\"2\":{\"start\":{\"line\":9,\"column\":0},\"end\":{\"line\":9,\"column\":35}}},\"fnMap\":{\"0\":{\"name\":\"add\",\"decl\":{\"start\":{\"line\":1,\"column\":9},\"end\":{\"line\":1,\"column\":12}},\"loc\":{\"start\":{\"line\":1,\"column\":19},\"end\":{\"line\":3,\"column\":1}},\"line\":1},\"1\":{\"name\":\"absolute\",\"decl\":{\"start\":{\"line\":5,\"column\":9},\"end\":{\"line\":5,\"column\":17}},\"loc\":{\"start\":{\"line\":5,\"column\":21},\"end\":{\"line\":7,\"column\":1}},\"line\":5}},\"branchMap\":{\"0\":{\"loc\":{\"start\":{\"line\":6,\"column\":9},\"end\":{\"line\":6,\"column\":23}},\"type\":\"cond-expr\",\"locations\":[{\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":19}},{\"start\":{\"line\":6,\"column\":22},\"end\":{\"line\":6,\"column\":23}}],\"line\":6}},\"s\":{\"0\":201,\"1\":2,\"2\":1},\"f\":{\"0\":201,\"1\":2},\"b\":{\"0\":[1,1]},\"_coverageSchema\":\"1a1c01bbd47fc00a2c39e90264f33305004495a9\",\"hash\":\"c70907d8e1cde00d7a3f38eb13633ec37a9bd88c\"}}}\n"
+ }
+}

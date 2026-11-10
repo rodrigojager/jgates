@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "go-test",
+  "label": "Go with go test",
+  "description": "Runs go test -json in Go components (go.mod) with statement coverage (-coverprofile), the property tests of rapid and testing/quick, and the integration tests (the files with the integration build tag) in a step of their own. The project's tests execute; the modules come from the dependency volume.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "go"
+    ]
+  },
+  "config": {
+    "tools": {
+      "go-test": {
+        "adapter": "go-test",
+        "enabled": true,
+        "capabilities": [
+          "unit",
+          "coverage",
+          "properties"
+        ]
+      },
+      "go-test-integration": {
+        "adapter": "go-test",
+        "enabled": true,
+        "capabilities": [
+          "integration"
+        ]
+      }
+    }
+  }
+}

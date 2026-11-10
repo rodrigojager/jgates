@@ -73,6 +73,7 @@ COMMANDS = [
     ("rustfmt", ["rustfmt", "--version"], None),
     ("clippy", ["cargo", "clippy", "--version"], None),
     ("cargo-audit", ["cargo", "audit", "--version"], None),
+    ("cargo-llvm-cov", ["cargo", "llvm-cov", "--version"], None),
     ("dotnet", ["dotnet", "--version"], None),
     ("dotnet-format", ["dotnet", "format", "--version"], None),
     # 2.5 Cross-stack security, API and runtime tools
@@ -113,6 +114,7 @@ ENV_PINS = {
     "rustc": "RUST_VERSION",
     "cargo": "RUST_VERSION",
     "cargo-audit": "CARGO_AUDIT_VERSION",
+    "cargo-llvm-cov": "CARGO_LLVM_COV_VERSION",
     "dotnet": "DOTNET_SDK_VERSION",
     "gitleaks": "GITLEAKS_VERSION",
     "trivy": "TRIVY_VERSION",

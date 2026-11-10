@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "go",
   "label": "Go",
-  "description": "Componentes Go (go.mod): suporte parcial. Descoberta, configuração explícita e o comando genérico com go test; cobertura fica para depois. Build e go vet entram pelo template go-build.",
+  "description": "Componentes Go (go.mod): testes, cobertura e propriedades pelo go test (template go-test); build e go vet entram pelo template go-build, o lint pelo go-golangci-lint e as vulnerabilidades pelo go-govulncheck.",
   "extends": [
     "builtin:base"
   ],
@@ -14,41 +14,26 @@
   "support": {
     "level": "partial",
     "uncovered": [
-      "Cobertura de testes",
-      "Licenças e integridade de dependências (as vulnerabilidades entram pelo template go-govulncheck)",
-      "Linters (staticcheck, golangci-lint)"
+      "Licenças e integridade de dependências (as vulnerabilidades entram pelo template go-govulncheck)"
     ]
   },
   "config": {
     "tools": {
       "go-test": {
-        "adapter": "generic-command",
+        "adapter": "go-test",
         "enabled": true,
         "capabilities": [
-          "unit"
-        ],
-        "command": "go",
-        "args": [
-          "test",
-          "./..."
-        ],
-        "config": {
-          "support": "partial",
-          "limitations": [
-            "Roda apenas go test ./... no workspace: sem go vet, cobertura ou análise de dependências."
-          ],
-          "effects": {
-            "readsCode": true,
-            "writesOutputs": true,
-            "mayChangeCode": false,
-            "executesProjectCode": true,
-            "usesNetwork": false
-          },
-          "evidence": {
-            "kind": "test-runner",
-            "runner": "go-test"
-          }
-        }
+          "unit",
+          "coverage",
+          "properties"
+        ]
+      },
+      "go-test-integration": {
+        "adapter": "go-test",
+        "enabled": true,
+        "capabilities": [
+          "integration"
+        ]
       }
     },
     "workspace": {

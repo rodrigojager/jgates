@@ -18,6 +18,8 @@ import { vitestManifest } from "./manifest.js";
 import { parseLineCoverage, parseVitestReport, thresholdMessage, type VitestReport } from "./normalize.js";
 import { COVERAGE_PROVIDER, findCoverageProvider, findVitest } from "./probe.js";
 import { scanProperties } from "./properties.js";
+import { describeSelection, detectIntegration, resolveIntegrationSelection } from "../../core/selection/tests.js";
+import { runModeOf } from "../test-common/index.js";
 
 export { propertyTitles, scanProperties } from "./properties.js";
 export { vitestManifest } from "./manifest.js";
@@ -117,10 +119,27 @@ function planVitest(input: ExternalPlanInput): ExternalPlan {
   const probe = findVitest(input.dir, input.componentRoot, input.env);
   const config = chooseConfig(input);
   const wanted = wantedCapabilities(input);
-  const wantsCoverage = wanted.has(COVERAGE);
+  const { mode, integrationElsewhere } = runModeOf(wanted);
+  const wantsCoverage = mode !== "integration" && wanted.has(COVERAGE);
   const provider = findCoverageProvider(input.dir, input.componentRoot, probe);
   const coverageReady = probe.version !== null && provider.installed && !provider.mismatch;
   const out = outDirToken(input.tool);
+  // The integration selection: the unit run leaves it out, an instance with only `integration` runs it alone.
+  const scanDir = input.componentRoot && input.componentRoot !== "." ? path.join(input.dir, input.componentRoot) : input.dir;
+  const selection = resolveIntegrationSelection({ stack: "node", config: input.config, tool: input.tool, adapter: ADAPTER_ID, scanDir });
+  const detection = detectIntegration(scanDir, selection);
+  const described = describeSelection(selection);
+  const project = selection.kind === "project" ? (selection.value as string) : null;
+  const selectionArgs =
+    mode === "integration"
+      ? project
+        ? [`--project=${project}`]
+        : detection.files
+      : !detection.present
+        ? []
+        : project
+          ? [`--project=!${project}`]
+          : [`--exclude=${selection.value as string}`];
   const args = [
     ...probe.prefix,
     "run",
@@ -133,6 +152,8 @@ function planVitest(input: ExternalPlanInput): ExternalPlan {
     ...(wantsCoverage && coverageReady
       ? ["--coverage.enabled", "--coverage.provider=v8", "--coverage.reporter=json-summary", "--coverage.reportOnFailure", `--coverage.reportsDirectory=${out}/coverage`]
       : []),
+    // The file filters of the integration run come last, after every option.
+    ...selectionArgs,
   ];
   let availability: ExternalPlan["availability"];
   if (probe.problem === "not_found") availability = { status: "unavailable", reason: t("vitest_missing", { detail: probe.detail }) };
@@ -142,6 +163,7 @@ function planVitest(input: ExternalPlanInput): ExternalPlan {
   } else availability = { status: "available", reason: null };
 
   const conditions: string[] = [t("vitest_condition_executes")];
+  if (mode === "integration" || detection.present) conditions.push(translator("test-stacks")(mode === "integration" ? (detection.present ? "test_condition_integration" : "test_no_integration") : "test_condition_unit_excludes", { selection: described }));
   if (config.file) conditions.push(t(config.source === "binding" ? "vitest_condition_config_binding" : "vitest_condition_config_native", { file: config.file }));
   else conditions.push(t("vitest_condition_config_none"));
   if (config.shadowed) conditions.push(t("vitest_condition_shadowed", { config: config.file ?? "-", shadowed: config.shadowed }));
@@ -168,7 +190,7 @@ function planVitest(input: ExternalPlanInput): ExternalPlan {
     output: { format: "json", schema: null },
     // The tests, the configuration and the setup files are the project's code: the cache never reuses this step.
     effects: { executesProjectCode: true },
-    contract: { coverage: { requested: wantsCoverage, collected: wantsCoverage && coverageReady, provider: COVERAGE_PROVIDER, providerVersion: provider.version } },
+    contract: { mode, selection: described, integrationElsewhere, nothingToRun: mode === "integration" && !detection.present, coverage: { requested: wantsCoverage, collected: wantsCoverage && coverageReady, provider: COVERAGE_PROVIDER, providerVersion: provider.version } },
   };
 }
 
@@ -199,9 +221,14 @@ async function runVitest(context: AdapterContext, plan: Plan, tool: string): Pro
   const stderrLog = path.join(context.logsDir, `${tool}.stderr.log`);
 
   const capOf = (i: PlanItem): string => i.capabilities[0] ?? "";
-  const unitItem = items.find((i) => capOf(i) === UNIT);
+  const contract = (invocation.contract ?? {}) as { mode?: string; selection?: string; nothingToRun?: boolean };
+  const integrationRun = contract.mode === "integration";
+  // The tests stage: unit, or integration for an instance that runs only the integration selection.
+  const unitItem = items.find((i) => capOf(i) === (integrationRun ? "integration" : UNIT));
+  const misplacedIntegration = integrationRun ? undefined : items.find((i) => capOf(i) === "integration");
+  const propertiesItem = items.find((i) => capOf(i) === "properties");
   const coverageItem = items.find((i) => capOf(i) === COVERAGE);
-  const testItem = unitItem ?? items[0];
+  const testItem = unitItem ?? propertiesItem ?? coverageItem ?? items[0];
   const stageFor = (item: PlanItem, state: ResultStage["state"], reason?: string, extra: Partial<ResultStage> = {}): ResultStage => ({
     id: item.id,
     label: item.label,
@@ -221,6 +248,8 @@ async function runVitest(context: AdapterContext, plan: Plan, tool: string): Pro
 
   const unavailable = items.find((i) => i.availability.status !== "available");
   if (unavailable) return all("blocked", unavailable.availability.reason ?? t("vitest_blocked", { detail: command.executable }));
+  // No integration test in the component: the integration step does not apply and starts nothing.
+  if (contract.nothingToRun) return { ...base, stages: items.map((i) => stageFor(i, "not_applicable", translator("test-stacks")("test_no_integration", { selection: contract.selection ?? "-" }))), findings: [] };
 
   const result = await runSpec(
     { executable: command.executable, args, cwd, env, stdin: null, timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog },
@@ -258,29 +287,32 @@ async function runVitest(context: AdapterContext, plan: Plan, tool: string): Pro
   const failedStage = testItem as PlanItem;
   const baseFinding = { tool: ADAPTER_ID, ...(version ? { toolVersion: version } : {}), category: "tests", severity: "error", normalizedSeverity: "high" as const, origin: ADAPTER_ID, blocking: true, blockingReason: "blocking-tool" as const, waived: false };
   // Property tests (fast-check) are told apart by reading the test files that ran; the report does not say.
-  const scan = scanProperties(report.tests.map((r) => r.abs).filter((a) => a !== ""));
-  const propertyTests = report.tests.filter((r) => scan.byFile.get(r.abs)?.has(r.title) ?? false);
+  // The files are read on this side: the paths Vitest printed (container paths in a step) are mapped back to the workspace.
+  const hostOf = (r: { abs: string; file: string | null }): string => (r.file !== null ? path.join(context.workspacePath, ...r.file.split("/")) : r.abs);
+  const scan = scanProperties(report.tests.map(hostOf).filter((a) => a !== ""));
+  const propertyTests = report.tests.filter((r) => r.status !== "skipped" && r.status !== "pending" && r.status !== "todo" && (scan.byFile.get(hostOf(r))?.has(r.title) ?? false));
   const propertyFailed = propertyTests.filter((r) => r.status === "failed");
   const isPropertyFailure = (f: (typeof report.failures)[number]): boolean => !f.suite && propertyFailed.some((r) => r.file === f.file && f.name.endsWith(r.title));
   for (const f of report.failures) {
     const property = isPropertyFailure(f);
     findings.push({
       ...baseFinding,
-      stageId: failedStage.id,
+      stageId: (property && propertiesItem ? propertiesItem : failedStage).id,
       ruleId: f.suite ? "vitest.suite-failed" : property ? "vitest.property-failed" : "vitest.test-failed",
       message: t(f.suite ? "vitest_finding_suite" : property ? "vitest_finding_property" : "vitest_finding_test", { name: f.name, message: f.message || "-" }),
       ...(f.file ? { location: { path: f.file, ...(f.line !== null ? { line: f.line } : {}), ...(f.column !== null ? { column: f.column } : {}) } } : {}),
     });
   }
   const counts = report.counts;
+  const prefix = integrationRun ? "tests.integration" : "tests";
   metrics.push(
-    { id: "tests.executed", label: t("vitest_metric_executed"), unit: "count", value: counts.passed + counts.failed, scope: "workspace", origin: ADAPTER_ID },
-    { id: "tests.passed", label: t("vitest_metric_passed"), unit: "count", value: counts.passed, scope: "workspace", origin: ADAPTER_ID },
-    { id: "tests.failed", label: t("vitest_metric_failed"), unit: "count", value: counts.failed, scope: "workspace", origin: ADAPTER_ID },
-    { id: "tests.skipped", label: t("vitest_metric_skipped"), unit: "count", value: counts.skipped, scope: "workspace", origin: ADAPTER_ID },
+    { id: `${prefix}.executed`, label: t("vitest_metric_executed"), unit: "count", value: counts.passed + counts.failed, scope: "workspace", origin: ADAPTER_ID },
+    { id: `${prefix}.passed`, label: t("vitest_metric_passed"), unit: "count", value: counts.passed, scope: "workspace", origin: ADAPTER_ID },
+    { id: `${prefix}.failed`, label: t("vitest_metric_failed"), unit: "count", value: counts.failed, scope: "workspace", origin: ADAPTER_ID },
+    { id: `${prefix}.skipped`, label: t("vitest_metric_skipped"), unit: "count", value: counts.skipped, scope: "workspace", origin: ADAPTER_ID },
   );
   // No property metric for a project that does not use fast-check; one that does gets it even at zero.
-  if (scan.usesFastCheck || propertyTests.length > 0) {
+  if (!integrationRun && (scan.usesFastCheck || propertyTests.length > 0)) {
     metrics.push(
       { id: "tests.property.total", label: t("vitest_metric_property_total"), unit: "count", value: propertyTests.length, scope: "workspace", origin: ADAPTER_ID },
       { id: "tests.property.failed", label: t("vitest_metric_property_failed"), unit: "count", value: propertyFailed.length, scope: "workspace", origin: ADAPTER_ID },
@@ -293,9 +325,20 @@ async function runVitest(context: AdapterContext, plan: Plan, tool: string): Pro
     return { ...all("error", t("vitest_exit_error", { code: result.exitCode ?? "-", detail: tail(result.stderr) || "-" }), { interpreted: false }), logs: base.logs };
   }
 
+  const tt = translator("test-stacks");
+  const owned = (item: PlanItem): number => findings.filter((f) => f.stageId === item.id).length;
+  if (misplacedIntegration) stages.push(stageFor(misplacedIntegration, "blocked", tt("test_integration_own_instance", { tool })));
   if (unitItem) {
-    const failed = report.failures.length;
-    stages.push(stageFor(unitItem, "completed", t("vitest_reason_tests", { version: version ?? "?", executed: counts.passed + counts.failed, failed, skipped: counts.skipped }), { blockingViolations: failed, findings: failed, nativeStatus: `exit ${result.exitCode ?? "-"}` }));
+    const failed = owned(unitItem);
+    const reason = t("vitest_reason_tests", { version: version ?? "?", executed: counts.passed + counts.failed, failed: report.failures.length, skipped: counts.skipped });
+    stages.push(stageFor(unitItem, "completed", integrationRun ? `${reason} (${contract.selection ?? "-"})` : reason, { blockingViolations: failed, findings: failed, nativeStatus: `exit ${result.exitCode ?? "-"}` }));
+  }
+  if (propertiesItem) {
+    if (propertyTests.length === 0) stages.push(stageFor(propertiesItem, "not_applicable", tt("test_reason_no_properties", { framework: "fast-check" })));
+    else {
+      const n = owned(propertiesItem);
+      stages.push(stageFor(propertiesItem, "completed", tt("test_reason_properties", { framework: "fast-check", total: propertyTests.length, failed: propertyFailed.length }), { blockingViolations: n, findings: n, nativeStatus: `exit ${result.exitCode ?? "-"}` }));
+    }
   }
   if (coverageItem) {
     if (!collected) {

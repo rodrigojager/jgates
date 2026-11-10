@@ -17,7 +17,7 @@ export const vitestManifest: AdapterManifest = {
   platforms: ["linux", "win32", "darwin"],
   cpuArchitectures: ["x64", "arm64"],
   categories: ["tests"],
-  capabilities: ["unit", "coverage"],
+  capabilities: ["unit", "coverage", "integration", "properties"],
   languages: ["javascript", "typescript"],
   granularity: ["workspace", "component"],
   minimumContext: ["workspace"],
@@ -66,6 +66,8 @@ export const vitestManifest: AdapterManifest = {
   stackSupport: [
     { capability: "unit", stack: "typescript", state: "validated", prerequisites: ["Vitest 1+ installed in the project"] },
     { capability: "coverage", stack: "typescript", state: "validated", prerequisites: ["Vitest 1+ and @vitest/coverage-v8 at the same version in the project"] },
+    { capability: "integration", stack: "typescript", state: "validated", prerequisites: ["integration tests in *.integration.test.* files or a project named integration (or tools.<id>.selection)"], limitations: ["the unit run leaves the selection out (--exclude or --project=!<name>); services come from the compose section when the tests need them"] },
+    { capability: "properties", stack: "typescript", state: "validated", prerequisites: ["fast-check (or @fast-check/vitest) in the devDependencies of the component"], limitations: ["static detection of fast-check properties"] },
     { capability: "unit", stack: "javascript", state: "customer-setup-required", prerequisites: ["Vitest 1+ installed in the project"], limitations: ["No JGates test exercises a JavaScript-only project yet; the TypeScript fixture proves the adapter."] },
     { capability: "coverage", stack: "javascript", state: "customer-setup-required", prerequisites: ["Vitest 1+ and @vitest/coverage-v8 at the same version in the project"], limitations: ["No JGates test exercises a JavaScript-only project yet; the TypeScript fixture proves the adapter."] },
   ],

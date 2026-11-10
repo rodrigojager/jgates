@@ -7,7 +7,8 @@
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolveProjectPython } from "../../core/bridge/index.js";
-import { imageProbeUnlessOverridden, probeImageTool } from "../../core/tools-image/catalogue.js";
+import { imageProbeUnlessOverridden, inImageOverride, probeImageTool } from "../../core/tools-image/catalogue.js";
+import { findOnPath } from "../../core/runner/path-lookup.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface PytestProbe {
@@ -24,6 +25,9 @@ export interface PytestProbe {
    * environment comes first on the step's PATH when the project declares it). Absent or false: `python -m pytest`.
    */
   command?: boolean;
+  /** The pytest command (JGATES_PYTEST inside the image), and the arguments before pytest's own. */
+  executable?: string;
+  prefix?: string[];
   /** Minor version of the image's Python (the dependency environments are created with it), e.g. "3.15". */
   pythonMinor?: string | null;
 }
@@ -35,6 +39,26 @@ function safeEnv(env: NodeJS.ProcessEnv): Record<string, string> {
 }
 
 export function probePytest(env: NodeJS.ProcessEnv, cwd: string): PytestProbe {
+  // Inside the image only: JGATES_PYTEST names the pytest command itself (a Node script stands for it through Node); the
+  // versions are the image catalogue's, nothing is asked.
+  const named = inImageOverride(env, "JGATES_PYTEST");
+  if (named !== null) {
+    const abs = findOnPath(named, env);
+    if (!abs) return { python: null, version: null, problem: "no_pytest", detail: named, coverage: false };
+    const python = probeImageTool("python", env).version;
+    const script = /\.(?:mjs|cjs|js)$/i.test(abs);
+    return {
+      python: "python",
+      version: probeImageTool("pytest", env).version ?? "0.0.0",
+      problem: null,
+      detail: "",
+      coverage: probeImageTool("pytest-cov", env).problem === null,
+      command: true,
+      executable: script ? process.execPath : abs,
+      prefix: script ? [abs] : [],
+      pythonMinor: python ? (/^(\d+\.\d+)/.exec(python)?.[1] ?? null) : null,
+    };
+  }
   const image = imageProbeUnlessOverridden("pytest", env, "JGATES_PYTHON");
   if (image) {
     if (image.problem !== null) return { python: null, version: null, problem: "no_pytest", detail: image.detail, coverage: false };

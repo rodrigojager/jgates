@@ -124,11 +124,10 @@ test("a minimal .NET repository gets the dotnet template with the declared suppo
     assert.ok(active, JSON.stringify(plan.templates));
     assert.equal(active.source, "builtin:dotnet");
     assert.equal(active.support.level, "partial");
-    for (const word of ["dotnet test", "Cobertura", "Roslyn"]) {
-      assert.ok(active.support.uncovered.some((u) => u.includes(word)), `uncovered should mention ${word}: ${active.support.uncovered}`);
-    }
-    // The build is not "uncovered": the dotnet-build template (build-check adapter) comes in by the language of the component.
-    assert.equal(active.support.uncovered.some((u) => u.includes("dotnet build")), false);
+    assert.ok(active.support.uncovered.some((u) => u.includes("dotnet list package")), `uncovered should mention dotnet list package: ${active.support.uncovered}`);
+    // The build, the tests and the analyzers are not "uncovered": dotnet-build, dotnet-test and dotnet-analyzers come in by the language.
+    for (const word of ["dotnet build", "dotnet test", "Cobertura", "Roslyn"]) assert.equal(active.support.uncovered.some((u) => u.includes(word)), false, word);
+    assert.ok(plan.templates.active.some((t) => t.id === "dotnet-test"), "the dotnet-test template is active");
     // The chain that exists today (the bridge) is what runs; nothing .NET specific is invented.
     assert.ok(allItems(plan).some((i) => i.adapter === "quality-bridge"));
   } finally {

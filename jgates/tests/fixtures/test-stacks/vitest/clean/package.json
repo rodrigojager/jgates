@@ -1,0 +1,9 @@
+{
+  "name": "vitest-stack-fixture",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "fast-check": "4.10.2"
+  }
+}

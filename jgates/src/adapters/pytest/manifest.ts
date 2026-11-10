@@ -17,7 +17,7 @@ export const pytestManifest: AdapterManifest = {
   platforms: ["linux", "win32", "darwin"],
   cpuArchitectures: ["x64", "arm64"],
   categories: ["tests"],
-  capabilities: ["unit", "coverage"],
+  capabilities: ["unit", "coverage", "integration", "properties"],
   languages: ["python"],
   granularity: ["workspace", "component"],
   minimumContext: ["workspace"],
@@ -65,6 +65,8 @@ export const pytestManifest: AdapterManifest = {
   stackSupport: [
     { capability: "unit", stack: "python", state: "validated", prerequisites: ["pytest 7+ in the project environment"] },
     { capability: "coverage", stack: "python", state: "validated", prerequisites: ["pytest 7+ and pytest-cov in the project environment"] },
+    { capability: "integration", stack: "python", state: "validated", prerequisites: ["integration tests under tests/integration or marked @pytest.mark.integration (or tools.<id>.selection)"], limitations: ["the unit run leaves the selection out (--ignore or -m \"not <marker>\"); services come from the compose section when the tests need them"] },
+    { capability: "properties", stack: "python", state: "validated", prerequisites: ["Hypothesis (the tools image ships it for its pytest; a project that declares pytest brings its own)"], limitations: ["static detection of @given tests"] },
   ],
   distribution: {
     mode: "customer-supplied",

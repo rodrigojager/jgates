@@ -177,7 +177,7 @@ test("main demonstration: fail with the two findings, fix, pass on the new state
     const planned = cli(["plan", "--cwd", dir, "--json"]);
     assert.equal(planned.code, 0, planned.out + planned.err);
     const willRun = planned.doc.plan.groups.willRun.map((i) => i.id).sort();
-    assert.deepEqual(willRun, ["import-linter#architecture", "pytest#coverage", "pytest#unit", "ruff#lint"]);
+    assert.deepEqual(willRun, ["import-linter#architecture", "pytest#coverage", "pytest#unit", "pytest-integration#integration", "ruff#lint"]);
 
     // run 1: failed, exactly the two findings, exit 1.
     const first = cli(["run", "--cwd", dir, "--no-interactive", "--json"]);

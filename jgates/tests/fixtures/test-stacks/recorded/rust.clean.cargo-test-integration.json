@@ -1,0 +1,18 @@
+{
+ "stack": "rust",
+ "kind": "clean",
+ "tool": "cargo-test-integration",
+ "adapter": "cargo-test",
+ "args": [
+  "test",
+  "--no-fail-fast",
+  "--offline",
+  "--color",
+  "never",
+  "--test",
+  "store"
+ ],
+ "exit": 0,
+ "stdout": "\nrunning 2 tests\ntest store_round_trip ... ok\ntest sum_of_many ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n",
+ "files": {}
+}

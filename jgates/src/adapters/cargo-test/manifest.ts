@@ -25,7 +25,7 @@ export const cargoTestManifest: AdapterManifest = {
   platforms: ["linux", "darwin", "win32"],
   cpuArchitectures: ["x64", "arm64"],
   categories: ["tests"],
-  capabilities: ["tests", "properties"],
+  capabilities: ["tests", "unit", "coverage", "integration", "properties"],
   languages: ["rust"],
   granularity: ["workspace", "component"],
   minimumContext: ["workspace"],
@@ -56,7 +56,7 @@ export const cargoTestManifest: AdapterManifest = {
     needsLicense: false,
   },
   redirection: {
-    flags: ["--offline", "--no-fail-fast", "--color"],
+    flags: ["--offline", "--no-fail-fast", "--color", "--output-path"],
     env: ["CARGO_TARGET_DIR", "CARGO_TERM_COLOR", "NO_COLOR", "PROPTEST_DISABLE_FAILURE_PERSISTENCE"],
     outputPaths: [{ path: "cache/cargo-test/target", purpose: "cache", env: ["CARGO_TARGET_DIR"] }],
     // cargo writes Cargo.lock when the project has none; proptest-regressions/ is avoided with PROPTEST_DISABLE_FAILURE_PERSISTENCE.
@@ -83,6 +83,30 @@ export const cargoTestManifest: AdapterManifest = {
       toolVersions: "cargo >=1.60",
       prerequisites: ["cargo and rustc 1.60+ on PATH (customer-supplied: https://www.rust-lang.org/tools/install)", "a Cargo.toml in the component, with the dependencies already fetched (the run is offline)"],
       limitations: ["libtest text output; doctests are counted as tests", "validated with the real cargo 1.99.1 on Windows"],
+    },
+    {
+      capability: "unit",
+      stack: "rust",
+      state: "validated",
+      toolVersions: "cargo >=1.60",
+      prerequisites: ["a Cargo.toml in the component, with the dependencies already fetched (the run is offline)"],
+      limitations: ["with integration tests in tests/, the unit run selects --lib --bins (and the other test targets), so doctests run only under the tests capability", "validated with the real cargo 1.99.1 of the tools image"],
+    },
+    {
+      capability: "coverage",
+      stack: "rust",
+      state: "validated",
+      toolVersions: "cargo >=1.60, cargo-llvm-cov 0.9",
+      prerequisites: ["cargo-llvm-cov and the llvm-tools component (both in the JGates tools image)"],
+      limitations: ["line coverage of the llvm-cov JSON summary; the tests run instrumented under cargo llvm-cov"],
+    },
+    {
+      capability: "integration",
+      stack: "rust",
+      state: "validated",
+      toolVersions: "cargo >=1.60",
+      prerequisites: ["integration test targets in tests/ (or the targets of tools.<id>.selection.targets)"],
+      limitations: ["services come from the compose section when the tests need them"],
     },
     {
       capability: "properties",

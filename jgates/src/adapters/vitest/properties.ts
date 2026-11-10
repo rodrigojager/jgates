@@ -11,7 +11,7 @@ export interface PropertyScan {
   usesFastCheck: boolean;
 }
 
-const FC_MODULES = /["'](?:fast-check|@fast-check\/vitest)["']/;
+const FC_MODULES = /["'](?:fast-check|@fast-check\/vitest|@fast-check\/jest)["']/;
 const API = ["assert", "asyncAssert", "check", "property", "asyncProperty"];
 const DECLARATION = /\b(?:test|it)(?:\.[A-Za-z]+)*\s*\(\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/g;
 // test.prop([arbitraries])('title', fn): the title is in the second call.
@@ -27,6 +27,14 @@ function imports(source: string): { namespaces: string[]; names: string[] } {
   for (const m of source.matchAll(/import\s+(?:\w+\s*,\s*)?\{([^}]*)\}\s+from\s+["']fast-check["']/g)) {
     for (const part of (m[1] as string).split(",")) {
       const [original, alias] = part.trim().split(/\s+as\s+/);
+      if (original && API.includes(original)) names.push(alias ?? original);
+    }
+  }
+  // CommonJS (Jest projects): `const fc = require("fast-check")` and `const { assert, property: p } = require("fast-check")`.
+  for (const m of source.matchAll(/(?:const|let|var)\s+(\w+)\s*=\s*require\(\s*["']fast-check["']\s*\)/g)) namespaces.push(m[1] as string);
+  for (const m of source.matchAll(/(?:const|let|var)\s*\{([^}]*)\}\s*=\s*require\(\s*["']fast-check["']\s*\)/g)) {
+    for (const part of (m[1] as string).split(",")) {
+      const [original, alias] = part.trim().split(/\s*:\s*/);
       if (original && API.includes(original)) names.push(alias ?? original);
     }
   }

@@ -80,6 +80,7 @@ const TOOLS = {
   rustfmt: ["rustfmt --version"],
   clippy: ["cargo clippy --version"],
   "cargo-audit": ["cargo audit --version"],
+  "cargo-llvm-cov": ["cargo llvm-cov --version"],
   dotnet: ["dotnet --version"],
   "dotnet-format": ["dotnet format --version"],
   // 2.5 Cross-stack security, API and runtime tools

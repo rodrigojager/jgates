@@ -10,7 +10,7 @@ import type { Classification } from "../discovery/types.js";
  * Adapters whose checks run with the project's environment (tests, type checks, mutation, lint plugins, and govulncheck,
  * which loads the project's Go modules from the dependency volume because its step has no network).
  */
-const DEPENDENT_ADAPTERS = new Set(["pytest", "vitest", "eslint", "mutation", "build-check", "cargo-test", "govulncheck", "golangci-lint", "clippy", "dotnet-analyzers"]);
+const DEPENDENT_ADAPTERS = new Set(["pytest", "vitest", "eslint", "mutation", "build-check", "cargo-test", "govulncheck", "golangci-lint", "clippy", "dotnet-analyzers", "go-test", "dotnet-test", "jest"]);
 
 export interface ToolItem {
   adapter: string | null;
@@ -46,6 +46,8 @@ export function toolPackage(item: ToolItem, language: string | null, contract?: 
       return { ecosystem: "node", name: "vitest", label: "vitest" };
     case "eslint":
       return { ecosystem: "node", name: "eslint", label: "eslint" };
+    case "jest":
+      return { ecosystem: "node", name: "jest", label: "Jest" };
     case "mutation":
       return python ? { ecosystem: "python", name: "mutmut", label: "mutmut" } : node ? { ecosystem: "node", name: "@stryker-mutator/core", label: "Stryker" } : null;
     case "build-check": {

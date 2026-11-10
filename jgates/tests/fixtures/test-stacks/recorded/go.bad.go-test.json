@@ -1,0 +1,19 @@
+{
+ "stack": "go",
+ "kind": "bad",
+ "tool": "go-test",
+ "adapter": "go-test",
+ "args": [
+  "test",
+  "-json",
+  "-count=1",
+  "-coverprofile={runDir}/outputs/go-test/go-test/cover.out",
+  "-covermode=set",
+  "./..."
+ ],
+ "exit": 1,
+ "stdout": "{\"Time\":\"2026-11-10T22:26:41.883429908Z\",\"Action\":\"start\",\"Package\":\"example.com/calc\"}\n{\"Time\":\"2026-11-10T22:26:41.988445586Z\",\"Action\":\"run\",\"Package\":\"example.com/calc\",\"Test\":\"TestAdd\"}\n{\"Time\":\"2026-11-10T22:26:41.988496351Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAdd\",\"Output\":\"=== RUN   TestAdd\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:26:41.990557835Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAdd\",\"Output\":\"    calc_test.go:7: Add(2, 2) = 4, want 5\\n\",\"OutputType\":\"error\"}\n{\"Time\":\"2026-11-10T22:26:41.990584387Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAdd\",\"Output\":\"--- FAIL: TestAdd (0.00s)\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:26:41.990587696Z\",\"Action\":\"fail\",\"Package\":\"example.com/calc\",\"Test\":\"TestAdd\",\"Elapsed\":0}\n{\"Time\":\"2026-11-10T22:26:41.990594056Z\",\"Action\":\"run\",\"Package\":\"example.com/calc\",\"Test\":\"TestAddZero\"}\n{\"Time\":\"2026-11-10T22:26:41.990595651Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAddZero\",\"Output\":\"=== RUN   TestAddZero\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:26:41.99060039Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAddZero\",\"Output\":\"--- PASS: TestAddZero (0.00s)\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:26:41.990601815Z\",\"Action\":\"pass\",\"Package\":\"example.com/calc\",\"Test\":\"TestAddZero\",\"Elapsed\":0}\n{\"Time\":\"2026-11-10T22:26:41.990603121Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Output\":\"FAIL\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:26:42.006105617Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Output\":\"coverage: 9.1% of statements\\n\"}\n{\"Time\":\"2026-11-10T22:26:42.012391646Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Output\":\"FAIL\\texample.com/calc\\t0.121s\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:26:42.012442973Z\",\"Action\":\"fail\",\"Package\":\"example.com/calc\",\"Elapsed\":0.129}\n",
+ "files": {
+  "outputs/go-test/go-test/cover.out": "mode: set\nexample.com/calc/calc.go:5.2,6.1 1 1\nexample.com/calc/calc.go:10.2,10.17 1 0\nexample.com/calc/calc.go:11.3,12.1 1 0\nexample.com/calc/calc.go:13.2,13.18 1 0\nexample.com/calc/calc.go:14.3,15.1 1 0\nexample.com/calc/calc.go:16.2,16.14 1 0\nexample.com/calc/calc.go:21.2,21.11 1 0\nexample.com/calc/calc.go:22.3,23.1 1 0\nexample.com/calc/calc.go:24.2,24.11 1 0\nexample.com/calc/calc.go:25.3,26.1 1 0\nexample.com/calc/calc.go:27.2,27.10 1 0\n"
+ }
+}

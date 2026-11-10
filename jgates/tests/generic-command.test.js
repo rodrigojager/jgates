@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 // Generic command: an explicit executable with args and declared effects, a contract that says what the
 // result proves, project templates, and the partial Go and Rust templates. Nothing here uses a real Go toolchain.
@@ -16,6 +16,7 @@ const VENV_BIN = path.join(repo, ".venv", process.platform === "win32" ? "Script
 const PYTHON = path.join(VENV_BIN, process.platform === "win32" ? "python.exe" : "python");
 
 const tmp = (prefix) => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+const { imageJsonWithout } = await import(pathToFileURL(path.join(here, "setup", "image-json.mjs")).href);
 
 /** A workspace with its own data folder; the PATH holds nothing, so no tool of the machine is found. */
 function project(files, { templates = [], profiles = "", extra = {} } = {}) {
@@ -216,18 +217,17 @@ test("a generic command without declared effects makes the plan not approvable",
 const GO_MOD = "module example.com/mini\n\ngo 1.22\n";
 const GO_MAIN = "package main\n\nfunc main() {}\n";
 
-test("the Go template enters the plan with partial support declared, and without go installed the step is blocked, never passed", () => {
-  const p = project({ "go.mod": GO_MOD, "main.go": GO_MAIN });
+test("the Go template runs go test through its own adapter, and without go in the tools image the step is blocked, never passed", () => {
+  const p = project({ "go.mod": GO_MOD, "main.go": GO_MAIN }, { extra: { JGATES_IMAGE_JSON: imageJsonWithout("go") } });
   try {
     fs.appendFileSync(path.join(p.dir, "jgates.yml"), "  - id: go\n    source: builtin:go\n    activation: detected\n    match:\n      languages: [go]\n");
     const planned = p.plan("--only", "tool:go-test");
     assert.equal(planned.code, 0, planned.out + planned.err);
     const item = p.item(planned, "go-test#unit");
     assert.ok(item, JSON.stringify(planned.doc.plan.groups.willRun.map((i) => i.id)));
-    assert.equal(item.adapter, "generic-command");
-    assert.equal(item.command.executable, "go");
-    assert.deepEqual(item.command.args, ["test", "./..."]);
-    assert.ok(item.limitations.some((l) => /Suporte parcial/.test(l)), JSON.stringify(item.limitations));
+    assert.equal(item.adapter, "go-test");
+    assert.deepEqual(item.command.args.slice(0, 3), ["test", "-json", "-count=1"]);
+    assert.equal(item.effects.executesProjectCode, true);
     assert.equal(item.availability.status, "unavailable");
     assert.match(item.availability.reason, /go/);
     // go test is a recognised test runner: it covers the tests category without being a security claim.
@@ -249,7 +249,7 @@ test("the Rust test template uses the cargo-test adapter (its target folder is i
     // jgates init already added rust-cargo-test for the Rust component.
     const planned = p.plan("--only", "tool:cargo-test");
     assert.equal(planned.code, 0, planned.out + planned.err);
-    const item = p.item(planned, "cargo-test#tests");
+    const item = p.item(planned, "cargo-test#unit");
     assert.ok(item);
     assert.equal(item.adapter, "cargo-test");
     assert.match(item.command.env.CARGO_TARGET_DIR, /^\{runDir\}\//);

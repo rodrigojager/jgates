@@ -75,18 +75,22 @@ test("when available without a candidate: not applicable here with a reason code
     "capability:mutation": { enabled: true, when: "available" },
     "capability:e2e": { enabled: true, when: "available" },
     "capability:properties": { enabled: true, when: "available" },
+    "capability:tests": { enabled: true, when: "available" },
   };
   withDir({ profiles: { p: { checks } }, tools: PII }, (dir) => {
     const p = plan(dir);
     const by = Object.fromEntries(notHere(p).map((n) => [n.selector, n]));
-    assert.deepEqual(Object.keys(by).sort(), ["capability:e2e", "capability:mutation", "capability:properties"]);
+    assert.deepEqual(Object.keys(by).sort(), ["capability:e2e", "capability:mutation", "capability:properties", "capability:tests"]);
     // JGates has no tool for end-to-end tests at all.
     assert.equal(by["capability:e2e"].reasonCode, "NO_TOOL");
     assert.equal(by["capability:e2e"].action.kind, "none");
-    // Property tests exist only for Rust: not for this Python project.
-    assert.equal(by["capability:properties"].reasonCode, "NO_TOOL_FOR_LANGUAGES");
-    assert.deepEqual(by["capability:properties"].languages, ["python"]);
-    assert.ok(by["capability:properties"].adapters.every((a) => !a.applicable));
+    // The whole-suite tests capability exists only for Rust (cargo-test): not for this Python project.
+    assert.equal(by["capability:tests"].reasonCode, "NO_TOOL_FOR_LANGUAGES");
+    assert.deepEqual(by["capability:tests"].languages, ["python"]);
+    assert.ok(by["capability:tests"].adapters.every((a) => !a.applicable));
+    // Property tests have an adapter for Python (pytest, Hypothesis), but no instance is declared: it needs setup.
+    assert.equal(by["capability:properties"].reasonCode, "SETUP_REQUIRED");
+    assert.ok(by["capability:properties"].adapters.some((a) => a.id === "pytest" && a.applicable));
     // Mutation has an adapter for Python, but no instance is declared: it needs setup.
     const mutation = by["capability:mutation"];
     assert.equal(mutation.reasonCode, "SETUP_REQUIRED");
@@ -98,7 +102,7 @@ test("when available without a candidate: not applicable here with a reason code
     assert.equal(p.groups.uncoveredRequirements.length, 0);
     assert.equal(uncoveredBlocker(p), undefined);
     assert.equal(p.selection.reduced, false);
-    assert.ok(!p.blockers.some((b) => (b.items ?? []).some((i) => /mutation|e2e|properties/.test(i))));
+    assert.ok(!p.blockers.some((b) => (b.items ?? []).some((i) => /mutation|e2e|properties|tests/.test(i))));
     assert.equal(p.approvable, true, JSON.stringify(p.blockers));
     assert.deepEqual(validatePlanDocument(p), []);
   });

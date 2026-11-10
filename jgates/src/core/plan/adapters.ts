@@ -36,6 +36,9 @@ import { dotnetAnalyzersAdapter } from "../../adapters/dotnet-analyzers/index.js
 import { shellcheckAdapter } from "../../adapters/shellcheck/index.js";
 import { hadolintAdapter } from "../../adapters/hadolint/index.js";
 import { fileSizeAdapter } from "../../adapters/file-size/index.js";
+import { goTestAdapter } from "../../adapters/go-test/index.js";
+import { dotnetTestAdapter } from "../../adapters/dotnet-test/index.js";
+import { jestAdapter } from "../../adapters/jest/index.js";
 
 export interface ExternalPlanInput {
   /** Workspace directory (absolute). */
@@ -126,6 +129,9 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [shellcheckAdapter.manifest.id, shellcheckAdapter],
   [hadolintAdapter.manifest.id, hadolintAdapter],
   [fileSizeAdapter.manifest.id, fileSizeAdapter],
+  [goTestAdapter.manifest.id, goTestAdapter],
+  [dotnetTestAdapter.manifest.id, dotnetTestAdapter],
+  [jestAdapter.manifest.id, jestAdapter],
 ]);
 
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {

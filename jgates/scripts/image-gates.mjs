@@ -41,6 +41,7 @@ export const NOT_IN_IMAGE = {
   "quality-gate": "the legacy bridge adapter, versioned with JGates itself",
   "quality-sidecar-pii": "the built-in PII scan, versioned with JGates itself",
   "jgates-supply-chain": "the built-in supply-chain check, versioned with JGates itself",
+  jest: "the project's own dev dependency, installed into the dependency volume by the deps phase (PLAN-completeness.md section 2)",
 };
 
 /** ARG names of the Dockerfile whose tool name differs from the lower-cased name without `_VERSION`. */

@@ -49,6 +49,7 @@ const TYPESCRIPT: TemplateEntry[] = [
   { id: "typescript-dependency-cruiser", source: "builtin:typescript-dependency-cruiser", evidence: true },
   { id: "typescript-eslint", source: "builtin:typescript-eslint", evidence: true },
   { id: "typescript-vitest", source: "builtin:typescript-vitest", evidence: true },
+  { id: "typescript-jest", source: "builtin:typescript-jest", evidence: true },
   { id: "typescript-tsc", source: "builtin:typescript-tsc", evidence: true },
   { id: "typescript-stryker", source: "builtin:typescript-stryker", evidence: true },
   { id: "typescript-prettier", source: "builtin:typescript-prettier", evidence: true },
@@ -59,6 +60,7 @@ const DOTNET: TemplateEntry[] = [
   { id: "dotnet-build", source: "builtin:dotnet-build", evidence: true },
   { id: "dotnet-format", source: "builtin:dotnet-format", evidence: true },
   { id: "dotnet-analyzers", source: "builtin:dotnet-analyzers", evidence: true },
+  { id: "dotnet-test", source: "builtin:dotnet-test", evidence: true },
   { id: "dotnet-codeql", source: "builtin:dotnet-codeql", evidence: true },
 ];
 /** Go and Rust have no stack template in init yet; the build check comes in by the language of the component. */
@@ -67,6 +69,7 @@ const GO: TemplateEntry[] = [
   { id: "go-govulncheck", source: "builtin:go-govulncheck", evidence: true },
   { id: "go-gofmt", source: "builtin:go-gofmt", evidence: true },
   { id: "go-golangci-lint", source: "builtin:go-golangci-lint", evidence: true },
+  { id: "go-test", source: "builtin:go-test", evidence: true },
   { id: "go-codeql", source: "builtin:go-codeql", evidence: true },
 ];
 const RUST: TemplateEntry[] = [

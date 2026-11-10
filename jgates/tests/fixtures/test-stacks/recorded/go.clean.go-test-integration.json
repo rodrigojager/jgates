@@ -1,0 +1,18 @@
+{
+ "stack": "go",
+ "kind": "clean",
+ "tool": "go-test-integration",
+ "adapter": "go-test",
+ "args": [
+  "test",
+  "-json",
+  "-count=1",
+  "-tags=integration",
+  "-run",
+  "^(?:TestStoreRoundTrip|TestSumOfMany)$",
+  "."
+ ],
+ "exit": 0,
+ "stdout": "{\"Time\":\"2026-11-10T22:27:09.505151876Z\",\"Action\":\"start\",\"Package\":\"example.com/calc\"}\n{\"Time\":\"2026-11-10T22:27:09.638332907Z\",\"Action\":\"run\",\"Package\":\"example.com/calc\",\"Test\":\"TestStoreRoundTrip\"}\n{\"Time\":\"2026-11-10T22:27:09.638370897Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestStoreRoundTrip\",\"Output\":\"=== RUN   TestStoreRoundTrip\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:09.640178532Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestStoreRoundTrip\",\"Output\":\"--- PASS: TestStoreRoundTrip (0.00s)\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:09.640225615Z\",\"Action\":\"pass\",\"Package\":\"example.com/calc\",\"Test\":\"TestStoreRoundTrip\",\"Elapsed\":0}\n{\"Time\":\"2026-11-10T22:27:09.640255417Z\",\"Action\":\"run\",\"Package\":\"example.com/calc\",\"Test\":\"TestSumOfMany\"}\n{\"Time\":\"2026-11-10T22:27:09.640264156Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestSumOfMany\",\"Output\":\"=== RUN   TestSumOfMany\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:09.640278471Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestSumOfMany\",\"Output\":\"--- PASS: TestSumOfMany (0.00s)\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:09.640280701Z\",\"Action\":\"pass\",\"Package\":\"example.com/calc\",\"Test\":\"TestSumOfMany\",\"Elapsed\":0}\n{\"Time\":\"2026-11-10T22:27:09.640283288Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Output\":\"PASS\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:09.641246407Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Output\":\"ok  \\texample.com/calc\\t0.136s\\n\"}\n{\"Time\":\"2026-11-10T22:27:09.641273708Z\",\"Action\":\"pass\",\"Package\":\"example.com/calc\",\"Elapsed\":0.136}\n",
+ "files": {}
+}

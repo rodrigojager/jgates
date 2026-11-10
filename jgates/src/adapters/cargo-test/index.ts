@@ -13,19 +13,47 @@ import { DEFAULT_ENV_ALLOWLIST, runSpec, substituteTokens } from "../../core/run
 import { createOutputPaths, redirectionEnv } from "../../core/run/redirection.js";
 import type { AdapterContext, AdapterOutput, ResultFinding, ResultStage } from "../../core/run/types.js";
 import { cargoTestManifest } from "./manifest.js";
-import { lastSegment, parseLibtestOutput, type LibtestFailure } from "./normalize.js";
+import { lastSegment, parseLibtestOutput, parseLlvmCovSummary, type LibtestFailure } from "./normalize.js";
+
+const readOrNull = (file: string): string | null => {
+  try {
+    return fs.readFileSync(file, "utf8");
+  } catch {
+    return null;
+  }
+};
 import { probeCargo } from "./probe.js";
 import { scanProperties } from "./properties.js";
+import { findOnPath } from "../../core/runner/path-lookup.js";
+import { inImageOverride, probeImageTool } from "../../core/tools-image/catalogue.js";
+import { ratioMetric } from "../../core/results/metrics.js";
+import { contentHash } from "../../core/ids/index.js";
+import { describeSelection, detectIntegration, resolveIntegrationSelection, rustTestTargets, rustUnitTargets } from "../../core/selection/tests.js";
+import { policyMinimum, runModeOf } from "../test-common/index.js";
 
 export { cargoTestManifest } from "./manifest.js";
-export { parseLibtestOutput } from "./normalize.js";
+export { parseLibtestOutput, parseLlvmCovSummary } from "./normalize.js";
 export { findCargo, probeCargo } from "./probe.js";
 export { propertyFunctions, scanProperties } from "./properties.js";
 
 const ADAPTER_ID = cargoTestManifest.id;
 const WORKSPACE = "{workspace}";
+const RUN_DIR = "{runDir}";
 const TESTS = "tests";
 const PROPERTIES = "properties";
+const COVERAGE = "coverage";
+
+/** Whether cargo-llvm-cov is there: image.json, or (inside the image, with JGATES_CARGO) beside that cargo. */
+export function probeLlvmCov(env: NodeJS.ProcessEnv): { available: boolean; detail: string } {
+  const named = inImageOverride(env, "JGATES_CARGO");
+  if (named !== null) {
+    // A Node stand-in for cargo answers every cargo subcommand; a real cargo needs the cargo-llvm-cov binary next to it.
+    if (/\.(?:mjs|cjs|js)$/i.test(named)) return { available: true, detail: "" };
+    return findOnPath("cargo-llvm-cov", env) ? { available: true, detail: "" } : { available: false, detail: `cargo-llvm-cov beside ${named}` };
+  }
+  const probe = probeImageTool("cargo-llvm-cov", env);
+  return probe.problem === null ? { available: true, detail: "" } : { available: false, detail: probe.detail };
+}
 /** Variables cargo needs beyond the runner's default allowlist (toolchain homes, proxies, program folders). */
 const TOOLCHAIN_ENV = ["ProgramFiles", "ProgramFiles(x86)", "ProgramW6432", "ProgramData", "ALLUSERSPROFILE", "HOMEDRIVE", "HOMEPATH", "WINDIR", "CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "SSL_CERT_FILE", "CARGO_HTTP_CAINFO"] as const;
 const ENV_ALLOWLIST: readonly string[] = [...DEFAULT_ENV_ALLOWLIST, ...TOOLCHAIN_ENV];
@@ -48,7 +76,32 @@ function planCargoTest(input: ExternalPlanInput): ExternalPlan {
   const root = input.componentRoot && input.componentRoot !== "." ? input.componentRoot : null;
   const scanDir = root ? path.join(input.dir, ...root.split("/")) : input.dir;
   const wanted = wantedCapabilities(input);
-  const args = ["test", "--no-fail-fast", "--offline", "--color", "never"];
+  const tt = translator("test-stacks");
+  const toolsMap = isRec(input.config?.tools) ? (input.config?.tools as Record<string, unknown>) : {};
+  const body = toolsMap[input.tool];
+  const component = isRec(body) && typeof body.component === "string" ? body.component : null;
+  const minimum = policyMinimum(input.config, component);
+  const { mode, integrationElsewhere } = runModeOf(wanted);
+  // The integration selection (the tests/ targets): the unit run leaves it out, an instance with only `integration` runs it alone.
+  const selection = resolveIntegrationSelection({ stack: "rust", config: input.config, tool: input.tool, adapter: ADAPTER_ID, scanDir });
+  const detection = detectIntegration(scanDir, selection);
+  const described = describeSelection(selection);
+  const testFlags = (names: string[]): string[] => names.flatMap((n) => ["--test", n]);
+  let targets: string[] = [];
+  if (mode === "integration") targets = testFlags(detection.names);
+  else if (mode === "unit" && detection.present) {
+    const own = rustUnitTargets(scanDir);
+    const others = rustTestTargets(scanDir).filter((n) => !detection.names.includes(n));
+    targets = [...(own.lib ? ["--lib"] : []), ...(own.bins ? ["--bins"] : []), ...testFlags(others)];
+  }
+  // Coverage: cargo-llvm-cov of the tools image runs the same tests instrumented and writes its JSON summary.
+  const coverageWanted = mode !== "integration" && wanted.has(COVERAGE);
+  const llvmCov = coverageWanted ? probeLlvmCov(input.env) : { available: false, detail: "" };
+  const report = `${RUN_DIR}/outputs/${ADAPTER_ID}/${input.tool}/llvm-cov.json`;
+  const args =
+    coverageWanted && llvmCov.available
+      ? ["llvm-cov", "--ignore-run-fail", "--offline", "--color", "never", ...targets, "--json", "--summary-only", "--output-path", report]
+      : ["test", "--no-fail-fast", "--offline", "--color", "never", ...targets];
   let availability: ExternalPlan["availability"];
   if (probe.problem === "not_found") availability = { status: "unavailable", reason: t("cargo-test_missing", { detail: probe.detail }) };
   else if (probe.problem === "no_answer") availability = { status: "unavailable", reason: t("cargo-test_probe_failed", { path: probe.detail }) };
@@ -56,13 +109,14 @@ function planCargoTest(input: ExternalPlanInput): ExternalPlan {
     availability = { status: "unavailable", reason: translator("prepare")("prepare_incompatible", { tool: cargoTestManifest.toolName, version: probe.version, range: cargoTestManifest.toolVersionRange, what: ADAPTER_ID }) };
   } else if (!fs.existsSync(path.join(scanDir, "Cargo.toml"))) availability = { status: "unavailable", reason: t("cargo-test_no_manifest") };
   else availability = { status: "available", reason: null };
+  const coverageProblem = coverageWanted && !llvmCov.available ? tt("test_missing", { tool: "cargo-llvm-cov", detail: llvmCov.detail }) : null;
 
   const toml = [".cargo/config.toml", ".cargo/config", "Cargo.toml"].map((f) => (root ? `${root}/${f}` : f)).filter((f) => fs.existsSync(path.join(input.dir, ...f.split("/"))));
   return {
     label: t("cargo-test_label"),
     command: {
       executable: probe.executable ?? cargoTestManifest.toolName,
-      args,
+      args: [...(probe.prefix ?? []), ...args],
       cwd: root ? `${WORKSPACE}/${root}` : WORKSPACE,
       env: {
         ...redirectionEnv(cargoTestManifest),
@@ -81,7 +135,13 @@ function planCargoTest(input: ExternalPlanInput): ExternalPlan {
     blocksPlan: false,
     network: false,
     limitations: [t("cargo-test_limitation_static"), t("cargo-test_limitation_offline")],
-    conditions: [t("cargo-test_condition_executes"), ...(wanted.has(PROPERTIES) ? [t("cargo-test_condition_properties")] : [])],
+    conditions: [
+      t("cargo-test_condition_executes"),
+      ...(wanted.has(PROPERTIES) ? [t("cargo-test_condition_properties")] : []),
+      ...(mode === "integration" ? [tt(detection.present ? "test_condition_integration" : "test_no_integration", { selection: described })] : mode === "unit" && detection.present ? [tt("test_condition_unit_excludes", { selection: described })] : []),
+      ...(coverageProblem ? [coverageProblem] : []),
+    ],
+    contract: { mode, selection: described, integrationElsewhere, nothingToRun: mode === "integration" && !detection.present, coverage: { requested: coverageWanted, collected: coverageWanted && llvmCov.available, problem: coverageProblem }, report: coverageWanted && llvmCov.available ? report : null, minimum: minimum.value, minimumSource: minimum.source, component },
     output: { format: "text", schema: null },
     // The tests, build scripts and procedural macros are the project's code: the cache never reuses this step.
     effects: { executesProjectCode: true },
@@ -115,7 +175,13 @@ async function runCargoTest(context: AdapterContext, plan: Plan, tool: string): 
   const stderrLog = path.join(context.logsDir, `${tool}.stderr.log`);
 
   const capOf = (i: PlanItem): string => i.capabilities[0] ?? "";
-  const testsItem = items.find((i) => capOf(i) === TESTS);
+  const contract = (invocation.contract ?? {}) as { nothingToRun?: boolean; mode?: string; selection?: string; coverage?: { collected?: boolean; problem?: string | null }; report?: string | null; minimum?: number | null; minimumSource?: string | null; component?: string | null };
+  const integrationRun = contract.mode === "integration";
+  // The tests stage: tests (the whole suite), unit, or integration for an instance that runs only the integration selection.
+  const testItems = items.filter((i) => (integrationRun ? capOf(i) === "integration" : capOf(i) === TESTS || capOf(i) === "unit"));
+  const testsItem = testItems[0];
+  const misplacedIntegration = integrationRun ? undefined : items.find((i) => capOf(i) === "integration");
+  const coverageItem = items.find((i) => capOf(i) === COVERAGE);
   const propertiesItem = items.find((i) => capOf(i) === PROPERTIES);
   const stageFor = (item: PlanItem, state: ResultStage["state"], reason?: string, extra: Partial<ResultStage> = {}): ResultStage => ({
     id: item.id,
@@ -136,6 +202,8 @@ async function runCargoTest(context: AdapterContext, plan: Plan, tool: string): 
 
   const unavailable = items.find((i) => i.availability.status !== "available");
   if (unavailable) return all("blocked", unavailable.availability.reason ?? t("cargo-test_blocked", { detail: command.executable }));
+  // No integration test in the component: the integration step does not apply and starts nothing.
+  if (contract.nothingToRun) return { ...base, stages: items.map((i) => stageFor(i, "not_applicable", translator("test-stacks")("test_no_integration", { selection: contract.selection ?? "-" }))), findings: [] };
 
   const result = await runSpec(
     { executable: command.executable, args, cwd, env, stdin: null, timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog },
@@ -180,7 +248,7 @@ async function runCargoTest(context: AdapterContext, plan: Plan, tool: string): 
   const stripInput = (m: string): string => m.replace(/;?\s*minimal failing input:.*$/, "").trim() || "-";
   for (const f of report.failures) {
     const property = isProperty(f.name);
-    const owner = (property ? propertiesItem : testsItem) ?? testsItem ?? propertiesItem ?? (items[0] as PlanItem);
+    const owner = (property ? propertiesItem : testsItem) ?? testsItem ?? propertiesItem ?? coverageItem ?? (items[0] as PlanItem);
     const location = locate(f, property);
     findings.push({
       ...baseFinding,
@@ -192,14 +260,15 @@ async function runCargoTest(context: AdapterContext, plan: Plan, tool: string): 
   }
 
   const counts = report.counts;
+  const prefix = integrationRun ? "tests.integration" : "tests";
   const metrics: NonNullable<AdapterOutput["metrics"]> = [
-    { id: "tests.executed", label: t("cargo-test_metric_executed"), unit: "count", value: counts.passed + counts.failed, scope: "workspace", origin: ADAPTER_ID },
-    { id: "tests.passed", label: t("cargo-test_metric_passed"), unit: "count", value: counts.passed, scope: "workspace", origin: ADAPTER_ID },
-    { id: "tests.failed", label: t("cargo-test_metric_failed"), unit: "count", value: counts.failed, scope: "workspace", origin: ADAPTER_ID },
-    { id: "tests.skipped", label: t("cargo-test_metric_skipped"), unit: "count", value: counts.ignored, scope: "workspace", origin: ADAPTER_ID },
+    { id: `${prefix}.executed`, label: t("cargo-test_metric_executed"), unit: "count", value: counts.passed + counts.failed, scope: "workspace", origin: ADAPTER_ID },
+    { id: `${prefix}.passed`, label: t("cargo-test_metric_passed"), unit: "count", value: counts.passed, scope: "workspace", origin: ADAPTER_ID },
+    { id: `${prefix}.failed`, label: t("cargo-test_metric_failed"), unit: "count", value: counts.failed, scope: "workspace", origin: ADAPTER_ID },
+    { id: `${prefix}.skipped`, label: t("cargo-test_metric_skipped"), unit: "count", value: counts.ignored, scope: "workspace", origin: ADAPTER_ID },
   ];
   // No property metric for a crate that does not use proptest; one that does gets it even at zero.
-  if (scan.usesProptest) {
+  if (scan.usesProptest && !integrationRun) {
     metrics.push(
       { id: "tests.property.total", label: t("cargo-test_metric_property_total"), unit: "count", value: propertyTests.length, scope: "workspace", origin: ADAPTER_ID },
       { id: "tests.property.failed", label: t("cargo-test_metric_property_failed"), unit: "count", value: propertyFailed.length, scope: "workspace", origin: ADAPTER_ID },
@@ -209,9 +278,45 @@ async function runCargoTest(context: AdapterContext, plan: Plan, tool: string): 
   const stages: ResultStage[] = [];
   const countFor = (item: PlanItem): number => findings.filter((f) => f.stageId === item.id).length;
   const native = `exit ${result.exitCode ?? "-"}`;
-  if (testsItem) {
-    const failed = countFor(testsItem);
-    stages.push(stageFor(testsItem, "completed", t("cargo-test_reason_tests", { version: version ?? "?", executed: counts.passed + counts.failed, failed: counts.failed, skipped: counts.ignored }), { blockingViolations: failed, findings: failed, nativeStatus: native }));
+  const tt = translator("test-stacks");
+  if (misplacedIntegration) stages.push(stageFor(misplacedIntegration, "blocked", tt("test_integration_own_instance", { tool })));
+  for (const item of testItems) {
+    const failed = countFor(item);
+    const reason = t("cargo-test_reason_tests", { version: version ?? "?", executed: counts.passed + counts.failed, failed: counts.failed, skipped: counts.ignored });
+    stages.push(stageFor(item, "completed", integrationRun ? `${reason} (${contract.selection ?? "-"})` : reason, { blockingViolations: failed, findings: failed, nativeStatus: native }));
+  }
+  if (coverageItem) {
+    const scope = contract.component ? "component" : "workspace";
+    const withComponent = contract.component ? { component: contract.component } : {};
+    const unmeasured = (state: ResultStage["state"], reason: string, extra: Partial<ResultStage> = {}): void => {
+      stages.push(stageFor(coverageItem, state, reason, extra));
+      metrics.push({ id: "coverage.lines", label: tt("test_metric_coverage"), unit: "percent", measured: false, reason, ...withComponent, scope, origin: ADAPTER_ID });
+    };
+    if (!contract.coverage?.collected || !contract.report) unmeasured("blocked", contract.coverage?.problem ?? tt("test_cov_not_collected", { tool: "cargo-llvm-cov" }));
+    else {
+      const reading = parseLlvmCovSummary(readOrNull(substituteTokens(contract.report, tokens)));
+      if (!reading.ok) unmeasured("completed", tt("test_cov_unreadable", { detail: reading.problem }), { interpreted: false, nativeStatus: native });
+      else if (reading.total === 0) unmeasured("completed", tt("test_cov_empty"), { interpreted: false, nativeStatus: native });
+      else {
+        const metric = ratioMetric({ id: "coverage.lines", label: tt("test_metric_coverage"), numerator: reading.covered, denominator: reading.total, ...withComponent, scope, origin: ADAPTER_ID, basis: "lines", format: "llvm-cov export (cargo-llvm-cov)" });
+        metrics.push(metric);
+        const percent = metric.value as number;
+        const minimum = typeof contract.minimum === "number" ? contract.minimum : null;
+        const below = minimum !== null && percent < minimum;
+        if (below) {
+          findings.push({
+            ...baseFinding,
+            stageId: coverageItem.id,
+            ruleId: "cargo-test.coverage-below-minimum",
+            category: "coverage",
+            message: tt("test_cov_below", { component: contract.component ?? ".", percent, covered: reading.covered, total: reading.total, minimum, source: contract.minimumSource ?? "-" }),
+            fingerprint: contentHash({ tool: ADAPTER_ID, rule: "coverage-below-minimum", component: contract.component ?? null, minimum }),
+          });
+        }
+        const reason = minimum !== null ? tt("test_cov_reason", { percent, covered: reading.covered, total: reading.total, minimum }) : tt("test_cov_reason_nomin", { percent, covered: reading.covered, total: reading.total });
+        stages.push(stageFor(coverageItem, "completed", reason, { blockingViolations: below ? 1 : 0, findings: below ? 1 : 0, nativeStatus: native }));
+      }
+    }
   }
   if (propertiesItem) {
     if (!scan.usesProptest) {

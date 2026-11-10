@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "dotnet",
   "label": ".NET",
-  "description": "Componentes .NET (csproj, fsproj, vbproj): encaixa a cadeia atual do flavor dotnetweb pela ponte, que vem do template base. Suporte parcial: o build entra pelo template dotnet-build; não há integração própria com testes, cobertura nem analisadores Roslyn.",
+  "description": "Componentes .NET (csproj, fsproj, vbproj): encaixa a cadeia atual do flavor dotnetweb pela ponte, que vem do template base. O build entra pelo template dotnet-build, os analisadores pelo dotnet-analyzers e os testes, a cobertura (coverlet) e as propriedades (FsCheck) pelo dotnet-test.",
   "extends": [
     "builtin:base"
   ],
@@ -16,9 +16,7 @@
   "support": {
     "level": "partial",
     "uncovered": [
-      "Testes do projeto (dotnet test)",
-      "Cobertura de testes",
-      "Analisadores Roslyn e regras do .editorconfig"
+      "Vulnerabilidades pelo dotnet list package --vulnerable (as do OSV e do Trivy vêm do template base)"
     ]
   },
   "config": {

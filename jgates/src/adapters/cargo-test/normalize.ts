@@ -94,3 +94,25 @@ export function parseLibtestOutput(stdout: string): LibtestReport {
 
 /** The last path segment of a test name (`tests::prop_x` -> `prop_x`). */
 export const lastSegment = (name: string): string => name.slice(name.lastIndexOf("::") + 2);
+
+/** Line coverage of the JSON summary cargo llvm-cov writes (`--json --summary-only`: data[].totals.lines). */
+export function parseLlvmCovSummary(text: string | null): { ok: true; covered: number; total: number } | { ok: false; problem: string } {
+  if (text === null) return { ok: false, problem: "the cargo llvm-cov report was not written" };
+  let doc: unknown;
+  try {
+    doc = JSON.parse(text);
+  } catch (error) {
+    return { ok: false, problem: `not JSON: ${(error as Error).message}` };
+  }
+  const data = typeof doc === "object" && doc !== null && Array.isArray((doc as { data?: unknown }).data) ? ((doc as { data: unknown[] }).data as Array<{ totals?: { lines?: { count?: unknown; covered?: unknown } } }>) : null;
+  if (!data || data.length === 0) return { ok: false, problem: "no data in the llvm-cov export" };
+  let covered = 0;
+  let total = 0;
+  for (const d of data) {
+    const lines = d.totals?.lines;
+    if (typeof lines?.count !== "number" || typeof lines.covered !== "number") return { ok: false, problem: "no totals.lines in the llvm-cov export" };
+    covered += lines.covered;
+    total += lines.count;
+  }
+  return { ok: true, covered, total };
+}

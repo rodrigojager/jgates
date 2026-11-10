@@ -183,6 +183,7 @@ the official Semgrep rules, vulnerability databases, MegaLinter, credentials.
 | --- | --- | --- |
 | `cargo` | MIT OR Apache-2.0 | <https://github.com/rust-lang/cargo> |
 | `cargo-audit` | Apache-2.0 OR MIT | <https://github.com/rustsec/rustsec> |
+| `cargo-llvm-cov` | Apache-2.0 OR MIT (with the rustup `llvm-tools` component: Apache-2.0 WITH LLVM-exception) | <https://github.com/taiki-e/cargo-llvm-cov> |
 | `checkov` | Apache-2.0 | <https://github.com/bridgecrewio/checkov> |
 | `clippy` | MIT OR Apache-2.0 | <https://github.com/rust-lang/rust-clippy> |
 | `corepack` | MIT | <https://github.com/nodejs/corepack> |

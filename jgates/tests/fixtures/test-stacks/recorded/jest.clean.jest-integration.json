@@ -1,0 +1,20 @@
+{
+ "stack": "jest",
+ "kind": "clean",
+ "tool": "jest-integration",
+ "adapter": "jest",
+ "args": [
+  "--ci",
+  "--json",
+  "--outputFile={runDir}/outputs/jest/jest-integration/jest.json",
+  "--testLocationInResults",
+  "--no-cache",
+  "--watchman=false",
+  "/[^/]*\\.integration\\.(?:test|spec)\\.(?:js|jsx|ts|tsx|mjs|cjs|mts|cts)$"
+ ],
+ "exit": 0,
+ "stdout": "",
+ "files": {
+  "outputs/jest/jest-integration/jest.json": "{\"numFailedTestSuites\":0,\"numFailedTests\":0,\"numPassedTestSuites\":1,\"numPassedTests\":2,\"numPendingTestSuites\":0,\"numPendingTests\":0,\"numRuntimeErrorTestSuites\":0,\"numTodoTests\":0,\"numTotalTestSuites\":1,\"numTotalTests\":2,\"openHandles\":[],\"snapshot\":{\"added\":0,\"didUpdate\":false,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0},\"startTime\":1794349731223,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[],\"duration\":2,\"failing\":false,\"failureDetails\":[],\"failureMessages\":[],\"fullName\":\"round trip through the store\",\"invocations\":1,\"location\":{\"column\":1,\"line\":3},\"numPassingAsserts\":1,\"retryMessages\":[],\"retryReasons\":[],\"status\":\"passed\",\"title\":\"round trip through the store\",\"startAt\":1794349731504},{\"ancestorTitles\":[],\"duration\":1,\"failing\":false,\"failureDetails\":[],\"failureMessages\":[],\"fullName\":\"sum of many values\",\"invocations\":1,\"location\":{\"column\":1,\"line\":8},\"numPassingAsserts\":1,\"retryMessages\":[],\"retryReasons\":[],\"status\":\"passed\",\"title\":\"sum of many values\",\"startAt\":1794349731507}],\"endTime\":1794349731509,\"message\":\"\",\"name\":\"/workspace/src/store.integration.test.js\",\"startTime\":1794349731329,\"status\":\"passed\",\"summary\":\"\"}],\"wasInterrupted\":false}\n"
+ }
+}

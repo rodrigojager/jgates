@@ -1,0 +1,19 @@
+{
+ "stack": "go",
+ "kind": "clean",
+ "tool": "go-test",
+ "adapter": "go-test",
+ "args": [
+  "test",
+  "-json",
+  "-count=1",
+  "-coverprofile={runDir}/outputs/go-test/go-test/cover.out",
+  "-covermode=set",
+  "./..."
+ ],
+ "exit": 0,
+ "stdout": "{\"Time\":\"2026-11-10T22:27:07.601469614Z\",\"Action\":\"start\",\"Package\":\"example.com/calc\"}\n{\"Time\":\"2026-11-10T22:27:07.743090798Z\",\"Action\":\"run\",\"Package\":\"example.com/calc\",\"Test\":\"TestAdd\"}\n{\"Time\":\"2026-11-10T22:27:07.743137014Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAdd\",\"Output\":\"=== RUN   TestAdd\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:07.74578396Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAdd\",\"Output\":\"--- PASS: TestAdd (0.00s)\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:07.745807525Z\",\"Action\":\"pass\",\"Package\":\"example.com/calc\",\"Test\":\"TestAdd\",\"Elapsed\":0}\n{\"Time\":\"2026-11-10T22:27:07.745815643Z\",\"Action\":\"run\",\"Package\":\"example.com/calc\",\"Test\":\"TestAbs\"}\n{\"Time\":\"2026-11-10T22:27:07.745816982Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAbs\",\"Output\":\"=== RUN   TestAbs\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:07.745822663Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAbs\",\"Output\":\"--- PASS: TestAbs (0.00s)\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:07.745824128Z\",\"Action\":\"pass\",\"Package\":\"example.com/calc\",\"Test\":\"TestAbs\",\"Elapsed\":0}\n{\"Time\":\"2026-11-10T22:27:07.745825847Z\",\"Action\":\"run\",\"Package\":\"example.com/calc\",\"Test\":\"TestAddIsCommutative\"}\n{\"Time\":\"2026-11-10T22:27:07.74582693Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAddIsCommutative\",\"Output\":\"=== RUN   TestAddIsCommutative\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:07.745957314Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAddIsCommutative\",\"Output\":\"    calc_test.go:22: [rapid] OK, passed 100 tests (91.225µs)\\n\"}\n{\"Time\":\"2026-11-10T22:27:07.745983188Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Test\":\"TestAddIsCommutative\",\"Output\":\"--- PASS: TestAddIsCommutative (0.00s)\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:07.745986042Z\",\"Action\":\"pass\",\"Package\":\"example.com/calc\",\"Test\":\"TestAddIsCommutative\",\"Elapsed\":0}\n{\"Time\":\"2026-11-10T22:27:07.745988387Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Output\":\"PASS\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-11-10T22:27:07.761219761Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Output\":\"coverage: 100.0% of statements\\n\"}\n{\"Time\":\"2026-11-10T22:27:07.76601712Z\",\"Action\":\"output\",\"Package\":\"example.com/calc\",\"Output\":\"ok  \\texample.com/calc\\t0.157s\\tcoverage: 100.0% of statements\\n\"}\n{\"Time\":\"2026-11-10T22:27:07.766049176Z\",\"Action\":\"pass\",\"Package\":\"example.com/calc\",\"Elapsed\":0.165}\n",
+ "files": {
+  "outputs/go-test/go-test/cover.out": "mode: set\nexample.com/calc/calc.go:5.2,6.1 1 1\nexample.com/calc/calc.go:10.2,10.11 1 1\nexample.com/calc/calc.go:11.3,12.1 1 1\nexample.com/calc/calc.go:13.2,13.10 1 1\n"
+ }
+}

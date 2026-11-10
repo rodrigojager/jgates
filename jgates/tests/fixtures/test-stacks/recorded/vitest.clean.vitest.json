@@ -1,0 +1,25 @@
+{
+ "stack": "vitest",
+ "kind": "clean",
+ "tool": "vitest",
+ "adapter": "vitest",
+ "args": [
+  "run",
+  "--reporter=json",
+  "--outputFile={runDir}/outputs/vitest/vitest/vitest.json",
+  "--no-cache",
+  "--no-fsModuleCache",
+  "--coverage.enabled",
+  "--coverage.provider=v8",
+  "--coverage.reporter=json-summary",
+  "--coverage.reportOnFailure",
+  "--coverage.reportsDirectory={runDir}/outputs/vitest/vitest/coverage",
+  "--exclude=**/*.integration.{test,spec}.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+ ],
+ "exit": 0,
+ "stdout": "JSON report written to /output/outputs/vitest/vitest/vitest.json\n",
+ "files": {
+  "outputs/vitest/vitest/coverage/coverage-summary.json": "{\"total\": {\"lines\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"statements\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"functions\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"branches\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"branchesTrue\":{\"total\":0,\"covered\":0,\"skipped\":0,\"pct\":\"Unknown\"}}\n,\"/workspace/src/calc.ts\": {\"lines\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"functions\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"statements\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100},\"branches\":{\"total\":2,\"covered\":2,\"skipped\":0,\"pct\":100}}\n}\n",
+  "outputs/vitest/vitest/vitest.json": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":1,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":3,\"numPassedTests\":3,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1794349760749,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[],\"fullName\":\"adds two numbers\",\"status\":\"passed\",\"title\":\"adds two numbers\",\"duration\":1.501774999999995,\"failureMessages\":[],\"meta\":{},\"tags\":[],\"benchmarks\":[]},{\"ancestorTitles\":[],\"fullName\":\"absolute value\",\"status\":\"passed\",\"title\":\"absolute value\",\"duration\":0.2744380000000035,\"failureMessages\":[],\"meta\":{},\"tags\":[],\"benchmarks\":[]},{\"ancestorTitles\":[],\"fullName\":\"addition is commutative\",\"status\":\"passed\",\"title\":\"addition is commutative\",\"duration\":2.8281750000000017,\"failureMessages\":[],\"meta\":{},\"tags\":[],\"benchmarks\":[]}],\"startTime\":1794349760880,\"endTime\":1794349760884.8281,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/src/calc.test.ts\"}],\"coverageMap\":{\"/workspace/src/calc.ts\":{\"path\":\"/workspace/src/calc.ts\",\"statementMap\":{\"0\":{\"start\":{\"line\":2,\"column\":2},\"end\":{\"line\":2,\"column\":null}},\"1\":{\"start\":{\"line\":6,\"column\":2},\"end\":{\"line\":6,\"column\":null}}},\"fnMap\":{\"0\":{\"name\":\"add\",\"decl\":{\"start\":{\"line\":1,\"column\":16},\"end\":{\"line\":1,\"column\":20}},\"loc\":{\"start\":{\"line\":1,\"column\":50},\"end\":{\"line\":3,\"column\":null}},\"line\":1},\"1\":{\"name\":\"absolute\",\"decl\":{\"start\":{\"line\":5,\"column\":16},\"end\":{\"line\":5,\"column\":25}},\"loc\":{\"start\":{\"line\":5,\"column\":44},\"end\":{\"line\":7,\"column\":null}},\"line\":5}},\"branchMap\":{\"0\":{\"loc\":{\"start\":{\"line\":6,\"column\":9},\"end\":{\"line\":6,\"column\":null}},\"type\":\"cond-expr\",\"locations\":[{\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":22}},{\"start\":{\"line\":6,\"column\":22},\"end\":{\"line\":6,\"column\":null}}],\"line\":6}},\"s\":{\"0\":201,\"1\":2},\"f\":{\"0\":201,\"1\":2},\"b\":{\"0\":[1,1]},\"meta\":{\"lastBranch\":1,\"lastFunction\":2,\"lastStatement\":2,\"seen\":{\"f:1:16:1:20\":0,\"s:2:2:2:Infinity\":0,\"f:5:16:5:25\":1,\"s:6:2:6:Infinity\":1,\"b:6:17:6:22:6:22:6:Infinity\":0},\"fnNames\":{}}}}}"
+ }
+}

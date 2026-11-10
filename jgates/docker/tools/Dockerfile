@@ -67,7 +67,7 @@ RUN set -eux; \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 HOME=/tmp/dotnet-home /usr/share/dotnet/dotnet --version; \
     rm -rf /tmp/dotnet-home
 
-# --- Rust stable (rustup, minimal profile) + rustfmt + clippy --------------------------------------------------------
+# --- Rust stable (rustup, minimal profile) + rustfmt + clippy + llvm-tools (cargo-llvm-cov) --------------------------
 FROM fetch AS rust
 ARG RUSTUP_VERSION=1.29.3
 ARG RUSTUP_INIT_SHA256_AMD64=b1c8cb14e30889e7e2999e6b69e62d9e9b9ffc0f4df8180564d306d9680e6c55
@@ -78,17 +78,19 @@ RUN set -eux; \
     fetch "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/x86_64-unknown-linux-gnu/rustup-init" "${RUSTUP_INIT_SHA256_AMD64}" /tmp/rustup-init; \
     chmod 0755 /tmp/rustup-init; \
     /tmp/rustup-init -y --no-modify-path --no-update-default-toolchain --profile minimal \
-      --default-toolchain "${RUST_VERSION}" --component rustfmt --component clippy; \
+      --default-toolchain "${RUST_VERSION}" --component rustfmt --component clippy --component llvm-tools-preview; \
     rm -f /tmp/rustup-init; \
     rm -rf "${CARGO_HOME}/registry" "${CARGO_HOME}/git" "${RUSTUP_HOME}/downloads" "${RUSTUP_HOME}/tmp"; \
     "${CARGO_HOME}/bin/rustc" --version
 
 FROM rust AS rust-tools
 ARG CARGO_AUDIT_VERSION=0.22.2
+ARG CARGO_LLVM_COV_VERSION=0.9.1
 RUN set -eux; \
     PATH="${CARGO_HOME}/bin:${PATH}" CARGO_BUILD_JOBS=4 cargo install --locked --root /out --version "${CARGO_AUDIT_VERSION}" cargo-audit; \
+    PATH="${CARGO_HOME}/bin:${PATH}" CARGO_BUILD_JOBS=4 cargo install --locked --root /out --version "${CARGO_LLVM_COV_VERSION}" cargo-llvm-cov; \
     rm -f /out/.crates.toml /out/.crates2.json; \
-    strip /out/bin/cargo-audit
+    strip /out/bin/cargo-audit /out/bin/cargo-llvm-cov
 
 # --- Go toolchain (default) and the Go tools -------------------------------------------------------------------------
 FROM fetch AS go
@@ -273,7 +275,7 @@ COPY --from=uv /out/uv /out/uvx /usr/local/bin/
 COPY --from=binaries /out/ /usr/local/bin/
 COPY --from=golangci-lint /out/golangci-lint /usr/local/bin/golangci-lint
 COPY --from=go-tools /out/govulncheck /out/gitleaks /usr/local/bin/
-COPY --from=rust-tools /out/bin/cargo-audit /usr/local/bin/cargo-audit
+COPY --from=rust-tools /out/bin/cargo-audit /out/bin/cargo-llvm-cov /usr/local/bin/
 COPY --from=python-tools /opt/tools /opt/tools
 COPY --from=node-tools /opt/tools/node /opt/tools/node
 
@@ -299,6 +301,10 @@ ENV PATH=/usr/local/cargo/bin:/usr/local/go/bin:/opt/node/bin:/usr/share/dotnet:
 # Commands on PATH, the non-root user of the steps (its home is under /tmp, a tmpfs in steps) and the mount points.
 RUN set -eux; \
     link() { ln -s "$1" "/usr/local/bin/$2"; }; \
+    # pytest and coverage come from the pytest environment (with pytest-cov and Hypothesis), never from another tool's
+    # environment that happens to carry its own pytest (mutmut, schemathesis).
+    link /opt/tools/python/pytest/bin/pytest pytest; \
+    link /opt/tools/python/pytest/bin/coverage coverage; \
     for tool in ruff mypy pytest coverage mutmut schemathesis st semgrep checkov zizmor; do \
       for env in /opt/tools/python/*/; do \
         if [ -e "${env}bin/${tool}" ] && [ ! -e "/usr/local/bin/${tool}" ]; then link "${env}bin/${tool}" "${tool}"; fi; \
@@ -352,6 +358,7 @@ ARG DOTNET_SDK_VERSION=10.0.403
 ARG RUSTUP_VERSION=1.29.3
 ARG RUST_VERSION=1.99.1
 ARG CARGO_AUDIT_VERSION=0.22.2
+ARG CARGO_LLVM_COV_VERSION=0.9.1
 ARG GO_VERSION=1.27.3
 ARG GOVULNCHECK_VERSION=1.9.0
 ARG GOLANGCI_LINT_VERSION=2.15.0

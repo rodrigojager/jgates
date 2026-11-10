@@ -1,0 +1,12 @@
+{
+  "name": "jest-stack-fixture-bad",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "jest": "30.5.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": ["src/**/*.js", "!src/**/*.test.js"]
+  }
+}

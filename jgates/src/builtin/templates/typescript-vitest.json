@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "typescript-vitest",
   "label": "TypeScript com Vitest",
-  "description": "Roda os testes e a cobertura com o Vitest nos componentes TypeScript e JavaScript. Entra por evidência: só quando há um vitest.config (ou um vite.config com o bloco test) na raiz de um componente ou do workspace; o Vitest não é imposto a todo repositório, e o JGates não instala nem migra o framework de testes.",
+  "description": "Roda os testes, a cobertura e os testes de propriedade (fast-check) com o Vitest nos componentes TypeScript e JavaScript; os testes de integração (projeto integration ou arquivos *.integration.test.*) rodam numa etapa própria. Entra por evidência: só quando há um vitest.config (ou um vite.config com o bloco test) na raiz de um componente ou do workspace; o Vitest não é imposto a todo repositório, e o JGates não instala nem migra o framework de testes.",
   "extends": [
     "builtin:base"
   ],
@@ -51,7 +51,15 @@
         "enabled": true,
         "capabilities": [
           "unit",
-          "coverage"
+          "coverage",
+          "properties"
+        ]
+      },
+      "vitest-integration": {
+        "adapter": "vitest",
+        "enabled": true,
+        "capabilities": [
+          "integration"
         ]
       }
     }

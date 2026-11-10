@@ -32,6 +32,9 @@ import { dotnetAnalyzersManifest } from "./dotnet-analyzers/manifest.js";
 import { shellcheckManifest } from "./shellcheck/manifest.js";
 import { hadolintManifest } from "./hadolint/manifest.js";
 import { fileSizeManifest } from "./file-size/manifest.js";
+import { goTestManifest } from "./go-test/manifest.js";
+import { dotnetTestManifest } from "./dotnet-test/manifest.js";
+import { jestManifest } from "./jest/manifest.js";
 
 /** Resources of the step container of an adapter (its manifest's `resources`); undefined: the defaults apply (4096 MB / 2 CPUs). */
 export function manifestResources(adapterId: string): AdapterManifest["resources"] {
@@ -45,5 +48,5 @@ export function manifestResources(adapterId: string): AdapterManifest["resources
  * binding) is unchanged.
  */
 export function builtinManifests(): AdapterManifest[] {
-  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest, supplyChainManifest, govulncheckManifest, cargoAuditManifest, cargoTestManifest, formatCheckManifest, golangciLintManifest, clippyManifest, dotnetAnalyzersManifest, shellcheckManifest, hadolintManifest, fileSizeManifest];
+  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest, supplyChainManifest, govulncheckManifest, cargoAuditManifest, cargoTestManifest, formatCheckManifest, golangciLintManifest, clippyManifest, dotnetAnalyzersManifest, shellcheckManifest, hadolintManifest, fileSizeManifest, goTestManifest, dotnetTestManifest, jestManifest];
 }

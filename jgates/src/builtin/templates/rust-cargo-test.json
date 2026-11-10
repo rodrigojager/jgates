@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "rust-cargo-test",
   "label": "Rust with cargo test",
-  "description": "Runs cargo test --offline in Rust components (Cargo.toml): failing tests are findings, and proptest property tests get their own rule and metrics. The Rust toolchain is supplied by you; the project's tests and build scripts execute.",
+  "description": "Runs cargo test --offline in Rust components (Cargo.toml): failing tests are findings, line coverage comes from cargo-llvm-cov, proptest property tests get their own rule and metrics, and the integration test targets of tests/ run in a step of their own. The project's tests and build scripts execute.",
   "extends": [
     "builtin:base"
   ],
@@ -17,8 +17,16 @@
         "adapter": "cargo-test",
         "enabled": true,
         "capabilities": [
-          "tests",
+          "unit",
+          "coverage",
           "properties"
+        ]
+      },
+      "cargo-test-integration": {
+        "adapter": "cargo-test",
+        "enabled": true,
+        "capabilities": [
+          "integration"
         ]
       }
     }

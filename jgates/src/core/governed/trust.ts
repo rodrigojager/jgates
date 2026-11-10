@@ -61,6 +61,21 @@ export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
     config: "cargo test compiles and runs the project's tests, build scripts and procedural macros, and reads Cargo.toml and .cargo/config.toml: the project decides the result",
     suppressions: "honored: #[ignore], #[should_panic], cfg(test) gates and the project's proptest configuration (failure persistence is disabled by the run)",
   },
+  "go-test": {
+    treatment: "self-reported",
+    config: "go test compiles and runs the project's tests and reads go.mod and the build tags of the test files: the project decides the result",
+    suppressions: "honored: t.Skip, build constraints and the project's test helpers",
+  },
+  "dotnet-test": {
+    treatment: "self-reported",
+    config: "dotnet test runs the project's MSBuild targets and tests and reads .runsettings and Directory.Build.props: the project decides the result",
+    suppressions: "honored: [Fact(Skip)], [Ignore], categories and the coverlet exclusions of the project",
+  },
+  jest: {
+    treatment: "self-reported",
+    config: "the project's own Jest loads its configuration, transforms and setup files: the project decides the result",
+    suppressions: "honored: .skip, .todo, coveragePathIgnorePatterns and /* istanbul ignore */ comments",
+  },
   "build-check": {
     treatment: "self-reported",
     config: "the project's own compiler or type checker configuration (tsconfig.json, mypy.ini, go.mod, Cargo.toml, the .NET project): the project decides the result",

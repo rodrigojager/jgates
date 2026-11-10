@@ -71,11 +71,20 @@
           },
           "persona": {
             "description": "zizmor: how strict the audit is (regular: few false positives; pedantic: code smells too; auditor: false positives accepted).",
-            "enum": ["regular", "pedantic", "auditor"]
+            "enum": [
+              "regular",
+              "pedantic",
+              "auditor"
+            ]
           },
           "minSeverity": {
             "description": "zizmor: the lowest severity that is reported.",
-            "enum": ["informational", "low", "medium", "high"]
+            "enum": [
+              "informational",
+              "low",
+              "medium",
+              "high"
+            ]
           },
           "offline": {
             "description": "zizmor: true (the default) never calls the GitHub API; false also runs the audits that need it (a GH_TOKEN is required).",
@@ -83,13 +92,19 @@
           },
           "engine": {
             "description": "mutation: the mutation engine (stryker for JavaScript/TypeScript, mutmut for Python). Without it the engine is detected from the component.",
-            "enum": ["stryker", "mutmut"]
+            "enum": [
+              "stryker",
+              "mutmut"
+            ]
           },
           "mutate": {
             "description": "mutation: the scope of the run. Stryker: relative globs of the files to mutate. mutmut: mutant-name patterns. Without it the engine's own configuration decides.",
             "type": "array",
             "minItems": 1,
-            "items": { "type": "string", "minLength": 1 }
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           "minimumScore": {
             "description": "mutation: the lowest mutation score (percent of detected mutants) that passes; below it the stage has a blocking finding. The policy rule mutation.minimum applies when this is not set.",
@@ -110,10 +125,19 @@
             "description": "schemathesis, zap: the authentication header sent to the target. The value is read at run time from the environment variable valueEnv; the secret itself is never written here.",
             "type": "object",
             "additionalProperties": false,
-            "required": ["header", "valueEnv"],
+            "required": [
+              "header",
+              "valueEnv"
+            ],
             "properties": {
-              "header": { "type": "string", "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]+$" },
-              "valueEnv": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" }
+              "header": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]+$"
+              },
+              "valueEnv": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+              }
             }
           },
           "seed": {
@@ -139,12 +163,29 @@
             "type": "array",
             "minItems": 1,
             "items": {
-              "enum": ["not_a_server_error", "status_code_conformance", "content_type_conformance", "response_schema_conformance", "response_headers_conformance", "negative_data_rejection", "positive_data_acceptance", "missing_required_header", "unsupported_method", "allow_header_conformance", "use_after_free", "ensure_resource_availability", "ignored_auth"]
+              "enum": [
+                "not_a_server_error",
+                "status_code_conformance",
+                "content_type_conformance",
+                "response_schema_conformance",
+                "response_headers_conformance",
+                "negative_data_rejection",
+                "positive_data_acceptance",
+                "missing_required_header",
+                "unsupported_method",
+                "allow_header_conformance",
+                "use_after_free",
+                "ensure_resource_availability",
+                "ignored_auth"
+              ]
             }
           },
           "mode": {
             "description": "zap: passive (default: baseline or API scan with passive rules only) or active (attack payloads; refused unless allowActive is true).",
-            "enum": ["passive", "active"]
+            "enum": [
+              "passive",
+              "active"
+            ]
           },
           "allowActive": {
             "description": "zap: the explicit permission for mode: active. The plan then lists the effects of the active scan on the target.",
@@ -157,7 +198,12 @@
           },
           "blockingRisk": {
             "description": "zap: the lowest alert risk that blocks (default medium).",
-            "enum": ["informational", "low", "medium", "high"]
+            "enum": [
+              "informational",
+              "low",
+              "medium",
+              "high"
+            ]
           },
           "spiderMinutes": {
             "description": "zap: how long the spider of the baseline or full scan may crawl (default 1 minute).",
@@ -176,11 +222,19 @@
           },
           "failOn": {
             "description": "oasdiff: the lowest level of change that blocks (ERR: breaking; WARN: also potentially breaking).",
-            "enum": ["ERR", "WARN"]
+            "enum": [
+              "ERR",
+              "WARN"
+            ]
           },
           "blockOn": {
             "description": "supply-chain: the lowest severity of a lockfile finding that blocks (default high; none: findings are reported and never block).",
-            "enum": ["none", "low", "medium", "high"]
+            "enum": [
+              "none",
+              "low",
+              "medium",
+              "high"
+            ]
           },
           "allowInstallScripts": {
             "description": "supply-chain: true (the default) reports install scripts without blocking; false makes them findings of high severity that follow blockOn.",
@@ -189,12 +243,17 @@
           "trustedHosts": {
             "description": "supply-chain: registry hosts accepted as public (default: registry.npmjs.org, registry.yarnpkg.com, pypi.org, files.pythonhosted.org).",
             "type": "array",
-            "items": { "type": "string", "minLength": 1 }
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           "lockfiles": {
             "description": "supply-chain: the lockfiles to read, relative to the workspace (default: the npm and Python lockfiles found in the workspace; list requirements.txt here to read it).",
             "type": "array",
-            "items": { "$ref": "#/$defs/pathText" }
+            "items": {
+              "$ref": "#/$defs/pathText"
+            }
           },
           "imageRef": {
             "description": "trivy: the reference of a final container image to scan (trivy image) instead of the filesystem. It must already be present in the local daemon or reachable by Trivy; JGates never builds or pulls it. Set only one of imageRef and imageTarball.",
@@ -207,11 +266,26 @@
           },
           "language": {
             "description": "codeql: the language of the database the instance creates (required; python, javascript-typescript, java-kotlin, go, csharp, ruby, swift, rust, c-cpp, actions).",
-            "enum": ["python", "javascript-typescript", "java-kotlin", "go", "csharp", "ruby", "swift", "rust", "c-cpp", "actions"]
+            "enum": [
+              "python",
+              "javascript-typescript",
+              "java-kotlin",
+              "go",
+              "csharp",
+              "ruby",
+              "swift",
+              "rust",
+              "c-cpp",
+              "actions"
+            ]
           },
           "suite": {
             "description": "codeql: the query suite to run (default: security-extended).",
-            "enum": ["code-scanning", "security-extended", "security-and-quality"]
+            "enum": [
+              "code-scanning",
+              "security-extended",
+              "security-and-quality"
+            ]
           },
           "buildCommand": {
             "description": "codeql: the command that builds the project for a compiled language (default: CodeQL's autobuild).",
@@ -220,11 +294,24 @@
           },
           "checker": {
             "description": "build-check: which compiler or type checker the instance runs (tsc, mypy, pyright, go, cargo, dotnet). It checks every unit of its stack that carries the project's configuration for it.",
-            "enum": ["tsc", "mypy", "pyright", "go", "cargo", "dotnet"]
+            "enum": [
+              "tsc",
+              "mypy",
+              "pyright",
+              "go",
+              "cargo",
+              "dotnet"
+            ]
           },
           "formatter": {
             "description": "format-check: which formatter the instance runs in check mode (ruff: ruff format --check; prettier: prettier --check; gofmt: gofmt -l; rustfmt: cargo fmt --check; dotnet: dotnet format whitespace --verify-no-changes). It checks the whole component with the project's own style configuration.",
-            "enum": ["ruff", "prettier", "gofmt", "rustfmt", "dotnet"]
+            "enum": [
+              "ruff",
+              "prettier",
+              "gofmt",
+              "rustfmt",
+              "dotnet"
+            ]
           },
           "maxLines": {
             "description": "file-size: the most lines a text file may have before it is a finding (default 5000).",
@@ -251,6 +338,56 @@
             },
             "additionalProperties": {
               "$ref": "#/$defs/fileRef"
+            }
+          },
+          "selection": {
+            "description": "Test runners (pytest, vitest, jest, go-test, cargo-test, dotnet-test): what counts as an integration test. An instance with only the integration capability runs this selection alone, and the unit run leaves it out, so no test counts twice; a unit instance without its own selection uses the one of the integration instance of the same adapter and component. Each stack reads its own keys; without them its default applies (pytest: tests/integration, else the integration marker; vitest/jest: a project named integration, else *.integration.test.* files; go: the integration build tag; cargo: the tests/ targets; .NET: Category=Integration).",
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "marker": {
+                "description": "pytest: the marker of the integration tests (-m).",
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              },
+              "paths": {
+                "description": "pytest: folders (or files) of the integration tests, relative to the component.",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/pathText"
+                }
+              },
+              "project": {
+                "description": "vitest/jest: the project (workspace entry) that holds the integration tests.",
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              },
+              "pattern": {
+                "description": "vitest/jest: a glob of the integration test files, relative to the component (**, *, ?, {a,b}).",
+                "type": "string",
+                "minLength": 1
+              },
+              "tag": {
+                "description": "go: the build tag of the integration test files.",
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              },
+              "targets": {
+                "description": "cargo: the integration test targets (names of tests/<name>.rs).",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_.-]+$"
+                }
+              },
+              "category": {
+                "description": ".NET: the value of the Category trait of the integration tests.",
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_.-]+$"
+              }
             }
           }
         }

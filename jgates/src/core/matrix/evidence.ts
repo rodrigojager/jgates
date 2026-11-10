@@ -69,6 +69,19 @@ const LINT_PARSERS = t(LINT_FILE, "lint parsers: each linter's output lists its 
 const LINT_MISSING = t(LINT_FILE, "lint adapters: a linter that is not in the image is a blocked stage with the cause, never a pass");
 
 /** One stack lint adapter: its lint capability proven on one stack, with the parser and the missing-tool tests. */
+const TS_FILE = "adapter-test-stacks.test.js";
+const TS_GO_BAD = t(TS_FILE, "go-test go: a failing test and a coverage below the minimum fail the run");
+const TS_GO_CLEAN = t(TS_FILE, "go-test go: the clean module passes; the tagged integration tests run apart");
+const TS_RUST_BAD = t(TS_FILE, "cargo-test rust: cargo llvm-cov reports the failing test");
+const TS_RUST_CLEAN = t(TS_FILE, "cargo-test rust: the clean crate passes; the tests/ targets run apart");
+const TS_CS_BAD = t(TS_FILE, "dotnet-test csharp: a failing test and a coverlet coverage below the minimum");
+const TS_CS_CLEAN = t(TS_FILE, "dotnet-test csharp: the clean project passes; Category=Integration runs apart");
+const TS_JEST_BAD = t(TS_FILE, "jest javascript: a failing test and a coverage below the minimum fail the run");
+const TS_JEST_CLEAN = t(TS_FILE, "jest javascript: the clean project passes; the integration files run apart");
+const TS_PYTEST = t(TS_FILE, "pytest python: tests/integration runs apart");
+const TS_VITEST = t(TS_FILE, "vitest typescript: the integration files run apart");
+const TS_OTHER = [t(TS_FILE, "test runners: the unit command leaves the integration selection out"), t(TS_FILE, "test runners: a runner the image lacks"), t(TS_FILE, "test runner parsers"), t(TS_FILE, "test selection: globs")];
+
 const lintEvidence = (stack: string, proof: TestRef, limitation: Bilingual, external: Bilingual): AdapterEvidence => ({
   capabilities: { lint: proven([stack], proof) },
   limitation,
@@ -134,6 +147,8 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     capabilities: {
       unit: proven(["typescript"], t("adapter-vitest.test.js", "a fixture with passing tests returns the tests executed")),
       coverage: proven(["typescript"], t("adapter-vitest.test.js", "a fixture with passing tests returns the tests executed")),
+      integration: proven(["typescript"], TS_VITEST),
+      properties: proven(["typescript"], TS_VITEST),
     },
     limitation: {
       en: "Only the v8 coverage provider, installed at Vitest's exact version; a run never installs it.",
@@ -164,6 +179,8 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     capabilities: {
       unit: proven(["python"], t("adapter-pytest.test.js", "a failing test fails the step with the test name")),
       coverage: proven(["python"], t("adapter-pytest.test.js", "on the broken fixture the API coverage comes")),
+      integration: proven(["python"], TS_PYTEST),
+      properties: proven(["python"], TS_PYTEST),
     },
     limitation: {
       en: "Without pytest-cov the coverage is not measured (incomplete, never 0%); the run executes project code.",
@@ -371,6 +388,9 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
   "cargo-test": {
     capabilities: {
       tests: proven(["rust"], t("adapter-cargo-test.test.js", "cargo-test: an ordinary failing #[test] is cargo-test.test-failed, not a property failure, and a crate without proptest has no property metrics [proves: cargo-test#tests, cargo-test#tests@rust]")),
+      unit: proven(["rust"], TS_RUST_BAD),
+      coverage: proven(["rust"], TS_RUST_BAD),
+      integration: proven(["rust"], TS_RUST_CLEAN),
       properties: proven(["rust"], t("adapter-cargo-test.test.js", "cargo-test: a failing proptest property is cargo-test.property-failed with the minimal failing input and the clean twin none [proves: cargo-test#properties, cargo-test#properties@rust]")),
     },
     otherTests: [t("adapter-cargo-test.test.js", "cargo-test: with cargo absent from the tools image the stage is blocked with the image's cause, never passed"), t("adapter-cargo-test.test.js", "cargo-test recorded libtest output")],
@@ -460,6 +480,48 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       ptBR: "Lê a configuração escolhida pelo usuário (binding ou .jscpd.json); uma configuração que não é JSON recusa o plano.",
     },
     external: { en: "jscpd 5.3.3 (JGates dependency)", ptBR: "jscpd 5.3.3 (dependência do JGates)" },
+  },
+  "go-test": {
+    capabilities: {
+      unit: proven(["go"], TS_GO_BAD),
+      coverage: proven(["go"], TS_GO_BAD),
+      integration: proven(["go"], TS_GO_CLEAN),
+      properties: proven(["go"], TS_GO_CLEAN),
+    },
+    otherTests: TS_OTHER,
+    limitation: {
+      en: "go test -json in the step container of the tools image with statement coverage from -coverprofile; the integration step runs the tests of the files with the integration build tag, the unit step builds without it; rapid and testing/quick properties are found statically. The tests execute and the modules must be in the dependency volume. Proven on a bad and a clean Go fixture with the real go 1.27.3 through the real engine.",
+      ptBR: "go test -json no contêiner de etapa da imagem de ferramentas com cobertura de instruções pelo -coverprofile; a etapa de integração roda os testes dos arquivos com a build tag integration e a unitária compila sem ela; as propriedades do rapid e do testing/quick são encontradas estaticamente. Os testes executam e os módulos precisam estar no volume de dependências. Provado em um fixture Go ruim e um limpo com o go 1.27.3 real pelo motor real.",
+    },
+    external: { en: "the Go toolchain of the JGates tools image; rapid, when used, in go.mod", ptBR: "o toolchain Go da imagem de ferramentas do JGates; o rapid, quando usado, no go.mod" },
+  },
+  "dotnet-test": {
+    capabilities: {
+      unit: proven(["csharp"], TS_CS_BAD),
+      coverage: proven(["csharp"], TS_CS_BAD),
+      integration: proven(["csharp"], TS_CS_CLEAN),
+      properties: proven(["csharp"], TS_CS_CLEAN),
+    },
+    otherTests: TS_OTHER,
+    limitation: {
+      en: "dotnet test of the one solution or project with the TRX logger and coverlet's XPlat Code Coverage (the test project must reference coverlet.collector); the integration step filters Category=Integration and the unit step leaves it out; FsCheck properties are found statically. Proven on a bad and a clean xUnit fixture with the real .NET SDK 10.0.403 through the real engine.",
+      ptBR: "dotnet test da única solução ou projeto com o logger TRX e o XPlat Code Coverage do coverlet (o projeto de testes precisa referenciar o coverlet.collector); a etapa de integração filtra Category=Integration e a unitária a deixa de fora; as propriedades do FsCheck são encontradas estaticamente. Provado em um fixture xUnit ruim e um limpo com o .NET SDK 10.0.403 real pelo motor real.",
+    },
+    external: { en: "the .NET SDK of the JGates tools image; coverlet.collector and FsCheck in the test project", ptBR: "o .NET SDK da imagem de ferramentas do JGates; coverlet.collector e FsCheck no projeto de testes" },
+  },
+  jest: {
+    capabilities: {
+      unit: proven(["javascript"], TS_JEST_BAD),
+      coverage: proven(["javascript"], TS_JEST_BAD),
+      integration: proven(["javascript"], TS_JEST_CLEAN),
+      properties: proven(["javascript"], TS_JEST_CLEAN),
+    },
+    otherTests: TS_OTHER,
+    limitation: {
+      en: "The project's own Jest (a dev dependency installed by the deps phase; Jest is not in the tools image) with the JSON results and the json-summary coverage; the integration step selects a project named integration or the *.integration.test.* files and the unit step leaves them out; fast-check properties are found statically. Proven on a bad and a clean JavaScript fixture with Jest 30 through the real engine.",
+      ptBR: "O Jest do próprio projeto (dependência de desenvolvimento instalada pela fase de dependências; o Jest não está na imagem de ferramentas) com os resultados JSON e a cobertura json-summary; a etapa de integração seleciona um projeto chamado integration ou os arquivos *.integration.test.* e a unitária os deixa de fora; as propriedades do fast-check são encontradas estaticamente. Provado em um fixture JavaScript ruim e um limpo com o Jest 30 pelo motor real.",
+    },
+    external: { en: "jest (and fast-check, when used) in the devDependencies of the project", ptBR: "jest (e fast-check, quando usado) nas devDependencies do projeto" },
   },
 };
 

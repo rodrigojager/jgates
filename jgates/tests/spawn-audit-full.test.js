@@ -129,8 +129,9 @@ test("a strict plan with every adapter that applies runs with the fake engine an
   const runs = dockerCalls.filter((c) => c[0] === "run");
   assert.ok(runs.length >= EXPECTED_ADAPTERS.length, `one container per step: ${runs.length} runs`);
   // Each step that started ran as one container named after it; only the lockfile analysis of supply-chain is in-process.
+  // A not-applicable stage starts nothing (an integration step without integration tests).
   const names = runs.map((c) => c[c.indexOf("--name") + 1]);
-  const started = [...new Set(doc.stages.filter((s) => !["blocked", "disabled", "skipped"].includes(s.state) && s.execution?.step && s.adapter !== "supply-chain").map((s) => s.execution.step))];
+  const started = [...new Set(doc.stages.filter((s) => !["blocked", "disabled", "skipped", "not_applicable"].includes(s.state) && s.execution?.step && s.adapter !== "supply-chain").map((s) => s.execution.step))];
   assert.ok(started.length >= 10, `steps that started: ${started.join(", ")}`);
   for (const step of started) assert.ok(names.some((n) => n.startsWith(`jgates-${doc.runId}-${step}`)), `step ${step} ran in a container (${names.join(", ")})`);
   assert.ok(started.includes("builtin-pii"), "the PII check is a container step too");

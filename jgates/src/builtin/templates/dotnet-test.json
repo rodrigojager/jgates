@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet-test",
+  "label": ".NET with dotnet test",
+  "description": "Runs dotnet test in .NET components with the TRX logger, line coverage from coverlet (the coverlet.collector package of the test project), the FsCheck property tests, and the integration tests (Category=Integration) in a step of their own. The project's tests and MSBuild targets execute; the NuGet packages come from the dependency volume.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "csharp",
+      "fsharp",
+      "visualbasic"
+    ]
+  },
+  "config": {
+    "tools": {
+      "dotnet-test": {
+        "adapter": "dotnet-test",
+        "enabled": true,
+        "capabilities": [
+          "unit",
+          "coverage",
+          "properties"
+        ]
+      },
+      "dotnet-test-integration": {
+        "adapter": "dotnet-test",
+        "enabled": true,
+        "capabilities": [
+          "integration"
+        ]
+      }
+    }
+  }
+}

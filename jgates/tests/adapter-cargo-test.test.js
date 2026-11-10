@@ -75,6 +75,9 @@ function setup(fixture, { env = {}, lock = true } = {}) {
   spawnSync("git", ["init", "-q"], { cwd: dir });
   const init = cli(["init", "--cwd", dir, "--profile", "standard", "--no-interactive", "--json"]);
   assert.equal(init.code, 0, init.out + init.err);
+  // These tests are about the whole suite (tests) and proptest: the instance asks for those two, without the coverage of
+  // the template (cargo llvm-cov, proven in adapter-test-stacks.test.js).
+  fs.writeFileSync(path.join(dir, ".jgates", "tools.yml"), "schemaVersion: 1\ntools:\n  cargo-test:\n    adapter: cargo-test\n    capabilities: [tests, properties]\n");
   return {
     dir,
     cli,
@@ -242,13 +245,13 @@ test("cargo-test static property detection: proptest! blocks and #[proptest] fun
   assert.equal(fns("fn main() {}").length, 0);
 });
 
-test("cargo-test: the manifest is customer-supplied with rows tests/properties on rust validated, and init adds rust-cargo-test", () => {
+test("cargo-test: the manifest is customer-supplied with rows tests/unit/coverage/integration/properties on rust validated, and init adds rust-cargo-test", () => {
   const manifest = manifests.builtinManifests().find((m) => m.id === "cargo-test");
   assert.ok(manifest);
   assert.equal(manifest.distribution.mode, "customer-supplied");
   assert.ok(manifest.distribution.acquisition.length > 0 && manifest.distribution.setup.length > 0);
-  assert.deepEqual(manifest.capabilities, ["tests", "properties"]);
-  assert.deepEqual(manifest.stackSupport.map((r) => `${r.capability}/${r.stack}/${r.state}`), ["tests/rust/validated", "properties/rust/validated"]);
+  assert.deepEqual(manifest.capabilities, ["tests", "unit", "coverage", "integration", "properties"]);
+  assert.deepEqual(manifest.stackSupport.map((r) => `${r.capability}/${r.stack}/${r.state}`), ["tests/rust/validated", "unit/rust/validated", "coverage/rust/validated", "integration/rust/validated", "properties/rust/validated"]);
   assert.deepEqual(matrix.verifyMatrix(matrix.buildMatrix()).filter((p) => /cargo-test/.test(p)), []);
 
   const cli = (args) => spawnSync(process.execPath, [MAIN, ...args], { encoding: "utf8", env: { ...process.env, JGATES_HOME: tmp("jgates-ct-home-") }, timeout: 120_000 });

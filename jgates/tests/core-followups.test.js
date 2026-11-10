@@ -250,12 +250,12 @@ test("pytest and Vitest enter the plan by the evidence of their configuration (a
 
     fs.appendFileSync(path.join(py, "pyproject.toml"), '\n[tool.pytest.ini_options]\ntestpaths = ["tests"]\n');
     const pyPlan = q.cli(["plan", "--cwd", py, "--json"]).doc.plan;
-    assert.deepEqual(toolItems(pyPlan, "pytest").map((i) => i.id).sort(), ["pytest#coverage", "pytest#unit"]);
+    assert.deepEqual(toolItems(pyPlan, "pytest").map((i) => i.id).sort(), ["pytest#coverage", "pytest#properties", "pytest#unit"]);
     assert.ok(pyPlan.templates.active.find((t) => t.id === "python-pytest").matched.includes("pyproject.toml"));
 
     write(ts, "vitest.config.ts", "export default {};\n");
     const tsPlan = q.cli(["plan", "--cwd", ts, "--json"]).doc.plan;
-    assert.deepEqual(toolItems(tsPlan, "vitest").map((i) => i.id).sort(), ["vitest#coverage", "vitest#unit"]);
+    assert.deepEqual(toolItems(tsPlan, "vitest").map((i) => i.id).sort(), ["vitest#coverage", "vitest#properties", "vitest#unit"]);
     assert.ok(tsPlan.templates.active.find((t) => t.id === "typescript-vitest").matched.includes("vitest.config.ts"));
   } finally {
     q.cleanup();

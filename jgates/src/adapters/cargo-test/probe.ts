@@ -4,11 +4,13 @@
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import { findOnPath } from "../../core/bridge/index.js";
-import { imageProbeUnlessOverridden, inImageOverride } from "../../core/tools-image/catalogue.js";
+import { imageProbeUnlessOverridden, inImageOverride, probeImageTool } from "../../core/tools-image/catalogue.js";
 import { probeEnv } from "../../core/runner/probe-env.js";
 
 export interface CargoProbe {
   executable: string | null;
+  /** Arguments before cargo's own: the script, when JGATES_CARGO names a Node script that stands for cargo. */
+  prefix?: string[];
   version: string | null;
   problem: "not_found" | "no_answer" | null;
   detail: string;
@@ -27,6 +29,8 @@ export function probeCargo(env: NodeJS.ProcessEnv): CargoProbe {
   if (image) return image;
   const { executable, tried } = findCargo(env);
   if (!executable) return { executable: null, version: null, problem: "not_found", detail: tried.join(", ") };
+  // A Node stand-in is asked nothing: the version is the image catalogue's.
+  if (/\.(?:mjs|cjs|js)$/i.test(executable)) return { executable: process.execPath, prefix: [executable], version: probeImageTool("cargo", env).version ?? "0.0.0", problem: null, detail: "" };
   let mtimeMs = 0;
   try {
     mtimeMs = fs.statSync(executable).mtimeMs;

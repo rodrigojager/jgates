@@ -1,0 +1,19 @@
+{
+ "stack": "python",
+ "kind": "clean",
+ "tool": "pytest-integration",
+ "adapter": "pytest",
+ "args": [
+  "-p",
+  "no:cacheprovider",
+  "-o",
+  "junit_family=xunit2",
+  "--junitxml={runDir}/outputs/pytest/pytest-integration/junit.xml",
+  "tests/integration"
+ ],
+ "exit": 0,
+ "stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.15.2, pytest-9.2.0, pluggy-1.7.0\nrootdir: /workspace\nconfigfile: pyproject.toml\nplugins: cov-7.1.0, hypothesis-6.170.15\ncollected 2 items\n\ntests/integration/test_store.py ..                                       [100%]\n\n--- generated xml file: /output/outputs/pytest/pytest-integration/junit.xml ----\n============================== 2 passed in 0.55s ===============================\n",
+ "files": {
+  "outputs/pytest/pytest-integration/junit.xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"2\" time=\"0.084\" timestamp=\"2026-11-10T22:29:09.589951+00:00\" hostname=\"0f650309e0b5\"><testcase classname=\"tests.integration.test_store\" name=\"test_round_trip\" time=\"0.000\" /><testcase classname=\"tests.integration.test_store\" name=\"test_sum_of_many\" time=\"0.000\" /></testsuite></testsuites>"
+ }
+}

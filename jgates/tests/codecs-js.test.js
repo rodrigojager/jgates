@@ -296,7 +296,7 @@ test("the ESLint and Vitest manifests are valid, editable-file level; ESLint ann
     assert.deepEqual(m.editing.implemented, ["text", "partial"]);
     assert.deepEqual(m.editing.tested, []);
     // Both run: Vitest tests and coverage, ESLint lint.
-    assert.deepEqual(m.capabilities, id === "vitest" ? ["unit", "coverage"] : ["lint"]);
+    assert.deepEqual(m.capabilities, id === "vitest" ? ["unit", "coverage", "integration", "properties"] : ["lint"]);
   }
 });
 
@@ -316,7 +316,7 @@ test("tools list shows ESLint and Vitest at the editable-file level and does not
     const adapters = Object.fromEntries(doc.adapters.map((a) => [a.id, a]));
     assert.ok(adapters.eslint && adapters.vitest);
     assert.deepEqual(adapters.eslint.capabilities, ["lint"]);
-    assert.deepEqual(adapters.vitest.capabilities, ["unit", "coverage"]);
+    assert.deepEqual(adapters.vitest.capabilities, ["unit", "coverage", "integration", "properties"]);
     const byId = Object.fromEntries(doc.instances.map((i) => [i.id, i]));
     assert.equal(byId["eslint-web"].supportLevel, "editable-file");
     assert.equal(byId["vitest-web"].supportLevel, "editable-file");

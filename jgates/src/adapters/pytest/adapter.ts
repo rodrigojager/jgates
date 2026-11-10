@@ -20,6 +20,8 @@ import { caseFile, parseJunit } from "./junit.js";
 import { pytestManifest } from "./manifest.js";
 import { baseTestName, scanProperties } from "./properties.js";
 import { probePytest } from "./probe.js";
+import { describeSelection, detectIntegration, resolveIntegrationSelection } from "../../core/selection/tests.js";
+import { runModeOf, wantedCapabilities, type RunMode } from "../test-common/index.js";
 
 const ADAPTER_ID = pytestManifest.id;
 const WORKSPACE = "{workspace}";
@@ -31,6 +33,13 @@ const isRec = (v: unknown): v is Rec => typeof v === "object" && v !== null && !
 
 /** What the plan records about an instance (the plan hash covers it) and the run reads back. */
 interface PytestContract {
+  /** unit: the suite without the integration selection; integration: only the selection. */
+  mode: RunMode;
+  selection: string;
+  /** The instance also asks for integration next to unit: that stage says it belongs to an instance of its own. */
+  integrationElsewhere: boolean;
+  /** No integration test in the component: the integration step does not apply and starts nothing. */
+  nothingToRun: boolean;
   component: string | null;
   root: string | null;
   /** The coverage capability is selected for this run. */
@@ -55,7 +64,7 @@ function sha256File(abs: string): string | null {
 
 /** The capabilities of the instance that are on in this run (all of them when the selection is not available). */
 function selectedCapabilities(input: ExternalPlanInput): Set<string> {
-  const all = new Set<string>(pytestManifest.capabilities);
+  const all = wantedCapabilities(input);
   const selection = (input as { selection?: { items?: Array<{ kind?: string; id?: string; capabilities?: Array<{ capability: string | null; enabled: boolean }> }> } }).selection;
   const item = selection?.items?.find((i) => i.kind === "tool" && i.id === input.tool);
   if (!item?.capabilities) return all;
@@ -77,6 +86,7 @@ function policyMinimum(config: Rec | undefined, component: string | null): { val
 
 function planPytest(input: ExternalPlanInput): ExternalPlan {
   const t = translator("pytest");
+  const tt = translator("test-stacks");
   const root = input.componentRoot && input.componentRoot !== "." ? input.componentRoot : null;
   const cwdAbs = root ? path.join(input.dir, root) : input.dir;
   const config = choosePytestConfig(input.dir, input.tool, input.componentRoot);
@@ -84,8 +94,23 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
   const body = tools[input.tool];
   const component = isRec(body) && typeof body.component === "string" ? body.component : null;
   const capabilities = selectedCapabilities(input);
-  const coverageSelected = capabilities.has("coverage");
+  const { mode, integrationElsewhere } = runModeOf(capabilities);
+  const coverageSelected = mode !== "integration" && capabilities.has("coverage");
   const probe = probePytest(input.env, cwdAbs);
+  // The integration selection: the unit run leaves it out, an instance with only `integration` runs it alone.
+  const selection = resolveIntegrationSelection({ stack: "python", config: input.config, tool: input.tool, adapter: ADAPTER_ID, scanDir: cwdAbs });
+  const detection = detectIntegration(cwdAbs, selection);
+  const described = describeSelection(selection);
+  // Nothing to leave out when the component has no integration test: the unit command stays the plain suite.
+  const selectionArgs = !detection.present
+    ? []
+    : selection.kind === "paths"
+      ? mode === "integration"
+        ? (selection.value as string[])
+        : (selection.value as string[]).filter((p) => fs.existsSync(path.join(cwdAbs, ...p.split("/")))).map((p) => `--ignore=${p}`)
+      : mode === "integration"
+        ? ["-m", selection.value as string]
+        : ["-m", `not ${selection.value as string}`];
   const coverageConfig = findCoverageConfig(input.dir, input.componentRoot);
   const hasSrc = fs.existsSync(path.join(cwdAbs, "src"));
   const coverageSource = coverageConfig.file !== null ? "config" : hasSrc ? "src" : ".";
@@ -98,6 +123,7 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
   const junit = `${out}/junit.xml`;
   const report = `${out}/coverage.json`;
   const args = [
+    ...(probe.prefix ?? []),
     ...(probe.command ? [] : ["-m", "pytest"]),
     // Nothing is cached in the workspace (.pytest_cache); the manifest declares the flag.
     "-p",
@@ -107,6 +133,7 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
     `--junitxml=${junit}`,
     ...(config.source === "binding" && config.file ? ["-c", `${WORKSPACE}/${config.file}`] : []),
     ...(coverageInCommand ? [coverageSource === "config" ? "--cov" : `--cov=${coverageSource}`, `--cov-report=json:${report}`] : []),
+    ...selectionArgs,
   ];
   const env: Record<string, string> = {
     PYTHONDONTWRITEBYTECODE: "1",
@@ -136,6 +163,10 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
   } else availability = { status: "available", reason: null };
 
   const contract: PytestContract = {
+    mode,
+    selection: described,
+    integrationElsewhere,
+    nothingToRun: mode === "integration" && !detection.present,
     component,
     root,
     coverageSelected,
@@ -148,7 +179,7 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
   };
   return {
     label: t("pytest_label"),
-    command: { executable: probe.command ? "pytest" : (probe.python ?? "python"), args, cwd: root ? `${WORKSPACE}/${root}` : WORKSPACE, env, stdin: null },
+    command: { executable: probe.executable ?? (probe.command ? "pytest" : (probe.python ?? "python")), args, cwd: root ? `${WORKSPACE}/${root}` : WORKSPACE, env, stdin: null },
     runtime: { name: "native", interpreter: probe.python, available: probe.python !== null && probe.version !== null },
     toolVersion: probe.version,
     configFiles: [...files].map(([file, sha256]) => ({ file, sha256 })),
@@ -158,6 +189,7 @@ function planPytest(input: ExternalPlanInput): ExternalPlan {
     limitations: [t("pytest_limitation_executes"), ...(coverageSelected && !probe.coverage && probe.version !== null ? [t("pytest_limitation_cov_missing")] : [])],
     conditions: [
       t("pytest_condition_runs"),
+      ...(mode === "integration" || detection.present ? [tt(mode === "integration" ? (detection.present ? "test_condition_integration" : "test_no_integration") : "test_condition_unit_excludes", { selection: described })] : []),
       ...(coverageInCommand ? [t("pytest_condition_coverage", { source: coverageSource === "config" ? (config.file ?? "config") : coverageSource })] : []),
       ...(hasSrc ? [t("pytest_condition_pythonpath", { dir: `${root ? `${root}/` : ""}src` })] : []),
     ],
@@ -172,6 +204,10 @@ const relToRun = (runDir: string, p: string): string => path.relative(runDir, p)
 function contractOf(invocation: Plan["invocations"][number]): PytestContract {
   const c = (invocation.contract ?? {}) as Partial<PytestContract>;
   return {
+    mode: c.mode === "integration" || c.mode === "tests" ? c.mode : "unit",
+    selection: typeof c.selection === "string" ? c.selection : "-",
+    integrationElsewhere: c.integrationElsewhere === true,
+    nothingToRun: c.nothingToRun === true,
     component: c.component ?? null,
     root: c.root ?? null,
     coverageSelected: c.coverageSelected === true,
@@ -207,8 +243,12 @@ async function runPytest(context: AdapterContext, plan: Plan, tool: string): Pro
   const stdoutLog = path.join(context.logsDir, `${tool}.stdout.log`);
   const stderrLog = path.join(context.logsDir, `${tool}.stderr.log`);
 
-  const unitItem = items.find((i) => i.capabilities.includes("unit"));
+  // The tests stage: unit, or integration for an instance that runs only the integration selection.
+  const testItem = items.find((i) => i.capabilities.includes(contract.mode === "integration" ? "integration" : "unit"));
+  const misplacedIntegration = contract.mode !== "integration" ? items.find((i) => i.capabilities.includes("integration")) : undefined;
+  const propertiesItem = items.find((i) => i.capabilities.includes("properties"));
   const coverageItem = items.find((i) => i.capabilities.includes("coverage"));
+  const tt = translator("test-stacks");
   const stageFor = (item: PlanItem, state: ResultStage["state"], reason?: string, extra: Partial<ResultStage> = {}): ResultStage => ({
     id: item.id,
     label: item.label,
@@ -247,6 +287,8 @@ async function runPytest(context: AdapterContext, plan: Plan, tool: string): Pro
 
   const unavailable = items.find((i) => i.availability.status !== "available");
   if (unavailable) return all("blocked", unavailable.availability.reason ?? t("pytest_blocked", { detail: command.executable }));
+  // No integration test in the component: the integration step does not apply and starts nothing.
+  if (contract.nothingToRun) return { ...base, stages: items.map((i) => stageFor(i, "not_applicable", translator("test-stacks")("test_no_integration", { selection: contract.selection }))), findings: [] };
 
   const result = await runSpec(
     { executable: command.executable, args, cwd, env, stdin: command.stdin === null ? null : JSON.stringify(command.stdin), timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog },
@@ -273,9 +315,14 @@ async function runPytest(context: AdapterContext, plan: Plan, tool: string): Pro
   const findings: ResultFinding[] = [];
   const metrics: ResultMetric[] = [];
 
-  if (unitItem) {
+  if (misplacedIntegration) stages.push(stageFor(misplacedIntegration, "blocked", tt("test_integration_own_instance", { tool })));
+  // The stage that owns the test findings: the tests stage, or the properties stage when only properties is selected.
+  const ownerItem = testItem ?? propertiesItem;
+  if (ownerItem) {
     const untrusted = (detail: string, native: string): void => {
-      stages.push(stageFor(unitItem, "completed", t("pytest_invalid_junit", { detail }), { interpreted: false, nativeStatus: native }));
+      for (const item of [testItem, propertiesItem].filter((i): i is PlanItem => i !== undefined)) {
+        stages.push(stageFor(item, "completed", t("pytest_invalid_junit", { detail }), { interpreted: false, nativeStatus: native }));
+      }
     };
     let xml: string | null = null;
     try {
@@ -289,7 +336,7 @@ async function runPytest(context: AdapterContext, plan: Plan, tool: string): Pro
       if (!junit.ok || junit.total === 0) {
         untrusted(junit.problem ?? "no test case", `exit ${result.exitCode}`);
       } else if (result.exitCode === 1 && bad === 0) {
-        stages.push(stageFor(unitItem, "completed", t("pytest_exit_mismatch"), { interpreted: false, nativeStatus: "exit 1" }));
+        for (const item of [testItem, propertiesItem].filter((i): i is PlanItem => i !== undefined)) stages.push(stageFor(item, "completed", t("pytest_exit_mismatch"), { interpreted: false, nativeStatus: "exit 1" }));
       } else {
         // Property tests (Hypothesis `@given`) are told apart by reading the test files that ran; JUnit does not say.
         const files = new Map(junit.cases.map((c) => [c, caseFile(c.classname, cwd, context.workspacePath)] as const));
@@ -313,7 +360,7 @@ async function runPytest(context: AdapterContext, plan: Plan, tool: string): Pro
           const test = `${c.classname}::${c.name}`;
           const file = files.get(c) ?? null;
           findings.push({
-            stageId: unitItem.id,
+            stageId: (property && propertiesItem ? propertiesItem : ownerItem).id,
             tool: ADAPTER_ID,
             ...(version ? { toolVersion: version } : {}),
             ruleId: property ? "property-test-failed" : c.outcome === "failed" ? "test-failed" : "test-error",
@@ -329,18 +376,25 @@ async function runPytest(context: AdapterContext, plan: Plan, tool: string): Pro
             waived: false,
           });
         }
-        stages.push(
-          stageFor(unitItem, "completed", t("pytest_reason_tests", { version: version ?? "?", total: junit.total, failed: junit.failed, errors: junit.errors, skipped: junit.skipped }), {
-            blockingViolations: bad,
-            findings: bad,
-            nativeStatus: `exit ${result.exitCode}`,
-          }),
-        );
+        const owned = (item: PlanItem): number => findings.filter((f) => f.stageId === item.id).length;
+        if (testItem) {
+          const n = owned(testItem);
+          const reason = t("pytest_reason_tests", { version: version ?? "?", total: junit.total, failed: junit.failed, errors: junit.errors, skipped: junit.skipped });
+          stages.push(stageFor(testItem, "completed", contract.mode === "integration" ? `${reason} (${contract.selection})` : reason, { blockingViolations: n, findings: n, nativeStatus: `exit ${result.exitCode}` }));
+        }
+        if (propertiesItem) {
+          if (propertyTotal === 0) stages.push(stageFor(propertiesItem, "not_applicable", tt("test_reason_no_properties", { framework: "Hypothesis" })));
+          else {
+            const n = owned(propertiesItem);
+            stages.push(stageFor(propertiesItem, "completed", tt("test_reason_properties", { framework: "Hypothesis", total: propertyTotal, failed: propertyFailed }), { blockingViolations: n, findings: n, nativeStatus: `exit ${result.exitCode}` }));
+          }
+        }
         const count = (id: string, key: string, value: number): ResultMetric => ({ id, label: t(key), unit: "count", value, ...withComponent, scope, origin: ADAPTER_ID });
-        metrics.push(count("tests.total", "pytest_metric_tests_total", junit.total), count("tests.failed", "pytest_metric_tests_failed", bad), count("tests.skipped", "pytest_metric_tests_skipped", junit.skipped));
+        const prefix = contract.mode === "integration" ? "tests.integration" : "tests";
+        metrics.push(count(`${prefix}.total`, "pytest_metric_tests_total", junit.total), count(`${prefix}.failed`, "pytest_metric_tests_failed", bad), count(`${prefix}.skipped`, "pytest_metric_tests_skipped", junit.skipped));
         // A project that does not use Hypothesis gets no property metric (nothing to count); one that does gets it
         // even at zero (the file imports hypothesis but no collected test is a property test).
-        if (scan.usesHypothesis || propertyTotal > 0) {
+        if (contract.mode !== "integration" && (scan.usesHypothesis || propertyTotal > 0)) {
           metrics.push(count("tests.property.total", "pytest_metric_property_total", propertyTotal), count("tests.property.failed", "pytest_metric_property_failed", propertyFailed));
         }
       }

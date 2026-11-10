@@ -1,0 +1,22 @@
+{
+ "stack": "python",
+ "kind": "clean",
+ "tool": "pytest",
+ "adapter": "pytest",
+ "args": [
+  "-p",
+  "no:cacheprovider",
+  "-o",
+  "junit_family=xunit2",
+  "--junitxml={runDir}/outputs/pytest/pytest/junit.xml",
+  "--cov=src",
+  "--cov-report=json:{runDir}/outputs/pytest/pytest/coverage.json",
+  "--ignore=tests/integration"
+ ],
+ "exit": 0,
+ "stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.15.2, pytest-9.2.0, pluggy-1.7.0\nrootdir: /workspace\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: cov-7.1.0, hypothesis-6.170.15\ncollected 3 items\n\ntests/test_calc.py ...                                                   [100%]\n\n--------- generated xml file: /output/outputs/pytest/pytest/junit.xml ----------\n================================ tests coverage ================================\n_______________ coverage: platform linux, python 3.15.2-final-0 ________________\n\nCoverage JSON written to file /output/outputs/pytest/pytest/coverage.json\n============================== 3 passed in 1.21s ===============================\n",
+ "files": {
+  "outputs/pytest/pytest/coverage.json": "{\"meta\": {\"format\": 3, \"version\": \"7.17.2\", \"timestamp\": \"2026-11-10T22:29:08.536712\", \"branch_coverage\": false, \"show_contexts\": false}, \"files\": {\"src/calc.py\": {\"executed_lines\": [1, 2, 5, 6, 7, 8], \"summary\": {\"covered_lines\": 6, \"num_statements\": 6, \"percent_covered\": 100.0, \"percent_covered_display\": \"100\", \"missing_lines\": 0, \"excluded_lines\": 0, \"percent_statements_covered\": 100.0, \"percent_statements_covered_display\": \"100\"}, \"missing_lines\": [], \"excluded_lines\": [], \"functions\": {\"add\": {\"executed_lines\": [2], \"summary\": {\"covered_lines\": 1, \"num_statements\": 1, \"percent_covered\": 100.0, \"percent_covered_display\": \"100\", \"missing_lines\": 0, \"excluded_lines\": 0, \"percent_statements_covered\": 100.0, \"percent_statements_covered_display\": \"100\"}, \"missing_lines\": [], \"excluded_lines\": [], \"start_line\": 1}, \"absolute\": {\"executed_lines\": [6, 7, 8], \"summary\": {\"covered_lines\": 3, \"num_statements\": 3, \"percent_covered\": 100.0, \"percent_covered_display\": \"100\", \"missing_lines\": 0, \"excluded_lines\": 0, \"percent_statements_covered\": 100.0, \"percent_statements_covered_display\": \"100\"}, \"missing_lines\": [], \"excluded_lines\": [], \"start_line\": 5}, \"\": {\"executed_lines\": [1, 5], \"summary\": {\"covered_lines\": 2, \"num_statements\": 2, \"percent_covered\": 100.0, \"percent_covered_display\": \"100\", \"missing_lines\": 0, \"excluded_lines\": 0, \"percent_statements_covered\": 100.0, \"percent_statements_covered_display\": \"100\"}, \"missing_lines\": [], \"excluded_lines\": [], \"start_line\": 1}}, \"classes\": {\"\": {\"executed_lines\": [1, 2, 5, 6, 7, 8], \"summary\": {\"covered_lines\": 6, \"num_statements\": 6, \"percent_covered\": 100.0, \"percent_covered_display\": \"100\", \"missing_lines\": 0, \"excluded_lines\": 0, \"percent_statements_covered\": 100.0, \"percent_statements_covered_display\": \"100\"}, \"missing_lines\": [], \"excluded_lines\": [], \"start_line\": 1}}}}, \"totals\": {\"covered_lines\": 6, \"num_statements\": 6, \"percent_covered\": 100.0, \"percent_covered_display\": \"100\", \"missing_lines\": 0, \"excluded_lines\": 0, \"percent_statements_covered\": 100.0, \"percent_statements_covered_display\": \"100\"}}",
+  "outputs/pytest/pytest/junit.xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"3\" time=\"1.224\" timestamp=\"2026-11-10T22:29:07.337024+00:00\" hostname=\"91f59312b5bb\"><properties><property name=\"hypothesis-statistics-tests/test_calc.py::test_add_is_commutative\" value=\"dGVzdHMvdGVzdF9jYWxjLnB5Ojp0ZXN0X2FkZF9pc19jb21tdXRhdGl2ZToKCiAgLSBkdXJpbmcgZ2VuZXJhdGUgcGhhc2UgKDAuMDUgc2Vjb25kcyk6CiAgICAtIFR5cGljYWwgcnVudGltZXM6IDwgMW1zLCBvZiB3aGljaCA8IDFtcyBpbiBkYXRhIGdlbmVyYXRpb24KICAgIC0gMTAwIHBhc3NpbmcsIDAgZmFpbGluZywgYW5kIDAgaW52YWxpZCB0ZXN0IGNhc2VzCgogIC0gU3RvcHBlZCBiZWNhdXNlIHNldHRpbmdzLm1heF9leGFtcGxlcz0xMDA=\" /></properties><testcase classname=\"tests.test_calc\" name=\"test_add\" time=\"0.001\" /><testcase classname=\"tests.test_calc\" name=\"test_absolute\" time=\"0.000\" /><testcase classname=\"tests.test_calc\" name=\"test_add_is_commutative\" time=\"0.073\" /></testsuite></testsuites>"
+ }
+}
