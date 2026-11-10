@@ -266,6 +266,11 @@ export interface StepLauncherInput {
   engine?: EngineContext;
   /** Image id or reference; resolved with the engine when absent. */
   image?: string;
+  /**
+   * What a step gets besides the source volume and the run folder: the dependency volumes of the units it needs, the
+   * package cache and their variables (core/deps). Asked when each process starts; null or absent: nothing more.
+   */
+  stepEnvironment?: (stepId: string) => { mounts: EngineMount[]; env: Record<string, string> } | null;
 }
 
 /** The user a step runs as: the host uid:gid on Linux, the image user on Windows and macOS. */
@@ -401,6 +406,13 @@ export function createStepLauncher(input: StepLauncherInput): StepLauncherHook |
       ];
       const env: Record<string, string> = {};
       for (const [k, v] of Object.entries(spec.env ?? {})) env[k] = mapHostPaths(v, pairs);
+      // The step's dependency volumes and package cache, with their variables (they win over the adapter's: the tool
+      // must find the project's environment inside the container, not a host value).
+      const extra = scope?.stepId ? input.stepEnvironment?.(scope.stepId) : null;
+      if (extra) {
+        mounts.push(...extra.mounts);
+        Object.assign(env, extra.env);
+      }
       const resources = scope?.launch?.resources;
       const command = [spec.executable, ...spec.args].map((a) => mapHostPaths(a, pairs));
       const stepContainer = containerStepName(input.runId, step, ordinal);

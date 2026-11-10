@@ -26,6 +26,8 @@
 //   independent tar reader; the modes it unpacked are kept in volumes/<name>.modes.json (a Windows file system has none)
 //   FAKE_DOCKER_WORKSPACE_WRITES  JSON list of relative paths a container that mounts a volume at /workspace writes there
 //   (plays a test step that writes files)
+//   FAKE_DOCKER_DEPS_EXIT  exit code of the dependency install containers (label org.jgates.kind=deps; default 0); on
+//   success they write {"key": $JGATES_DEPS_KEY} at $JGATES_DEPS_MARKER in the volume mounted there, like the real script
 // Objects: volumes, containers, networks and images live in FAKE_DOCKER_STATE/objects.json
 //   { containers: [{ id, name, state, labels }], volumes: [{ name, labels }], networks: [...], images: [...] };
 //   `volume create`, `volume rm`, `ps`/`container ls`, `volume ls`, `network ls`, `image ls`, `kill`, `rm`, `*  prune`
@@ -398,13 +400,36 @@ if (argv[0] === "run") {
       fs.writeFileSync(modesFile, JSON.stringify(modes));
       process.exit(0);
     }
-    if (workspaceMount && process.env.FAKE_DOCKER_WORKSPACE_WRITES) {
+    if (workspaceMount && process.env.FAKE_DOCKER_WORKSPACE_WRITES && runLabels["org.jgates.kind"] !== "deps") {
       // A step container whose tests write files: they land in the source volume, never anywhere else.
       for (const rel of JSON.parse(process.env.FAKE_DOCKER_WORKSPACE_WRITES)) {
         const target = path.join(hostOf(workspaceMount), rel);
         fs.mkdirSync(path.dirname(target), { recursive: true });
         fs.writeFileSync(target, "written by the step\n");
       }
+    }
+    if (runLabels["org.jgates.kind"] === "deps") {
+      // The deps container (jgates/src/core/deps): FAKE_DOCKER_DEPS_EXIT (default 0) is its exit code. On success it plays
+      // the last line of the install script: the key ($JGATES_DEPS_KEY) goes to the marker ($JGATES_DEPS_MARKER) inside the
+      // volume mounted there. What it read on stdin is recorded only as a sha256 in deps-stdin.jsonl (never the text).
+      const envOf = (name) => {
+        for (let i = 0; i < argv.length - 1; i++) if (argv[i] === "--env" && argv[i + 1].startsWith(`${name}=`)) return argv[i + 1].slice(name.length + 1);
+        return undefined;
+      };
+      if (argv.includes("--interactive")) {
+        const input = fs.readFileSync(0);
+        fs.appendFileSync(path.join(state, "deps-stdin.jsonl"), JSON.stringify({ sha256: crypto.createHash("sha256").update(input).digest("hex"), bytes: input.length }) + "\n");
+      }
+      const code = Number(env("FAKE_DOCKER_DEPS_EXIT", "0"));
+      const markerPath = envOf("JGATES_DEPS_MARKER");
+      const key = envOf("JGATES_DEPS_KEY");
+      if (code === 0 && markerPath && key) {
+        const mount = mounts.filter((m) => m.type === "volume" && markerPath.startsWith(m.target + "/")).sort((a, b) => b.target.length - a.target.length)[0];
+        if (mount) fs.writeFileSync(path.join(volumeDir(mount.source), markerPath.slice(mount.target.length + 1)), JSON.stringify({ key }) + "\n");
+      }
+      process.stdout.write(code === 0 ? "jgates-deps: installed\n" : "");
+      if (code !== 0) process.stderr.write("fake install: the package index refused the request\n");
+      process.exit(code);
     }
     // The disk probe of the engine module: `df -Pk /` in a helper container prints the free space of the storage.
     const commandAt = argv.findIndex((a, i) => a === "df" && argv[i - 1] !== "--name");

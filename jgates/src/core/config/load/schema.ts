@@ -18,6 +18,7 @@ const SCHEMA_FILES: Partial<Record<SchemaKind, string>> = {
   profiles: "profiles.schema.json",
   pii: "pii.schema.json",
   architecture: "architecture.schema.json",
+  dependencies: "dependencies.schema.json",
   template: "template.schema.json",
 };
 

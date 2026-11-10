@@ -134,6 +134,12 @@ export interface PlanItem {
   networkKind?: "none" | "bridge";
   /** Why: the declaration that grants network, or that none was declared. */
   networkReason?: string;
+  /**
+   * Container-first only, for checks whose tool a project can supply (pytest, vitest, eslint, tsc, mypy, pyright,
+   * mutmut, Stryker): `project` when the component declares it (the step runs that copy from the dependency volume),
+   * `image` when it does not (JGates's copy runs), with the sentence the review shows.
+   */
+  toolSource?: PlanToolSource;
   effects: { readsCode: boolean; writesOutputs: boolean; mayChangeCode: boolean; executesProjectCode: boolean; workspaceWrites: string[] };
   limits: { timeoutSeconds: number };
   output: { format: string; schema: string | null };
@@ -150,6 +156,20 @@ export interface PlanItem {
     invoked: boolean;
     effectiveCommand?: { executable: string; args: string[]; cwd: string; config: { source: "project" | "package"; file: string } };
   } | null;
+}
+
+/** Where the tool of a check comes from (see PlanItem.toolSource). */
+export interface PlanToolSource {
+  origin: "project" | "image";
+  /** How the tool is called ("mypy", "tsc (typescript)"). */
+  tool: string;
+  /** Package name in the ecosystem's registry. */
+  package: string;
+  component: string;
+  /** Project-relative file that declares it (origin project), otherwise null. */
+  declaredIn: string | null;
+  /** "usa o mypy do JGates (o projeto não declara mypy)". */
+  message: string;
 }
 
 export type UncoveredReason = "DISABLED_FOR_RUN" | "NO_EXECUTABLE_CHECK" | "CHECKS_DISABLED" | "EVIDENCE_MISSING";

@@ -497,6 +497,19 @@
         "network": { "type": "boolean" },
         "networkKind": { "enum": ["none", "bridge"] },
         "networkReason": { "type": "string" },
+        "toolSource": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["origin", "tool", "package", "component", "declaredIn", "message"],
+          "properties": {
+            "origin": { "enum": ["project", "image"] },
+            "tool": { "type": "string" },
+            "package": { "type": "string" },
+            "component": { "type": "string" },
+            "declaredIn": { "type": ["string", "null"] },
+            "message": { "type": "string" }
+          }
+        },
         "effects": {
           "type": "object",
           "additionalProperties": false,

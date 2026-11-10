@@ -38,6 +38,7 @@ import { invalidToolConfigs } from "./config-validity.js";
 import { governExternalPlan } from "../governed/plan.js";
 import { diffPlans } from "./diff.js";
 import { readLastPlan } from "./store.js";
+import { planDependencies } from "../deps/plan.js";
 import {
   PLAN_KIND,
   PLAN_SCOPES,
@@ -931,6 +932,28 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   if (networkPolicy === "deny" && networkItems.length > 0) blockers.push({ code: "NETWORK_DENIED", message: t("plan_network_denied", { items: networkItems.join(", ") }), items: networkItems });
   // The engine and the tools image (container-first): one blocker per problem with its reason and action, never one per item.
   if (willRun.length > 0 && toolsImageGateEnabled(env)) blockers.push(...toolsImagePreflight({ env, version: options.version ?? readVersion() }));
+  // The project's dependencies (container-first): the key of every install unit a planned check needs, where each
+  // check's tool comes from (the project's copy or JGates's), and the blockers of a governed plan (no lockfile).
+  const container = toolsImageGateEnabled(env) ? containerInputs(env, options.container) : null;
+  if (container) {
+    const deps = planDependencies({
+      dir,
+      configDir,
+      workspace: fs.existsSync(workspaceDir) ? workspaceId(workspaceDir) : "ws_unknown",
+      classifications: inventory.classifications,
+      items: unique,
+      contractOf: (tool) => externals.get(tool)?.plan.contract,
+      imageId: container.toolsImage,
+      governed: options.bridgePolicy !== undefined,
+      env,
+    });
+    for (const item of unique) {
+      const source = deps.toolSources.get(item.id);
+      if (source) item.toolSource = source;
+    }
+    if (options.container?.dependencyKeys === undefined) container.dependencyKeys = sortedRecord(deps.keys);
+    blockers.push(...deps.blockers);
+  }
   const blocked: PlanBlocker | null =
     willRun.length === 0
       ? requirements.length > 0
@@ -981,7 +1004,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
         inconsistencies: inventory.inconsistencies,
       }),
       configHash: contentHash(effective.config),
-      ...(toolsImageGateEnabled(env) ? { container: containerInputs(env, options.container) } : {}),
+      ...(container ? { container } : {}),
     },
     approvable: blocked === null && blockers.length === 0,
     blocked,

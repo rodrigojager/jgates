@@ -17,6 +17,7 @@ import { engineRuntime } from "../engine/index.js";
 import { cancelRunInEngine, createStepLauncher, executeSteps, mergeOutputs, type EngineCancelResult, type RunPhase, type RunStep } from "../runner/index.js";
 import { toolsImageGateEnabled } from "../tools-image/index.js";
 import { createSyncPhase } from "../sync/phase.js";
+import { createDepsRun, type DepsRun } from "../deps/run.js";
 import type { Plan } from "../plan/types.js";
 import { describeAnalysis, planOutputs, prepareAnalysis, verifyInputs, type PreparedAnalysis } from "./analysis.js";
 import type { AdapterContext, AdapterOutput, CacheableStep, ResultDisabled, ResultPolicy, RunResult, SemanticHook } from "./types.js";
@@ -334,7 +335,7 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
         },
       ];
   // A step that says what its result depends on goes through the cache of results (src/core/cache).
-  const steps: RunStep[] = rawSteps.map((step) => {
+  const cachedSteps: RunStep[] = rawSteps.map((step) => {
     const subject = (step as CacheableStep).cacheSubject;
     return subject ? { ...step, run: () => cache.wrap(step.id, subject, step.run) } : step;
   });
@@ -343,13 +344,35 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
   const killGraceMs = positiveInt(env.JGATES_KILL_GRACE_MS);
   let executed;
   let verified: ReturnType<typeof verifyInputs> | null = null;
+  // Container-first (same gate as the sync phase): every process of every step is launched in a step container, with
+  // the dependency volumes the deps phase prepared for the checks that need them.
+  let deps: DepsRun | null = null;
+  const launcher =
+    opts.plan && toolsImageGateEnabled(env)
+      ? createStepLauncher({ env, workspaceId: workspace.id, runId, runDir, projectDir: prep.path, version: opts.version, stepEnvironment: (stepId) => deps?.stepEnvironment(stepId) ?? null })
+      : null;
+  // The project's dependencies (after the sync): only when a planned check needs them and the steps run in containers.
+  deps =
+    !opts.phases && opts.plan && launcher
+      ? createDepsRun({
+          plan: opts.plan,
+          projectDir: prep.path,
+          configDir: opts.policy?.source.dir ?? prep.path,
+          workspace: workspace.id,
+          runId,
+          runDir,
+          version: opts.version,
+          home,
+          env,
+          governed: opts.policy !== undefined,
+          ...(signal ? { signal } : {}),
+        })
+      : null;
   const phases = opts.phases
     ? opts.phases(context)
     : opts.plan && toolsImageGateEnabled(env)
-      ? [createSyncPhase({ projectDir: prep.path, workspace: workspace.id, runId, runDir, version: opts.version, home, env })]
+      ? [createSyncPhase({ projectDir: prep.path, workspace: workspace.id, runId, runDir, version: opts.version, home, env }), ...(deps ? [deps.phase] : [])]
       : [];
-  // Container-first (same gate as the sync phase): every process of every step is launched in a step container.
-  const launcher = opts.plan && toolsImageGateEnabled(env) ? createStepLauncher({ env, workspaceId: workspace.id, runId, runDir, projectDir: prep.path, version: opts.version }) : null;
   // A cancellation also reaches the engine: the containers carrying this run's label are killed and the run's services
   // taken down (nothing else is touched). Whatever the steps finished before stays in the partial result.
   const engineContext = { runtime: engineRuntime(env), runnerOptions: { parentEnv: env } };
@@ -377,6 +400,8 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     else signal?.addEventListener("abort", onEngineAbort, { once: true });
   }
   try {
+    // A check that needs dependencies does not start without them (DEPENDENCIES_FAILED / DEPENDENCIES_NOT_READY).
+    const steps = deps ? deps.gate(cachedSteps) : cachedSteps;
     executed = await executeSteps(steps, {
       phases,
       ...(launcher ? { launcher } : {}),

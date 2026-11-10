@@ -18,5 +18,9 @@
   "reason_ENGINE_LOST": "Docker stopped during the run; this check is incomplete.",
   "reason_ENGINE_LOST_action": "Open Docker Desktop and run again",
   "reason_UNSUPPORTED_PLATFORM": "This Docker runs {platform}; JGates needs Linux amd64.",
-  "reason_UNSUPPORTED_PLATFORM_action": "How to set up Docker"
+  "reason_UNSUPPORTED_PLATFORM_action": "How to set up Docker",
+  "reason_DEPENDENCIES_NOT_READY": "The dependencies of component {component} are not ready; this check is incomplete.",
+  "reason_DEPENDENCIES_NOT_READY_action": "See the state of the dependencies",
+  "reason_DEPENDENCIES_FAILED": "Installing the dependencies of component {component} failed; this check is incomplete.",
+  "reason_DEPENDENCIES_FAILED_action": "Prepare the dependencies again"
 }

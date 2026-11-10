@@ -20,7 +20,7 @@ export interface ConfigDiagnostic {
 }
 
 /** Documents of the configuration. */
-export type DocumentKind = "root" | "workspace" | "tools" | "policy" | "profiles" | "architecture" | "pii";
+export type DocumentKind = "root" | "workspace" | "tools" | "policy" | "profiles" | "architecture" | "pii" | "dependencies";
 
 export const SCHEMA_KINDS: readonly DocumentKind[] = ["root", "workspace", "tools", "policy", "profiles"];
 
@@ -32,6 +32,8 @@ export const FRAGMENT_FILES: Readonly<Record<Exclude<DocumentKind, "root">, stri
   profiles: "profiles.yml",
   architecture: "architecture.yml",
   pii: "pii.yml",
+  /** Private registries and install overrides of the dependency installs (read by core/deps). */
+  dependencies: "dependencies.yml",
 };
 
 export interface LoadedDocument {
