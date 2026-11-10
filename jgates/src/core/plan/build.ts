@@ -661,6 +661,8 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       // run checks them where they are (the policy), never in the snapshot of the commit.
       configFiles: [...files].sort().map(fileRef).map((f) => (configDir !== dir && fromConfig.has(f.file) && !isBuiltinRef(f.file) && !path.isAbsolute(f.file) ? { ...f, file: path.join(configDir, ...f.file.split("/")) } : f)),
       network,
+      networkKind: network ? "bridge" : "none",
+      networkReason: t(network ? (ext ? "plan_network_reason_declared" : "plan_network_reason_subcheck") : "plan_network_reason_none"),
       effects: {
         readsCode: true,
         writesOutputs: bridge || ext !== undefined,

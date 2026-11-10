@@ -91,6 +91,16 @@
         "needsLicense": { "type": "boolean" }
       }
     },
+    "resources": {
+      "description": "Resources of the step container this adapter runs in; absent: 4096 MB of memory and 2 CPUs.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "memoryMb": { "type": "integer", "minimum": 64 },
+        "cpus": { "type": "number", "exclusiveMinimum": 0 },
+        "tmpfsMb": { "type": "integer", "minimum": 16 }
+      }
+    },
     "redirection": {
       "type": "object",
       "additionalProperties": false,

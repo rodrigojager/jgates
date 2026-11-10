@@ -71,6 +71,30 @@ test("V2-36: the project folder is identical before and after a full run whose t
   const cli = (args) => spawnSync(process.execPath, [MAIN, ...args], { cwd: project, encoding: "utf8", env, input: "", timeout: 240_000 });
   assert.equal(cli(["init", "--cwd", project, "--profile", "minimal", "--no-interactive", "--json"]).status, 0);
   assert.equal(spawnSync("git", ["init", "-q"], { cwd: project }).status, 0);
+  // The test step of the plan: a launched step container (the fake engine plays the test: it writes the files above in
+  // the source volume mounted at /workspace).
+  fs.mkdirSync(path.join(project, ".jgates", "templates"), { recursive: true });
+  fs.writeFileSync(
+    path.join(project, ".jgates", "templates", "tests.yml"),
+    [
+      "schemaVersion: 1",
+      "id: tests",
+      "extends: [builtin:base]",
+      "config:",
+      "  tools:",
+      "    test-step:",
+      "      adapter: generic-command",
+      "      enabled: true",
+      "      capabilities: [lint]",
+      `      command: ${JSON.stringify(process.execPath)}`,
+      '      args: ["-e", "0"]',
+      "      config:",
+      "        effects: { readsCode: true, writesOutputs: false, mayChangeCode: false, executesProjectCode: true, usesNetwork: false }",
+      "        evidence: { kind: exit-code }",
+      "",
+    ].join("\n"),
+  );
+  fs.appendFileSync(path.join(project, "jgates.yml"), "  - id: tests\n    source: .jgates/templates/tests.yml\n    activation: always\n");
   spawnSync("git", ["add", "-A"], { cwd: project });
 
   const before = treeHash(project);
@@ -85,25 +109,11 @@ test("V2-36: the project folder is identical before and after a full run whose t
   assert.equal(treeHash(project), before, "the project is unchanged after the run");
   assert.deepEqual(doc.workspaceChanges?.added ?? [], [], "the run reports no change in the project");
 
-  // 2. The test step: a container with the step contract mounts the source volume at /workspace and writes files there.
-  const engineModule = await import(pathToFileURL(path.join(dist, "core", "engine", "index.js")).href);
-  const context = { runtime, runnerOptions: { parentEnv: env } };
-  const image = engineModule.inspectImageSync("jgates-tools:dev", context);
-  const result = await engineModule.runInEngine(
-    {
-      image: image.id,
-      command: ["pytest", "-q"],
-      labels: engineModule.engineLabels({ kind: "step", version: CLI_VERSION, workspace: doc.workspace.id, run: doc.runId }),
-      mounts: [
-        { type: "volume", source: volume, target: "/workspace" },
-        { type: "bind", source: doc.runDir, target: "/output" },
-      ],
-      workdir: "/workspace",
-      timeoutMs: 60_000,
-    },
-    context,
-  );
-  assert.equal(result.exitCode, 0, result.stderr);
+  // 2. The test step ran as a launched step container (the launcher, not the host) and wrote its files in the source volume.
+  const stepRuns = fs.readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((c) => c[0] === "run" && c.includes("org.jgates.kind=step"));
+  const testStep = stepRuns.find((c) => c[c.indexOf("--name") + 1] === `jgates-${doc.runId}-test-step`);
+  assert.ok(testStep, `the test step was launched in a container: ${JSON.stringify(stepRuns.map((c) => c[c.indexOf("--name") + 1]))}`);
+  assert.ok(testStep.includes(`type=volume,src=${volume},dst=/workspace`));
   const volumeDir = path.join(engine, "volumes", volume);
   for (const rel of writes) assert.ok(fs.existsSync(path.join(volumeDir, rel)), `${rel} was written in the source volume`);
   assert.equal(treeHash(project), before, "the project is unchanged after the test step wrote files");

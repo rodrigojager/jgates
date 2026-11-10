@@ -26,6 +26,11 @@ import { cargoAuditManifest } from "./cargo-audit/manifest.js";
 import { cargoTestManifest } from "./cargo-test/manifest.js";
 import { supplyChainManifest } from "./supply-chain/manifest.js";
 
+/** Resources of the step container of an adapter (its manifest's `resources`); undefined: the defaults apply (4096 MB / 2 CPUs). */
+export function manifestResources(adapterId: string): AdapterManifest["resources"] {
+  return builtinManifests().find((m) => m.id === adapterId)?.resources;
+}
+
 /**
  * Manifests of the built-in adapters, in one place that only imports manifests (no adapter code, no cycles), so the
  * catalog (`jgates tools list`) and the support level (`supportLevelFor`) read the same registered set.

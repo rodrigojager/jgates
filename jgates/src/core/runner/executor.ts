@@ -9,7 +9,7 @@ import { translator } from "../../i18n/index.js";
 import type { EventType } from "../events/index.js";
 import type { AdapterOutput, NotRunCause, ResultStage, StageExecution } from "../run/types.js";
 import type { PreflightProblem } from "./preflight.js";
-import { runInScope, type ProcessRecord } from "./scope.js";
+import { runInScope, type ProcessRecord, type StepLauncherHook, type StepLaunchFacts } from "./scope.js";
 import { listDescendants, treeStopper } from "./tree.js";
 
 export interface RunStep {
@@ -23,6 +23,10 @@ export interface RunStep {
   /** The stages, requirements and disabled entries the step reports when it does not run. */
   skeleton: () => AdapterOutput;
   run: () => Promise<AdapterOutput>;
+  /** `bridge` only when a plan item of the step declares network; the step container has none otherwise. */
+  network?: "none" | "bridge";
+  /** Resources of the step container (the adapter manifest's `resources`); 4096 MB / 2 CPUs when absent. */
+  resources?: StepLaunchFacts["resources"];
 }
 
 /**
@@ -76,6 +80,8 @@ export interface ExecuteStepsOptions {
   onStep?: (report: StepReport) => void;
   /** Phases that run once before the steps (sync, ...); a failed phase blocks every step. */
   phases?: RunPhase[];
+  /** Container-first: every process of every step goes through this launcher (never the host). */
+  launcher?: StepLauncherHook | null;
 }
 
 export interface ExecuteStepsResult {
@@ -86,6 +92,8 @@ export interface ExecuteStepsResult {
 }
 
 const INERT = new Set(["disabled", "not_applicable"]);
+/** Preflight problems about a tool on the host PATH; in container-first mode the image provides the tool. */
+const HOST_TOOL_PROBLEMS = new Set<string>(["RUNTIME_MISSING", "BINARY_NOT_FOUND", "BINARY_NOT_EXECUTABLE", "VERSION_MISMATCH", "VERSION_UNKNOWN"]);
 
 export function stageSatisfied(stage: ResultStage): boolean {
   return (stage.state === "completed" || stage.state === "not_applicable") && stage.interpreted !== false;
@@ -312,6 +320,8 @@ export async function executeSteps(steps: RunStep[], options: ExecuteStepsOption
       let found: PreflightProblem[] = [];
       try {
         found = step.preflight?.() ?? [];
+        // Under the launcher the tool lives in the image: a binary the host does not have is not a problem of the step.
+        if (options.launcher) found = found.filter((p) => !HOST_TOOL_PROBLEMS.has(p.code));
       } catch (error) {
         found = [{ code: "PREREQUISITE_MISSING", message: error instanceof Error ? error.message : String(error) }];
       }
@@ -324,7 +334,7 @@ export async function executeSteps(steps: RunStep[], options: ExecuteStepsOption
 
       const processes: ProcessRecord[] = [];
       const startedAt = new Date();
-      emit("step-started", { step: step.id, ...(step.label ? { label: step.label } : {}), dependsOn: step.dependsOn ?? [] });
+      emit("step-started", { step: step.id, ...(step.label ? { label: step.label } : {}), dependsOn: step.dependsOn ?? [], ...(options.launcher ? { network: step.network ?? "none" } : {}) });
       let output: AdapterOutput;
       try {
         output = await settleOrAbandon(
@@ -334,6 +344,7 @@ export async function executeSteps(steps: RunStep[], options: ExecuteStepsOption
               ...(signal ? { signal } : {}),
               ...(options.maxLogBytes !== undefined ? { maxLogBytes: options.maxLogBytes } : {}),
               killGraceMs: graceMs,
+              ...(options.launcher ? { launcher: options.launcher, launch: { network: step.network ?? "none", ...(step.resources ? { resources: step.resources } : {}) } } : {}),
               onProcessStart: (p) => emit("process-started", { step: step.id, pid: p.pid, executable: p.executable }),
               onProcessEnd: (r) => {
                 processes.push(r);

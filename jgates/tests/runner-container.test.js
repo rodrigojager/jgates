@@ -196,3 +196,135 @@ test("a timeout also removes the container", async () => {
     s.cleanup();
   }
 });
+
+// ---- The step launcher (container-first): the same adapter command, in a container or natively in the image ----
+
+const STEP_ENV = [...FAKE_ENV, "FAKE_DOCKER_LABELS", "FAKE_DOCKER_IMAGE_ID"];
+
+/** A run's launcher on the fake engine; `inspect` false: the engine has no tools image. */
+function launcherSandbox({ inspect = true, imageJson = null } = {}) {
+  const s = sandbox(inspect ? { FAKE_DOCKER_LABELS: JSON.stringify({ "org.jgates.version": "1.2.3" }) } : { FAKE_DOCKER_LABELS: "none" });
+  const runDir = path.join(s.dir, "run");
+  fs.mkdirSync(runDir);
+  const env = { ...s.options.parentEnv, JGATES_TOOLS_IMAGE: "jgates-tools:dev", ...(imageJson ? { JGATES_IMAGE_JSON: imageJson } : { JGATES_IMAGE_JSON: path.join(s.dir, "absent-image.json") }) };
+  const engine = { runtime: FAKE, runnerOptions: { parentEnv: env, envAllowlist: [...runner.DEFAULT_ENV_ALLOWLIST, ...STEP_ENV] } };
+  const launcher = runner.createStepLauncher({ env, workspaceId: "ws_0123456789abcdef", runId: "run-1", runDir, projectDir: s.workspace, version: "1.2.3", engine });
+  return { ...s, runDir, env, launcher };
+}
+
+const inStep = (launcher, launch, fn) => runner.runInScope({ stepId: "tool-a", ...(launcher ? { launcher } : {}), ...(launch ? { launch } : {}) }, fn);
+const stepRuns = (s) => s.calls().filter((c) => c[0] === "run");
+const flag = (c, name) => c[c.indexOf(name) + 1];
+
+test("a step process becomes one docker run with the contract, the default resources and no network", async () => {
+  const s = launcherSandbox();
+  try {
+    assert.ok(s.launcher, "a launcher outside the image");
+    const result = await inStep(s.launcher, { network: "none" }, () =>
+      runner.runSpec({ executable: "mytool", args: ["--out", path.join(s.runDir, "out.json"), path.join(s.workspace, "src", "a.py")], cwd: path.join(s.workspace, "src"), env: { TOOL_HOME: path.join(s.runDir, "home") } }, s.options),
+    );
+    assert.equal(result.exitCode, 0);
+    const [call] = stepRuns(s);
+    assert.ok(call, "one docker run");
+    assert.equal(stepRuns(s).length, 1);
+    assert.equal(flag(call, "--pull"), "never");
+    assert.equal(flag(call, "--name"), "jgates-run-1-tool-a");
+    for (const f of ["--rm", "--init", "--read-only"]) assert.ok(call.includes(f), f);
+    assert.equal(flag(call, "--network"), "none");
+    assert.equal(flag(call, "--memory"), "4096m", "default memory");
+    assert.equal(flag(call, "--cpus"), "2", "default cpus");
+    assert.equal(flag(call, "--cap-drop"), "ALL");
+    assert.equal(flag(call, "--security-opt"), "no-new-privileges");
+    assert.equal(flag(call, "--workdir"), "/workspace/src");
+    assert.ok(call.includes("org.jgates.kind=step") && call.includes("org.jgates.run=run-1") && call.includes("org.jgates.workspace=ws_0123456789abcdef"));
+    const mounts = call.filter((a, i) => call[i - 1] === "--mount");
+    assert.ok(mounts.includes("type=volume,src=jgates-ws_0123456789abcdef-src,dst=/workspace"));
+    assert.ok(mounts.includes(`type=bind,src=${s.runDir},dst=/output`));
+    assert.ok(!mounts.some((m) => m.includes(s.workspace)), "the project is never mounted");
+    const image = call.indexOf("mytool");
+    assert.deepEqual(call.slice(image), ["mytool", "--out", "/output/out.json", "/workspace/src/a.py"]);
+    assert.ok(call.includes("TOOL_HOME=/output/home"), "host paths in the environment are mapped too");
+  } finally {
+    s.cleanup();
+  }
+});
+
+test("the manifest resources and the plan network reach the docker run; a network step gets a bridge", async () => {
+  const s = launcherSandbox();
+  try {
+    await inStep(s.launcher, { network: "bridge", resources: { memoryMb: 1536, cpus: 1, tmpfsMb: 128 } }, () => runner.runSpec({ executable: "mytool", args: [], cwd: s.workspace }, s.options));
+    const [call] = stepRuns(s);
+    assert.equal(flag(call, "--network"), "bridge");
+    assert.equal(flag(call, "--memory"), "1536m");
+    assert.equal(flag(call, "--cpus"), "1");
+    assert.match(flag(call, "--tmpfs"), /size=128m$/);
+  } finally {
+    s.cleanup();
+  }
+});
+
+test("without the tools image in the engine a native launch is refused with HOST_EXECUTION_REFUSED and nothing runs on the host", async () => {
+  const s = launcherSandbox({ inspect: false });
+  const marker = path.join(s.dir, "host-ran.txt");
+  try {
+    const result = await inStep(s.launcher, { network: "none" }, () =>
+      runner.runSpec({ executable: process.execPath, args: ["-e", `require('fs').writeFileSync(${JSON.stringify(marker)}, 'x')`], cwd: s.workspace }, s.options),
+    );
+    assert.equal(result.spawnError?.code, "HOST_EXECUTION_REFUSED");
+    assert.equal(result.exitCode, null);
+    assert.equal(fs.existsSync(marker), false, "the command did not run on the host");
+    assert.equal(stepRuns(s).length, 0);
+    assert.throws(() => runner.assertNativeAllowed(s.env, "mytool"), (e) => e.code === "HOST_EXECUTION_REFUSED");
+    assert.equal(runner.stepMode(s.env), "container");
+  } finally {
+    s.cleanup();
+  }
+});
+
+test("with /etc/jgates/image.json present (path override) the same step runs natively in the image", async () => {
+  const dir = tmp("jgates-image-json-");
+  const imageJson = path.join(dir, "image.json");
+  fs.writeFileSync(imageJson, JSON.stringify({ jgatesVersion: "1.2.3", imageVersion: "1", tools: { ruff: "0.6.0" } }));
+  const s = launcherSandbox({ imageJson });
+  const marker = path.join(s.dir, "native-ran.txt");
+  try {
+    assert.equal(runner.stepMode(s.env), "in-image");
+    assert.equal(runner.readImageJson(s.env).tools.ruff, "0.6.0");
+    assert.equal(s.launcher, null, "no launcher: the command runs natively");
+    assert.doesNotThrow(() => runner.assertNativeAllowed(s.env, "mytool"));
+    const result = await inStep(null, null, () =>
+      runner.runSpec({ executable: process.execPath, args: ["-e", `require('fs').writeFileSync(${JSON.stringify(marker)}, 'x')`], cwd: s.workspace }, s.options),
+    );
+    assert.equal(result.exitCode, 0);
+    assert.equal(fs.readFileSync(marker, "utf8"), "x");
+    assert.equal(stepRuns(s).length, 0, "no container was started");
+  } finally {
+    s.cleanup();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("host paths map to container paths without touching other text", () => {
+  const pairs = [
+    { host: "/home/me/proj", target: "/workspace" },
+    { host: "/data/runs/r1", target: "/output" },
+  ];
+  assert.equal(runner.mapHostPaths("/home/me/proj/src/a.py", pairs), "/workspace/src/a.py");
+  assert.equal(runner.mapHostPaths("--out=/data/runs/r1/o.json", pairs), "--out=/output/o.json");
+  assert.equal(runner.mapHostPaths("/home/me/project2/x", pairs), "/home/me/project2/x", "a longer name that starts with the prefix is not the workspace");
+  assert.equal(runner.mapHostPaths("/home/me/proj", pairs), "/workspace");
+  assert.equal(runner.mapHostPaths("plain text", pairs), "plain text");
+});
+
+test("the adapter manifest schema validates `resources` (memoryMb, cpus, tmpfsMb)", async () => {
+  const { validateManifest } = await import(pathToFileURL(path.resolve(here, "..", "dist", "core", "catalog", "index.js")).href);
+  const { builtinManifests, manifestResources } = await import(pathToFileURL(path.resolve(here, "..", "dist", "adapters", "manifests.js")).href);
+  const base = structuredClone(builtinManifests().find((m) => m.id === "generic-command"));
+  delete base.resources;
+  assert.equal(validateManifest(base).ok, true, JSON.stringify(validateManifest(base)));
+  assert.equal(validateManifest({ ...base, resources: { memoryMb: 2048, cpus: 1.5, tmpfsMb: 512 } }).ok, true);
+  assert.equal(validateManifest({ ...base, resources: { memoryMb: 8 } }).ok, false, "memory below the floor");
+  assert.equal(validateManifest({ ...base, resources: { cpus: 0 } }).ok, false, "zero cpus");
+  assert.equal(validateManifest({ ...base, resources: { gpus: 1 } }).ok, false, "unknown resource");
+  assert.equal(manifestResources("generic-command"), undefined, "no resources in the manifest: the 4096 MB / 2 CPUs defaults apply");
+});

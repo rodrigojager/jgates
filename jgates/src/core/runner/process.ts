@@ -130,6 +130,8 @@ function notify(callback: ((chunk: string) => void) | undefined, chunk: Buffer):
 
 export function runSpec(spec: ExecutionSpec, options: RunnerOptions = {}): Promise<ExecutionResult> {
   const scope = currentScope();
+  // Container-first: a process of a step never starts on the host; the launcher runs it in a step container.
+  if (scope?.launcher?.handles(spec)) return scope.launcher.run(spec, options);
   const started = Date.now();
   const startedAt = new Date(started).toISOString();
   const captureLimit = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;

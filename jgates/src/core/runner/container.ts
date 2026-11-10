@@ -6,8 +6,21 @@
 import { randomBytes } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { DEFAULT_ENV_ALLOWLIST, runSpec, type ExecutionResult, type RunnerOptions } from "./process.js";
-import { currentScope } from "./scope.js";
+import {
+  DEFAULT_RESOURCES,
+  engineLabels,
+  engineRuntime,
+  IMAGE_USER,
+  inspectImageSync,
+  runInEngine,
+  sourceVolumeName,
+  type EngineContext,
+  type EngineMount,
+} from "../engine/index.js";
+import { toolsImageTarget } from "../tools-image/index.js";
+import { HOST_EXECUTION_REFUSED, stepMode } from "./in-image.js";
+import { DEFAULT_ENV_ALLOWLIST, runSpec, type ExecutionResult, type ExecutionSpec, type RunnerOptions } from "./process.js";
+import { currentScope, type StepLauncherHook } from "./scope.js";
 
 export const CONTAINER_WORKSPACE = "/workspace";
 export const CONTAINER_OUTPUT = "/output";
@@ -228,4 +241,158 @@ export async function runContainer(spec: ContainerSpec, options: RunnerOptions =
   } finally {
     abort?.removeEventListener("abort", onAbort);
   }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The step launcher (container-first): every process of a plan step is one `docker run --pull never` of the tools image
+// under the step container contract. The adapters keep building the commands they build today; the launcher maps the
+// host paths of the workspace and the run folder to /workspace and /output, so nothing from the host is mounted but the
+// run folder, and the project itself is never mounted (the steps work on the synchronized volume).
+// ---------------------------------------------------------------------------------------------------------------------
+
+export interface StepLauncherInput {
+  env: NodeJS.ProcessEnv;
+  /** Workspace id (ws_<16 hex>): selects the source volume `jgates-<ws>-src`. */
+  workspaceId: string;
+  runId: string;
+  /** The run folder on the host; mounted at /output, the only host folder a step sees. */
+  runDir: string;
+  /** The folder the adapters believe is the workspace (host path); its prefix is mapped to /workspace. */
+  projectDir: string;
+  version: string;
+  engine?: EngineContext;
+  /** Image id or reference; resolved with the engine when absent. */
+  image?: string;
+}
+
+/** The user a step runs as: the host uid:gid on Linux, the image user on Windows and macOS. */
+export function stepUser(): string {
+  if (process.platform === "linux" && typeof process.getuid === "function" && typeof process.getgid === "function") {
+    const uid = process.getuid();
+    const gid = process.getgid();
+    if (uid > 0) return `${uid}:${gid}`;
+  }
+  return IMAGE_USER;
+}
+
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Replaces host path prefixes in a text by their container paths (the rest of the path gets forward slashes). */
+export function mapHostPaths(text: string, pairs: Array<{ host: string; target: string }>): string {
+  let out = text;
+  for (const { host, target } of [...pairs].sort((a, b) => b.host.length - a.host.length)) {
+    const variants = [...new Set([host, host.split("\\").join("/")])].filter(Boolean);
+    for (const variant of variants) {
+      const re = new RegExp(`${escapeRegExp(variant)}(?=$|[\\\\/\\s"'<>|,;:)\\]}])((?:[\\\\/][^\\s"'<>|,;]*)?)`, process.platform === "win32" ? "gi" : "g");
+      out = out.replace(re, (_m, rest: string) => `${target}${rest.split("\\").join("/")}`);
+    }
+  }
+  return out;
+}
+
+const ENGINE_CLIENT = /^(?:docker|podman)(?:\.exe)?$/i;
+
+function refusal(spec: ExecutionSpec, message: string): ExecutionResult {
+  const now = new Date().toISOString();
+  return {
+    exitCode: null,
+    signal: null,
+    stdout: "",
+    stderr: "",
+    durationMs: 0,
+    timedOut: false,
+    cancelled: false,
+    truncated: false,
+    spawnError: { code: HOST_EXECUTION_REFUSED, message: `${spec.executable}: ${message}` },
+    pid: null,
+    startedAt: now,
+    finishedAt: now,
+    stdoutBytes: 0,
+    stderrBytes: 0,
+    logTruncated: false,
+  };
+}
+
+function containerStepName(run: string, step: string, ordinal: number): string {
+  const clean = `${run}-${step}`.replace(/[^A-Za-z0-9_.-]+/g, "-").replace(/^[^A-Za-z0-9]+/, "");
+  const suffix = ordinal > 1 ? `-${ordinal}` : "";
+  return `jgates-${clean.slice(0, 100)}${suffix}`.replace(/[-.]+$/, "") || containerName();
+}
+
+/**
+ * The launcher of a run, or null when JGates itself runs inside the tools image (the same commands then run natively).
+ * Without an engine or without the image no step starts: the launch is refused with HOST_EXECUTION_REFUSED, never
+ * handed to the host.
+ */
+export function createStepLauncher(input: StepLauncherInput): StepLauncherHook | null {
+  if (stepMode(input.env) === "in-image") return null;
+  const runtime = input.engine?.runtime ?? engineRuntime(input.env);
+  const context: EngineContext = { ...(input.engine ?? {}), runtime, runnerOptions: { parentEnv: input.env, ...(input.engine?.runnerOptions ?? {}) } };
+  let image: string | null | undefined = input.image;
+  const resolveImage = (): string | null => {
+    if (image !== undefined) return image;
+    const reference = input.env.JGATES_TOOLS_IMAGE?.trim() || toolsImageTarget(input.env).reference;
+    image = inspectImageSync(reference, context)?.id ?? null;
+    return image;
+  };
+  const pairs = [
+    { host: path.resolve(input.runDir), target: CONTAINER_OUTPUT },
+    { host: path.resolve(input.projectDir), target: CONTAINER_WORKSPACE },
+  ];
+  const ordinals = new Map<string, number>();
+  const user = stepUser();
+
+  return {
+    handles(spec) {
+      return spec.executable !== runtime && !ENGINE_CLIENT.test(path.basename(spec.executable));
+    },
+    async run(spec) {
+      const resolved = resolveImage();
+      if (!resolved) return refusal(spec, "the tools image is not available in the engine; a tool is never run as a host process");
+      const scope = currentScope();
+      const step = scope?.stepId ?? "step";
+      const ordinal = (ordinals.get(step) ?? 0) + 1;
+      ordinals.set(step, ordinal);
+      const cwd = path.resolve(spec.cwd);
+      const inside = (base: string): boolean => {
+        const rel = path.relative(base, cwd);
+        return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+      };
+      const workdir = pairs.some((p) => inside(p.host)) ? mapHostPaths(cwd, pairs) : CONTAINER_WORKSPACE;
+      const mounts: EngineMount[] = [
+        { type: "volume", source: sourceVolumeName(input.workspaceId), target: CONTAINER_WORKSPACE },
+        { type: "bind", source: path.resolve(input.runDir), target: CONTAINER_OUTPUT },
+      ];
+      const env: Record<string, string> = {};
+      for (const [k, v] of Object.entries(spec.env ?? {})) env[k] = mapHostPaths(v, pairs);
+      const resources = scope?.launch?.resources;
+      const result = await runInEngine(
+        {
+          image: resolved,
+          command: [spec.executable, ...spec.args].map((a) => mapHostPaths(a, pairs)),
+          name: containerStepName(input.runId, step, ordinal),
+          labels: engineLabels({ kind: "step", version: input.version, workspace: input.workspaceId, run: input.runId }),
+          mounts,
+          network: scope?.launch?.network ?? "none",
+          user,
+          env,
+          workdir,
+          resources: {
+            memoryMb: resources?.memoryMb ?? DEFAULT_RESOURCES.memoryMb,
+            cpus: resources?.cpus ?? DEFAULT_RESOURCES.cpus,
+            ...(resources?.tmpfsMb !== undefined ? { tmpfsMb: resources.tmpfsMb } : {}),
+          },
+          ...(spec.timeoutMs !== undefined ? { timeoutMs: spec.timeoutMs } : {}),
+          ...(spec.signal ? { signal: spec.signal } : {}),
+          ...(spec.stdoutFile ? { stdoutFile: spec.stdoutFile } : {}),
+          ...(spec.stderrFile ? { stderrFile: spec.stderrFile } : {}),
+          ...(spec.onStdout ? { onStdout: spec.onStdout } : {}),
+          ...(spec.onStderr ? { onStderr: spec.onStderr } : {}),
+          stdin: spec.stdin ?? null,
+        },
+        context,
+      );
+      return result;
+    },
+  };
 }

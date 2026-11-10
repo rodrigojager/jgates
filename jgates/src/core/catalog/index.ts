@@ -115,6 +115,8 @@ export interface AdapterManifest {
   editing: { implemented: string[]; tested: string[] };
   exitCodes: { codes: Array<{ code: number; meaning: string }>; reportRequired: boolean };
   effects: Record<string, boolean>;
+  /** Step container resources; the defaults are 4096 MB and 2 CPUs (tmpfs size per engine defaults). */
+  resources?: { memoryMb?: number; cpus?: number; tmpfsMb?: number };
   redirection?: { flags?: string[]; env?: string[]; outputPaths?: OutputPath[]; unavoidableWorkspaceWrites?: string[] };
   toggles?: { togglable?: string[]; perRunByFlag?: boolean };
   relativeCost: "low" | "medium" | "high";

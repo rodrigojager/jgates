@@ -13,7 +13,7 @@ import { createRunDir, resolveHome, touchWorkspace } from "../home/index.js";
 import { newRunId } from "../ids/index.js";
 import { listRuns } from "../artifacts/index.js";
 import { compareWithBaseline, findingMetrics, finalizeFindings, loadWaiverFile, markBaselineState, WAIVERS_FILE, type Waiver } from "../results/index.js";
-import { executeSteps, mergeOutputs, type RunPhase, type RunStep } from "../runner/index.js";
+import { createStepLauncher, executeSteps, mergeOutputs, type RunPhase, type RunStep } from "../runner/index.js";
 import { toolsImageGateEnabled } from "../tools-image/index.js";
 import { createSyncPhase } from "../sync/phase.js";
 import type { Plan } from "../plan/types.js";
@@ -347,9 +347,12 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     : opts.plan && toolsImageGateEnabled(env)
       ? [createSyncPhase({ projectDir: prep.path, workspace: workspace.id, runId, runDir, version: opts.version, home, env })]
       : [];
+  // Container-first (same gate as the sync phase): every process of every step is launched in a step container.
+  const launcher = opts.plan && toolsImageGateEnabled(env) ? createStepLauncher({ env, workspaceId: workspace.id, runId, runDir, projectDir: prep.path, version: opts.version }) : null;
   try {
     executed = await executeSteps(steps, {
       phases,
+      ...(launcher ? { launcher } : {}),
       ...(signal ? { signal } : {}),
       failFast: opts.failFast === true,
       ...(maxLogBytes !== undefined ? { maxLogBytes } : {}),

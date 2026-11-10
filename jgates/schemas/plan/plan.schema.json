@@ -474,6 +474,8 @@
         },
         "configFiles": { "$ref": "#/$defs/fileHashes" },
         "network": { "type": "boolean" },
+        "networkKind": { "enum": ["none", "bridge"] },
+        "networkReason": { "type": "string" },
         "effects": {
           "type": "object",
           "additionalProperties": false,

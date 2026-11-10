@@ -9,6 +9,7 @@ import type { DisableOrigin } from "../contract/index.js";
 import { normalizeBridge } from "../../adapters/quality-bridge/normalize.js";
 import { runBridgeFromPlan, subchecksFromPlan } from "../../adapters/quality-bridge/from-plan.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
+import { manifestResources } from "../../adapters/manifests.js";
 import { ADAPTER_ID as BRIDGE_ID } from "../../adapters/quality-bridge/requirements.js";
 import { resolvePython, resolveSidecarDir } from "../bridge/index.js";
 import { translator } from "../../i18n/index.js";
@@ -141,6 +142,17 @@ function cacheSubject(plan: Plan, hashes: ReturnType<typeof hashesOfPlan>, invoc
   };
 }
 
+/** `bridge` when any item of the step declares network; the step container has none otherwise. */
+function networkOf(items: PlanItem[]): "none" | "bridge" {
+  return items.some((i) => i.network) ? "bridge" : "none";
+}
+
+/** The `resources` of the adapter's manifest, as a step field (nothing when the manifest has none). */
+function resourcesOf(adapterId: string): { resources?: NonNullable<ReturnType<typeof manifestResources>> } {
+  const resources = manifestResources(adapterId);
+  return resources ? { resources } : {};
+}
+
 /** One step per invocation of the plan: the bridge first, then the other adapters in plan order. */
 export function planSteps(context: AdapterContext, plan: Plan): CacheableStep[] {
   const hashes = hashesOfPlan(plan);
@@ -160,6 +172,8 @@ export function planSteps(context: AdapterContext, plan: Plan): CacheableStep[] 
       preflight: () => bridgePreflight(context),
       skeleton: () => bridgeSkeleton(plan),
       run: () => runBridgeFromPlan(context, plan),
+      network: networkOf(items),
+      ...resourcesOf(BRIDGE_ID),
       cacheSubject: cacheSubject(plan, hashes, bridge, items),
     });
   }
@@ -175,6 +189,8 @@ export function planSteps(context: AdapterContext, plan: Plan): CacheableStep[] 
       preflight: () => externalPreflight(context, plan, invocation),
       skeleton: () => externalSkeleton(plan, invocation.adapter, invocation.id),
       run: () => adapter.run(context, plan, invocation.id),
+      network: networkOf(items),
+      ...resourcesOf(invocation.adapter),
       cacheSubject: cacheSubject(plan, hashes, invocation, items),
     });
   }

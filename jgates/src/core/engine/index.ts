@@ -128,6 +128,10 @@ export interface EngineRunSpec {
   signal?: AbortSignal;
   stdoutFile?: string;
   stderrFile?: string;
+  /** Text written to the container's stdin (adds `--interactive`); absent or null: stdin is closed. */
+  stdin?: string | null;
+  onStdout?: (chunk: string) => void;
+  onStderr?: (chunk: string) => void;
 }
 
 function positive(value: number | undefined, fallback: number, name: string, integer: boolean): number {
@@ -186,6 +190,7 @@ export function buildRunArgs(spec: EngineRunSpec): { args: string[]; name: strin
     String(cpus),
     "--pids-limit",
     String(pids),
+    ...(spec.stdin !== undefined && spec.stdin !== null ? ["--interactive"] : []),
     "--cap-drop",
     "ALL",
     ...(spec.capAdd ?? []).flatMap((cap) => ["--cap-add", cap]),
@@ -281,10 +286,13 @@ export async function runInEngine(spec: EngineRunSpec, context: EngineContext = 
         executable: runtime,
         args,
         cwd: os.tmpdir(),
+        stdin: spec.stdin ?? null,
         ...(spec.timeoutMs !== undefined ? { timeoutMs: spec.timeoutMs } : {}),
         ...(spec.signal ? { signal: spec.signal } : {}),
         ...(spec.stdoutFile ? { stdoutFile: spec.stdoutFile } : {}),
         ...(spec.stderrFile ? { stderrFile: spec.stderrFile } : {}),
+        ...(spec.onStdout ? { onStdout: spec.onStdout } : {}),
+        ...(spec.onStderr ? { onStderr: spec.onStderr } : {}),
       },
       options,
     );

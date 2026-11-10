@@ -130,6 +130,10 @@ export interface PlanItem {
   versions: { adapter: string | null; tool: string | null; toolVersion: string | null; rules: string | null };
   configFiles: Array<{ file: string; sha256: string | null }>;
   network: boolean;
+  /** What the step container gets: `none` (`--network none`) unless the item declares network (`bridge`). */
+  networkKind?: "none" | "bridge";
+  /** Why: the declaration that grants network, or that none was declared. */
+  networkReason?: string;
   effects: { readsCode: boolean; writesOutputs: boolean; mayChangeCode: boolean; executesProjectCode: boolean; workspaceWrites: string[] };
   limits: { timeoutSeconds: number };
   output: { format: string; schema: string | null };
