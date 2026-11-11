@@ -19,6 +19,15 @@
   "generic_condition_evidence": "Passa só se o comando terminar com sucesso e gravar {file} conforme {schema}.",
   "generic_partial": "Suporte parcial: a stack não tem adaptador dedicado; o resultado é só o código de saída do comando declarado.",
   "generic_unproven_category": "O comando declara {capability} ({category}) sem um contrato de evidência verificável ({need}); roda, mas não cobre a categoria.",
-  "generic_need_json": "kind json-file com schema",
-  "generic_need_json_or_runner": "kind json-file com schema ou test-runner"
+  "generic_need_json": "kind json-file com schema ou sarif",
+  "generic_need_json_or_runner": "kind json-file com schema, junit ou test-runner",
+  "generic_condition_report": "Passa só se o relatório {file} ({format}) puder ser lido e não tiver achado em {failOn} ou acima; um relatório vazio exige que o código de saída concorde.",
+  "generic_bad_fail_on": "A instância {tool} declara failOn {failOn}, que não vale para um relatório {format}.",
+  "generic_report_missing": "O relatório {format} {file} não foi gerado ou não pôde ser lido: {detail}",
+  "generic_report_invalid": "O relatório {format} {file} não é válido: {detail}",
+  "generic_reason_report_findings": "{executable} terminou com o código {code}; o relatório {format} {file} tem {total, plural, one {# resultado} other {# resultados}}, {blocking} em {failOn} ou acima.",
+  "generic_reason_report_clean": "{executable} terminou com o código {code}; o relatório {format} {file} tem {total, plural, one {# resultado} other {# resultados}}, nenhum em {failOn} ou acima.",
+  "generic_reason_report_disagrees": "O relatório {format} {file} não tem resultados, mas {executable} terminou com o código {code}, fora dos códigos de sucesso ({expected}): relatório vazio não é confiável.",
+  "generic_finding_test_failed": "Teste falhou: {test}: {message}",
+  "generic_finding_test_error": "Teste com erro: {test}: {message}"
 }

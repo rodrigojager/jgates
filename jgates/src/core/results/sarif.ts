@@ -1,5 +1,6 @@
 // SARIF 2.1.0 export of the findings (optional, explicit): only what SARIF can say. Metrics and the rest of the result
 // contract do not travel in it.
+import { OWN_TOOL_ORIGIN } from "../evidence/index.js";
 import type { ResultFinding, RunResult } from "../run/types.js";
 
 export const SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json";
@@ -29,7 +30,7 @@ export function toSarif(result: Pick<RunResult, "findings" | "version" | "runId"
       shortDescription: { text: f.ruleId },
       ...(f.docsUrl ? { helpUri: f.docsUrl } : {}),
       ...(f.remediation ? { help: { text: f.remediation } } : {}),
-      properties: { tool: f.tool, ...(f.category ? { category: f.category } : {}) },
+      properties: { tool: f.tool, ...(f.category ? { category: f.category } : {}), ...(f.origin === OWN_TOOL_ORIGIN ? { ownTool: true } : {}) },
     });
   }
   const results = result.findings.map((f) => ({
@@ -50,7 +51,7 @@ export function toSarif(result: Pick<RunResult, "findings" | "version" | "runId"
       : {}),
     ...(f.fingerprint ? { partialFingerprints: { [`jgates/v${f.fingerprintVersion ?? 1}`]: f.fingerprint } } : {}),
     ...(f.waived ? { suppressions: [{ kind: "external", justification: f.waiverReason ?? "waived" }] } : {}),
-    properties: { severity: f.severity, normalizedSeverity: f.normalizedSeverity, blocking: f.blocking, ...(f.baselineState ? { baselineState: f.baselineState } : {}) },
+    properties: { severity: f.severity, normalizedSeverity: f.normalizedSeverity, blocking: f.blocking, ...(f.origin === OWN_TOOL_ORIGIN ? { ownTool: true, origin: f.origin } : {}), ...(f.baselineState ? { baselineState: f.baselineState } : {}) },
   }));
   return {
     $schema: SARIF_SCHEMA,

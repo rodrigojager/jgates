@@ -19,6 +19,15 @@
   "generic_condition_evidence": "Passes only if the command ends successfully and writes {file} according to {schema}.",
   "generic_partial": "Partial support: the stack has no dedicated adapter; the result is only the exit code of the declared command.",
   "generic_unproven_category": "The command declares {capability} ({category}) without a verifiable evidence contract ({need}); it runs, but does not cover the category.",
-  "generic_need_json": "kind json-file with a schema",
-  "generic_need_json_or_runner": "kind json-file with a schema or test-runner"
+  "generic_need_json": "kind json-file with a schema or sarif",
+  "generic_need_json_or_runner": "kind json-file with a schema, junit or test-runner",
+  "generic_condition_report": "Passes only if the report {file} ({format}) is readable and has no finding at or above {failOn}, and an empty report needs the exit code to agree.",
+  "generic_bad_fail_on": "The instance {tool} declares failOn {failOn}, which does not apply to a {format} report.",
+  "generic_report_missing": "The {format} report {file} was not generated or cannot be read: {detail}",
+  "generic_report_invalid": "The {format} report {file} is not valid: {detail}",
+  "generic_reason_report_findings": "{executable} ended with code {code}; the {format} report {file} has {total, plural, one {# result} other {# results}}, {blocking} at or above {failOn}.",
+  "generic_reason_report_clean": "{executable} ended with code {code}; the {format} report {file} has {total, plural, one {# result} other {# results}}, none at or above {failOn}.",
+  "generic_reason_report_disagrees": "The {format} report {file} has no results, but {executable} ended with code {code}, outside the success codes ({expected}): an empty report is not trusted.",
+  "generic_finding_test_failed": "Test failed: {test}: {message}",
+  "generic_finding_test_error": "Test error: {test}: {message}"
 }

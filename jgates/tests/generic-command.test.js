@@ -131,7 +131,7 @@ test("shell characters in the args are passed as text: no shell interprets them"
 });
 
 test("a generic command that claims security without an evidence schema does not cover the category: the requirement is uncovered", () => {
-  const profiles = "  so-sast:\n    label: So SAST\n    checks:\n      capability:sast: { enabled: true }\n      tool:quality-bridge.semgrep: { enabled: false }\n      capability:unit: { enabled: false }\n      capability:coverage: { enabled: false }\n";
+  const profiles = "  so-sast:\n    label: So SAST\n    checks:\n      capability:sast: { enabled: true }\n      tool:quality-bridge.semgrep: { enabled: false }\n      tool:semgrep: { enabled: false }\n      capability:unit: { enabled: false }\n      capability:coverage: { enabled: false }\n";
   const files = {
     "check.js": CHECK_JS,
     ".jgates/templates/gen.yml": genericTemplate({ tool: "gen-sast", capability: "sast", args: ["{workspace}/check.js"] }),
@@ -158,7 +158,7 @@ test("a generic command that claims security without an evidence schema does not
 });
 
 test("a security claim with a json-file contract covers the requirement, and invalid evidence is an error, never a pass", () => {
-  const profiles = "  so-sast:\n    label: So SAST\n    checks:\n      capability:sast: { enabled: true }\n      tool:quality-bridge.semgrep: { enabled: false }\n      capability:unit: { enabled: false }\n      capability:coverage: { enabled: false }\n";
+  const profiles = "  so-sast:\n    label: So SAST\n    checks:\n      capability:sast: { enabled: true }\n      tool:quality-bridge.semgrep: { enabled: false }\n      tool:semgrep: { enabled: false }\n      capability:unit: { enabled: false }\n      capability:coverage: { enabled: false }\n";
   const writer = [
     "const fs = require('node:fs'); const path = require('node:path');",
     "const out = process.argv[2]; fs.mkdirSync(path.dirname(out), { recursive: true });",
@@ -209,6 +209,172 @@ test("a generic command without declared effects makes the plan not approvable",
     assert.equal(planned.code, 0, planned.out + planned.err);
     assert.equal(planned.doc.plan.approvable, false);
     assert.match(planned.doc.plan.blockers[0].message, /fora do contrato.*effects/);
+  } finally {
+    p.cleanup();
+  }
+});
+
+// --- report formats (sarif, junit, checkstyle): the report is the evidence ---
+
+const REPORT_WRITER = [
+  "const fs = require('node:fs'); const path = require('node:path');",
+  "const [out, content, code] = process.argv.slice(2);",
+  "if (content !== '-') { fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, content); }",
+  "process.exit(Number(code));",
+  "",
+].join("\n");
+
+const sarifDoc = (results) => JSON.stringify({ version: "2.1.0", runs: [{ tool: { driver: { name: "my-linter", version: "0.9.1", rules: [] } }, results }] });
+const sarifResult = (ruleId, level, file = "src/a.py", line = 3) => ({ ruleId, level, message: { text: `${ruleId} message` }, locations: [{ physicalLocation: { artifactLocation: { uri: file }, region: { startLine: line } } }] });
+
+/** One generic check whose command writes `content` as the report and exits with `code`; `content` "-" writes nothing. */
+function reportProject({ kind, file, content, code = 0, failOn, successExitCodes }) {
+  const evidence = `{ kind: ${kind}, file: ${file}${failOn ? `, failOn: ${failOn}` : ""} }`;
+  let template = genericTemplate({ args: ["{workspace}/report.js", `{outputDir}/${file}`, content, String(code)], evidence });
+  if (successExitCodes) template = template.replace("        effects:", `        successExitCodes: ${JSON.stringify(successExitCodes)}\n        effects:`);
+  return project({ "report.js": REPORT_WRITER, ".jgates/templates/gen.yml": template }, { templates: [["gen", ".jgates/templates/gen.yml"]] });
+}
+const stageOf = (r) => r.doc.stages.find((s) => s.id === "gen-check#lint");
+
+test("sarif report: the findings reach the result tagged as own tool, failOn decides, and the SARIF export carries the tag", () => {
+  const content = sarifDoc([sarifResult("L001", "warning"), sarifResult("L002", "note", "src/b.py", 8)]);
+  const warnOnly = reportProject({ kind: "sarif", file: "out.sarif", content, code: 0 });
+  try {
+    // Default failOn is error: a warning and a note do not fail.
+    const ok = warnOnly.run("--only", "tool:gen-check");
+    assert.equal(ok.code, 0, ok.out + ok.err);
+    assert.equal(ok.doc.decision, "passed");
+    assert.equal(stageOf(ok).findings, 2);
+    assert.equal(stageOf(ok).blockingViolations, 0);
+    const mine = ok.doc.findings.filter((f) => f.tool === "gen-check");
+    assert.deepEqual(mine.map((f) => f.ruleId).sort(), ["L001", "L002"]);
+    assert.ok(mine.every((f) => f.origin === "own-tool" && f.blocking === false));
+    assert.deepEqual(mine.find((f) => f.ruleId === "L001").location, { path: "src/a.py", line: 3 });
+    // The SARIF export marks them.
+    const exported = spawnSync(process.execPath, [MAIN, "report", ok.doc.runId, "--cwd", warnOnly.dir, "--format", "sarif"], { encoding: "utf8", env: { ...process.env, JGATES_HOME: warnOnly.home } });
+    assert.equal(exported.status, 0, exported.stderr);
+    const sarif = JSON.parse(exported.stdout);
+    const res = sarif.runs[0].results.find((x) => x.ruleId === "gen-check/L001");
+    assert.ok(res, exported.stdout);
+    assert.equal(res.properties.ownTool, true);
+    assert.equal(sarif.runs[0].tool.driver.rules.find((x) => x.id === "gen-check/L001").properties.ownTool, true);
+  } finally {
+    warnOnly.cleanup();
+  }
+  // The same report with failOn: warning fails the run.
+  const strict = reportProject({ kind: "sarif", file: "out.sarif", content, code: 0, failOn: "warning" });
+  try {
+    const bad = strict.run("--only", "tool:gen-check");
+    assert.equal(bad.code, 1, bad.out + bad.err);
+    assert.equal(bad.doc.decision, "failed");
+    assert.equal(stageOf(bad).blockingViolations, 1);
+    const flags = Object.fromEntries(bad.doc.findings.filter((f) => f.tool === "gen-check").map((f) => [f.ruleId, f.blocking]));
+    assert.deepEqual(flags, { L001: true, L002: false });
+  } finally {
+    strict.cleanup();
+  }
+});
+
+test("sarif report: a security-severity finding blocks at the default failOn, and exit code 1 with findings is decided by the report", () => {
+  const result = { ...sarifResult("S001", "warning"), properties: { "security-severity": "8.8" } };
+  const p = reportProject({ kind: "sarif", file: "out.sarif", content: sarifDoc([result]), code: 1 });
+  try {
+    const r = p.run("--only", "tool:gen-check");
+    assert.equal(r.doc.decision, "failed");
+    const f = r.doc.findings.find((x) => x.ruleId === "S001");
+    assert.equal(f.normalizedSeverity, "high");
+    assert.equal(f.blocking, true);
+    assert.equal(stageOf(r).nativeStatus, "exit 1");
+  } finally {
+    p.cleanup();
+  }
+});
+
+test("a missing or unreadable report is invalid, never passed", () => {
+  for (const [kind, file, content] of [
+    ["sarif", "out.sarif", "-"],
+    ["sarif", "out.sarif", "this is not json"],
+    ["junit", "out.xml", "<html/>"],
+    ["checkstyle", "out.xml", "-"],
+  ]) {
+    const p = reportProject({ kind, file, content, code: 0 });
+    try {
+      const r = p.run("--only", "tool:gen-check");
+      // The platform's word for evidence that cannot be trusted is "incomplete" (fail-closed), as for a json-file contract.
+      assert.equal(r.doc.decision, "incomplete", `${kind} ${content}: ${r.out}`);
+      assert.notEqual(r.code, 0);
+      const stage = stageOf(r);
+      assert.notEqual(stage.state, "passed");
+      assert.equal(stage.interpreted, false);
+      assert.match(stage.reason, /relatório/);
+    } finally {
+      p.cleanup();
+    }
+  }
+});
+
+test("an empty report passes only when the exit code agrees", () => {
+  const empty = sarifDoc([]);
+  const agree = reportProject({ kind: "sarif", file: "out.sarif", content: empty, code: 0 });
+  const disagree = reportProject({ kind: "sarif", file: "out.sarif", content: empty, code: 2 });
+  const declared = reportProject({ kind: "sarif", file: "out.sarif", content: empty, code: 2, successExitCodes: [0, 2] });
+  try {
+    const a = agree.run("--only", "tool:gen-check");
+    assert.equal(a.doc.decision, "passed", a.out);
+    assert.equal(stageOf(a).findings, 0);
+    const d = disagree.run("--only", "tool:gen-check");
+    assert.equal(d.doc.decision, "failed", d.out);
+    assert.match(stageOf(d).reason, /relatório vazio/);
+    const s = declared.run("--only", "tool:gen-check");
+    assert.equal(s.doc.decision, "passed", s.out);
+  } finally {
+    agree.cleanup();
+    disagree.cleanup();
+    declared.cleanup();
+  }
+});
+
+test("junit report: a failure or an error fails the run, with file and line, and failOn error ignores plain failures", () => {
+  const xml = '<testsuites><testsuite name="s"><testcase classname="m.C" name="ok"/><testcase classname="m.C" name="bad" file="tests/c.js" line="12"><failure message="nope">trace</failure></testcase></testsuite></testsuites>';
+  const p = reportProject({ kind: "junit", file: "out.xml", content: xml, code: 1 });
+  const lenient = reportProject({ kind: "junit", file: "out.xml", content: xml, code: 1, failOn: "error" });
+  try {
+    const r = p.run("--only", "tool:gen-check");
+    assert.equal(r.doc.decision, "failed");
+    const f = r.doc.findings.find((x) => x.tool === "gen-check");
+    assert.equal(f.ruleId, "test-failed");
+    assert.equal(f.origin, "own-tool");
+    assert.deepEqual(f.location, { path: "tests/c.js", line: 12 });
+    const l = lenient.run("--only", "tool:gen-check");
+    assert.equal(l.doc.decision, "passed", l.out);
+    assert.equal(l.doc.findings.find((x) => x.tool === "gen-check").blocking, false);
+  } finally {
+    p.cleanup();
+    lenient.cleanup();
+  }
+});
+
+test("checkstyle report: errors fail by default and warnings only when failOn is warning", () => {
+  const xml = '<checkstyle><file name="src/A.java"><error line="2" severity="warning" message="w" source="Rule"/></file></checkstyle>';
+  const byDefault = reportProject({ kind: "checkstyle", file: "out.xml", content: xml, code: 0 });
+  const strict = reportProject({ kind: "checkstyle", file: "out.xml", content: xml, code: 0, failOn: "warning" });
+  try {
+    const ok = byDefault.run("--only", "tool:gen-check");
+    assert.equal(ok.doc.decision, "passed", ok.out);
+    assert.equal(ok.doc.findings.find((x) => x.tool === "gen-check").location.path, "src/A.java");
+    const bad = strict.run("--only", "tool:gen-check");
+    assert.equal(bad.doc.decision, "failed", bad.out);
+  } finally {
+    byDefault.cleanup();
+    strict.cleanup();
+  }
+});
+
+test("failOn that does not fit the report format blocks the plan", () => {
+  const p = reportProject({ kind: "junit", file: "out.xml", content: "-", failOn: "warning" });
+  try {
+    const planned = p.plan("--only", "tool:gen-check");
+    assert.equal(planned.doc.plan.approvable, false);
   } finally {
     p.cleanup();
   }

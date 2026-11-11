@@ -16,6 +16,7 @@ import { resolveExecutable, runSpec, substituteTokens } from "../../core/runner/
 import { stepMode } from "../../core/runner/in-image.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { genericCommandManifest } from "./manifest.js";
+import { failOnApplies, failOnOf, isReportEvidence, readReport, type ReportEvidence } from "./report.js";
 
 export { genericCommandManifest } from "./manifest.js";
 
@@ -23,7 +24,7 @@ const ADAPTER_ID = genericCommandManifest.id;
 const RUN_DIR = "{runDir}";
 const WORKSPACE = "{workspace}";
 
-type Evidence = { kind: "exit-code" } | { kind: "test-runner"; runner: string } | { kind: "json-file"; file: string; schema: string };
+type Evidence = { kind: "exit-code" } | { kind: "test-runner"; runner: string } | { kind: "json-file"; file: string; schema: string } | ReportEvidence;
 interface Effects {
   readsCode: boolean;
   writesOutputs: boolean;
@@ -92,9 +93,9 @@ function unprovenCapabilities(capabilities: string[], evidence: Evidence): Recor
   for (const capability of capabilities) {
     const category = byId.get(capability) ?? null;
     if (category === "security" || category === "architecture") {
-      if (evidence.kind !== "json-file") out[capability] = t("generic_unproven_category", { capability, category, need: t("generic_need_json") });
+      if (evidence.kind !== "json-file" && evidence.kind !== "sarif") out[capability] = t("generic_unproven_category", { capability, category, need: t("generic_need_json") });
     } else if (category === "tests") {
-      if (evidence.kind !== "json-file" && evidence.kind !== "test-runner") out[capability] = t("generic_unproven_category", { capability, category, need: t("generic_need_json_or_runner") });
+      if (evidence.kind !== "json-file" && evidence.kind !== "test-runner" && evidence.kind !== "junit") out[capability] = t("generic_unproven_category", { capability, category, need: t("generic_need_json_or_runner") });
     }
   }
   return out;
@@ -130,6 +131,11 @@ function planGeneric(input: ExternalPlanInput): ExternalPlan {
     conditions.push(t("generic_condition_evidence", { file: evidence.file, schema: evidence.schema }));
     output = { format: "json", schema: evidence.schema };
   } else if (evidence?.kind === "test-runner") conditions.push(t("generic_condition_runner", { runner: evidence.runner }));
+  else if (isReportEvidence(evidence)) {
+    if (!failOnApplies(evidence)) problems.push(t("generic_bad_fail_on", { tool: input.tool, failOn: String(evidence.failOn), format: evidence.kind }));
+    conditions.push(t("generic_condition_report", { file: evidence.file, format: evidence.kind, failOn: failOnOf(evidence) }));
+    output = { format: evidence.kind, schema: null };
+  }
   else conditions.push(t("generic_condition_boolean"));
   if (declared?.support === "partial") limitations.push(t("generic_partial"));
   for (const l of declared?.limitations ?? []) limitations.push(l);
@@ -234,7 +240,10 @@ async function runGeneric(context: AdapterContext, plan: Plan, tool: string): Pr
   if (result.timedOut) return { ...base, stages: items.map((i) => stageFor(i, "timeout", t("generic_timeout", { seconds: timeoutSeconds }))), findings: [] };
   const code = result.exitCode;
   const success = code !== null && contract.successExitCodes.includes(code);
-  if (!success) {
+  const reportEvidence = isReportEvidence(contract.evidence) ? contract.evidence : null;
+  // A report-based tool exits non-zero when it has findings: the report decides, so only a missing code or the shell's
+  // 126/127 end the step before it is read.
+  if (!success && !(reportEvidence && code !== null && code !== 126 && code !== 127)) {
     // A signal or a missing code proves nothing; a different code is the command's own "no".
     if (code === null) {
       return { ...base, stages: items.map((i) => stageFor(i, "error", t("generic_blocked", { detail: String(result.signal ?? "-") }), { interpreted: false })), findings: [] };
@@ -245,6 +254,22 @@ async function runGeneric(context: AdapterContext, plan: Plan, tool: string): Pr
     }
     const reason = t("generic_reason_failed", { executable: command.executable, code, expected: contract.successExitCodes.join(", ") });
     return { ...base, stages: items.map((i) => stageFor(i, "completed", reason, { blockingViolations: 1, findings: 0, nativeStatus: `exit ${code}` })), findings: [] };
+  }
+  if (reportEvidence) {
+    const read = readReport(reportEvidence, { tool, stageId: items[0]?.id as string, outDir, workspacePath: context.workspacePath, cwd });
+    if (!read.ok) return { ...base, stages: items.map((i) => stageFor(i, "completed", read.reason, { interpreted: false, nativeStatus: `exit ${code}` })), findings: [] };
+    const info = { executable: command.executable, code, format: reportEvidence.kind, file: reportEvidence.file, failOn: failOnOf(reportEvidence), total: read.findings.length, blocking: read.blocking };
+    // An empty report proves nothing when the tool itself said no: the exit code must agree with it.
+    if (!success && read.findings.length === 0) {
+      const reason = t("generic_reason_report_disagrees", { ...info, expected: contract.successExitCodes.join(", ") });
+      return { ...base, stages: items.map((i) => stageFor(i, "completed", reason, { blockingViolations: 1, findings: 0, nativeStatus: `exit ${code}` })), findings: [] };
+    }
+    const reason = t(read.blocking > 0 ? "generic_reason_report_findings" : "generic_reason_report_clean", info);
+    return {
+      ...base,
+      stages: items.map((i, n) => stageFor(i, "completed", reason, { blockingViolations: n === 0 ? read.blocking : 0, findings: n === 0 ? read.findings.length : 0, nativeStatus: `exit ${code}` })),
+      findings: read.findings,
+    };
   }
   if (contract.evidence?.kind === "json-file") {
     const verdict = checkEvidence(context, contract.evidence, outDir);

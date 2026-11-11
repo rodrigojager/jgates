@@ -57,6 +57,17 @@
             "schema": { "type": "string", "minLength": 1, "description": "JSON Schema (workspace-relative path) the evidence file must satisfy." }
           },
           "description": "The command writes an evidence file the run validates against the declared schema; invalid evidence is an error."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "file"],
+          "properties": {
+            "kind": { "enum": ["sarif", "junit", "checkstyle"] },
+            "file": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$", "description": "Name of the report the command writes in {outputDir}." },
+            "failOn": { "enum": ["error", "warning", "note", "failure"], "description": "sarif and checkstyle: findings at or above this level fail (error, warning or note; default error). junit: failure (default) fails on failures and errors, error fails only on errors." }
+          },
+          "description": "A SARIF 2.1.0, JUnit or Checkstyle report the run parses into findings. A missing or unreadable report is invalid, never a pass; a report with no results passes only when the exit code agrees."
         }
       ]
     }
