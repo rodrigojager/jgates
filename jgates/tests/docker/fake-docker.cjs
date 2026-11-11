@@ -312,8 +312,18 @@ if (argv[0] === "kill") {
 }
 
 // ---- compose ---------------------------------------------------------------------------------------------------
+// `compose ... up` exits with FAKE_DOCKER_COMPOSE_UP_EXIT (default FAKE_DOCKER_COMPOSE_EXIT, 0) and prints
+// FAKE_DOCKER_COMPOSE_UP_STDERR on stderr (an unhealthy service); `compose ... logs` prints FAKE_DOCKER_COMPOSE_LOGS; `compose ...
+// ps` prints FAKE_DOCKER_COMPOSE_PS (JSON lines). Every other compose command exits with FAKE_DOCKER_COMPOSE_EXIT.
 if (argv[0] === "compose") {
   needDaemon();
+  const sub = argv.find((a, i) => i > 0 && ["up", "down", "logs", "ps"].includes(a) && argv[i - 1] !== "-f" && argv[i - 1] !== "--project-name" && argv[i - 1] !== "--profile");
+  if (sub === "up") {
+    if (process.env.FAKE_DOCKER_COMPOSE_UP_STDERR) process.stderr.write(process.env.FAKE_DOCKER_COMPOSE_UP_STDERR + "\n");
+    process.exit(Number(env("FAKE_DOCKER_COMPOSE_UP_EXIT", env("FAKE_DOCKER_COMPOSE_EXIT", "0"))));
+  }
+  if (sub === "logs") process.stdout.write(env("FAKE_DOCKER_COMPOSE_LOGS", ""));
+  if (sub === "ps") process.stdout.write(env("FAKE_DOCKER_COMPOSE_PS", ""));
   process.exit(Number(env("FAKE_DOCKER_COMPOSE_EXIT", "0")));
 }
 

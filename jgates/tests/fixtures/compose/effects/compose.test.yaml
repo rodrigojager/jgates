@@ -1,0 +1,6 @@
+# Override of the test environment: adds a port and a second project bind to the api.
+services:
+  api:
+    expose: ["9000"]
+    volumes:
+      - ./fixtures:/fixtures

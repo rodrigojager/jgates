@@ -20,6 +20,7 @@ import { createSyncPhase } from "../sync/phase.js";
 import { createDepsRun, type DepsRun } from "../deps/run.js";
 import { createDataRun, dataMaxAgeDaysOf, type DataRun } from "../data/index.js";
 import { createCodeqlRun, type CodeqlRun } from "../codeql-prepare/index.js";
+import { createServicesRun, type ServicesRun } from "../services/run.js";
 import type { Plan } from "../plan/types.js";
 import { describeAnalysis, planOutputs, prepareAnalysis, verifyInputs, type PreparedAnalysis } from "./analysis.js";
 import type { AdapterContext, AdapterOutput, CacheableStep, ResultDisabled, ResultPolicy, RunResult, SemanticHook } from "./types.js";
@@ -353,11 +354,15 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
   let codeql: CodeqlRun | null = null;
   // What a step container gets besides the source volume and the run folder: its dependency volumes, the advisory data
   // (read-only) for the scanners that read a database, and the prepared CodeQL (read-only) for the CodeQL check.
-  const stepEnvironment = (stepId: string): { mounts: EngineMount[]; env: Record<string, string> } | null => {
+  let services: ServicesRun | null = null;
+  // A step that uses the run's compose services joins their network (in place of its own).
+  const stepEnvironment = (stepId: string): { mounts: EngineMount[]; env: Record<string, string>; network?: string } | null => {
     const parts = [deps?.stepEnvironment(stepId) ?? null, data?.stepEnvironment(stepId) ?? null, codeql?.stepEnvironment(stepId) ?? null].filter((p): p is { mounts: EngineMount[]; env: Record<string, string> } => p !== null);
-    if (parts.length <= 1) return parts[0] ?? null;
+    const network = services?.stepEnvironment(stepId)?.network;
     // The dependency environment wins over the data and CodeQL ones, as before.
-    return { mounts: parts.flatMap((p) => p.mounts), env: Object.assign({}, ...[...parts].reverse().map((p) => p.env)) };
+    const merged = parts.length <= 1 ? (parts[0] ?? null) : { mounts: parts.flatMap((p) => p.mounts), env: Object.assign({}, ...[...parts].reverse().map((p) => p.env)) };
+    if (!network) return merged;
+    return { mounts: merged?.mounts ?? [], env: merged?.env ?? {}, network };
   };
   const launcher =
     opts.plan && toolsImageGateEnabled(env)
@@ -382,10 +387,26 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
           ...(signal ? { signal } : {}),
         })
       : null;
+  // The project's compose services (after the dependencies): only when a planned check uses them, in containers.
+  services =
+    !opts.phases && opts.plan && launcher
+      ? createServicesRun({
+          plan: opts.plan,
+          projectDir: prep.path,
+          configDir: opts.policy?.source.dir ?? prep.path,
+          workspace: workspace.id,
+          runId,
+          runDir,
+          version: opts.version,
+          env,
+          governed: opts.policy !== undefined,
+          ...(signal ? { signal } : {}),
+        })
+      : null;
   const phases = opts.phases
     ? opts.phases(context)
     : opts.plan && toolsImageGateEnabled(env)
-      ? [createSyncPhase({ projectDir: prep.path, workspace: workspace.id, runId, runDir, version: opts.version, home, env }), ...(deps ? [deps.phase] : [])]
+      ? [createSyncPhase({ projectDir: prep.path, workspace: workspace.id, runId, runDir, version: opts.version, home, env }), ...(deps ? [deps.phase] : []), ...(services ? [services.phase] : [])]
       : [];
   // A cancellation also reaches the engine: the containers carrying this run's label are killed and the run's services
   // taken down (nothing else is touched). Whatever the steps finished before stays in the partial result.
@@ -417,7 +438,9 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     // A check that needs dependencies does not start without them (DEPENDENCIES_FAILED / DEPENDENCIES_NOT_READY).
     const depsGated = deps ? deps.gate(cachedSteps) : cachedSteps;
     const dataGated = data ? data.gate(depsGated) : depsGated;
-    const steps = codeql ? codeql.gate(dataGated) : dataGated;
+    const codeqlGated = codeql ? codeql.gate(dataGated) : dataGated;
+    // A check that uses the services does not start without them (SERVICES_NOT_READY / SERVICES_REQUIRED).
+    const steps = services ? services.gate(codeqlGated) : codeqlGated;
     executed = await executeSteps(steps, {
       phases,
       ...(launcher ? { launcher } : {}),
@@ -444,6 +467,13 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     if (executed.cancelled || signal?.aborted || verified.changes.changed) cache.discard();
     else cache.commit();
   } finally {
+    // The run's compose project is always taken down when the steps end (also after a failure, a cancellation or a
+    // step that threw); `down` touches only this run's project.
+    if (services) {
+      const started = Date.now();
+      await services.teardown().catch(() => undefined);
+      events.emit("phase-finished", { phase: "services-down", status: "succeeded", durationMs: Date.now() - started, details: { project: services.project, status: services.status() } });
+    }
     signal?.removeEventListener("abort", onAbort);
     signal?.removeEventListener("abort", onEngineAbort);
     // A step threw: the run stops here, and it must not look alive.

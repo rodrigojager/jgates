@@ -1,0 +1,38 @@
+openapi: 3.0.3
+info:
+  title: V2-47 api
+  version: "1.0"
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: The api is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+  /items:
+    get:
+      operationId: listItems
+      responses:
+        "200":
+          description: Every item.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, name]
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string

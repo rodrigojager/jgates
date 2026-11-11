@@ -1,0 +1,14 @@
+{
+  "services_phase_label": "Project services",
+  "services_see_log": "The services' log is in {log}.",
+  "services_not_configured": "Configure the services in the services section of jgates.yml (compose files, services to start, target).",
+  "services_unknown": "The compose files have no service named {service}.",
+  "services_refused": "Governed mode refuses these host effects of the services: {effects}. The policy must allow them (services.allowHostEffects).",
+  "services_compose_unreadable": "A compose file could not be read: {detail}",
+  "services_effect_host": "The service {service} reaches your machine ({kind}): {detail}.",
+  "services_effect_project_bind": "The service {service} mounts a folder of the project ({detail}); JGates mounts it read-only.",
+  "services_effect_writable": "The service {service} may write to the project folder ({detail}), because services.writableBinds allows it.",
+  "services_build": "Will build {count, plural, one {# image} other {# images}} of your compose ({services}): this runs the project's Dockerfile.",
+  "services_refused_effect": "Governed mode refuses the host effect of the service {service} ({kind}: {detail}) because the policy does not allow it (services.allowHostEffects).",
+  "services_refused_writable": "Governed mode never lets the service {service} write to the project folder ({detail}); remove it from services.writableBinds."
+}

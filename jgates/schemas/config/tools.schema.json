@@ -117,9 +117,9 @@
             "$ref": "#/$defs/pathText"
           },
           "target": {
-            "description": "schemathesis, zap: the base URL (http:// or https://, no credentials, query or fragment) of the running local or disposable environment to test. Without it the stage is blocked, never passed.",
+            "description": "schemathesis, zap: the base URL (http:// or https://, no credentials, query or fragment) of the running local or disposable environment to test, or service:<name>:<port>[/path] for a service of the project's compose (jgates.yml services), which the run starts and the check reaches on the run's network. Without it the stage is blocked, never passed.",
             "type": "string",
-            "pattern": "^https?://[^\\s@?#]+$"
+            "pattern": "^(?:https?://[^\\s@?#]+|service:[A-Za-z0-9][A-Za-z0-9_.-]*:[0-9]{1,5}(?:/[^\\s?#]*)?)$"
           },
           "auth": {
             "description": "schemathesis, zap: the authentication header sent to the target. The value is read at run time from the environment variable valueEnv; the secret itself is never written here.",

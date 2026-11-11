@@ -40,6 +40,7 @@ import { governExternalPlan } from "../governed/plan.js";
 import { diffPlans } from "./diff.js";
 import { readLastPlan } from "./store.js";
 import { planDependencies } from "../deps/plan.js";
+import { planServices } from "../services/plan.js";
 import { databaseOfItem, readDataTimestampsSync, type DatabaseId } from "../data/index.js";
 import {
   PLAN_KIND,
@@ -1002,6 +1003,18 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       }
     }
     blockers.push(...deps.blockers);
+    // The project's compose services: the names the plan starts (part of the hash), the host effects the review lists,
+    // and, in a governed plan, the effects the policy does not allow.
+    const services = planServices({
+      projectDir: dir,
+      configDir,
+      items: willRun,
+      invocations: [...externals.entries()].map(([id, e]) => ({ id, ...(e.plan.contract ? { contract: e.plan.contract } : {}) })),
+      governed: options.bridgePolicy !== undefined,
+    });
+    if (options.container?.services === undefined) container.services = services.services;
+    warnings.push(...services.warnings);
+    blockers.push(...services.blockers);
   }
   const blocked: PlanBlocker | null =
     willRun.length === 0

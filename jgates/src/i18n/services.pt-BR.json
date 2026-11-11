@@ -1,0 +1,14 @@
+{
+  "services_phase_label": "Serviços do projeto",
+  "services_see_log": "O log dos serviços está em {log}.",
+  "services_not_configured": "Configure os serviços na seção services do jgates.yml (arquivos do compose, serviços a iniciar, alvo).",
+  "services_unknown": "Os arquivos do compose não têm um serviço chamado {service}.",
+  "services_refused": "O modo governado recusa estes efeitos dos serviços na máquina: {effects}. A política precisa permiti-los (services.allowHostEffects).",
+  "services_compose_unreadable": "Não foi possível ler um arquivo do compose: {detail}",
+  "services_effect_host": "O serviço {service} alcança a sua máquina ({kind}): {detail}.",
+  "services_effect_project_bind": "O serviço {service} monta uma pasta do projeto ({detail}); o JGates a monta somente para leitura.",
+  "services_effect_writable": "O serviço {service} pode escrever na pasta do projeto ({detail}), porque services.writableBinds permite.",
+  "services_build": "Vai construir {count, plural, one {# imagem} other {# imagens}} do seu compose ({services}): isso executa o Dockerfile do projeto.",
+  "services_refused_effect": "O modo governado recusa o efeito do serviço {service} na máquina ({kind}: {detail}) porque a política não o permite (services.allowHostEffects).",
+  "services_refused_writable": "O modo governado nunca deixa o serviço {service} escrever na pasta do projeto ({detail}); retire-o de services.writableBinds."
+}

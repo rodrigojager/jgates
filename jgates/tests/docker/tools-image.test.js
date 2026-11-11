@@ -89,7 +89,10 @@ const TOOLS = {
   "osv-scanner": ["osv-scanner --version", /osv-scanner version: (\S+)/],
   oasdiff: ["oasdiff --version"],
   java: ["java --version"],
-  zap: ["zap.sh -cmd -version", /^(\d+\.\d+\.\d+)\s*$/m],
+  // ZAP's default home is the image user's passwd home (/tmp/home), which a fresh tmpfs does not have: like the adapter,
+  // the home is given with -dir. (Under --network none log4j also logs that it cannot resolve the container's hostname;
+  // that line is harmless.)
+  zap: ['zap.sh -cmd -dir "$HOME/.ZAP" -version', /^(\d+\.\d+\.\d+)\s*$/m],
   shellcheck: ["shellcheck --version", /version: (\S+)/],
   hadolint: ["hadolint --version"],
   squawk: ["squawk --version"],

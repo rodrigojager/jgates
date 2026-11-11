@@ -1,0 +1,34 @@
+# The db + api fixture of V2-47 (real engine). Both services run the local JGates tools image (no pull, no build): the
+# db is a small TCP service on 5432, the api an HTTP service on 8000 that serves an OpenAPI contract. The project folder
+# is bind mounted the usual development way (.:/app) and the ports are published, as a developer's compose file does;
+# JGates mounts the folder read-only and publishes nothing.
+services:
+  db:
+    image: jgates-tools:dev
+    pull_policy: never
+    command: ["python3", "/app/db.py"]
+    volumes:
+      - .:/app
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; socket.create_connection(('127.0.0.1', 5432), 2).close()"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  api:
+    image: jgates-tools:dev
+    pull_policy: never
+    command: ["python3", "/app/api.py"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    ports:
+      - "58000:8000"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

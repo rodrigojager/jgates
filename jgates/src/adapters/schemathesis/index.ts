@@ -50,6 +50,8 @@ export const SPEC_CANDIDATES = ["openapi.yaml", "openapi.yml", "openapi.json", "
 
 export interface SchemathesisSettings {
   target: string | null;
+  /** The compose service of a `service:<name>:<port>` target (reached on the run's services network). */
+  service: { name: string; port: number; path: string } | null;
   spec: string | null;
   auth: AuthSetting | null;
   seed: number;
@@ -91,7 +93,7 @@ export function schemathesisSettings(input: Pick<ExternalPlanInput, "config" | "
     if (list && list.length > 0 && list.every((c) => typeof c === "string" && (ALLOWED_CHECKS as readonly string[]).includes(c))) checks = [...new Set(list as string[])];
     else problems.push(t("schemathesis_setting_checks", { tool: input.tool, allowed: ALLOWED_CHECKS.join(", ") }));
   }
-  return { target: target.url, spec, auth: auth.auth, seed, maxExamples, requestTimeoutSeconds, checks, problems };
+  return { target: target.url, service: target.service ?? null, spec, auth: auth.auth, seed, maxExamples, requestTimeoutSeconds, checks, problems };
 }
 
 /** What the step container calls the machine of the user (Docker Desktop and Docker Engine 20.10+ with host-gateway). */
@@ -182,7 +184,7 @@ function planSchemathesis(input: ExternalPlanInput): ExternalPlan {
       t("schemathesis_condition_checks", { checks: settings.checks.join(", ") }),
       auth,
     ],
-    contract: { target: settings.target, spec, specPath: spec ? `${root ? `${root}/` : ""}${spec}` : null, seed: settings.seed, maxExamples: settings.maxExamples, requestTimeoutSeconds: settings.requestTimeoutSeconds, checks: settings.checks, auth: settings.auth },
+    contract: { target: settings.target, service: settings.service, spec, specPath: spec ? `${root ? `${root}/` : ""}${spec}` : null, seed: settings.seed, maxExamples: settings.maxExamples, requestTimeoutSeconds: settings.requestTimeoutSeconds, checks: settings.checks, auth: settings.auth },
     output: { format: "json", schema: null },
   };
 }

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V2-47 integration evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["db", "apiWritable"],
+  "properties": {
+    "db": { "const": "PONG PING integration" },
+    "apiWritable": { "const": false }
+  }
+}

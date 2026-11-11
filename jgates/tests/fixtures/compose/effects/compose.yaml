@@ -1,0 +1,42 @@
+# A development compose file with every kind of host effect discovery reports (never started by the tests).
+x-common: &common
+  restart: unless-stopped
+
+services:
+  db:
+    <<: *common
+    image: postgres:16-alpine
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+  agent:
+    image: busybox:1.36
+    privileged: true
+    network_mode: host
+    cap_add: [NET_ADMIN]
+    devices: ["/dev/fuse:/dev/fuse"]
+    volumes:
+      - /var/run:/host-run
+      - type: bind
+        source: ~/cache
+        target: /cache
+  monitor:
+    image: busybox:1.36
+    pid: host
+    profiles: [debug]
+
+volumes:
+  pgdata: {}
+  shared:
+    external: true

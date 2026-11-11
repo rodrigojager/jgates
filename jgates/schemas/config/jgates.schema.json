@@ -109,6 +109,32 @@
         }
       }
     },
+    "services": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The project's compose services for integration, e2e, API contract, DAST and migration checks. A run starts them as its own compose project (labels, project folders mounted read-only, no published ports), the checks that need them join its network, and it is always taken down afterwards.",
+      "properties": {
+        "compose": { "type": "array", "description": "Compose files, project-relative, in order; default: the files Compose itself finds.", "items": { "type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?![A-Za-z]:)(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$)).+$" } },
+        "profiles": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "start": { "type": "array", "uniqueItems": true, "description": "Services to start; default: the target and the services the checks name.", "items": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$" } },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["service", "port"],
+          "description": "The application under test (api-contract, dast, e2e).",
+          "properties": {
+            "service": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$" },
+            "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "path": { "type": "string", "pattern": "^/" },
+            "health": { "type": "string", "pattern": "^/", "description": "Polled until it answers 2xx/3xx, after the compose healthchecks." }
+          }
+        },
+        "build": { "enum": ["allow", "forbid"], "description": "May compose build images from the project's Dockerfiles (default forbid)." },
+        "writableBinds": { "type": "array", "uniqueItems": true, "description": "Services allowed to write to the project folder (refused in governed mode).", "items": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$" } },
+        "allowHostEffects": { "type": "array", "uniqueItems": true, "description": "Host effects a governed run accepts (the policy decides).", "items": { "enum": ["bind-mount", "privileged", "network-host", "pid-host", "device", "cap-add"] } },
+        "timeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 3600, "description": "Wait for the healthchecks and the target's health path (default 120)." }
+      }
+    },
     "extensions": {
       "type": "object",
       "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },

@@ -2,6 +2,7 @@
 // A runtime check runs only against an explicit target; without one the stage is blocked, never passed. The secret of
 // the authentication header is never written in the configuration or the plan: the instance names the environment
 // variable that holds it, and the run reads it from its own environment.
+import { looksLikeServiceTarget, parseServiceTarget } from "../../core/services/config.js";
 
 const isRec = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -16,11 +17,20 @@ export interface TargetCheck {
   url: string | null;
   /** Why the value is not a usable target ("missing" when unset). */
   problem: "missing" | "invalid" | null;
+  /**
+   * The compose service of a `service:<name>:<port>[/path]` target: the run starts it and the step reaches it on the
+   * run's services network as `http://<name>:<port>` (url).
+   */
+  service?: { name: string; port: number; path: string } | null;
 }
 
-/** An http(s) base URL with a host, without credentials, query or fragment. */
+/** An http(s) base URL with a host, without credentials, query or fragment, or a `service:<name>:<port>` target. */
 export function checkTarget(value: unknown): TargetCheck {
   if (value === undefined || value === null || value === "") return { url: null, problem: "missing" };
+  if (looksLikeServiceTarget(value)) {
+    const service = parseServiceTarget(value);
+    return service ? { url: service.url, problem: null, service: { name: service.service, port: service.port, path: service.path } } : { url: null, problem: "invalid" };
+  }
   if (typeof value !== "string") return { url: null, problem: "invalid" };
   let parsed: URL;
   try {

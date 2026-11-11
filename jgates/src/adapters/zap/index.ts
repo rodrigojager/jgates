@@ -37,6 +37,8 @@ export type ZapMode = "passive" | "active";
 
 export interface ZapSettings {
   target: string | null;
+  /** The compose service of a `service:<name>:<port>` target (reached on the run's services network). */
+  service: { name: string; port: number; path: string } | null;
   spec: string | null;
   mode: ZapMode;
   allowActive: boolean;
@@ -81,7 +83,7 @@ export function zapSettings(input: Pick<ExternalPlanInput, "config" | "tool">): 
   }
   const minutes = intSetting(body.spiderMinutes, 1, 1, 60);
   if (minutes === "invalid") problems.push(t("zap_setting_minutes", { tool: input.tool, value: String(body.spiderMinutes) }));
-  return { target: target.url, spec, mode, allowActive, auth: auth.auth, blockingRisk, spiderMinutes: typeof minutes === "number" ? minutes : 1, problems };
+  return { target: target.url, service: target.service ?? null, spec, mode, allowActive, auth: auth.auth, blockingRisk, spiderMinutes: typeof minutes === "number" ? minutes : 1, problems };
 }
 
 /** The target as the step container sees it: a loopback host becomes host.docker.internal (inside the image it stays). */
@@ -205,6 +207,7 @@ function planZap(input: ExternalPlanInput): ExternalPlan {
     conditions,
     contract: {
       target: settings.target,
+      service: settings.service,
       spec: settings.spec,
       mode: settings.mode,
       allowActive: settings.allowActive,

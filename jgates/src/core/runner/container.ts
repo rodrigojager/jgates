@@ -268,9 +268,11 @@ export interface StepLauncherInput {
   image?: string;
   /**
    * What a step gets besides the source volume and the run folder: the dependency volumes of the units it needs, the
-   * package cache and their variables (core/deps). Asked when each process starts; null or absent: nothing more.
+   * package cache and their variables (core/deps), and the network of the run's compose services for a step that uses
+   * them (core/services; it takes the place of the step's own network). Asked when each process starts; null or
+   * absent: nothing more.
    */
-  stepEnvironment?: (stepId: string) => { mounts: EngineMount[]; env: Record<string, string> } | null;
+  stepEnvironment?: (stepId: string) => { mounts: EngineMount[]; env: Record<string, string>; network?: string } | null;
 }
 
 /** The user a step runs as: the host uid:gid on Linux, the image user on Windows and macOS. */
@@ -447,7 +449,7 @@ export function createStepLauncher(input: StepLauncherInput): StepLauncherHook |
           logHeader: (docker) => (record.text = containerHeader({ command, workdir, container: stepContainer, image: resolved, runtime: docker.runtime, dockerArgs: docker.args })),
           labels: engineLabels({ kind: "step", version: input.version, workspace: input.workspaceId, run: input.runId }),
           mounts,
-          network: scope?.launch?.network ?? "none",
+          network: extra?.network ?? scope?.launch?.network ?? "none",
           user,
           env,
           workdir,
