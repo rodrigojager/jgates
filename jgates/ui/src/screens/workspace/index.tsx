@@ -112,6 +112,11 @@ export default function WorkspaceScreen() {
         <div>
           <h1>{t("ws_title")}</h1>
           <p>{t("ws_lead")}</p>
+          <p className="small">
+            <a href="#/setup" data-testid="wizard-redo">
+              {t("wizard_redo")}
+            </a>
+          </p>
         </div>
         <button type="button" className="btn" onClick={detectAgain} disabled={running}>
           {running ? <Spinner /> : <Icon name="refresh" />}

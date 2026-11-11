@@ -1,0 +1,17 @@
+{
+  "setup_policy_mode": "A configuração guiada não está disponível enquanto a interface edita uma política de CI.",
+  "setup_step_mismatch": "A configuração guiada está em outro passo agora (foi alterada em outra aba ou janela).",
+  "setup_step_mismatch_fix": "Recarregue a página para ver o passo atual.",
+  "setup_step_unreachable": "Esse passo precisa dos anteriores primeiro.",
+  "setup_skip_refused": "Este passo não pode ser pulado: os próximos dependem dele.",
+  "setup_component_unknown": "O componente {id} não está entre os encontrados neste projeto.",
+  "setup_component_unknown_fix": "Recarregue o passo para ver os componentes encontrados agora.",
+  "setup_config_invalid": "O {file} ficaria inválido: {message}",
+  "setup_config_conflict": "O {file} mudou desde que o passo foi aberto.",
+  "setup_config_conflict_fix": "Recarregue o passo para ver a versão atual antes de salvar de novo.",
+  "setup_config_exists": "A configuração já existe: {files}.",
+  "setup_config_exists_fix": "Recarregue a página: a configuração guiada passa a mudar só o perfil escolhido.",
+  "setup_profile_required": "Escolha um perfil antes de continuar.",
+  "setup_plan_required": "Revise o plano antes de iniciar a primeira validação.",
+  "setup_not_configured": "Este projeto ainda não tem jgates.yml: escolha o perfil no passo 4 primeiro."
+}

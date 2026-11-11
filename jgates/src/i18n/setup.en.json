@@ -1,0 +1,17 @@
+{
+  "setup_policy_mode": "The guided setup is not available while the interface edits a CI policy.",
+  "setup_step_mismatch": "The guided setup is at another step now (it was changed in another tab or window).",
+  "setup_step_mismatch_fix": "Reload the page to see the current step.",
+  "setup_step_unreachable": "That step needs the previous ones first.",
+  "setup_skip_refused": "This step cannot be skipped: the next ones depend on it.",
+  "setup_component_unknown": "The component {id} is not among the ones found in this project.",
+  "setup_component_unknown_fix": "Reload the step to see the components found now.",
+  "setup_config_invalid": "{file} would be invalid: {message}",
+  "setup_config_conflict": "{file} changed since the step was opened.",
+  "setup_config_conflict_fix": "Reload the step to see the current version before saving again.",
+  "setup_config_exists": "The configuration already exists: {files}.",
+  "setup_config_exists_fix": "Reload the page: the guided setup then changes only the chosen profile.",
+  "setup_profile_required": "Choose a profile before continuing.",
+  "setup_plan_required": "Review the plan before starting the first validation.",
+  "setup_not_configured": "This project has no jgates.yml yet: choose the profile in step 4 first."
+}

@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { api } from "../api";
-import { errorText, Spinner } from "../components/common";
+import { Loading, Spinner } from "../components/common";
 import { Icon } from "../components/icons";
-import { quoteArg } from "./shell-quote";
 import { useToast } from "../components/Toast";
 import { t } from "../i18n";
 import type { Area } from "./areas";
@@ -86,161 +85,36 @@ export function CopyCommand({ command }: { command: string }) {
   );
 }
 
-interface InitInfo {
-  existing: string[];
-  profiles: string[];
-  defaultProfile: string;
-  components: Array<{ root: string; language: string | null; framework: string | null; evidence: string[] }>;
-  templates: string[];
-  files: string[];
-}
+// The first-run wizard, fetched when it is shown (most visits of the overview never need its code).
+const Wizard = lazy(() => import("../screens/wizard/Wizard"));
 
 /**
- * Overview of a workspace with no jgates.yml: what discovery found, the choice of the starting profile and the
- * button that writes the configuration (the same files as `jgates init`). The terminal road stays below.
+ * The overview's content: the first-run wizard while the setup is not over (a workspace without jgates.yml always, or a
+ * wizard that was started and has not ended), the overview's own screen afterwards. The server keeps the wizard's
+ * state, so a reload lands on the same step.
  */
-export function FirstAccess() {
-  const { info, reload } = useShell();
-  const toast = useToast();
-  const [checking, setChecking] = useState(false);
-  const [data, setData] = useState<InitInfo | null>(null);
-  const [profile, setProfile] = useState("standard");
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<{ message: string; fix: string | null } | null>(null);
-  const dir = info?.workspace.path ?? ".";
-
+export function SetupGate({ children }: { children: ReactNode }) {
+  const { info } = useShell();
+  const configured = info?.workspace.configured ?? true;
+  // Without a configuration the wizard shows at once; with one, the server says whether a wizard is still going on.
+  const [open, setOpen] = useState<boolean | null>(configured ? null : true);
   useEffect(() => {
     let alive = true;
-    api<InitInfo>("GET", "/api/init")
-      .then((d) => {
-        if (!alive) return;
-        setData(d);
-        setProfile(d.defaultProfile);
-      })
-      .catch((e) => alive && setError(errorText(e)));
+    api<{ open: boolean }>("GET", "/api/setup").then(
+      (answer) => alive && setOpen(answer.open),
+      () => alive && setOpen(!configured),
+    );
     return () => {
       alive = false;
     };
-  }, []);
-
-  const recheck = async () => {
-    setChecking(true);
-    await reload();
-    setChecking(false);
-    // The shell data replaces this state by itself when the file exists; otherwise say so.
-    toast(t("first_not_yet"), "info");
-  };
-  const create = async () => {
-    setCreating(true);
-    setError(null);
-    try {
-      const answer = await api<{ profile: string; created: string[] }>("POST", "/api/init", { profile });
-      toast(t("first_init_done", { profile: answer.profile, files: answer.created.join(", ") }), "ok");
-      await reload();
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setCreating(false);
-    }
-  };
-  const steps = [
-    { id: "init", title: t("first_step1_title"), text: t("first_step1_text"), command: `jgates init --profile ${profile} --cwd ${quote(dir)}` },
-    { id: "discover", title: t("first_step2_title"), text: t("first_step2_text"), command: `jgates discover --cwd ${quote(dir)}` },
-    { id: "plan", title: t("first_step3_title"), text: t("first_step3_text"), command: `jgates plan --cwd ${quote(dir)}` },
-  ];
+  }, [configured]);
+  if (open === null) return <Loading />;
+  if (!open) return <>{children}</>;
   return (
-    <section className="stack" aria-labelledby="first-title" data-state="first-access">
-      <div className="stack">
-        <p className="eyebrow">{t("first_eyebrow")}</p>
-        <h1 id="first-title">{t("first_title")}</h1>
-        <p>{t("first_lead", { path: dir })}</p>
-      </div>
-
-      <div className="card flat stack" data-step="detected">
-        <h2>{t("first_detected_title")}</h2>
-        {!data ? <p className="small spinner-text" role="status">{t("first_loading")}</p> : null}
-        {data && data.components.length === 0 ? <p>{t("first_detected_none")}</p> : null}
-        {data && data.components.length > 0 ? (
-          <ul className="ws-list" aria-label={t("first_detected_title")}>
-            {data.components.map((c) => (
-              <li key={`${c.root}:${c.language ?? ""}`} className="ws-item">
-                <Icon name="folder" />
-                <div className="grow">
-                  <strong className="mono">{c.root}</strong>
-                  <div className="small muted">
-                    {[c.language, c.framework].filter(Boolean).join(" · ") || t("first_language_unknown")}
-                    {c.evidence.length > 0 ? ` (${c.evidence.join(", ")})` : ""}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {data ? <p className="small muted">{t("first_templates", { templates: data.templates.join(", ") })}</p> : null}
-      </div>
-
-      <fieldset className="card flat stack" data-step="profile">
-        <legend>
-          <h2>{t("first_profile_title")}</h2>
-        </legend>
-        {(data?.profiles ?? ["minimal", "standard", "strict"]).map((id) => (
-          <label key={id} className="row first-profile">
-            <input type="radio" name="first-profile" value={id} checked={profile === id} onChange={() => setProfile(id)} />
-            <span className="grow">
-              <strong>{id}</strong>
-              <span className="small muted"> — {t(`first_profile_${id}`)}</span>
-            </span>
-          </label>
-        ))}
-        {data ? <p className="small muted">{t("first_files", { files: data.files.join(", ") })}</p> : null}
-        <div className="row wrap">
-          <button type="button" className="btn primary" onClick={() => void create()} disabled={creating || !data}>
-            {creating ? <Spinner /> : <Icon name="check" />}
-            {creating ? t("first_creating") : t("first_create")}
-          </button>
-        </div>
-        {error ? (
-          <div className="notice error" role="alert">
-            <Icon name="alert" />
-            <div className="grow">
-              <p>{error.message}</p>
-              {error.fix ? <p className="small">{error.fix}</p> : null}
-            </div>
-          </div>
-        ) : null}
-      </fieldset>
-
-      <details className="card flat stack">
-        <summary>{t("first_terminal")}</summary>
-        <ol className="road">
-          {steps.map((step, index) => (
-            <li key={step.id} className="card flat stack" data-step={step.id}>
-              <div className="row">
-                <span className="step-number" aria-hidden="true">
-                  {index + 1}
-                </span>
-                <h2>{step.title}</h2>
-              </div>
-              <p>{step.text}</p>
-              <CopyCommand command={step.command} />
-            </li>
-          ))}
-        </ol>
-        <div className="row wrap">
-          <button type="button" className="btn" onClick={recheck} disabled={checking}>
-            <Icon name="refresh" />
-            {t("first_recheck")}
-          </button>
-          <span className="small muted">{t("first_recheck_hint")}</span>
-        </div>
-      </details>
-    </section>
+    <Suspense fallback={<Loading />}>
+      <Wizard onClosed={() => setOpen(false)} />
+    </Suspense>
   );
-}
-
-/** Quotes a path for the command line shown to the user only when it needs it (the shell of the person's system). */
-function quote(value: string): string {
-  return quoteArg(value);
 }
 
 /** An area (or route) with no screen in this version of the application. */

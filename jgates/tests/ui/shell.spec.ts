@@ -340,30 +340,26 @@ test("a session that the server no longer knows gets its own state", async ({ pa
   });
 });
 
-test("a workspace without jgates.yml shows the first-access road in the overview", async ({ page }) => {
+test("a workspace without jgates.yml shows the first-run wizard in the overview", async ({ page }) => {
   const fixture = createFixture();
   fs.rmSync(path.join(fixture.dir, "jgates.yml"));
   fs.rmSync(path.join(fixture.dir, ".jgates"), { recursive: true, force: true });
   await withServer(fixture, async (server) => {
     await page.goto(server.bootstrapUrl);
     await expect.poll(() => new URL(page.url()).hash).toBe("#/overview");
-    const road = page.locator('[data-state="first-access"]');
-    await expect(road.getByRole("heading", { name: "Este workspace ainda não tem configuração", level: 1 })).toBeVisible();
-    await expect(road.locator("li[data-step]")).toHaveCount(3);
-    await expect(road.locator('li[data-step="init"] code')).toContainText(/jgates init --profile \S+ --cwd/);
-    await expect(road.locator('li[data-step="init"] code')).toContainText(fs.realpathSync(fixture.dir), { ignoreCase: true }); // paths are case-folded on Windows
-    // The road stays in the overview whichever way the user gets there.
+    const wizard = page.locator('[data-state="wizard"]');
+    await expect(wizard.getByRole("heading", { name: "Passo 1 de 6 · Docker", level: 1 })).toBeVisible();
+    await expect(wizard.getByRole("navigation", { name: "Passos da configuração" }).getByRole("button")).toHaveCount(6);
+    // The wizard stays in the overview whichever way the user gets there.
     await page.getByRole("navigation", { name: "Navegação principal" }).getByRole("link", { name: "Workspace" }).click();
     await page.getByRole("navigation", { name: "Navegação principal" }).getByRole("link", { name: "Visão geral" }).click();
-    await expect(road).toBeVisible();
+    await expect(wizard).toBeVisible();
 
-    // After the init the road gives way (the data of the overview takes its place).
+    // A configuration made in the terminal, before the wizard was used: the overview turns into the dashboard at the next check.
     const init = spawnSync(process.execPath, [MAIN, "init", "--cwd", fixture.dir, "--profile", "minimal", "--no-interactive", "--json"], { env: fixture.env, encoding: "utf8" });
     expect(init.status, init.stderr).toBe(0);
-    // The terminal road is the collapsed alternative to the "create" button: open it, then check again.
-    await road.locator("details > summary").click();
-    await road.getByRole("button", { name: "Já rodei o init no terminal, verificar de novo" }).click();
-    await expect(road).toHaveCount(0);
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(wizard).toHaveCount(0);
   });
 });
 

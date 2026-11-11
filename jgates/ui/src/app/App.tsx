@@ -5,7 +5,7 @@ import { areaOfPath } from "./areas";
 import { currentPath, navigate, redirectOf, resolveScreen, startPath, useRoute } from "./route";
 import { useShell } from "./shell-context";
 import { Sidebar } from "./Sidebar";
-import { ActiveRunBanner, AreaUnavailable, FirstAccess, ServerStopped, SessionExpired } from "./states";
+import { ActiveRunBanner, AreaUnavailable, ServerStopped, SessionExpired, SetupGate } from "./states";
 import { Topbar } from "./Topbar";
 import { PolicyUnavailable } from "../screens/policy/PolicyBand";
 
@@ -92,7 +92,6 @@ export function App() {
   if (connection === "stopped") body = <ServerStopped path={info?.workspace.path ?? ""} />;
   else if (connection === "expired") body = <SessionExpired />;
   else if (!info) body = <p className="spinner-text" role="status">{t("loading")}</p>;
-  else if (path === "/overview" && !info.workspace.configured && !policyMode) body = <FirstAccess />;
   else if (found && policyMode && PROJECT_ONLY_SCREENS.has(found.mod.screen.id)) body = <PolicyUnavailable />;
   else if (found) {
     const Screen = found.mod.default;
@@ -101,6 +100,8 @@ export function App() {
         <Screen key={path} params={found.params} />
       </Suspense>
     );
+    // The overview is the first-run wizard until the setup is over.
+    if (path === "/overview" && !policyMode) body = <SetupGate key={info.workspace.id}>{body}</SetupGate>;
   } else body = <AreaUnavailable area={areaOfPath(path)} />;
 
   const active = info?.runs.active ?? null;

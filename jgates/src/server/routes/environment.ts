@@ -82,6 +82,9 @@ interface Job {
   state: "running" | "done" | "failed";
   events: Array<Record<string, unknown> & { seq: number }>;
   waiters: Set<() => void>;
+  /** Settles with the outcome (true: done) when the job ends; other routes chain their own work on it. */
+  finished: Promise<boolean>;
+  settle: (ok: boolean) => void;
 }
 
 const jobsOf = new WeakMap<ServerContext, Map<string, Job>>();
@@ -103,6 +106,7 @@ function push(job: Job, event: Record<string, unknown>): void {
 function finishJob(job: Job, ok: boolean, result: Record<string, unknown>): void {
   job.state = ok ? "done" : "failed";
   push(job, { type: "end", ok, ...result });
+  job.settle(ok);
 }
 
 function cliMain(): string {
@@ -110,7 +114,9 @@ function cliMain(): string {
 }
 
 function startJob(server: ServerContext, kind: JobKind, locale?: string): Job {
-  const job: Job = { id: `job_${crypto.randomBytes(6).toString("hex")}`, kind, state: "running", events: [], waiters: new Set() };
+  let settle: (ok: boolean) => void = () => undefined;
+  const finished = new Promise<boolean>((resolve) => (settle = resolve));
+  const job: Job = { id: `job_${crypto.randomBytes(6).toString("hex")}`, kind, state: "running", events: [], waiters: new Set(), finished, settle };
   push(job, { type: "start", kind });
   const failed = (error: unknown): void => finishJob(job, false, { error: error instanceof Error ? error.message : String(error) });
   if (kind === "pull") {
@@ -152,6 +158,33 @@ function startJob(server: ServerContext, kind: JobKind, locale?: string): Job {
 
 const publicJob = (job: Job) => ({ id: job.id, kind: job.kind, state: job.state });
 
+export type EnvironmentJobView = ReturnType<typeof publicJob>;
+
+/**
+ * Starts a preparation job of this server, or hands back the one of that kind that is still running (one per kind).
+ * `finished` settles with the outcome, so the first-run wizard can chain the next preparation on it.
+ */
+export function startEnvironmentJob(server: ServerContext, kind: JobKind, locale?: string): { job: EnvironmentJobView; reused: boolean; finished: Promise<boolean> } {
+  const running = [...jobsFor(server).values()].find((j) => j.kind === kind && j.state === "running");
+  if (running) return { job: publicJob(running), reused: true, finished: running.finished };
+  refreshPath({ force: true });
+  const job = startJob(server, kind, locale);
+  server.log(`environment job ${job.kind} ${job.id}`);
+  return { job: publicJob(job), reused: false, finished: job.finished };
+}
+
+/** A job of this server by id (null after a restart of the server: jobs live in memory only). */
+export function environmentJob(server: ServerContext, id: string): EnvironmentJobView | null {
+  const job = jobsFor(server).get(id);
+  return job ? publicJob(job) : null;
+}
+
+/** The running job of a kind, if any. */
+export function runningEnvironmentJob(server: ServerContext, kind: JobKind): EnvironmentJobView | null {
+  const job = [...jobsFor(server).values()].find((j) => j.kind === kind && j.state === "running");
+  return job ? publicJob(job) : null;
+}
+
 export const routes: RouteDefinition[] = [
   {
     // Every section (engine, image, data, dependencies, services, extension, CodeQL) with its state and its reasons.
@@ -177,12 +210,8 @@ export const routes: RouteDefinition[] = [
     handler({ body, server }) {
       if (server.policyMode) throw new HttpError(409, "POLICY_MODE", translator("reasons")("env_api_policy_mode"), null);
       const input = body as { kind: JobKind; locale?: string };
-      const running = [...jobsFor(server).values()].find((j) => j.kind === input.kind && j.state === "running");
-      if (running) return { status: 200, json: { schemaVersion: 1, status: "OK", job: publicJob(running), reused: true } };
-      refreshPath({ force: true });
-      const job = startJob(server, input.kind, normalizeLocale(input.locale) ?? undefined);
-      server.log(`environment job ${job.kind} ${job.id}`);
-      return { status: 200, json: { schemaVersion: 1, status: "OK", job: publicJob(job), reused: false } };
+      const { job, reused } = startEnvironmentJob(server, input.kind, normalizeLocale(input.locale) ?? undefined);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", job, reused } };
     },
   },
   {

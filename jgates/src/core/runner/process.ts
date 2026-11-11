@@ -252,6 +252,11 @@ export function runSpec(spec: ExecutionSpec, options: RunnerOptions = {}): Promi
       // A Node script named as the executable (a wrapper or a test double) runs through the Node that runs JGates:
       // Windows cannot execute a script, and elsewhere this is the same as its #! line.
       const script = /\.(?:mjs|cjs|js)$/i.test(spec.executable);
+      // A script that is not there is a missing executable (ENOENT), as a missing binary is, not a failing program.
+      if (script && !fs.existsSync(spec.executable)) {
+        finish({ exitCode: null, signal: null, spawnError: { code: "ENOENT", message: `spawn ${spec.executable} ENOENT` } });
+        return;
+      }
       child = spawn(script ? process.execPath : spec.executable, script ? [spec.executable, ...spec.args] : spec.args, {
         cwd: spec.cwd,
         env: buildEnv(spec, options),
