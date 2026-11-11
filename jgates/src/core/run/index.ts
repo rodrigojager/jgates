@@ -22,6 +22,7 @@ import { createDataRun, dataMaxAgeDaysOf, type DataRun } from "../data/index.js"
 import { createCodeqlRun, type CodeqlRun } from "../codeql-prepare/index.js";
 import { createServicesRun, type ServicesRun } from "../services/run.js";
 import type { Plan } from "../plan/types.js";
+import { stepImageResolver } from "../extension/pins.js";
 import { describeAnalysis, planOutputs, prepareAnalysis, verifyInputs, type PreparedAnalysis } from "./analysis.js";
 import type { AdapterContext, AdapterOutput, CacheableStep, ResultDisabled, ResultPolicy, RunResult, SemanticHook } from "./types.js";
 import { ChangeAttribution, compareGitStatus, diffManifests, takeGitStatus, takeManifest } from "./workspace-state.js";
@@ -366,7 +367,7 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
   };
   const launcher =
     opts.plan && toolsImageGateEnabled(env)
-      ? createStepLauncher({ env, workspaceId: workspace.id, runId, runDir, projectDir: prep.path, version: opts.version, stepEnvironment })
+      ? createStepLauncher({ env, workspaceId: workspace.id, runId, runDir, projectDir: prep.path, version: opts.version, stepEnvironment, stepImage: stepImageResolver(opts.plan) })
       : null;
   data = opts.plan && launcher ? createDataRun({ plan: opts.plan, env, runDir, maxAgeDays: dataMaxAgeDaysOf(opts.policy?.source.dir ?? prep.path), version: opts.version }) : null;
   codeql = opts.plan && launcher ? createCodeqlRun({ plan: opts.plan, env, runDir, version: opts.version }) : null;

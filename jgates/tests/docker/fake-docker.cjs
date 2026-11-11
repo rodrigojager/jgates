@@ -97,9 +97,53 @@ const lastNonFlags = (args) => args.filter((a) => !a.startsWith("-"));
 const printJsonLines = (items) => items.forEach((item) => process.stdout.write(JSON.stringify(item) + "\n"));
 const humanSize = (bytes) => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(2)}GB` : bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)}MB` : `${Math.round(bytes / 1e3)}kB`);
 
+// ---- build ------------------------------------------------------------------------------------------------------
+// `build [--build-arg K=V] [--label K=V] --tag <repo:tag> <context>`: the image the engine "built" is registered in objects.json
+// (name, tag, labels, a built flag that `image prune` leaves alone) and `image inspect <repo:tag>` answers for it. The Dockerfile
+// and the files of the context are recorded in builds.jsonl, with the build arguments. FAKE_DOCKER_BUILD_EXIT makes a build fail
+// (FAKE_DOCKER_BUILD_STDERR is its message); the base image of FROM is never pulled, a missing one fails like the real engine.
+if (argv[0] === "build") {
+  needDaemon();
+  const tag = argv[argv.indexOf("--tag") + 1];
+  const buildArgs = {};
+  for (let i = 0; i < argv.length - 1; i++) if (argv[i] === "--build-arg") buildArgs[argv[i + 1].split("=")[0]] = argv[i + 1].split("=").slice(1).join("=");
+  const context = argv[argv.length - 1];
+  const dockerfile = path.join(context, "Dockerfile");
+  if (!fs.existsSync(dockerfile)) fail(`failed to read dockerfile: open ${dockerfile}: no such file or directory`);
+  const files = [];
+  const walk = (dir, prefix) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(path.join(dir, entry.name), rel);
+      else files.push(rel);
+    }
+  };
+  walk(context, "");
+  process.stdout.write(`#1 [internal] load build definition from Dockerfile\n#1 DONE 0.0s\n`);
+  fs.appendFileSync(path.join(state, "builds.jsonl"), JSON.stringify({ tag, buildArgs, labels: labelsOfFlags(argv), dockerfile: fs.readFileSync(dockerfile, "utf8"), files: files.sort() }) + "\n");
+  if (process.env.FAKE_DOCKER_BUILD_EXIT && Number(process.env.FAKE_DOCKER_BUILD_EXIT) !== 0) {
+    fail(process.env.FAKE_DOCKER_BUILD_STDERR || "ERROR: failed to solve: process \"/bin/sh -c pip install nothing\" did not complete successfully: exit code: 1", Number(process.env.FAKE_DOCKER_BUILD_EXIT));
+  }
+  const [name, version] = tag.split(":");
+  const objects = loadObjects();
+  const labels = labelsOfFlags(argv);
+  const id = `sha256:${crypto.createHash("sha256").update(JSON.stringify([tag, labels, fs.readFileSync(dockerfile, "utf8"), files])).digest("hex")}`;
+  objects.images = objects.images.filter((o) => !(o.name === name && o.tag === version)).concat([{ id, name, tag: version, labels, sizeBytes: 250000000, built: true }]);
+  saveObjects(objects);
+  process.stdout.write(`#2 exporting to image\n#2 naming to ${tag} done\n`);
+  process.exit(0);
+}
+
 // ---- image inspect ---------------------------------------------------------------------------------------------
 if (argv[0] === "image" && argv[1] === "inspect") {
   needDaemon();
+  const asked = argv[argv.length - 1];
+  const builtImage = loadObjects().images.find((o) => o.built && (`${o.name}:${o.tag}` === asked || o.id === asked));
+  if (builtImage) {
+    const object = { Id: builtImage.id, Size: builtImage.sizeBytes || 1000, Config: { Labels: builtImage.labels || {} } };
+    process.stdout.write((argv.includes("--format") ? JSON.stringify(object) : JSON.stringify([{ ...object, RepoDigests: [] }])) + "\n");
+    process.exit(0);
+  }
   const labels = process.env.FAKE_DOCKER_LABELS || '{"org.jgates.tool.version":"0.17.2"}';
   if (labels === "none") {
     process.stderr.write("Error: No such image\n");
@@ -266,7 +310,7 @@ if (listKind) {
         ? { ID: o.id, Names: o.name, State: o.state, Labels: labelString(o.labels) }
         : listKind === "networks"
           ? { ID: o.id, Name: o.name, Labels: labelString(o.labels) }
-          : { ID: o.id, Repository: o.name, Tag: "dev", Size: humanSize(o.sizeBytes || 0), Labels: labelString(o.labels) },
+          : { ID: o.id, Repository: o.name, Tag: o.tag || "dev", Size: humanSize(o.sizeBytes || 0), Labels: labelString(o.labels) },
     ),
   );
   process.exit(0);
@@ -276,7 +320,8 @@ if (argv[1] === "prune" && ["container", "network", "image"].includes(argv[0])) 
   const objects = loadObjects();
   const key = argv[0] + "s";
   const filters = filtersOf(argv);
-  objects[key] = objects[key].filter((o) => !matches(o.labels, filters));
+  // Only dangling images are pruned: an image a `build` made keeps its tag, so it is never dangling.
+  objects[key] = objects[key].filter((o) => o.built || !matches(o.labels, filters));
   saveObjects(objects);
   process.exit(0);
 }
@@ -297,7 +342,7 @@ if ((argv[0] === "image" || argv[0] === "network" || argv[0] === "container") &&
   const objects = loadObjects();
   const key = argv[0] + "s";
   const ids = lastNonFlags(argv.slice(2));
-  objects[key] = objects[key].filter((o) => !ids.includes(o.id) && !ids.includes(o.name));
+  objects[key] = objects[key].filter((o) => !ids.includes(o.id) && !ids.includes(o.name) && !(o.tag && ids.includes(`${o.name}:${o.tag}`)));
   saveObjects(objects);
   process.exit(0);
 }
@@ -508,6 +553,21 @@ if (argv[0] === "run") {
         const target = path.join(hostOf(workspaceMount), rel);
         fs.mkdirSync(path.dirname(target), { recursive: true });
         fs.writeFileSync(target, "written by the step\n");
+      }
+    }
+    if (process.env.FAKE_DOCKER_OUTPUT_FILES && runLabels["org.jgates.kind"] === "step") {
+      // A step container whose tool writes reports: JSON { "<part of the container name>": { "<path under /output>": "<text>" } };
+      // the files land in the run folder mounted at /output (a SARIF or JUnit report of a custom tool).
+      const outMount = mounts.find((m) => m.target === "/output" && m.type === "bind");
+      if (outMount) {
+        for (const [part, files] of Object.entries(JSON.parse(process.env.FAKE_DOCKER_OUTPUT_FILES))) {
+          if (!name.includes(part)) continue;
+          for (const [rel, text] of Object.entries(files)) {
+            const target = path.join(outMount.source, rel);
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.writeFileSync(target, text);
+          }
+        }
       }
     }
     if (runLabels["org.jgates.kind"] === "deps") {

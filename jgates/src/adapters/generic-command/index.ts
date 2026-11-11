@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { translator } from "../../i18n/index.js";
 import { createCoreCatalog } from "../../core/catalog/index.js";
 import { contentHash } from "../../core/ids/index.js";
+import { imageSettingOf } from "../../core/extension/pins.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { resolveExecutable, runSpec, substituteTokens } from "../../core/runner/index.js";
@@ -180,7 +181,8 @@ function planGeneric(input: ExternalPlanInput): ExternalPlan {
         }
       : {}),
     uncredited,
-    contract: { successExitCodes: declared?.successExitCodes ?? [0], evidence: declared?.evidence ?? null },
+    // `image` says where the command runs: the tools image, the project's extension image or a ready image (the plan pins it).
+    contract: { successExitCodes: declared?.successExitCodes ?? [0], evidence: declared?.evidence ?? null, image: imageSettingOf(body) },
   };
 }
 

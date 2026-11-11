@@ -6,6 +6,7 @@ import { readVersion } from "../../cli/version.js";
 import { toolMissingReason, toolsImageGateEnabled, toolsImagePreflight, toolsImageTarget, toolsMissingFromImage } from "../tools-image/index.js";
 import { inspectImageSync } from "../engine/index.js";
 import { resolveReason } from "../reasons/index.js";
+import { planImages } from "../extension/pins.js";
 import { listBuiltinProfiles, listBuiltinTemplates, getBuiltinTemplate, isBuiltinRef } from "../../builtin/index.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
 import { createCoreCatalog, subcheckLabel } from "../catalog/index.js";
@@ -1019,6 +1020,18 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       }
     }
     blockers.push(...deps.blockers);
+    // The images the custom tools run on: the project's extension image (out of date: EXTENSION_OUTDATED, with the
+    // command that rebuilds it) and ready images named by reference. Their ids go into the plan, so the hash moves with them.
+    const toolsRunning = new Set(willRun.map((i) => i.tool));
+    const imageUses = [...externals.entries()]
+      .filter(([id]) => toolsRunning.has(id))
+      .map(([id, e]) => ({ tool: id, image: typeof e.plan.contract?.image === "string" ? e.plan.contract.image : "tools" }))
+      .filter((u) => u.image !== "tools");
+    if (imageUses.length > 0) {
+      const planned = planImages({ projectDir: dir, workspace: fs.existsSync(workspaceDir) ? workspaceId(workspaceDir) : "ws_unknown", env, baseDigest: container.toolsImage, uses: imageUses });
+      if (options.container?.extensionImages === undefined) container.extensionImages = planned.images;
+      blockers.push(...planned.blockers);
+    }
     // The project's compose services: the names the plan starts (part of the hash), the host effects the review lists,
     // and, in a governed plan, the effects the policy does not allow.
     const services = planServices({

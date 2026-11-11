@@ -249,6 +249,52 @@ export function engineCommand(args: string[], context: EngineContext = {}, timeo
   return runInScope({}, () => runSpec({ executable: context.runtime ?? engineRuntime(), args, cwd: os.tmpdir(), timeoutMs, signal: NEVER }, clientOptions(context)));
 }
 
+export interface EngineBuildSpec {
+  /** Folder with the Dockerfile; it is the whole build context. */
+  contextDir: string;
+  /** `repository:tag` the image gets. */
+  tag: string;
+  buildArgs?: Record<string, string>;
+  /** Labels of the image (the JGates labels). */
+  labels: Record<string, string>;
+  timeoutMs?: number;
+  signal?: AbortSignal;
+  /** Each chunk of the build output (progress). */
+  onOutput?: (chunk: string) => void;
+}
+
+/**
+ * Builds an image from a folder (`docker build`): never pulls a base image, so the FROM line has to be one the engine
+ * already has (the tools image), and the build runs with the engine's own network (the Dockerfile's install lines).
+ * Only the extension image build uses it.
+ */
+export function engineBuild(spec: EngineBuildSpec, context: EngineContext = {}): Promise<ExecutionResult> {
+  if (!/^[a-z0-9][a-z0-9_.-]*(?:\/[a-z0-9][a-z0-9_.-]*)*:[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/.test(spec.tag)) throw new EngineSpecError("BAD_NAME", `invalid image tag: ${spec.tag}`);
+  const args = ["build", "--pull=false", "--progress=plain", "--tag", spec.tag];
+  for (const [k, v] of Object.entries(spec.buildArgs ?? {})) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k) || /[\n\r\0]/.test(v)) throw new EngineSpecError("BAD_ENV", `invalid build argument: ${k}`);
+    args.push("--build-arg", `${k}=${v}`);
+  }
+  for (const [k, v] of Object.entries(spec.labels)) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(k) || /[\n\r\0]/.test(v)) throw new EngineSpecError("BAD_LABEL", `invalid label: ${k}`);
+    args.push("--label", `${k}=${v}`);
+  }
+  args.push(spec.contextDir);
+  return runInScope({}, () =>
+    runSpec(
+      {
+        executable: context.runtime ?? engineRuntime(context.runnerOptions?.parentEnv ?? process.env),
+        args,
+        cwd: os.tmpdir(),
+        timeoutMs: spec.timeoutMs ?? 30 * 60_000,
+        ...(spec.signal ? { signal: spec.signal } : {}),
+        ...(spec.onOutput ? { onStdout: spec.onOutput, onStderr: spec.onOutput } : {}),
+      },
+      clientOptions(context),
+    ),
+  );
+}
+
 export interface EngineSyncResult {
   stdout: string;
   stderr: string;

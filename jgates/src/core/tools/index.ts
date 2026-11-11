@@ -223,7 +223,8 @@ export function resolveToolBindings(dir: string, options: ResolveBindingsOptions
     const toolBase = typeof rawTool.base === "string" ? rawTool.base : null;
     const refs: RefInput[] = [];
     if (typeof rawTool.config === "string") refs.push({ id: "config", ref: rawTool.config, defaultRole: "primary", segments: ["tools", toolId, "config"] });
-    else if (isObject(rawTool.config)) refs.push({ id: "config", ref: rawTool.config, defaultRole: "primary", segments: ["tools", toolId, "config"] });
+    // An object without a path is not a file: it is the declaration of a generic command (effects and evidence).
+    else if (isObject(rawTool.config) && !("effects" in rawTool.config && "evidence" in rawTool.config)) refs.push({ id: "config", ref: rawTool.config, defaultRole: "primary", segments: ["tools", toolId, "config"] });
     if (isObject(rawTool.configFiles)) {
       for (const [id, ref] of Object.entries(rawTool.configFiles)) {
         if (isObject(ref)) refs.push({ id, ref, defaultRole: "support", segments: ["tools", toolId, "configFiles", id] });

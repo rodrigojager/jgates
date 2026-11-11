@@ -15,6 +15,10 @@ import { decodeBytes, DocumentError, openDocument, saveDocument, validateDocumen
 import { CODEQL_VOLUME, prepareCodeql, type PrepareResult } from "../../core/codeql-prepare/index.js";
 import { exportImage, importImage, TransferError } from "../../core/lifecycle/transfer.js";
 import { formatBytes } from "../../core/reasons/index.js";
+import { buildExtension, CustomToolError, hasExtension, parseReport, planCustomTool, writeCustomTool, type CustomToolPlan, type CustomToolRequest } from "../../core/extension/index.js";
+import { testTool } from "../../core/extension/test-tool.js";
+import { toolsImageTarget } from "../../core/tools-image/index.js";
+import { workspaceId } from "../../core/ids/index.js";
 import { DATABASE_IDS, updateData, type DatabaseId, type UpdateProgress, type UpdateResult } from "../../core/data/index.js";
 
 const tr = translator("tools");
@@ -444,7 +448,155 @@ async function runTransfer(ctx: CommandContext, direction: "export" | "import"):
   }
 }
 
+const many = (ctx: CommandContext, name: string): string[] => [...(ctx.lists?.[name] ?? [])];
+
+/** `tools add-custom <id> ...`: the tools.yml entry and, with --install, the Dockerfile lines of the user's own image. */
+function runAddCustom(ctx: CommandContext, projectDir: string): number {
+  const e = translator("extension");
+  const usage = (code: string, key: string, params: Record<string, string | number> = {}, fixKey = "extension_add_usage"): number =>
+    reportError(ctx, ctx.json, code, e(key, params), e(fixKey, params), EXIT_USAGE);
+  const id = ctx.args[1];
+  if (!id) return usage("MISSING_ID", "extension_add_missing_id");
+  const str = (name: string): string | undefined => (typeof ctx.options[name] === "string" ? (ctx.options[name] as string) : undefined);
+  let request: CustomToolRequest;
+  try {
+    const timeout = str("timeout");
+    request = {
+      id,
+      ...(str("image") !== undefined ? { image: str("image") as string } : {}),
+      install: many(ctx, "install"),
+      command: str("command") ?? "",
+      args: many(ctx, "arg"),
+      report: parseReport(str("report") ?? "exit-code"),
+      capabilities: many(ctx, "capability").flatMap((v) => v.split(",")).map((v) => v.trim()).filter(Boolean),
+      ...(str("component") !== undefined ? { component: str("component") as string } : {}),
+      network: ctx.options.network === true,
+      ...(timeout !== undefined ? { timeoutSeconds: /^\d+$/.test(timeout) ? Number(timeout) : Number.NaN } : {}),
+    };
+  } catch (error) {
+    if (error instanceof CustomToolError) return usage(error.code, `extension_add_${error.code.toLowerCase()}`, error.params);
+    throw error;
+  }
+  const known = new Set(builtinCatalog().toDocument().capabilities.map((c) => c.id));
+  const unknown = request.capabilities.find((c) => !known.has(c));
+  if (unknown) return usage("CAPABILITY_UNKNOWN", "extension_add_unknown_capability", { capability: unknown }, "extension_add_unknown_capability");
+  if (request.component !== undefined) {
+    let components: string[] = [];
+    try {
+      components = discoverWorkspace(projectDir).inventory.classifications.map((c) => c.id);
+    } catch {
+      components = [];
+    }
+    if (!components.includes(request.component)) return usage("COMPONENT_UNKNOWN", "extension_add_unknown_component", { component: request.component }, "extension_add_unknown_component");
+  }
+  let plan: CustomToolPlan;
+  try {
+    plan = planCustomTool(projectDir, request);
+  } catch (error) {
+    if (error instanceof CustomToolError) return usage(error.code, `extension_add_${error.code.toLowerCase()}`, error.params, error.code === "ID_EXISTS" ? "extension_add_id_exists_fix" : "extension_add_usage");
+    throw error;
+  }
+  const dryRun = ctx.options["dry-run"] === true;
+  const written = dryRun ? [] : writeCustomTool(projectDir, plan);
+  if (ctx.json) {
+    return ok(ctx, {
+      dryRun,
+      id: plan.id,
+      image: plan.image,
+      needsBuild: plan.needsBuild,
+      dockerfileLines: plan.dockerfileLines,
+      changes: plan.changes.map((c) => ({ file: c.file, created: c.before === null, diff: c.diff })),
+      written,
+    });
+  }
+  if (dryRun) {
+    ctx.stdout(`${e("extension_add_dry_run")}\n`);
+    for (const change of plan.changes) ctx.stdout(`\n${change.diff}${change.diff.endsWith("\n") ? "" : "\n"}`);
+    return 0;
+  }
+  ctx.stdout(`${e("extension_add_written", { id: plan.id, files: written.join(", ") })}\n${e("extension_add_not_validated")}\n${e(plan.needsBuild ? "extension_add_next_build" : "extension_add_next_test", { id: plan.id })}\n`);
+  return 0;
+}
+
+/** `tools build-extension [--yes]`: builds the project's own image from .jgates/image/Dockerfile. */
+async function runBuildExtension(ctx: CommandContext, projectDir: string): Promise<number> {
+  const e = translator("extension");
+  if (!hasExtension(projectDir)) return reportError(ctx, ctx.json, "NO_EXTENSION", e("extension_build_none"), e("extension_build_none_fix"), EXIT_USAGE);
+  if (!ctx.json) {
+    const base = toolsImageTarget(process.env).reference;
+    ctx.stdout(`${e("extension_build_plan", { dockerfile: ".jgates/image/Dockerfile", base })}\n`);
+  }
+  if (ctx.options.yes !== true) {
+    if (ctx.options["no-interactive"] === true || ctx.json || !process.stdin.isTTY) return reportError(ctx, ctx.json, "CONFIRMATION_REQUIRED", e("extension_build_yes_required"), e("extension_build_yes_required"), EXIT_USAGE);
+    if (!(await confirm(`${e("extension_build_confirm")} [s/N] `))) {
+      ctx.stdout(`${e("extension_build_cancelled")}\n`);
+      return EXIT_USAGE;
+    }
+  }
+  const outcome = await buildExtension({
+    projectDir,
+    workspace: workspaceId(projectDir),
+    env: process.env,
+    version: ctx.version,
+    ...(ctx.json ? {} : { onOutput: (chunk: string) => ctx.stderr(chunk) }),
+  });
+  if (!outcome.ok) {
+    const code = outcome.error?.code ?? "BUILD_FAILED";
+    const log = outcome.logFile ?? "-";
+    const [message, fix] =
+      code === "TOOLS_IMAGE_MISSING"
+        ? [e("extension_build_no_tools_image"), e("extension_build_no_tools_image_fix")]
+        : code === "DOCKERFILE_BASE"
+          ? [e("extension_build_base_arg"), e("extension_build_base_arg_fix")]
+          : code === "ENGINE_ERROR"
+            ? [e("extension_build_engine", { detail: outcome.error?.details ?? outcome.error?.message ?? "-" }), e("extension_build_engine", { detail: outcome.error?.details ?? "-" })]
+            : [e("extension_build_failed", { message: outcome.error?.message ?? "-" }), e("extension_build_failed_fix", { log })];
+    if (ctx.json) writeJson(ctx, { ...errorPayload(code, message, fix, 2), details: outcome.error?.details ?? "", logFile: outcome.logFile });
+    else ctx.stderr(`ERROR ${code}\n${message}\n${fix}\n${outcome.error?.details ? `${outcome.error.details}\n` : ""}`);
+    return 2;
+  }
+  if (ctx.json) return ok(ctx, { built: outcome.built, tag: outcome.tag, key: outcome.key, digest: outcome.digest, base: outcome.base, logFile: outcome.logFile, removed: outcome.removed });
+  if (!outcome.built) ctx.stdout(`${e("extension_build_current", { tag: outcome.tag ?? "-" })}\n`);
+  else {
+    ctx.stdout(`${e("extension_build_done", { tag: outcome.tag ?? "-", digest: outcome.digest ?? "-", log: outcome.logFile ?? "-" })}\n`);
+    if (outcome.removed.length > 0) ctx.stdout(`${e("extension_build_removed", { tags: outcome.removed.join(", ") })}\n`);
+  }
+  return 0;
+}
+
+/** `tools test <instance>`: runs one tool once (building the image first when needed) and shows what its report gave. */
+async function runTestTool(ctx: CommandContext, projectDir: string): Promise<number> {
+  const e = translator("extension");
+  const instance = ctx.args[1];
+  if (!instance) return reportError(ctx, ctx.json, "MISSING_INSTANCE", e("extension_test_missing_instance"), e("extension_test_missing_instance"), EXIT_USAGE);
+  if (!ctx.json) ctx.stderr(`${e("extension_test_building")}\n`);
+  const result = await testTool({
+    projectDir,
+    instance,
+    version: ctx.version,
+    env: process.env,
+    build: ctx.options["no-build"] !== true,
+    ...(ctx.json ? {} : { onBuildOutput: (chunk: string) => ctx.stderr(chunk) }),
+  });
+  const blockers = result.blockers.map((b) => b.message).join(" ");
+  if (ctx.json) {
+    writeJson(ctx, { schemaVersion: 1, status: result.state === "ok" || result.state === "findings" ? "OK" : "INCOMPLETE", tool: "jgates", version: ctx.version, ...result });
+  } else if (result.state === "not-found") ctx.stderr(`ERROR NOT_FOUND\n${e("extension_test_not_found", { instance, reason: result.reason ?? "-" })}\n${e("extension_test_not_found_fix")}\n`);
+  else if (result.state === "build-failed") ctx.stderr(`ERROR BUILD_FAILED\n${e("extension_build_failed", { message: result.reason ?? "-" })}\n${result.build?.error?.details ?? ""}\n`);
+  else if (result.state === "blocked") ctx.stderr(`ERROR BLOCKED\n${e("extension_test_blocked", { instance, blockers: blockers || (result.reason ?? "-") })}\n`);
+  else if (result.state === "unreadable") ctx.stdout(`${e("extension_test_unreadable", { instance, reason: result.reason ?? "-" })}\n${e("extension_test_run", { runId: result.runId ?? "-", runDir: result.runDir ?? "-" })}\n`);
+  else {
+    ctx.stdout(`${result.state === "ok" ? e("extension_test_ok", { instance }) : e("extension_test_findings", { instance, count: result.findingCount, blocking: result.blockingCount })}\n`);
+    for (const f of result.sample) ctx.stdout(`${e("extension_test_sample", { rule: f.rule, where: f.path ? `${f.path}${f.line ? `:${f.line}` : ""}` : "-", message: f.message })}\n`);
+    ctx.stdout(`${e("extension_test_run", { runId: result.runId ?? "-", runDir: result.runDir ?? "-" })}\n`);
+  }
+  return result.state === "ok" || result.state === "findings" ? 0 : result.state === "not-found" ? EXIT_USAGE : 2;
+}
+
 const SUBCOMMANDS: Record<string, Subcommand> = {
+  "add-custom": { run: (ctx, dir) => runAddCustom(ctx, dir), args: 1 },
+  "build-extension": { run: (ctx, dir) => runBuildExtension(ctx, dir), args: 0 },
+  test: { run: (ctx, dir) => runTestTool(ctx, dir), args: 1 },
   export: { run: (ctx) => runTransfer(ctx, "export"), args: 1 },
   import: { run: (ctx) => runTransfer(ctx, "import"), args: 1 },
   "update-data": { run: (ctx) => runUpdateData(ctx), args: 0 },
@@ -475,6 +627,17 @@ export const command: CommandModule = {
     { name: "packs", type: "string", description: tr("tools_option_packs") },
     { name: "database", type: "string", description: translator("data")("data_option_database") },
     { name: "accept-terms", type: "boolean", description: translator("codeql")("codeql_option_accept_terms") },
+    { name: "image", type: "string", description: translator("extension")("extension_option_image") },
+    { name: "install", type: "string", description: translator("extension")("extension_option_install") },
+    { name: "command", type: "string", description: translator("extension")("extension_option_command") },
+    { name: "arg", type: "string", description: translator("extension")("extension_option_arg") },
+    { name: "report", type: "string", description: translator("extension")("extension_option_report") },
+    { name: "capability", type: "string", description: translator("extension")("extension_option_capability") },
+    { name: "component", type: "string", description: translator("extension")("extension_option_component") },
+    { name: "network", type: "boolean", description: translator("extension")("extension_option_network") },
+    { name: "timeout", type: "string", description: translator("extension")("extension_option_timeout") },
+    { name: "yes", type: "boolean", description: translator("extension")("extension_option_yes") },
+    { name: "no-build", type: "boolean", description: translator("extension")("extension_option_no_build") },
   ],
   async run(ctx) {
     const t = tr;

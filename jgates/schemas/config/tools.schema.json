@@ -63,6 +63,9 @@
               },
               {
                 "$ref": "#/$defs/fileRef"
+              },
+              {
+                "$ref": "#/$defs/commandDeclaration"
               }
             ]
           },
@@ -274,7 +277,7 @@
             "type": "boolean"
           },
           "image": {
-            "description": "zap: no longer used. ZAP runs in the JGates tools image and no other image can be named; setting it blocks the plan with the reason.",
+            "description": "generic-command: where the command runs: `tools` (default, the JGates tools image), `extension` (the image built from .jgates/image/Dockerfile) or the reference of a ready image, pinned by digest on first use. zap: no longer used. ZAP runs in the JGates tools image and no other image can be named; setting it blocks the plan with the reason.",
             "type": "string",
             "minLength": 1
           },
@@ -528,6 +531,53 @@
     }
   },
   "$defs": {
+    "commandDeclaration": {
+      "description": "generic-command: the declaration of the command (effects and evidence contract); the adapter checks it against generic-evidence.schema.json when the plan is built. This is what `jgates tools add-custom` writes.",
+      "type": "object",
+      "required": [
+        "effects",
+        "evidence"
+      ],
+      "properties": {
+        "effects": {
+          "type": "object"
+        },
+        "evidence": {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string"
+            }
+          }
+        },
+        "cwd": {
+          "type": "string",
+          "minLength": 1
+        },
+        "successExitCodes": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "support": {
+          "enum": [
+            "partial",
+            "declared"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "pathText": {
       "type": "string",
       "minLength": 1

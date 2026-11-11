@@ -266,6 +266,8 @@ export interface StepLauncherInput {
   engine?: EngineContext;
   /** Image id or reference; resolved with the engine when absent. */
   image?: string;
+  /** The image id a step runs on when it is not the tools image (a custom tool's extension or ready image); null: the tools image. */
+  stepImage?: (stepId: string) => string | null;
   /**
    * What a step gets besides the source volume and the run folder: the dependency volumes of the units it needs, the
    * package cache and their variables (core/deps), and the network of the run's compose services for a step that uses
@@ -407,9 +409,10 @@ export function createStepLauncher(input: StepLauncherInput): StepLauncherHook |
     },
     async run(spec) {
       if (lost) return lostResult(spec, lost);
-      const resolved = resolveImage();
-      if (!resolved) return refusal(spec, "the tools image is not available in the engine; a tool is never run as a host process");
       const scope = currentScope();
+      // A custom tool runs on its own image (the extension image or a ready one), pinned by the plan; the rest on the tools image.
+      const resolved = (scope?.stepId ? input.stepImage?.(scope.stepId) : null) ?? resolveImage();
+      if (!resolved) return refusal(spec, "the tools image is not available in the engine; a tool is never run as a host process");
       const step = scope?.stepId ?? "step";
       const ordinal = (ordinals.get(step) ?? 0) + 1;
       ordinals.set(step, ordinal);
