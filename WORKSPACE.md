@@ -50,6 +50,12 @@ One row per folder (and relevant subfolder) of this repository. Keep it portable
 - `docs/jgates/templates-and-profiles.pt-BR.md`
 - `docs/jgates/troubleshooting.en.md`
 - `docs/jgates/troubleshooting.pt-BR.md`
+- `docs/jgates/services.en.md`
+- `docs/jgates/services.pt-BR.md`
+- `docs/jgates/storage.en.md`
+- `docs/jgates/storage.pt-BR.md`
+- `docs/jgates/extension.en.md`
+- `docs/jgates/extension.pt-BR.md`
 - `jgates/packs/semgrep/jgates-semgrep/NOTICE.md`
 - `jgates/vendor/cloudflare-security-audit/attack-classes/AI-AND-LLM.md`
 - `jgates/vendor/cloudflare-security-audit/attack-classes/ATTACK-CLASSES.md`
