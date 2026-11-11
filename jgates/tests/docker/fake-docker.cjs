@@ -303,7 +303,10 @@ if (listKind) {
   needDaemon();
   const objects = loadObjects();
   const showAll = argv.includes("--all") || argv.includes("-a");
-  const items = objects[listKind].filter((o) => matches(o.labels, filtersOf(argv)) && (listKind !== "containers" || showAll || o.state === "running"));
+  const references = filtersOf(argv).filter((f) => f.startsWith("reference=")).map((f) => f.slice("reference=".length));
+  const items = objects[listKind].filter(
+    (o) => matches(o.labels, filtersOf(argv)) && (listKind !== "containers" || showAll || o.state === "running") && (listKind !== "images" || references.length === 0 || references.some((r) => o.name === r || `${o.name}:${o.tag}` === r)),
+  );
   printJsonLines(
     items.map((o) =>
       listKind === "containers"
@@ -330,7 +333,17 @@ if (argv[0] === "system" && argv[1] === "df") {
   const objects = loadObjects();
   process.stdout.write(
     JSON.stringify({
-      Images: objects.images.map((i) => ({ ID: i.id, Repository: i.name, Tag: "dev", Size: humanSize(i.sizeBytes || 0), SharedSize: "0B", UniqueSize: humanSize(i.sizeBytes || 0) })),
+      // An image object may carry `sharedBytes` (layers it has in common with other images); `Containers` counts the containers
+      // (any state) whose `image` is this image's id or repository:tag.
+      Images: objects.images.map((i) => ({
+        ID: i.id,
+        Repository: i.name,
+        Tag: i.tag || "dev",
+        Size: humanSize(i.sizeBytes || 0),
+        SharedSize: humanSize(i.sharedBytes || 0),
+        UniqueSize: humanSize(Math.max(0, (i.sizeBytes || 0) - (i.sharedBytes || 0))),
+        Containers: String(objects.containers.filter((c) => c.image === i.id || c.image === `${i.name}:${i.tag || "dev"}`).length),
+      })),
       Containers: objects.containers.map((c) => ({ ID: c.id, Names: c.name, Size: "0B", State: c.state, Labels: labelString(c.labels) })),
       Volumes: objects.volumes.map((v) => ({ Name: v.name, Labels: labelString(v.labels), Size: humanSize(v.sizeBytes || 0) })),
     }) + "\n",
@@ -342,6 +355,13 @@ if ((argv[0] === "image" || argv[0] === "network" || argv[0] === "container") &&
   const objects = loadObjects();
   const key = argv[0] + "s";
   const ids = lastNonFlags(argv.slice(2));
+  if (key === "images" && !argv.includes("--force") && !argv.includes("-f")) {
+    // Like the engine: an image a container uses is not removed without --force.
+    for (const o of objects.images.filter((i) => ids.includes(i.id) || ids.includes(i.name) || ids.includes(`${i.name}:${i.tag}`))) {
+      const user = objects.containers.find((c) => c.image === o.id || c.image === `${o.name}:${o.tag || "dev"}`);
+      if (user) fail(`Error response from daemon: conflict: unable to delete ${o.id.slice(0, 19)} (cannot be forced) - image is being used by running container ${user.id}`);
+    }
+  }
   objects[key] = objects[key].filter((o) => !ids.includes(o.id) && !ids.includes(o.name) && !(o.tag && ids.includes(`${o.name}:${o.tag}`)));
   saveObjects(objects);
   process.exit(0);

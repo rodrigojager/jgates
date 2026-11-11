@@ -3,14 +3,8 @@
 // confirmation). Deleting only ever happens inside <data folder>/workspaces (applyRetention checks it again).
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
-import {
-  DEFAULT_RETENTION,
-  applyRetention,
-  dirBytes,
-  listRuns,
-  planRetention,
-  type RetentionPolicy,
-} from "../../core/artifacts/index.js";
+import { applyRetention, dirBytes, listRuns, planRetention } from "../../core/artifacts/index.js";
+import { effectiveRetention, engineContextFor, storageReport } from "../../core/cleanup/index.js";
 import { RelinkError, readRegistry, relinkWorkspace, workspaceDir, workspaceLineage, type WorkspaceEntry } from "../../core/home/index.js";
 import { translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
@@ -18,7 +12,6 @@ import type { RouteDefinition, ServerContext } from "../types.js";
 
 const t = translator("history");
 const ID = "^[A-Za-z0-9_.-]{1,128}$";
-const MIB = 1024 * 1024;
 const IMAGE_LABEL = "org.jgates.dev=true";
 
 function isDirectory(p: string): boolean {
@@ -29,24 +22,7 @@ function isDirectory(p: string): boolean {
   }
 }
 
-/** The retention in force: the defaults, moved by the same environment variables `jgates gc` reads. */
-export function effectiveRetention(env: NodeJS.ProcessEnv = process.env): { policy: RetentionPolicy; fromEnvironment: string[] } {
-  const policy: RetentionPolicy = { ...DEFAULT_RETENTION };
-  const fromEnvironment: string[] = [];
-  const read = (name: string, set: (n: number) => void): void => {
-    const raw = env[name];
-    if (raw === undefined || raw === "") return;
-    const n = Number(raw);
-    if (Number.isFinite(n) && n >= 0) {
-      set(n);
-      fromEnvironment.push(name);
-    }
-  };
-  read("JGATES_RETENTION_DAYS", (n) => (policy.maxAgeDays = n));
-  read("JGATES_RETENTION_WORKSPACE_MB", (n) => (policy.maxWorkspaceBytes = n * MIB));
-  read("JGATES_RETENTION_TOTAL_MB", (n) => (policy.maxTotalBytes = n * MIB));
-  return { policy, fromEnvironment };
-}
+export { effectiveRetention };
 
 /** Images built by the work on JGates (label org.jgates.dev); empty and `available: false` when no container runtime answers. */
 function readImages(env: NodeJS.ProcessEnv = process.env): { available: boolean; items: Array<{ name: string; size: string }> } {
@@ -99,9 +75,17 @@ export const routes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/api/storage",
-    handler({ server }) {
+    async handler({ server }) {
       const entries = readRegistry(server.home).workspaces.filter((w) => !w.relinkedTo);
-      const workspaces = entries.map((w) => describe(server, w)).sort((a, b) => Number(b.current) - Number(a.current) || (a.lastAccess < b.lastAccess ? 1 : -1));
+      const report = await storageReport(process.env, engineContextFor(process.env));
+      const workspaces = entries
+        .map((w) => {
+          const own = describe(server, w);
+          const ids = new Set(groupIds(server, w.id));
+          const volumes = report.workspaces.filter((v) => ids.has(v.workspace)).flatMap((v) => v.volumes);
+          return { ...own, engine: { bytes: volumes.reduce((n, v) => n + v.sizeBytes, 0), volumes } };
+        })
+        .sort((a, b) => Number(b.current) - Number(a.current) || (a.lastAccess < b.lastAccess ? 1 : -1));
       const { policy, fromEnvironment } = effectiveRetention();
       const plan = planRetention(server.home, policy);
       return {
@@ -114,6 +98,20 @@ export const routes: RouteDefinition[] = [
           workspaces,
           retention: { ...policy, fromEnvironment, wouldRemoveRuns: plan.runs.length, wouldFreeBytes: plan.freedBytes },
           images: readImages(),
+          // Engine objects by category, from the JGates labels; shared image layers are counted once.
+          categories: {
+            engine: report.engine,
+            tools: report.tools,
+            extensions: report.extensions,
+            data: report.data,
+            toolchains: report.toolchains,
+            caches: report.caches,
+            workspaces: report.workspaces,
+            other: report.other,
+            images: report.images,
+            volumesBytes: report.volumesBytes,
+            totalBytes: report.totalBytes,
+          },
         },
       };
     },
