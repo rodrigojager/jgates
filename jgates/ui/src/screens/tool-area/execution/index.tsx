@@ -21,6 +21,49 @@ export interface ExecutionData {
   limitations: string[];
 }
 
+/** The container contract of the step (defaults of PLAN-architecture): shown as a form, changed in the YAML. */
+const DEFAULT_MEMORY_MB = 4096;
+const DEFAULT_CPUS = 2;
+const DEFAULT_TIMEOUT_MINUTES = 30;
+
+function ContainerLimits({ execution }: { execution: ExecutionData }) {
+  const container = execution.command?.container ?? null;
+  const networkOn = execution.network || execution.effects.usesNetwork === true;
+  return (
+    <fieldset className="stack tight" data-testid="execution-limits">
+      <legend>{t("exec_limits")}</legend>
+      <label className="stack tight">
+        <span>{t("exec_limit_image")}</span>
+        <select value="image" disabled data-testid="execution-image">
+          <option value="image">{container ? container.image || t("exec_limit_image_pinned") : t("exec_limit_image_none")}</option>
+        </select>
+      </label>
+      <label className="stack tight">
+        <span>{t("exec_limit_network")}</span>
+        <select value={networkOn ? "on" : "none"} disabled data-testid="execution-network">
+          <option value="none">{t("exec_network_no")}</option>
+          <option value="on">{t("exec_network_yes")}</option>
+        </select>
+      </label>
+      <label className="stack tight">
+        <span>{t("exec_limit_memory")}</span>
+        <input type="number" value={DEFAULT_MEMORY_MB} readOnly disabled data-free-text="identifier" data-testid="execution-memory" />
+      </label>
+      <label className="stack tight">
+        <span>{t("exec_limit_cpus")}</span>
+        <input type="number" value={DEFAULT_CPUS} readOnly disabled data-free-text="identifier" data-testid="execution-cpus" />
+      </label>
+      <label className="stack tight">
+        <span>{t("exec_limit_timeout")}</span>
+        <input type="number" value={DEFAULT_TIMEOUT_MINUTES} readOnly disabled data-free-text="identifier" data-testid="execution-timeout" />
+      </label>
+      <p className="small">
+        {t("exec_limits_hint")} <a href="#/config/yaml">{t("exec_edit_yaml")}</a>
+      </p>
+    </fieldset>
+  );
+}
+
 export function ExecutionPanel({ execution }: { execution: ExecutionData }) {
   const effects = Object.entries(execution.effects).filter(([, on]) => on);
   const env = Object.entries(execution.command?.env ?? {});
@@ -65,6 +108,7 @@ export function ExecutionPanel({ execution }: { execution: ExecutionData }) {
             <dd>{execution.command.container ? t("exec_runtime_container", { image: execution.command.container.image || "-" }) : t("exec_runtime_native")}</dd>
           </dl>
         )}
+        <ContainerLimits execution={execution} />
         <dl className="kv">
           <dt>{t("exec_context")}</dt>
           <dd>

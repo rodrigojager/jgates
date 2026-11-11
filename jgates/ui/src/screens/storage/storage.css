@@ -2,3 +2,4 @@
 .storage-field input { padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); min-height: 38px; font-family: var(--mono); font-size: 12px; }
 .storage-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .storage-actions .btn { white-space: normal; font-size: 12px; padding: 6px 10px; }
+.storage-list { margin: 0; padding: 8px 8px 8px 24px; max-height: 240px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius); font-size: 12px; overflow-wrap: anywhere; }

@@ -29,5 +29,15 @@
   "exec_report": "Relatório esperado",
   "exec_report_value": "Formato {format}",
   "exec_conditions": "Condições",
-  "exec_limitations": "Limitações"
+  "exec_limitations": "Limitações",
+  "exec_limits": "Limites do contêiner",
+  "exec_limit_image": "Imagem",
+  "exec_limit_image_pinned": "Imagem das ferramentas do JGates",
+  "exec_limit_image_none": "Não roda em contêiner",
+  "exec_limit_network": "Rede",
+  "exec_limit_memory": "Memória (MB)",
+  "exec_limit_cpus": "Processadores",
+  "exec_limit_timeout": "Tempo máximo (minutos)",
+  "exec_limits_hint": "Estes são os limites padrão de cada etapa; eles mudam no arquivo YAML.",
+  "exec_edit_yaml": "Editar no YAML"
 }

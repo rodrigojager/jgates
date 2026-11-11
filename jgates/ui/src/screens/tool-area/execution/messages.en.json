@@ -29,5 +29,15 @@
   "exec_report": "Expected report",
   "exec_report_value": "Format {format}",
   "exec_conditions": "Conditions",
-  "exec_limitations": "Limitations"
+  "exec_limitations": "Limitations",
+  "exec_limits": "Container limits",
+  "exec_limit_image": "Image",
+  "exec_limit_image_pinned": "JGates tools image",
+  "exec_limit_image_none": "Not run in a container",
+  "exec_limit_network": "Network",
+  "exec_limit_memory": "Memory (MB)",
+  "exec_limit_cpus": "Processors",
+  "exec_limit_timeout": "Time limit (minutes)",
+  "exec_limits_hint": "These are the default limits of every step; they are changed in the YAML file.",
+  "exec_edit_yaml": "Edit in the YAML"
 }

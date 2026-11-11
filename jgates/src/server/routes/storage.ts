@@ -4,7 +4,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { applyRetention, dirBytes, listRuns, planRetention } from "../../core/artifacts/index.js";
-import { effectiveRetention, engineContextFor, storageReport } from "../../core/cleanup/index.js";
+import { KEPT_CONFIG, applyCleanup, checkHome, effectiveRetention, engineContextFor, homeBytes, itemsJson, keyStoreFacts, planCleanup, removeHome, removeKeyStore, storageReport, type CleanScope } from "../../core/cleanup/index.js";
 import { RelinkError, readRegistry, relinkWorkspace, workspaceDir, workspaceLineage, type WorkspaceEntry } from "../../core/home/index.js";
 import { translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
@@ -71,7 +71,107 @@ function missingTarget(server: ServerContext, id: string): WorkspaceEntry {
   return entry;
 }
 
+/** The words that confirm an uninstall (the screen shows the one of its language). */
+const UNINSTALL_WORDS = new Set(["uninstall", "desinstalar"]);
+const CLEAN_WORD = "clean";
+const itemKey = (item: { resource: string; id: string }): string => `${item.resource}:${item.id}`;
+
+interface CleanupBody {
+  mode: "clean" | "uninstall";
+  scope?: CleanScope;
+  dryRun?: boolean;
+  items?: string[];
+  confirm?: string;
+  keepConfigNotes?: boolean;
+  includeKeyStore?: boolean;
+}
+
 export const routes: RouteDefinition[] = [
+  {
+    // Without `dryRun: false` it only lists what a clean or an uninstall would remove (labelled objects only, sizes, the
+    // ones "in use" skipped). With `dryRun: false` the body must carry `items` (the keys the person saw) and the
+    // confirmation: only the listed objects that are still removable are removed. An uninstall also needs the typed word.
+    method: "POST",
+    path: "/api/storage/cleanup",
+    body: {
+      type: "object",
+      properties: {
+        mode: { type: "string", enum: ["clean", "uninstall"] },
+        scope: {
+          type: "object",
+          properties: {
+            images: { type: "boolean" },
+            data: { type: "boolean" },
+            toolchains: { type: "boolean" },
+            caches: { type: "boolean" },
+            workspace: { type: "string", pattern: "^ws_[0-9a-f]{16}$" },
+            orphans: { type: "boolean" },
+            runs: { type: "boolean" },
+          },
+          additionalProperties: false,
+        },
+        dryRun: { type: "boolean" },
+        items: { type: "array", items: { type: "string", maxLength: 600 }, maxItems: 5000 },
+        confirm: { type: "string", maxLength: 64 },
+        keepConfigNotes: { type: "boolean" },
+        includeKeyStore: { type: "boolean" },
+      },
+      required: ["mode"],
+      additionalProperties: false,
+    },
+    timeoutMs: 600_000,
+    async handler({ body, server }) {
+      const input = body as CleanupBody;
+      const uninstall = input.mode === "uninstall";
+      if (uninstall && input.scope) throw new HttpError(400, "SCOPE_NOT_ALLOWED", t("storage_confirm_required"), t("storage_confirm_required_fix"));
+      const home = server.home;
+      const plan = await planCleanup({ version: server.version, home, mode: input.mode, ...(input.scope ? { scope: input.scope } : {}) });
+      const keep = input.keepConfigNotes === true ? KEPT_CONFIG : [];
+      const keyStore = keyStoreFacts();
+      const preview = {
+        mode: input.mode,
+        engine: plan.engine,
+        items: itemsJson(plan.items).map((i) => ({ ...i, key: itemKey(i) })),
+        unmanaged: plan.unmanaged,
+        totals: plan.totals,
+        ...(uninstall ? { home: { path: home, sizeBytes: homeBytes(home), removable: checkHome(home).ok, keeps: keep }, keyStore: { path: keyStore.path, exists: keyStore.exists } } : {}),
+      };
+      if (input.dryRun !== false) return { status: 200, json: { schemaVersion: 1, status: "OK", dryRun: true, ...preview } };
+
+      const wanted = new Set(input.items ?? []);
+      const confirmed = uninstall ? UNINSTALL_WORDS.has((input.confirm ?? "").trim().toLowerCase()) : input.confirm === CLEAN_WORD;
+      if (!confirmed || (wanted.size === 0 && !uninstall)) throw new HttpError(400, "CONFIRMATION_REQUIRED", t("storage_confirm_required"), t("storage_confirm_required_fix"));
+      // Only what the person saw and is still removable now; nothing else.
+      const items = plan.items.filter((i) => i.action === "remove" && wanted.has(itemKey(i)));
+      const applied = await applyCleanup({ ...plan, items, retention: plan.retention ? { ...plan.retention, missingWorkspaces: [] } : null }, home, engineContextFor(process.env));
+      server.log(`cleanup ${input.mode} removed=${applied.removed} inUse=${applied.inUse} failed=${applied.failed}`);
+      let homeRemoved = false;
+      let keyRemoved = false;
+      const all = plan.items.every((i) => i.action === "remove" && wanted.has(itemKey(i)));
+      if (uninstall && all && applied.inUse + applied.failed === 0) {
+        if (input.includeKeyStore === true && keyStore.exists) keyRemoved = removeKeyStore().removed;
+        homeRemoved = removeHome(home, keep).removed;
+      }
+      return {
+        status: 200,
+        json: {
+          schemaVersion: 1,
+          status: "OK",
+          dryRun: false,
+          ...preview,
+          applied: {
+            removed: applied.removed,
+            inUse: applied.inUse,
+            failed: applied.failed,
+            freedBytes: applied.freedBytes,
+            homeRemoved,
+            keyStoreRemoved: keyRemoved,
+            lines: applied.lines.map((l) => ({ resource: l.item.resource, id: l.item.id, name: l.item.name, outcome: l.outcome, freedBytes: l.freedBytes })),
+          },
+        },
+      };
+    },
+  },
   {
     method: "GET",
     path: "/api/storage",
