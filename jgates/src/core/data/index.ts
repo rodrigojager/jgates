@@ -120,11 +120,25 @@ function contextOf(env: NodeJS.ProcessEnv): EngineContext {
 
 const CLI_LABEL_VERSION = "0.0.0";
 
+/** The fetch times stored with the data a job of the tools image sees: read as a file, nothing is started. */
+export function readDataStatusNative(env: NodeJS.ProcessEnv = process.env): DataRead {
+  const file = path.join(dataRootOf(env), DATA_STATUS_FILE);
+  if (!fs.existsSync(file)) return { state: "no-volume", status: EMPTY };
+  try {
+    const status = parseStatus(fs.readFileSync(file, "utf8"));
+    return status ? { state: "ok", status } : { state: "unreadable", status: EMPTY };
+  } catch {
+    return { state: "unreadable", status: EMPTY };
+  }
+}
+
 /**
  * The fetch times stored in the volume, read with one short helper container (no network, volume read-only). A machine
  * without an engine, image or volume has no data: the answer is "nothing fetched", never an error.
  */
 export function readDataStatusSync(env: NodeJS.ProcessEnv = process.env, version: string = CLI_LABEL_VERSION): DataRead {
+  // Inside the tools image there is no engine: the data is whatever the job mounted (at /data or JGATES_DATA_DIR).
+  if (stepMode(env) === "in-image") return readDataStatusNative(env);
   const context = contextOf(env);
   const image = inspectImageSync(env.JGATES_TOOLS_IMAGE?.trim() || toolsImageTarget(env).reference, context);
   if (!image) return { state: "no-image", status: EMPTY };

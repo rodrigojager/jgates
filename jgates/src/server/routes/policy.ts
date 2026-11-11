@@ -20,16 +20,11 @@ export const POLICY_DIR_VARIABLE = "JGATES_POLICY_DIR";
 /** The command the CI job runs (the policy comes from JGATES_POLICY_DIR, the hash from JGATES_POLICY_SHA256). */
 export const CI_COMMAND = 'jgates ci --policy "$JGATES_POLICY_DIR" --sarif jgates.sarif';
 
-/** Where the job gets JGates: the repository, never a registry (replace the URL by your organization's copy). */
-export const INSTALL_SOURCE = "git+https://github.com/rodrigojager/jgates";
-
-/**
- * The install command for a folder. npm cannot install a git dependency with --global (it links the bins to a
- * temporary clone it then deletes), so the job installs into a folder outside the project and puts its bins on PATH.
- */
-export function installCommand(prefix: string): string {
-  return `npm install --prefix "${prefix}" ${INSTALL_SOURCE}`;
-}
+/** The tools image the job runs in, pinned by digest (replace the placeholders with your organization's copy). */
+export const TOOLS_IMAGE = "<registry>/jgates-tools@sha256:<digest>";
+export const TOOLS_IMAGE_DIGEST = "sha256:<digest>";
+/** The variable that tells JGates the digest of the container of the job (needed when the policy pins the image). */
+export const TOOLS_IMAGE_DIGEST_VARIABLE = "JGATES_TOOLS_IMAGE_DIGEST";
 
 function policyFailure(error: PolicyError): HttpError {
   const key = `policy_err_${error.code.toLowerCase()}`;
@@ -51,9 +46,13 @@ export function githubSnippet(sha256: string): string {
     `jobs:`,
     `  jgates:`,
     `    runs-on: ubuntu-latest`,
+    `    # The job runs inside the JGates tools image, pinned by digest: every tool is already there, nothing is installed.`,
+    `    container: ${TOOLS_IMAGE}`,
     `    env:`,
     `      ${POLICY_DIR_VARIABLE}: \${{ github.workspace }}/policy`,
     `      ${POLICY_HASH_VARIABLE}: \${{ vars.${POLICY_HASH_VARIABLE} }}`,
+    `      # The digest of the container above (a policy with execution.extensionImage: pinned compares it with the pin).`,
+    `      ${TOOLS_IMAGE_DIGEST_VARIABLE}: ${TOOLS_IMAGE_DIGEST}`,
     `    steps:`,
     `      - uses: actions/checkout@v4`,
     `        with:`,
@@ -65,14 +64,6 @@ export function githubSnippet(sha256: string): string {
     `          ref: main`,
     `          path: policy`,
     `          token: \${{ secrets.POLICY_REPOSITORY_TOKEN }}`,
-    `      - uses: actions/setup-node@v4`,
-    `        with:`,
-    `          node-version: 22`,
-    `      # Install JGates from the repository (or from a tarball your organization stores), never from a registry.`,
-    `      # npm cannot install a git dependency with --global: install into a folder and put its bins on PATH.`,
-    `      - run: |`,
-    `          ${installCommand("$RUNNER_TEMP/jgates")}`,
-    `          echo "$RUNNER_TEMP/jgates/node_modules/.bin" >> "$GITHUB_PATH"`,
     `      - run: ${CI_COMMAND}`,
     `        working-directory: project`,
     `      - uses: github/codeql-action/upload-sarif@v3`,
@@ -90,19 +81,16 @@ export function gitlabSnippet(sha256: string): string {
     `# Store the fingerprint in a protected CI/CD variable: ${POLICY_HASH_VARIABLE} = ${sha256}`,
     `jgates:`,
     `  stage: test`,
-    `  image: node:22`,
+    `  # The job runs inside the JGates tools image, pinned by digest: every tool is already there, nothing is installed.`,
+    `  image: ${TOOLS_IMAGE}`,
     `  variables:`,
     `    GIT_DEPTH: "0"`,
     `    # Outside $CI_PROJECT_DIR: a policy inside the analyzed project is refused (POLICY_INSIDE_PROJECT).`,
     `    ${POLICY_DIR_VARIABLE}: "$CI_BUILDS_DIR/jgates-policy-$CI_JOB_ID"`,
-    `    # JGates itself is installed outside $CI_PROJECT_DIR too, so its files never enter the analysis.`,
-    `    JGATES_INSTALL_DIR: "$CI_BUILDS_DIR/jgates-install-$CI_JOB_ID"`,
+    `    # The digest of the image above (a policy with execution.extensionImage: pinned compares it with the pin).`,
+    `    ${TOOLS_IMAGE_DIGEST_VARIABLE}: "${TOOLS_IMAGE_DIGEST}"`,
     `  script:`,
     `    - git clone --depth 1 --branch main "https://gitlab-ci-token:$CI_JOB_TOKEN@$CI_SERVER_HOST/<group>/<policy-repository>.git" "$${POLICY_DIR_VARIABLE}"`,
-    `    # Install JGates from the repository (or from a tarball your organization stores), never from a registry.`,
-    `    # npm cannot install a git dependency with --global: install into a folder and put its bins on PATH.`,
-    `    - ${installCommand("$JGATES_INSTALL_DIR")}`,
-    `    - export PATH="$JGATES_INSTALL_DIR/node_modules/.bin:$PATH"`,
     `    - ${CI_COMMAND}`,
     `  artifacts:`,
     `    when: always`,

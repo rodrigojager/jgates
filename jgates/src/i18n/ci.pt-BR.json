@@ -82,5 +82,13 @@
   "ci_error_ci_symlink_escape": "O link simbólico {path} do commit aponta para fora do checkout: por ele uma ferramenta leria arquivos da máquina do CI.",
   "ci_error_ci_symlink_escape_fix": "Aponte o link para um arquivo dentro do repositório, ou tire-o do commit.",
   "ci_error_ci_tree_unreadable": "Não foi possível ler a árvore do commit analisado ({path}): {detail}",
-  "ci_error_ci_tree_unreadable_fix": "Confira se o checkout é uma árvore de trabalho do Git com o commit e se o git está no PATH."
+  "ci_error_ci_tree_unreadable_fix": "Confira se o checkout é uma árvore de trabalho do Git com o commit e se o git está no PATH.",
+  "ci_error_extension_image_forbidden": "A política proíbe imagens de extensão (execution.extensionImage: forbid), e este commit usa uma: {detail}.",
+  "ci_error_extension_image_forbidden_fix": "Remova a imagem de extensão do commit analisado, ou peça ao dono da política que permita extensões fixadas por digest.",
+  "ci_error_extension_image_unpinned": "A política só aceita imagens de extensão fixadas por digest (execution.extensionImage: pinned), e este commit usa uma que não está: {detail}.",
+  "ci_error_extension_image_unpinned_fix": "Publique a imagem de extensão e informe-a como <registro>/<nome>@sha256:<digest> na configuração de imagem da ferramenta.",
+  "ci_error_tools_image_digest_mismatch": "A política fixa a imagem de ferramentas (execution.extensionImage: pinned), e este job roda outra: {detail}.",
+  "ci_error_tools_image_digest_mismatch_fix": "Use o container jgates-tools@{expected} no job de CI, ou peça ao dono da política que atualize a fixação.",
+  "ci_error_tools_image_digest_unknown": "A política fixa a imagem de ferramentas (execution.extensionImage: pinned), e o digest da imagem deste job não é conhecido: {detail}.",
+  "ci_error_tools_image_digest_unknown_fix": "Defina JGATES_TOOLS_IMAGE_DIGEST com o digest do container do job (o sha256 depois do @ da referência)."
 }

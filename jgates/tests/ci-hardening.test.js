@@ -81,7 +81,17 @@ function setup(files, policy, extraEnv = {}) {
   const policyDir = tmp("jgates-hard-policy-");
   const emptyBin = tmp("jgates-hard-bin-");
   write(policyDir, policy);
-  const base = { ...process.env, ...NO_DOCKER, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_GIT: GIT, PATH: emptyBin, ...extraEnv };
+  // Inside the image the dependencies of the commit are installed natively (frozen) before the checks that need them:
+  // the package managers of the image stand here as programs that succeed and install nothing (the fixtures bring what
+  // they need, or the check is meant to run without it).
+  for (const manager of ["uv", "npm"]) {
+    if (process.platform === "win32") fs.writeFileSync(path.join(emptyBin, `${manager}.js`), "");
+    else {
+      fs.writeFileSync(path.join(emptyBin, manager), "#!/bin/sh\nexit 0\n");
+      fs.chmodSync(path.join(emptyBin, manager), 0o755);
+    }
+  }
+  const base = { ...process.env, ...NO_DOCKER, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_GIT: GIT, PATH: emptyBin, PATHEXT: `${process.env.PATHEXT ?? ".EXE;.CMD;.BAT"};.JS`, ...extraEnv };
   for (const name of ["JGATES_POLICY_DIR", "JGATES_POLICY_SHA256", "JGATES_NO_CACHE", "JGATES_ESLINT", "JGATES_RUFF", "JGATES_SEMGREP"]) delete base[name];
   // In-image mode (tests/setup/in-image.mjs): the repository's ESLint stands for the tools image's (Ruff and Semgrep
   // sit beside JGATES_PYTHON in the .venv); the project's own copy is never used by jgates ci.

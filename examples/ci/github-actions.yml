@@ -8,9 +8,13 @@ permissions:
 jobs:
   jgates:
     runs-on: ubuntu-latest
+    # The job runs inside the JGates tools image, pinned by digest: every tool is already there, nothing is installed.
+    container: <registry>/jgates-tools@sha256:<digest>
     env:
       JGATES_POLICY_DIR: ${{ github.workspace }}/policy
       JGATES_POLICY_SHA256: ${{ vars.JGATES_POLICY_SHA256 }}
+      # The digest of the container above (a policy with execution.extensionImage: pinned compares it with the pin).
+      JGATES_TOOLS_IMAGE_DIGEST: sha256:<digest>
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,14 +26,6 @@ jobs:
           ref: main
           path: policy
           token: ${{ secrets.POLICY_REPOSITORY_TOKEN }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      # Install JGates from the repository (or from a tarball your organization stores), never from a registry.
-      # npm cannot install a git dependency with --global: install into a folder and put its bins on PATH.
-      - run: |
-          npm install --prefix "$RUNNER_TEMP/jgates" git+https://github.com/rodrigojager/jgates
-          echo "$RUNNER_TEMP/jgates/node_modules/.bin" >> "$GITHUB_PATH"
       - run: jgates ci --policy "$JGATES_POLICY_DIR" --sarif jgates.sarif
         working-directory: project
       - uses: github/codeql-action/upload-sarif@v3

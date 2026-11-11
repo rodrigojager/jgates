@@ -82,5 +82,13 @@
   "ci_error_ci_symlink_escape": "The symbolic link {path} of the commit resolves outside the checkout: a tool would read files of the CI machine through it.",
   "ci_error_ci_symlink_escape_fix": "Point the link at a file inside the repository, or remove it from the commit.",
   "ci_error_ci_tree_unreadable": "The tree of the analyzed commit could not be read ({path}): {detail}",
-  "ci_error_ci_tree_unreadable_fix": "Check that the checkout is a Git work tree with the commit and that git is on the PATH."
+  "ci_error_ci_tree_unreadable_fix": "Check that the checkout is a Git work tree with the commit and that git is on the PATH.",
+  "ci_error_extension_image_forbidden": "The policy forbids extension images (execution.extensionImage: forbid), and this commit uses one: {detail}.",
+  "ci_error_extension_image_forbidden_fix": "Remove the extension image from the analyzed commit, or ask the owner of the policy to allow pinned extension images.",
+  "ci_error_extension_image_unpinned": "The policy accepts only extension images fixed by digest (execution.extensionImage: pinned), and this commit uses one that is not: {detail}.",
+  "ci_error_extension_image_unpinned_fix": "Publish the extension image and name it as <registry>/<name>@sha256:<digest> in the tool's image setting.",
+  "ci_error_tools_image_digest_mismatch": "The policy pins the tools image (execution.extensionImage: pinned), and this job runs another one: {detail}.",
+  "ci_error_tools_image_digest_mismatch_fix": "Use the container jgates-tools@{expected} in the CI job, or ask the owner of the policy to update the pin.",
+  "ci_error_tools_image_digest_unknown": "The policy pins the tools image (execution.extensionImage: pinned), and the digest of this job's image is not known: {detail}.",
+  "ci_error_tools_image_digest_unknown_fix": "Set JGATES_TOOLS_IMAGE_DIGEST to the digest of the container of the job (the sha256 after the @ of its reference)."
 }

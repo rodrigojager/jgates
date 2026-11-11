@@ -22,6 +22,8 @@ const { githubSnippet, gitlabSnippet } = await import(pathToFileURL(path.join(di
 const { checkPolicyLocation } = await import(pathToFileURL(path.join(dist, "core", "policy", "index.js")).href);
 
 const PLACEHOLDER_HASH = "<policy-sha256>";
+const PLACEHOLDER_DIGEST = "sha256:<digest>";
+const PLACEHOLDER_IMAGE = `<registry>/jgates-tools@${PLACEHOLDER_DIGEST}`;
 const read = (name) => fs.readFileSync(path.join(EXAMPLES, name), "utf8");
 const GLOBAL_FLAGS = new Set(["json", "help", "version", "locale"]);
 
@@ -70,9 +72,12 @@ for (const file of files) {
     const text = read(file);
     assert.ok(!/quality-ci|quality-gate|semantic-gate/i.test(text), "cites a retired or other command");
     assert.ok(!/ghcr\.io/i.test(text), "cites a container registry");
-    assert.ok(!/sha256:[0-9a-f]{16,}|@sha256|\b[0-9a-f]{64}\b/i.test(text), "contains a real digest");
+    // The only digest is the placeholder; the image is named by a placeholder registry.
+    const withoutPlaceholder = text.split(PLACEHOLDER_IMAGE).join("").split(PLACEHOLDER_DIGEST).join("");
+    assert.ok(!/sha256:[0-9a-f]{16,}|@sha256|\b[0-9a-f]{64}\b/i.test(withoutPlaceholder), "contains a real digest");
+    assert.ok(text.includes(PLACEHOLDER_IMAGE), "does not name the tools image with the placeholder registry and digest");
     assert.ok(!/company|corporat|empresa/i.test(text), "mentions a company");
-    assert.ok(!/@|\.com\b(?!\/rodrigojager\/jgates)/.test(text.replace(/\$\{\{[^}]*\}\}/g, "").replace(/github\.com\/rodrigojager\/jgates/g, "").replace(/\w+@v\d+/g, "").replace(/gitlab-ci-token:[^@]*@/g, "")), "contains an address");
+    assert.ok(!/@|\.com\b(?!\/rodrigojager\/jgates)/.test(withoutPlaceholder.replace(/\$\{\{[^}]*\}\}/g, "").replace(/github\.com\/rodrigojager\/jgates/g, "").replace(/\w+@v\d+/g, "").replace(/gitlab-ci-token:[^@]*@/g, "")), "contains an address");
   });
 }
 
@@ -123,35 +128,23 @@ test("GitLab CI: the policy is cloned outside $CI_PROJECT_DIR", () => {
   }
 });
 
-test("the install step uses the repository, never a registry package", () => {
-  for (const text of [githubSnippet(PLACEHOLDER_HASH), gitlabSnippet(PLACEHOLDER_HASH)]) {
-    assert.match(text, /npm install --prefix "[^"]+" git\+https:\/\/github\.com\/rodrigojager\/jgates/);
-    assert.ok(!/npm install (--global |-g )?(jgates|@jgates\/cli)\b/.test(text));
-  }
-});
-
-test("the install step never installs from git with --global and puts the bin folder on PATH", () => {
-  // npm links a global git install to a temporary clone it then deletes, which leaves the bins pointing at nothing.
+test("the job runs in the pinned tools image and installs nothing", () => {
+  const github = YAML.parse(read("github-actions.yml"));
+  const job = Object.values(github.jobs)[0];
+  assert.equal(job.container, PLACEHOLDER_IMAGE, "the GitHub job does not use the tools image as its container");
+  assert.equal(job.env.JGATES_TOOLS_IMAGE_DIGEST, PLACEHOLDER_DIGEST);
+  const gitlab = YAML.parse(read("gitlab-ci.yml")).jgates;
+  assert.equal(gitlab.image, PLACEHOLDER_IMAGE, "the GitLab job does not use the tools image");
+  assert.equal(gitlab.variables.JGATES_TOOLS_IMAGE_DIGEST, PLACEHOLDER_DIGEST);
   for (const name of files) {
-    const lines = shellLines(name).filter((l) => /^npm\s/.test(l));
-    assert.ok(lines.length > 0, `${name} does not install JGates`);
-    for (const line of lines) assert.ok(!/\s(--global|-g)(\s|$)/.test(line), `${name} installs globally: "${line}"`);
+    const lines = shellLines(name);
+    assert.ok(lines.some((l) => /^jgates ci\s/.test(l)), `${name} does not call jgates ci`);
+    for (const line of lines) {
+      assert.ok(!/^(npm|npx|pnpm|yarn|pip|pip3|uv)\s/.test(line), `${name} installs something: "${line}"`);
+      assert.ok(!/(^|\s)(sudo|apt|apt-get|apk)\s/.test(line), `${name} installs a package: "${line}"`);
+    }
   }
-  const ghLines = shellLines("github-actions.yml");
-  const ghInstall = ghLines.find((l) => /^npm install --prefix /.test(l));
-  const ghPrefix = ghInstall.match(/--prefix "([^"]+)"/)[1];
-  assert.ok(ghPrefix.startsWith("$RUNNER_TEMP/"), "the GitHub install folder is not under $RUNNER_TEMP");
-  assert.ok(ghLines.includes(`echo "${ghPrefix}/node_modules/.bin" >> "$GITHUB_PATH"`), "the GitHub job does not add the bin folder to GITHUB_PATH");
-  assert.ok(ghLines.indexOf(ghInstall) < ghLines.findIndex((l) => /^jgates\s/.test(l)));
-
-  const doc = YAML.parse(read("gitlab-ci.yml"));
-  const glLines = shellLines("gitlab-ci.yml");
-  const glInstall = glLines.find((l) => /^npm install --prefix /.test(l));
-  const glPrefix = glInstall.match(/--prefix "([^"]+)"/)[1];
-  assert.equal(glPrefix, "$JGATES_INSTALL_DIR");
-  const declared = doc.jgates.variables.JGATES_INSTALL_DIR;
-  assert.ok(declared && !declared.includes("$CI_PROJECT_DIR") && declared.startsWith("$CI_BUILDS_DIR/"), "the GitLab install folder is not outside $CI_PROJECT_DIR");
-  const exportLine = glLines.findIndex((l) => l === `export PATH="${glPrefix}/node_modules/.bin:$PATH"`);
-  assert.ok(exportLine > glLines.indexOf(glInstall), "the GitLab job does not put the bin folder on PATH after installing");
-  assert.ok(exportLine < glLines.findIndex((l) => /^jgates\s/.test(l)));
+  assert.ok(!job.steps.some((s) => String(s.uses).startsWith("actions/setup-")), "the GitHub job sets up a toolchain the image already has");
+  const text = githubSnippet(PLACEHOLDER_HASH) + gitlabSnippet(PLACEHOLDER_HASH);
+  assert.ok(!/git\+https|node:22|npm install/.test(text), "an example still installs JGates");
 });

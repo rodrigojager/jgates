@@ -91,6 +91,10 @@
         "network": { "enum": ["explicit", "allow", "deny"] },
         "timeoutSeconds": { "type": "integer", "minimum": 1 },
         "dataMaxAgeDays": { "type": "integer", "minimum": 1, "default": 7, "description": "Advisory data (vulnerability databases of the offline scanners) older than this many days makes the checks that read it incomplete (DATA_STALE). A governed policy can require less. Default 7." },
+        "extensionImage": {
+          "enum": ["forbid", "pinned"],
+          "description": "jgates ci only: what the policy accepts of extension images. forbid: any extension (the project's .jgates/image or a tool on another image) is refused. pinned: the extension images must be named by their sha256 digest and the tools image of the job must be the one pinned by this JGates (release/tools-image.json). Absent: the job runs the tools image alone and extensions are not looked at."
+        },
         "failFast": { "type": "boolean", "description": "Stop at the first failed stage; the rest is recorded as not run." },
         "trustSelfReported": {
           "type": "boolean",

@@ -8,6 +8,7 @@ import type { CommandContext, CommandModule } from "../command.js";
 import { EXIT_USAGE, errorPayload, reportError, writeJson } from "../output.js";
 import { translator, type Params, type Translator } from "../../i18n/index.js";
 import { executeRun, type RunResult } from "../../core/run/index.js";
+import type { AdapterContext } from "../../core/run/types.js";
 import { planDisabled, planSteps } from "../../core/run/plan-run.js";
 import {
   buildGovernedPlan,
@@ -22,6 +23,10 @@ import {
 import { SnapshotError } from "../../core/snapshot/index.js";
 import { governSteps } from "../../core/governed/steps.js";
 import { checkCommitTree } from "../../core/governed/tree.js";
+import { checkGovernedImage } from "../../core/governed/image.js";
+import { createNativeDeps } from "../../core/governed/native-deps.js";
+import { createDataRun, dataMaxAgeDaysOf } from "../../core/data/index.js";
+import { stepMode } from "../../core/runner/in-image.js";
 import type { RunEvent } from "../../core/events/index.js";
 import { ADAPTER_ID } from "../../adapters/quality-bridge/index.js";
 import { BuiltinError } from "../../builtin/index.js";
@@ -108,7 +113,10 @@ function policyFailFast(projectDir: string, policyDir: string): boolean {
   }
 }
 
-function policyError(ctx: CommandContext, t: Translator, error: GovernedError, extra: Params = {}): number {
+/** A refusal with a stable code: a problem of the policy, or of the images the policy accepts. */
+type CiError = Omit<GovernedError, "code"> & { code: string };
+
+function policyError(ctx: CommandContext, t: Translator, error: CiError, extra: Params = {}): number {
   const key = `ci_error_${error.code.toLowerCase()}`;
   const params: Params = { path: error.path ?? "-", detail: error.detail, expected: error.expected ?? "-", actual: error.actual ?? "-", ...extra };
   if (ctx.json) {
@@ -229,6 +237,9 @@ export const command: CommandModule = {
     if (!plan.groups.willRun.some((i) => i.adapter === ADAPTER_ID && i.subcheck === "file-size")) {
       return policyError(ctx, t, { code: "POLICY_BUDGETS_DISABLED", detail: "the policy's selection turns quality-bridge.file-size off", path: null });
     }
+    // The images the policy accepts (execution.extensionImage): extensions refused or pinned by digest.
+    const imageProblem = checkGovernedImage({ policyDir: policy.bundle.dir, projectDir, commit: plan.scope.head ?? "HEAD", plan });
+    if (imageProblem) return policyError(ctx, t, imageProblem);
     // The commit itself: a submodule (not analyzed) or a symbolic link out of the checkout is refused before anything runs.
     const treeProblem = checkCommitTree(projectDir, plan.scope.head ?? "HEAD");
     if (treeProblem) return policyError(ctx, t, { code: treeProblem.code, detail: treeProblem.detail, path: treeProblem.path });
@@ -236,6 +247,10 @@ export const command: CommandModule = {
     // 4. The run: the policy's waivers only, the cache on, a reduced selection never passes.
     const failFast = ctx.options["fail-fast"] === true || policyFailFast(projectDir, policy.bundle.dir);
     const request = plan.selection.request;
+    // Inside the tools image the job is the container: no engine, so the dependencies are installed natively (frozen
+    // only) before the checks that need them and the advisory data is read from where the job mounted it.
+    const inImage = stepMode(process.env) === "in-image";
+    const nativeDeps = inImage ? createNativeDeps({ plan, configDir: policy.bundle.dir }) : null;
     let result: RunResult;
     try {
       result = await withCancellation((signal) =>
@@ -263,7 +278,16 @@ export const command: CommandModule = {
           runFiles: governedRunFiles(plan, policy),
           plan,
           // The plan's steps with what the run can trust marked, plus the report of the suppressions in the code.
-          steps: (context) => governSteps(context, plan, planSteps(context, plan)),
+          steps: (context) => {
+            const governed = governSteps(context, plan, planSteps(context, plan));
+            if (!inImage) return governed;
+            // A check does not start without its dependencies (DEPENDENCIES_*) nor on advisory data older than the policy
+            // allows (DATA_STALE / DATA_MISSING).
+            const withDeps = nativeDeps ? nativeDeps.gate(governed) : governed;
+            const data = createDataRun({ plan, env: process.env, runDir: context.runDir, maxAgeDays: dataMaxAgeDaysOf(policy.bundle.dir), version: ctx.version });
+            return data ? data.gate(withDeps) : withDeps;
+          },
+          ...(nativeDeps ? { phases: (context: AdapterContext) => [nativeDeps.phase(context)] } : {}),
           disabled: planDisabled(plan),
           waivers: policy.waivers,
           cache: true,
