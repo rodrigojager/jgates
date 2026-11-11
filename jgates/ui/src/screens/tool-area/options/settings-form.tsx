@@ -35,8 +35,16 @@ const domId = (field: string) => `rtf-${field.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 const empty = (v: unknown) => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-/** Whether the text is a base URL the runtime checks accept (checkTarget): http(s), a host, no credentials, query or fragment. */
+const SERVICE_TARGET = /^service:[A-Za-z0-9][A-Za-z0-9_.-]*:(\d{1,5})(\/[^\s?#]*)?$/;
+
+/** Whether the text is a base URL the runtime checks accept (checkTarget): http(s), a host, no credentials, query or fragment; or a project service. */
 export function urlProblem(value: string): string | null {
+  // `service:<name>:<port>[/path]`: a compose service of the project (Configuração > Serviços), reached on the run network.
+  if (value.startsWith("service:")) {
+    const match = SERVICE_TARGET.exec(value.trim());
+    const port = match ? Number(match[1]) : 0;
+    return port >= 1 && port <= 65535 ? null : t("rtf_err_url");
+  }
   let u: URL;
   try {
     u = new URL(value);

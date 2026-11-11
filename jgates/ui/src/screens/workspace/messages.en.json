@@ -138,5 +138,6 @@
   "ws_conflict_reload": "Reload the file",
   "ws_saved_toast": "Written to .jgates/workspace.yml",
   "ws_invalid_file": ".jgates/workspace.yml has problems: {message}",
-  "ws_overview_aria": "Discovery summary"
+  "ws_overview_aria": "Discovery summary",
+  "ws_offer_later": "Not now"
 }

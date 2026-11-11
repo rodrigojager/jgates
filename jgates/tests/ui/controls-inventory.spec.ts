@@ -32,6 +32,7 @@ const ROUTES: Array<{ id: string; hash: string }> = [
   { id: "help", hash: "#/help" },
   { id: "about", hash: "#/about" },
   { id: "policy", hash: "#/policy" },
+  { id: "services", hash: "#/config/services" },
 ];
 
 interface Setup {

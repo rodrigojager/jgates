@@ -58,7 +58,7 @@ export interface ServicesRun {
 }
 
 /** The health poll of the target: GET until 2xx/3xx or the deadline (python3 of the tools image). */
-const HEALTH_POLL = [
+export const HEALTH_POLL = [
   "import sys, time, urllib.request",
   "url, deadline, last = sys.argv[1], time.time() + float(sys.argv[2]), ''",
   "while time.time() < deadline:",

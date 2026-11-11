@@ -72,10 +72,10 @@ test("a second ESLint instance for another component is written to tools.yml and
     await page.getByLabel("Buscar ferramenta ou linguagem").fill("");
     await expect(page.getByTestId("catalog-card").first()).toBeVisible();
 
-    await page.getByRole("button", { name: "Nova instância", exact: true }).click();
+    await page.getByRole("button", { name: "Adicionar ferramenta", exact: true }).click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Ferramenta").selectOption({ label: "ESLint" });
-    await dialog.getByLabel("Componente").selectOption("ui");
+    await dialog.locator("select").first().selectOption({ label: "ESLint" });
+    await dialog.locator("select").nth(1).selectOption("ui");
     await expect(dialog.getByLabel("Nome da instância")).toHaveValue("eslint-ui");
     await dialog.getByRole("button", { name: "Criar instância" }).click();
     await expect(page.getByTestId("tools-notice")).toContainText("eslint-ui");

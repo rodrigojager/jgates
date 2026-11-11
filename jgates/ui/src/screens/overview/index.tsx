@@ -198,8 +198,9 @@ function readinessStep(items: ReadinessItem[]): Step | null {
   const first = items.find((i) => i.ok === false);
   if (!first) return null;
   const a = first.reason?.action;
-  const own = a?.kind === "link" && a.url ? a.url : a?.kind === "route" && a.route ? `#/${a.route.replace(/^\/+/, "")}` : null;
-  const href = own ?? `#/environment?section=${first.id}`;
+  // The services have their own screen (Configuração > Serviços).
+  const own = first.id === "services" ? null : a?.kind === "link" && a.url ? a.url : a?.kind === "route" && a.route ? `#/${a.route.replace(/^\/+/, "")}` : null;
+  const href = first.id === "services" ? "#/config/services" : (own ?? `#/environment?section=${first.id}`);
   const label = own && a ? a.label : t(`overview_ready_action_${first.id}`);
   return {
     n: "00",

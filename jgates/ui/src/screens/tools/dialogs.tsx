@@ -24,7 +24,9 @@ export function Refusal({ error }: { error: unknown }) {
   );
 }
 
-export function CreateDialog({ adapters, components, initialAdapter, existing, onClose, onDone }: { adapters: CatalogAdapter[]; components: string[]; initialAdapter: string | null; existing: string[]; onClose: () => void; onDone: (id: string) => void }) {
+export function CreateDialog({ adapters, components, initialAdapter, existing, onClose, onDone, onOwn }: { adapters: CatalogAdapter[]; components: string[]; initialAdapter: string | null; existing: string[]; onClose: () => void; onDone: (id: string) => void; onOwn?: () => void }) {
+  // "Adicionar ferramenta" offers two paths: the catalog (this form) and an own tool (the six-step dialog).
+  const [path, setPath] = useState<"catalog" | "own">("catalog");
   const choices = adapters.filter((a) => a.instantiable);
   const [adapter, setAdapter] = useState(initialAdapter && choices.some((a) => a.adapter === initialAdapter) ? initialAdapter : (choices[0]?.adapter ?? ""));
   const [component, setComponent] = useState("");
@@ -62,7 +64,35 @@ export function CreateDialog({ adapters, components, initialAdapter, existing, o
   const name = adapterName(adapter, choices.find((a) => a.adapter === adapter)?.displayName ?? adapter);
   return (
     <Dialog title={initialAdapter ? t("tools_dialog_create_for", { tool: name }) : t("tools_dialog_create")} onClose={onClose}>
-      <form className="stack" onSubmit={submit}>
+      <form className="stack" onSubmit={path === "own" ? (e) => (e.preventDefault(), onOwn?.()) : submit}>
+        {onOwn && !initialAdapter ? (
+          <fieldset className="stack tight" data-testid="tools-path">
+            <legend className="small">{t("tools_path_legend")}</legend>
+            <label className="row">
+              <input type="radio" name="tools-path" value="catalog" checked={path === "catalog"} onChange={() => setPath("catalog")} />
+              <span>
+                <strong>{t("tools_path_catalog")}</strong> <span className="small muted">{t("tools_path_catalog_help")}</span>
+              </span>
+            </label>
+            <label className="row">
+              <input type="radio" name="tools-path" value="own" checked={path === "own"} onChange={() => setPath("own")} />
+              <span>
+                <strong>{t("tools_path_own")}</strong> <span className="small muted">{t("tools_path_own_help")}</span>
+              </span>
+            </label>
+          </fieldset>
+        ) : null}
+        {path === "own" ? (
+          <div className="row wrap">
+            <button type="submit" className="btn primary" data-testid="tools-path-continue">
+              {t("tools_path_continue")}
+            </button>
+            <button type="button" className="btn" onClick={onClose}>
+              {t("tools_dialog_cancel")}
+            </button>
+          </div>
+        ) : (
+        <>
         <label className="stack tight">
           <span>{t("tools_dialog_adapter")}</span>
           <select className="input" value={adapter} onChange={(e) => pick(e.target.value, component)}>
@@ -113,6 +143,8 @@ export function CreateDialog({ adapters, components, initialAdapter, existing, o
             {t("tools_dialog_cancel")}
           </button>
         </div>
+        </>
+        )}
       </form>
     </Dialog>
   );

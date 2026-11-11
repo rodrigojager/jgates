@@ -108,6 +108,8 @@ function DeclareForm({
   const [frameworkOther, setFrameworkOther] = useState(fw0.other);
   const [error, setError] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
+  // After saving a component of a language JGates has no checks for: the offer to add an own tool for it.
+  const [offer, setOffer] = useState<{ language: string; component: string } | null>(null);
 
   const selected = languages.find((l) => l.id === language);
   // With the language left to detection every known framework is offered; otherwise only the language's own.
@@ -160,13 +162,35 @@ function DeclareForm({
       await api("PUT", "/api/workspace/settings", { expectedRevision: revision, components: next });
       toast(t("ws_saved_toast"), "ok");
       onSaved();
-      onClose();
+      const known = languages.find((l) => l.id === lang);
+      if (known && !known.supported) setOffer({ language: known.label, component: entry.id });
+      else if (lang && !known) setOffer({ language: lang, component: entry.id });
+      else onClose();
     } catch (err) {
       setError(err);
     } finally {
       setSaving(false);
     }
   };
+
+  if (offer) {
+    return (
+      <div className="stack" data-testid="own-tool-offer">
+        <div className="notice info" role="status">
+          <Icon name="info" />
+          <p>{t("ctl_unsupported_offer", { language: offer.language })}</p>
+        </div>
+        <div className="row">
+          <a className="btn primary" href={`#/tools?custom=1&component=${encodeURIComponent(offer.component)}`} onClick={onClose}>
+            {t("ctl_unsupported_action")}
+          </a>
+          <button type="button" className="btn" onClick={onClose}>
+            {t("ws_offer_later")}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form className="stack" onSubmit={submit} data-testid="declare-form">
@@ -175,6 +199,7 @@ function DeclareForm({
           <label htmlFor="ws-decl-path">{t("ws_field_path")}</label>
           <input
             id="ws-decl-path"
+            data-free-text="project-path"
             type="text"
             required
             autoFocus
@@ -198,6 +223,7 @@ function DeclareForm({
           <label htmlFor="ws-decl-id">{t("ws_field_id")}</label>
           <input
             id="ws-decl-id"
+            data-free-text="identifier"
             type="text"
             required
             autoComplete="off"
@@ -240,6 +266,7 @@ function DeclareForm({
               <label htmlFor="ws-decl-language-other">{t("ws_field_language_other")}</label>
               <input
                 id="ws-decl-language-other"
+                data-free-text="other-language"
                 type="text"
                 required
                 autoComplete="off"
@@ -277,6 +304,7 @@ function DeclareForm({
               <label htmlFor="ws-decl-framework-other">{t("ws_field_framework_other")}</label>
               <input
                 id="ws-decl-framework-other"
+                data-free-text="other-framework"
                 type="text"
                 required
                 autoComplete="off"

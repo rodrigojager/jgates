@@ -1,0 +1,12 @@
+/* Configuração > Serviços. Tokens from theme.css (light and dark). */
+.svc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.svc-list h3 { margin: 0; overflow-wrap: anywhere; }
+.svc-list code, .svc-effects code { overflow-wrap: anywhere; }
+.svc-effects { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.svc-effects li { display: flex; gap: 8px; align-items: flex-start; }
+.svc-effects li svg { flex: none; margin-top: 2px; }
+.svc-log { margin: 8px 0 0; padding: 12px; max-height: 40vh; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); font-family: var(--mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.input.number { max-width: 140px; }
+@media (max-width: 640px) {
+  .svc-list .input, .svc-list select { max-width: 100%; }
+}

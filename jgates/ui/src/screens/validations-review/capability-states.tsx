@@ -461,7 +461,7 @@ export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext })
   } else if (action.kind === "configure-services") {
     const text = String(action.label || t("capst_services_configure"));
     control = (
-      <a className="btn capst-btn" href={`#/${String(action.route ?? "environment").replace(/^\/+/, "")}`} {...named(text)} data-testid="services-action">
+      <a className="btn capst-btn" href="#/config/services" {...named(text)} data-testid="services-action">
         <Icon name="tools" />
         {text}
       </a>
@@ -470,7 +470,7 @@ export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext })
   } else if (action.kind === "add-extension-tool") {
     const text = String(action.label || t("capst_extension_add"));
     control = (
-      <a className="btn capst-btn" href={`#/${String(action.route ?? "tools").replace(/^\/+/, "")}`} {...named(text)} data-testid="extension-action">
+      <a className="btn capst-btn" href="#/tools?custom=1" {...named(text)} data-testid="extension-action">
         <Icon name="tools" />
         {text}
       </a>

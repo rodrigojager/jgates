@@ -111,7 +111,7 @@ test("the create dialog closes with Escape and returns the focus, and the tools 
   await withGates(page, async ({ base }) => {
     await page.goto(`${base}#/tools`);
     await expect(page.getByRole("heading", { name: "Ferramentas", level: 1 })).toBeVisible();
-    const open = page.getByRole("button", { name: "Nova instância" });
+    const open = page.getByRole("button", { name: "Adicionar ferramenta", exact: true });
     await open.focus();
     await page.keyboard.press("Enter");
     const dialog = page.getByRole("dialog");

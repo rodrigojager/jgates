@@ -270,7 +270,7 @@ function Services({ s }: { s: Sections["services"] }) {
       state={s.configured ? s.state : "none"}
       summary={s.configured ? t("env_services_configured", { count: compose.length }) : t("env_services_none")}
       action={
-        <a className="btn primary" href="#/config/yaml">
+        <a className="btn primary" href="#/config/services" data-testid="env-services-configure">
           {t("env_services_configure")}
         </a>
       }

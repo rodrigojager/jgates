@@ -7,6 +7,7 @@ import { Icon } from "../../components/icons";
 import { adapterName, t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { SemanticCard } from "./semantic/card";
+import { CustomToolDialog } from "./custom-dialog";
 import { CreateDialog, RemoveDialog, RenameDialog, type CatalogAdapter } from "./dialogs";
 
 export const screen: ScreenMeta = { id: "tools", path: "/tools", navLabel: "nav_tools", navPath: "/tools", order: 10, icon: "tools" };
@@ -48,6 +49,25 @@ interface Availability {
   status: string;
   reason: string | null;
   toolVersion: string | null;
+}
+
+/** What /api/tool-origins says: the version of the tools in the JGates image and the own tools already tested. */
+interface Origins {
+  image: { version: string | null; tools: Record<string, string> };
+  tested: Record<string, string>;
+}
+
+/** The origin row of a catalog entry or of an instance: JGates image (with the tool version), own tool or customer supplied. */
+export function OriginRow({ kind, version, untested, spdx }: { kind: "shipped" | "own" | "customer" | "prepared"; version?: string | null; untested?: boolean; spdx?: string | null }) {
+  const text = kind === "shipped" ? (version ? t("tools_origin_shipped_version", { version }) : t("tools_origin_shipped")) : kind === "own" ? t("tools_origin_own") : kind === "customer" ? t("tools_origin_customer") : t("tools_origin_prepared");
+  return (
+    <div className="row wrap" data-testid="origin-row" data-origin={kind}>
+      <span className="small">{t("tools_origin_label")}</span>
+      <Pill tone={kind === "customer" ? "gold" : kind === "own" ? "blue" : "green"}>{text}</Pill>
+      {untested ? <Pill tone="gold">{t("tools_origin_untested")}</Pill> : null}
+      {spdx ? <span className="small muted">{t("tools_origin_license", { spdx })}</span> : null}
+    </div>
+  );
 }
 
 const AVAILABILITY_TONE: Record<string, "green" | "gold"> = { available: "green", unavailable: "gold" };
@@ -129,12 +149,26 @@ export function AvailabilityPill({ value }: { value: Availability | undefined })
   );
 }
 
+function InstanceOrigin({ instance, toolName, entry, origins }: { instance: any; toolName: string; entry: MatrixInfo | undefined; origins: Origins | null }) {
+  if (instance.adapter === "generic-command") return <OriginRow kind="own" untested={origins !== null && !(instance.id in origins.tested)} />;
+  return <CatalogOrigin entry={{ adapter: instance.adapter, toolName }} info={entry} origins={origins} />;
+}
+
+function CatalogOrigin({ entry, info, origins }: { entry: { adapter: string; toolName: string }; info: MatrixInfo | undefined; origins: Origins | null }) {
+  if (entry.adapter === "generic-command") return <OriginRow kind="own" />;
+  const mode = info?.distribution?.mode;
+  if (mode === "customer-supplied") return <OriginRow kind="customer" spdx={info?.distribution?.spdx ?? null} />;
+  if (mode === "prepared-from-authorized-source") return <OriginRow kind="prepared" spdx={info?.distribution?.spdx ?? null} />;
+  return <OriginRow kind="shipped" version={origins?.image.tools[entry.toolName] ?? null} spdx={info?.distribution?.spdx ?? null} />;
+}
+
 export default function ToolsScreen() {
   const tools = useAsync(() => api("GET", "/api/tools"), "tools");
   const catalog = useAsync(() => api<{ adapters: CatalogEntry[] }>("GET", "/api/tool-catalog"), "tool-catalog");
   const discovery = useAsync(() => api<{ inventory: { classifications: Array<{ id: string }> } }>("GET", "/api/workspace/discovery").catch(() => null), "tools-discovery");
   const availability = useAsync(() => api<{ availability: Record<string, Availability> }>("GET", "/api/tool-availability").catch(() => null), "tool-availability");
   const matrix = useAsync(() => api<{ matrix: { adapters: Array<{ id: string } & MatrixInfo> } }>("GET", "/api/tool-matrix").catch(() => null), "tool-matrix");
+  const origins = useAsync(() => api<Origins>("GET", "/api/tool-origins").catch(() => null), "tool-origins");
   const matrixOf = useMemo(() => new Map((matrix.data?.matrix.adapters ?? []).map((m) => [m.id, m])), [matrix.data]);
   const shell = useShell();
   const governed = shell.info?.mode === "governed";
@@ -143,8 +177,11 @@ export default function ToolsScreen() {
   const [category, setCategory] = useState("");
   const [component, setComponent] = useState("");
   // `#/tools?add=<adapter>` (the "Adicionar" action of a check that does not apply yet) opens the creation for that adapter.
-  const [dialog, setDialog] = useState<{ kind: "create"; adapter: string | null } | { kind: "rename"; id: string } | { kind: "remove"; id: string } | null>(() => {
-    const add = currentQuery().get("add");
+  const [dialog, setDialog] = useState<{ kind: "create"; adapter: string | null } | { kind: "custom"; component: string | null } | { kind: "rename"; id: string } | { kind: "remove"; id: string } | null>(() => {
+    const query = currentQuery();
+    // `#/tools?custom=1[&component=<id>]` (the own-tool action of a check without a tool, the unsupported-language offer) opens the own-tool dialog.
+    if (query.get("custom")) return { kind: "custom", component: query.get("component") };
+    const add = query.get("add");
     return add ? { kind: "create", adapter: add } : null;
   });
   const [notice, setNotice] = useState<{ text: string; tool: string; references: string[] } | null>(null);
@@ -159,7 +196,8 @@ export default function ToolsScreen() {
   }, [discovery.data, instances]);
   const categories = useMemo(() => [...new Set(adapters.flatMap((a) => a.categories))].sort(), [adapters]);
 
-  if (tools.loading || catalog.loading) return <Loading />;
+  // Only the first load replaces the screen: a reload after a change keeps the buttons (and the focus) where they are.
+  if ((tools.loading && !tools.data) || (catalog.loading && !catalog.data)) return <Loading />;
   if (tools.error) return <ErrorNotice error={tools.error} onRetry={tools.reload} />;
   if (catalog.error) return <ErrorNotice error={catalog.error} onRetry={catalog.reload} />;
   const data = tools.data as any;
@@ -175,6 +213,7 @@ export default function ToolsScreen() {
 
   const refresh = () => {
     tools.reload();
+    origins.reload();
     availability.reload();
   };
   const done = (text: string, tool: string, references: string[] = []) => {
@@ -282,6 +321,10 @@ export default function ToolsScreen() {
                   <dd>{i.component ?? t("tools_workspace_wide")}</dd>
                   <dt>{t("tools_card_runner")}</dt>
                   <dd>{i.runner === "container" ? t("tools_card_runner_container") : t("tools_card_runner_local")}</dd>
+                  <dt>{t("tools_origin_label")}</dt>
+                  <dd>
+                    <InstanceOrigin instance={i} toolName={entry?.toolName ?? i.adapter} entry={matrixOf.get(i.adapter)} origins={origins.data} />
+                  </dd>
                   <dt>{t("tools_card_availability")}</dt>
                   <dd data-testid="tool-availability">
                     <AvailabilityPill value={a} />
@@ -340,6 +383,7 @@ export default function ToolsScreen() {
               <p className="small">{a.languages.length > 0 ? t("tools_card_languages", { languages: a.languages.join(", ") }) : t("tools_card_languages_none")}</p>
               <p className="small">{a.categories.map((c) => tOr(`tools_category_${c}`, c)).join(", ")}</p>
               <p className="small">{t("tools_card_runners", { runners: a.runners.map((r) => (r === "container" ? t("tools_card_runner_container") : t("tools_card_runner_local"))).join(", ") })}</p>
+              <CatalogOrigin entry={a} info={matrixOf.get(a.adapter)} origins={origins.data} />
               <DistributionInfo info={matrixOf.get(a.adapter)} />
               {a.instantiable ? (
                 <div>
@@ -363,6 +407,7 @@ export default function ToolsScreen() {
           initialAdapter={dialog.adapter}
           existing={instances.map((i) => i.id)}
           onClose={() => setDialog(null)}
+          onOwn={() => setDialog({ kind: "custom", component: null })}
           onDone={(id) => {
             // Created from a "not applicable here" action (#/tools?add=<adapter>&focus=<settings>): go straight to the
             // new instance's options, with the settings the check still needs focused.
@@ -373,6 +418,17 @@ export default function ToolsScreen() {
               return;
             }
             done(t("tools_done_created", { tool: id }), id);
+          }}
+        />
+      ) : null}
+      {dialog?.kind === "custom" ? (
+        <CustomToolDialog
+          components={components}
+          existing={instances.map((i) => i.id)}
+          preselect={dialog.component}
+          onClose={(saved) => {
+            if (saved) done(t("tools_done_created", { tool: saved }), saved);
+            else setDialog(null);
           }}
         />
       ) : null}
