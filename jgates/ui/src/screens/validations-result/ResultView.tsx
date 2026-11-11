@@ -398,7 +398,7 @@ function Disabled({ result }: { result: any }) {
       {disabled.length === 0 ? (
         <p>{t("vres_disabled_none")}</p>
       ) : (
-        <ul>
+        <ul style={{ overflowWrap: "anywhere" }}>
           {disabled.map((d) => (
             <li key={`${d.origin}:${d.id}`}>
               <code>{d.id}</code>: {tOr(`vres_origin_${d.origin}`, d.origin)}
@@ -460,6 +460,71 @@ function Policy({ previous, result }: { previous: any; result: any }) {
           ))}
         </div>
       ) : null}
+    </section>
+  );
+}
+
+/** Where the result came from besides the project: the tools image, the age of the security data, the dependencies and the services. */
+function Provenance({ result }: { result: any }) {
+  const p = result.provenance;
+  const c = p?.container;
+  if (!c) return null;
+  const started = Date.parse(result.startedAt ?? "");
+  const dataEntries = Object.entries((c.dataTimestamps ?? {}) as Record<string, string | null>);
+  const dependencyKeys = Object.entries((c.dependencyKeys ?? {}) as Record<string, string>);
+  const extensions = (c.extensionImages ?? []) as Array<{ name: string; digest: string }>;
+  const services = (c.services ?? []) as string[];
+  const short = (digest: string): string => digest.replace("sha256:", "").slice(0, 12);
+  const age = (iso: string | null): string => {
+    const at = iso ? Date.parse(iso) : NaN;
+    if (!Number.isFinite(at) || !Number.isFinite(started)) return t("vres_prov_never");
+    const days = Math.max(0, Math.floor((started - at) / 86_400_000));
+    return days === 0 ? t("vres_prov_today") : t("vres_prov_days", { days });
+  };
+  return (
+    <section className="stack" aria-labelledby="vres-prov" data-testid="provenance">
+      <h3 id="vres-prov">{t("vres_prov_title")}</h3>
+      <p className="muted small">{t("vres_prov_lead")}</p>
+      <dl className="kv">
+        <dt>{t("vres_prov_version")}</dt>
+        <dd data-testid="prov-version">{p.producerVersion ?? "-"}</dd>
+        <dt>{t("vres_prov_image")}</dt>
+        <dd data-testid="prov-image">{c.toolsImage ? <code title={c.toolsImage}>{short(c.toolsImage)}</code> : t("vres_prov_none")}</dd>
+        {extensions.length > 0 ? (
+          <>
+            <dt>{t("vres_prov_extension")}</dt>
+            <dd data-testid="prov-extension">
+              {extensions.map((e) => (
+                <div key={e.name}>
+                  <code>{e.name}</code> <code title={e.digest}>{short(e.digest)}</code>
+                </div>
+              ))}
+            </dd>
+          </>
+        ) : null}
+        <dt>{t("vres_prov_data")}</dt>
+        <dd data-testid="prov-data">
+          {dataEntries.length === 0
+            ? t("vres_prov_none")
+            : dataEntries.map(([name, iso]) => (
+                <div key={name} data-database={name}>
+                  <code>{name}</code>: {age(iso)}
+                </div>
+              ))}
+        </dd>
+        <dt>{t("vres_prov_dependencies")}</dt>
+        <dd data-testid="prov-dependencies">
+          {dependencyKeys.length === 0
+            ? t("vres_prov_none")
+            : dependencyKeys.map(([component, key]) => (
+                <div key={component} data-component={component}>
+                  <strong>{component}</strong>: <code title={key}>{key.replace("sha256:", "").slice(0, 12)}</code>
+                </div>
+              ))}
+        </dd>
+        <dt>{t("vres_prov_services")}</dt>
+        <dd data-testid="prov-services">{services.length === 0 ? t("vres_prov_none") : services.join(", ")}</dd>
+      </dl>
     </section>
   );
 }
@@ -682,6 +747,7 @@ export function ResultView({ result, previous, crashed = false, mascots, selecte
       <Disabled result={result} />
       <WorkspaceFiles result={result} />
       <Policy previous={previous} result={result} />
+      <Provenance result={result} />
       <Link result={result} />
     </section>
   );

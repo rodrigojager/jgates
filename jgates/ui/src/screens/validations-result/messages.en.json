@@ -183,5 +183,17 @@
   "vres_baseline_warning_RULES_CHANGED": "The rules changed since the baseline.",
   "vres_baseline_warning_SCOPE_CHANGED": "The scope changed since the baseline.",
   "vres_baseline_warning_REDUCED_RUN": "One of the two runs was reduced.",
-  "vres_baseline_warning_BASELINE_PARTIAL": "The baseline is from a partial run."
+  "vres_baseline_warning_BASELINE_PARTIAL": "The baseline is from a partial run.",
+  "vres_prov_title": "What this run used",
+  "vres_prov_lead": "The tools, the security data, the dependencies and the services this run used. With this you can repeat or explain the result.",
+  "vres_prov_version": "JGates tools version",
+  "vres_prov_image": "Tools image",
+  "vres_prov_extension": "Own image",
+  "vres_prov_data": "Age of the security data",
+  "vres_prov_dependencies": "Dependency keys",
+  "vres_prov_services": "Services used",
+  "vres_prov_none": "none",
+  "vres_prov_never": "never updated",
+  "vres_prov_today": "from today",
+  "vres_prov_days": "{days, plural, one {# day} other {# days}}"
 }

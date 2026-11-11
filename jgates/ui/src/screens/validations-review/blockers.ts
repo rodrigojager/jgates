@@ -11,7 +11,12 @@ export interface Blocker {
   message: string;
   /** How to resolve it. */
   how: string;
+  /** TOOL_MISSING: the plan's one action (download the tools of this release), with the label in the plan's language. */
+  action?: { kind: string; label?: string } | null;
 }
+
+/** Causes that one download of the tools image of this release fixes: the tools missing, the image absent or of another version. */
+export const TOOLS_DOWNLOAD: ReadonlySet<string> = new Set(["TOOL_MISSING", "IMAGE_MISSING", "IMAGE_VERSION_MISMATCH"]);
 
 const TARGET_CODES = new Set(["PATHS_REQUIRED", "REF_UNKNOWN", "NOT_A_GIT_REPOSITORY", "GIT_UNAVAILABLE", "REFS_NOT_ALLOWED", "PATHS_NOT_ALLOWED", "SNAPSHOT_FAILED"]);
 const OWN_LAYERS = new Set(["profile", "project", "call", "policy"]);
@@ -99,8 +104,10 @@ export function blockersOf(plan: any | null, error: unknown, unresolvedDrafts: n
     }
     if (unresolvedDrafts > 0) out.push({ code: "UNSAVED_DOCUMENT", title: t("vrev_blocker_unsaved"), message: t("vrev_unsaved_message", { count: unresolvedDrafts }), how: t("vrev_how_unsaved") });
     const seen = new Set<string>();
+    // One shared TOOL_MISSING blocker covers every check whose tool the image lacks: no second blocker for the same items.
+    const missingFromImage = new Set<string>(listed.filter((b) => b.code === "TOOL_MISSING").flatMap((b) => (b.items ?? []) as string[]));
     for (const u of unavailable) {
-      if (!u.blocking || architecture.has(u.id)) continue;
+      if (!u.blocking || architecture.has(u.id) || missingFromImage.has(u.id)) continue;
       const key = `${u.version ? "V" : "T"}:${u.reason}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -110,6 +117,10 @@ export function blockersOf(plan: any | null, error: unknown, unresolvedDrafts: n
     for (const b of listed) {
       if (["PLAN_EMPTY", "REQUIREMENT_UNCOVERED", "CONFIG_INVALID"].includes(b.code)) continue;
       if (b.code === "TOOL_UNAVAILABLE" && unavailable.some((u) => u.blocking)) continue;
+      if (TOOLS_DOWNLOAD.has(b.code)) {
+        out.push({ code: b.code, title: t("vrev_blocker_tool_missing"), message: b.message, how: t("vrev_how_tool_missing"), action: b.action ?? null });
+        continue;
+      }
       out.push({ code: b.code, title: tOr(`vrev_blocker_${String(b.code).toLowerCase()}`, b.code), message: b.message, how: tOr(`vrev_how_${String(b.code).toLowerCase()}`, t("vrev_how_build")) });
     }
   } else if (unresolvedDrafts > 0) {

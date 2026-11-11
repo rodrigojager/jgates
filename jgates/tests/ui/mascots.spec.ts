@@ -16,9 +16,14 @@ function checksFixture(): Fixture {
         effects: { readsCode: true, writesOutputs: false, mayChangeCode: false, executesProjectCode: true, usesNetwork: false }, evidence: { kind: "exit-code" },
       } };
   }
+  // Checks the person switched off, one per domain: the strip shows them as disabled (the retired bridge's subchecks did
+  // this before the scanners became individual instances).
+  for (const [id, adapter, capability] of [["off-secrets", "gitleaks", "secrets"], ["off-deps", "osv-scanner", "dependencies"], ["off-iac", "checkov", "iac"], ["off-dup", "jscpd", "duplication"], ["off-unit", "pytest", "unit"]] as const) {
+    tools[id] = { adapter, enabled: false, capabilities: [capability] };
+  }
   fs.writeFileSync(path.join(f.dir, ".jgates", "templates", "mascots.yml"), JSON.stringify({ schemaVersion: 1, id: "mascots", config: { tools } }));
   fs.writeFileSync(path.join(f.dir, "jgates.yml"), JSON.stringify({ schemaVersion: 1, extends: [".jgates/profiles.yml"], selection: { profile: "mascots" }, templates: [{ id: "mascots", source: ".jgates/templates/mascots.yml", activation: "always" }] }));
-  fs.writeFileSync(path.join(f.dir, ".jgates", "profiles.yml"), JSON.stringify({ schemaVersion: 1, profiles: { mascots: { checks: { "capability:lint": { enabled: true } } } } }));
+  fs.writeFileSync(path.join(f.dir, ".jgates", "profiles.yml"), JSON.stringify({ schemaVersion: 1, profiles: { mascots: { checks: { "capability:lint": { enabled: true }, "tool:off-dup": { enabled: false } } } } }));
   return f;
 }
 
@@ -137,7 +142,7 @@ test("configuration saves refresh selection, and review/cancellation retain the 
     // blocker, then restore the fixture's intentionally lint-only profile before running.
     await expect(quality).toHaveAttribute("data-status", "blocked");
     await expect(page.getByRole("button", { name: "Executar", exact: true })).toBeDisabled();
-    fs.writeFileSync(path.join(fixture.dir, ".jgates", "profiles.yml"), JSON.stringify({ schemaVersion: 1, profiles: { mascots: { checks: { "capability:lint": { enabled: true } } } } }));
+    fs.writeFileSync(path.join(fixture.dir, ".jgates", "profiles.yml"), JSON.stringify({ schemaVersion: 1, profiles: { mascots: { checks: { "capability:lint": { enabled: true }, "tool:off-dup": { enabled: false } } } } }));
     await page.getByRole("button", { name: "Atualizar plano", exact: true }).click();
     await expect(quality).toHaveAttribute("data-status", "waiting");
     await page.getByRole("button", { name: "Executar", exact: true }).click();

@@ -1,0 +1,10 @@
+.env-section .env-action { align-items: flex-start; }
+.env-section .env-action .command { flex: 1 1 100%; min-width: 0; }
+.env-details > summary { cursor: pointer; }
+.env-tools { columns: 2 14rem; list-style: none; margin: 0; padding: 0; }
+.env-tools li { overflow-wrap: anywhere; }
+.env-units { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.env-units li { overflow-wrap: anywhere; }
+.env-pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; overflow-x: auto; }
+.wrap-anywhere { overflow-wrap: anywhere; }
+.env-section progress { width: 100%; max-width: 360px; }

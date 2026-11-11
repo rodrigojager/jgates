@@ -39,3 +39,7 @@
 .ov-uncovered ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 @media (max-width: 720px) { .ov-hero { flex-direction: column; align-items: flex-start; } .ov-hero > svg { display: none; } }
 .ov-hero .eyebrow, .ov-hero p { color: var(--ink); }
+
+.ov-readiness { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ov-readiness a { text-decoration: none; }
+.ov-ready-state { margin-left: 4px; font-weight: 400; }

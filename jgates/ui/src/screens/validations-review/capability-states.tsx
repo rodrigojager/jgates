@@ -141,6 +141,8 @@ const langLabel = (id: string) => tOr(`capst_lang_${id.replace(/[^a-z0-9]+/gi, "
 /** Readable name of an adapter in the current language (the manifest name is English); unknown ones as they are. */
 const adapterLabel = adapterName;
 
+const toolsOf = (action: any, fallback: string): string => ((action?.tools ?? []) as string[]).join(", ") || fallback;
+
 export function naReason(na: any): string {
   const action = na.action ?? {};
   const adapters: any[] = na.adapters ?? [];
@@ -157,6 +159,10 @@ export function naReason(na: any): string {
       });
     case "TOOL_MISSING":
       return t("capst_reason_tool_missing", { tool: (action.tools ?? []).join(", ") || tool });
+    case "CUSTOMER_SUPPLIED":
+    case "SERVICES_REQUIRED":
+      // The shared catalogue's sentence, already in the language of the plan.
+      return String(na.message ?? t(na.reasonCode === "CUSTOMER_SUPPLIED" ? "capst_reason_customer_supplied" : "capst_reason_services_required", { tool: toolsOf(action, tool) }));
     case "CHECKS_DISABLED":
       return t("capst_reason_checks_disabled", { tools: (na.candidates ?? []).join(", ") || tool });
     case "DISABLED_FOR_RUN":
@@ -442,6 +448,33 @@ export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext })
     if (tools.length === 0 && settingsOf(action).length > 0) hint = t("capst_settings_hint", { settings: settingsOf(action).map(settingLabel).join(", ") });
     // Configure first; the tool is also missing here, so it is prepared next (its own action appears then).
     if (tools.length > 0 && action.prepareNext === true) hint = t("capst_prepare_next", { tool: toolName });
+  } else if (action.kind === "prepare-codeql") {
+    // CodeQL is supplied by the person: the terms and the explicit acceptance are in Ambiente, which prepares it.
+    const text = String(action.label || t("capst_codeql_prepare"));
+    control = (
+      <a className="btn capst-btn" href="#/environment" {...named(text)} data-testid="codeql-action">
+        <Icon name="tools" />
+        {text}
+      </a>
+    );
+    hint = t("capst_codeql_hint");
+  } else if (action.kind === "configure-services") {
+    const text = String(action.label || t("capst_services_configure"));
+    control = (
+      <a className="btn capst-btn" href={`#/${String(action.route ?? "environment").replace(/^\/+/, "")}`} {...named(text)} data-testid="services-action">
+        <Icon name="tools" />
+        {text}
+      </a>
+    );
+    hint = t("capst_services_hint");
+  } else if (action.kind === "add-extension-tool") {
+    const text = String(action.label || t("capst_extension_add"));
+    control = (
+      <a className="btn capst-btn" href={`#/${String(action.route ?? "tools").replace(/^\/+/, "")}`} {...named(text)} data-testid="extension-action">
+        <Icon name="tools" />
+        {text}
+      </a>
+    );
   } else if (action.kind === "prepare-tool" || action.kind === "prepare-image") {
     const docsLink = ((action.docs ?? []) as string[]).find((d) => /^https?:\/\//.test(d)) ?? null;
     return (

@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchEnvironmentState, useRecheckOnFocus, type EnvironmentReason, type EnvironmentState } from "../../api/environment";
 import { PrerequisitesBar } from "../../components/PrerequisitesBar";
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { api } from "../../api";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { Icon, type IconName } from "../../components/icons";
-import { t, tOr } from "../../i18n";
+import { getLocale, t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import "./overview.css";
 
@@ -29,6 +30,9 @@ interface LastRun {
   commit?: string | null;
   summary?: string | null;
   findings?: number;
+  /** The tools image (id) and the age in days of the oldest security database the run used. */
+  toolsImage?: string | null;
+  dataAgeDays?: number | null;
   stages: Stage[];
 }
 
@@ -91,7 +95,7 @@ function Segments({ stages }: { stages: Stage[] }) {
   );
 }
 
-function LastRunCard({ run }: { run: LastRun | null }) {
+function LastRunCard({ run, image }: { run: LastRun | null; image: { id?: string; version?: string } | null }) {
   if (!run) {
     return (
       <div className="card" data-testid="last-run-empty">
@@ -125,6 +129,13 @@ function LastRunCard({ run }: { run: LastRun | null }) {
             </span>
           ) : null}
           <span>{run.findings === 1 ? t("overview_findings_one") : t("overview_findings", { count: run.findings ?? 0 })}</span>
+          {run.toolsImage ? (
+            <span data-testid="run-image">
+              {t("overview_run_image")}{" "}
+              <code>{image?.id === run.toolsImage && image.version ? image.version : run.toolsImage.replace("sha256:", "").slice(0, 12)}</code>
+            </span>
+          ) : null}
+          {run.dataAgeDays !== null && run.dataAgeDays !== undefined ? <span data-testid="run-data-age">{t("overview_run_data_age", { days: run.dataAgeDays })}</span> : null}
         </div>
         <a className="ov-link" href={`#/runs/${encodeURIComponent(run.runId)}`}>
           {run.running ? t("overview_follow_run") : t("overview_view_result")} <Icon name="chevron" />
@@ -142,9 +153,88 @@ interface Step {
   pending: string | null;
   href: string;
   open: string;
+  /** A readiness step carries the id of its pill and the visible label of the action. */
+  readiness?: ReadinessId;
+  actionLabel?: string;
+  external?: boolean;
 }
 
-function steps(data: Overview): Step[] {
+type ReadinessId = "engine" | "image" | "data" | "dependencies" | "services";
+
+interface ReadinessItem {
+  id: ReadinessId;
+  state: string;
+  /** green: ready; gold: needs attention; undefined: nothing to say (not applicable, not known). */
+  ok: boolean | null;
+  reason: EnvironmentReason | null;
+}
+
+const OK_STATES: Record<ReadinessId, string[]> = {
+  engine: ["ready"],
+  image: ["ready"],
+  data: ["fresh"],
+  dependencies: ["ready", "none"],
+  services: ["running", "stopped"],
+};
+
+/** One pill per element of the environment; Serviços only when the project configures them. */
+function readinessOf(env: EnvironmentState | null): ReadinessItem[] {
+  if (!env) return [];
+  const s = env.sections as unknown as Record<string, { state: string; reasons: EnvironmentReason[]; configured?: boolean }>;
+  const inImage = env.mode === "in-image";
+  const ids: ReadinessId[] = ["engine", "image", "data", "dependencies"];
+  if (s.services?.configured) ids.push("services");
+  return ids.map((id) => {
+    const section = s[id] as { state: string; reasons: EnvironmentReason[] };
+    // Inside the tools image there is no engine to ask and the data is whatever the job mounted.
+    if (inImage && (id === "engine" || id === "image" || id === "data")) return { id, state: id === "data" ? "unknown" : "ready", ok: id === "data" ? null : true, reason: null };
+    const ok = OK_STATES[id].includes(section.state) && section.reasons.length === 0;
+    return { id, state: section.state, ok, reason: section.reasons.find((r) => r.action.kind !== "none") ?? section.reasons[0] ?? null };
+  });
+}
+
+/** The first element that is not ready becomes the first step: its sentence and its action. */
+function readinessStep(items: ReadinessItem[]): Step | null {
+  const first = items.find((i) => i.ok === false);
+  if (!first) return null;
+  const a = first.reason?.action;
+  const own = a?.kind === "link" && a.url ? a.url : a?.kind === "route" && a.route ? `#/${a.route.replace(/^\/+/, "")}` : null;
+  const href = own ?? `#/environment?section=${first.id}`;
+  const label = own && a ? a.label : t(`overview_ready_action_${first.id}`);
+  return {
+    n: "00",
+    icon: "tools",
+    title: t(`overview_ready_${first.id}`),
+    text: t("overview_ready_pending"),
+    pending: first.reason?.message ?? t(`overview_ready_fallback_${first.id}`),
+    href,
+    open: label,
+    readiness: first.id,
+    actionLabel: label,
+    external: a?.kind === "link",
+  };
+}
+
+function Readiness({ items }: { items: ReadinessItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <ul className="ov-readiness" aria-label={t("overview_ready_label")} data-testid="readiness">
+      {items.map((i) => (
+        <li key={i.id} data-readiness={i.id} data-ready={i.ok === null ? "unknown" : String(i.ok)}>
+          <a href="#/environment">
+            <Pill tone={i.ok === null ? undefined : i.ok ? "green" : "gold"}>
+              <Icon name={i.ok === false ? "alert" : "check"} />
+              {t(`overview_ready_${i.id}`)}
+              <span className="ov-ready-state">{t(i.ok === null ? "overview_ready_state_unknown" : i.ok ? "overview_ready_state_ok" : "overview_ready_state_attention")}</span>
+            </Pill>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function steps(data: Overview, readiness: Step | null): Step[] {
   const d = data.discovery;
   const gaps = data.categories.filter((c) => c.state === "gap");
   let step1: string | null = null;
@@ -154,27 +244,35 @@ function steps(data: Overview): Step[] {
   if (data.plan.blocked && !data.plan.planHash) step2 = t("overview_step2_pending_plan", { reason: data.plan.blocked });
   else if (gaps.length > 0) step2 = t("overview_step2_pending_gaps", { count: gaps.length, ids: gaps.map((g) => categoryLabel(g.id)).join(", ") });
   return [
+    ...(readiness ? [readiness] : []),
     { n: "01", icon: "folder", title: t("overview_step1_title"), text: t("overview_step1_text"), pending: step1, href: "#/workspace", open: t("overview_step1_open") },
     { n: "02", icon: "sliders", title: t("overview_step2_title"), text: t("overview_step2_text"), pending: step2, href: "#/config", open: t("overview_step2_open") },
     { n: "03", icon: "play", title: t("overview_step3_title"), text: t("overview_step3_text"), pending: data.lastRun ? null : t("overview_step3_pending"), href: "#/validations/choose", open: t("overview_step3_open") },
   ];
 }
 
-function NextSteps({ data }: { data: Overview }) {
+function NextSteps({ data, readiness }: { data: Overview; readiness: Step | null }) {
   return (
     <ol className="card ov-next" style={{ listStyle: "none", margin: 0 }} data-testid="next-steps">
-      {steps(data).map((s) => (
-        <li key={s.n} className={`ov-next-row${s.pending ? " pending" : ""}`} data-step={s.n} data-pending={s.pending ? "true" : "false"}>
-          <span className="step-number">{s.n}</span>
+      {steps(data, readiness).map((s) => (
+        <li key={s.n} className={`ov-next-row${s.pending ? " pending" : ""}`} data-step={s.readiness ? "readiness" : s.n} data-readiness={s.readiness} data-pending={s.pending ? "true" : "false"}>
+          <span className="step-number">{s.readiness ? "!" : s.n}</span>
           <Icon name={s.icon} />
           <div className="grow">
             <strong>{s.title}</strong>
             <p>{s.pending ?? s.text}</p>
+            {s.actionLabel ? (
+              <a className="ov-link" href={s.href} data-testid="readiness-action" {...(s.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+                {s.actionLabel} <Icon name="chevron" />
+              </a>
+            ) : null}
           </div>
           <Pill tone={s.pending ? "gold" : "green"}>{s.pending ? t("overview_next_pending") : t("overview_next_done")}</Pill>
-          <a className="icon-btn" href={s.href} aria-label={s.open}>
-            <Icon name="chevron" />
-          </a>
+          {s.actionLabel ? null : (
+            <a className="icon-btn" href={s.href} aria-label={s.open}>
+              <Icon name="chevron" />
+            </a>
+          )}
         </li>
       ))}
     </ol>
@@ -193,6 +291,11 @@ function Protection({ categories }: { categories: Category[] }) {
           <div className="grow">
             <h3>{categoryLabel(c.id)}</h3>
             {c.state === "included" ? <p>{t(c.checks === 1 ? "overview_category_checks_one" : "overview_category_checks", { count: c.checks })}</p> : c.reason ? <p>{c.reason}</p> : null}
+            {c.state === "gap" ? (
+              <a className="ov-link" href={`#/validations/review?category=${encodeURIComponent(c.id)}`} data-testid="category-action" aria-label={`${t("overview_category_action")}: ${categoryLabel(c.id)}`}>
+                {t("overview_category_action")} <Icon name="chevron" />
+              </a>
+            ) : null}
           </div>
           <Pill tone={CATEGORY_TONE[c.state]}>
             <Icon name={CATEGORY_ICON[c.state]} />
@@ -210,6 +313,15 @@ export default function OverviewScreen() {
   const languages = data?.discovery.languages ?? [];
   const uncovered = data?.plan.uncovered ?? [];
   const first = data !== null && data.lastRun === null;
+  // The environment, read apart so the overview does not wait for the engine; it is read again when the person comes back.
+  const [env, setEnv] = useState<EnvironmentState | null>(null);
+  const loadEnv = useCallback(() => {
+    fetchEnvironmentState(getLocale()).then(setEnv, () => undefined);
+  }, []);
+  useEffect(loadEnv, [loadEnv]);
+  useRecheckOnFocus(loadEnv);
+  const readiness = readinessOf(env);
+  const readinessFirst = readinessStep(readiness);
 
   // While a run is going on, look again every few seconds, so the card turns into its result when it ends (or into
   // "Interrompida" when its process dies) without a reload.
@@ -235,7 +347,8 @@ export default function OverviewScreen() {
         </a>
       </div>
 
-      <PrerequisitesBar onChanged={loaded.reload} />
+      <PrerequisitesBar onChanged={() => { loaded.reload(); loadEnv(); }} />
+      <Readiness items={readiness} />
 
       {loaded.loading && !data ? <Loading /> : null}
       {loaded.error ? <ErrorNotice error={loaded.error} onRetry={loaded.reload} /> : null}
@@ -290,14 +403,14 @@ export default function OverviewScreen() {
                   {t("overview_history")} <Icon name="chevron" />
                 </a>
               </div>
-              <LastRunCard run={data.lastRun} />
+              <LastRunCard run={data.lastRun} image={env && env.sections.image.state === "ready" ? (env.sections.image as { id?: string; version?: string }) : null} />
             </section>
             <section>
               <div className="ov-section-head">
                 <h2>{t("overview_next")}</h2>
                 <span className="eyebrow">{t("overview_next_eyebrow").toUpperCase()}</span>
               </div>
-              <NextSteps data={data} />
+              <NextSteps data={data} readiness={readinessFirst} />
             </section>
           </div>
 
@@ -319,7 +432,10 @@ export default function OverviewScreen() {
               <ul>
                 {uncovered.map((u) => (
                   <li key={u.selector}>
-                    <code>{u.selector}</code>: {u.message}
+                    <code>{u.selector}</code>: {u.message}{" "}
+                    <a className="ov-link" href={`#/validations/review${u.selector.startsWith("capability:") ? `?capability=${encodeURIComponent(u.selector.slice(11))}` : u.category ? `?category=${encodeURIComponent(u.category)}` : ""}`} aria-label={`${t("overview_category_action")}: ${u.selector}`}>
+                      {t("overview_category_action")}
+                    </a>
                   </li>
                 ))}
               </ul>

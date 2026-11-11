@@ -39,12 +39,13 @@ test("the Semantic setup steps are a Stepper: one current step, moving with the 
   });
 });
 
-test("a screen with the prerequisites checks again when the tab becomes visible, without a restart", async ({ page }) => {
+test("a screen with the environment state checks again when the tab becomes visible, without a restart", async ({ page }) => {
   await withApp(page, async (base) => {
+    const first = page.waitForResponse((r) => r.url().includes("/api/environment/state") && r.request().method() === "GET");
     await page.goto(`${base}#/environment`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await page.waitForResponse((r) => r.url().includes("/api/prerequisites") && r.request().method() === "GET");
-    const again = page.waitForResponse((r) => r.url().includes("/api/prerequisites") && r.request().method() === "GET", { timeout: 15_000 });
+    await first;
+    const again = page.waitForResponse((r) => r.url().includes("/api/environment/state") && r.request().method() === "GET", { timeout: 15_000 });
     await page.evaluate(() => {
       window.dispatchEvent(new Event("focus"));
     });

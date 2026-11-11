@@ -9,6 +9,7 @@ import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { ResultView, formatDuration, stageName, stateText, type DomainFilter } from "../validations-result/ResultView";
+import { RunPhases } from "./phases";
 import { StepLogPanel } from "./step-log";
 import "./run-summary.css";
 
@@ -108,6 +109,10 @@ function eventText(e: StepEvent): string {
       return t("vrun_event_stage", { stage: stageName({ id: String(d.stageId ?? "") }), step, state: stateText(String(d.state)) });
     case "step-skipped":
       return t("vrun_event_step-skipped", { step, cause: tOr(`vrun_why_${d.cause}`, String(d.cause)) });
+    case "phase-started":
+      return t("vrun_event_phase-started", { phase: tOr(`vrun_phase_${String(d.phase).replace(/-/g, "_")}`, String(d.phase)) });
+    case "phase-finished":
+      return t("vrun_event_phase-finished", { phase: tOr(`vrun_phase_${String(d.phase).replace(/-/g, "_")}`, String(d.phase)), status: tOr(`vrun_phase_state_${d.status}`, String(d.status)) });
     case "run-finished":
       return t("vrun_event_run-finished", { decision: tOr(`vres_decision_${d.decision}`, String(d.decision)) });
     default:
@@ -405,6 +410,7 @@ export default function RunScreen({ params }: { params: Record<string, string> }
       ) : null}
       {runId ? <SequenceBanner runId={runId} /> : null}
       <QualityMascotStrip snapshot={mascots} onSelect={(domain, ids) => setSelectedDomain({ domain, ids })} />
+      {job ? <RunPhases events={events} ended={!running} runId={runId} /> : null}
       {job && rows.length > 0 ? (
         <section className="stack" aria-labelledby="vrun-steps">
           <h2 id="vrun-steps">{t("vrun_steps")}</h2>

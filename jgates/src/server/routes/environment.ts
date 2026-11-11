@@ -6,10 +6,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PrepareError, diagnoseEnvironment, prepareInstance, previewPrepare } from "../../core/prepare/index.js";
 import { refreshPath } from "../../core/env-refresh/index.js";
-import { readCodeqlStatusSync } from "../../core/codeql-prepare/index.js";
+import { CODEQL_TERMS_URL, prepareCodeql, readCodeqlStatusSync, releaseUrls } from "../../core/codeql-prepare/index.js";
 import { updateData } from "../../core/data/index.js";
 import { collectStatus, runSetup, type LifecycleReason, type StatusReport } from "../../core/lifecycle/index.js";
 import { resolveReason } from "../../core/reasons/index.js";
+import { extensionState, hasExtension } from "../../core/extension/index.js";
+import { readServicesConfig } from "../../core/services/index.js";
+import { imageToolCatalogue } from "../../core/tools-image/index.js";
 import { normalizeLocale, translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
@@ -27,6 +30,40 @@ const MAX_JOBS = 20;
 const LOCALE_QUERY = { type: "object", properties: { locale: { type: "string", enum: ["en", "pt-BR"] } }, additionalProperties: false };
 
 const withReasons = <T extends object>(section: T, reasons: LifecycleReason[]): T & { reasons: LifecycleReason[] } => ({ ...section, reasons });
+
+/** The tools the pinned tools image carries, with their versions (read from the package's mirror, nothing is started). */
+function imageTools(): Array<{ name: string; version: string }> {
+  const catalogue = imageToolCatalogue(process.env);
+  return Object.entries(catalogue?.tools ?? {})
+    .map(([name, version]) => ({ name, version }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** What jgates.yml says about the compose services: the files, the services to start and the application under test. */
+function servicesOf(projectDir: string): { configured: boolean; compose: string[]; start: string[] | null; target: string | null } {
+  const config = readServicesConfig(projectDir);
+  if (!config) return { configured: false, compose: [], start: null, target: null };
+  return { configured: true, compose: config.compose, start: config.start, target: config.target ? `${config.target.service}:${config.target.port}${config.target.path === "/" ? "" : config.target.path}` : null };
+}
+
+/** The project's own image: built for the current key, to be rebuilt (EXTENSION_OUTDATED), or not there. */
+function extensionOf(server: ServerContext, status: StatusReport, locale?: string): Record<string, unknown> {
+  const images = status.extension.images;
+  const hasDockerfile = hasExtension(server.projectDir);
+  if (!hasDockerfile) return { state: images.length > 0 ? "present" : "none", images, dockerfile: false, reasons: [] };
+  const baseDigest = status.image.state === "ready" ? status.image.id : null;
+  let built: { status: string; tag: string | null } = { status: "unknown", tag: null };
+  try {
+    built = extensionState({ projectDir: server.projectDir, workspace: status.workspace?.id ?? "ws_unknown", env: process.env, baseDigest });
+  } catch {
+    // The state of the image could not be read: shown as present, never as a failure of the whole screen.
+  }
+  if (built.status === "outdated") {
+    const resolved = resolveReason("EXTENSION_OUTDATED", {}, locale);
+    return { state: "outdated", images, dockerfile: true, tag: built.tag, reasons: [{ code: "EXTENSION_OUTDATED", message: resolved.message, action: resolved.action }] };
+  }
+  return { state: "present", images, dockerfile: true, tag: built.tag, reasons: [] };
+}
 
 /**
  * Every section of the environment with its state and its reasons (the shared catalogue's text and action), read fresh
@@ -55,18 +92,18 @@ export async function environmentState(server: ServerContext, locale?: string): 
     const read = status.image.state === "ready" ? readCodeqlStatusSync(process.env, server.version) : { state: "no-image" as const, status: null };
     const prepared = read.status !== null;
     const cause = prepared ? [] : [{ code: "CUSTOMER_SUPPLIED", ...(({ message, action }) => ({ message, action }))(resolveReason("CUSTOMER_SUPPLIED", { tool: "CodeQL" }, locale)) }];
-    codeql = { state: prepared ? "prepared" : "not-prepared", read: read.state, version: read.status?.version ?? null, preparedAt: read.status?.preparedAt ?? null, reasons: cause };
+    codeql = { termsUrl: CODEQL_TERMS_URL, state: prepared ? "prepared" : "not-prepared", read: read.state, version: read.status?.version ?? null, preparedAt: read.status?.preparedAt ?? null, reasons: cause };
   } else {
-    codeql = { state: "unknown", read: "no-image", version: null, preparedAt: null, reasons: [] };
+    codeql = { termsUrl: CODEQL_TERMS_URL, state: "unknown", read: "no-image", version: null, preparedAt: null, reasons: [] };
   }
 
   const sections = {
     engine: withReasons(status.engine, engineReasons),
-    image: withReasons(status.image, imageReasons),
+    image: withReasons({ ...status.image, sizeBytes: status.disk.images.find((i) => i.name === status.image.reference)?.sizeBytes ?? status.disk.images[0]?.sizeBytes ?? null, tools: imageTools() }, imageReasons),
     data: withReasons(status.data, dataReasons),
-    dependencies: { state: dependencyState, units, reasons: dependencyReasons },
-    services: { state: (status.workspace?.services.running ?? 0) > 0 ? "running" : "stopped", running: status.workspace?.services.running ?? 0, reasons: [] },
-    extension: { state: status.extension.images.length > 0 ? "present" : "none", images: status.extension.images, reasons: [] },
+    dependencies: { state: dependencyState, units, volumes: status.disk.volumes.filter((v) => v.name.includes("-deps-")), reasons: dependencyReasons },
+    services: { state: (status.workspace?.services.running ?? 0) > 0 ? "running" : "stopped", running: status.workspace?.services.running ?? 0, ...servicesOf(server.projectDir), reasons: [] },
+    extension: extensionOf(server, status, locale),
     codeql,
   };
   return { schemaVersion: 1, status: "OK", mode: status.mode, ready: status.ready, checkedAt: new Date().toISOString(), disk: status.disk, reasons: status.reasons, warnings: status.warnings, sections };
@@ -74,7 +111,7 @@ export async function environmentState(server: ServerContext, locale?: string): 
 
 // ---- preparation jobs ------------------------------------------------------------------------------------------------
 
-type JobKind = "pull" | "data" | "dependencies";
+type JobKind = "pull" | "data" | "dependencies" | "codeql";
 
 interface Job {
   id: string;
@@ -123,6 +160,11 @@ function startJob(server: ServerContext, kind: JobKind, locale?: string): Job {
     // The same steps as `jgates setup` (engine, disk, image, volumes), without the advisory data: that is its own job.
     runSetup({ env: process.env, version: server.version, projectDir: server.projectDir, withData: false, ...(locale ? { locale } : {}), onEvent: (event) => push(job, { ...event }) })
       .then((result) => finishJob(job, result.ready, { ready: result.ready, pulled: result.pulled, steps: result.steps, reasons: result.reasons }))
+      .catch(failed);
+  } else if (kind === "codeql") {
+    // Customer supplied: the route only starts this job after an explicit acceptance of GitHub's terms.
+    prepareCodeql({ env: process.env, version: server.version, acceptTerms: true })
+      .then((result) => finishJob(job, result.state === "prepared", { state: result.state, message: result.message, ...(result.error ? { error: result.error } : {}) }))
       .catch(failed);
   } else if (kind === "data") {
     updateData({ env: process.env, version: server.version, onProgress: (event) => push(job, { type: "data-update", ...event }) })
@@ -203,13 +245,19 @@ export const routes: RouteDefinition[] = [
     path: "/api/environment/jobs",
     body: {
       type: "object",
-      properties: { kind: { type: "string", enum: ["pull", "data", "dependencies"] }, locale: { type: "string", enum: ["en", "pt-BR"] } },
+      properties: {
+        kind: { type: "string", enum: ["pull", "data", "dependencies", "codeql"] },
+        locale: { type: "string", enum: ["en", "pt-BR"] },
+        // Required, and true, for the CodeQL job: the person accepted GitHub's CodeQL terms in the screen.
+        acceptTerms: { type: "boolean" },
+      },
       required: ["kind"],
       additionalProperties: false,
     },
     handler({ body, server }) {
       if (server.policyMode) throw new HttpError(409, "POLICY_MODE", translator("reasons")("env_api_policy_mode"), null);
-      const input = body as { kind: JobKind; locale?: string };
+      const input = body as { kind: JobKind; locale?: string; acceptTerms?: boolean };
+      if (input.kind === "codeql" && input.acceptTerms !== true) throw new HttpError(422, "TERMS_NOT_ACCEPTED", translator("codeql")("codeql_prepare_terms_required", { terms: CODEQL_TERMS_URL, source: releaseUrls(process.env).bundle }), null);
       const { job, reused } = startEnvironmentJob(server, input.kind, normalizeLocale(input.locale) ?? undefined);
       return { status: 200, json: { schemaVersion: 1, status: "OK", job, reused } };
     },

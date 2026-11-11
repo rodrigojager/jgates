@@ -63,6 +63,15 @@ async function withServer(page: Page, prepare: ((fixture: Fixture) => void) | nu
   }
 }
 
+/** The project asks for lint outright (the generated profile has it "when available"), so an unavailable Ruff blocks the plan. */
+function requireLint(fixture: Fixture): void {
+  const file = ".jgates/profiles.yml";
+  const text = read(fixture, file);
+  const entry = "      capability:lint:\n        enabled: true\n        when: available\n";
+  expect(text).toContain(entry);
+  write(fixture, file, text.replace(entry, "      capability:lint:\n        enabled: true\n"));
+}
+
 const base = (page: Page): string => page.url().split("#")[0] as string;
 
 /** Opens Revisar with a request, as Escolher leaves it. */
@@ -235,7 +244,7 @@ test("blocker: documento com alterações não salvas, até salvar ou usar a ver
 });
 
 test("blocker: ferramenta obrigatória indisponível", async ({ page }) => {
-  await withServer(page, (fixture) => { fixture.env.JGATES_RUFF = path.join(os.tmpdir(), "jgates-no-such-ruff"); }, async () => {
+  await withServer(page, (fixture) => { fixture.env.JGATES_RUFF = path.join(os.tmpdir(), "jgates-no-such-ruff"); requireLint(fixture); }, async () => {
     await review(page, REQ);
     await expectBlocker(page, "TOOL_UNAVAILABLE", /ruff/i);
     // The same instance is listed with the way to resolve it.
@@ -249,7 +258,7 @@ test("blocker: versão da ferramenta fora da faixa", async ({ page }) => {
     // A Node script answers --version the same way on every system (a #! shell script cannot run on Windows).
     const fake = path.join(bin, "ruff.cjs");
     fs.writeFileSync(fake, 'console.log("ruff 0.0.1");\n');
-    await withServer(page, (fixture) => { fixture.env.JGATES_RUFF = fake; }, async () => {
+    await withServer(page, (fixture) => { fixture.env.JGATES_RUFF = fake; requireLint(fixture); }, async () => {
       await review(page, REQ);
       await expectBlocker(page, "VERSION_OUT_OF_RANGE", /Versão incompatível/);
     });
@@ -425,10 +434,8 @@ test("TOOL_UNAVAILABLE is shown per instance with the way to resolve it (eslint.
     await expect(section).toBeVisible();
     // Python's architecture tool has no contract: the path is .jgates/architecture.yml.
     await expect(section.locator('[data-unavailable="import-linter#architecture"]')).toContainText("architecture.yml");
-    // The TypeScript component brings ESLint with no eslint.config.
-    const eslint = section.locator('[data-unavailable="eslint#lint"]');
-    await expect(eslint).toContainText("eslint.config");
-    await expect(eslint).toContainText("Como resolver:");
+    // ESLint no longer shows here: it runs from the tools image, and a missing eslint.config is the adapter's finding at run time.
+    await expect(section.locator('[data-unavailable="eslint#lint"]')).toHaveCount(0);
     // They are tool instances, not requirements of the profile: the plan stays reviewable and Executar is not blocked by them.
     await expect(page.getByRole("button", { name: "Executar" })).toBeEnabled();
   });

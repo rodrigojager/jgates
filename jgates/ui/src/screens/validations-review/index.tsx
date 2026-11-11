@@ -1,15 +1,17 @@
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { ProviderFixLink } from "../../components/ProviderFixLink";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { PreparationGroup, ToolsDownload, preparationSteps, useEnvironmentForReview } from "./preparation";
 import { ApiError, api } from "../../api";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { useShell } from "../../app/shell-context";
+import { currentQuery } from "../../app/route";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { PendingDrafts } from "../tool-area/editbar/pending";
-import { blockersOf, unavailableItems, type Blocker } from "./blockers";
+import { TOOLS_DOWNLOAD, blockersOf, unavailableItems, type Blocker } from "./blockers";
 import { CapabilityStates, capabilityStates } from "./capability-states";
 import { equivalentCommand, planBody, readRequest, sequenceBody, writeRequest } from "./request";
 
@@ -41,7 +43,10 @@ function effectsOf(item: any): string[] {
   if (e.executesProjectCode) out.push(t("vrev_effect_executes"));
   if (e.writesOutputs) out.push(t("vrev_effect_outputs"));
   if ((e.workspaceWrites ?? []).length > 0) out.push(t("vrev_effect_writes", { files: (e.workspaceWrites as string[]).join(", ") }));
-  out.push(item.network ? t("vrev_effect_network") : t("vrev_effect_offline"));
+  // In containers each step says what network it gets: none (guaranteed) or the declared one, with the reason.
+  if (item.networkKind === "bridge") out.push(t("vrev_net_bridge", { reason: item.networkReason ?? t("vrev_net_bridge_default") }));
+  else if (item.networkKind === "none") out.push(t("vrev_net_none"));
+  else out.push(item.network ? t("vrev_effect_network") : t("vrev_effect_offline"));
   return out;
 }
 
@@ -49,7 +54,7 @@ function ItemList({ items, label }: { items: any[]; label: string }) {
   return (
     <ul className="stack" style={{ listStyle: "none", padding: 0, margin: 0, gap: 12 }} aria-label={label}>
       {items.map((item) => (
-        <li key={item.id} className="stack" style={{ gap: 4 }} data-testid="plan-item" data-item={item.id}>
+        <li key={item.id} className="stack" style={{ gap: 4 }} data-testid="plan-item" data-item={item.id} data-network={item.networkKind ?? (item.network ? "bridge" : "none")}>
           <div className="row wrap">
             <strong>{item.label}</strong>
             <span className="muted small">
@@ -179,6 +184,21 @@ export default function ReviewScreen() {
     },
   };
   const concurrency = review.execution?.concurrency;
+  const env = useEnvironmentForReview(version);
+  const prepSteps = plan ? preparationSteps(plan, env) : [];
+
+  // A link from the overview (?capability=x or ?category=y) lands on that part of "Estado de cada proteção".
+  useEffect(() => {
+    if (!plan) return;
+    const query = currentQuery();
+    const capability = query.get("capability");
+    const category = query.get("category");
+    const target = capability ? document.querySelector(`[data-capability="${CSS.escape(capability)}"]`) : category ? document.querySelector(`[data-category="${CSS.escape(category)}"]`) : null;
+    if (!(target instanceof HTMLElement)) return;
+    target.setAttribute("tabindex", "-1");
+    target.scrollIntoView({ block: "center" });
+    target.focus();
+  }, [plan?.planHash]);
 
   async function copy() {
     try {
@@ -225,6 +245,7 @@ export default function ReviewScreen() {
                   <div>
                     <strong>{t("vrev_how_label")}</strong> {b.how}
                   </div>
+                  {TOOLS_DOWNLOAD.has(b.code) ? <ToolsDownload onDone={() => setVersion((n) => n + 1)} /> : null}
                 </li>
               ))}
             </ul>
@@ -349,6 +370,8 @@ export default function ReviewScreen() {
               </ul>
             </section>
           ) : null}
+
+          <PreparationGroup steps={prepSteps} />
 
           {capGroups.length > 0 ? <CapabilityStates groups={capGroups} ctx={capContext} title={t("vrev_caps_title")} lead={t("vrev_caps_lead")} headingId="vrev-caps" /> : null}
 

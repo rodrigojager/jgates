@@ -62,7 +62,14 @@ function readLastRun(server: ServerContext): Record<string, unknown> | null {
   const stages = (Array.isArray(result.stages) ? result.stages : [])
     .filter((s: any) => s.kind !== "composite")
     .map((s: any) => ({ id: String(s.id), label: typeof s.label === "string" ? s.label : String(s.id), state: String(s.state), reason: typeof s.reason === "string" ? s.reason : null }));
+  // What the run used besides the project: the tools image and the age of the advisory data when it started.
+  const container = result.provenance?.container;
+  const stamps = container && typeof container.dataTimestamps === "object" && container.dataTimestamps !== null ? Object.values(container.dataTimestamps as Record<string, unknown>) : [];
+  const fetched = stamps.map((s) => (typeof s === "string" ? Date.parse(s) : NaN)).filter((n) => Number.isFinite(n));
+  const dataAgeDays = fetched.length > 0 && Number.isFinite(started) ? Math.max(0, Math.floor((started - Math.min(...fetched)) / 86_400_000)) : null;
   return {
+    toolsImage: container && typeof container.toolsImage === "string" ? container.toolsImage : null,
+    dataAgeDays,
     runId: String(result.runId ?? last.runId),
     decision: String(result.decision ?? ""),
     complete: result.complete === true,

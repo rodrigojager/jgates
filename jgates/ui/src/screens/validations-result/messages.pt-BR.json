@@ -183,5 +183,17 @@
   "vres_baseline_warning_RULES_CHANGED": "As regras mudaram desde o baseline.",
   "vres_baseline_warning_SCOPE_CHANGED": "O escopo mudou desde o baseline.",
   "vres_baseline_warning_REDUCED_RUN": "Um dos dois runs foi reduzido.",
-  "vres_baseline_warning_BASELINE_PARTIAL": "O baseline é de um run parcial."
+  "vres_baseline_warning_BASELINE_PARTIAL": "O baseline é de um run parcial.",
+  "vres_prov_title": "Com o que esta execução rodou",
+  "vres_prov_lead": "As ferramentas, os dados de segurança, as dependências e os serviços que esta execução usou. Com isto dá para repetir ou explicar o resultado.",
+  "vres_prov_version": "Versão das ferramentas do JGates",
+  "vres_prov_image": "Imagem das ferramentas",
+  "vres_prov_extension": "Imagem própria",
+  "vres_prov_data": "Idade dos dados de segurança",
+  "vres_prov_dependencies": "Chaves das dependências",
+  "vres_prov_services": "Serviços usados",
+  "vres_prov_none": "nenhum",
+  "vres_prov_never": "nunca atualizado",
+  "vres_prov_today": "de hoje",
+  "vres_prov_days": "{days, plural, one {# dia} other {# dias}}"
 }
