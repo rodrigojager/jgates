@@ -25,10 +25,10 @@ The main command is `jgates`. It runs the quality gate and, when you ask, the se
 
 ### Requirements
 
-- Node 22 or newer, Python 3.11 or newer and Git.
-- Docker is optional: it is needed for the tools that run in a container (Gitleaks, Trivy, OSV-Scanner, Checkov and the bridge's MegaLinter) and for the quality gate image. Without Docker, `quality-gate` runs the local Python sidecar and fails explicitly if a required tool is not installed.
-- For the bridge's scanners in Docker (the `strict` profile on a machine without them installed, such as Windows), build the sidecar image once from a clone: `docker build -t jgates/quality-sidecar:latest <clone>/quality-gate`. The image is large (about 22 GB) and the first build takes a while; the first run also downloads vulnerability databases into the data folder (a few GB). On Windows, Docker Desktop must be running: `jgates ui` shows when it is not and offers to open it.
-- Linux was tested. On Windows 10 with Docker Desktop the first-run flow was checked by hand: there, `jgates run` sends the bridge's scanners to the sidecar image (see [adapters](docs/jgates/adapters.en.md)). macOS was not tested on a real Mac.
+- Node 22 or newer and Git, to run JGates itself.
+- A Docker-compatible container engine on `linux/amd64` (Docker Desktop, Rancher Desktop, Podman Desktop or Docker Engine). Every check runs in a container of one JGates tools image, so no scanner, linter, test runner or language runtime of your project is installed on your machine. Docker Desktop has license terms of its own; read them, or use one of the alternatives.
+- About 2 GB to download the tools image and around 6 GB of disk once unpacked, plus the project's dependencies and the vulnerability databases, which also live in the engine (see [storage and cleanup](docs/jgates/storage.en.md)).
+- Linux was tested. On Windows 10 with Docker Desktop the first-run flow was checked by hand (see [limitations](docs/jgates/limitations.en.md)). macOS was not tested on a real Mac.
 
 ### Installation
 
@@ -36,7 +36,7 @@ JGates is not published to the npm registry; it is installed from the repository
 
 ```bash
 npm install git+https://github.com/rodrigojager/jgates
-npx jgates doctor
+npx jgates setup
 ```
 
 npm downloads the repository and runs the `prepare` script, which compiles JGates and the interface; this takes a few minutes. The commands are then available as `npx jgates`, `npx quality-gate` and `npx semantic-gate`.
@@ -46,7 +46,7 @@ To have `jgates` on the `PATH` without depending on a project, install it into a
 ```bash
 npm install --prefix "$HOME/jgates-tool" git+https://github.com/rodrigojager/jgates
 export PATH="$HOME/jgates-tool/node_modules/.bin:$PATH"
-jgates doctor
+jgates setup
 ```
 
 For a global installation, or to install on a machine that cannot reach GitHub, pack a clone and install the generated file:
@@ -57,7 +57,7 @@ cd jgates
 npm install
 npm pack
 npm install --global ./jgates-0.3.0.tgz
-jgates doctor
+jgates setup
 ```
 
 `npm install --global git+https://github.com/rodrigojager/jgates` **does not work**: for a global install of a git dependency, npm links the commands to a temporary clone that it then deletes, so the commands point at nothing. Use one of the forms above (see [limitations](docs/jgates/limitations.en.md)).
@@ -74,23 +74,24 @@ The quickest path is the interface. In the project folder:
 jgates ui
 ```
 
-On first access it shows what it detected and creates `jgates.yml` with the profile you choose (`strict` requires tests and coverage and turns on every other check "where a tool exists": where none does, the check shows as "does not apply here", with the reason and the fix, and never blocks). The bar at the top lists what the validation still needs (Docker stopped, a folder Git does not trust, tools not installed), each with the button that fixes it after you confirm the command. Then **New validation**: choose the target, review the plan and run. The run screen shows each step, its time and a heartbeat while it works; the result lists the findings with file and line.
+On first access it opens the guided setup: it checks Docker, downloads the JGates tools (in the background, while you go on), shows what it detected in the project, creates `jgates.yml` with the profile you choose (`strict` requires tests and coverage and turns on every other check "where a tool exists": where none does, the check shows as "does not apply here", with the reason and the fix, and never blocks), prepares the dependencies and starts the first validation. The bar at the top lists what the validation still needs (Docker stopped, a folder Git does not trust, tools not downloaded), each with the button that fixes it. Then **New validation**: choose the target, review the plan and run. The run screen shows each step, its time and a heartbeat while it works; the result lists the findings with file and line.
 
 The same from the terminal:
 
 ```bash
-jgates doctor
+jgates setup
+jgates status
 jgates init
 jgates plan
 jgates run
 ```
 
-- `doctor` shows the runtimes (Node, Python, Git, Docker) and the state of the tools, and classifies what is missing as essential, optional or unused. It installs nothing on its own: on a terminal it offers the recipes of what is missing, and `jgates doctor --fix` (with `--yes` and `--include-optional`) installs them.
+- `setup` prepares the machine: it checks the container engine and the disk, downloads the tools image at the version this JGates pins, creates the shared volumes and downloads the vulnerability databases. It is safe to run again. `status` shows whether the machine is ready (engine, image, data age, dependencies and services of the project, disk). `jgates doctor` keeps its own flow and classifies what the plan is missing; it never installs a tool on your machine.
 - `init` discovers the project's components and creates `jgates.yml` and `.jgates/profiles.yml`, which are versioned with the code. The profiles are `minimal`, `standard` and `strict`. The minimum test coverage is the project's own `fail_under` (`pyproject.toml`, `.coveragerc`...) unless the JGates policy sets another.
 - `plan` shows what will run, what is left out and the requirements without coverage, without executing anything.
-- `run` executes the plan and stores the result and the decision. The exit code tells the decision: 0 approved, 1 failed, 2 incomplete (something required could not be proven; it never becomes approved), 3 invalid usage or configuration, 4 internal error, 130 cancelled. When a run ends because a tool is missing, on a terminal `jgates run` lists what is missing, offers the same recipes as `doctor` and, after installing, asks whether to run again; with `--json`, `--ci` or without a terminal it asks nothing, the exit code is unchanged and the message points to `jgates doctor --fix`. At a terminal the run shows colors and a live line with the time of the running step; `--plain` prints one line per step (and one a minute while a long step works) for agents and logs. It ends with the file to read to fix: `agent-context.md` in the run folder (the same summary as the interface's "Copy to the agent" button), with `result.json` beside it.
+- `run` executes the plan and stores the result and the decision. The exit code tells the decision: 0 approved, 1 failed, 2 incomplete (something required could not be proven; it never becomes approved), 3 invalid usage or configuration, 4 internal error, 130 cancelled. When a run cannot start because the engine or the tools image is not ready, the result is incomplete and names the reason with its action (for example `jgates setup`); nothing is installed on your machine. At a terminal the run shows colors and a live line with the time of the running step; `--plain` prints one line per step (and one a minute while a long step works) for agents and logs. It ends with the file to read to fix: `agent-context.md` in the run folder (the same summary as the interface's "Copy to the agent" button), with `result.json` beside it.
 
-Runs, caches and prepared tools live in a data folder outside the project (`~/.local/state/jgates` on Linux; `JGATES_HOME` changes the folder). To see the history and export a result, use `jgates history` and `jgates report`. The complete walkthrough is in [getting started](docs/jgates/getting-started.en.md).
+Runs and drafts live in a data folder outside the project (`~/.local/state/jgates` on Linux; `JGATES_HOME` changes the folder), and the tools, the copy of the project and its dependencies live in labeled volumes of the engine. To see the history and export a result, use `jgates history` and `jgates report`. To free space or remove everything JGates created, use `jgates clean` and `jgates uninstall` (see [storage and cleanup](docs/jgates/storage.en.md)). The complete walkthrough is in [getting started](docs/jgates/getting-started.en.md).
 
 ### In CI
 
@@ -100,7 +101,7 @@ On your own computer you edit everything: `jgates.yml`, profiles, templates and 
 jgates ci --policy <policy-folder> --sarif jgates.sarif
 ```
 
-The model, how to build the policy repository, the examples for GitHub Actions and GitLab CI (`examples/ci/github-actions.yml` and `examples/ci/gitlab-ci.yml`) and how to protect the pipeline are in [docs/jgates/ci.en.md](docs/jgates/ci.en.md).
+The job runs inside the JGates tools image pinned by digest (`container: <registry>/jgates-tools@sha256:<digest>`), so nothing is installed in it. The model, how to build the policy repository, the examples for GitHub Actions and GitLab CI (`examples/ci/github-actions.yml` and `examples/ci/gitlab-ci.yml`), the policy for own images and how to protect the pipeline are in [docs/jgates/ci.en.md](docs/jgates/ci.en.md).
 
 ### Semantic gate
 
@@ -153,6 +154,9 @@ JGates reads and runs tools over code that may not be trusted, and it has a loca
 - [Semantic gate](docs/jgates/semantic-gate.en.md)
 - [The two gates and their sequence](docs/jgates/gates.en.md), the [Semantic methods](docs/jgates/semantic-methods.en.md) and the [Semantic mascots](docs/jgates/semantic-mascots.en.md)
 - [Quality integrations and the capability matrix](docs/jgates/quality-integrations.en.md)
+- [Project services](docs/jgates/services.en.md)
+- [Your own tools and images](docs/jgates/extension.en.md)
+- [Storage and cleanup](docs/jgates/storage.en.md)
 - [Agents](docs/jgates/agents.en.md)
 - [Data folder](docs/jgates/data-folder.en.md)
 - [Security](docs/jgates/security.en.md)
@@ -193,10 +197,10 @@ O comando principal é o `jgates`. Ele roda o quality gate e, quando você pede,
 
 ### Requisitos
 
-- Node 22 ou mais novo, Python 3.11 ou mais novo e Git.
-- Docker é opcional: é preciso para as ferramentas que rodam em container (Gitleaks, Trivy, OSV-Scanner, Checkov e o MegaLinter da ponte) e para a imagem do quality gate. Sem o Docker, o `quality-gate` roda o sidecar Python local e falha de forma explícita se uma ferramenta exigida não estiver instalada.
-- Para os scanners da ponte no Docker (o perfil `strict` numa máquina sem eles instalados, como no Windows), construa uma vez a imagem do sidecar a partir de um clone: `docker build -t jgates/quality-sidecar:latest <clone>/quality-gate`. A imagem é grande (uns 22 GB) e o primeiro build demora; o primeiro run também baixa bases de vulnerabilidades para a pasta de dados (alguns GB). No Windows, o Docker Desktop precisa estar aberto: o `jgates ui` mostra quando não está e oferece abri-lo.
-- O Linux foi testado. No Windows 10 com Docker Desktop o fluxo do primeiro uso foi conferido à mão: lá, o `jgates run` manda os scanners da ponte para a imagem do sidecar (veja [adaptadores](docs/jgates/adapters.pt-BR.md)). O macOS não foi testado num Mac real.
+- Node 22 ou mais novo e Git, para rodar o próprio JGates.
+- Um motor de contêineres compatível com o Docker em `linux/amd64` (Docker Desktop, Rancher Desktop, Podman Desktop ou Docker Engine). Toda verificação roda num contêiner de uma imagem de ferramentas do JGates, então nenhum scanner, linter, executor de testes ou runtime de linguagem do seu projeto é instalado na sua máquina. O Docker Desktop tem termos de licença próprios; leia-os, ou use uma das alternativas.
+- Cerca de 2 GB para baixar a imagem de ferramentas e uns 6 GB de disco depois de descompactada, mais as dependências do projeto e as bases de vulnerabilidades, que também ficam no motor (veja [armazenamento e limpeza](docs/jgates/storage.pt-BR.md)).
+- O Linux foi testado. No Windows 10 com Docker Desktop o fluxo do primeiro uso foi conferido à mão (veja [limitações](docs/jgates/limitations.pt-BR.md)). O macOS não foi testado num Mac real.
 
 ### Instalação
 
@@ -204,7 +208,7 @@ O JGates não é publicado no registro do npm; a instalação vem do repositóri
 
 ```bash
 npm install git+https://github.com/rodrigojager/jgates
-npx jgates doctor
+npx jgates setup
 ```
 
 O npm baixa o repositório e roda o script `prepare`, que compila o JGates e a interface; isso leva alguns minutos. Os comandos ficam disponíveis com `npx jgates`, `npx quality-gate` e `npx semantic-gate`.
@@ -214,7 +218,7 @@ Para ter o `jgates` no `PATH` sem depender de um projeto, instale numa pasta pr�
 ```bash
 npm install --prefix "$HOME/jgates-tool" git+https://github.com/rodrigojager/jgates
 export PATH="$HOME/jgates-tool/node_modules/.bin:$PATH"
-jgates doctor
+jgates setup
 ```
 
 Para uma instalação global, ou para instalar sem acesso ao GitHub na máquina de destino, empacote um clone e instale o arquivo gerado:
@@ -225,7 +229,7 @@ cd jgates
 npm install
 npm pack
 npm install --global ./jgates-0.3.0.tgz
-jgates doctor
+jgates setup
 ```
 
 O `npm install --global git+https://github.com/rodrigojager/jgates` **não funciona**: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga em seguida, e os comandos ficam apontando para nada. Use uma das formas acima (veja [limitações](docs/jgates/limitations.pt-BR.md)).
@@ -242,23 +246,24 @@ O caminho mais rápido é a interface. Na pasta do projeto:
 jgates ui
 ```
 
-No primeiro acesso ela mostra o que foi detectado e cria o `jgates.yml` com o perfil que você escolher (o `strict` exige testes e cobertura e liga todas as outras verificações "onde houver ferramenta": onde não há, a verificação aparece como "não se aplica aqui", com o motivo e a correção, e nunca bloqueia). A barra no topo lista o que a validação ainda precisa (Docker parado, pasta em que o Git não confia, ferramentas não instaladas), cada item com o botão que resolve, depois que você confirma o comando. Depois, **Nova validação**: escolha o alvo, revise o plano e execute. A tela de acompanhamento mostra cada etapa, o tempo e um batimento enquanto ela trabalha; o resultado lista os achados com arquivo e linha.
+No primeiro acesso ela abre a configuração guiada: confere o Docker, baixa as ferramentas do JGates (em segundo plano, enquanto você segue), mostra o que foi detectado no projeto, cria o `jgates.yml` com o perfil que você escolher (o `strict` exige testes e cobertura e liga todas as outras verificações "onde houver ferramenta": onde não há, a verificação aparece como "não se aplica aqui", com o motivo e a correção, e nunca bloqueia), prepara as dependências e inicia a primeira validação. A barra no topo lista o que a validação ainda precisa (Docker parado, pasta em que o Git não confia, ferramentas não baixadas), cada item com o botão que resolve. Depois, **Nova validação**: escolha o alvo, revise o plano e execute. A tela de acompanhamento mostra cada etapa, o tempo e um batimento enquanto ela trabalha; o resultado lista os achados com arquivo e linha.
 
 O mesmo pelo terminal:
 
 ```bash
-jgates doctor
+jgates setup
+jgates status
 jgates init
 jgates plan
 jgates run
 ```
 
-- `doctor` mostra os runtimes (Node, Python, Git, Docker) e o estado das ferramentas, e classifica o que falta como essencial, opcional ou sem uso. Ele não instala nada sozinho: num terminal, oferece as receitas do que falta, e `jgates doctor --fix` (com `--yes` e `--include-optional`) instala.
+- `setup` prepara a máquina: confere o motor de contêineres e o disco, baixa a imagem de ferramentas na versão que este JGates fixa, cria os volumes compartilhados e baixa as bases de vulnerabilidades. Pode rodar de novo sem problema. `status` mostra se a máquina está pronta (motor, imagem, idade dos dados, dependências e serviços do projeto, disco). O `jgates doctor` mantém o fluxo próprio e classifica o que o plano não tem; ele nunca instala uma ferramenta na sua máquina.
 - `init` descobre os componentes do projeto e cria `jgates.yml` e `.jgates/profiles.yml`, que ficam versionados com o código. Os perfis são `minimal`, `standard` e `strict`. A cobertura mínima de testes é o `fail_under` do próprio projeto (`pyproject.toml`, `.coveragerc`...), a menos que a política do JGates defina outra.
 - `plan` mostra o que vai executar, o que fica de fora e os requisitos sem cobertura, sem executar nada.
-- `run` executa o plano e grava o resultado e a decisão. O código de saída diz a decisão: 0 aprovado, 1 reprovado, 2 incompleto (algo exigido não pôde ser provado; nunca vira aprovado), 3 uso ou configuração inválidos, 4 erro interno, 130 cancelado. Quando um run termina por falta de uma ferramenta, num terminal o `jgates run` lista o que falta, oferece as mesmas receitas do `doctor` e, depois de instalar, pergunta se deve rodar de novo; com `--json`, `--ci` ou sem terminal ele não pergunta nada, o código de saída é o mesmo e a mensagem aponta para `jgates doctor --fix`. Num terminal, o run mostra cores e uma linha viva com o tempo da etapa em andamento; `--plain` imprime uma linha por etapa (e uma por minuto enquanto uma etapa longa trabalha), para agentes e logs. Ele termina com o arquivo a ler para corrigir: `agent-context.md`, na pasta do run (o mesmo resumo do botão "Copiar para o agente" da interface), com o `result.json` ao lado.
+- `run` executa o plano e grava o resultado e a decisão. O código de saída diz a decisão: 0 aprovado, 1 reprovado, 2 incompleto (algo exigido não pôde ser provado; nunca vira aprovado), 3 uso ou configuração inválidos, 4 erro interno, 130 cancelado. Quando um run não consegue começar porque o motor ou a imagem de ferramentas não está pronto, o resultado é incompleto e nomeia o motivo com a ação dele (por exemplo `jgates setup`); nada é instalado na sua máquina. Num terminal, o run mostra cores e uma linha viva com o tempo da etapa em andamento; `--plain` imprime uma linha por etapa (e uma por minuto enquanto uma etapa longa trabalha), para agentes e logs. Ele termina com o arquivo a ler para corrigir: `agent-context.md`, na pasta do run (o mesmo resumo do botão "Copiar para o agente" da interface), com o `result.json` ao lado.
 
-Os runs, os caches e as ferramentas preparadas ficam numa pasta de dados fora do projeto (`~/.local/state/jgates` no Linux; `JGATES_HOME` muda a pasta). Para ver o histórico e exportar um resultado, use `jgates history` e `jgates report`. O passo a passo completo está em [primeiros passos](docs/jgates/getting-started.pt-BR.md).
+Os runs e os rascunhos ficam numa pasta de dados fora do projeto (`~/.local/state/jgates` no Linux; `JGATES_HOME` muda a pasta), e as ferramentas, a cópia do projeto e as dependências dele ficam em volumes com rótulo do motor. Para ver o histórico e exportar um resultado, use `jgates history` e `jgates report`. Para liberar espaço ou remover tudo o que o JGates criou, use `jgates clean` e `jgates uninstall` (veja [armazenamento e limpeza](docs/jgates/storage.pt-BR.md)). O passo a passo completo está em [primeiros passos](docs/jgates/getting-started.pt-BR.md).
 
 ### No CI
 
@@ -268,7 +273,7 @@ No computador local você edita tudo: `jgates.yml`, perfis, templates e waivers.
 jgates ci --policy <policy-folder> --sarif jgates.sarif
 ```
 
-O modelo, a criação do repositório de políticas, os exemplos para GitHub Actions e GitLab CI (`examples/ci/github-actions.yml` e `examples/ci/gitlab-ci.yml`) e como proteger o pipeline estão em [docs/jgates/ci.pt-BR.md](docs/jgates/ci.pt-BR.md).
+O job roda dentro da imagem de ferramentas do JGates fixada por digest (`container: <registry>/jgates-tools@sha256:<digest>`), então nada é instalado nele. O modelo, a criação do repositório de políticas, os exemplos para GitHub Actions e GitLab CI (`examples/ci/github-actions.yml` e `examples/ci/gitlab-ci.yml`), a política de imagens próprias e como proteger o pipeline estão em [docs/jgates/ci.pt-BR.md](docs/jgates/ci.pt-BR.md).
 
 ### Semantic gate
 
@@ -321,6 +326,9 @@ O JGates lê e executa ferramentas sobre código que pode não ser confiável, e
 - [Semantic gate](docs/jgates/semantic-gate.pt-BR.md)
 - [Os dois gates e a sequência](docs/jgates/gates.pt-BR.md), os [métodos Semantic](docs/jgates/semantic-methods.pt-BR.md) e os [mascotes Semantic](docs/jgates/semantic-mascots.pt-BR.md)
 - [Integrações do Quality e a matriz de capacidades](docs/jgates/quality-integrations.pt-BR.md)
+- [Serviços do projeto](docs/jgates/services.pt-BR.md)
+- [Suas próprias ferramentas e imagens](docs/jgates/extension.pt-BR.md)
+- [Armazenamento e limpeza](docs/jgates/storage.pt-BR.md)
 - [Agentes](docs/jgates/agents.pt-BR.md)
 - [Pasta de dados](docs/jgates/data-folder.pt-BR.md)
 - [Segurança](docs/jgates/security.pt-BR.md)

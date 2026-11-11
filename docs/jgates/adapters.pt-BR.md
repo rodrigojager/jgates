@@ -110,10 +110,10 @@ templates:
 
 Os contratos de evidência: `exit-code` (o código de saída decide), `test-runner` (`go-test` ou `cargo-test`: o JGates lê a saída do executor) e `json-file` (o comando grava um JSON que o JGates valida contra um schema do workspace). Segurança e arquitetura só são creditadas com `json-file`; testes, com `json-file` ou `test-runner`. Com `exit-code` o requisito de segurança, arquitetura ou testes continua `EVIDENCE_MISSING` (sem cobertura, plano não aprovável). `support` e `limitations` aparecem no plano e no resultado.
 
-## Suporte parcial
+## Stacks e suas próprias ferramentas
 
-Go, Rust e .NET têm templates de suporte parcial. Go e Rust: descoberta, configuração explícita e `go test` / `cargo test` pelo comando genérico. .NET: a cadeia atual do flavor `dotnetweb` pela ponte, sem integração própria com build, testes, cobertura nem analisadores. O que cada um **não** cobre aparece no plano (`support.uncovered`) e na [matriz](compatibility.pt-BR.md). Nada disso é apresentado como cobertura completa.
+Go, Rust e .NET têm templates próprios para lint, build, testes e dependências; o que cada stack **não** cobre aparece no plano (`support.uncovered`) e na [matriz](compatibility.pt-BR.md). Nada disso é apresentado como cobertura completa. Para uma ferramenta ou uma linguagem que o JGates não traz, adicione [sua própria ferramenta](extension.pt-BR.md): ela roda numa imagem estendida da imagem de ferramentas e é lida por relatórios SARIF, JUnit ou Checkstyle (`evidence.kind`). As verificações que precisam de uma aplicação ou de um banco de dados em execução usam os [serviços do projeto](services.pt-BR.md).
 
 ## Sistemas operacionais
 
-Linux: testado. Windows: o fluxo do primeiro uso foi conferido à mão no Windows 10 com Docker Desktop, onde os scanners da ponte rodam na imagem do sidecar (veja [limitações](limitations.pt-BR.md)); os testes que dependem do Windows estão marcados e pulam fora dele. macOS: não testado num Mac real. A prova de instalação está em [primeiros passos](getting-started.pt-BR.md).
+Toda ferramenta roda num contêiner `linux/amd64`. Linux: testado. Windows: o fluxo do primeiro uso foi conferido à mão no Windows 10 com Docker Desktop (veja [limitações](limitations.pt-BR.md)); os testes que dependem do Windows estão marcados e pulam fora dele. macOS: não testado num Mac real. A prova da instalação está em [primeiros passos](getting-started.pt-BR.md).

@@ -44,19 +44,33 @@ The policy is checked out **outside** the project: on GitHub, two `actions/check
 
 Other options: `--head <commit>` (default: the checkout's HEAD), `--scope full|changed` (in CI `changed` is widened to the whole commit), `--base <ref>`, `--profile <id>`, `--out <folder>`, `--fail-fast` and `--events-jsonl <file>`. Exit codes: 0 passed, 1 failed, 2 incomplete, 3 refused option or policy problem, 4 internal error, 130 cancelled.
 
-### Install JGates in the job
+### The job runs in the tools image
 
-JGates is not published to any registry. Install it from the repository, in a folder outside the analyzed project, and put that folder's executables on the job's `PATH`:
+JGates is not published to any package registry, and nothing is installed in the job. The job runs **inside the JGates tools image**, pinned by digest, which already holds `jgates` and every tool. Keep the image in a registry your pipeline can read and name it by digest, never by a movable tag:
 
-```bash
-npm install --prefix "$HOME/jgates-tool" git+https://github.com/rodrigojager/jgates
-export PATH="$HOME/jgates-tool/node_modules/.bin:$PATH"
-jgates ci --policy <policy-folder>
+```yaml
+# GitHub Actions
+container: <registry>/jgates-tools@sha256:<digest>
+# GitLab CI
+# image: <registry>/jgates-tools@sha256:<digest>
 ```
 
-On GitHub Actions, the examples install into `$RUNNER_TEMP/jgates` and add `$RUNNER_TEMP/jgates/node_modules/.bin` to `$GITHUB_PATH`, which applies to the following steps. On GitLab CI, they install into a folder under `$CI_BUILDS_DIR`, outside `$CI_PROJECT_DIR`, and run `export PATH=...` in the same `script`.
+In the job JGates is in image mode: the same adapter commands run natively inside the container. The examples also set `JGATES_TOOLS_IMAGE_DIGEST` to the digest of that image, so a policy can check that the job runs the image this JGates version pins (see below). The tools image is not published to a registry yet; until it is, build or import it into your own registry (see [getting started](getting-started.en.md#offline-machines)).
 
-Do not use `npm install --global git+https://github.com/rodrigojager/jgates`: for a global install of a git dependency, npm links the commands to a temporary clone that it then deletes, and `jgates` disappears (see [limitations](limitations.en.md)). For reproducible jobs, pin a tag or commit after the `#`, or keep the tarball (`npm pack`) in an internal store and install that file; a tarball can be installed with `--global`.
+### Images and extensions
+
+The policy owner decides whether the project may bring its own tool images, with `execution.extensionImage` in the `jgates.yml` of the policy repository:
+
+```yaml
+# jgates.yml of the policy repository
+execution:
+  extensionImage: pinned   # forbid | pinned; absent: the policy does not look at extensions
+```
+
+- `forbid`: any extension is refused: the `.jgates/image` of the analyzed commit and any tool that would run on an image other than the tools image (`EXTENSION_IMAGE_FORBIDDEN`).
+- `pinned`: only ready images named by digest (`name@sha256:...`) are accepted. An image built from the project's Dockerfile has no fixed digest and is refused (`EXTENSION_IMAGE_UNPINNED`), and the tools image the job runs in must be the one this JGates pins: its digest comes from the image itself (`image.json`) or from `JGATES_TOOLS_IMAGE_DIGEST`, and a different one is refused (`TOOLS_IMAGE_DIGEST_MISMATCH`; `TOOLS_IMAGE_DIGEST_UNKNOWN` when it cannot be known).
+
+The services of the project follow the policy too: a host bind mount, a privileged service and the other [host effects](services.en.md) are refused unless the policy lists them in `services.allowHostEffects`, and `writableBinds` is never accepted.
 
 ## What `jgates ci` refuses
 
@@ -66,7 +80,8 @@ Exit 3, before anything runs:
 - `--bridge-mode quick` or `offline`, and `--scope paths`;
 - a policy without `JGATES_POLICY_SHA256`, with a different hash, with symbolic links or with references outside its folder;
 - a quality policy that turns off or loosens the mandatory budgets;
-- a commit with a submodule (gitlink) or with a symbolic link that resolves outside the checkout.
+- a commit with a submodule (gitlink) or with a symbolic link that resolves outside the checkout;
+- an extension image, or a tools image other than the pinned one, when the policy sets `execution.extensionImage` (see [images and extensions](#images-and-extensions)).
 
 What does not enter `jgates ci` is your personal setup: it neither reads nor writes the [user key store](security.en.md#the-user-key-store) or the [provider preferences and connections](semantic-gate.en.md#preferences-and-connections). The semantic review in CI uses the API keys of the pipeline environment and the provider settings of the project or of the policy.
 

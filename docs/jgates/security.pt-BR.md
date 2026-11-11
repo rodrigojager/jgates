@@ -6,8 +6,21 @@ O JGates lê e executa ferramentas sobre código que pode não ser confiável, e
 
 - Descobrir e editar a configuração **não executa código** do projeto. Ler um `eslint.config.js` é só parsear o texto.
 - O plano mostra, antes de qualquer execução, quais etapas executam código do projeto (testes, ESLint, Vitest, pytest). Uma etapa assim nunca vem do cache.
-- O runner local não é um sandbox. Isolamento forte só existe no runner de container e, para uma garantia contra o autor do código, na política externa e no [modo governado](#modo-governado). `network: false` no runner local não é anunciado como garantia.
-- O runner de container usa a imagem fixada por digest em `.jgates/lock.json`, rede desligada, sistema de arquivos somente leitura, o workspace montado só para leitura, usuário sem privilégio, `--cap-drop ALL` e `no-new-privileges`. Ele recusa `--privileged` e o `docker.sock`.
+- Toda verificação roda num contêiner da imagem de ferramentas do JGates, nunca na sua máquina, e um passo que rodaria fora do contêiner é recusado (`HOST_EXECUTION_REFUSED`). O projeto é copiado para um volume próprio e nunca é escrito; a única pasta da sua máquina que um passo enxerga é a pasta de saída da execução, montada em `/output`.
+- Um contêiner de passo tem sistema de arquivos raiz somente leitura e um `/tmp` pequeno, `--cap-drop ALL`, `no-new-privileges`, limite de processos, de memória (4 GB por padrão) e de CPUs (2), a rede desligada a menos que o item do plano a declare, um usuário sem privilégio (`10001:10001`, ou o seu próprio usuário e grupo no Linux) e só as variáveis de ambiente que ele declara. O JGates recusa `--privileged` e o `docker.sock`.
+- Um contêiner não é um sandbox perfeito: compartilha o kernel do seu motor. Isolamento forte contra o autor do código só existe na política externa e no [modo governado](#modo-governado).
+- A imagem de ferramentas é fixada por digest no registro da versão e o motor nunca baixa nada durante uma execução (`--pull never`); uma imagem de outra versão é recusada (`IMAGE_VERSION_MISMATCH`).
+
+## Caches compartilhados e scripts de instalação
+
+- **Os scripts de instalação rodam, no contêiner.** Para rodar testes e builds o JGates instala as dependências do projeto num volume, e os scripts de instalação dos pacotes (`postinstall` do npm, backends de build do Python) rodam nesse passo, com a rede ligada, isolados da sua máquina e do seu projeto. A revisão mostra esse efeito, e a capacidade de supply chain continua apontando scripts de instalação como achados.
+- **Os caches são compartilhados.** Os caches de pacotes (`jgates-cache`) e as versões de linguagens (`jgates-toolchains`) são compartilhados por todos os projetos da máquina, então um pacote buscado para um projeto pode ser reaproveitado por outro. A integridade vem dos lockfiles. Depois de validar um repositório em que você não confia, `jgates clean --caches` remove os caches (veja [armazenamento e limpeza](storage.pt-BR.md)).
+- **Tokens de registro.** Um token de registro privado chega só ao contêiner de instalação, pela entrada padrão, e é mascarado nos logs, mas os scripts de instalação desse componente rodam no mesmo contêiner e podem lê-lo. Use um token com escopo de somente leitura.
+- **O modo governado** instala só com lockfiles congelados.
+
+## Serviços do projeto
+
+Os serviços de compose do projeto rodam no seu motor como qualquer pilha de compose, e o JGates não acrescenta privilégio. A revisão lista as configurações que alcançam a sua máquina (bind mounts, `privileged`, rede ou PID do computador, dispositivos, `cap_add`) antes da primeira execução, as pastas do projeto são montadas somente leitura a menos que você autorize com `writableBinds`, e o modo governado recusa tudo isso a menos que a política permita. Veja [serviços](services.pt-BR.md).
 
 ## Servidor e interface locais
 
@@ -99,7 +112,7 @@ jgates hooks uninstall <hook>
 
 ## Cadeia de suprimentos
 
-As dependências diretas ficam em versões travadas no lockfile, com origem e integridade conferidas; as ferramentas Python usam `==`; toda imagem tem a base por digest e todo binário baixado na construção é conferido por `sha256`. O teste `jgates/tests/server-routes-security.test.js` confere essas travas (lockfile, digests das imagens, versões Python), e as licenças estão em `THIRD_PARTY_NOTICES.md`. Nenhum pacote é publicado: o produto é o repositório no GitHub.
+As dependências diretas ficam em versões travadas no lockfile, com origem e integridade conferidas; as ferramentas Python usam `==`; a imagem de ferramentas tem a base por digest e todo binário baixado enquanto ela é construída é conferido por `sha256`. O teste `jgates/tests/server-routes-security.test.js` confere essas travas (lockfile, digests das imagens, versões Python), e as licenças estão em `THIRD_PARTY_NOTICES.md`. Nenhum pacote é publicado: o produto é o repositório no GitHub.
 
 ## Resultado falso ou antigo
 
@@ -107,7 +120,7 @@ Um resultado é vinculado ao plano, à configuração e ao estado do código (`a
 
 ## Modo governado
 
-O `jgates ci` é o modo governado: as regras vêm de uma política externa conferida por SHA-256, o commit é analisado numa cópia limpa e o job não escolhe as próprias regras (sem `--skip`, `--waiver`, `--plan` e afins). O JGates não afrouxa esse modo e a interface, quando o detecta, bloqueia a edição. Os scanners nativos ficam fora do `jgates ci` (a ponte endurecida os cobre), e o que vem de ferramentas que executam código do projeto é marcado como autodeclarado. Detalhes em [CI](ci.pt-BR.md). Para impedir que o autor do código mude o gate, use a política externa e um runner controlado.
+O `jgates ci` é o modo governado: as regras vêm de uma política externa conferida por SHA-256, o commit é analisado numa cópia limpa e o job não escolhe as próprias regras (sem `--skip`, `--waiver`, `--plan` e afins). O JGates não afrouxa esse modo e a interface, quando o detecta, bloqueia a edição. Os scanners que leem configuração da árvore analisada ficam fora do `jgates ci` (a ponte endurecida os cobre), o que vem de ferramentas que executam código do projeto é marcado como autodeclarado, e a política pode proibir ou fixar as imagens próprias do projeto (`execution.extensionImage`) e os efeitos dos serviços no computador. Detalhes em [CI](ci.pt-BR.md). Para impedir que o autor do código mude o gate, use a política externa e um runner controlado.
 
 ## Telemetria
 
@@ -115,8 +128,8 @@ Nenhuma telemetria é enviada pelo JGates. O Semgrep roda com `--metrics=off`; p
 
 ## Reportar um problema
 
-Não coloque segredos em issues. Descreva o comando, a saída de `jgates doctor` e o `runId`.
+Não coloque segredos em issues. Descreva o comando, a saída de `jgates status` e o `runId`.
 
 ```bash
-jgates doctor
+jgates status
 ```

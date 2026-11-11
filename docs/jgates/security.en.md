@@ -6,8 +6,21 @@ JGates reads and runs tools over code that may not be trusted, and it has a loca
 
 - Discovering and editing the configuration **does not run code** from the project. Reading an `eslint.config.js` is only parsing text.
 - Before any execution the plan shows which steps run project code (tests, ESLint, Vitest, pytest). Such a step never comes from the cache.
-- The local runner is not a sandbox. Strong isolation exists only in the container runner and, as a guarantee against the code author, in the external policy and in [governed mode](#governed-mode). `network: false` on the local runner is not advertised as a guarantee.
-- The container runner uses the image pinned by digest in `.jgates/lock.json`, network off, a read-only file system, the workspace mounted read-only, an unprivileged user, `--cap-drop ALL` and `no-new-privileges`. It refuses `--privileged` and `docker.sock`.
+- Every check runs in a container of the JGates tools image, never on your machine, and a step that would run outside the container is refused (`HOST_EXECUTION_REFUSED`). The project is copied into a volume of its own and is never written; the only folder of your machine that a step sees is the output folder of the run, mounted at `/output`.
+- A step container has a read-only root file system and a small `/tmp`, `--cap-drop ALL`, `no-new-privileges`, a limit of processes, memory (4 GB by default) and CPUs (2), the network off unless the plan item declares it, an unprivileged user (`10001:10001`, or your own user and group on Linux) and only the environment variables it declares. JGates refuses `--privileged` and `docker.sock`.
+- A container is not a perfect sandbox: it shares the kernel of your engine. Strong isolation against the code author exists only in the external policy and in [governed mode](#governed-mode).
+- The tools image is pinned by digest in the release record and the engine never pulls during a run (`--pull never`); an image of another version is refused (`IMAGE_VERSION_MISMATCH`).
+
+## Shared caches and install scripts
+
+- **Install scripts run, in the container.** To run tests and builds JGates installs the project's dependencies into a volume, and the install scripts of the packages (npm `postinstall`, Python build backends) run in that step, with the network on, isolated from your machine and your project. The review shows this effect, and the supply-chain capability still reports install scripts as findings.
+- **The caches are shared.** The package caches (`jgates-cache`) and the language versions (`jgates-toolchains`) are shared by every project on the machine, so a package fetched for one project can be reused by another. Integrity comes from the lockfiles. After validating a repository you do not trust, `jgates clean --caches` removes the caches (see [storage and cleanup](storage.en.md)).
+- **Registry tokens.** A token for a private registry reaches only the install container, through its standard input, and is masked in logs, but the install scripts of that component run in the same container and can read it. Use a token with read-only scope.
+- **Governed mode** installs with frozen lockfiles only.
+
+## Project services
+
+The compose services of the project run with your engine like any compose stack, and JGates adds no privilege. The review lists the settings that reach your machine (bind mounts, `privileged`, host network or PID, devices, `cap_add`) before the first run, project folders are mounted read-only unless you opt in with `writableBinds`, and governed mode refuses all of that unless the policy allows it. See [services](services.en.md).
 
 ## Local server and interface
 
@@ -99,7 +112,7 @@ jgates hooks uninstall <hook>
 
 ## Supply chain
 
-Direct dependencies sit at versions pinned in the lockfile, with origin and integrity checked; the Python tools use `==`; every image has its base by digest and every binary downloaded at build time is checked with `sha256`. The test `jgates/tests/server-routes-security.test.js` checks these pins (lockfile, image digests, Python versions), and the licenses are in `THIRD_PARTY_NOTICES.md`. No package is published: the product is the repository on GitHub.
+Direct dependencies sit at versions pinned in the lockfile, with origin and integrity checked; the Python tools use `==`; the tools image has its base by digest and every binary downloaded while it is built is checked with `sha256`. The test `jgates/tests/server-routes-security.test.js` checks these pins (lockfile, image digests, Python versions), and the licenses are in `THIRD_PARTY_NOTICES.md`. No package is published: the product is the repository on GitHub.
 
 ## False or old result
 
@@ -107,7 +120,7 @@ A result is bound to the plan, the configuration and the state of the code (`ana
 
 ## Governed mode
 
-`jgates ci` is the governed mode: the rules come from an external policy checked by SHA-256, the commit is analyzed in a clean copy and the job does not choose its own rules (no `--skip`, `--waiver`, `--plan` and the like). JGates does not loosen this mode and the interface, when it detects it, blocks editing. The native scanners stay out of `jgates ci` (the hardened bridge covers them), and what comes from tools that execute project code is marked self-reported. Details in [CI](ci.en.md). To stop the code author from changing the gate, use the external policy and a controlled runner.
+`jgates ci` is the governed mode: the rules come from an external policy checked by SHA-256, the commit is analyzed in a clean copy and the job does not choose its own rules (no `--skip`, `--waiver`, `--plan` and the like). JGates does not loosen this mode and the interface, when it detects it, blocks editing. The scanners that read configuration from the analyzed tree stay out of `jgates ci` (the hardened bridge covers them), what comes from tools that execute project code is marked self-reported, and the policy can forbid or pin the project's own images (`execution.extensionImage`) and the services' host effects. Details in [CI](ci.en.md). To stop the code author from changing the gate, use the external policy and a controlled runner.
 
 ## Telemetry
 
@@ -115,8 +128,8 @@ JGates sends no telemetry. Semgrep runs with `--metrics=off`; for third-party sc
 
 ## Reporting a problem
 
-Do not put secrets in issues. Describe the command, the output of `jgates doctor` and the `runId`.
+Do not put secrets in issues. Describe the command, the output of `jgates status` and the `runId`.
 
 ```bash
-jgates doctor
+jgates status
 ```

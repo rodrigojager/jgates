@@ -24,7 +24,24 @@ const require = createRequire(import.meta.url);
 const fixture = require("../../tests/fixtures/jgates/main-fixture.js");
 
 const LOCALES = ["pt-BR", "en"];
-const REQUIRED_PAGES = ["getting-started", "ci", "templates-and-profiles", "editor", "adapters", "security", "semantic-gate", "agents", "data-folder", "limitations", "troubleshooting"];
+const REQUIRED_PAGES = [
+  "getting-started",
+  "ci",
+  "templates-and-profiles",
+  "editor",
+  "adapters",
+  "compatibility",
+  "quality-integrations",
+  "security",
+  "semantic-gate",
+  "agents",
+  "data-folder",
+  "limitations",
+  "troubleshooting",
+  "services",
+  "extension",
+  "storage",
+];
 
 /**
  * How a page starts, by page name. `init` (the default): the fixture already has the configuration `jgates init` writes.
@@ -32,11 +49,18 @@ const REQUIRED_PAGES = ["getting-started", "ci", "templates-and-profiles", "edit
  */
 const PAGE_SETUP = { "getting-started": "none", editor: "tools", adapters: "tools" };
 
-/** Commands never executed by the test (they serve, download, delete or run the whole gate); they are still checked statically. */
+/**
+ * Commands never executed by the test (they serve, download, delete or run the whole gate, or they talk to the container
+ * engine); they are still checked statically. The lifecycle commands (setup, status, deps, clean, uninstall) and the tools
+ * subcommands that build, download, export or import touch the engine and the machine, so a test never runs them for real.
+ */
+const ENGINE_TOOLS_SUBCOMMANDS = new Set(["update-data", "prepare-codeql", "export", "import", "build-extension", "test", "add-custom"]);
 const NOT_EXECUTED = [
   (t) => t[0] === "ui",
   (t) => t[0] === "run",
+  (t) => ["setup", "status", "deps", "clean", "uninstall"].includes(t[0]),
   (t) => t[0] === "tools" && t[1] === "prepare" && !t.includes("--dry-run"),
+  (t) => t[0] === "tools" && ENGINE_TOOLS_SUBCOMMANDS.has(t[1]) && !(t[1] === "add-custom" && t.includes("--dry-run")),
   (t) => t[0] === "gc" && t.includes("--yes"),
 ];
 
@@ -44,7 +68,7 @@ const NOT_EXECUTED = [
 /** Flags every command accepts (they are not in the per-command options of help --json). */
 const GLOBAL_FLAGS = new Set(["json", "help", "version", "locale"]);
 
-const WITH_SUBCOMMANDS = new Set(["config", "tools", "profiles", "workspaces", "baseline", "history"]);
+const WITH_SUBCOMMANDS = new Set(["config", "tools", "profiles", "workspaces", "baseline", "history", "deps"]);
 
 const homes = [];
 const dirs = [];
@@ -193,8 +217,11 @@ for (const file of pages) {
       if (!WITH_SUBCOMMANDS.has(name) || !sub || sub.startsWith("--") || probed.has(`${name} ${sub}`)) continue;
       probed.add(`${name} ${sub}`);
       const path3 = name === "tools" && sub === "config" ? [name, sub, words[2] ?? ""] : [name, sub];
-      const r = jgates([...path3.filter(Boolean), "--cwd", dir, "--json"], { home });
-      assert.ok(!/UNKNOWN_ACTION/.test(r.out + r.err), `${file}: "${line}" uses a subcommand jgates ${name} does not have`);
+      // A subcommand that touches the engine is probed with a folder that does not exist: the command refuses (BAD_CWD)
+      // after it has found the subcommand and before it does anything, and an unknown one is refused first.
+      const touchesEngine = name === "deps" || (name === "tools" && ENGINE_TOOLS_SUBCOMMANDS.has(sub));
+      const r = jgates([...path3.filter(Boolean), "--cwd", touchesEngine ? path.join(dir, "no-such-folder") : dir, "--json"], { home });
+      assert.ok(!/UNKNOWN_ACTION|UNKNOWN_SUBCOMMAND/.test(r.out + r.err), `${file}: "${line}" uses a subcommand jgates ${name} does not have`);
     }
   });
 
@@ -211,7 +238,9 @@ for (const file of pages) {
   });
 
   test(`${file}: no removed or invented feature is documented`, () => {
-    assert.ok(!/JGATES_[A-Z]*_?IMAGE/.test(text), `${file}: JGATES_*_IMAGE variables no longer exist (the image comes from .jgates/lock.json)`);
+    // The per-tool image variables of the host-runner era are gone (the tools image comes from release/tools-image.json, or
+    // JGATES_TOOLS_IMAGE in development); JGATES_TOOLS_IMAGE_DIGEST is real and is also checked against the sources below.
+    assert.ok(!/JGATES_(SEMGREP|GITLEAKS|TRIVY|OSV|CHECKOV|SIDECAR|ZAP|MEGALINTER|QUALITY|SCANNER)[A-Z_]*_IMAGE/.test(text), `${file}: the per-tool JGATES_*_IMAGE variables no longer exist`);
     const fenced = (text.match(/^```[a-z]*\n[\s\S]*?^```/gm) ?? []).join("\n");
     assert.ok(!/npm (publish|i(nstall)? -g jgates)\b/.test(fenced), `${file}: the package is not published`);
     for (const name of new Set(text.match(/\bJGATES_[A-Z_]+\b/g) ?? [])) {
@@ -227,6 +256,43 @@ for (const file of pages) {
     }
   });
 }
+
+// ---- Nothing is installed on the host ----
+//
+// JGates runs every check in the tools image, so no page tells you to install a scanner, a linter, a test runner or a
+// language toolchain on your machine. Installing JGates itself (npm), the container engine and the Dockerfile lines of the
+// user's own image are the only installs a page may show.
+
+const HOST_INSTALL = [
+  /\b(pip3?|pipx|uv tool|uv pip|poetry|conda) (install|add)\b/,
+  /\bnpm (install|i|add) (-g|--global)\s+(?!\.\/jgates-)\S*(eslint|prettier|vitest|jest|ruff|semgrep|stryker|typescript|tsc|playwright)/,
+  /\b(cargo|go|dotnet tool) install\b/,
+  /\b(apt|apt-get|dnf|yum|brew|winget|choco|scoop)\s+install\b(?!.*(docker|moby|podman|rancher))/i,
+  /\brustup (toolchain )?(install|add)\b/,
+  /\bnvm install\b|\bpyenv install\b/,
+];
+
+function fencedShell(markdown) {
+  const fence = /^```(bash|sh|shell|powershell|cmd)\s*\n([\s\S]*?)^```/gm;
+  const lines = [];
+  let match;
+  while ((match = fence.exec(markdown))) lines.push(...match[2].split("\n"));
+  return lines;
+}
+
+test("no page tells you to install a scanner, a linter or a test runner on the host", () => {
+  const sources = [
+    ...pages.map((f) => ({ name: `docs/jgates/${f}`, text: fs.readFileSync(path.join(DOCS, f), "utf8") })),
+    // The README is checked without its Development section: that one builds this repository (its Python test environment).
+    { name: "README.md", text: fs.readFileSync(path.join(ROOT, "README.md"), "utf8").replace(/^### (Development|Desenvolvimento)[\s\S]*?(?=^### |^---|(?![\s\S]))/gm, "") },
+  ];
+  for (const { name, text } of sources) {
+    for (const line of fencedShell(text)) for (const pattern of HOST_INSTALL) assert.doesNotMatch(line, pattern, `${name}: a command block tells you to install a tool on the host: ${line}`);
+    // Prose: the retired recipes (jgates doctor installing tools) must not come back.
+    assert.doesNotMatch(text, /doctor --fix|--include-optional|<JGATES_HOME>\/tools\/python/, `${name}: the host install recipes of jgates doctor no longer exist`);
+    assert.doesNotMatch(text, /\(s\)/, `${name}: write natural plurals, never "(s)"`);
+  }
+});
 
 // ---- README.md: two halves (English first, then Português) with the same content, and real commands ----
 

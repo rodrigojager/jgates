@@ -1,31 +1,66 @@
 # JGates: common problems
 
-Each JGates error carries a code (`error.code`), a message and a fix instruction (`error.fix`). This page gathers the most frequent ones. When in doubt, start with the diagnosis:
+Each JGates error carries a code (`error.code`), a message and a fix instruction (`error.fix`). This page gathers the most frequent ones. When in doubt, start with the readiness of the machine:
 
 ```bash
-jgates doctor
+jgates status
 ```
 
-`doctor` shows the runtimes (Node, Python, Git, Docker), each tool in the plan (ready, absent or at an incompatible version), the preparation and, for what is missing, whether it is essential, optional (with the alternative) or unused, with the recipe that installs it. On a terminal it offers to install; without a terminal and without `--fix` it only reads and exits with 0 (see [getting started](getting-started.en.md)).
+`status` shows the container engine, the tools image, the age of the vulnerability data and what the current project has ready. `jgates doctor` goes further: it classifies what the plan of the project is missing as essential, optional or unused and offers to prepare it (see [getting started](getting-started.en.md)). Neither installs a scanner, a linter or a test runner on your machine, because none is needed there.
 
 ## The run ended "incomplete" (exit 2)
 
-Incomplete is not failed: it means evidence is missing. Look at the reason of each stage in the result.
+Incomplete is not failed: it means evidence is missing. Look at the reason of each stage in the result; the codes are in the [list of reasons](#reason-codes) below.
 
-- **`TOOL_UNAVAILABLE`.** The tool is not installed or is outside the adapter's version range. The message carries the command, and `jgates doctor --fix` offers the recipe. For the Semgrep rules, use `jgates tools prepare --instance <id>`; for Docker, check that the daemon is up.
-- **`blocked` stage.** A binary, a configuration file (ESLint without `eslint.config`, for example) or the coverage provider (`@vitest/coverage-v8`, `pytest-cov`) is missing. Coverage not measured is "not measured", never 0%.
+- **`TOOL_MISSING` and `TOOL_UNAVAILABLE`.** The tools image of this JGates version does not have the tool, or its version is outside the range the adapter accepts. Run `jgates setup` to download the image this version pins. A tool is never installed on the host.
+- **`blocked` stage.** A configuration file (ESLint without `eslint.config`, for example) or the coverage provider (`@vitest/coverage-v8`, `pytest-cov`) is missing from the project. Coverage not measured is "not measured", never 0%.
 - **`INPUTS_CHANGED`.** An analyzed file changed during the run. Run again without touching the code.
 - **Partial architecture coverage.** The import graph did not resolve a dependency (an alias, for example). That is a coverage gap, never an approval: adjust the alias configuration.
 
-## Installing what is missing
+## The container engine
 
-- **The quality gate shows as absent, but Python is there.** The Python found lacks the quality gate's packages (`defusedxml`, `tomlkit`). `jgates doctor --fix` creates the JGates environment (`<JGATES_HOME>/tools/python`) with them, and the bridge starts using it.
-- **`python -m venv` fails.** On Debian and Ubuntu the `venv` module comes in a separate package: install `python3-venv` and run `doctor --fix` again.
-- **"Automatic install unavailable".** The text says why: there is no Python 3.11 or newer to create the environment; the variable `JGATES_PYTHON`, `JGATES_RUFF` or `JGATES_SEMGREP` chooses the executable (install into it, or unset the variable); the image needs a working Docker; or the system is not one JGates knows how to install Docker on (the text points to the official instructions).
-- **In CI or in a script.** Without a terminal, `doctor` does not ask: `jgates doctor --fix --yes` installs the essential items, and `--include-optional` the optional ones. Docker is never installed this way: the system's command waits for a "y" on the terminal.
-- **Docker was installed, but `docker` asks for `sudo`.** On Linux, your user has to join the `docker` group (`sudo usermod -aG docker $USER` and a new session). JGates does not do it for you.
-- **A run that ended because a tool is missing.** In a terminal (without `--json`, `--ci` or `--no-interactive`), `jgates run` lists what is missing, offers the same recipes as `doctor` and, after installing, asks whether to run again. Anywhere else it asks nothing, the exit code is the same as before and the message points to `jgates doctor --fix`. `quality-gate` run directly, without Docker and with the local sidecar missing a tool, offers in a terminal to install it (through `jgates doctor --fix`, when `jgates` is on the PATH) or to try Docker; otherwise it prints the error as before plus the hint. The local sidecar looks for Python in this order: `JGATES_PYTHON`, `PYTHON`, the JGates environment, the `PATH`.
-- **Undo.** The JGates environment is just a folder: deleting `<JGATES_HOME>/tools/python` goes back to how things were (the `PATH` and the system Python were never touched).
+- **`ENGINE_NOT_INSTALLED`.** No Docker-compatible engine was found. Install one (Docker Desktop, Rancher Desktop, Podman Desktop, or Docker Engine on Linux), or point `JGATES_CONTAINER_RUNTIME` at its executable, then run `jgates setup`.
+- **`ENGINE_STOPPED`.** The engine is installed but not running. Start it (on a terminal, `jgates setup --yes` starts it when that needs no administrator password) and run again.
+- **`docker` asks for `sudo` on Linux.** Your user has to join the `docker` group (`sudo usermod -aG docker $USER` and a new session). JGates does not do it for you.
+- **`ENGINE_LOST`.** The engine stopped during the run, so the checks that were running are incomplete. Start it and run again.
+- **`UNSUPPORTED_PLATFORM`.** The engine runs a platform other than Linux amd64 (an arm64 engine, for example). JGates uses only `linux/amd64` images in this release.
+- **Low memory (`ENGINE_LOW_MEMORY`).** A step asks for 4 GB of memory and 2 CPUs by default. Raise the engine's memory (Docker Desktop: Settings, Resources; on Windows with WSL 2 the limit can also be set in `.wslconfig`) and run `jgates status` to see the new figure.
+- **The image (`IMAGE_MISSING`, `IMAGE_PULL_FAILED`, `IMAGE_VERSION_MISMATCH`).** Run `jgates setup`: it downloads the image this version pins and reuses what already arrived. Behind a registry you cannot reach, use [`jgates tools export` and `import`](getting-started.en.md#offline-machines).
+- **`DISK_LOW`.** The download needs room for the compressed and the unpacked image plus a margin. Free space or run `jgates clean` (see [storage and cleanup](storage.en.md)).
+
+## Windows and WSL
+
+- **Docker Desktop is waiting for WSL.** Docker Desktop's default backend is WSL 2, which Windows must have enabled; follow Docker's and Microsoft's installation pages, then run `jgates status`.
+- **Memory.** WSL 2 takes its memory limit from the Windows side. If `ENGINE_LOW_MEMORY` appears on a machine with plenty of RAM, raise the limit in Docker Desktop's Resources or in `%UserProfile%\.wslconfig`.
+- **"Git refused the repository" / `detected dubious ownership`.** The folder belongs to another account (often the Administrators group, when an elevated terminal created it), and Git refuses to read it from your user. The result then applies to the folder contents, not to a commit, and the message carries the command Git suggests: `git config --global --add safe.directory <folder>`. Run it once, or take ownership of the folder.
+- **Case sensitivity.** Windows and macOS file systems ignore the case of file names, while the copy of your project in the volume is Linux and does not. An import such as `from Utils import x` that finds `utils.py` on Windows fails in the container. The failure is real: fix the case in the code, and the project then works on Linux servers too.
+- **Docker Desktop terms.** Docker Desktop has license terms of its own that depend on who uses it. Rancher Desktop, Podman Desktop and Docker Engine work with JGates as well.
+
+## Reason codes
+
+JGates explains why something did not run with a fixed code, a text in your language and one action. The raw text of the engine only shows in the details.
+
+- **`ENGINE_NOT_INSTALLED`**: no engine; install one or set `JGATES_CONTAINER_RUNTIME`.
+- **`ENGINE_STOPPED`**: the engine is stopped; start it.
+- **`ENGINE_LOW_MEMORY`**: the engine has less memory than a check of the plan needs; raise it in the engine's resources.
+- **`DISK_LOW`**: not enough free space to download the tools; open Storage or free space.
+- **`IMAGE_MISSING`**: the tools image was not downloaded; `jgates setup`.
+- **`IMAGE_PULLING`**: the download is in progress; keep configuring.
+- **`IMAGE_PULL_FAILED`**: the download stopped; `jgates setup` again.
+- **`IMAGE_VERSION_MISMATCH`**: the image is of another JGates version; `jgates setup`.
+- **`TOOL_MISSING`**: a tool the plan needs is not in the image; the image of this version is the only fix.
+- **`ENGINE_LOST`**: the engine stopped during the run; start it and run again.
+- **`UNSUPPORTED_PLATFORM`**: the engine is not Linux amd64.
+- **`DEPENDENCIES_NOT_READY`**: the dependencies of a component are not prepared; `jgates deps status`.
+- **`DEPENDENCIES_FAILED`**: installing them failed; read the log and `jgates deps prepare` again.
+- **`DATA_MISSING`**: a vulnerability database was never downloaded; `jgates tools update-data`.
+- **`DATA_STALE`**: it is older than `execution.dataMaxAgeDays`; `jgates tools update-data`.
+- **`CUSTOMER_SUPPLIED`**: CodeQL is yours to prepare; `jgates tools prepare-codeql`.
+- **`EXTENSION_OUTDATED`**: your own image changed; `jgates tools build-extension`.
+- **`SERVICES_NOT_READY`**: a service did not become healthy in time; see [services](services.en.md).
+- **`SERVICES_REQUIRED`**: a check needs services and none is set up; see [services](services.en.md).
+- **`NOT_APPLICABLE_TO_PROJECT`**: the check does not apply to this project; it never blocks.
+- **`HOST_EXECUTION_REFUSED`**: a step would have run outside the container, so JGates refused it. There is no action for you: report it as a defect.
 
 ## The plan is refused (exit 3)
 
@@ -44,7 +79,7 @@ jgates plan
 ## The configuration does not save
 
 - **`REVISION_CONFLICT`.** The file changed on disk since you opened it. The interface shows the base, your and the current versions; choose which to keep. From the CLI, pass the new `--if-match`.
-- **`STRUCTURED_EDIT_UNAVAILABLE`.** The TOML form needs Python with `tomlkit`; without it, the text remains editable.
+- **`STRUCTURED_EDIT_UNAVAILABLE`.** The structured TOML form is unavailable; the text remains editable.
 - **`GOVERNED_LOCKED`.** The server detected governed mode (`JGATES_POLICY_DIR`). Editing is blocked on purpose.
 - **Visual edit refused in JS.** A dynamic configuration (function, spread, computed import) can only be edited as text.
 
@@ -56,16 +91,11 @@ jgates plan
 
 ## Disk space and cache
 
-- Run `jgates gc --dry-run` to see what retention would delete (see [data folder](data-folder.en.md)).
+- Run `jgates status` for the space JGates uses and `jgates clean --dry-run` to see what is not in use (see [storage and cleanup](storage.en.md)).
+- Run `jgates gc --dry-run` to see what the retention of runs would delete (see [data folder](data-folder.en.md)).
 - A result "reused" from an earlier execution comes from the cache. To force a real execution, use `jgates run --no-cache`.
-- The sidecar image (`jgates/quality-sidecar:latest`, around 22 GB) and its scanner cache (`<data folder>/cache/quality-sidecar`, a few GB) are the largest items. Deleting the cache only makes the next run download the databases again.
-
-## Windows
-
-- **"Git refused the repository" / `detected dubious ownership`.** The folder belongs to another account (often the Administrators group, when an elevated terminal created it), and Git refuses to read it from your user. The result then applies to the folder contents, not to a commit, and the message carries the command Git suggests: `git config --global --add safe.directory <folder>`. Run it once, or take ownership of the folder.
-- **A tool installed with `pip install --user` shows as missing.** Update JGates: the child processes now get `APPDATA`, through which Python finds the user's site-packages.
-- **The bridge's scanners come out `missing`.** Build the sidecar image (see [adapters](adapters.en.md#the-bridges-scanners-in-the-sidecar-image)); with it, the run sends them to Docker by itself.
+- The largest items are the tools image and the dependency volumes. Deleting the vulnerability data only makes the next `jgates setup` or `jgates tools update-data` download it again.
 
 ## macOS
 
-macOS was not tested on a real machine (see [limitations](limitations.en.md)). If something fails, note the command, the `runId` and the output of `jgates doctor`.
+macOS was not tested on a real machine (see [limitations](limitations.en.md)). If something fails, note the command, the `runId` and the output of `jgates status`.

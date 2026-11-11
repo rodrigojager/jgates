@@ -44,19 +44,33 @@ A política é obtida **fora** do projeto: no GitHub, dois passos `actions/check
 
 Outras opções: `--head <commit>` (padrão: o HEAD do checkout), `--scope full|changed` (no CI o `changed` é ampliado para o commit inteiro), `--base <ref>`, `--profile <id>`, `--out <folder>`, `--fail-fast` e `--events-jsonl <file>`. Códigos de saída: 0 passou, 1 falhou, 2 incompleto, 3 opção recusada ou problema na política, 4 erro interno, 130 cancelado.
 
-### Instalar o JGates no job
+### O job roda na imagem de ferramentas
 
-O JGates não é publicado em nenhum registro. Instale a partir do repositório, numa pasta fora do projeto analisado, e coloque a pasta de executáveis dela no `PATH` do job:
+O JGates não é publicado em nenhum registro de pacotes, e nada é instalado no job. O job roda **dentro da imagem de ferramentas do JGates**, fixada por digest, que já tem o `jgates` e todas as ferramentas. Guarde a imagem num registro que o seu pipeline consiga ler e nomeie-a por digest, nunca por uma tag que se move:
 
-```bash
-npm install --prefix "$HOME/jgates-tool" git+https://github.com/rodrigojager/jgates
-export PATH="$HOME/jgates-tool/node_modules/.bin:$PATH"
-jgates ci --policy <policy-folder>
+```yaml
+# GitHub Actions
+container: <registry>/jgates-tools@sha256:<digest>
+# GitLab CI
+# image: <registry>/jgates-tools@sha256:<digest>
 ```
 
-No GitHub Actions, os exemplos instalam em `$RUNNER_TEMP/jgates` e acrescentam `$RUNNER_TEMP/jgates/node_modules/.bin` ao `$GITHUB_PATH`, o que vale para os passos seguintes. No GitLab CI, instalam numa pasta em `$CI_BUILDS_DIR`, fora de `$CI_PROJECT_DIR`, e fazem `export PATH=...` no mesmo `script`.
+No job o JGates fica no modo dentro-da-imagem: os mesmos comandos dos adaptadores rodam nativamente dentro do contêiner. Os exemplos também definem `JGATES_TOOLS_IMAGE_DIGEST` com o digest dessa imagem, para que uma política possa conferir que o job roda a imagem que esta versão do JGates fixa (veja abaixo). A imagem de ferramentas ainda não foi publicada num registro; até lá, construa ou importe a imagem no seu próprio registro (veja [primeiros passos](getting-started.pt-BR.md#máquinas-offline)).
 
-Não use `npm install --global git+https://github.com/rodrigojager/jgates`: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que ele mesmo apaga, e o `jgates` some (veja [limitações](limitations.pt-BR.md)). Para jobs reproduzíveis, fixe uma tag ou um commit depois do `#`, ou guarde o tarball (`npm pack`) num armazenamento interno e instale esse arquivo; um tarball pode ser instalado com `--global`.
+### Imagens e extensões
+
+Quem controla a política decide se o projeto pode trazer imagens de ferramentas próprias, com `execution.extensionImage` no `jgates.yml` do repositório da política:
+
+```yaml
+# jgates.yml do repositório da política
+execution:
+  extensionImage: pinned   # forbid | pinned; ausente: a política não olha as extensões
+```
+
+- `forbid`: qualquer extensão é recusada: o `.jgates/image` do commit analisado e qualquer ferramenta que rodaria numa imagem que não seja a de ferramentas (`EXTENSION_IMAGE_FORBIDDEN`).
+- `pinned`: só imagens prontas nomeadas por digest (`nome@sha256:...`) são aceitas. Uma imagem construída do Dockerfile do projeto não tem digest fixo e é recusada (`EXTENSION_IMAGE_UNPINNED`), e a imagem de ferramentas em que o job roda precisa ser a que este JGates fixa: o digest dela vem da própria imagem (`image.json`) ou de `JGATES_TOOLS_IMAGE_DIGEST`, e um diferente é recusado (`TOOLS_IMAGE_DIGEST_MISMATCH`; `TOOLS_IMAGE_DIGEST_UNKNOWN` quando não dá para saber).
+
+Os serviços do projeto também seguem a política: um bind mount do computador, um serviço privilegiado e os demais [efeitos no computador](services.pt-BR.md) são recusados a menos que a política os liste em `services.allowHostEffects`, e `writableBinds` nunca é aceito.
 
 ## O que o `jgates ci` recusa
 
@@ -66,7 +80,8 @@ Saída 3, antes de qualquer coisa rodar:
 - `--bridge-mode quick` ou `offline`, e `--scope paths`;
 - uma política sem `JGATES_POLICY_SHA256`, com hash diferente, com links simbólicos ou com referências fora da sua pasta;
 - uma política de qualidade que desliga ou afrouxa os orçamentos obrigatórios;
-- um commit com submódulo (gitlink) ou com link simbólico que aponta para fora do checkout.
+- um commit com submódulo (gitlink) ou com link simbólico que aponta para fora do checkout;
+- uma imagem de extensão, ou uma imagem de ferramentas que não seja a fixada, quando a política define `execution.extensionImage` (veja [imagens e extensões](#imagens-e-extensões)).
 
 O que não entra no `jgates ci` é a sua configuração pessoal: ele não lê nem grava o [cofre de chaves do usuário](security.pt-BR.md#o-cofre-de-chaves-do-usuário) nem as [preferências e conexões de providers](semantic-gate.pt-BR.md#preferências-e-conexões). A revisão semântica no CI usa as chaves de API do ambiente do pipeline e os ajustes de provider do projeto ou da política.
 

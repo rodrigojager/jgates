@@ -110,10 +110,10 @@ templates:
 
 The evidence contracts: `exit-code` (the exit code decides), `test-runner` (`go-test` or `cargo-test`: JGates reads the runner's output) and `json-file` (the command writes a JSON that JGates validates against a schema of the workspace). Security and architecture are credited only with `json-file`; tests, with `json-file` or `test-runner`. With `exit-code`, a security, architecture or tests requirement stays `EVIDENCE_MISSING` (no coverage, plan not approvable). `support` and `limitations` appear in the plan and in the result.
 
-## Partial support
+## Stacks and your own tools
 
-Go, Rust and .NET have partial-support templates. Go and Rust: discovery, explicit configuration and `go test` / `cargo test` through the generic command. .NET: the current `dotnetweb` flavor chain through the bridge, without its own integration for build, tests, coverage or analyzers. What each one does **not** cover appears in the plan (`support.uncovered`) and in the [matrix](compatibility.en.md). None of this is presented as full coverage.
+Go, Rust and .NET have templates of their own for lint, build, tests and dependencies; what each stack does **not** cover shows in the plan (`support.uncovered`) and in the [matrix](compatibility.en.md). None of this is presented as full coverage. For a tool or a language JGates does not ship, add [your own tool](extension.en.md): it runs in an image extended from the tools image and is read through SARIF, JUnit or Checkstyle reports (`evidence.kind`). Checks that need a running application or a database use the [project services](services.en.md).
 
 ## Operating systems
 
-Linux: tested. Windows: the first-run flow was checked by hand on Windows 10 with Docker Desktop, where the bridge's scanners run in the sidecar image (see [limitations](limitations.en.md)); the tests that depend on Windows are marked and skip elsewhere. macOS: not tested on a real Mac. The installation proof is in [getting started](getting-started.en.md).
+Every tool runs in a `linux/amd64` container. Linux: tested. Windows: the first-run flow was checked by hand on Windows 10 with Docker Desktop (see [limitations](limitations.en.md)); the tests that depend on Windows are marked and skip elsewhere. macOS: not tested on a real Mac. The installation proof is in [getting started](getting-started.en.md).

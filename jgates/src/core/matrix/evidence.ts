@@ -145,7 +145,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Reads the configuration file chosen in tools.yml, else Ruff's own resolution; the container runner uses only the image tools prepare pinned in .jgates/lock.json.",
       ptBR: "Lê o arquivo de configuração escolhido no tools.yml, senão a resolução própria do Ruff; o runner de container usa só a imagem que o tools prepare fixou no .jgates/lock.json.",
     },
-    external: { en: "Ruff 0.17.2 (pip) or a container image", ptBR: "Ruff 0.17.2 (pip) ou imagem de container" },
+    external: { en: "Ruff 0.17.2 (in the JGates tools image)", ptBR: "Ruff 0.17.2 (na imagem de ferramentas do JGates)" },
   },
   "builtin-pii": {
     capabilities: { pii: proven(["any"], t("adapter-pii.test.js", "on the PII fixture the run reports CPF, CNPJ and credit-card")) },
@@ -153,7 +153,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Detects CPF, CNPJ and credit card (phone is off by default); findings never carry the raw value.",
       ptBR: "Detecta CPF, CNPJ e cartão (telefone vem desligado); os achados nunca trazem o valor bruto.",
     },
-    external: { en: "Python 3.11+ (JGates sidecar)", ptBR: "Python 3.11+ (sidecar do JGates)" },
+    external: { en: "None: runs in the JGates tools image", ptBR: "Nenhuma: roda na imagem de ferramentas do JGates" },
   },
   eslint: {
     capabilities: { lint: proven(["typescript"], t("adapters-quality.test.js", "ESLint: the rule violation of the project's eslint.config")) },
@@ -193,7 +193,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Runs local rules only (no registry at run time); the rules are prepared with tools prepare.",
       ptBR: "Roda só regras locais (sem registry na execução); as regras são preparadas com tools prepare.",
     },
-    external: { en: "Semgrep 1.100+ (pip)", ptBR: "Semgrep 1.100+ (pip)" },
+    external: { en: "Semgrep 1.100+ (in the JGates tools image)", ptBR: "Semgrep 1.100+ (na imagem de ferramentas do JGates)" },
   },
   pytest: {
     capabilities: {
@@ -256,7 +256,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Needs a contract (generated from architecture.yml or a native configuration); an import that does not resolve is a coverage gap.",
       ptBR: "Exige um contrato (gerado do architecture.yml ou configuração nativa); um import que não resolve é lacuna de cobertura.",
     },
-    external: { en: "import-linter 2.15 (pip) in the project environment", ptBR: "import-linter 2.15 (pip) no ambiente do projeto" },
+    external: { en: "import-linter 2.15 (in the JGates tools image)", ptBR: "import-linter 2.15 (na imagem de ferramentas do JGates)" },
   },
   zizmor: {
     capabilities: {
@@ -273,10 +273,10 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       "api-compatibility": proven(["any"], t("adapter-oasdiff.test.js", "oasdiff: a removed required response field is a breaking-change finding and an additive change none [proves: oasdiff#api-compatibility]")),
     },
     limitation: {
-      en: "OpenAPI 3 files compared with a reference git revision or file; without a reference the stage is blocked, never passed; the binary is customer-supplied.",
-      ptBR: "Arquivos OpenAPI 3 comparados com uma revisão git ou arquivo de referência; sem referência a etapa fica bloqueada, nunca aprovada; o binário é fornecido pelo cliente.",
+      en: "OpenAPI 3 files compared with a reference git revision or file; without a reference the stage is blocked, never passed; the binary is in the JGates tools image.",
+      ptBR: "Arquivos OpenAPI 3 comparados com uma revisão git ou arquivo de referência; sem referência a etapa fica bloqueada, nunca aprovada; o binário vem na imagem de ferramentas do JGates.",
     },
-    external: { en: "oasdiff 1.10+ (customer-supplied binary: release, go install or package manager)", ptBR: "oasdiff 1.10+ (binário fornecido pelo cliente: release, go install ou gerenciador de pacotes)" },
+    external: { en: "oasdiff 1.10+ (in the JGates tools image)", ptBR: "oasdiff 1.10+ (na imagem de ferramentas do JGates)" },
   },
   schemathesis: {
     capabilities: {
@@ -296,17 +296,17 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Runs only against a configured running target; passive by default, active only when the instance sets mode: active and allowActive: true; without a target the stage is blocked, never passed.",
       ptBR: "Roda só contra um alvo em execução configurado; passivo por padrão, ativo só quando a instância define mode: active e allowActive: true; sem alvo a etapa fica bloqueada, nunca aprovada.",
     },
-    external: { en: "Docker and the ZAP image ghcr.io/zaproxy/zaproxy (customer-supplied, never pulled during a run)", ptBR: "Docker e a imagem do ZAP ghcr.io/zaproxy/zaproxy (fornecidos pelo cliente, nunca baixados durante uma execução)" },
+    external: { en: "ZAP (in the JGates tools image) and a running target", ptBR: "ZAP (na imagem de ferramentas do JGates) e um alvo em execução" },
   },
   codeql: {
     capabilities: {
       dataflow: proven(["any"], t("adapter-codeql.test.js", "codeql: a CodeQL SARIF with a path-problem is a normalized dataflow finding and a clean one none [proves: codeql#dataflow]")),
     },
     limitation: {
-      en: "Customer-supplied: the CodeQL CLI, its query packs and the entitlement under the CodeQL terms are the customer's; without them the stage is blocked with setup guidance, never passed. Every CodeQL row is customer-setup-required (no real CodeQL runs in JGates tests).",
-      ptBR: "Fornecido pelo cliente: o CodeQL CLI, os pacotes de consultas e o direito de uso pelos termos do CodeQL são do cliente; sem eles a etapa fica bloqueada com orientação de configuração, nunca aprovada. Toda linha do CodeQL é exige-configuração-do-cliente (nenhum CodeQL real roda nos testes do JGates).",
+      en: "Customer-supplied: CodeQL is not in the tools image; you accept its terms and prepare it with jgates tools prepare-codeql, and the entitlement under those terms is yours; until then the stage is blocked (CUSTOMER_SUPPLIED), never passed. Every CodeQL row is customer-setup-required (no real CodeQL runs in JGates tests).",
+      ptBR: "Fornecido pelo cliente: o CodeQL não está na imagem de ferramentas; você aceita os termos e o prepara com jgates tools prepare-codeql, e o direito de uso pelos termos é seu; até lá a etapa fica bloqueada (CUSTOMER_SUPPLIED), nunca aprovada. Toda linha do CodeQL é exige-configuração-do-cliente (nenhum CodeQL real roda nos testes do JGates).",
     },
-    external: { en: "CodeQL CLI 2.15+ (customer-supplied; never installed by JGates)", ptBR: "CodeQL CLI 2.15+ (fornecido pelo cliente; nunca instalado pelo JGates)" },
+    external: { en: "CodeQL CLI 2.15+ (prepared by you into a volume with jgates tools prepare-codeql)", ptBR: "CodeQL CLI 2.15+ (preparado por você num volume com jgates tools prepare-codeql)" },
   },
   "build-check": {
     capabilities: {
@@ -316,12 +316,12 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       },
     },
     limitation: {
-      en: "Runs the project's own checker with the project's own configuration; a component without that configuration is skipped and reported, never passed; cargo, dotnet and mypy plugins run project code; the toolchains are customer-supplied.",
-      ptBR: "Roda o verificador do próprio projeto com a configuração dele; um componente sem essa configuração é ignorado e informado, nunca aprovado; cargo, dotnet e plugins do mypy executam código do projeto; os toolchains são do cliente.",
+      en: "Runs the project's own checker with the project's own configuration; a component without that configuration is skipped and reported, never passed; cargo, dotnet and mypy plugins run project code; the toolchains come from the JGates tools image or from the component's dependency volume.",
+      ptBR: "Roda o verificador do próprio projeto com a configuração dele; um componente sem essa configuração é ignorado e informado, nunca aprovado; cargo, dotnet e plugins do mypy executam código do projeto; os toolchains vêm da imagem de ferramentas do JGates ou do volume de dependências do componente.",
     },
     external: {
-      en: "tsc 4.5+, mypy 1.0+ or pyright 1.1.300+, Go 1.18+, cargo 1.60+, .NET SDK 6+ (customer-supplied; never installed during a run)",
-      ptBR: "tsc 4.5+, mypy 1.0+ ou pyright 1.1.300+, Go 1.18+, cargo 1.60+, SDK .NET 6+ (do cliente; nunca instalados durante uma execução)",
+      en: "tsc 4.5+, mypy 1.0+ or pyright 1.1.300+, Go 1.18+, cargo 1.60+, .NET SDK 6+ (in the JGates tools image, or the project's own version in its dependency volume)",
+      ptBR: "tsc 4.5+, mypy 1.0+ ou pyright 1.1.300+, Go 1.18+, cargo 1.60+, SDK .NET 6+ (na imagem de ferramentas do JGates, ou a versão do próprio projeto no volume de dependências dele)",
     },
     otherTests: [t("adapter-build-check.test.js", "build-check: a stack whose checker is missing is blocked with the way to get it and never passed")],
   },
@@ -334,7 +334,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Runs in a container only; the value found is masked; a report cut or from another version is an error.",
       ptBR: "Roda só em container; o valor encontrado é mascarado; um relatório cortado ou de outra versão é erro.",
     },
-    external: { en: "Docker and the security-scanners image (by digest)", ptBR: "Docker e a imagem security-scanners (por digest)" },
+    external: { en: "The JGates tools image (pinned by digest)", ptBR: "A imagem de ferramentas do JGates (fixada por digest)" },
   },
   trivy: {
     capabilities: {
@@ -347,7 +347,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Runs in a container only; the vulnerability database is cached in the data folder and recorded with source and date.",
       ptBR: "Roda só em container; o banco de vulnerabilidades fica em cache na pasta de dados e é registrado com fonte e data.",
     },
-    external: { en: "Docker, the security-scanners image and the vulnerability database", ptBR: "Docker, a imagem security-scanners e o banco de vulnerabilidades" },
+    external: { en: "The JGates tools image and the vulnerability database (jgates tools update-data)", ptBR: "A imagem de ferramentas do JGates e o banco de vulnerabilidades (jgates tools update-data)" },
     otherTests: [
       t("adapter-trivy-image.test.js", "trivy image: a tarball scan yields normalized findings"),
       t("adapter-trivy-image.test.js", "trivy final-image setting: imageRef and imageTarball select the image mode in the plan"),
@@ -374,7 +374,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Runs in a container only; one finding per advisory group.",
       ptBR: "Roda só em container; um achado por grupo de advisory.",
     },
-    external: { en: "Docker and the security-scanners image; advisory database", ptBR: "Docker e a imagem security-scanners; banco de advisories" },
+    external: { en: "The JGates tools image; advisory database (jgates tools update-data)", ptBR: "A imagem de ferramentas do JGates; banco de advisories (jgates tools update-data)" },
   },
   checkov: {
     capabilities: { iac: proven(["any"], t("adapters-security.test.js", "Checkov 3.3.8")) },
@@ -382,7 +382,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Runs in a container only; failed checks are reported as MEDIUM findings.",
       ptBR: "Roda só em container; as verificações reprovadas viram achados MEDIUM.",
     },
-    external: { en: "Docker and the security-scanners image", ptBR: "Docker e a imagem security-scanners" },
+    external: { en: "The JGates tools image", ptBR: "A imagem de ferramentas do JGates" },
   },
   govulncheck: {
     capabilities: {
@@ -390,10 +390,10 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     },
     otherTests: [t("adapter-stack-extensions.test.js", "govulncheck recorded output (1.9.0)")],
     limitation: {
-      en: "Customer-supplied binary (BSD-3-Clause), source mode: only vulnerabilities whose symbol the code reaches are findings, with an unknown severity because the Go database has none; needs the Go toolchain, a complete go.sum and the network for vuln.go.dev. Proven on a Go module fixture with govulncheck 1.9.0.",
-      ptBR: "Binário fornecido pelo cliente (BSD-3-Clause), modo código-fonte: só as vulnerabilidades cujo símbolo o código alcança são achados, com severidade desconhecida porque o banco do Go não tem; precisa do toolchain Go, de um go.sum completo e de rede para vuln.go.dev. Provado em um módulo Go de teste com govulncheck 1.9.0.",
+      en: "Binary from the JGates tools image (BSD-3-Clause), source mode: only vulnerabilities whose symbol the code reaches are findings, with an unknown severity because the Go database has none; needs the Go toolchain, a complete go.sum and the Go vulnerability database kept by jgates tools update-data. Proven on a Go module fixture with govulncheck 1.9.0.",
+      ptBR: "Binário da imagem de ferramentas do JGates (BSD-3-Clause), modo código-fonte: só as vulnerabilidades cujo símbolo o código alcança são achados, com severidade desconhecida porque o banco do Go não tem; precisa do toolchain Go, de um go.sum completo e do banco de vulnerabilidades do Go mantido pelo jgates tools update-data. Provado em um módulo Go de teste com govulncheck 1.9.0.",
     },
-    external: { en: "govulncheck 1.0+ (go install; customer-supplied), the Go toolchain, network to vuln.go.dev", ptBR: "govulncheck 1.0+ (go install; do cliente), toolchain Go, rede para vuln.go.dev" },
+    external: { en: "govulncheck 1.0+ and the Go toolchain (in the JGates tools image), the Go vulnerability database (jgates tools update-data)", ptBR: "govulncheck 1.0+ e o toolchain Go (na imagem de ferramentas do JGates), o banco de vulnerabilidades do Go (jgates tools update-data)" },
   },
   "cargo-audit": {
     capabilities: {
@@ -401,10 +401,10 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     },
     otherTests: [t("adapter-stack-extensions.test.js", "cargo-audit recorded output (0.22.2)")],
     limitation: {
-      en: "Customer-supplied binary (Apache-2.0 OR MIT): advisories are matched on the versions locked in Cargo.lock, not on the call graph; the RustSec database is cloned on every run (network); unmaintained, unsound and yanked packages are non-blocking findings. Proven on a Cargo.lock fixture with cargo-audit 0.22.2.",
-      ptBR: "Binário fornecido pelo cliente (Apache-2.0 OR MIT): os avisos são casados com as versões travadas no Cargo.lock, não com o grafo de chamadas; o banco do RustSec é clonado a cada execução (rede); pacotes sem manutenção, inseguros ou removidos são achados que não bloqueiam. Provado em um Cargo.lock de teste com cargo-audit 0.22.2.",
+      en: "Binary from the JGates tools image (Apache-2.0 OR MIT): advisories are matched on the versions locked in Cargo.lock, not on the call graph; the RustSec database is the one kept by jgates tools update-data (no network in the run); unmaintained, unsound and yanked packages are non-blocking findings. Proven on a Cargo.lock fixture with cargo-audit 0.22.2.",
+      ptBR: "Binário da imagem de ferramentas do JGates (Apache-2.0 OR MIT): os avisos são casados com as versões travadas no Cargo.lock, não com o grafo de chamadas; o banco do RustSec é o mantido pelo jgates tools update-data (sem rede na execução); pacotes sem manutenção, inseguros ou removidos são achados que não bloqueiam. Provado em um Cargo.lock de teste com cargo-audit 0.22.2.",
     },
-    external: { en: "cargo-audit 0.20+ (cargo install; customer-supplied), network to github.com", ptBR: "cargo-audit 0.20+ (cargo install; do cliente), rede para github.com" },
+    external: { en: "cargo-audit 0.20+ (in the JGates tools image), the RustSec database (jgates tools update-data)", ptBR: "cargo-audit 0.20+ (na imagem de ferramentas do JGates), o banco do RustSec (jgates tools update-data)" },
   },
   "cargo-test": {
     capabilities: {
@@ -416,10 +416,10 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     },
     otherTests: [t("adapter-cargo-test.test.js", "cargo-test: with cargo absent from the tools image the stage is blocked with the image's cause, never passed"), t("adapter-cargo-test.test.js", "cargo-test recorded libtest output")],
     limitation: {
-      en: "Customer-supplied toolchain (cargo, MIT OR Apache-2.0): runs cargo test --offline and parses the stable libtest text output; proptest properties are found statically (proptest! blocks and #[proptest] functions); the tests, build scripts and procedural macros of the project execute, so the result is self-reported and never cached; dependencies must already be in the cargo home. Proven on Rust crate fixtures with the real cargo 1.99.1 and proptest 1.x.",
-      ptBR: "Toolchain fornecido pelo cliente (cargo, MIT OR Apache-2.0): roda cargo test --offline e lê a saída de texto estável do libtest; as propriedades do proptest são achadas de forma estática (blocos proptest! e funções #[proptest]); os testes, build scripts e macros procedurais do projeto executam, então o resultado é autodeclarado e nunca vem do cache; as dependências já precisam estar no cargo home. Provado em crates Rust de teste com o cargo 1.99.1 real e o proptest 1.x.",
+      en: "Toolchain from the JGates tools image (cargo, MIT OR Apache-2.0): runs cargo test --offline and parses the stable libtest text output; proptest properties are found statically (proptest! blocks and #[proptest] functions); the tests, build scripts and procedural macros of the project execute, so the result is self-reported and never cached; dependencies must already be fetched into the dependency volume (jgates deps prepare). Proven on Rust crate fixtures with the real cargo 1.99.1 and proptest 1.x.",
+      ptBR: "Toolchain da imagem de ferramentas do JGates (cargo, MIT OR Apache-2.0): roda cargo test --offline e lê a saída de texto estável do libtest; as propriedades do proptest são achadas de forma estática (blocos proptest! e funções #[proptest]); os testes, build scripts e macros procedurais do projeto executam, então o resultado é autodeclarado e nunca vem do cache; as dependências já precisam estar baixadas no volume de dependências (jgates deps prepare). Provado em crates Rust de teste com o cargo 1.99.1 real e o proptest 1.x.",
     },
-    external: { en: "cargo and rustc 1.60+ (rustup; customer-supplied), proptest 1.x fetched in the cargo home", ptBR: "cargo e rustc 1.60+ (rustup; do cliente), proptest 1.x baixado no cargo home" },
+    external: { en: "cargo and rustc 1.60+ (in the JGates tools image), proptest 1.x fetched into the dependency volume", ptBR: "cargo e rustc 1.60+ (na imagem de ferramentas do JGates), proptest 1.x baixado no volume de dependências" },
   },
   "format-check": {
     capabilities: {
