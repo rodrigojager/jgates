@@ -1,0 +1,12 @@
+{
+  "name": "perf-ts-clean",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench": "vitest bench"
+  },
+  "devDependencies": {
+    "vitest": "5.1.0"
+  }
+}

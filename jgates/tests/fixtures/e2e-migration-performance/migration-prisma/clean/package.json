@@ -1,0 +1,8 @@
+{
+  "name": "migration-prisma-clean",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "prisma": "7.10.1"
+  }
+}

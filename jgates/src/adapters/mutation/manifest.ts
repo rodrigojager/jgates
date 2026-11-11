@@ -22,7 +22,7 @@ export const mutationManifest: AdapterManifest = {
   cpuArchitectures: ["x64", "arm64"],
   categories: ["tests"],
   capabilities: ["mutation"],
-  languages: ["javascript", "typescript", "python"],
+  languages: ["javascript", "typescript", "python", "csharp"],
   granularity: ["workspace", "component"],
   minimumContext: ["workspace"],
   configFiles: [
@@ -68,6 +68,7 @@ export const mutationManifest: AdapterManifest = {
     "The stage time bound is the timeoutSeconds of the instance; a run that exceeds it is reported as a timeout with no score, never a partial score.",
     "mutmut 3 forks worker processes and does not run natively on Windows: the stage is blocked there with that reason (run it on Linux, macOS or WSL).",
     "The Stryker test runner (command, vitest, jest, mocha...) and its plugins come from the project's own Stryker configuration.",
+    "Stryker.NET (the tools image's dotnet-stryker) runs over the solution of the component, or its one test project, with the vstest runner; the copy builds every project into its own bin/ and obj/ from the NuGet packages of the dependency volume, offline.",
   ],
   stackSupport: [
     {
@@ -93,12 +94,20 @@ export const mutationManifest: AdapterManifest = {
       toolVersions: ">=3.0.0 <4.0.0",
       limitations: ["Proven on Linux in the quality-sidecar container; on Windows the stage is blocked with the reason."],
     },
+    {
+      capability: "mutation",
+      stack: "csharp",
+      state: "validated",
+      prerequisites: ["a solution (or one test project) whose test project references Microsoft.NET.Test.Sdk and the project it tests"],
+      toolVersions: ">=4.0.0 <6.0.0 (Stryker.NET; the tools image ships 5.1.0)",
+      limitations: ["Proven with xUnit through the real engine in the tools image; the same JSON report as StrykerJS."],
+    },
   ],
   distribution: {
     mode: "customer-supplied",
     sourceUrl: "https://github.com/stryker-mutator/stryker-js",
     spdx: "Apache-2.0",
-    acquisition: ["https://stryker-mutator.io/docs/stryker-js/getting-started/", "https://mutmut.readthedocs.io/en/latest/"],
+    acquisition: ["https://stryker-mutator.io/docs/stryker-js/getting-started/", "https://mutmut.readthedocs.io/en/latest/", "https://stryker-mutator.io/docs/stryker-net/introduction/"],
     setup: ["https://stryker-mutator.io/docs/stryker-js/configuration/", "https://github.com/boxed/mutmut#readme"],
   },
 };

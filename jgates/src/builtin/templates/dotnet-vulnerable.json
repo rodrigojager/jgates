@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet-vulnerable",
+  "label": ".NET vulnerable packages (dotnet list package --vulnerable)",
+  "description": "The NuGet packages of a .NET component with known vulnerabilities, top-level and transitive, as the .NET SDK reports them from the package sources' vulnerability data (the step has the network). Comes in by evidence: a solution or project file of the component.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "csharp",
+      "fsharp",
+      "visualbasic"
+    ],
+    "files": [
+      "*.sln",
+      "*.slnx",
+      "*.csproj",
+      "*.fsproj"
+    ]
+  },
+  "config": {
+    "tools": {
+      "dotnet-vulnerable": {
+        "adapter": "dotnet-vulnerable",
+        "capabilities": [
+          "dependencies"
+        ]
+      }
+    }
+  }
+}

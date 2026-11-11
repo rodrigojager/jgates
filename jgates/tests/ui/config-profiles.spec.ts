@@ -230,7 +230,7 @@ test("strict shows every capability with its mode (required, where a tool exists
     await expect(mutation.getByTestId("capability-status")).toContainText("Não se aplica aqui");
     await expect(mutation).toContainText("Onde não houver, aparece como não aplicável");
     const e2e = page.locator('[data-selector="capability:e2e"]');
-    await expect(e2e.getByTestId("capability-status")).toContainText("O JGates ainda não tem ferramenta para isto nesta stack.");
+    await expect(e2e.getByTestId("capability-status")).toContainText("Não se aplica aqui");
     const unit = page.locator('[data-selector="capability:unit"]');
     await expect(unit).toHaveAttribute("data-mode", "required");
     await expect(unit).toContainText("a validação bloqueia");

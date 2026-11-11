@@ -127,5 +127,8 @@
   "plan_na_hint_settings_files": "Também precisa de um destes arquivos: {files}.",
   "plan_na_hint_settings_template": "O template {template} declara a instância; adicione-o aos templates do jgates.yml.",
   "plan_na_setting_target": "target é a URL da aplicação em execução a testar (o JGates não a inicia nem a adivinha)",
-  "plan_na_setting_baseRef": "baseRef é a ref Git da revisão de referência do arquivo OpenAPI (ou baseSpec, um arquivo de referência)"
+  "plan_na_setting_baseRef": "baseRef é a ref Git da revisão de referência do arquivo OpenAPI (ou baseSpec, um arquivo de referência)",
+  "plan_na_services_required": "Ainda não se aplica aqui: {label} é verificado por {tools}, que precisa dos serviços compose do projeto, e o jgates.yml não tem a seção services. Configure os serviços (os arquivos compose e o alvo) e a verificação roda neles.",
+  "plan_na_setting_budgets": "budgets associa cada benchmark (nome ou padrão com *) ao tempo médio máximo em milissegundos (ou baseline, um arquivo com as médias medidas antes)",
+  "plan_na_setting_databaseUrl": "databaseUrl é a URL do banco dos serviços compose do projeto ao qual o framework de migrações se conecta (o JGates não adivinha o nome nem as credenciais)"
 }

@@ -1,0 +1,19 @@
+{
+ "case": "migration-squawk",
+ "kind": "bad",
+ "tool": "squawk",
+ "adapter": "migration-drift",
+ "runs": [
+  {
+   "args": [
+    "squawk",
+    "--reporter",
+    "json",
+    "migrations/**/*.sql"
+   ],
+   "exit": 1,
+   "stdout": "[{\"file\":\"migrations/0002_email.sql\",\"line\":2,\"column\":18,\"level\":\"Warning\",\"message\":\"adding a new column that is `not null` and has no default value to an existing table effectively makes it required\",\"note\":null,\"help\":\"make the field nullable or add a non-volatile default\",\"rule_name\":\"adding-required-field\",\"column_end\":48,\"line_end\":2},{\"file\":\"migrations/0002_email.sql\",\"line\":2,\"column\":18,\"level\":\"Warning\",\"message\":\"missing `if not exists`, the migration can't be rerun if it fails part way through\",\"note\":null,\"help\":null,\"rule_name\":\"prefer-robust-stmts\",\"column_end\":48,\"line_end\":2}]\n",
+   "files": {}
+  }
+ ]
+}

@@ -770,7 +770,21 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       // A declared instance without a setting JGates cannot guess (a target URL, a reference revision): configure it
       // first (the options form), and say when the tool must still be prepared after that.
       const unset = missing.map((i) => ({ item: i, settings: missingSettings(i.adapter, configuredTools[i.tool]) })).find((u) => u.settings.length > 0);
-      if (unset) {
+      // An e2e or migration check without the project's compose services: one cause (SERVICES_REQUIRED) and one action
+      // (set the services up), never a missing tool.
+      const withoutServices = missing.filter((i) => externals.get(i.tool)?.plan.requires === "services");
+      if (withoutServices.length > 0) {
+        const tools = uniqueSorted(withoutServices.map((i) => i.tool));
+        const cause = resolveReason("SERVICES_REQUIRED");
+        notApplicableHere.push({
+          ...base,
+          disabledBy: null,
+          reasonCode: "SERVICES_REQUIRED",
+          message: t("plan_na_services_required", { label, tools: tools.join(", ") }),
+          adapters: [],
+          action: { ...emptyAction("configure-services"), adapter: withoutServices[0]?.adapter ?? null, tools, ...(cause.action.route ? { route: cause.action.route } : {}), label: cause.action.label },
+        });
+      } else if (unset) {
         const tools = [unset.item.tool];
         const prepareNext = unset.item.runtime !== null && !unset.item.runtime.available;
         const what = unset.settings.map((s) => t(`plan_na_setting_${s}`)).join("; ");

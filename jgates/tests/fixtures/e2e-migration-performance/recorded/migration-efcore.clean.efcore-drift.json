@@ -1,0 +1,21 @@
+{
+ "case": "migration-efcore",
+ "kind": "clean",
+ "tool": "efcore-drift",
+ "adapter": "migration-drift",
+ "runs": [
+  {
+   "args": [
+    "dotnet-ef",
+    "migrations",
+    "has-pending-model-changes",
+    "--project",
+    "App.csproj",
+    "--no-color"
+   ],
+   "exit": 0,
+   "stdout": "Build started...\nBuild succeeded.\nNo changes have been made to the model since the last migration.\n",
+   "files": {}
+  }
+ ]
+}

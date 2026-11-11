@@ -1,0 +1,22 @@
+{
+ "case": "perf-ts",
+ "kind": "clean",
+ "tool": "vitest-bench",
+ "adapter": "performance",
+ "runs": [
+  {
+   "args": [
+    "vitest",
+    "bench",
+    "--run",
+    "--reporter=json",
+    "--outputFile={runDir}/outputs/performance/vitest-bench/bench.json"
+   ],
+   "exit": 0,
+   "stdout": "JSON report written to /output/outputs/performance/vitest-bench/bench.json\n",
+   "files": {
+    "outputs/performance/vitest-bench/bench.json": "{\"numTotalTestSuites\":1,\"numPassedTestSuites\":1,\"numFailedTestSuites\":0,\"numPendingTestSuites\":0,\"numTotalTests\":1,\"numPassedTests\":1,\"numFailedTests\":0,\"numPendingTests\":0,\"numTodoTests\":0,\"snapshot\":{\"added\":0,\"failure\":false,\"filesAdded\":0,\"filesRemoved\":0,\"filesRemovedList\":[],\"filesUnmatched\":0,\"filesUpdated\":0,\"matched\":0,\"total\":0,\"unchecked\":0,\"uncheckedKeysByFile\":[],\"unmatched\":0,\"updated\":0,\"didUpdate\":false},\"startTime\":1794364222701,\"success\":true,\"testResults\":[{\"assertionResults\":[{\"ancestorTitles\":[],\"fullName\":\"fib\",\"status\":\"passed\",\"title\":\"fib\",\"duration\":6430.23631,\"failureMessages\":[],\"meta\":{},\"tags\":[],\"benchmarks\":[{\"name\":\"fib\",\"tasks\":[{\"name\":\"fib(20)\",\"latency\":{\"aad\":0.000012123011135256465,\"critical\":1.9599641235273721,\"df\":17068259,\"mad\":0.00000199999976757681,\"max\":0.16242200000033336,\"mean\":0.000058588282109586995,\"min\":0.000044999999772699084,\"moe\":8.62113024446323e-8,\"p50\":0.00005199999986871262,\"p75\":0.00005399999963628943,\"p99\":0.00010900000006586197,\"p995\":0.00012199999991935329,\"p999\":0.00015699999994467362,\"rme\":0.14714768779766843,\"samplesCount\":17068260,\"sd\":0.0001817233395855436,\"sem\":4.3986163527053106e-8,\"variance\":3.30233721501228e-8},\"throughput\":{\"aad\":2081183.9717405746,\"critical\":1.9599641235273721,\"df\":17068259,\"mad\":712250.7920234837,\"max\":22222222.33446959,\"mean\":18253382.630349286,\"min\":6156.80141851441,\"moe\":1436.3763973043383,\"p50\":19230769.279322255,\"p75\":19999999.959545676,\"p99\":20833333.385932446,\"p995\":21276595.746933796,\"p999\":21739130.38221416,\"rme\":0.007869097067609396,\"samplesCount\":17068260,\"sd\":3027713.402052283,\"sem\":732.8585151442842,\"variance\":9167048444967.01},\"period\":0.00005858828210958511,\"totalTime\":1000.0000319997472,\"rank\":1}]}]}],\"startTime\":1794364222821,\"endTime\":1794364229251.2363,\"status\":\"passed\",\"message\":\"\",\"name\":\"/workspace/src/fib.bench.ts\"}]}"
+   }
+  }
+ ]
+}

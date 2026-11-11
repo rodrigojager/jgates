@@ -127,7 +127,9 @@ test("local installs use the lockfile when there is one; governed installs are f
   assert.match(line(governed("rust")), /^cargo fetch --locked$/);
   assert.equal(local("rust").recipe.stepEnv.CARGO_TARGET_DIR, "/deps/rust/target");
   assert.match(line(governed("net")), /^dotnet restore app\.csproj --locked-mode$/);
-  assert.equal(local("net").recipe.stepEnv.BaseIntermediateOutputPath, "/deps/net/obj/");
+  // obj/ and bin/ of every project in their own folder of the volume, through the props file the environment names.
+  assert.equal(local("net").recipe.stepEnv.CustomBeforeDirectoryBuildProps, "/deps/net/jgates-build.props");
+  assert.match(local("net").recipe.files["jgates-build.props"], /<BaseIntermediateOutputPath>\/deps\/net\/obj\/\$\(MSBuildProjectName\)\/<\/BaseIntermediateOutputPath>/);
   assert.equal(local("net").recipe.stepEnv.NUGET_PACKAGES, "/deps/net/nuget");
 
   // Governed: no lockfile, no install.

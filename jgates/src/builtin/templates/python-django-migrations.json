@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "python-django-migrations",
+  "label": "Python migration drift (Django)",
+  "description": "Django's makemigrations --check --dry-run tells whether the models changed without a migration, with the services database of jgates.yml. Comes in by evidence: manage.py; runs only where migration is switched on (the strict profile turns it on when available). Needs a services section in jgates.yml and tools.<id>.databaseUrl; without services it is SERVICES_REQUIRED, never a blocker.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "python"
+    ],
+    "files": [
+      "manage.py"
+    ]
+  },
+  "config": {
+    "tools": {
+      "django-migrations": {
+        "adapter": "migration-drift",
+        "capabilities": [
+          "migration"
+        ],
+        "config": {
+          "framework": "django"
+        }
+      }
+    }
+  }
+}

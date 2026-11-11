@@ -145,7 +145,7 @@ test("the group 'requisitos sem cobertura' is shown even when everything that ru
 
 test("blocker: nenhuma verificação selecionada", async ({ page }) => {
   await withServer(page, null, async () => {
-    await review(page, { ...REQ, skip: ["capability:file-size", "capability:lint", "capability:secrets", "capability:architecture"] });
+    await review(page, { ...REQ, skip: ["capability:file-size", "capability:lint", "capability:secrets", "capability:architecture", "capability:properties", "capability:integration"] });
     await expectBlocker(page, "PLAN_EMPTY", /nenhuma verificação/i);
   });
 });
@@ -273,20 +273,18 @@ test("Revisar with strict lists every capability of the catalog: will run, not a
     await expect(states.getByTestId("capability-state")).toHaveCount(28);
     await expect(capRow(page, "lint")).toHaveAttribute("data-state", "run");
     await expect(capRow(page, "lint")).toContainText("Vai rodar");
-    for (const cap of ["mutation", "dast", "e2e", "performance", "integration", "migration", "api-contract", "api-compatibility"]) {
+    // Integration runs: the pytest template brings its own integration instance (it has nothing to run here).
+    await expect(capRow(page, "integration")).toHaveAttribute("data-state", "run");
+    // e2e, performance and migration have tools for Python: not applicable here until they are set up, never a blocker.
+    for (const cap of ["mutation", "dast", "e2e", "performance", "migration", "api-contract", "api-compatibility"]) {
       await expect(capRow(page, cap), cap).toHaveAttribute("data-state", "na");
       await expect(capRow(page, cap), cap).toContainText("Não se aplica aqui");
-    }
-    // No tool at all: said plainly, with no control.
-    for (const cap of ["e2e", "performance", "integration", "migration"]) {
-      await expect(capRow(page, cap)).toContainText("O JGates ainda não tem ferramenta para isto nesta stack.");
-      await expect(capRow(page, cap).locator("button, a.btn")).toHaveCount(0);
     }
     // A tool that needs a running target: the missing setting is named and the one action adds the tool.
     await expect(capRow(page, "dast")).toContainText("a URL do alvo em execução (target)");
     await expect(capRow(page, "dast").getByRole("link", { name: /^Adicionar ZAP/ })).toHaveAttribute("href", "#/tools?add=zap&focus=target");
-    // Rust-only tools do not fit a Python project: said with the languages.
-    await expect(capRow(page, "properties")).toContainText("Python");
+    // Property tests run with pytest (Hypothesis) in a Python project.
+    await expect(capRow(page, "properties")).toContainText("com pytest");
     // The plan's own group names them too, and none of them blocks.
     await expect(page.getByTestId("group-not-applicable-requirements")).toContainText("Mutação");
     await page.getByTestId("group-not-applicable-requirements").getByRole("button", { name: "Ver o motivo e como ligar cada uma" }).click();
@@ -368,7 +366,7 @@ test("Escolher lists every capability too: not applicable ones with the reason, 
     await page.getByTestId("customize").locator("summary").click();
     const customize = page.getByTestId("customize");
     await expect(customize.getByTestId("capability-state")).toHaveCount(28, { timeout: 60_000 });
-    await expect(customize.locator('[data-capability="e2e"]')).toContainText("O JGates ainda não tem ferramenta para isto");
+    await expect(customize.locator('[data-capability="e2e"]')).toContainText("Não se aplica aqui");
     await expect(customize.locator('[data-capability="mutation"]')).toContainText("Não se aplica aqui");
     await expect(customize.getByTestId("capability-summary")).toContainText("vão rodar");
     await expect(page.getByRole("checkbox", { name: /Testes unitários/ })).toBeChecked();

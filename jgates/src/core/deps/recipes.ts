@@ -40,6 +40,28 @@ export interface InstallRecipe {
   mode: "frozen" | "manifest";
   /** Language versions and browsers this unit takes from the toolchain volume (toolchains.ts), when it pins any. */
   toolchains?: ToolchainPin[];
+  /** Files written into the unit's volume before the install commands (name relative to the target -> content). */
+  files?: Record<string, string>;
+}
+
+/** The MSBuild file of a .NET unit: imported before any Directory.Build.props (CustomBeforeDirectoryBuildProps). */
+export const DOTNET_BUILD_PROPS = "jgates-build.props";
+
+/**
+ * obj/ and bin/ of every project of a .NET unit, in the unit's volume, one folder per project: an environment variable
+ * cannot name a per-project path (MSBuild takes its value literally), so the props file the environment points at does,
+ * and a test project and the project it tests no longer share (and overwrite) one project.assets.json.
+ */
+export function dotnetBuildProps(target: string): string {
+  return [
+    "<Project>",
+    "  <PropertyGroup>",
+    `    <BaseIntermediateOutputPath>${target}/obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>`,
+    `    <BaseOutputPath>${target}/bin/$(MSBuildProjectName)/</BaseOutputPath>`,
+    "  </PropertyGroup>",
+    "</Project>",
+    "",
+  ].join("\n");
 }
 
 export type RecipeResult = { ok: true; recipe: InstallRecipe } | { ok: false; code: "DEPENDENCIES_NOT_READY"; reasonKey: string; params: Record<string, string> };
@@ -229,8 +251,8 @@ export function recipeFor(unit: InstallUnit, options: RecipeOptions): RecipeResu
     }
     case "dotnet": {
       const target = `${DEPS_MOUNT_ROOT}/${unit.id}`;
-      // obj/ and bin/ of the projects go to the volume (MSBuild reads environment variables as properties).
-      const dotnetEnv = { NUGET_PACKAGES: `${target}/nuget`, BaseIntermediateOutputPath: `${target}/obj/`, BaseOutputPath: `${target}/bin/`, DOTNET_CLI_HOME: "/tmp", DOTNET_CLI_TELEMETRY_OPTOUT: "1", DOTNET_NOLOGO: "1", DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1" };
+      // obj/ and bin/ of the projects go to the volume, one folder per project (dotnetBuildProps).
+      const dotnetEnv = { NUGET_PACKAGES: `${target}/nuget`, CustomBeforeDirectoryBuildProps: `${target}/${DOTNET_BUILD_PROPS}`, DOTNET_CLI_HOME: "/tmp", DOTNET_CLI_TELEMETRY_OPTOUT: "1", DOTNET_NOLOGO: "1", DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1" };
       const solutions = options.files.filter((n) => /\.(sln|slnx)$/.test(n)).sort();
       const projects = options.files.filter((n) => /\.(csproj|fsproj|vbproj)$/.test(n)).sort();
       const what = solutions.length === 1 ? [solutions[0] as string] : solutions.length === 0 && projects.length === 1 ? [projects[0] as string] : [];
@@ -246,6 +268,7 @@ export function recipeFor(unit: InstallUnit, options: RecipeOptions): RecipeResu
           // dotnet refuses to start without an existing HOME (NuGet migrations); the step's HOME is /tmp, which exists.
           stepEnv: { ...dotnetEnv, HOME: "/tmp" },
           pathPrefix: [],
+          files: { [DOTNET_BUILD_PROPS]: dotnetBuildProps(target) },
         },
       };
     }

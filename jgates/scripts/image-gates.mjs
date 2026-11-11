@@ -42,6 +42,9 @@ export const NOT_IN_IMAGE = {
   "quality-sidecar-pii": "the built-in PII scan, versioned with JGates itself",
   "jgates-supply-chain": "the built-in supply-chain check, versioned with JGates itself",
   jest: "the project's own dev dependency, installed into the dependency volume by the deps phase (PLAN-completeness.md section 2)",
+  playwright: "the project's own dev dependency (@playwright/test, pytest-playwright), installed into the dependency volume; the browsers come into the toolchain volume (PLAN-image.md section 2.6)",
+  "migration-tool": "migration-drift drives each framework's own command (Django, Alembic, Prisma from the project's dependencies; dotnet-ef, checked on its own)",
+  benchmark: "performance drives each stack's benchmark harness (pytest-benchmark, vitest bench, go test -bench, criterion, BenchmarkDotNet), the project's own or the image's runtimes",
 };
 
 /** ARG names of the Dockerfile whose tool name differs from the lower-cased name without `_VERSION`. */

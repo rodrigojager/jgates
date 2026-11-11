@@ -175,7 +175,7 @@ test("adapters that need user input name the missing settings (configure-tool): 
     assert.deepEqual(oas.files, ["openapi.yaml", "openapi.yml", "openapi.json"]);
     for (const cap of ["api-contract", "dast", "api-compatibility"]) assert.equal(na[cap].reasonCode, "SETUP_REQUIRED", cap);
   });
-  assert.deepEqual(Object.keys(REQUIRED_SETTINGS).sort(), ["oasdiff", "schemathesis", "zap"]);
+  assert.deepEqual(Object.keys(REQUIRED_SETTINGS).sort(), ["migration-drift", "oasdiff", "performance", "schemathesis", "zap"]);
 });
 
 test("explainMissing without the project folder keeps the old shapes: an evidence template is add-files, a language one add-template", () => {

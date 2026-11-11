@@ -1,0 +1,16 @@
+# The database of the Prisma fixture: a disposable PostgreSQL of the run's own compose project, with the shadow database
+# Prisma replays the migrations in (db/shadow.sql runs when the service starts).
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    volumes:
+      - ./db/shadow.sql:/docker-entrypoint-initdb.d/shadow.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U app -d shadow"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

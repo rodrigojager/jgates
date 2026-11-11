@@ -616,7 +616,7 @@
         "coveredBy": { "$ref": "#/$defs/strings" },
         "when": { "enum": ["available"] },
         "label": { "type": "string" },
-        "reasonCode": { "enum": ["NO_TOOL", "NO_TOOL_FOR_LANGUAGES", "SETUP_REQUIRED", "TOOL_MISSING", "CUSTOMER_SUPPLIED", "CHECKS_DISABLED", "DISABLED_FOR_RUN", "EVIDENCE_MISSING"] },
+        "reasonCode": { "enum": ["NO_TOOL", "NO_TOOL_FOR_LANGUAGES", "SETUP_REQUIRED", "TOOL_MISSING", "CUSTOMER_SUPPLIED", "SERVICES_REQUIRED", "CHECKS_DISABLED", "DISABLED_FOR_RUN", "EVIDENCE_MISSING"] },
         "message": { "type": "string" },
         "languages": { "$ref": "#/$defs/strings" },
         "adapters": {
@@ -642,10 +642,11 @@
           "additionalProperties": false,
           "required": ["kind", "adapter", "tools", "template", "templateState", "files", "docs"],
           "properties": {
-            "kind": { "enum": ["none", "prepare-tool", "prepare-image", "prepare-codeql", "add-files", "add-template", "configure-tool", "enable-check"] },
+            "kind": { "enum": ["none", "prepare-tool", "prepare-image", "prepare-codeql", "add-files", "add-template", "configure-tool", "configure-services", "enable-check"] },
             "settings": { "$ref": "#/$defs/strings" },
             "prepareNext": { "type": "boolean" },
             "command": { "type": "string" },
+            "route": { "type": "string" },
             "label": { "type": "string" },
             "adapter": { "type": ["string", "null"] },
             "tools": { "$ref": "#/$defs/strings" },

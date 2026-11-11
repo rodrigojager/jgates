@@ -409,10 +409,42 @@ function dotnetPin(request: string, source: string | null): ToolchainPin {
   };
 }
 
-/** Playwright browsers for the version installed in the unit's volume (read from node_modules after the install). */
-export function playwrightPin(installRoot: string, target: string): ToolchainPin {
+/**
+ * Playwright browsers for the version installed in the unit's volume, read after the install: from node_modules for a
+ * Node unit, from the virtual environment (the `playwright` distribution that pytest-playwright brings) for a Python
+ * unit. Both share the browsers folder: a Playwright version installs its own browser revision there.
+ */
+export function playwrightPin(installRoot: string, target: string, ecosystem: "node" | "python" = "node"): ToolchainPin {
   const cwd = path.posix.join("/workspace", installRoot === "." ? "" : installRoot);
   const browsers = `${TOOLCHAINS_TARGET}/playwright`;
+  if (ecosystem === "python") {
+    return {
+      kind: "playwright",
+      id: "playwright",
+      ecosystem: "python",
+      request: PLAYWRIGHT_BROWSERS.join(","),
+      source: null,
+      phase: "after-install",
+      pathPrefix: [],
+      installEnv: {},
+      stepEnv: { PLAYWRIGHT_BROWSERS_PATH: browsers, PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1" },
+      fetchEnv: { PLAYWRIGHT_BROWSERS_PATH: browsers, JGATES_PLAYWRIGHT_VENV: target },
+      script: [
+        "set -eu",
+        'mkdir -p "$HOME"',
+        `cd ${quote(cwd)}`,
+        'py="$JGATES_PLAYWRIGHT_VENV/bin/python"',
+        '[ -x "$py" ] || { echo "no Python environment in $JGATES_PLAYWRIGHT_VENV" >&2; exit 5; }',
+        `version=$("$py" -c "import importlib.metadata as m; print(m.version('playwright'))" 2>/dev/null) || { echo "Playwright is not installed in $JGATES_PLAYWRIGHT_VENV" >&2; exit 5; }`,
+        `mkdir -p ${quote(browsers)}`,
+        `marker=${quote(browsers)}/.jgates-${PLAYWRIGHT_BROWSERS.join("-")}-$version.json`,
+        `if [ -f "$marker" ]; then echo ${quote(`${UP_TO_DATE} playwright`)} "$version"; exit 0; fi`,
+        `"$py" -m playwright install ${PLAYWRIGHT_BROWSERS.join(" ")}`,
+        `printf '{"playwright": "%s", "browsers": "%s", "fetchedAt": "%s"}\\n' "$version" ${quote(PLAYWRIGHT_BROWSERS.join(","))} "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$marker"`,
+        `echo ${quote(`${FETCHED} playwright`)} "$version"`,
+      ].join("\n"),
+    };
+  }
   return {
     kind: "playwright",
     id: "playwright",
@@ -477,8 +509,22 @@ export function resolveToolchain(unit: InstallUnit, input: ResolveInput): Toolch
   return { kind: "pinned", pin: make(decision.request, language.source) };
 }
 
-/** Does the unit's package.json declare Playwright? (read-only, host side) */
+/** The Python dependency files that can name pytest-playwright or playwright. */
+const PYTHON_DEPENDENCY_FILES = ["pyproject.toml", "requirements.txt", "requirements-dev.txt", "requirements-test.txt", "setup.cfg", "Pipfile"];
+const PYTHON_PLAYWRIGHT = /(?:^|["'\s])(?:pytest[-_.])?playwright(?![\w.-])/im;
+
+/** Does the unit declare Playwright (package.json; for Python, playwright or pytest-playwright in its dependency files)? (read-only, host side) */
 export function declaresPlaywright(unit: InstallUnit, projectDir: string): boolean {
+  const root = path.join(projectDir, ...(unit.installRoot === "." ? [] : unit.installRoot.split("/")));
+  if (unit.info.ecosystem === "python") {
+    return PYTHON_DEPENDENCY_FILES.some((name) => {
+      try {
+        return PYTHON_PLAYWRIGHT.test(fs.readFileSync(path.join(root, name), "utf8"));
+      } catch {
+        return false;
+      }
+    });
+  }
   if (unit.info.ecosystem !== "node") return false;
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(projectDir, ...(unit.installRoot === "." ? [] : unit.installRoot.split("/")), "package.json"), "utf8")) as Record<string, unknown>;

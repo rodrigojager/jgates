@@ -164,6 +164,51 @@ function hasEvidenceOf(projectDir: string, id: string): boolean {
   });
 }
 
+/**
+ * Templates of checks that need more than the language (an e2e runner, migrations, benchmarks, Stryker.NET, the
+ * projects whose packages are checked): written only when a component of the language has the template's evidence,
+ * so a project without them gets no entry it cannot use.
+ */
+const EVIDENCE_TEMPLATES: Record<string, string[]> = {
+  python: ["python-playwright", "python-alembic", "python-django-migrations", "python-pytest-benchmark"],
+  typescript: ["typescript-playwright", "typescript-prisma", "typescript-vitest-bench"],
+  javascript: ["typescript-playwright", "typescript-prisma", "typescript-vitest-bench"],
+  go: ["go-bench"],
+  rust: ["rust-criterion"],
+  csharp: ["dotnet-efcore", "dotnet-stryker", "dotnet-vulnerable", "dotnet-benchmarkdotnet"],
+  fsharp: ["dotnet-efcore", "dotnet-stryker", "dotnet-vulnerable", "dotnet-benchmarkdotnet"],
+  visualbasic: ["dotnet-vulnerable"],
+};
+
+/** Whether a folder holds one of a built-in template's evidence files (a path with `*` in its name, or {path, contains}). */
+function hasTemplateEvidenceIn(dir: string, id: string): boolean {
+  const match = getBuiltinTemplate(`builtin:${id}`)?.value.match as { files?: unknown[] } | undefined;
+  return (match?.files ?? []).some((entry) => {
+    const file = typeof entry === "string" ? entry : entry && typeof entry === "object" && typeof (entry as { path?: unknown }).path === "string" ? (entry as { path: string }).path : null;
+    if (!file) return false;
+    const contains = entry && typeof entry === "object" && typeof (entry as { contains?: unknown }).contains === "string" ? (entry as { contains: string }).contains : null;
+    const slash = file.lastIndexOf("/");
+    const folder = path.join(dir, ...file.slice(0, Math.max(slash, 0)).split("/").filter(Boolean));
+    const leaf = file.slice(slash + 1);
+    const pattern = new RegExp(`^${leaf.split("*").map((p) => p.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*")}$`);
+    let names: string[];
+    try {
+      names = leaf.includes("*") ? fs.readdirSync(folder).filter((n) => pattern.test(n)) : [leaf];
+    } catch {
+      return false;
+    }
+    return names.some((name) => {
+      try {
+        const abs = path.join(folder, name);
+        if (!fs.statSync(abs).isFile()) return false;
+        return contains === null || fs.readFileSync(abs, "utf8").split(/\r?\n/).some((line) => line.trimStart().startsWith(contains));
+      } catch {
+        return false;
+      }
+    });
+  });
+}
+
 /** Builds the files init would create from what discovery finds; touches nothing. */
 export function planInit(projectDir: string, profile: string): InitPlan {
   const { inventory } = discoverWorkspace(projectDir);
@@ -181,6 +226,14 @@ export function planInit(projectDir: string, profile: string): InitPlan {
       templates.push(template);
     }
   }
+  for (const c of found) {
+    const root = path.join(projectDir, ...(c.componentRoot === "." ? [] : c.componentRoot.split("/")));
+    for (const id of (c.language ? EVIDENCE_TEMPLATES[c.language] : undefined) ?? []) {
+      if (seen.has(id) || !(hasTemplateEvidenceIn(root, id) || hasTemplateEvidenceIn(projectDir, id))) continue;
+      seen.add(id);
+      templates.push({ id, source: `builtin:${id}`, evidence: true });
+    }
+  }
   // GitHub Actions workflows are CI evidence, not a language: the zizmor template comes in when one exists.
   if (hasWorkflows(projectDir)) templates.push({ id: "github-actions-zizmor", source: "builtin:github-actions-zizmor", evidence: true });
   // An OpenAPI specification at the root is API-contract evidence: the oasdiff template comes in when one exists.
@@ -193,6 +246,8 @@ export function planInit(projectDir: string, profile: string): InitPlan {
   // Shell scripts and Dockerfiles are not a language: their lint templates come in by the files themselves.
   if (hasEvidenceOf(projectDir, "shell-shellcheck")) templates.push({ id: "shell-shellcheck", source: "builtin:shell-shellcheck", evidence: true });
   if (hasEvidenceOf(projectDir, "docker-hadolint")) templates.push({ id: "docker-hadolint", source: "builtin:docker-hadolint", evidence: true });
+  // SQL migration files are not a language either: the SQL migration linter comes in by the files themselves.
+  if (hasEvidenceOf(projectDir, "sql-squawk")) templates.push({ id: "sql-squawk", source: "builtin:sql-squawk", evidence: true });
   return {
     profile,
     templates: templates.map((t) => t.id),

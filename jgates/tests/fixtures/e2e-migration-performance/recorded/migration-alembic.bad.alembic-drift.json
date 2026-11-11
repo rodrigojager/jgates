@@ -1,0 +1,27 @@
+{
+ "case": "migration-alembic",
+ "kind": "bad",
+ "tool": "alembic-drift",
+ "adapter": "migration-drift",
+ "runs": [
+  {
+   "args": [
+    "alembic",
+    "upgrade",
+    "head"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "files": {}
+  },
+  {
+   "args": [
+    "alembic",
+    "check"
+   ],
+   "exit": 255,
+   "stdout": "FAILED: New upgrade operations detected: [('add_column', None, 'users', Column('email', String(length=200), table=<users>))]\n",
+   "files": {}
+  }
+ ]
+}

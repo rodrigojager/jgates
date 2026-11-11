@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript-playwright",
+  "label": "TypeScript and JavaScript e2e tests (Playwright Test)",
+  "description": "End-to-end tests of TypeScript and JavaScript components with the project's Playwright Test against its compose services (jgates.yml services:), Chromium from the toolchain volume. Comes in by evidence: a playwright.config.* or @playwright/test in package.json; runs only where e2e is switched on (the strict profile turns it on when available). Without a services section it is SERVICES_REQUIRED, never a blocker.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ],
+    "files": [
+      "playwright.config.ts",
+      "playwright.config.js",
+      "playwright.config.mjs",
+      "playwright.config.cjs",
+      {
+        "path": "package.json",
+        "contains": "\"@playwright/test\""
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "playwright": {
+        "adapter": "playwright",
+        "capabilities": [
+          "e2e"
+        ],
+        "timeoutSeconds": 900,
+        "config": {
+          "e2eRunner": "playwright-test"
+        }
+      }
+    }
+  }
+}

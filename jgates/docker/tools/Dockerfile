@@ -67,6 +67,30 @@ RUN set -eux; \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 HOME=/tmp/dotnet-home /usr/share/dotnet/dotnet --version; \
     rm -rf /tmp/dotnet-home
 
+# --- .NET tools: Stryker.NET (mutation) and dotnet-ef (EF Core pending model changes) ---------------------------------
+# Each tool package is fetched by its SHA-256 and installed from that local file only (a nuget.config without any
+# remote source), into one tool path whose commands are linked onto PATH in the final stage.
+FROM dotnet AS dotnet-tools
+ARG DOTNET_STRYKER_VERSION=5.1.0
+ARG DOTNET_STRYKER_SHA256=3c28fd73556a35aac6bb616322e15c1a1fe07f9054b8c8208726c307de90fb16
+ARG DOTNET_EF_VERSION=10.0.15
+ARG DOTNET_EF_SHA256=23753de0b4481d2c4bacb918ac7578b2c2fbde068b3a19a222d0cac4b49d0da2
+RUN set -eux; \
+    mkdir -p /tmp/nupkgs /tmp/dotnet-home; \
+    fetch "https://api.nuget.org/v3-flatcontainer/dotnet-stryker/${DOTNET_STRYKER_VERSION}/dotnet-stryker.${DOTNET_STRYKER_VERSION}.nupkg" "${DOTNET_STRYKER_SHA256}" "/tmp/nupkgs/dotnet-stryker.${DOTNET_STRYKER_VERSION}.nupkg"; \
+    fetch "https://api.nuget.org/v3-flatcontainer/dotnet-ef/${DOTNET_EF_VERSION}/dotnet-ef.${DOTNET_EF_VERSION}.nupkg" "${DOTNET_EF_SHA256}" "/tmp/nupkgs/dotnet-ef.${DOTNET_EF_VERSION}.nupkg"; \
+    printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<configuration><packageSources><clear />' \
+      '<add key="local" value="/tmp/nupkgs" /></packageSources></configuration>' > /tmp/nupkgs/nuget.config; \
+    export HOME=/tmp/dotnet-home DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROOT=/usr/share/dotnet NUGET_PACKAGES=/tmp/dotnet-home/nuget; \
+    for pkg in "dotnet-stryker:${DOTNET_STRYKER_VERSION}" "dotnet-ef:${DOTNET_EF_VERSION}"; do \
+      /usr/share/dotnet/dotnet tool install "${pkg%%:*}" --version "${pkg#*:}" --tool-path /opt/dotnet-tools --configfile /tmp/nupkgs/nuget.config; \
+    done; \
+    /opt/dotnet-tools/dotnet-stryker --help > /dev/null; \
+    /opt/dotnet-tools/dotnet-ef --version; \
+    rm -rf /tmp/nupkgs /tmp/dotnet-home; \
+    chown -R root:root /opt/dotnet-tools; \
+    chmod -R go-w /opt/dotnet-tools
+
 # --- Rust stable (rustup, minimal profile) + rustfmt + clippy + llvm-tools (cargo-llvm-cov) --------------------------
 FROM fetch AS rust
 ARG RUSTUP_VERSION=1.29.3
@@ -265,6 +289,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb /var/log/apt /var/log/dpkg.log
 # Least frequently changed first: language toolchains, then the tool binaries, then the tool environments.
 COPY --from=dotnet /usr/share/dotnet /usr/share/dotnet
+COPY --from=dotnet-tools /opt/dotnet-tools /opt/dotnet-tools
 COPY --from=rust /usr/local/rustup /usr/local/rustup
 COPY --from=rust /usr/local/cargo /usr/local/cargo
 COPY --from=go /usr/local/go /usr/local/go
@@ -279,7 +304,7 @@ COPY --from=rust-tools /out/bin/cargo-audit /out/bin/cargo-llvm-cov /usr/local/b
 COPY --from=python-tools /opt/tools /opt/tools
 COPY --from=node-tools /opt/tools/node /opt/tools/node
 
-ENV PATH=/usr/local/cargo/bin:/usr/local/go/bin:/opt/node/bin:/usr/share/dotnet:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+ENV PATH=/usr/local/cargo/bin:/usr/local/go/bin:/opt/node/bin:/usr/share/dotnet:/opt/dotnet-tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     GOTOOLCHAIN=local \
@@ -330,6 +355,8 @@ RUN set -eux; \
                 pyright eslint prettier vitest stryker jscpd depcruise corepack pnpm yarn zap.sh java; do \
       test -x "/usr/local/bin/${tool}"; \
     done; \
+    test -x /opt/dotnet-tools/dotnet-stryker; \
+    test -x /opt/dotnet-tools/dotnet-ef; \
     groupadd --gid 10001 jgates; \
     useradd --uid 10001 --gid 10001 --home-dir /tmp/home --no-create-home --shell /usr/sbin/nologin jgates; \
     mkdir -p /workspace /output /etc/jgates /usr/share/jgates; \
@@ -368,6 +395,8 @@ ARG OSV_SCANNER_VERSION=2.7.1
 ARG OASDIFF_VERSION=1.37.0
 ARG HADOLINT_VERSION=2.15.1
 ARG SQUAWK_VERSION=2.72.0
+ARG DOTNET_STRYKER_VERSION=5.1.0
+ARG DOTNET_EF_VERSION=10.0.15
 ARG JAVA_VERSION=21.0.13
 ARG ZAP_VERSION=2.17.0
 ARG NODE_VERSION=26.13.0

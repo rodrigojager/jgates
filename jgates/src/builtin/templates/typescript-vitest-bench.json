@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript-vitest-bench",
+  "label": "TypeScript and JavaScript performance budgets (vitest bench)",
+  "description": "The project's vitest bench benchmarks, compared with the budgets (tools.<id>.budgets) and the baseline file (tools.<id>.baseline) of the instance. Comes in by evidence: a bench script running vitest bench in package.json; runs only where performance is switched on (the strict profile turns it on when available). Until budgets or a baseline are set the check is not applicable here, with the setting to configure.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ],
+    "files": [
+      {
+        "path": "package.json",
+        "contains": "\"bench\": \"vitest bench"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "vitest-bench": {
+        "adapter": "performance",
+        "capabilities": [
+          "performance"
+        ],
+        "timeoutSeconds": 900,
+        "config": {
+          "harness": "vitest-bench"
+        }
+      }
+    }
+  }
+}

@@ -127,5 +127,8 @@
   "plan_na_hint_settings_files": "It also needs one of these files: {files}.",
   "plan_na_hint_settings_template": "The template {template} declares the instance; add it to the templates of jgates.yml.",
   "plan_na_setting_target": "target is the URL of the running application to test (JGates cannot start it nor guess it)",
-  "plan_na_setting_baseRef": "baseRef is the Git ref of the reference revision of the OpenAPI file (or baseSpec, a reference file)"
+  "plan_na_setting_baseRef": "baseRef is the Git ref of the reference revision of the OpenAPI file (or baseSpec, a reference file)",
+  "plan_na_services_required": "Not applicable here yet: {label} is checked by {tools}, which needs the project's compose services, and jgates.yml has no services section. Set up the services (the compose files and the target) and the check runs on them.",
+  "plan_na_setting_budgets": "budgets maps each benchmark (name or * pattern) to its maximum mean time in milliseconds (or baseline, a file of the means measured before)",
+  "plan_na_setting_databaseUrl": "databaseUrl is the URL of the database of the project's compose services the migration framework connects to (JGates cannot guess its name or credentials)"
 }

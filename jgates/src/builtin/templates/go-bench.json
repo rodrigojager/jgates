@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "go-bench",
+  "label": "Go performance budgets (go test -bench)",
+  "description": "The Benchmark functions of a Go module, compared with the budgets (tools.<id>.budgets) and the baseline file (tools.<id>.baseline) of the instance. Comes in by evidence: a _test.go file at the module root with a Benchmark function; runs only where performance is switched on (the strict profile turns it on when available). Until budgets or a baseline are set the check is not applicable here, with the setting to configure.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "go"
+    ],
+    "files": [
+      {
+        "path": "*_test.go",
+        "contains": "func Benchmark"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "go-bench": {
+        "adapter": "performance",
+        "capabilities": [
+          "performance"
+        ],
+        "timeoutSeconds": 900,
+        "config": {
+          "harness": "go-bench"
+        }
+      }
+    }
+  }
+}

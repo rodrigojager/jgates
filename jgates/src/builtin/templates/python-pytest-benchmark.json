@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "python-pytest-benchmark",
+  "label": "Python performance budgets (pytest-benchmark)",
+  "description": "The project's pytest-benchmark benchmarks, compared with the budgets (tools.<id>.budgets) and the baseline file (tools.<id>.baseline) of the instance. Comes in by evidence: pytest-benchmark in requirements*.txt or pyproject.toml; runs only where performance is switched on (the strict profile turns it on when available). Until budgets or a baseline are set the check is not applicable here, with the setting to configure.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "python"
+    ],
+    "files": [
+      {
+        "path": "requirements.txt",
+        "contains": "pytest-benchmark"
+      },
+      {
+        "path": "requirements-dev.txt",
+        "contains": "pytest-benchmark"
+      },
+      {
+        "path": "requirements-test.txt",
+        "contains": "pytest-benchmark"
+      },
+      {
+        "path": "pyproject.toml",
+        "contains": "\"pytest-benchmark"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "pytest-benchmark": {
+        "adapter": "performance",
+        "capabilities": [
+          "performance"
+        ],
+        "timeoutSeconds": 900,
+        "config": {
+          "harness": "pytest-benchmark"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+# The web application of the e2e fixtures: a static page served by the local JGates tools image (no pull, no build).
+services:
+  web:
+    image: jgates-tools:dev
+    pull_policy: never
+    command: ["python3", "-m", "http.server", "8080", "--directory", "/app/site"]
+    volumes:
+      - ./site:/app/site
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

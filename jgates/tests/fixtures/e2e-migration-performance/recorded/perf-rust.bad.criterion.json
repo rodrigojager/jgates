@@ -1,0 +1,23 @@
+{
+ "case": "perf-rust",
+ "kind": "bad",
+ "tool": "criterion",
+ "adapter": "performance",
+ "runs": [
+  {
+   "args": [
+    "cargo",
+    "bench",
+    "--offline",
+    "--bench",
+    "*",
+    "--",
+    "--output-format",
+    "bencher"
+   ],
+   "exit": 0,
+   "stdout": "test fib_20 ... bench:  20,116,841 ns/iter (+/- 23,685)\n\n",
+   "files": {}
+  }
+ ]
+}

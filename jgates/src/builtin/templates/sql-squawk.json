@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "sql-squawk",
+  "label": "SQL migration linter (squawk)",
+  "description": "squawk (Apache-2.0, in the tools image) lints the SQL migration files of the workspace for operations that are risky on a live PostgreSQL (locks, required fields without a default, non-concurrent indexes): errors are blocking findings and warnings are reported without blocking. It reads the files only, so it needs no services. Comes in by evidence: SQL files in migrations/ or db/migrations/; runs only where migration is switched on (the strict profile turns it on when available).",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "files": [
+      "migrations/*.sql",
+      "db/migrations/*.sql"
+    ]
+  },
+  "config": {
+    "tools": {
+      "squawk": {
+        "adapter": "migration-drift",
+        "capabilities": [
+          "migration"
+        ],
+        "config": {
+          "framework": "squawk"
+        }
+      }
+    }
+  }
+}

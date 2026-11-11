@@ -76,6 +76,10 @@ COMMANDS = [
     ("cargo-llvm-cov", ["cargo", "llvm-cov", "--version"], None),
     ("dotnet", ["dotnet", "--version"], None),
     ("dotnet-format", ["dotnet", "format", "--version"], None),
+    # Stryker.NET's --version names the project version of its dashboard: the tool answers --help, and its version is the
+    # package folder of the tool store.
+    ("dotnet-stryker", ["sh", "-c", "dotnet-stryker --help >/dev/null && ls /opt/dotnet-tools/.store/dotnet-stryker"], r"^(\d+\.\d+\.\d+)\s*$"),
+    ("dotnet-ef", ["dotnet-ef", "--version"], r"^(\d+\.\d+\.\d+)\s*$"),
     # 2.5 Cross-stack security, API and runtime tools
     ("gitleaks", ["gitleaks", "version"], None),
     ("trivy", ["trivy", "--version"], None),
@@ -124,6 +128,8 @@ ENV_PINS = {
     "zap": "ZAP_VERSION",
     "hadolint": "HADOLINT_VERSION",
     "squawk": "SQUAWK_VERSION",
+    "dotnet-stryker": "DOTNET_STRYKER_VERSION",
+    "dotnet-ef": "DOTNET_EF_VERSION",
 }
 # Tool name -> package whose locked version is its pin, when they differ.
 PACKAGE_OF = {

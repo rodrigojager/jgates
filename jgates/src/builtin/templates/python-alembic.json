@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "python-alembic",
+  "label": "Python migration drift (Alembic)",
+  "description": "Alembic upgrades the run's own services database to head and checks that the models need no new migration (alembic check). Comes in by evidence: alembic.ini; runs only where migration is switched on (the strict profile turns it on when available). Needs a services section in jgates.yml and tools.<id>.databaseUrl; without services it is SERVICES_REQUIRED, never a blocker.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "python"
+    ],
+    "files": [
+      "alembic.ini"
+    ]
+  },
+  "config": {
+    "tools": {
+      "alembic-drift": {
+        "adapter": "migration-drift",
+        "capabilities": [
+          "migration"
+        ],
+        "config": {
+          "framework": "alembic"
+        }
+      }
+    }
+  }
+}

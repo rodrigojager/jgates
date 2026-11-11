@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet-efcore",
+  "label": ".NET migration drift (EF Core)",
+  "description": "dotnet ef migrations has-pending-model-changes (the tools image's dotnet-ef) tells whether the model changed since the last migration. Comes in by evidence: a Migrations/*ModelSnapshot.cs; runs only where migration is switched on (the strict profile turns it on when available). Needs a services section in jgates.yml and tools.<id>.databaseUrl; without services it is SERVICES_REQUIRED, never a blocker.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "csharp",
+      "fsharp",
+      "visualbasic"
+    ],
+    "files": [
+      "Migrations/*ModelSnapshot.cs"
+    ]
+  },
+  "config": {
+    "tools": {
+      "efcore-drift": {
+        "adapter": "migration-drift",
+        "capabilities": [
+          "migration"
+        ],
+        "config": {
+          "framework": "efcore"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+ "case": "migration-alembic",
+ "kind": "clean",
+ "tool": "alembic-drift",
+ "adapter": "migration-drift",
+ "runs": [
+  {
+   "args": [
+    "alembic",
+    "upgrade",
+    "head"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "files": {}
+  },
+  {
+   "args": [
+    "alembic",
+    "check"
+   ],
+   "exit": 0,
+   "stdout": "No new upgrade operations detected.\n",
+   "files": {}
+  }
+ ]
+}

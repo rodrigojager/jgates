@@ -1,0 +1,24 @@
+{
+ "case": "dotnet-vulnerable",
+ "kind": "clean",
+ "tool": "dotnet-vulnerable",
+ "adapter": "dotnet-vulnerable",
+ "runs": [
+  {
+   "args": [
+    "list",
+    "App.csproj",
+    "package",
+    "--vulnerable",
+    "--include-transitive",
+    "--format",
+    "json",
+    "--output-version",
+    "1"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"version\": 1,\n  \"parameters\": \"--vulnerable --include-transitive\",\n  \"sources\": [\n    \"https://api.nuget.org/v3/index.json\"\n  ],\n  \"projects\": [\n    {\n      \"path\": \"/workspace/App.csproj\"\n    }\n  ]\n}\n",
+   "files": {}
+  }
+ ]
+}

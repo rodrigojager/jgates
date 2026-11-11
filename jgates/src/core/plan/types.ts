@@ -199,10 +199,12 @@ export interface PlanRequirement {
  *   (one shared cause, action prepare-image) or, inside the image, an override names nothing;
  * - CUSTOMER_SUPPLIED: an instance of a customer-supplied tool (CodeQL) is declared and on, but the tool was not prepared
  *   (the user has not accepted its terms and run `jgates tools prepare-codeql`); action prepare-codeql;
+ * - SERVICES_REQUIRED: an e2e or migration check is declared and on, but jgates.yml has no services section for the
+ *   project's compose services it needs; action configure-services;
  * - CHECKS_DISABLED / DISABLED_FOR_RUN: the checks that would cover it are off (saved setting / --skip, --only);
  * - EVIDENCE_MISSING: the only check claiming it has no verifiable evidence contract (generic command).
  */
-export type NotApplicableReason = "NO_TOOL" | "NO_TOOL_FOR_LANGUAGES" | "SETUP_REQUIRED" | "TOOL_MISSING" | "CUSTOMER_SUPPLIED" | "CHECKS_DISABLED" | "DISABLED_FOR_RUN" | "EVIDENCE_MISSING";
+export type NotApplicableReason = "NO_TOOL" | "NO_TOOL_FOR_LANGUAGES" | "SETUP_REQUIRED" | "TOOL_MISSING" | "CUSTOMER_SUPPLIED" | "SERVICES_REQUIRED" | "CHECKS_DISABLED" | "DISABLED_FOR_RUN" | "EVIDENCE_MISSING";
 
 /** An adapter of JGates that covers the capability, and whether it can apply to this project's languages. */
 export interface NotApplicableAdapter {
@@ -239,11 +241,13 @@ export interface NotApplicableAdapter {
  *   guess, named in `settings` (target: the URL of a running application; baseRef: the reference revision of the
  *   OpenAPI file...). `template` (with its templateState) is the built-in template that declares the instance, when
  *   one exists, and `files` the evidence it also needs (an OpenAPI file...). Without `settings`, declare an instance;
+ * - configure-services: the checks of `tools` need the project's compose services (a services section in jgates.yml);
+ *   `route` is the UI step that sets them up and `label` its control ("Configurar serviços");
  * - enable-check: turn on the checks of `tools`, switched off by a saved setting or by this run's flags.
  * Unused fields are null or empty lists, so the shape is the same for every kind.
  */
 export interface NotApplicableAction {
-  kind: "none" | "prepare-tool" | "prepare-image" | "prepare-codeql" | "add-files" | "add-template" | "configure-tool" | "enable-check";
+  kind: "none" | "prepare-tool" | "prepare-image" | "prepare-codeql" | "add-files" | "add-template" | "configure-tool" | "configure-services" | "enable-check";
   adapter: string | null;
   tools: string[];
   template: string | null;
@@ -263,7 +267,9 @@ export interface NotApplicableAction {
   prepareNext?: boolean;
   /** prepare-codeql: the JGates command line that fixes it. */
   command?: string;
-  /** prepare-codeql: the label of the control, in the language of the plan. */
+  /** configure-services: the UI route that sets the project's services up (the environment step). */
+  route?: string;
+  /** prepare-codeql, configure-services: the label of the control, in the language of the plan. */
   label?: string;
 }
 

@@ -192,6 +192,9 @@ the official Semgrep rules, vulnerability databases, MegaLinter, credentials.
 | `dependency-cruiser` | MIT | <https://github.com/sverweij/dependency-cruiser> |
 | `dotnet` | MIT | <https://github.com/dotnet/sdk> |
 | `dotnet-format` | MIT | <https://github.com/dotnet/format> |
+| `dotnet-stryker` | Apache-2.0 (Stryker.NET; its bundled assemblies are covered by the tool) | <https://github.com/stryker-mutator/stryker-net> |
+| `libgit2` | GPL-2.0-only WITH GCC-exception-2.0 (the libgit2 linking exception; bundled unmodified by Stryker.NET through LibGit2Sharp) | <https://github.com/libgit2/libgit2> |
+| `dotnet-ef` | MIT (EF Core command-line tools) | <https://github.com/dotnet/efcore> |
 | `eslint` | MIT | <https://github.com/eslint/eslint> |
 | `fast-check` | MIT | <https://github.com/dubzzz/fast-check> |
 | `gcc` | GPL-3.0-or-later with the GCC Runtime Library Exception | <https://gcc.gnu.org/git.html> |

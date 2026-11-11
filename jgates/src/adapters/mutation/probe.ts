@@ -92,6 +92,32 @@ export function findStryker(workspace: string, componentRoot: string | null, env
     : { executable: null, prefix: [], version: null, source: null, problem: "not_found", detail: image.detail };
 }
 
+export interface StrykerNetProbe {
+  executable: string | null;
+  prefix: string[];
+  version: string | null;
+  problem: "not_found" | null;
+  detail: string;
+}
+
+/**
+ * Stryker.NET: the tools image's dotnet-stryker (image.json, nothing starts). Inside the image only, JGATES_DOTNET_STRYKER
+ * names another command (a Node script stands for it through Node); its version is the image catalogue's.
+ */
+export function findStrykerNet(env: NodeJS.ProcessEnv): StrykerNetProbe {
+  const named = inImageOverride(env, "JGATES_DOTNET_STRYKER");
+  const image = probeImageTool("dotnet-stryker", env);
+  if (named) {
+    const abs = findOnPath(named, env);
+    if (!abs) return { executable: null, prefix: [], version: null, problem: "not_found", detail: named };
+    const script = /\.(mjs|cjs|js)$/i.test(abs);
+    return { executable: script ? process.execPath : abs, prefix: script ? [abs] : [], version: image.version ?? "0.0.0", problem: null, detail: "" };
+  }
+  return image.problem === null && image.executable !== null
+    ? { executable: image.executable, prefix: [], version: image.version, problem: null, detail: "" }
+    : { executable: null, prefix: [], version: null, problem: "not_found", detail: image.detail };
+}
+
 const known = new Map<string, { mtimeMs: number; version: string | null }>();
 
 export function findMutmut(env: NodeJS.ProcessEnv): MutmutProbe {

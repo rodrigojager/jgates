@@ -76,6 +76,26 @@ export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
     config: "the project's own Jest loads its configuration, transforms and setup files: the project decides the result",
     suppressions: "honored: .skip, .todo, coveragePathIgnorePatterns and /* istanbul ignore */ comments",
   },
+  playwright: {
+    treatment: "self-reported",
+    config: "the project's own Playwright Test or pytest-playwright loads its configuration (playwright.config.*, pytest.ini, conftest.py) and runs the project's e2e tests against its services: the project decides the result",
+    suppressions: "honored: test.skip, test.fixme, @pytest.mark.skip and the project's retries",
+  },
+  "migration-drift": {
+    treatment: "self-reported",
+    config: "Django, Alembic, Prisma and EF Core load the project's settings, env.py, prisma.config and DbContext (project code); squawk reads the project's .squawk.toml: the project decides the result",
+    suppressions: "honored: the frameworks' own exclusions (include_object, ignored models) and the rules .squawk.toml or squawk-ignore comments turn off",
+  },
+  performance: {
+    treatment: "self-reported",
+    config: "the project's own benchmarks run (pytest-benchmark, vitest bench, go test -bench, criterion, BenchmarkDotNet) with the project's harness configuration; the budgets and the baseline come from the policy's tools.yml",
+    suppressions: "honored: skipped benchmarks and the harness's own filters; a budget no benchmark matched is a finding",
+  },
+  "dotnet-vulnerable": {
+    treatment: "self-reported",
+    config: "dotnet list package evaluates the project's MSBuild files and reads its nuget.config (package sources): the project decides which sources are asked",
+    suppressions: "honored: NuGetAuditSuppress items of the project",
+  },
   "build-check": {
     treatment: "self-reported",
     config: "the project's own compiler or type checker configuration (tsconfig.json, mypy.ini, go.mod, Cargo.toml, the .NET project): the project decides the result",

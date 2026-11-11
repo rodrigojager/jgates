@@ -1,0 +1,19 @@
+{
+ "case": "migration-squawk",
+ "kind": "clean",
+ "tool": "squawk",
+ "adapter": "migration-drift",
+ "runs": [
+  {
+   "args": [
+    "squawk",
+    "--reporter",
+    "json",
+    "migrations/**/*.sql"
+   ],
+   "exit": 0,
+   "stdout": "[]\n",
+   "files": {}
+  }
+ ]
+}

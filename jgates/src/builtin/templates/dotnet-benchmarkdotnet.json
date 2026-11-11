@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet-benchmarkdotnet",
+  "label": ".NET performance budgets (BenchmarkDotNet)",
+  "description": "The BenchmarkDotNet benchmarks of a .NET console project (in process, short job), compared with the budgets (tools.<id>.budgets) and the baseline file (tools.<id>.baseline) of the instance. Comes in by evidence: a project referencing BenchmarkDotNet; runs only where performance is switched on (the strict profile turns it on when available). Until budgets or a baseline are set the check is not applicable here, with the setting to configure.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "csharp",
+      "fsharp",
+      "visualbasic"
+    ],
+    "files": [
+      {
+        "path": "*.csproj",
+        "contains": "<PackageReference Include=\"BenchmarkDotNet\""
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "benchmarkdotnet": {
+        "adapter": "performance",
+        "capabilities": [
+          "performance"
+        ],
+        "timeoutSeconds": 1800,
+        "config": {
+          "harness": "benchmarkdotnet"
+        }
+      }
+    }
+  }
+}

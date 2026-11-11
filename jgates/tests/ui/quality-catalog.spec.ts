@@ -67,7 +67,7 @@ test("customer-supplied tools declare their setup: state, prerequisites and dist
     const catalog = await pageGet<any>(page, "/api/tool-catalog");
     const entry = catalog.adapters.find((a: any) => a.adapter === "codeql");
     expect(entry.supportLevel).toBe("editable-file");
-    expect(entry.limitations.join(" ")).toMatch(/setup guidance/);
+    expect(entry.limitations.join(" ")).toMatch(/customer-supplied: JGates never bundles CodeQL/);
     await expect(page.locator('[data-testid="catalog-card"][data-adapter="codeql"]')).toContainText("Arquivo editável");
 
     // The card shows the distribution state and, for a customer-supplied tool, the official acquisition and setup links.

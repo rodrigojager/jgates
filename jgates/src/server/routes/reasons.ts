@@ -8,7 +8,7 @@ import { loadCatalog, SUPPORTED_LOCALES } from "../../i18n/index.js";
 import type { RouteDefinition } from "../types.js";
 
 /** Plan action kinds that ask the person for something (kind "none" has no label), and the key of their label. */
-const PLAN_ACTIONS = ["prepare-tool", "prepare-image", "prepare-codeql", "add-files", "add-template", "configure-tool", "enable-check"] as const;
+const PLAN_ACTIONS = ["prepare-tool", "prepare-image", "prepare-codeql", "add-files", "add-template", "configure-tool", "configure-services", "enable-check"] as const;
 /** The actions of a toolchain outcome (core/deps/toolchains.ts). */
 const TOOLCHAIN_ACTIONS = ["use-default-version", "fix-version-file"] as const;
 

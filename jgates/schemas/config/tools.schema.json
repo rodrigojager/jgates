@@ -91,10 +91,11 @@
             "type": "boolean"
           },
           "engine": {
-            "description": "mutation: the mutation engine (stryker for JavaScript/TypeScript, mutmut for Python). Without it the engine is detected from the component.",
+            "description": "mutation: the mutation engine (stryker for JavaScript/TypeScript, mutmut for Python, stryker-net for .NET). Without it the engine is detected from the component.",
             "enum": [
               "stryker",
-              "mutmut"
+              "mutmut",
+              "stryker-net"
             ]
           },
           "mutate": {
@@ -112,12 +113,93 @@
             "minimum": 0,
             "maximum": 100
           },
+          "e2eRunner": {
+            "description": "playwright: the e2e runner (playwright-test for Playwright Test, pytest for pytest-playwright). Without it the runner is detected from the component.",
+            "enum": [
+              "playwright-test",
+              "pytest"
+            ]
+          },
+          "framework": {
+            "description": "migration-drift: the framework whose drift is checked (django, alembic, prisma, efcore), or squawk, the SQL migration linter. Without it the framework is detected from the component.",
+            "enum": [
+              "django",
+              "alembic",
+              "prisma",
+              "efcore",
+              "squawk"
+            ]
+          },
+          "databaseUrl": {
+            "description": "migration-drift: the URL of the database of the project's compose services the framework connects to (for example postgresql://app:app@db:5432/app), handed over in DATABASE_URL or the variable databaseUrlEnv names. A test database of the run's own services, never a real one.",
+            "type": "string",
+            "minLength": 1
+          },
+          "databaseUrlEnv": {
+            "description": "migration-drift: the environment variable that carries databaseUrl (default DATABASE_URL).",
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "prismaSchema": {
+            "description": "migration-drift (prisma): the schema file, relative to the component (default prisma/schema.prisma, else schema.prisma).",
+            "$ref": "#/$defs/pathText"
+          },
+          "prismaMigrations": {
+            "description": "migration-drift (prisma): the migrations folder, relative to the component (default: migrations next to the schema).",
+            "$ref": "#/$defs/pathText"
+          },
+          "dotnetProject": {
+            "description": "migration-drift (efcore), performance (benchmarkdotnet): the .csproj relative to the component (default: the one with EF Core migrations, or the one referencing BenchmarkDotNet).",
+            "$ref": "#/$defs/pathText"
+          },
+          "dbContext": {
+            "description": "migration-drift (efcore): the DbContext to check when the project has several.",
+            "type": "string",
+            "minLength": 1
+          },
+          "sql": {
+            "description": "migration-drift (squawk): the SQL migration files to lint, relative paths or patterns of the component (default migrations/**/*.sql).",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "\\.sql$"
+            }
+          },
+          "harness": {
+            "description": "performance: the benchmark harness (pytest-benchmark, vitest-bench, go-bench, criterion, benchmarkdotnet). Without it the harness is detected from the component.",
+            "enum": [
+              "pytest-benchmark",
+              "vitest-bench",
+              "go-bench",
+              "criterion",
+              "benchmarkdotnet"
+            ]
+          },
+          "budgets": {
+            "description": "performance: benchmark name (or a pattern with *) -> the maximum mean time per iteration in milliseconds. A benchmark over its budget, and a budget no benchmark that ran matches, are blocking findings.",
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "baseline": {
+            "description": "performance: a JSON file relative to the component with the mean times of a trusted run (benchmark name -> milliseconds; every run writes baseline-candidate.json in its outputs). A benchmark slower than its baseline by more than maxRegressionPercent is a blocking finding.",
+            "$ref": "#/$defs/pathText"
+          },
+          "maxRegressionPercent": {
+            "description": "performance: how much slower than the baseline a benchmark may be, in percent (default 20).",
+            "type": "number",
+            "minimum": 0
+          },
           "spec": {
             "description": "oasdiff, schemathesis, zap: the OpenAPI specification, relative to the scan root (oasdiff and schemathesis default: openapi.yaml, openapi.json, swagger.* or the same under api/, docs/, spec/; zap: when set, the API scan replaces the baseline).",
             "$ref": "#/$defs/pathText"
           },
           "target": {
-            "description": "schemathesis, zap: the base URL (http:// or https://, no credentials, query or fragment) of the running local or disposable environment to test, or service:<name>:<port>[/path] for a service of the project's compose (jgates.yml services), which the run starts and the check reaches on the run's network. Without it the stage is blocked, never passed.",
+            "description": "schemathesis, zap, playwright: the base URL (http:// or https://, no credentials, query or fragment) of the running local or disposable environment to test, or service:<name>:<port>[/path] for a service of the project's compose (jgates.yml services), which the run starts and the check reaches on the run's network. schemathesis and zap: without it the stage is blocked, never passed; playwright: without it the services target of jgates.yml is used.",
             "type": "string",
             "pattern": "^(?:https?://[^\\s@?#]+|service:[A-Za-z0-9][A-Za-z0-9_.-]*:[0-9]{1,5}(?:/[^\\s?#]*)?)$"
           },

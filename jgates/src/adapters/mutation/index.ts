@@ -17,20 +17,23 @@ import { runSpec, substituteTokens } from "../../core/runner/index.js";
 import type { AdapterContext, AdapterOutput, ResultFinding, ResultMetric, ResultStage } from "../../core/run/types.js";
 import { mutationManifest } from "./manifest.js";
 import { parseMutmutOutput, parseStrykerReport, type MutationReading, type SurvivingMutant } from "./normalize.js";
-import { findMutmut, findStryker } from "./probe.js";
+import { findMutmut, findStryker, findStrykerNet } from "./probe.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 
 export { mutationManifest } from "./manifest.js";
 export { mutationScore, parseMutmutOutput, parseStrykerReport } from "./normalize.js";
-export { findMutmut, findStryker } from "./probe.js";
+export { findMutmut, findStryker, findStrykerNet } from "./probe.js";
 
 const ADAPTER_ID = mutationManifest.id;
 const WORKSPACE = "{workspace}";
 const RUN_DIR = "{runDir}";
 const MIN_RULE = "mutation.minimum";
-const ENGINES = ["stryker", "mutmut"] as const;
+const ENGINES = ["stryker", "mutmut", "stryker-net"] as const;
 export type MutationEngine = (typeof ENGINES)[number];
 /** mutmut 3 (stats export and results format); Stryker's range is the manifest's. */
 const MUTMUT_RANGE = ">=3.0.0 <4.0.0";
+/** Stryker.NET 4-5 (the same mutation-testing-elements JSON report); the tools image ships 5.1.0. */
+const STRYKER_NET_RANGE = ">=4.0.0 <6.0.0";
 /** Findings listed per run; the metric always counts every survivor. */
 const MAX_FINDINGS = 100;
 const EXCLUDED_DIRS = new Set([".git", ".jgates", "node_modules", ".stryker-tmp", "reports", "mutants", "__pycache__", ".pytest_cache", ".venv", "venv", ".mypy_cache", ".ruff_cache"]);
@@ -78,6 +81,11 @@ export function mutationSettings(input: Pick<ExternalPlanInput, "config" | "tool
 }
 
 const STRYKER_CONFIG = /^stryker\.(?:conf|config)\.(?:json|js|mjs|cjs)$/;
+/** Stryker.NET's configuration file (stryker-config.json / .yaml / .yml). */
+const STRYKER_NET_CONFIG = /^stryker-config\.(?:json|ya?ml)$/;
+const DOTNET_FILE = /\.(?:sln|slnx|csproj|fsproj)$/;
+/** The JSON report of Stryker.NET under its --output folder. */
+const STRYKER_NET_REPORT = ["reports", "mutation-report.json"] as const;
 
 /** Which engine the component uses when the instance does not say: Stryker config or dependency, else a Python project. */
 export function detectEngine(componentDir: string): MutationEngine | null {
@@ -103,7 +111,9 @@ export function detectEngine(componentDir: string): MutationEngine | null {
     }
   };
   if (/^\s*\[mutmut\]/m.test(text("setup.cfg")) || /^\s*\[tool\.mutmut\]/m.test(text("pyproject.toml"))) return "mutmut";
+  if (names.some((n) => STRYKER_NET_CONFIG.test(n))) return "stryker-net";
   if (names.includes("package.json")) return "stryker";
+  if (names.some((n) => DOTNET_FILE.test(n))) return "stryker-net";
   if (names.some((n) => n === "pyproject.toml" || n === "setup.cfg" || n === "setup.py" || n === "requirements.txt")) return "mutmut";
   return null;
 }
@@ -197,6 +207,43 @@ function planMutation(input: ExternalPlanInput): ExternalPlan {
       if (STRYKER_CONFIG.test(n)) configFiles.set(root ? `${root}/${n}` : n, sha256File(path.join(componentDir, n)));
     }
     conditions.push(t("mutation_condition_stryker", { scope: settings.mutate.length > 0 ? settings.mutate.join(", ") : t("mutation_scope_config") }));
+  } else if (engine === "stryker-net") {
+    const probe = findStrykerNet(input.env);
+    toolVersion = probe.version;
+    const names = fs.existsSync(componentDir) ? fs.readdirSync(componentDir).sort() : [];
+    const solution = names.find((n) => /\.(?:sln|slnx)$/.test(n)) ?? null;
+    const testProject = solution ? null : (names.find((n) => /\.(?:csproj|fsproj)$/.test(n) && /Include\s*=\s*"Microsoft\.NET\.Test\.Sdk"/i.test(readTextOf(path.join(componentDir, n)))) ?? null);
+    command = {
+      executable: probe.executable ?? "dotnet-stryker",
+      args: [
+        ...probe.prefix,
+        ...(solution ? ["--solution", solution] : testProject ? ["--test-project", testProject] : []),
+        // The JSON report is the evidence (mutation-testing-elements, as StrykerJS); the clear text table is for the log.
+        "--reporter",
+        "json",
+        "--reporter",
+        "cleartext",
+        "--output",
+        `${RUN_DIR}/outputs/${ADAPTER_ID}/${input.tool}/stryker-net`,
+        "--concurrency",
+        "2",
+        "--skip-version-check",
+        ...settings.mutate.flatMap((m) => ["--mutate", m]),
+      ],
+      cwd: RUN_DIR,
+      env: { DOTNET_NOLOGO: "1", DOTNET_CLI_TELEMETRY_OPTOUT: "1", DOTNET_CLI_UI_LANGUAGE: "en", DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1", MSBUILDDISABLENODEREUSE: "1", NO_COLOR: "1" },
+      stdin: null,
+    };
+    runtime = { name: "native", interpreter: probe.executable, available: probe.executable !== null && probe.version !== null };
+    if (probe.problem !== null) availability = { status: "unavailable", reason: t("mutation_stryker_net_missing", { detail: probe.detail }) };
+    else if (probe.version !== null && satisfiesRange(probe.version, STRYKER_NET_RANGE) !== true) {
+      availability = { status: "unavailable", reason: translator("prepare")("prepare_incompatible", { tool: "dotnet-stryker", version: probe.version, range: STRYKER_NET_RANGE, what: ADAPTER_ID }) };
+    } else if (!solution && !testProject) availability = { status: "unavailable", reason: t("mutation_stryker_net_no_target", { dir: root ?? "." }) };
+    else availability = { status: "available", reason: null };
+    for (const n of names) {
+      if (STRYKER_NET_CONFIG.test(n) || n === solution || n === testProject || n === "Directory.Build.props") configFiles.set(root ? `${root}/${n}` : n, sha256File(path.join(componentDir, n)));
+    }
+    conditions.push(t("mutation_condition_stryker_net", { scope: settings.mutate.length > 0 ? settings.mutate.join(", ") : t("mutation_scope_config") }));
   } else {
     const probe = findMutmut(input.env);
     toolVersion = probe.version;
@@ -248,6 +295,8 @@ function planMutation(input: ExternalPlanInput): ExternalPlan {
     conditions,
     output: { format: "json", schema: null },
     effects: { executesProjectCode: true },
+    // Stryker.NET is its own tool of the image: when it is missing, the shared TOOL_MISSING cause names it.
+    ...(engine === "stryker-net" ? { imageTool: "dotnet-stryker" } : {}),
     contract: contract as unknown as Record<string, unknown>,
   };
 }
@@ -255,10 +304,18 @@ function planMutation(input: ExternalPlanInput): ExternalPlan {
 const relToRun = (runDir: string, p: string): string => path.relative(runDir, p).split(path.sep).join("/");
 const tail = (text: string): string => text.trim().split(/\r?\n/).slice(-3).join(" ");
 
+function readTextOf(abs: string): string {
+  try {
+    return fs.readFileSync(abs, "utf8");
+  } catch {
+    return "";
+  }
+}
+
 function contractOf(invocation: Plan["invocations"][number]): MutationContract {
   const c = (invocation.contract ?? {}) as Partial<MutationContract>;
   return {
-    engine: c.engine === "stryker" || c.engine === "mutmut" ? c.engine : null,
+    engine: c.engine === "stryker" || c.engine === "mutmut" || c.engine === "stryker-net" ? c.engine : null,
     component: c.component ?? null,
     root: c.root ?? null,
     mutate: Array.isArray(c.mutate) ? c.mutate : [],
@@ -288,15 +345,54 @@ function nearestNodeModules(workspace: string, componentDir: string): string | n
   return null;
 }
 
+/** Build output folders of a .NET component, never copied (the copy builds its own). */
+const DOTNET_BUILD_DIRS = new Set(["bin", "obj", "StrykerOutput"]);
+
+const REDIRECT_PROPS =
+  "<PropertyGroup>\n" +
+  "    <!-- JGates: the copy builds every project into its own bin/ and obj/ (the dependency volume's single obj/ is\n" +
+  "         read through NUGET_PACKAGES instead, offline). Properties of a project file win over the environment. -->\n" +
+  "    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)/obj/</BaseIntermediateOutputPath>\n" +
+  "    <BaseOutputPath>$(MSBuildProjectDirectory)/bin/</BaseOutputPath>\n" +
+  "  </PropertyGroup>";
+
+/**
+ * Stryker.NET builds every project of the solution in the copy. The dependency environment points obj/ and bin/ of
+ * every project at one folder of the dependency volume (fine for one project, not for a test project and the project it
+ * tests): in the copy, a Directory.Build.props (the project's own, or a new one) sends them back next to each project.
+ */
+export function redirectDotnetBuild(workDir: string): void {
+  const file = path.join(workDir, "Directory.Build.props");
+  const current = readTextOf(file);
+  const open = /<Project\b[^>]*>/.exec(current);
+  const text = open ? `${current.slice(0, open.index + open[0].length)}\n  ${REDIRECT_PROPS}\n${current.slice(open.index + open[0].length)}` : `<Project>\n  ${REDIRECT_PROPS}\n</Project>\n`;
+  fs.writeFileSync(file, text);
+}
+
 /** Copies the component into the run folder (without dependency, VCS and tool folders) and links its node_modules. */
 function prepareCopy(workspace: string, source: string, workDir: string, engine: MutationEngine): void {
   fs.rmSync(workDir, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(workDir), { recursive: true, mode: 0o700 });
-  fs.cpSync(source, workDir, { recursive: true, filter: (from) => !EXCLUDED_DIRS.has(path.basename(from)) });
+  const dotnet = engine === "stryker-net";
+  fs.cpSync(source, workDir, { recursive: true, filter: (from) => !EXCLUDED_DIRS.has(path.basename(from)) && !(dotnet && DOTNET_BUILD_DIRS.has(path.basename(from))) });
+  if (dotnet) redirectDotnetBuild(workDir);
   if (engine === "stryker") {
     const modules = nearestNodeModules(workspace, source);
     if (modules) fs.symlinkSync(modules, path.join(workDir, "node_modules"), process.platform === "win32" ? "junction" : "dir");
   }
+}
+
+/** A report whose file names are absolute paths of the copy, with the names relative to the copy. */
+export function relativizeReport(reading: MutationReading, roots: string[]): MutationReading {
+  const rel = (file: string): string => {
+    const slashed = file.replace(/\\/g, "/");
+    for (const root of roots) {
+      const lower = (s: string): string => (/^[A-Za-z]:\//.test(s) ? s.toLowerCase() : s);
+      if (root && lower(slashed).startsWith(`${lower(root)}/`)) return slashed.slice(root.length + 1);
+    }
+    return slashed;
+  };
+  return { ...reading, survivors: reading.survivors.map((s) => ({ ...s, file: rel(s.file) })) };
 }
 
 /** The workspace-relative file of a survivor: JSON keys are relative to the copy, mutmut gives a module path. */
@@ -376,7 +472,22 @@ async function runMutation(context: AdapterContext, plan: Plan, tool: string): P
 
   let reading: MutationReading;
   const detail = tail(result.stderr) || tail(result.stdout) || String(result.signal ?? "");
-  if (engine === "stryker") {
+  if (engine === "stryker-net") {
+    const reportFile = path.join(outDir, "stryker-net", ...STRYKER_NET_REPORT);
+    let text: string | null = null;
+    try {
+      text = fs.readFileSync(reportFile, "utf8");
+    } catch {
+      text = null;
+    }
+    if (text === null) {
+      const red = /initial test run|No test result reported|no tests? (?:were )?found/i.test(`${result.stdout}\n${result.stderr}`);
+      return stopped("error", red ? t("mutation_baseline_red") : t("mutation_no_report", { code: result.exitCode ?? "-", detail }), { interpreted: false, nativeStatus: `exit ${result.exitCode ?? "-"}` });
+    }
+    // Stryker.NET names the files by their path in the copy (as the step saw it): relative to the copy here.
+    const copyView = stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, cwd).replace(/\\/g, "/").replace(/\/+$/, "");
+    reading = relativizeReport(parseStrykerReport(text), [copyView, cwd.replace(/\\/g, "/").replace(/\/+$/, "")]);
+  } else if (engine === "stryker") {
     const reportFile = path.join(cwd, "reports", "mutation", "mutation.json");
     let text: string | null = null;
     try {
@@ -454,7 +565,7 @@ async function runMutation(context: AdapterContext, plan: Plan, tool: string): P
       origin: ADAPTER_ID,
       basis: "mutants",
       exclusions: reading.excluded > 0 ? [t("mutation_exclusion_invalid", { count: reading.excluded })] : [],
-      format: engine === "stryker" ? "mutation-testing-elements json" : "mutmut cicd stats",
+      format: engine === "mutmut" ? "mutmut cicd stats" : "mutation-testing-elements json",
     }),
     count("mutation.killed", "mutation_metric_killed", reading.detected),
     count("mutation.survived", "mutation_metric_survived", reading.survived),

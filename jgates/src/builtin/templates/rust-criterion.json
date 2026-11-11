@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "rust-criterion",
+  "label": "Rust performance budgets (criterion)",
+  "description": "The criterion benchmarks of a Rust crate (cargo bench), compared with the budgets (tools.<id>.budgets) and the baseline file (tools.<id>.baseline) of the instance. Comes in by evidence: criterion in Cargo.toml; runs only where performance is switched on (the strict profile turns it on when available). Until budgets or a baseline are set the check is not applicable here, with the setting to configure.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "rust"
+    ],
+    "files": [
+      {
+        "path": "Cargo.toml",
+        "contains": "criterion"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "criterion": {
+        "adapter": "performance",
+        "capabilities": [
+          "performance"
+        ],
+        "timeoutSeconds": 1800,
+        "config": {
+          "harness": "criterion"
+        }
+      }
+    }
+  }
+}

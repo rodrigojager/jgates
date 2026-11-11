@@ -81,9 +81,10 @@ test("when available without a candidate: not applicable here with a reason code
     const p = plan(dir);
     const by = Object.fromEntries(notHere(p).map((n) => [n.selector, n]));
     assert.deepEqual(Object.keys(by).sort(), ["capability:e2e", "capability:mutation", "capability:properties", "capability:tests"]);
-    // JGates has no tool for end-to-end tests at all.
-    assert.equal(by["capability:e2e"].reasonCode, "NO_TOOL");
-    assert.equal(by["capability:e2e"].action.kind, "none");
+    // End-to-end tests have an adapter for Python (pytest-playwright), but no instance is declared: it needs setup.
+    assert.equal(by["capability:e2e"].reasonCode, "SETUP_REQUIRED");
+    assert.equal(by["capability:e2e"].action.adapter, "playwright");
+    assert.ok(by["capability:e2e"].adapters.some((a) => a.id === "playwright" && a.applicable));
     // The whole-suite tests capability exists only for Rust (cargo-test): not for this Python project.
     assert.equal(by["capability:tests"].reasonCode, "NO_TOOL_FOR_LANGUAGES");
     assert.deepEqual(by["capability:tests"].languages, ["python"]);

@@ -7,7 +7,7 @@
   "mutation_scope_config": "a configuração do próprio motor",
   "mutation_limitation_executes": "O teste de mutação executa código do projeto: os testes do componente rodam uma vez por mutante.",
   "mutation_limitation_bounded": "A execução é limitada pelo timeoutSeconds da instância; uma execução que o excede fica sem pontuação.",
-  "mutation_no_engine": "Não dá para saber qual motor de mutação o componente {dir} usa. Defina engine: stryker ou engine: mutmut na instância.",
+  "mutation_no_engine": "Não dá para saber qual motor de mutação o componente {dir} usa. Defina engine: stryker, engine: mutmut ou engine: stryker-net na instância.",
   "mutation_stryker_missing": "StrykerJS não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
   "mutation_stryker_no_version": "O StrykerJS encontrado em {detail} não informou a versão.",
   "mutation_python_missing": "Não há Python para rodar o mutmut ({detail}). Defina JGATES_PYTHON ou ponha o Python do projeto no PATH.",
@@ -38,5 +38,8 @@
   "mutation_setting_mutate": "A configuração mutate da instância {tool} deve ser uma lista de padrões relativos sem vírgulas, hífen inicial ou '..'.",
   "mutation_setting_minimum": "O minimumScore da instância {tool} é {value}; use um número de 0 a 100.",
   "mutation_condition_timeout": "Limitado a {seconds} s; uma execução que passar disso fica sem pontuação.",
-  "mutation_mutmut_not_in_image": "O mutmut não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina."
+  "mutation_mutmut_not_in_image": "O mutmut não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
+  "mutation_condition_stryker_net": "Stryker.NET com o relatório JSON, sobre a solução (ou o único projeto de testes) da cópia; escopo: {scope}.",
+  "mutation_stryker_net_missing": "O Stryker.NET (dotnet-stryker) não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
+  "mutation_stryker_net_no_target": "O Stryker.NET precisa de uma solução (*.sln, *.slnx) ou de um único projeto de testes que referencie o Microsoft.NET.Test.Sdk no componente {dir}."
 }

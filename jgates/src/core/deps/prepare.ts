@@ -132,7 +132,7 @@ export function planUnit(unit: InstallUnit, input: UnitPlanInput): UnitPlan {
   // A pinned language version (or Playwright) comes from the toolchain volume; a version that cannot be obtained blocks the unit.
   const resolution = resolveToolchain(unit, { env: input.env });
   if (resolution.kind === "invalid") return { unit, recipe: null, key: null, volume: null, blocked: { reasonKey: resolution.reasonKey, params: resolution.params }, actions: resolution.actions, registry };
-  const pins: ToolchainPin[] = [...(resolution.kind === "pinned" ? [resolution.pin] : []), ...(declaresPlaywright(unit, input.projectDir) ? [playwrightPin(unit.installRoot, result.recipe.target)] : [])];
+  const pins: ToolchainPin[] = [...(resolution.kind === "pinned" ? [resolution.pin] : []), ...(declaresPlaywright(unit, input.projectDir) ? [playwrightPin(unit.installRoot, result.recipe.target, unit.info.ecosystem === "python" ? "python" : "node")] : [])];
   const recipe = withToolchains(result.recipe, pins);
   const key = dependencyKey({ projectDir: input.projectDir, unit, recipe, imageId: input.imageId, governed: input.governed, registryUrl: settingsRegistry?.url ?? null });
   const volume = `${dependencyVolumeName(input.workspace, unit.id)}-${shortKey(key)}`;
@@ -154,6 +154,8 @@ export function installScript(unit: InstallUnit, recipe: InstallRecipe, registry
     `marker="$target/${MARKER_FILE}"`,
     `if [ -f "$marker" ] && grep -q "\\"key\\": \\"$JGATES_DEPS_KEY\\"" "$marker"; then echo ${quote(UP_TO_DATE)}; exit 0; fi`,
     'find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf {} +',
+    // Files of the recipe (the .NET build props) exist before the install commands read them.
+    ...Object.entries(recipe.files ?? {}).map(([name, content]) => `printf '%s' ${quote(content)} > "$target/${name}"`),
     ...registryScript(unit.info.ecosystem, unit.info.manager, unit.info.variant, registry),
     `cd ${quote(cwd)}`,
     ...recipe.commands.flatMap((argv) => [`echo ${quote(`+ ${argv.join(" ")}`)}`, argv.map(quote).join(" ")]),

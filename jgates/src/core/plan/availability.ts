@@ -23,10 +23,15 @@ export const REQUIRED_SETTINGS: Readonly<Record<string, readonly string[]>> = {
   schemathesis: ["target"],
   zap: ["target"],
   oasdiff: ["baseRef"],
+  performance: ["budgets"],
+  "migration-drift": ["databaseUrl"],
 };
 
-/** Settings that satisfy a required one in its place (oasdiff: a reference file instead of a reference revision). */
-const SETTING_ALTERNATIVES: Readonly<Record<string, readonly string[]>> = { baseRef: ["baseSpec"] };
+/**
+ * Settings that satisfy a required one in its place (oasdiff: a reference file instead of a reference revision;
+ * performance: a baseline file instead of budgets).
+ */
+const SETTING_ALTERNATIVES: Readonly<Record<string, readonly string[]>> = { baseRef: ["baseSpec"], budgets: ["baseline"] };
 
 /** The required settings (REQUIRED_SETTINGS) an instance body of the adapter leaves unset, in declaration order. */
 export function missingSettings(adapterId: string | null, body: unknown): string[] {

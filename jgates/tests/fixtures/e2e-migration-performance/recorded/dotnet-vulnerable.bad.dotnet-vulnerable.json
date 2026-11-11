@@ -1,0 +1,24 @@
+{
+ "case": "dotnet-vulnerable",
+ "kind": "bad",
+ "tool": "dotnet-vulnerable",
+ "adapter": "dotnet-vulnerable",
+ "runs": [
+  {
+   "args": [
+    "list",
+    "App.csproj",
+    "package",
+    "--vulnerable",
+    "--include-transitive",
+    "--format",
+    "json",
+    "--output-version",
+    "1"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"version\": 1,\n  \"parameters\": \"--vulnerable --include-transitive\",\n  \"sources\": [\n    \"https://api.nuget.org/v3/index.json\"\n  ],\n  \"projects\": [\n    {\n      \"path\": \"/workspace/App.csproj\",\n      \"frameworks\": [\n        {\n          \"framework\": \"net10.0\",\n          \"topLevelPackages\": [\n            {\n              \"id\": \"Newtonsoft.Json\",\n              \"requestedVersion\": \"12.0.1\",\n              \"resolvedVersion\": \"12.0.1\",\n              \"vulnerabilities\": [\n                {\n                  \"severity\": \"High\",\n                  \"advisoryurl\": \"https://github.com/advisories/GHSA-5crp-9r3c-p9vr\"\n                }\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}\n",
+   "files": {}
+  }
+ ]
+}

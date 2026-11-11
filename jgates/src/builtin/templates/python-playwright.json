@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "python-playwright",
+  "label": "Python e2e tests (pytest-playwright)",
+  "description": "End-to-end tests of Python components with the project's pytest-playwright against its compose services (jgates.yml services:), Chromium from the toolchain volume. Comes in by evidence: pytest-playwright in requirements*.txt or pyproject.toml; runs only where e2e is switched on (the strict profile turns it on when available). Without a services section it is SERVICES_REQUIRED, never a blocker.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "python"
+    ],
+    "files": [
+      {
+        "path": "requirements.txt",
+        "contains": "pytest-playwright"
+      },
+      {
+        "path": "requirements-dev.txt",
+        "contains": "pytest-playwright"
+      },
+      {
+        "path": "requirements-test.txt",
+        "contains": "pytest-playwright"
+      },
+      {
+        "path": "pyproject.toml",
+        "contains": "\"pytest-playwright"
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "pytest-playwright": {
+        "adapter": "playwright",
+        "capabilities": [
+          "e2e"
+        ],
+        "timeoutSeconds": 900,
+        "config": {
+          "e2eRunner": "pytest"
+        }
+      }
+    }
+  }
+}

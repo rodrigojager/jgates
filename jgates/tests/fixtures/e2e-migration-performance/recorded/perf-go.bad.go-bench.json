@@ -1,0 +1,24 @@
+{
+ "case": "perf-go",
+ "kind": "bad",
+ "tool": "go-bench",
+ "adapter": "performance",
+ "runs": [
+  {
+   "args": [
+    "go",
+    "test",
+    "-run",
+    "^$",
+    "-bench",
+    ".",
+    "-benchmem",
+    "-count=1",
+    "./..."
+   ],
+   "exit": 0,
+   "stdout": "goos: linux\ngoarch: amd64\npkg: example.com/fib\ncpu: 13th Gen Intel(R) Core(TM) i7-13620H\nBenchmarkFib20-16    \t      58\t  20236394 ns/op\t       2 B/op\t       0 allocs/op\nPASS\nok  \texample.com/fib\t1.334s\n",
+   "files": {}
+  }
+ ]
+}

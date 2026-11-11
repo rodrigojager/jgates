@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "dotnet-stryker",
+  "label": ".NET mutation testing (Stryker.NET)",
+  "description": "Mutation testing of .NET solutions with the tools image's Stryker.NET, in a copy of the component inside the run folder. Comes in by evidence: a stryker-config file or dotnet-stryker in the local tool manifest; runs only where mutation is switched on (the strict profile turns it on when available). Bounded to 15 minutes (timeoutSeconds 900): a run that exceeds it has no score.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "csharp",
+      "fsharp",
+      "visualbasic"
+    ],
+    "files": [
+      "stryker-config.json",
+      "stryker-config.yaml",
+      "stryker-config.yml",
+      {
+        "path": ".config/dotnet-tools.json",
+        "contains": "\"dotnet-stryker\""
+      }
+    ]
+  },
+  "config": {
+    "tools": {
+      "stryker-net": {
+        "adapter": "mutation",
+        "capabilities": [
+          "mutation"
+        ],
+        "timeoutSeconds": 900,
+        "config": {
+          "engine": "stryker-net"
+        }
+      }
+    }
+  }
+}

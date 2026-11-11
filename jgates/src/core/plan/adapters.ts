@@ -39,6 +39,10 @@ import { fileSizeAdapter } from "../../adapters/file-size/index.js";
 import { goTestAdapter } from "../../adapters/go-test/index.js";
 import { dotnetTestAdapter } from "../../adapters/dotnet-test/index.js";
 import { jestAdapter } from "../../adapters/jest/index.js";
+import { playwrightAdapter } from "../../adapters/playwright/index.js";
+import { migrationDriftAdapter } from "../../adapters/migration-drift/index.js";
+import { performanceAdapter } from "../../adapters/performance/index.js";
+import { dotnetVulnerableAdapter } from "../../adapters/dotnet-vulnerable/index.js";
 
 export interface ExternalPlanInput {
   /** Workspace directory (absolute). */
@@ -87,6 +91,12 @@ export interface ExternalPlan {
   imageTool?: string;
   /** What the run needs to judge the result besides the command (recorded in the plan, so it is hashed and reviewable). */
   contract?: Record<string, unknown>;
+  /**
+   * What the instance needs from the project that is not there, when that is why it is unavailable: "services" (an e2e
+   * or migration check without a services section in jgates.yml). The plan reports a capability on "when available"
+   * as not applicable here with SERVICES_REQUIRED and the action to set the services up, never as a missing tool.
+   */
+  requires?: "services";
 }
 
 export interface ExternalAdapter {
@@ -132,6 +142,10 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [goTestAdapter.manifest.id, goTestAdapter],
   [dotnetTestAdapter.manifest.id, dotnetTestAdapter],
   [jestAdapter.manifest.id, jestAdapter],
+  [playwrightAdapter.manifest.id, playwrightAdapter],
+  [migrationDriftAdapter.manifest.id, migrationDriftAdapter],
+  [performanceAdapter.manifest.id, performanceAdapter],
+  [dotnetVulnerableAdapter.manifest.id, dotnetVulnerableAdapter],
 ]);
 
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {

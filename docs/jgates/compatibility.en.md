@@ -38,7 +38,7 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | Build and type check (tsc, mypy, pyright, go, cargo, dotnet) (`build-check`) | compiler >=1.0.0 | - | typecheck (adapter-build-check.test.js, adapter-build-check.test.js, adapter-build-check.test.js, adapter-build-check.test.js, adapter-build-check.test.js, adapter-build-check.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Runs the project's own checker with the project's own configuration; a component without that configuration is skipped and reported, never passed; cargo, dotnet and mypy plugins run project code; the toolchains are customer-supplied. | tsc 4.5+, mypy 1.0+ or pyright 1.1.300+, Go 1.18+, cargo 1.60+, .NET SDK 6+ (customer-supplied; never installed during a run) |
 | Schemathesis (API contract tests) (`schemathesis`) | schemathesis >=4.0.0 <5.0.0 | - | api-contract (adapter-runtime-api.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Runs only against a configured running target (local or disposable, never production); without a target the stage is blocked, never passed; OpenAPI HTTP APIs only. | schemathesis 4.x (in the JGates tools image) and a running target |
 | ZAP (runtime security scan) (`zap`) | zap >=2.14.0 <3.0.0 | - | dast (adapter-runtime-api.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Runs only against a configured running target; passive by default, active only when the instance sets mode: active and allowActive: true; without a target the stage is blocked, never passed. | Docker and the ZAP image ghcr.io/zaproxy/zaproxy (customer-supplied, never pulled during a run) |
-| Mutation testing (Stryker, mutmut) (`mutation`) | stryker >=8.0.0 <11.0.0 | javascript, typescript, python | mutation (adapter-mutation.test.js, adapter-mutation.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Runs StrykerJS or mutmut in an isolated copy of the component and re-runs the project's tests per mutant (project code executes, never cached); the time bound is the stage timeout; mutmut does not run natively on Windows (the stage is blocked with the reason); equivalent mutants count as survivors. | @stryker-mutator/core 8+ in the project, or mutmut 3.x in the project's Python (Linux, macOS, WSL) |
+| Mutation testing (Stryker, mutmut) (`mutation`) | stryker >=8.0.0 <11.0.0 | javascript, typescript, python, csharp | mutation (adapter-mutation.test.js, adapter-mutation.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Runs StrykerJS, mutmut or Stryker.NET (the tools image's dotnet-stryker, over the solution) in an isolated copy of the component and re-runs the project's tests per mutant (project code executes, never cached); the time bound is the stage timeout; mutmut does not run natively on Windows (the stage is blocked with the reason); equivalent mutants count as survivors. | @stryker-mutator/core 8+ in the project, mutmut 3.x in the project's Python (Linux, macOS, WSL), or a .NET solution with a test project (Stryker.NET 5.1.0 in the JGates tools image) |
 | Supply chain (lockfile provenance) (`supply-chain`) | jgates-supply-chain | - | supply-chain (adapter-supply-chain.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Reads npm and Python lockfiles offline; the deprecation of Python packages needs a registry and stays unknown (never clean); an unreadable lockfile leaves the stage not interpreted instead of passed; requirements.txt is read only through the lockfiles setting. | None: shipped with JGates (reads the lockfiles in-process, no network) |
 | govulncheck (Go dependency vulnerabilities) (`govulncheck`) | govulncheck >=1.0.0 <2.0.0 | - | dependencies (adapter-stack-extensions.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Customer-supplied binary (BSD-3-Clause), source mode: only vulnerabilities whose symbol the code reaches are findings, with an unknown severity because the Go database has none; needs the Go toolchain, a complete go.sum and the network for vuln.go.dev. Proven on a Go module fixture with govulncheck 1.9.0. | govulncheck 1.0+ (go install; customer-supplied), the Go toolchain, network to vuln.go.dev |
 | cargo-audit (Rust advisories) (`cargo-audit`) | cargo-audit >=0.20.0 <1.0.0 | - | dependencies (adapter-stack-extensions.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Customer-supplied binary (Apache-2.0 OR MIT): advisories are matched on the versions locked in Cargo.lock, not on the call graph; the RustSec database is cloned on every run (network); unmaintained, unsound and yanked packages are non-blocking findings. Proven on a Cargo.lock fixture with cargo-audit 0.22.2. | cargo-audit 0.20+ (cargo install; customer-supplied), network to github.com |
@@ -53,20 +53,29 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | go test (Go tests, coverage and rapid/quick properties) (`go-test`) | go >=1.21.0 | go | unit (adapter-test-stacks.test.js); coverage (adapter-test-stacks.test.js); integration (adapter-test-stacks.test.js); properties (adapter-test-stacks.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | go test -json in the step container of the tools image with statement coverage from -coverprofile; the integration step runs the tests of the files with the integration build tag, the unit step builds without it; rapid and testing/quick properties are found statically. The tests execute and the modules must be in the dependency volume. Proven on a bad and a clean Go fixture with the real go 1.27.3 through the real engine. | the Go toolchain of the JGates tools image; rapid, when used, in go.mod |
 | dotnet test (.NET tests, coverlet coverage and FsCheck properties) (`dotnet-test`) | dotnet >=8.0.0 | csharp, fsharp, visualbasic | unit (adapter-test-stacks.test.js); coverage (adapter-test-stacks.test.js); integration (adapter-test-stacks.test.js); properties (adapter-test-stacks.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | dotnet test of the one solution or project with the TRX logger and coverlet's XPlat Code Coverage (the test project must reference coverlet.collector); the integration step filters Category=Integration and the unit step leaves it out; FsCheck properties are found statically. Proven on a bad and a clean xUnit fixture with the real .NET SDK 10.0.403 through the real engine. | the .NET SDK of the JGates tools image; coverlet.collector and FsCheck in the test project |
 | Jest (JavaScript/TypeScript tests, coverage and fast-check properties) (`jest`) | jest >=27.0.0 | javascript, typescript | unit (adapter-test-stacks.test.js); coverage (adapter-test-stacks.test.js); integration (adapter-test-stacks.test.js); properties (adapter-test-stacks.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | The project's own Jest (a dev dependency installed by the deps phase; Jest is not in the tools image) with the JSON results and the json-summary coverage; the integration step selects a project named integration or the *.integration.test.* files and the unit step leaves them out; fast-check properties are found statically. Proven on a bad and a clean JavaScript fixture with Jest 30 through the real engine. | jest (and fast-check, when used) in the devDependencies of the project |
+| Playwright e2e (Playwright Test, pytest-playwright) (`playwright`) | playwright >=1.40.0 <2.0.0 | typescript, javascript, python | e2e (adapter-e2e-migration-performance.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | The project's Playwright Test or pytest-playwright against its compose services (jgates.yml services:), with Chromium from the toolchain volume for the installed Playwright version; the target is handed over as BASE_URL or --base-url. Without services the check is SERVICES_REQUIRED, never run and never a blocker. The tests execute, so the result is self-reported. Proven on a bad and a clean fixture per runner with Playwright 1.65.0 against a compose web service through the real engine. | @playwright/test or pytest-playwright in the project's dependencies; a services section in jgates.yml |
+| Migration drift (Django, Alembic, Prisma, EF Core) and the SQL migration linter (squawk) (`migration-drift`) | migration-tool >=0.0.0 | python, typescript, javascript, csharp | migration (adapter-e2e-migration-performance.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | Each framework's own drift command against the database of the project's compose services (tools.<id>.databaseUrl): alembic upgrade head then alembic check, Django makemigrations --check --dry-run, prisma migrate diff --from-migrations --to-schema --exit-code, dotnet ef migrations has-pending-model-changes. A drift is a blocking finding; an output the exit code does not explain is an error, never a pass. Without services the check is SERVICES_REQUIRED, never a blocker. Proven with Alembic 1.20.1, Prisma 7.10.1 and dotnet-ef 10.0.15 on bad and clean fixtures against a compose PostgreSQL through the real engine. | Alembic, Django or Prisma in the project's dependencies (dotnet-ef in the JGates tools image); a database service in the compose files |
+| Performance budgets (pytest-benchmark, vitest bench, go test -bench, criterion, BenchmarkDotNet) (`performance`) | benchmark >=0.0.0 | python, typescript, javascript, go, rust, csharp | performance (adapter-e2e-migration-performance.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | The project's language-native benchmarks (pytest-benchmark, vitest bench, go test -bench, criterion, BenchmarkDotNet in process with the short job) in the step container; their mean times are compared with the instance's budgets and with a stored baseline (allowed regression in percent). A benchmark over its budget, a regression and a budget no benchmark matched are blocking findings; the times depend on the machine. Proven on a slow and a fast fixture per stack through the real engine. | the benchmark harness in the project (pytest-benchmark, vitest, criterion, BenchmarkDotNet; go test needs nothing more); budgets or a baseline file in tools.yml |
+| dotnet list package --vulnerable (.NET vulnerable packages) (`dotnet-vulnerable`) | dotnet >=8.0.0 | csharp, fsharp, visualbasic | dependencies (adapter-e2e-migration-performance.test.js) | text | editable-file | container | tested / not tested yet / not tested on real hardware | dotnet list package --vulnerable --include-transitive --format json over the restored solution or project, with the network to the package sources for their vulnerability data: one blocking finding per vulnerable package and advisory with NuGet's severity; a report with an error or without a source is an error stage, never a clean result. Proven on a bad (Newtonsoft.Json 12.0.1) and a clean project with the real .NET SDK 10.0.403 against nuget.org through the real engine. | the .NET SDK of the JGates tools image; network to nuget.org (or the project's sources) |
 
 | Stack | Support | Not covered |
 | --- | --- | --- |
 | Base (`base`) | full | - |
 | Dockerfiles with Hadolint (`docker-hadolint`) | full | - |
 | .NET with analyzers (`dotnet-analyzers`) | full | - |
+| .NET performance budgets (BenchmarkDotNet) (`dotnet-benchmarkdotnet`) | full | - |
 | .NET build (`dotnet-build`) | full | - |
 | C# with CodeQL dataflow (`dotnet-codeql`) | full | - |
+| .NET migration drift (EF Core) (`dotnet-efcore`) | full | - |
 | .NET with dotnet format (`dotnet-format`) | full | - |
+| .NET mutation testing (Stryker.NET) (`dotnet-stryker`) | full | - |
 | .NET with dotnet test (`dotnet-test`) | full | - |
+| .NET vulnerable packages (dotnet list package --vulnerable) (`dotnet-vulnerable`) | full | - |
 | .NET (`dotnet`) | partial | Vulnerabilidades pelo dotnet list package --vulnerable (as do OSV e do Trivy vêm do template base) |
 | File size (`file-size`) | full | - |
 | GitHub Actions with zizmor (`github-actions-zizmor`) | full | - |
 | Secrets in the Git history (Gitleaks) (`gitleaks-history`) | full | - |
+| Go performance budgets (go test -bench) (`go-bench`) | full | - |
 | Go build and vet (`go-build`) | full | - |
 | Go with CodeQL dataflow (`go-codeql`) | full | - |
 | Go with gofmt (`go-gofmt`) | full | - |
@@ -75,13 +84,17 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | Go with go test (`go-test`) | full | - |
 | Go (`go`) | partial | Licenças e integridade de dependências (as vulnerabilidades entram pelo template go-govulncheck) |
 | OpenAPI with oasdiff (`openapi-oasdiff`) | full | - |
+| Python migration drift (Alembic) (`python-alembic`) | full | - |
 | Python with CodeQL dataflow (`python-codeql`) | full | - |
+| Python migration drift (Django) (`python-django-migrations`) | full | - |
 | Python with ruff format (`python-format`) | full | - |
 | Python com Import Linter (`python-import-linter`) | full | - |
 | Python mutation testing (mutmut) (`python-mutmut`) | full | - |
 | Python with mypy (defaults) (`python-mypy-defaults`) | full | - |
 | Python with mypy (`python-mypy`) | full | - |
+| Python e2e tests (pytest-playwright) (`python-playwright`) | full | - |
 | Python with pyright (`python-pyright`) | full | - |
+| Python performance budgets (pytest-benchmark) (`python-pytest-benchmark`) | full | - |
 | Python com pytest (`python-pytest`) | full | - |
 | Python e TypeScript (`python-typescript`) | full | - |
 | Python (`python`) | full | - |
@@ -89,18 +102,23 @@ Go and Rust have partial support: discovery, explicit configuration and the gene
 | Rust with cargo check (`rust-cargo-check`) | full | - |
 | Rust with cargo test (`rust-cargo-test`) | full | - |
 | Rust with clippy (`rust-clippy`) | full | - |
+| Rust performance budgets (criterion) (`rust-criterion`) | full | - |
 | Rust with cargo fmt (`rust-rustfmt`) | full | - |
 | Rust (`rust`) | partial | Licenças e políticas de dependências (cargo deny; os avisos do RustSec entram pelo template rust-cargo-audit) |
 | Shell scripts with ShellCheck (`shell-shellcheck`) | full | - |
+| SQL migration linter (squawk) (`sql-squawk`) | full | - |
 | Supply chain of the lockfiles (`supply-chain`) | full | - |
 | Dependency licenses (Trivy) (`trivy-licenses`) | full | - |
 | TypeScript and JavaScript with CodeQL dataflow (`typescript-codeql`) | full | - |
 | TypeScript com dependency-cruiser (`typescript-dependency-cruiser`) | full | - |
 | TypeScript com ESLint (`typescript-eslint`) | full | - |
 | TypeScript/JavaScript with Jest (`typescript-jest`) | full | - |
+| TypeScript and JavaScript e2e tests (Playwright Test) (`typescript-playwright`) | full | - |
 | TypeScript and JavaScript with prettier (`typescript-prettier`) | full | - |
+| TypeScript and JavaScript migration drift (Prisma) (`typescript-prisma`) | full | - |
 | TypeScript and JavaScript mutation testing (Stryker) (`typescript-stryker`) | full | - |
 | TypeScript with tsc (`typescript-tsc`) | full | - |
+| TypeScript and JavaScript performance budgets (vitest bench) (`typescript-vitest-bench`) | full | - |
 | TypeScript com Vitest (`typescript-vitest`) | full | - |
 | TypeScript (`typescript`) | full | - |
 <!-- matrix:end -->

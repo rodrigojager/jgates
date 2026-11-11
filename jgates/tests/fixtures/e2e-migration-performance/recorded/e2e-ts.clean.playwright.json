@@ -1,0 +1,21 @@
+{
+ "case": "e2e-ts",
+ "kind": "clean",
+ "tool": "playwright",
+ "adapter": "playwright",
+ "runs": [
+  {
+   "args": [
+    "test",
+    "--reporter=json",
+    "--output={runDir}/outputs/playwright/playwright/test-results"
+   ],
+   "exit": 0,
+   "stdout": "\nRunning 1 test using 1 worker\n·\n  1 passed (619ms)\n",
+   "files": {
+    "outputs/playwright/playwright/report.json": "{\n  \"config\": {\n    \"argv\": [\n      \"/opt/node/bin/node\",\n      \"/workspace/node_modules/.bin/playwright\",\n      \"test\",\n      \"--reporter=json\",\n      \"--output=/output/outputs/playwright/playwright/test-results\"\n    ],\n    \"configFile\": \"/workspace/playwright.config.ts\",\n    \"rootDir\": \"/workspace/e2e\",\n    \"failOnFlakyTests\": false,\n    \"forbidOnly\": false,\n    \"fullyParallel\": false,\n    \"globalSetup\": null,\n    \"globalTeardown\": null,\n    \"globalTimeout\": 0,\n    \"grep\": {},\n    \"grepInvert\": null,\n    \"maxFailures\": 0,\n    \"metadata\": {\n      \"actualWorkers\": 1\n    },\n    \"preserveOutput\": \"always\",\n    \"projects\": [\n      {\n        \"outputDir\": \"/output/outputs/playwright/playwright/test-results\",\n        \"repeatEach\": 1,\n        \"retries\": 0,\n        \"metadata\": {\n          \"actualWorkers\": 1\n        },\n        \"id\": \"\",\n        \"name\": \"\",\n        \"testDir\": \"/workspace/e2e\",\n        \"testIgnore\": [],\n        \"testMatch\": [\n          \"**/*.@(spec|test).?(c|m)[jt]s?(x)\"\n        ],\n        \"timeout\": 30000\n      }\n    ],\n    \"filteredProjects\": [\n      {\n        \"grep\": {},\n        \"grepInvert\": null,\n        \"outputDir\": \"/output/outputs/playwright/playwright/test-results\",\n        \"repeatEach\": 1,\n        \"retries\": 0,\n        \"metadata\": {\n          \"actualWorkers\": 1\n        },\n        \"name\": \"\",\n        \"testDir\": \"/workspace/e2e\",\n        \"snapshotDir\": \"/workspace/e2e\",\n        \"testIgnore\": [],\n        \"testMatch\": \"**/*.@(spec|test).?(c|m)[jt]s?(x)\",\n        \"timeout\": 30000,\n        \"use\": {\n          \"baseURL\": \"http://web:8080\",\n          \"browserName\": \"chromium\"\n        },\n        \"dependencies\": [],\n        \"ignoreSnapshots\": false,\n        \"__projectId\": \"\"\n      }\n    ],\n    \"quiet\": false,\n    \"reporter\": [\n      [\n        \"json\"\n      ]\n    ],\n    \"reportSlowTests\": {\n      \"max\": 5,\n      \"threshold\": 300000\n    },\n    \"shard\": null,\n    \"tags\": [],\n    \"updateSnapshots\": \"default\",\n    \"updateSourceMethod\": \"patch\",\n    \"version\": \"1.65.0\",\n    \"workers\": 1,\n    \"webServer\": null\n  },\n  \"suites\": [\n    {\n      \"title\": \"home.spec.ts\",\n      \"file\": \"home.spec.ts\",\n      \"column\": 0,\n      \"line\": 0,\n      \"specs\": [\n        {\n          \"title\": \"the home page shows the store name\",\n          \"ok\": true,\n          \"tags\": [],\n          \"tests\": [\n            {\n              \"timeout\": 30000,\n              \"annotations\": [],\n              \"expectedStatus\": \"passed\",\n              \"projectId\": \"\",\n              \"projectName\": \"\",\n              \"results\": [\n                {\n                  \"workerIndex\": 0,\n                  \"parallelIndex\": 0,\n                  \"status\": \"passed\",\n                  \"duration\": 100,\n                  \"errors\": [],\n                  \"stdout\": [],\n                  \"stderr\": [],\n                  \"retry\": 0,\n                  \"startTime\": \"2026-11-11T02:22:33.110Z\",\n                  \"annotations\": [],\n                  \"attachments\": []\n                }\n              ],\n              \"status\": \"expected\"\n            }\n          ],\n          \"id\": \"d318381359a9b96acb1e-0e7149e25742318a2d7d\",\n          \"file\": \"home.spec.ts\",\n          \"line\": 3,\n          \"column\": 1\n        }\n      ]\n    }\n  ],\n  \"errors\": [],\n  \"stats\": {\n    \"startTime\": \"2026-11-11T02:22:32.790Z\",\n    \"duration\": 619.057,\n    \"expected\": 1,\n    \"skipped\": 0,\n    \"unexpected\": 0,\n    \"flaky\": 0\n  }\n}",
+    "outputs/playwright/playwright/test-results/.last-run.json": "{\n  \"status\": \"passed\",\n  \"failedTests\": []\n}"
+   }
+  }
+ ]
+}

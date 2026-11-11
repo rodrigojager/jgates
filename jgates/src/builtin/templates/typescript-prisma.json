@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "typescript-prisma",
+  "label": "TypeScript and JavaScript migration drift (Prisma)",
+  "description": "prisma migrate diff --from-migrations --to-schema --exit-code tells whether the schema changed without a migration, against the services database (the shadow database of prisma.config, a second database of the services). Comes in by evidence: prisma/schema.prisma; runs only where migration is switched on (the strict profile turns it on when available). Needs a services section in jgates.yml and tools.<id>.databaseUrl; without services it is SERVICES_REQUIRED, never a blocker.",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ],
+    "files": [
+      "prisma/schema.prisma",
+      "schema.prisma"
+    ]
+  },
+  "config": {
+    "tools": {
+      "prisma-drift": {
+        "adapter": "migration-drift",
+        "capabilities": [
+          "migration"
+        ],
+        "config": {
+          "framework": "prisma"
+        }
+      }
+    }
+  }
+}

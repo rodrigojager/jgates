@@ -82,6 +82,26 @@ const TS_PYTEST = t(TS_FILE, "pytest python: tests/integration runs apart");
 const TS_VITEST = t(TS_FILE, "vitest typescript: the integration files run apart");
 const TS_OTHER = [t(TS_FILE, "test runners: the unit command leaves the integration selection out"), t(TS_FILE, "test runners: a runner the image lacks"), t(TS_FILE, "test runner parsers"), t(TS_FILE, "test selection: globs")];
 
+const SC_FILE = "adapter-e2e-migration-performance.test.js";
+const SC_E2E_TS = t(SC_FILE, "e2e typescript (Playwright Test): the failing e2e test is a located finding and the clean twin passes");
+const SC_E2E_PY = t(SC_FILE, "e2e python (pytest-playwright): the failing e2e test is a finding and the clean twin passes");
+const SC_MIG_PY = t(SC_FILE, "migration python (Alembic): the column without a migration is a drift finding and the clean twin agrees");
+const SC_MIG_TS = t(SC_FILE, "migration typescript (Prisma): the field without a migration is a drift finding and the clean twin agrees");
+const SC_MIG_CS = t(SC_FILE, "migration csharp (EF Core): the property without a migration is a drift finding and the clean twin agrees");
+const SC_MIG_SQL = t(SC_FILE, "migration any (squawk): the risky SQL migration is a located finding and the safe twin is clean");
+const SC_MUT_CS = t(SC_FILE, "mutation csharp (Stryker.NET): the weak tests leave survivors and a score below the minimum, the strong tests reach it");
+const SC_PERF_PY = t(SC_FILE, "performance python (pytest-benchmark): a benchmark over its budget is a finding and the fast twin passes");
+const SC_PERF_TS = t(SC_FILE, "performance typescript (vitest bench): a benchmark over its budget is a finding and the fast twin passes");
+const SC_PERF_GO = t(SC_FILE, "performance go (go test -bench): a benchmark over its budget is a finding and the fast twin passes");
+const SC_PERF_RUST = t(SC_FILE, "performance rust (criterion): a benchmark over its budget is a finding and the fast twin passes");
+const SC_PERF_CS = t(SC_FILE, "performance csharp (BenchmarkDotNet): a benchmark over its budget is a finding and the fast twin passes");
+const SC_VULN = t(SC_FILE, "dependencies csharp (dotnet list package --vulnerable): the vulnerable Newtonsoft.Json is a finding and the patched twin is clean");
+const SC_OTHER = [
+  t(SC_FILE, "services checks parsers: each report gives its tests, drift, benchmarks or packages"),
+  t(SC_FILE, "services checks: without services, e2e and migration are SERVICES_REQUIRED"),
+  t(SC_FILE, "services checks: a tool the image lacks is the shared TOOL_MISSING cause"),
+];
+
 const lintEvidence = (stack: string, proof: TestRef, limitation: Bilingual, external: Bilingual): AdapterEvidence => ({
   capabilities: { lint: proven([stack], proof) },
   limitation,
@@ -199,14 +219,15 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
         stacks: {
           javascript: [t("adapter-mutation.test.js", "mutation javascript: the weak suite leaves surviving mutants")],
           python: [t("adapter-mutation.test.js", "mutation python: the mutmut results")],
+          csharp: [SC_MUT_CS],
         },
       },
     },
     limitation: {
-      en: "Runs StrykerJS or mutmut in an isolated copy of the component and re-runs the project's tests per mutant (project code executes, never cached); the time bound is the stage timeout; mutmut does not run natively on Windows (the stage is blocked with the reason); equivalent mutants count as survivors.",
-      ptBR: "Roda o StrykerJS ou o mutmut numa cópia isolada do componente e reexecuta os testes do projeto por mutante (código do projeto executa, nunca vem do cache); o limite de tempo é o timeout da etapa; o mutmut não roda nativamente no Windows (a etapa fica bloqueada com o motivo); mutantes equivalentes contam como sobreviventes.",
+      en: "Runs StrykerJS, mutmut or Stryker.NET (the tools image's dotnet-stryker, over the solution) in an isolated copy of the component and re-runs the project's tests per mutant (project code executes, never cached); the time bound is the stage timeout; mutmut does not run natively on Windows (the stage is blocked with the reason); equivalent mutants count as survivors.",
+      ptBR: "Roda o StrykerJS, o mutmut ou o Stryker.NET (o dotnet-stryker da imagem de ferramentas, sobre a solução) numa cópia isolada do componente e reexecuta os testes do projeto por mutante (código do projeto executa, nunca vem do cache); o limite de tempo é o timeout da etapa; o mutmut não roda nativamente no Windows (a etapa fica bloqueada com o motivo); mutantes equivalentes contam como sobreviventes.",
     },
-    external: { en: "@stryker-mutator/core 8+ in the project, or mutmut 3.x in the project's Python (Linux, macOS, WSL)", ptBR: "@stryker-mutator/core 8+ no projeto, ou mutmut 3.x no Python do projeto (Linux, macOS, WSL)" },
+    external: { en: "@stryker-mutator/core 8+ in the project, mutmut 3.x in the project's Python (Linux, macOS, WSL), or a .NET solution with a test project (Stryker.NET 5.1.0 in the JGates tools image)", ptBR: "@stryker-mutator/core 8+ no projeto, mutmut 3.x no Python do projeto (Linux, macOS, WSL), ou uma solução .NET com projeto de testes (Stryker.NET 5.1.0 na imagem de ferramentas do JGates)" },
     otherTests: [t("adapter-mutation.test.js", "parseStrykerReport")],
   },
   "generic-command": {
@@ -522,6 +543,53 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       ptBR: "O Jest do próprio projeto (dependência de desenvolvimento instalada pela fase de dependências; o Jest não está na imagem de ferramentas) com os resultados JSON e a cobertura json-summary; a etapa de integração seleciona um projeto chamado integration ou os arquivos *.integration.test.* e a unitária os deixa de fora; as propriedades do fast-check são encontradas estaticamente. Provado em um fixture JavaScript ruim e um limpo com o Jest 30 pelo motor real.",
     },
     external: { en: "jest (and fast-check, when used) in the devDependencies of the project", ptBR: "jest (e fast-check, quando usado) nas devDependencies do projeto" },
+  },
+  playwright: {
+    capabilities: {
+      e2e: { tests: [SC_E2E_TS], stacks: { typescript: [SC_E2E_TS], javascript: [SC_E2E_TS], python: [SC_E2E_PY] } },
+    },
+    otherTests: SC_OTHER,
+    limitation: {
+      en: "The project's Playwright Test or pytest-playwright against its compose services (jgates.yml services:), with Chromium from the toolchain volume for the installed Playwright version; the target is handed over as BASE_URL or --base-url. Without services the check is SERVICES_REQUIRED, never run and never a blocker. The tests execute, so the result is self-reported. Proven on a bad and a clean fixture per runner with Playwright 1.65.0 against a compose web service through the real engine.",
+      ptBR: "O Playwright Test ou o pytest-playwright do próprio projeto contra os serviços compose (seção services do jgates.yml), com o Chromium do volume de toolchains para a versão instalada do Playwright; o alvo é passado como BASE_URL ou --base-url. Sem serviços a verificação é SERVICES_REQUIRED, nunca roda e nunca bloqueia. Os testes executam, então o resultado é autodeclarado. Provado em um fixture ruim e um limpo por runner com o Playwright 1.65.0 contra um serviço web do compose pelo motor real.",
+    },
+    external: { en: "@playwright/test or pytest-playwright in the project's dependencies; a services section in jgates.yml", ptBR: "@playwright/test ou pytest-playwright nas dependências do projeto; uma seção services no jgates.yml" },
+  },
+  "migration-drift": {
+    capabilities: {
+      migration: { tests: [SC_MIG_PY], stacks: { any: [SC_MIG_SQL], python: [SC_MIG_PY], typescript: [SC_MIG_TS], javascript: [SC_MIG_TS], csharp: [SC_MIG_CS] } },
+    },
+    otherTests: SC_OTHER,
+    limitation: {
+      en: "Each framework's own drift command against the database of the project's compose services (tools.<id>.databaseUrl): alembic upgrade head then alembic check, Django makemigrations --check --dry-run, prisma migrate diff --from-migrations --to-schema --exit-code, dotnet ef migrations has-pending-model-changes. A drift is a blocking finding; an output the exit code does not explain is an error, never a pass. Without services the check is SERVICES_REQUIRED, never a blocker. Proven with Alembic 1.20.1, Prisma 7.10.1 and dotnet-ef 10.0.15 on bad and clean fixtures against a compose PostgreSQL through the real engine.",
+      ptBR: "O comando de divergência de cada framework contra o banco dos serviços compose do projeto (tools.<id>.databaseUrl): alembic upgrade head e depois alembic check, makemigrations --check --dry-run do Django, prisma migrate diff --from-migrations --to-schema --exit-code, dotnet ef migrations has-pending-model-changes. Uma divergência é um achado que bloqueia; uma saída que o código de saída não explica é erro, nunca aprovação. Sem serviços a verificação é SERVICES_REQUIRED, nunca bloqueia. Provado com o Alembic 1.20.1, o Prisma 7.10.1 e o dotnet-ef 10.0.15 em fixtures ruins e limpos contra um PostgreSQL do compose pelo motor real.",
+    },
+    external: { en: "Alembic, Django or Prisma in the project's dependencies (dotnet-ef in the JGates tools image); a database service in the compose files", ptBR: "Alembic, Django ou Prisma nas dependências do projeto (dotnet-ef na imagem de ferramentas do JGates); um serviço de banco nos arquivos compose" },
+  },
+  performance: {
+    capabilities: {
+      performance: {
+        tests: [SC_PERF_PY],
+        stacks: { python: [SC_PERF_PY], typescript: [SC_PERF_TS], javascript: [SC_PERF_TS], go: [SC_PERF_GO], rust: [SC_PERF_RUST], csharp: [SC_PERF_CS] },
+      },
+    },
+    otherTests: SC_OTHER,
+    limitation: {
+      en: "The project's language-native benchmarks (pytest-benchmark, vitest bench, go test -bench, criterion, BenchmarkDotNet in process with the short job) in the step container; their mean times are compared with the instance's budgets and with a stored baseline (allowed regression in percent). A benchmark over its budget, a regression and a budget no benchmark matched are blocking findings; the times depend on the machine. Proven on a slow and a fast fixture per stack through the real engine.",
+      ptBR: "Os benchmarks nativos da linguagem do projeto (pytest-benchmark, vitest bench, go test -bench, criterion, BenchmarkDotNet no processo com o job short) no contêiner da etapa; os tempos médios são comparados com os orçamentos da instância e com um baseline guardado (regressão permitida em porcentagem). Um benchmark acima do orçamento, uma regressão e um orçamento sem benchmark correspondente são achados que bloqueiam; os tempos dependem da máquina. Provado em um fixture lento e um rápido por stack pelo motor real.",
+    },
+    external: { en: "the benchmark harness in the project (pytest-benchmark, vitest, criterion, BenchmarkDotNet; go test needs nothing more); budgets or a baseline file in tools.yml", ptBR: "o harness de benchmark no projeto (pytest-benchmark, vitest, criterion, BenchmarkDotNet; o go test não precisa de mais nada); orçamentos ou um arquivo de baseline no tools.yml" },
+  },
+  "dotnet-vulnerable": {
+    capabilities: {
+      dependencies: proven(["csharp"], SC_VULN),
+    },
+    otherTests: SC_OTHER,
+    limitation: {
+      en: "dotnet list package --vulnerable --include-transitive --format json over the restored solution or project, with the network to the package sources for their vulnerability data: one blocking finding per vulnerable package and advisory with NuGet's severity; a report with an error or without a source is an error stage, never a clean result. Proven on a bad (Newtonsoft.Json 12.0.1) and a clean project with the real .NET SDK 10.0.403 against nuget.org through the real engine.",
+      ptBR: "dotnet list package --vulnerable --include-transitive --format json sobre a solução ou o projeto restaurado, com rede até as fontes de pacotes para os dados de vulnerabilidade: um achado que bloqueia por pacote vulnerável e advisory, com a severidade do NuGet; um relatório com erro ou sem fonte vira etapa com erro, nunca um resultado limpo. Provado em um projeto ruim (Newtonsoft.Json 12.0.1) e um limpo com o SDK .NET 10.0.403 real contra o nuget.org pelo motor real.",
+    },
+    external: { en: "the .NET SDK of the JGates tools image; network to nuget.org (or the project's sources)", ptBR: "o SDK .NET da imagem de ferramentas do JGates; rede até o nuget.org (ou as fontes do projeto)" },
   },
 };
 
