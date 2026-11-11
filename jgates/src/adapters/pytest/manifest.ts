@@ -63,8 +63,8 @@ export const pytestManifest: AdapterManifest = {
     "Coverage is by lines of the measured source (src/ when it exists, else the component, or what the component's coverage configuration declares).",
   ],
   stackSupport: [
-    { capability: "unit", stack: "python", state: "validated", prerequisites: ["pytest 7+ in the project environment"] },
-    { capability: "coverage", stack: "python", state: "validated", prerequisites: ["pytest 7+ and pytest-cov in the project environment"] },
+    { capability: "unit", stack: "python", state: "validated", prerequisites: ["pytest from the JGates tools image (the project's own dependencies come from its dependency volume)"] },
+    { capability: "coverage", stack: "python", state: "validated", prerequisites: ["pytest and pytest-cov from the JGates tools image"] },
     { capability: "integration", stack: "python", state: "validated", prerequisites: ["integration tests under tests/integration or marked @pytest.mark.integration (or tools.<id>.selection)"], limitations: ["the unit run leaves the selection out (--ignore or -m \"not <marker>\"); services come from the compose section when the tests need them"] },
     { capability: "properties", stack: "python", state: "validated", prerequisites: ["Hypothesis (the tools image ships it for its pytest; a project that declares pytest brings its own)"], limitations: ["static detection of @given tests"] },
   ],

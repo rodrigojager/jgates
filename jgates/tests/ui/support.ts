@@ -33,6 +33,25 @@ select = ["E", "F"]
 // One violation per rule: F401 (unused import) and E711 (comparison to None).
 export const MODULE = "import os\n\n\ndef check(value):\n    return value == None\n";
 
+/**
+ * Removes a fixture folder. On Windows a folder cannot go while a process still has it as its working folder (a git
+ * child of the stopped server can outlive it for a moment), so EPERM/EBUSY/ENOTEMPTY are retried for up to 30 s; the
+ * maxRetries option of fs.rmSync does not cover this case.
+ */
+export function removeDir(dir: string): void {
+  const deadline = Date.now() + 30_000;
+  for (;;) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code ?? "";
+      if (Date.now() > deadline || !["EPERM", "EBUSY", "ENOTEMPTY"].includes(code)) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    }
+  }
+}
+
 export interface Fixture {
   dir: string;
   home: string;
@@ -68,7 +87,7 @@ export function createFixture(): Fixture {
     pyproject: path.join(dir, "pyproject.toml"),
     env,
     cleanup() {
-      for (const d of [dir, home, emptyBin, store]) fs.rmSync(d, { recursive: true, force: true });
+      for (const d of [dir, home, emptyBin, store]) removeDir(d);
     },
   };
 }
@@ -275,7 +294,7 @@ export function createGateFixture(): GateFixture {
       return total;
     },
     cleanup() {
-      for (const d of [dir, home, aux, store]) fs.rmSync(d, { recursive: true, force: true });
+      for (const d of [dir, home, aux, store]) removeDir(d);
     },
   };
 }

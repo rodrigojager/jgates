@@ -5,6 +5,7 @@
   "description": "Isolated npm prefix of dependency-cruiser in the JGates tools image.",
   "license": "MIT",
   "dependencies": {
-    "dependency-cruiser": "18.7.2"
+    "dependency-cruiser": "18.7.2",
+    "typescript": "6.0.3"
   }
 }

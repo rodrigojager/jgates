@@ -146,6 +146,44 @@ test("local installs use the lockfile when there is one; governed installs are f
   assert.deepEqual(custom.recipe.commands, [["sh", "-c", "bun install --frozen-lockfile"]]);
   assert.equal(recipe(project, units.bunapp, true, "bun install").reasonKey, "deps_not_ready_governed_custom");
 
+  // Governed, reading the manifests: a unit that declares no dependency has nothing to pin, so it installs nothing
+  // instead of being blocked for a lockfile; one that declares any dependency without a lockfile is still blocked.
+  const empty = tmp("jgates-deps-empty-");
+  write(empty, {
+    "node/package.json": '{ "name": "n", "private": true, "scripts": { "test": "x" } }\n',
+    "nodedeps/package.json": '{ "name": "d", "private": true, "devDependencies": { "vitest": "5.1.0" } }\n',
+    "gomod/go.mod": "module example.com/a\n\ngo 1.21\n",
+    "godeps/go.mod": "module example.com/b\n\ngo 1.21\n\nrequire example.com/c v1.0.0\n",
+    "rust/Cargo.toml": '[package]\nname = "a"\nversion = "0.1.0"\nedition = "2021"\n\n[dependencies]\n',
+    "rust/src/lib.rs": "",
+    "rustdeps/Cargo.toml": '[package]\nname = "b"\nversion = "0.1.0"\nedition = "2021"\n\n[dev-dependencies]\nproptest = "1"\n',
+    "rustdeps/src/lib.rs": "",
+    "py/pyproject.toml": '[project]\nname = "a"\nversion = "0.1.0"\n\n[tool.mypy]\nstrict = true\n',
+    "py/a.py": "",
+    "pydeps/pyproject.toml": '[project]\nname = "b"\nversion = "0.1.0"\ndependencies = ["requests"]\n',
+    "pydeps/b.py": "",
+    "net/app.csproj": '<Project Sdk="Microsoft.NET.Sdk"></Project>\n',
+    "netdeps/app.csproj": '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="Newtonsoft.Json" Version="13.0.3" /></ItemGroup></Project>\n',
+  });
+  const emptyUnits = Object.fromEntries(unitsOf(empty).map((u) => [u.id, u]));
+  const readingGoverned = (id) => {
+    const unit = emptyUnits[id];
+    assert.ok(unit, `${id}: ${Object.keys(emptyUnits).join(", ")}`);
+    const root = path.join(empty, ...(unit.installRoot === "." ? [] : unit.installRoot.split("/")));
+    const read = (name) => (fs.existsSync(path.join(root, name)) ? fs.readFileSync(path.join(root, name), "utf8") : undefined);
+    return deps.recipeFor(unit, { governed: true, files: deps.filesIn(empty, unit.installRoot), installCommand: null, registry: null, read });
+  };
+  for (const id of ["node", "gomod", "rust", "py", "net"]) {
+    const r = readingGoverned(id);
+    assert.equal(r.ok, true, `${id} declares nothing: ${JSON.stringify(r)}`);
+    assert.deepEqual(r.recipe.commands, [], `${id} installs nothing`);
+  }
+  for (const id of ["nodedeps", "godeps", "rustdeps", "pydeps", "netdeps"]) {
+    const r = readingGoverned(id);
+    assert.equal(r.ok, false, `${id} declares a dependency and has no lockfile`);
+    assert.equal(r.reasonKey, "deps_not_ready_governed_lockfile", `${id}: ${JSON.stringify(r)}`);
+  }
+
   // The key follows the lockfile and the mode, never the token.
   const keyOf = (unit, governedMode, registryUrl = null) => {
     const r = recipe(project, unit, governedMode);

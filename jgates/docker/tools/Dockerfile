@@ -286,6 +286,8 @@ RUN set -eux; \
       libproxy1v5 libsecret-1-0 libsoup-3.0-0 libwayland-client0 libwayland-egl1 libwayland-server0 libwebp7 \
       libwebpdemux2 libwoff1 libx11-6 libx11-xcb1 libxcb-shm0 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 \
       libxfixes3 libxi6 libxkbcommon0 libxml2 libxrandr2 libxrender1 libxslt1.1 libxtst6; \
+    # The Debian security updates of everything installed so far (the image-scan gate fails on a fixed critical CVE).
+    apt-get upgrade -y --no-install-recommends; \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb /var/log/apt /var/log/dpkg.log
 # Least frequently changed first: language toolchains, then the tool binaries, then the tool environments.
 COPY --from=dotnet /usr/share/dotnet /usr/share/dotnet

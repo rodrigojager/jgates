@@ -2,7 +2,7 @@
 
 // V2 acceptance harness. Every tests/v2/*.mjs module is a case file that registers its own `test(...)` calls when
 // imported; this file only imports them, in name order, so their tests run here as top-level tests. Run it from the
-// repository root with `node --test --test-reporter=tap tests/v2.acceptance.test.js`. A module that fails to import
+// repository root with `node --test --test-reporter=tap tests/v2.acceptance.test.js` (no `--import` needed). A module that fails to import
 // fails the harness test below instead of being skipped. Case tests import the built output (jgates/dist,
 // semantic-gate/dist), so build both packages first. JGATES_V2_CASES_DIR points the harness at another folder (used
 // by the harness's own tests).
@@ -23,9 +23,20 @@ const caseFiles = fs.existsSync(casesDir)
       .sort()
   : [];
 
+// The node test environment of JGates (in-image mode with the package's image.json mirror and no real engine client by
+// default; jgates/tests/setup/in-image.mjs) is loaded here as well, so the harness behaves the same whether it runs
+// bare (`node --test tests/v2.acceptance.test.js`) or under `npm test`, which also passes it with `--import`. Cases of
+// the container mode clear JGATES_IMAGE_JSON and name the fake engine themselves.
+const inImageSetup = path.join(__dirname, "..", "jgates", "tests", "setup", "in-image.mjs");
+
 // The imports start here, outside any test, so the tests a case module registers are top-level tests of this file.
 const failures = [];
 const loaded = (async () => {
+  try {
+    await import(pathToFileURL(inImageSetup).href);
+  } catch (error) {
+    failures.push({ name: "jgates/tests/setup/in-image.mjs", error });
+  }
   for (const name of caseFiles) {
     try {
       await import(pathToFileURL(path.join(casesDir, name)).href);

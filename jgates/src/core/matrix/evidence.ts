@@ -206,7 +206,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       en: "Without pytest-cov the coverage is not measured (incomplete, never 0%); the run executes project code.",
       ptBR: "Sem pytest-cov a cobertura não é medida (incompleto, nunca 0%); a execução roda código do projeto.",
     },
-    external: { en: "pytest 7+ and pytest-cov in the project environment", ptBR: "pytest 7+ e pytest-cov no ambiente do projeto" },
+    external: { en: "pytest and pytest-cov (in the JGates tools image)", ptBR: "pytest e pytest-cov (na imagem de ferramentas do JGates)" },
     otherTests: [t("adapter-pytest.test.js", "a Hypothesis property test is reported as its own metric")],
   },
   mutation: {

@@ -59,7 +59,7 @@ export const importLinterManifest: AdapterManifest = {
   license: "BSD-2-Clause",
   kind: "tool",
   stackSupport: [
-    { capability: "architecture", stack: "python", state: "validated", prerequisites: ["import-linter 2.15 (pip) in the project environment", "a contract from .jgates/architecture.yml or a native configuration"] },
+    { capability: "architecture", stack: "python", state: "validated", prerequisites: ["Import Linter from the JGates tools image (the project's own dependencies come from its dependency volume)", "a contract from .jgates/architecture.yml or a native configuration"] },
   ],
   distribution: {
     mode: "customer-supplied",

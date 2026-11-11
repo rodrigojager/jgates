@@ -100,6 +100,79 @@ function keyFilesOf(unit: InstallUnit, files: string[]): string[] {
 
 const notReady = (reasonKey: string, params: Record<string, string> = {}): RecipeResult => ({ ok: false, code: "DEPENDENCIES_NOT_READY", reasonKey, params });
 
+const DEPENDENCY_TABLE = /^\s*\[(?:target\.[^\]]+\.)?(?:dependencies|dev-dependencies|build-dependencies)\]\s*$/;
+
+/** True when a TOML table named by `header` has at least one key line before the next table. */
+function tableHasEntries(text: string, header: RegExp): boolean {
+  let inside = false;
+  for (const line of text.split(/\r?\n/)) {
+    if (/^\s*\[/.test(line)) inside = header.test(line);
+    else if (inside && /^\s*[A-Za-z0-9_"'.-]+\s*=/.test(line)) return true;
+  }
+  return false;
+}
+
+/**
+ * True when the manifests of a unit declare no dependency at all, read conservatively (anything unclear counts as a
+ * dependency): there is nothing to install, so nothing a lockfile could pin. A governed run then installs nothing and
+ * the steps use the image's tools, instead of blocking the unit for a lockfile that cannot exist (an empty go.sum is
+ * never written, npm writes no lockfile for an empty package.json).
+ */
+export function declaresNoDependencies(unit: InstallUnit, options: Pick<RecipeOptions, "files" | "read">): boolean {
+  const read = options.read;
+  if (!read) return false;
+  const files = options.files;
+  switch (unit.info.ecosystem) {
+    case "node": {
+      const text = read("package.json");
+      if (text === undefined || files.includes("pnpm-workspace.yaml")) return false;
+      let doc: Record<string, unknown>;
+      try {
+        doc = JSON.parse(text) as Record<string, unknown>;
+      } catch {
+        return false;
+      }
+      if (doc.workspaces !== undefined) return false;
+      return ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies", "bundleDependencies", "bundledDependencies"].every((key) => {
+        const value = doc[key];
+        if (value === undefined) return true;
+        if (Array.isArray(value)) return value.length === 0;
+        return typeof value === "object" && value !== null && Object.keys(value).length === 0;
+      });
+    }
+    case "go": {
+      const text = read("go.mod");
+      if (text === undefined || files.includes("go.work")) return false;
+      return !/^\s*require\b/m.test(text);
+    }
+    case "rust": {
+      const text = read("Cargo.toml");
+      if (text === undefined || /^\s*\[workspace(?:\.[^\]]*)?\]/m.test(text)) return false;
+      if (/^\s*\[(?:target\.[^\]]+\.)?(?:dependencies|dev-dependencies|build-dependencies)\.[^\]]+\]/m.test(text)) return false;
+      return !tableHasEntries(text, DEPENDENCY_TABLE);
+    }
+    case "python": {
+      if (unit.info.manager !== "uv") return false;
+      if (files.some((n) => /^requirements.*\.txt$/.test(n) || ["Pipfile", "setup.py", "setup.cfg"].includes(n))) return false;
+      const text = read("pyproject.toml");
+      if (text === undefined) return false;
+      if (/^\s*\[(?:project\.optional-dependencies|dependency-groups|tool\.poetry[^\]]*|tool\.pdm[^\]]*|tool\.uv[^\]]*)\]/m.test(text)) return false;
+      const deps = /^\s*dependencies\s*=\s*\[([\s\S]*?)\]/m.exec(text);
+      return deps === null || deps[1]?.trim() === "";
+    }
+    case "dotnet": {
+      if (files.some((n) => /\.(sln|slnx)$/.test(n) || ["Directory.Packages.props", "packages.config"].includes(n))) return false;
+      const projects = files.filter((n) => /\.(csproj|fsproj|vbproj)$/.test(n));
+      if (projects.length === 0) return false;
+      return projects.every((name) => {
+        const text = read(name);
+        return text !== undefined && !/<(PackageReference|ProjectReference|PackageDownload)\b/.test(text);
+      });
+    }
+  }
+  return false;
+}
+
 /** The recipe of a unit, or why it cannot be installed (ambiguous, unsupported, governed without a lockfile). */
 export function recipeFor(unit: InstallUnit, options: RecipeOptions): RecipeResult {
   const info = unit.info;
@@ -128,6 +201,10 @@ export function recipeFor(unit: InstallUnit, options: RecipeOptions): RecipeResu
   }
   if (!info.manager) return notReady("deps_not_ready_no_manager", params);
   const locked = info.lockfile !== null;
+  // Governed: a unit whose manifests declare nothing has nothing to pin or install (its steps use the image's tools).
+  if (options.governed && !custom && declaresNoDependencies(unit, options)) {
+    return { ok: true, recipe: { manager: info.manager, target: workspacePath(root), commands: [], installEnv: {}, stepEnv: {}, pathPrefix: [], keyFiles: keyFilesOf(unit, options.files), mode: "frozen" } };
+  }
   if (options.governed && !locked) return notReady("deps_not_ready_governed_lockfile", { ...params, manager: info.manager });
   if (options.governed && custom && (info.manager === "bun" || info.state === "unsupported")) return notReady("deps_not_ready_governed_custom", params);
 

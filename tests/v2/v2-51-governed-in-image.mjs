@@ -46,7 +46,8 @@ const write = (dir, files) => {
 const iso = (ms) => new Date(ms).toISOString().replace(/\.\d+Z$/, "Z");
 const CAPABILITIES = ["file-size", "lint", "secrets", "sast", "dependencies", "duplication", "iac", "unit", "coverage", "pii"];
 const profiles = `schemaVersion: 1\nprofiles:\n  gate:\n    label: gate\n    extends: builtin:minimal\n    checks:\n${CAPABILITIES.map((c) => `      capability:${c}:\n        enabled: ${c === "file-size" || c === "dependencies"}\n`).join("")}`;
-const GO_FILES = { "go.mod": "module example.com/app\n\ngo 1.22\n", "go.sum": "", "main.go": "package main\n\nfunc main() {}\n" };
+// The module declares a dependency: one that declares none has nothing to pin or install (declaresNoDependencies).
+const GO_FILES = { "go.mod": "module example.com/app\n\ngo 1.22\n\nrequire example.com/dep v1.0.0\n", "go.sum": "", "main.go": "package main\n\nfunc main() {}\n" };
 
 const git = (dir, ...args) => {
   const r = spawnSync("git", args, { cwd: dir, encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "Fixture", GIT_AUTHOR_EMAIL: "fixture@example.invalid", GIT_COMMITTER_NAME: "Fixture", GIT_COMMITTER_EMAIL: "fixture@example.invalid" } });

@@ -28,9 +28,11 @@ const ADAPTER_ID = dependencyCruiserManifest.id;
 const RUN_DIR = "{runDir}";
 const WORKSPACE = "{workspace}";
 
-// The image installs each Node tool in its own npm prefix, so dependency-cruiser cannot see the image's TypeScript and
-// would read .ts files as plain text (an empty graph). Its transpiler probe asks Node to resolve "typescript" from its
-// own folder: NODE_PATH answers the version check (a CommonJS require) and a resolve hook answers the import.
+// The image installs each Node tool in its own npm prefix. dependency-cruiser's prefix now carries TypeScript itself
+// (docker/tools/node/dependency-cruiser/package.json), so Node finds it next to the tool first. An image built before
+// that could not see the image's TypeScript and would read .ts files as plain text (an empty graph), so these stay as a
+// fallback: the transpiler probe asks Node to resolve "typescript" from its own folder; NODE_PATH answers the version
+// check (a CommonJS require) and a resolve hook answers the import only when the normal resolution fails.
 const IMAGE_TYPESCRIPT_PREFIX = "/opt/tools/node/typescript/node_modules";
 const RESOLVE_HOOK = `export async function resolve(s,c,n){try{return await n(s,c)}catch(e){if(s==="typescript")return n("file://${IMAGE_TYPESCRIPT_PREFIX}/typescript/lib/typescript.js",c);throw e}}`;
 const REGISTER_HOOK = `import{register}from"node:module";register("data:text/javascript,${encodeURIComponent(RESOLVE_HOOK)}")`;

@@ -205,7 +205,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
     setBusy("save");
     setError(null);
     try {
-      await api("POST", "/api/tools/custom", request());
+      await api("POST", "/api/tools/custom/save", request());
       setSaved(id);
       setResult(null);
       go("test");

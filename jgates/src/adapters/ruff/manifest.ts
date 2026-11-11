@@ -61,7 +61,7 @@ export const ruffManifest: AdapterManifest = {
   license: "MIT",
   kind: "tool",
   stackSupport: [
-    { capability: "lint", stack: "python", state: "validated", prerequisites: ["Ruff on PATH (pip) or a container image pinned by tools prepare"] },
+    { capability: "lint", stack: "python", state: "validated", prerequisites: ["Ruff from the JGates tools image"] },
   ],
   distribution: {
     mode: "customer-supplied",

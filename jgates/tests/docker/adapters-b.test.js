@@ -239,17 +239,21 @@ scenario("gitleaks (files): a committed-looking token is a redacted finding and 
   },
 });
 
+// tools.yml overrides the base template's `gitleaks` instance (one instance scans one scope) to the history; a second
+// instance keeps the directory scan, so the minimal profile's required `secrets` stays covered. Only the history instance
+// runs (--only tool:gitleaks); the working tree never holds the token, so a github-pat finding comes from the history.
+const GITLEAKS_HISTORY_TOOLS = `${toolsYml("gitleaks", "gitleaks", "secrets-history")}  gitleaks-tree:\n    adapter: gitleaks\n    capabilities: [secrets]\n`;
 scenario("gitleaks (history): a token removed in a later commit is still found in the history, and a history without it passes", {
   tool: "gitleaks",
   rule: { id: "github-pat" },
   bad: {
     files: { "settings.py": 'DEBUG = True\n' },
-    tools: toolsYml("gitleaks", "gitleaks", "secrets-history"),
+    tools: GITLEAKS_HISTORY_TOOLS,
     history: [{ message: "add token", write: { "settings.py": secretSource } }, { message: "remove token", write: { "settings.py": "DEBUG = True\n" } }],
   },
   clean: {
     files: { "settings.py": "DEBUG = True\n" },
-    tools: toolsYml("gitleaks", "gitleaks", "secrets-history"),
+    tools: GITLEAKS_HISTORY_TOOLS,
     history: [{ message: "change", write: { "settings.py": "DEBUG = False\n" } }],
   },
 });

@@ -257,8 +257,10 @@ export const routes: RouteDefinition[] = [
     },
   },
   {
+    // Writes the own tool ("Salvar"). Not `POST /api/tools/custom`: that path is also `GET /api/tools/:instance`, so a
+    // GET of it would reach the instance lookup instead of being refused as a read of a mutation-only route.
     method: "POST",
-    path: "/api/tools/custom",
+    path: "/api/tools/custom/save",
     timeoutMs: 30_000,
     body: customBody,
     handler({ body, server }) {

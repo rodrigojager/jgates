@@ -506,6 +506,10 @@ const rowsOf = (adapter, caps, stacks) => caps.flatMap((cap) => stacks.map((stac
 const tools = (id, adapter, caps, extra = "") => `schemaVersion: 1\ntools:\n  ${id}:\n    adapter: ${adapter}\n    capabilities: [${caps.join(", ")}]\n${extra}`;
 const TESTS_CAPS = ["unit", "coverage", "integration", "properties"];
 
+/** package.json of the smoke's Vitest projects without their dependencies (the smoke has no network). */
+const VITEST_PACKAGE = '{\n  "name": "vitest-stack-fixture",\n  "version": "0.1.0",\n  "private": true,\n  "type": "module"\n}\n';
+const PERF_TS_PACKAGE = (name) => `{\n  "name": "${name}",\n  "version": "1.0.0",\n  "private": true,\n  "type": "module",\n  "scripts": { "bench": "vitest bench" }\n}\n`;
+
 export const SMOKE_GROUPS = [
   {
     id: "file-size",
@@ -597,9 +601,10 @@ export const SMOKE_GROUPS = [
     covers: rowsOf("vitest", ["unit", "coverage", "integration"], ["typescript"]),
     templates: ["typescript-vitest"],
     minimum: 80,
-    // The fixture's property test needs fast-check, a dependency of the project: plain tests stand in for it.
-    bad: { copy: "test-stacks/vitest/clean", overlay: { "src/calc.test.ts": "import { add } from \"./calc\";\n\ntest(\"adds two numbers\", () => {\n  expect(add(2, 3)).toBe(6);\n});\n" } },
-    clean: { copy: "test-stacks/vitest/clean", overlay: { "src/calc.test.ts": "import { absolute, add } from \"./calc\";\n\ntest(\"adds two numbers\", () => {\n  expect(add(2, 3)).toBe(5);\n});\n\ntest(\"absolute value\", () => {\n  expect(absolute(-4)).toBe(4);\n  expect(absolute(4)).toBe(4);\n});\n" } },
+    // The fixture's property test needs fast-check, a dependency of the project, and the smoke has no network (a governed
+    // run would install it from the registry): plain tests stand in for it and the project declares no dependency.
+    bad: { copy: "test-stacks/vitest/clean", overlay: { "package.json": VITEST_PACKAGE, "src/calc.test.ts": "import { add } from \"./calc\";\n\ntest(\"adds two numbers\", () => {\n  expect(add(2, 3)).toBe(6);\n});\n" } },
+    clean: { copy: "test-stacks/vitest/clean", overlay: { "package.json": VITEST_PACKAGE, "src/calc.test.ts": "import { absolute, add } from \"./calc\";\n\ntest(\"adds two numbers\", () => {\n  expect(add(2, 3)).toBe(5);\n});\n\ntest(\"absolute value\", () => {\n  expect(absolute(-4)).toBe(4);\n  expect(absolute(4)).toBe(4);\n});\n" } },
   },
   {
     id: "eslint",
@@ -651,8 +656,10 @@ export const SMOKE_GROUPS = [
     covers: rowsOf("performance", ["performance"], ["typescript", "javascript"]),
     templates: ["typescript-vitest-bench"],
     tools: tools("vitest-bench", "performance", ["performance"], "    harness: vitest-bench\n    budgets:\n      \"*fib(20)\": 5\n"),
-    bad: { copy: "e2e-migration-performance/perf-ts/bad" },
-    clean: { copy: "e2e-migration-performance/perf-ts/clean" },
+    // The smoke has no network, so the project declares no dependency (a governed run would install its vitest from the
+    // registry): the bench runs with the image's Vitest.
+    bad: { copy: "e2e-migration-performance/perf-ts/bad", overlay: { "package.json": PERF_TS_PACKAGE("perf-ts-bad") } },
+    clean: { copy: "e2e-migration-performance/perf-ts/clean", overlay: { "package.json": PERF_TS_PACKAGE("perf-ts-clean") } },
   },
   {
     id: "mutation-javascript",

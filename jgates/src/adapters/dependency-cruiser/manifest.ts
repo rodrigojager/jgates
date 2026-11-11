@@ -59,8 +59,8 @@ export const dependencyCruiserManifest: AdapterManifest = {
     "An import the tool cannot resolve (an alias without a matching tsconfig path, a package that is not installed) is a gap of coverage, not a pass.",
   ],
   stackSupport: [
-    { capability: "architecture", stack: "typescript", state: "validated", prerequisites: ["dependency-cruiser 16+ in node_modules", "rules in .jgates/architecture.yml"] },
-    { capability: "architecture", stack: "javascript", state: "customer-setup-required", prerequisites: ["dependency-cruiser 16+ in node_modules", "rules in .jgates/architecture.yml"], limitations: ["No JGates test exercises a JavaScript-only project yet; the TypeScript fixture proves the adapter."] },
+    { capability: "architecture", stack: "typescript", state: "validated", prerequisites: ["dependency-cruiser from the JGates tools image (or the project's own in node_modules)", "rules in .jgates/architecture.yml"] },
+    { capability: "architecture", stack: "javascript", state: "customer-setup-required", prerequisites: ["dependency-cruiser from the JGates tools image (or the project's own in node_modules)", "rules in .jgates/architecture.yml"], limitations: ["No JGates test exercises a JavaScript-only project yet; the TypeScript fixture proves the adapter."] },
   ],
   distribution: {
     mode: "customer-supplied",

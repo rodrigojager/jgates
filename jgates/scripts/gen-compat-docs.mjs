@@ -32,34 +32,34 @@ const check = process.argv.includes("--check");
 const SKELETON = {
   "pt-BR": `# Matriz de compatibilidade do JGates
 
-Esta matriz é gerada dos manifestos dos adaptadores e das evidências de teste (\`jgates tools matrix --json\`). Cada capacidade integrada cita o arquivo de teste que a prova (em \`jgates/tests\`) e cada adaptador descreve a sua limitação. Um teste (\`jgates/tests/matrix.test.js\`) falha se uma capacidade for anunciada sem teste existente ou sem limitação descrita, e se esta tabela divergir da saída do comando. Para regenerar: \`npm --prefix jgates run build && npm --prefix jgates run docs:compat\`.
+Esta matriz é gerada dos manifestos dos adaptadores e das evidências de teste (\`jgates tools matrix --json\`). Cada capacidade integrada cita o arquivo de teste que a prova (em \`jgates/tests\`) e cada adaptador descreve a sua limitação. Um teste (\`jgates/tests/matrix.test.js\`) falha se uma capacidade for anunciada sem teste existente ou sem limitação descrita, e se esta tabela divergir da saída do comando. Para regenerar as tabelas: \`npm --prefix jgates run build && npm --prefix jgates run docs:compat\`.
 
 ## Sistemas operacionais
 
 - Linux: testado.
-- Windows: ainda não testado; os testes que dependem do Windows estão marcados e pulam fora dele.
+- Windows: o fluxo do primeiro uso foi conferido à mão no Windows 10 com Docker Desktop; a suíte automática roda no Linux, e os testes que dependem do Windows estão marcados e pulam fora dele.
 - macOS: não testado em máquina real.
 
 ## Suporte parcial
 
-Go e Rust têm suporte parcial: descoberta, configuração explícita e o comando genérico com \`go test\` e \`cargo test\`. O que cada stack não cobre está na segunda tabela. .NET também é parcial.
+Toda stack roda na imagem de ferramentas do JGates, só em \`linux/amd64\`. Uma stack com "partial" na segunda tabela deixa algo de fora, listado na coluna "Not covered"; nenhuma stack é apresentada como completa além do que a tabela diz. As suas ferramentas próprias (veja [suas próprias ferramentas](extension.pt-BR.md)) nunca contam aqui.
 
 ## Matriz
 
 `,
   en: `# JGates compatibility matrix
 
-This matrix is generated from the adapter manifests and the test evidence (\`jgates tools matrix --json\`). Each integrated capability names the test file that proves it (in \`jgates/tests\`) and each adapter states its limitation. A test (\`jgates/tests/matrix.test.js\`) fails if a capability is announced without an existing test or without a described limitation, and if this table differs from the command output. To regenerate: \`npm --prefix jgates run build && npm --prefix jgates run docs:compat\`.
+This matrix is generated from the adapter manifests and the test evidence (\`jgates tools matrix --json\`). Each integrated capability names the test file that proves it (in \`jgates/tests\`) and each adapter states its limitation. A test (\`jgates/tests/matrix.test.js\`) fails if a capability is announced without an existing test or without a described limitation, and if this table differs from the command output. To regenerate the tables: \`npm --prefix jgates run build && npm --prefix jgates run docs:compat\`.
 
 ## Operating systems
 
 - Linux: tested.
-- Windows: not tested yet; tests that depend on Windows are marked and skip elsewhere.
+- Windows: the first-run flow was checked by hand on Windows 10 with Docker Desktop; the automatic suite runs on Linux, and tests that depend on Windows are marked and skip elsewhere.
 - macOS: not tested on real hardware.
 
 ## Partial support
 
-Go and Rust have partial support: discovery, explicit configuration and the generic command with \`go test\` and \`cargo test\`. What each stack does not cover is in the second table. .NET is partial as well.
+Every stack runs in the JGates tools image, only on \`linux/amd64\`. A stack with "partial" in the second table is missing something, listed in the "Not covered" column; no stack is presented as complete beyond what the table says. Your own tools (see [your own tools](extension.en.md)) never count here.
 
 ## Matrix
 
