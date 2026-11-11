@@ -61,6 +61,10 @@ function keysOf(value: unknown): string[] {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : [];
 }
 
+function isRecordOf(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
 function at(config: Record<string, unknown>, ...segments: string[]): unknown {
   let node: unknown = config;
   for (const s of segments) {
@@ -74,7 +78,10 @@ function at(config: Record<string, unknown>, ...segments: string[]): unknown {
 export function buildUniverse(config: Record<string, unknown>, inventory?: InventoryLike, options: UniverseOptions = {}): Universe {
   const catalog = createCoreCatalog().toDocument();
   const tools = new Map<string, UniverseTool>();
-  for (const manifest of options.manifests ?? [qualityBridgeManifest]) {
+  // The quality bridge is retired from the plans: its subchecks exist only for a project that still declares an
+  // instance of the adapter (a custom template; tools.yml entries are migrated to individual instances when read).
+  const declaresBridge = Object.values(isRecordOf(at(config, "tools"))).some((body) => isRecordOf(body).adapter === qualityBridgeManifest.id);
+  for (const manifest of options.manifests ?? (declaresBridge ? [qualityBridgeManifest] : [])) {
     for (const sub of manifest.subchecks ?? []) {
       const id = `${manifest.id}.${sub.id}`;
       tools.set(id, { id, capabilities: [...sub.capabilities], component: null, parent: manifest.id });

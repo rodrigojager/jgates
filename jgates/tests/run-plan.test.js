@@ -38,6 +38,9 @@ function project(profile = "strict") {
   const cli = (...args) => cliWith({}, ...args);
   const init = cli("init", "--cwd", dir, "--profile", profile, "--no-interactive", "--json");
   assert.equal(init.code, 0, init.out + init.err);
+  // The api component has a pytest configuration: the pytest template brings the unit and coverage items that the strict
+  // profile requires (the quality bridge's project tests are retired).
+  fs.writeFileSync(path.join(dir, "api", "pytest.ini"), "[pytest]\n");
   const runsDir = () => {
     const ws = path.join(home, "workspaces");
     if (!fs.existsSync(ws)) return [];
@@ -239,7 +242,8 @@ test("legacy bridge flags still drive a project without JGates configuration, an
 test("normalization from a plan: items the plan turned off are disabled with the plan's origin even when the sidecar ran them", () => {
   const p = project();
   try {
-    const built = planApi.buildPlan(p.dir, { skip: ["capability:unit", "tool:quality-bridge.semgrep"], compare: false, env: { ...process.env, JGATES_PYTHON: PYTHON } });
+    // The bridge is retired from the interactive plans; the governed path (jgates ci) keeps it, so the plan is a governed one.
+    const built = planApi.buildPlan(p.dir, { skip: ["capability:unit", "tool:quality-bridge.semgrep"], compare: false, bridgePolicy: { file: "{runDir}/quality-policy.json", sha256: `sha256:${"0".repeat(64)}` }, env: { ...process.env, JGATES_PYTHON: PYTHON } });
     assert.ok(built.ok, JSON.stringify(built));
     const plan = built.plan;
     const ids = bridge.qualityBridgeManifest.subchecks.map((s) => s.id);
@@ -288,7 +292,7 @@ test("an empty or not approvable plan never runs: run exits 3, creates no run an
   try {
     // Every check off for this run: the plan is empty with selected requirements (mypy and the formatters are in the tools image, so the
     // project's typecheck plans it with its defaults and it is switched off too, like the history scan of Gitleaks).
-    const empty = p.cli("run", "--cwd", p.dir, "--skip", "tool:quality-bridge,tool:ruff,tool:builtin-pii,tool:tsc,tool:mypy,tool:ruff-format,tool:prettier,tool:gitleaks-history","--no-interactive", "--json");
+    const empty = p.cli("run", "--cwd", p.dir, "--skip", "tool:semgrep,tool:gitleaks,tool:osv-scanner,tool:trivy,tool:checkov,tool:jscpd,tool:file-size,tool:ruff,tool:builtin-pii,tool:tsc,tool:mypy,tool:ruff-format,tool:prettier,tool:gitleaks-history,tool:pytest,tool:pytest-integration,tool:mutmut","--no-interactive", "--json");
     assert.equal(empty.code, 3, empty.out + empty.err);
     const err = one(empty);
     assert.equal(err.error?.code ?? err.code, "PLAN_NOT_APPROVABLE");
@@ -298,7 +302,7 @@ test("an empty or not approvable plan never runs: run exits 3, creates no run an
 
     // The same plan saved with --out is refused by run --plan as well.
     const file = path.join(p.planDir, "vazio.json");
-    const saved = p.cli("plan", "--cwd", p.dir, "--skip", "tool:quality-bridge,tool:ruff,tool:builtin-pii,tool:tsc,tool:mypy,tool:ruff-format,tool:prettier,tool:gitleaks-history","--out", file, "--no-interactive", "--json");
+    const saved = p.cli("plan", "--cwd", p.dir, "--skip", "tool:semgrep,tool:gitleaks,tool:osv-scanner,tool:trivy,tool:checkov,tool:jscpd,tool:file-size,tool:ruff,tool:builtin-pii,tool:tsc,tool:mypy,tool:ruff-format,tool:prettier,tool:gitleaks-history,tool:pytest,tool:pytest-integration,tool:mutmut","--out", file, "--no-interactive", "--json");
     assert.equal(saved.code, 3);
     if (fs.existsSync(file)) {
       const viaFile = p.cli("run", "--cwd", p.dir, "--plan", file, "--no-interactive", "--json");
@@ -320,47 +324,6 @@ test("a run from a plan with the required scanners absent is incomplete, never p
     assert.equal(result.complete, false);
     assert.ok(result.unsatisfied.length > 0);
   } finally {
-    p.cleanup();
-  }
-});
-
-test("without a usable Python or sidecar the planned run is recorded as incomplete (exit 2) with the bridge stage blocked and the reason; it is never passed", () => {
-  const p = project();
-  const emptyBin = tmp("jgates-rp-bin2-");
-  try {
-    const cases = [
-      ["python", { JGATES_PYTHON: path.join(p.home, "no-such-python") }, /Python/],
-      ["sidecar", { JGATES_SIDECAR_DIR: path.join(p.home, "no-such-sidecar") }, /quality_sidecar/],
-    ];
-    for (const [name, extra, why] of cases) {
-      const before = p.runsDir().length;
-      const env = { ...process.env, ...NO_DOCKER, JGATES_HOME: p.home, JGATES_PYTHON: PYTHON, PATH: emptyBin, ...extra };
-      // The plan says the bridge cannot run, as a warning: it does not refuse the run any more.
-      const planned = spawnSync(process.execPath, [MAIN, "plan", "--cwd", p.dir, "--json"], { encoding: "utf8", env });
-      if (name === "python") {
-        const plan = one({ out: planned.stdout, err: planned.stderr }).plan;
-        assert.ok(plan.warnings.some((w) => w.code === "TOOL_UNAVAILABLE"), name);
-        assert.ok(!plan.blockers.some((b) => b.code === "TOOL_UNAVAILABLE"), name);
-      }
-      const r = spawnSync(process.execPath, [MAIN, "run", "--cwd", p.dir, "--no-interactive", "--json"], { encoding: "utf8", env });
-      assert.equal(r.status, 2, `${name}: ${r.stdout}${r.stderr}`);
-      const doc = JSON.parse(r.stdout);
-      assert.equal(doc.decision, "incomplete", name);
-      assert.notEqual(doc.decision, "passed", name);
-      assert.equal(doc.complete, false, name);
-      assert.equal(p.runsDir().length, before + 1, `${name}: the run is recorded`);
-      assert.ok(fs.existsSync(path.join(doc.runDir, "result.json")), name);
-      assert.ok(fs.existsSync(path.join(doc.runDir, "plan.json")), name);
-      const composite = doc.stages.find((s) => s.id === "quality-bridge");
-      assert.ok(composite, name);
-      assert.equal(composite.state, "blocked", name);
-      assert.match(composite.reason, why, name);
-      assert.equal(composite.execution.notRun.cause, "preflight", name);
-      for (const s of doc.stages.filter((x) => x.parentId === "quality-bridge")) assert.ok(["blocked", "disabled"].includes(s.state), `${name}: ${s.id} ${s.state}`);
-      assert.ok(doc.unsatisfied.length > 0, name);
-    }
-  } finally {
-    fs.rmSync(emptyBin, { recursive: true, force: true });
     p.cleanup();
   }
 });

@@ -102,7 +102,7 @@ function snapshot(dir) {
 }
 
 const willRun = (plan) => plan.groups.willRun.map((i) => i.id).sort();
-const UNIT = "quality-bridge.project-tests#unit";
+const UNIT = "pytest#unit";
 
 test("a reduced plan has no unit stage, the saved profile gives the same items, and no project file changes", async () => {
   const home = tmp("jg-reduced-home-");
@@ -110,6 +110,8 @@ test("a reduced plan has no unit stage, the saved profile gives the same items, 
   fs.writeFileSync(path.join(dir, "pyproject.toml"), '[project]\nname = "demo"\nversion = "0.1.0"\n');
   const init = spawnSync(process.execPath, [MAIN, "init", "--cwd", dir, "--profile", "strict", "--no-interactive", "--json"], { env: { ...process.env, JGATES_HOME: home }, encoding: "utf8" });
   assert.equal(init.status, 0, init.stdout + init.stderr);
+  // A pytest configuration brings the pytest template, whose unit item the strict profile requires.
+  fs.writeFileSync(path.join(dir, "pytest.ini"), "[pytest]\n");
   let ui = null;
   try {
     ui = await startUi(dir, home);

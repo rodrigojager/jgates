@@ -81,5 +81,8 @@
   "resolve_profile_duplicate": "O perfil '{id}' está definido em {a} e em {b}.",
   "config_option_skip": "Desliga seletores só nesta execução (separe vários por vírgula).",
   "config_migrated_execution_runner": "{file}: execution.runner ({value}) foi removido: toda verificação roda na imagem de ferramentas do JGates. A configuração é ignorada; apague-a e use schemaVersion: 2.",
+  "config_migrated_quality_bridge": "{file}: a ponte de qualidade ({tool}) foi aposentada e substituída por {count, plural, one {a instância individual} other {# instâncias individuais}} {tools}. O lint, os testes e a cobertura vêm dos templates de cada stack. Apague a entrada antiga.",
+  "config_migrated_bridge_selector": "{file}: o perfil {profile} liga ou desliga {selector}, e a ponte de qualidade foi aposentada. Agora vale para {replacement}.",
+  "config_migrated_bridge_selector_dropped": "{file}: o perfil {profile} cita {selector}, que não existe mais porque a ponte de qualidade foi aposentada (o lint vem do linter de cada stack, os testes do executor de testes de cada stack). A entrada é ignorada; apague-a.",
   "config_migrated_tool_runner": "{file}: o runner de {tool} ({value}) foi removido: toda verificação roda na imagem de ferramentas do JGates. A configuração é ignorada; apague-a."
 }

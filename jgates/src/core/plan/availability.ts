@@ -4,7 +4,7 @@
 // probed, installed or run.
 import fs from "node:fs";
 import path from "node:path";
-import type { Translator } from "../../i18n/index.js";
+import { translator, type Translator } from "../../i18n/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { listBuiltinTemplates } from "../../builtin/index.js";
 import type { AdapterManifest } from "../catalog/index.js";
@@ -72,6 +72,11 @@ export const emptyAction = (kind: NotApplicableAction["kind"]): NotApplicableAct
   docs: [],
   settings: [],
 });
+
+/** add-extension-tool: no JGates tool covers the capability for the project's languages; the customer adds their own. */
+export function extensionAction(): NotApplicableAction {
+  return { ...emptyAction("add-extension-tool"), route: "tools", label: translator("reasons")("plan_action_add_extension_tool") };
+}
 
 /** prepare-tool for instances whose tool is missing here, with the adapter's official acquisition links. */
 export function prepareAction(adapterId: string | null, tools: string[]): NotApplicableAction {
@@ -206,12 +211,12 @@ export function explainMissing(input: ExplainInput, t: Translator): Explanation 
   });
   const languages = input.languages.length > 0 ? input.languages.join(", ") : t("plan_na_no_languages");
   if (adapters.length === 0) {
-    return { reasonCode: "NO_TOOL", message: t("plan_na_no_tool", { label: input.label }), adapters, action: emptyAction("none") };
+    return { reasonCode: "NO_TOOL", message: t("plan_na_no_tool", { label: input.label }), adapters, action: extensionAction() };
   }
   const usable = adapters.filter((a) => a.applicable);
   if (usable.length === 0) {
     const listed = adapters.map((a) => (a.languages ? `${a.label}: ${a.languages.join(", ")}` : a.label)).join("; ");
-    return { reasonCode: "NO_TOOL_FOR_LANGUAGES", message: t("plan_na_no_tool_for_languages", { label: input.label, adapters: listed, languages }), adapters, action: emptyAction("none") };
+    return { reasonCode: "NO_TOOL_FOR_LANGUAGES", message: t("plan_na_no_tool_for_languages", { label: input.label, adapters: listed, languages }), adapters, action: extensionAction() };
   }
   // The best template over every usable adapter (stable: adapters in manifest order, templates by id).
   const candidates = usable.flatMap((a) => templatesFor(a.id, input.capability, input));

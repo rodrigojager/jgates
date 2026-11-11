@@ -374,6 +374,8 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     inventory,
     ...(configDir !== dir ? { configDir } : {}),
     ...(request.profile !== null ? { profile: request.profile } : {}),
+    // Governed CI keeps the quality gate's bridge; the interactive plans run the individual scanners.
+    ...(options.bridgePolicy ? { legacyBridge: true } : {}),
     ...(request.templates.length > 0 ? { templates: request.templates } : {}),
   };
   const baseline = resolveConfig(dir, common);
@@ -1045,8 +1047,8 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     versions: {
       jgates: options.version ?? readVersion(),
       detector: inventory.detectorVersion,
-      adapters: { [ADAPTER_ID]: qualityBridgeManifest.adapterVersion, ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.id, e.adapter.manifest.adapterVersion])) },
-      tools: { [qualityBridgeManifest.toolName]: runtime.toolVersion, ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.toolName, e.plan.toolVersion])) },
+      adapters: { ...(bridgePairs.length > 0 ? { [ADAPTER_ID]: qualityBridgeManifest.adapterVersion } : {}), ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.id, e.adapter.manifest.adapterVersion])) },
+      tools: { ...(bridgePairs.length > 0 ? { [qualityBridgeManifest.toolName]: runtime.toolVersion } : {}), ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.toolName, e.plan.toolVersion])) },
     },
     profile: effective.profile ? { id: effective.profile.id, label: effective.profile.label, chain: effective.profile.chain.map((c) => ({ ...c })) } : null,
     // The references as full commit ids (the request keeps them as typed): a plan of HEAD~1 stays the plan of that commit.

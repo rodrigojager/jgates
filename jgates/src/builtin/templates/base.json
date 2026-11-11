@@ -2,33 +2,52 @@
   "schemaVersion": 1,
   "id": "base",
   "label": "Base",
-  "description": "Base de qualquer stack: declara a ponte com o quality-gate e seleciona as subverificações dela. Os testes do projeto e a cobertura ficam para o perfil ligar.",
+  "description": "Base de qualquer stack: dados pessoais, SAST (Semgrep), segredos (Gitleaks), dependências (OSV-Scanner e Trivy), IaC (Checkov), duplicação (jscpd) e tamanho de arquivo, cada um como uma ferramenta própria na imagem de ferramentas. A ponte com o quality-gate saiu dos planos; o lint e os testes vêm dos templates de cada stack.",
   "config": {
     "workspace": {
       "exclude": [".git/**"]
     },
     "tools": {
-      "quality-bridge": {
-        "adapter": "quality-bridge",
+      "semgrep": {
+        "adapter": "semgrep",
         "enabled": true,
-        "capabilities": ["lint", "sast", "secrets", "dependencies", "duplication", "iac", "coverage", "unit", "file-size"]
+        "rulePack": "jgates",
+        "capabilities": ["sast"]
+      },
+      "gitleaks": {
+        "adapter": "gitleaks",
+        "enabled": true,
+        "capabilities": ["secrets"]
+      },
+      "osv-scanner": {
+        "adapter": "osv-scanner",
+        "enabled": true,
+        "capabilities": ["dependencies"]
+      },
+      "trivy": {
+        "adapter": "trivy",
+        "enabled": true,
+        "capabilities": ["dependencies", "iac"]
+      },
+      "checkov": {
+        "adapter": "checkov",
+        "enabled": true,
+        "capabilities": ["iac"]
+      },
+      "jscpd": {
+        "adapter": "jscpd",
+        "enabled": true,
+        "capabilities": ["duplication"]
+      },
+      "file-size": {
+        "adapter": "file-size",
+        "enabled": true,
+        "capabilities": ["file-size"]
       },
       "builtin-pii": {
         "adapter": "builtin-pii",
         "capabilities": ["pii"]
       }
-    },
-    "checks": {
-      "tool:quality-bridge.file-size": { "enabled": true },
-      "tool:quality-bridge.megalinter": { "enabled": true },
-      "tool:quality-bridge.semgrep": { "enabled": true },
-      "tool:quality-bridge.gitleaks": { "enabled": true },
-      "tool:quality-bridge.trivy": { "enabled": true },
-      "tool:quality-bridge.osv-scanner": { "enabled": true },
-      "tool:quality-bridge.jscpd": { "enabled": true },
-      "tool:quality-bridge.checkov": { "enabled": true },
-      "tool:quality-bridge.project-tests": { "enabled": false },
-      "tool:quality-bridge.coverage": { "enabled": false }
     }
   }
 }

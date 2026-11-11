@@ -81,5 +81,8 @@
   "resolve_profile_duplicate": "The profile '{id}' is defined in {a} and in {b}.",
   "config_option_skip": "Switches selectors off for this run only (separate several with commas).",
   "config_migrated_execution_runner": "{file}: execution.runner ({value}) was removed: every check runs in the JGates tools image. The setting is ignored; delete it and set schemaVersion: 2.",
+  "config_migrated_quality_bridge": "{file}: the quality bridge ({tool}) was retired and replaced by {count, plural, one {the individual instance} other {# individual instances}} {tools}. Lint, tests and coverage come from the templates of each stack. Delete the old entry.",
+  "config_migrated_bridge_selector": "{file}: profile {profile} turns {selector} on or off, and the quality bridge was retired. It now applies to {replacement}.",
+  "config_migrated_bridge_selector_dropped": "{file}: profile {profile} mentions {selector}, which no longer exists because the quality bridge was retired (its lint comes from the linter of each stack, its tests from the test runner of each stack). The entry is ignored; delete it.",
   "config_migrated_tool_runner": "{file}: the runner of {tool} ({value}) was removed: every check runs in the JGates tools image. The setting is ignored; delete it."
 }

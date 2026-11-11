@@ -243,11 +243,13 @@ export interface NotApplicableAdapter {
  *   one exists, and `files` the evidence it also needs (an OpenAPI file...). Without `settings`, declare an instance;
  * - configure-services: the checks of `tools` need the project's compose services (a services section in jgates.yml);
  *   `route` is the UI step that sets them up and `label` its control ("Configurar serviços");
- * - enable-check: turn on the checks of `tools`, switched off by a saved setting or by this run's flags.
+ * - enable-check: turn on the checks of `tools`, switched off by a saved setting or by this run's flags;
+ * - add-extension-tool: JGates has no tool for the capability in the project's languages (NO_TOOL, NO_TOOL_FOR_LANGUAGES): add
+ *   the customer's own tool through the extension flow; `route` is the UI step (tools) and `label` its control.
  * Unused fields are null or empty lists, so the shape is the same for every kind.
  */
 export interface NotApplicableAction {
-  kind: "none" | "prepare-tool" | "prepare-image" | "prepare-codeql" | "add-files" | "add-template" | "configure-tool" | "configure-services" | "enable-check";
+  kind: "none" | "prepare-tool" | "prepare-image" | "prepare-codeql" | "add-files" | "add-template" | "configure-tool" | "configure-services" | "enable-check" | "add-extension-tool";
   adapter: string | null;
   tools: string[];
   template: string | null;
@@ -267,9 +269,9 @@ export interface NotApplicableAction {
   prepareNext?: boolean;
   /** prepare-codeql: the JGates command line that fixes it. */
   command?: string;
-  /** configure-services: the UI route that sets the project's services up (the environment step). */
+  /** configure-services, add-extension-tool: the UI route that sets the project's services up (the environment step). */
   route?: string;
-  /** prepare-codeql, configure-services: the label of the control, in the language of the plan. */
+  /** prepare-codeql, configure-services, add-extension-tool: the label of the control, in the language of the plan. */
   label?: string;
 }
 

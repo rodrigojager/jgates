@@ -60,18 +60,13 @@ O `--dry-run` mostra versões, a rede que seria usada e o que seria gravado, sem
 
 O `prepare` vale para o Semgrep, cujas regras locais são baixadas uma vez e fixadas por hash. Em qualquer outra instância ele responde `PREPARE_NOT_SUPPORTED`.
 
-### Os scanners da ponte na imagem do sidecar
+### A ponte de qualidade foi aposentada
 
-A ponte do quality gate roda MegaLinter, Semgrep, Gitleaks, Trivy, Checkov, OSV-Scanner e jscpd. Numa máquina que não os tem instalados (no Windows, o MegaLinter só existe na imagem), cada um sairia `missing`. Quando o Docker responde e a imagem do sidecar `jgates/quality-sidecar:latest` existe, o run manda esses scanners para a imagem e mantém no host as subverificações internas (tamanho de arquivo, testes do projeto e cobertura); as duas respostas viram uma, e o plano e o resultado não mudam de forma. Construa a imagem uma vez, a partir da pasta `quality-gate` do pacote instalado ou do clone (ela é baseada no MegaLinter: grande, e a primeira construção demora):
+A ponte do quality-gate (o MegaLinter e a imagem do sidecar) não participa mais dos planos. Cada scanner é uma instância do próprio adaptador, executada na imagem de ferramentas: Semgrep (`sast`), Gitleaks (`secrets`), OSV-Scanner e Trivy (`dependencies`), Trivy e Checkov (`iac`), jscpd (`duplication`) e file-size (`file-size`) vêm do template base; o lint vem do linter de cada stack (Ruff, ESLint, golangci-lint, Clippy, os analisadores do .NET, ShellCheck, Hadolint) e os testes e a cobertura do executor de testes de cada stack. Nenhuma imagem de MegaLinter ou de sidecar é iniciada.
 
-```bash
-docker build -t jgates/quality-sidecar:latest <caminho>/quality-gate
-```
-
-- `JGATES_BRIDGE_RUNNER` escolhe: `auto` (o padrão) usa a imagem só quando um scanner pedido não está no host; `local` nunca usa; `container` usa sempre.
-- O container recebe o workspace só para leitura, uma pasta de saída própria na pasta do run, a rede (Trivy, OSV-Scanner e o `p/default` do Semgrep baixam bases e regras) e um cache na pasta de dados (`<pasta de dados>/cache/quality-sidecar`, alguns GB depois do primeiro run), para os runs seguintes reaproveitarem as bases. Ele roda com o seu usuário no Linux e no macOS e como `nobody` no Windows, nunca como root.
-- Sem Docker ou sem a imagem, os scanners que faltam dizem isso no resultado, com o comando que constrói a imagem.
-- O `jgates ci` (modo governado) e um sidecar seu (`JGATES_SIDECAR_DIR`) rodam sempre no host.
+- Um `.jgates/tools.yml` que ainda declara uma instância do adaptador `quality-bridge` é lido como as instâncias individuais que cobrem as mesmas capacidades; o arquivo em disco não é reescrito, e a visão geral mostra um aviso que nomeia as instâncias. As verificações de um perfil que citam `tool:quality-bridge.<subverificação>` são lidas como o seletor da instância que assumiu a subverificação.
+- O `jgates ci` (modo governado) continua lendo as subverificações da ponte do quality-gate legado, com a configuração empacotada e confiável; os scanners dos adaptadores individuais que leem configuração da árvore analisada não são permitidos sob uma política.
+- Um projeto sem linter para a sua stack mostra o lint como não aplicável aqui, com o que adicionar (por exemplo uma configuração do ESLint), em vez de um plano bloqueado.
 
 ## O que entra no plano
 

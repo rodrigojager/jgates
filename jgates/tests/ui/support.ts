@@ -214,8 +214,8 @@ export function createGateFixture(): GateFixture {
       "",
     ].join("\n"),
   );
-  write(".jgates/profiles.yml", ["schemaVersion: 1", "profiles:", "  seq:", "    label: Sequence", "    checks:", '      "capability:lint": { enabled: true }', '      "tool:quality-bridge": { enabled: false }', ""].join("\n"));
   write("evidence.schema.json", JSON.stringify({ type: "object", required: ["ok"], properties: { ok: { const: true } } }));
+  write(".jgates/profiles.yml", ["schemaVersion: 1", "profiles:", "  seq:", "    label: Sequence", "    checks:", '      "capability:lint": { enabled: true }', ""].join("\n"));
   write("src/core/a.js", "exports.a = () => 1;\n");
   write("src/other/b.js", "exports.b = () => 2;\n");
   fs.writeFileSync(modeFile, "pass");

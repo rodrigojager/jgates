@@ -107,6 +107,8 @@ export const routes: RouteDefinition[] = [
             ? { planHash: plan.planHash, approvable: plan.approvable, blocked: plan.blocked ? plan.blocked.message : null, uncovered: plan.groups.uncoveredRequirements.map((u) => ({ selector: u.selector, category: u.category, reason: u.reason, message: u.message })) }
             : { planHash: null, approvable: false, blocked: built.ok ? null : built.error.message, uncovered: [] },
           categories,
+          // Settings the configuration reader migrated or dropped (for example the retired quality bridge).
+          notices: plan ? plan.warnings.filter((w) => w.code === "CONFIG_MIGRATED").map((w) => ({ code: w.code, message: w.message })) : [],
           mascots: projectMascots({ plan, invalid: !built.ok }),
           lastRun: readLastRun(server),
         },

@@ -2,10 +2,9 @@
 // Every output of the sidecar (reports, raw evidence, scope projections) goes to the run folder, never the workspace.
 import fs from "node:fs";
 import path from "node:path";
-import { callBridge, type BridgeOutcome, type BridgeRequest } from "../../core/bridge/index.js";
+import { callBridge, type BridgeRequest } from "../../core/bridge/index.js";
 import { governedBridgeEnv } from "../../core/governed/env.js";
 import type { AdapterContext, AdapterOutput } from "../../core/run/types.js";
-import { callBridgeInContainer, chooseBridgeRunner, containerPart, localPart, mergeResponses, responseOf, withMissingHint } from "./container-mode.js";
 import { qualityBridgeManifest } from "./manifest.js";
 import { normalizeBridge } from "./normalize.js";
 import { ADAPTER_ID, BRIDGE_MODES, DEFAULT_SELECTION, planSubchecks, type BridgeMode, type BridgeSelection, type SubcheckPlan } from "./requirements.js";
@@ -16,7 +15,6 @@ export * from "./requirements.js";
 export { requestFromPlan, runBridgeFromPlan, subchecksFromPlan } from "./from-plan.js";
 export * from "./tool-configs.js";
 export { duplicateScanners, SUPERSEDING_ADAPTERS, supersededPairs, type ActivePair, type SupersededPair } from "./superseded.js";
-export { decideRunner, EXTERNAL_SUBCHECKS, mergeResponses, runnerSetting, containerPart, localPart, failedPart, withMissingHint, type BridgeRunner, type RunnerFacts } from "./container-mode.js";
 
 export type SelectionProblem = { kind: "invalid_value"; name: string; value: string; allowed: string };
 
@@ -82,43 +80,11 @@ export async function executeBridge(context: AdapterContext, request: BridgeRequ
   fs.mkdirSync(context.logsDir, { recursive: true, mode: 0o700 });
   // A hardened request (jgates ci) runs with an allowlisted environment: no CI token, no MEGALINTER_COMMAND.
   const env = request.hardened === true ? governedBridgeEnv(context.env) : context.env;
-  const runner = chooseBridgeRunner(request, env);
   const logs = [rel(context.runDir, stdoutLog), rel(context.runDir, stderrLog)];
 
-  let outcome: BridgeOutcome;
-  if (runner.kind === "container") {
-    // The external scanners in the sidecar image, the rest on the host, at the same time; one merged answer.
-    const boxOut = path.join(context.logsDir, `${ADAPTER_ID}.container.stdout.log`);
-    const boxErr = path.join(context.logsDir, `${ADAPTER_ID}.container.stderr.log`);
-    const hostRequest = localPart(request, runner.external);
-    const hostSubs = (hostRequest.subchecks as string[] | undefined) ?? [];
-    const timeoutMs = Number(env.JGATES_BRIDGE_TIMEOUT_MS) > 0 ? Number(env.JGATES_BRIDGE_TIMEOUT_MS) : 30 * 60 * 1000;
-    const [hostOutcome, boxOutcome] = await Promise.all([
-      hostSubs.length > 0 ? callBridge(hostRequest, { cwd: context.runDir, env, stdoutFile: stdoutLog, stderrFile: stderrLog }) : Promise.resolve(null),
-      callBridgeInContainer({
-        runner,
-        request: containerPart(request, runner.external),
-        workspace: request.target,
-        hostOutputDir: path.join(outputDir, "container"),
-        env,
-        stdoutFile: boxOut,
-        stderrFile: boxErr,
-        timeoutMs,
-      }),
-    ]);
-    logs.push(rel(context.runDir, boxOut), rel(context.runDir, boxErr));
-    const boxResponse = responseOf(boxOutcome, runner.external, "sidecar container");
-    const merged = hostOutcome
-      ? mergeResponses(responseOf(hostOutcome, hostSubs, "local sidecar"), boxResponse, runner.external)
-      : mergeResponses({ ...boxResponse, subchecks: [], report: { findings: [], tools: [] } }, boxResponse, runner.external);
-    const base = hostOutcome ?? boxOutcome;
-    outcome = { kind: "response", response: merged, interpreter: `${base.interpreter ?? "(none)"} + ${boxOutcome.interpreter ?? runner.image}`, exitCode: merged.exitCode, stdout: base.stdout, stderr: base.stderr, durationMs: Math.max(hostOutcome?.durationMs ?? 0, boxOutcome.durationMs) };
-    if (!fs.existsSync(boxErr)) writePrivate(boxErr, "");
-    if (boxOutcome.kind === "failure") fs.appendFileSync(boxErr, `bridge failure: ${boxOutcome.code}: ${boxOutcome.message}\n`);
-  } else {
-    const local = await callBridge(request, { cwd: context.runDir, env, stdoutFile: stdoutLog, stderrFile: stderrLog });
-    outcome = runner.hint ? withMissingHint(local, runner.missing, runner.hint) : local;
-  }
+  // The bridge runs only where the sidecar is: inside the tools image (the step container of the run, or governed CI).
+  // No other image is ever started for it.
+  const outcome = await callBridge(request, { cwd: context.runDir, env, stdoutFile: stdoutLog, stderrFile: stderrLog });
 
   // When nothing started (no interpreter, no sidecar) the runner wrote no log: the files still exist, empty.
   if (!fs.existsSync(stdoutLog)) writePrivate(stdoutLog, "");

@@ -11,8 +11,7 @@ const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
 const resolver = await import(pathToFileURL(path.join(dist, "core", "config", "resolve", "index.js")).href);
 const builtin = await import(pathToFileURL(path.join(dist, "builtin", "index.js")).href);
-const { qualityBridgeManifest } = await import(pathToFileURL(path.join(dist, "adapters", "quality-bridge", "manifest.js")).href);
-const { builtinPiiManifest } = await import(pathToFileURL(path.join(dist, "adapters", "builtin-pii", "manifest.js")).href);
+const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
 
 /** Creates a project with the given files (in the given order), runs `fn(dir)` and always cleans up. */
 function withProject(files, fn) {
@@ -63,8 +62,8 @@ test("resolve --explain --json shows, for a field the profile overrides, the val
       "    extends: builtin:standard",
       "    checks:",
       "      capability:sast: { enabled: false }",
-      "      tool:quality-bridge.gitleaks: { enabled: false }",
     ]),
+    ".jgates/tools.yml": yaml(["schemaVersion: 1", "tools:", "  gitleaks:", "    adapter: gitleaks", "    enabled: false"]),
   };
   withProject(files, (dir) => {
     const r = cli(dir, "resolve", "--explain");
@@ -88,16 +87,16 @@ test("resolve --explain --json shows, for a field the profile overrides, the val
     assert.deepEqual(sast.history.map((h) => [h.source, h.value]), [["builtin:minimal", false], ["builtin:standard", true], ["profile:rapido", false]]);
     assert.equal(r.doc.config.checks["capability:sast"].enabled, false);
 
-    // Overridden across layers: the profile over the base template.
-    const gitleaks = r.doc.fields["/checks/tool:quality-bridge.gitleaks/enabled"];
+    // Overridden across layers: the project's tools.yml over the base template.
+    const gitleaks = r.doc.fields["/tools/gitleaks/enabled"];
     assert.equal(gitleaks.value, false);
-    assert.equal(gitleaks.layer, "profile");
-    assert.equal(gitleaks.file, PROFILES);
+    assert.equal(gitleaks.layer, "project");
+    assert.equal(gitleaks.file, ".jgates/tools.yml");
     assert.equal(gitleaks.previous.value, true);
     assert.equal(gitleaks.previous.layer, "template");
     assert.equal(gitleaks.previous.source, "builtin:base");
     assert.equal(gitleaks.previous.file, "builtin:templates/base.json");
-    assert.deepEqual(gitleaks.history.map((h) => h.layer), ["defaults", "template", "profile"]);
+    assert.deepEqual(gitleaks.history.map((h) => h.layer), ["template", "project"]);
 
     // Without --explain the origins are not listed, the configuration is.
     const plain = cli(dir, "resolve");
@@ -356,12 +355,12 @@ test("two active templates that override the same field with no defined priority
 test("a specialized template overrides its base without a conflict", () => {
   const files = {
     "jgates.yml": root(...templatesOf(["base", "builtin:base"], ["mine", T("mine")])),
-    [T("mine")]: tpl("mine", ["builtin:base"], ["checks:", "  tool:quality-bridge.jscpd: { enabled: false }"]),
+    [T("mine")]: tpl("mine", ["builtin:base"], ["tools:", "  jscpd: { enabled: false }"]),
   };
   withProject(files, (dir) => {
     const r = resolver.resolveConfig(dir, { inventory: NO_STACK });
     assert.equal(r.ok, true, JSON.stringify(r.errors));
-    const f = r.fields["/checks/tool:quality-bridge.jscpd/enabled"];
+    const f = r.fields["/tools/jscpd/enabled"];
     assert.equal(f.value, false);
     assert.equal(f.source, T("mine"));
     assert.equal(f.previous.source, "builtin:base");
@@ -426,15 +425,16 @@ test("config get and resolve refuse a bad pointer, an unknown pointer and an unk
   });
 });
 
-test("the starter profiles and the built-in templates are valid and select bridge subchecks and catalog capabilities", () => {
+test("the starter profiles and the built-in templates are valid and select the base tools and catalog capabilities", () => {
   const templates = builtin.listBuiltinTemplates().map((i) => i.ref);
   assert.deepEqual(templates, ["builtin:base", "builtin:docker-hadolint", "builtin:dotnet-analyzers", "builtin:dotnet-benchmarkdotnet", "builtin:dotnet-build", "builtin:dotnet-codeql", "builtin:dotnet-efcore", "builtin:dotnet-format", "builtin:dotnet-stryker", "builtin:dotnet-test", "builtin:dotnet-vulnerable", "builtin:dotnet", "builtin:file-size", "builtin:github-actions-zizmor", "builtin:gitleaks-history", "builtin:go-bench", "builtin:go-build", "builtin:go-codeql", "builtin:go-gofmt", "builtin:go-golangci-lint", "builtin:go-govulncheck", "builtin:go-test", "builtin:go", "builtin:openapi-oasdiff", "builtin:python-alembic", "builtin:python-codeql", "builtin:python-django-migrations", "builtin:python-format", "builtin:python-import-linter", "builtin:python-mutmut", "builtin:python-mypy-defaults", "builtin:python-mypy", "builtin:python-playwright", "builtin:python-pyright", "builtin:python-pytest-benchmark", "builtin:python-pytest", "builtin:python-typescript", "builtin:python", "builtin:rust-cargo-audit", "builtin:rust-cargo-check", "builtin:rust-cargo-test", "builtin:rust-clippy", "builtin:rust-criterion", "builtin:rust-rustfmt", "builtin:rust", "builtin:shell-shellcheck", "builtin:sql-squawk", "builtin:supply-chain", "builtin:trivy-licenses", "builtin:typescript-codeql", "builtin:typescript-dependency-cruiser", "builtin:typescript-eslint", "builtin:typescript-jest", "builtin:typescript-playwright", "builtin:typescript-prettier", "builtin:typescript-prisma", "builtin:typescript-stryker", "builtin:typescript-tsc", "builtin:typescript-vitest-bench", "builtin:typescript-vitest", "builtin:typescript"]);
   const profiles = builtin.listBuiltinProfiles().map((i) => i.ref);
   assert.deepEqual(profiles, ["builtin:minimal", "builtin:standard", "builtin:strict"]);
 
-  const subchecks = new Set(qualityBridgeManifest.subchecks.map((s) => `tool:quality-bridge.${s.id}`));
-  const baseChecks = Object.keys(builtin.getBuiltinTemplate("builtin:base").value.config.checks);
-  assert.deepEqual(new Set(baseChecks), subchecks);
+  // The quality bridge is retired from the base template: the scanners are individual instances.
+  const baseTools = Object.keys(builtin.getBuiltinTemplate("builtin:base").value.config.tools).sort();
+  assert.deepEqual(baseTools, ["builtin-pii", "checkov", "file-size", "gitleaks", "jscpd", "osv-scanner", "semgrep", "trivy"]);
+  assert.equal(builtin.getBuiltinTemplate("builtin:base").value.config.checks, undefined);
 
   withProject({ "jgates.yml": root() }, (dir) => {
     const checksOf = (profile) => {
@@ -455,7 +455,7 @@ test("the starter profiles and the built-in templates are valid and select bridg
     for (const c of on(standard)) assert.ok(on(strict).includes(c));
     assert.ok(strict["capability:unit"] && !standard["capability:unit"]);
     // What a profile requires has a built-in check; what strict turns on "when available" may not (it never blocks).
-    const capabilities = new Set([...qualityBridgeManifest.capabilities, ...builtinPiiManifest.capabilities]);
+    const capabilities = new Set(builtinManifests().flatMap((m) => m.capabilities));
     const strictBody = builtin.builtinProfileBody(builtin.getBuiltinProfile("builtin:strict")).checks;
     for (const key of Object.keys(strict)) {
       if (strictBody[key]?.when === "available") continue;

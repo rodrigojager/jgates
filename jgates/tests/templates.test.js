@@ -128,8 +128,9 @@ test("a minimal .NET repository gets the dotnet template with the declared suppo
     // The build, the tests and the analyzers are not "uncovered": dotnet-build, dotnet-test and dotnet-analyzers come in by the language.
     for (const word of ["dotnet build", "dotnet test", "Cobertura", "Roslyn"]) assert.equal(active.support.uncovered.some((u) => u.includes(word)), false, word);
     assert.ok(plan.templates.active.some((t) => t.id === "dotnet-test"), "the dotnet-test template is active");
-    // The chain that exists today (the bridge) is what runs; nothing .NET specific is invented.
-    assert.ok(allItems(plan).some((i) => i.adapter === "quality-bridge"));
+    // The quality bridge is retired: the scanners of the base template are individual instances, and nothing .NET specific is invented.
+    assert.equal(allItems(plan).some((i) => i.adapter === "quality-bridge"), false);
+    assert.ok(allItems(plan).some((i) => i.tool === "gitleaks"));
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

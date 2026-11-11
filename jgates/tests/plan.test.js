@@ -73,29 +73,31 @@ test("plan --json on the main fixture: items of the three components with origin
     assert.ok(comps.web.templates.includes("typescript"));
     assert.ok(comps["libs-shared"].templates.includes("typescript"));
 
-    // The bridge items span every component; the Ruff item (Python components only) is checked below.
-    const bridgeItems = (list) => list.filter((i) => i.adapter === "quality-bridge");
-    for (const item of bridgeItems([...p.groups.willRun, ...p.groups.notApplicableOrDisabled])) {
+    // The quality bridge is retired from the plans: the base template's scanners are instances of their own adapters, and
+    // they span every component; the Ruff item (Python components only) is checked below.
+    const everyItem = [...p.groups.willRun, ...p.groups.notApplicableOrDisabled];
+    assert.deepEqual(everyItem.filter((i) => i.adapter === "quality-bridge"), []);
+    const baseItems = everyItem.filter((i) => ["gitleaks", "osv-scanner", "trivy", "checkov", "jscpd", "file-size", "semgrep"].includes(i.tool));
+    assert.deepEqual([...new Set(baseItems.map((i) => i.tool))].sort(), ["checkov", "file-size", "gitleaks", "jscpd", "osv-scanner", "semgrep", "trivy"]);
+    for (const item of baseItems) {
       assert.deepEqual(item.components.map((c) => c.id).sort(), ["api", "libs-shared", "web"], item.id);
       assert.ok(item.reason.code && item.reason.message, item.id);
       assert.ok(item.state.decision, `${item.id} has the decision that set it`);
       assert.ok(item.origin.kind !== "none", item.id);
       // Included by a template: the base template, reached by the python and typescript entries the discovery activated.
       const entries = item.includedBy.filter((i) => i.kind === "template").map((i) => `${i.entry}:${i.reason}`).sort();
-      assert.deepEqual(entries, ["base:ALWAYS", "gitleaks-history:DETECTED", "python-codeql:DETECTED", "python-format:DETECTED", "python-mypy-defaults:DETECTED", "python:DETECTED", "typescript-codeql:DETECTED", "typescript-prettier:DETECTED", "typescript-tsc:DETECTED", "typescript:DETECTED"], item.id);
+      assert.ok(entries.includes("base:ALWAYS"), `${item.id}: ${entries.join(", ")}`);
       assert.ok(item.category && item.capabilities.length === 1, item.id);
     }
     const ruffItem = p.groups.willRun.find((i) => i.id === "ruff#lint");
     assert.ok(ruffItem, "the python template adds the Ruff instance");
     assert.deepEqual(ruffItem.components.map((c) => c.id), ["api"]);
-    for (const item of bridgeItems(p.groups.willRun)) {
-      assert.ok(item.command.executable.length > 0);
-      assert.ok(Array.isArray(item.command.args) && item.command.args.length > 0);
-      assert.equal(item.command.stdin.target, p.workspace.path);
-      assert.ok(item.versions.adapter);
-      assert.ok(item.configFiles.length > 0 && item.configFiles.every((f) => f.sha256 === null || /^sha256:/.test(f.sha256)));
+    for (const item of baseItems.filter((i) => i.state.enabled)) {
+      assert.ok(item.command.executable.length > 0, item.id);
+      assert.ok(Array.isArray(item.command.args), item.id);
+      assert.ok(item.versions.adapter, item.id);
       assert.equal(typeof item.network, "boolean");
-      assert.ok(["required", "conditional"].includes(item.requirement));
+      assert.ok(["required", "conditional"].includes(item.requirement), item.id);
     }
     // Planning wrote nothing in the project; the plan went to the data folder.
     assert.deepEqual(mainFixture.listTree(dir), before);
@@ -131,13 +133,13 @@ test("minimal, standard, strict and a user profile give different plans, and eve
         assert.ok(d.source.endsWith(b) || d.source === `builtin:${b}`, `${b} ${id}: ${d.source}`);
       }
     }
-    const semgrep = find(plans.rapido, "quality-bridge.semgrep#sast");
+    const semgrep = find(plans.rapido, "semgrep#sast");
     assert.equal(semgrep.state.enabled, false);
     assert.equal(semgrep.state.decision.source, "profile:rapido");
     assert.equal(semgrep.state.decision.file, ".jgates/profiles.yml");
     // Each plan shows what changed since the previous one of the workspace.
     assert.deepEqual(plans.rapido.changes.profile, { from: "strict", to: "rapido" });
-    assert.ok(plans.strict.changes.items.changed.some((c) => c.id === "quality-bridge.project-tests#unit" && c.fields.some((f) => f.field === "group")));
+    assert.ok(plans.strict.changes.items.changed.some((c) => c.id === "gitleaks-history#secrets-history" && c.fields.some((f) => f.field === "group")));
   });
 });
 
@@ -174,7 +176,9 @@ test("a forced template without a compatible component is an explained incompati
 
 test("plan --skip capability:unit moves the unit tests out of 'will run', with the origin 'only this run', and changes no file", () => {
   withProject(({ dir, plan }) => {
-    const id = "quality-bridge.project-tests#unit";
+    // The api component has a pytest configuration, so the pytest template brings the unit and coverage items.
+    fs.writeFileSync(path.join(dir, "api", "pytest.ini"), "[pytest]\n");
+    const id = "pytest#unit";
     const full = json(plan("--profile", "strict", "--json")).plan;
     assert.ok(ids(full.groups.willRun).includes(id));
 
@@ -193,7 +197,7 @@ test("plan --skip capability:unit moves the unit tests out of 'will run', with t
     assert.equal(item.state.runOnly, true);
     assert.equal(item.state.decision.source, "--skip");
     // The repeated flag counts: coverage is off too.
-    assert.ok(!ids(p.groups.willRun).includes("quality-bridge.coverage#coverage"));
+    assert.ok(!ids(p.groups.willRun).includes("pytest#coverage"));
     // The requirement the profile selects stays visible, with the reason.
     const unit = p.groups.uncoveredRequirements.find((u) => u.selector === "capability:unit");
     assert.equal(unit.reason, "DISABLED_FOR_RUN");
@@ -202,7 +206,6 @@ test("plan --skip capability:unit moves the unit tests out of 'will run', with t
     assert.deepEqual(p.selection.overrides.find((o) => o.selector === "capability:unit").items, [id]);
     assert.equal(p.selection.reduced, true);
     assert.equal(out.reduced, true);
-    assert.equal(p.groups.willRun[0].command.stdin.projectTests, false);
     // Nothing of the project changed.
     assert.deepEqual(mainFixture.listTree(dir), tree);
     assert.equal(git(dir, ["status", "--porcelain"]), status);
@@ -236,7 +239,7 @@ test("a plan whose selected requirements all lack an executable check is blocked
     assert.deepEqual(p.groups.uncoveredRequirements.map((u) => `${u.selector}:${u.reason}`).sort(), ["capability:mutation:NO_EXECUTABLE_CHECK"]);
 
     // Turning every check off for one run is blocked the same way.
-    const skipped = plan("--skip", "tool:quality-bridge,tool:ruff,tool:builtin-pii,tool:tsc", "--json");
+    const skipped = plan("--skip", "tool:semgrep,tool:gitleaks,tool:osv-scanner,tool:trivy,tool:checkov,tool:jscpd,tool:file-size,tool:ruff,tool:builtin-pii,tool:tsc", "--json");
     assert.equal(skipped.code, 3, skipped.out);
     assert.equal(json(skipped).plan.blocked.code, "PLAN_EMPTY");
     assert.ok(json(skipped).plan.groups.uncoveredRequirements.every((u) => u.reason === "DISABLED_FOR_RUN"));
@@ -266,7 +269,7 @@ test("after a configuration file changes, the new plan has another hash and list
     assert.notEqual(next.planHash, first.planHash);
     assert.equal(next.changes.previousHash, first.planHash);
     assert.deepEqual(next.changes.configFiles.changed, [".jgates/profiles.yml"]);
-    const checkov = next.changes.items.changed.find((c) => c.id === "quality-bridge.checkov#iac");
+    const checkov = next.changes.items.changed.find((c) => c.id === "checkov#iac");
     assert.ok(checkov, JSON.stringify(next.changes.items));
     assert.deepEqual(checkov.fields.find((f) => f.field === "group"), { field: "group", from: "willRun", to: "notApplicableOrDisabled" });
     // The text review says the same: back to the original file, one configuration file and the IaC items changed.

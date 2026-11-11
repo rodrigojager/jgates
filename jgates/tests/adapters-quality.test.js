@@ -159,17 +159,15 @@ test("ESLint: without any eslint.config the stage is blocked with the instructio
   }
 });
 
-test("ESLint inside MegaLinter: with the ESLint adapter on, the plan reports the duplication as intentional and the manifest declares the limitations", () => {
+test("ESLint and the retired bridge's MegaLinter: the ESLint adapter runs alone, and the manifest of the bridge keeps declaring the limitations", () => {
   const p = project({ tools: ESLINT_TOOLS, files: { "eslint.config.mjs": ESLINT_CONFIG, "src/index.ts": WITH_VAR } });
   try {
     const planned = p.plan();
     assert.equal(planned.code, 0, planned.out + planned.err);
     const plan = planned.doc.plan;
-    const warning = plan.warnings.find((w) => w.code === "LINTER_RUNS_TWICE");
-    assert.ok(warning, JSON.stringify(plan.warnings));
-    assert.match(warning.message, /de propósito/);
-    assert.match(warning.message, /eslint#lint/);
-    assert.ok(plan.groups.willRun.some((i) => i.id === "quality-bridge.megalinter#lint"), "MegaLinter still runs through the bridge");
+    // The bridge is retired from the plans: nothing runs ESLint a second time with another configuration.
+    assert.equal(plan.warnings.some((w) => w.code === "LINTER_RUNS_TWICE"), false, JSON.stringify(plan.warnings));
+    assert.equal(plan.groups.willRun.some((i) => i.id === "quality-bridge.megalinter#lint"), false);
     assert.ok(plan.groups.willRun.some((i) => i.id === "eslint#lint"));
   } finally {
     p.cleanup();
@@ -238,18 +236,15 @@ test("jscpd: the duplications of a fixture come out with the config the user cho
   }
 });
 
-test("jscpd: the plan leaves the bridge's jscpd out, and says why", () => {
+test("jscpd: the jscpd instance runs as its own item, and the retired bridge has no duplication subcheck in the plan", () => {
   const p = project({ tools: JSCPD_TOOLS, profile: "standard", files: { "src/a.ts": BLOCK, "src/b.ts": BLOCK, "jscpd.config.json": "{}\n" } });
   try {
     const plan = p.plan().doc.plan;
-    const off = plan.groups.notApplicableOrDisabled.find((i) => i.id === "quality-bridge.jscpd#duplication");
-    assert.ok(off, JSON.stringify(plan.groups.notApplicableOrDisabled.map((i) => i.id)));
-    assert.equal(off.reason.code, "SUPERSEDED");
-    assert.match(off.reason.message, /jscpd#duplication/);
     assert.ok(plan.groups.willRun.some((i) => i.id === "jscpd#duplication"));
+    const everyItem = [...plan.groups.willRun, ...plan.groups.notApplicableOrDisabled];
+    assert.equal(everyItem.some((i) => i.id === "quality-bridge.jscpd#duplication"), false);
     assert.ok(!plan.warnings.some((w) => w.code === "SCANNER_RUNS_TWICE"), JSON.stringify(plan.warnings));
-    const bridge = plan.invocations.find((i) => i.adapter === "quality-bridge");
-    assert.ok(!bridge || !bridge.subchecks.includes("jscpd"));
+    assert.equal(plan.invocations.some((i) => i.adapter === "quality-bridge"), false);
   } finally {
     p.cleanup();
   }

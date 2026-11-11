@@ -75,7 +75,7 @@ const FILES = {
 };
 
 /** The adapters the strict plan of this project has to hold (the ones that apply to the stacks above). */
-const EXPECTED_ADAPTERS = ["build-check", "builtin-pii", "eslint", "gitleaks", "mutation", "oasdiff", "pytest", "quality-bridge", "ruff", "supply-chain", "trivy", "zizmor"];
+const EXPECTED_ADAPTERS = ["build-check", "builtin-pii", "checkov", "eslint", "file-size", "gitleaks", "jscpd", "mutation", "oasdiff", "osv-scanner", "pytest", "ruff", "semgrep", "supply-chain", "trivy", "zizmor"];
 
 test("a strict plan with every adapter that applies runs with the fake engine and spawns only the engine CLI and git", () => {
   const project = tmp("spawn-full-project-");
@@ -128,10 +128,10 @@ test("a strict plan with every adapter that applies runs with the fake engine an
   const dockerCalls = fs.readFileSync(calls, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   const runs = dockerCalls.filter((c) => c[0] === "run");
   assert.ok(runs.length >= EXPECTED_ADAPTERS.length, `one container per step: ${runs.length} runs`);
-  // Each step that started ran as one container named after it; only the lockfile analysis of supply-chain is in-process.
+  // Each step that started ran as one container named after it; only the lockfile analysis of supply-chain and the file-size analysis are in-process.
   // A not-applicable stage starts nothing (an integration step without integration tests).
   const names = runs.map((c) => c[c.indexOf("--name") + 1]);
-  const started = [...new Set(doc.stages.filter((s) => !["blocked", "disabled", "skipped", "not_applicable"].includes(s.state) && s.execution?.step && s.adapter !== "supply-chain").map((s) => s.execution.step))];
+  const started = [...new Set(doc.stages.filter((s) => !["blocked", "disabled", "skipped", "not_applicable"].includes(s.state) && s.execution?.step && !["supply-chain", "file-size"].includes(s.adapter)).map((s) => s.execution.step))];
   assert.ok(started.length >= 10, `steps that started: ${started.join(", ")}`);
   for (const step of started) assert.ok(names.some((n) => n.startsWith(`jgates-${doc.runId}-${step}`)), `step ${step} ran in a container (${names.join(", ")})`);
   assert.ok(started.includes("builtin-pii"), "the PII check is a container step too");

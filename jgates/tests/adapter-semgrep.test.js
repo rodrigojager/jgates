@@ -81,9 +81,11 @@ test("a violation of a local rule comes back with the local rule id, file and li
     assert.match(item.versions.toolVersion, /^\d+\.\d+\.\d+/);
     assert.equal(item.network, false);
     const args = item.command.args;
-    // Every --config is a file of the local directory; there is no registry reference.
+    // Every --config is a local path: the project's own rule file, then the rules of the pack the base template turns on
+    // (they ship with JGates); there is no registry reference.
     const configs = args.flatMap((a, i) => (a === "--config" ? [args[i + 1]] : []));
-    assert.deepEqual(configs, ["{workspace}/.jgates/rules/no-eval.yml"]);
+    assert.equal(configs[0], "{workspace}/.jgates/rules/no-eval.yml");
+    assert.ok(configs.slice(1).every((c) => /jgates-semgrep[\\/]rules$/.test(c)), JSON.stringify(configs));
     assert.ok(args.includes("--metrics=off"));
     assert.ok(args.includes("--json"));
     assert.ok(args.every((a) => !/^(p|r)\//.test(a) && !/^https?:/.test(a) && a !== "auto"), JSON.stringify(args));
@@ -282,13 +284,16 @@ test("with Semgrep absent from the tools image the stage is blocked and the deci
   }
 });
 
-test("an instance without a rules binding cannot be planned, and the manifest is valid", () => {
+test("an instance without a rules binding of its own runs the bundled pack the base template turns on, and the manifest is valid", () => {
   const p = project();
   try {
     fs.writeFileSync(path.join(p.dir, ".jgates", "tools.yml"), "schemaVersion: 1\ntools:\n  semgrep:\n    adapter: semgrep\n    capabilities: [sast]\n");
     const planned = p.plan();
-    assert.equal(planned.doc.plan.approvable, false);
-    assert.match(JSON.stringify(planned.doc.plan.blockers), /regras locais/);
+    // The base template selects the pack that ships with JGates, so the instance always has rules: nothing asks for a binding.
+    assert.doesNotMatch(JSON.stringify(planned.doc.plan.blockers), /regras locais/);
+    const item = p.item(planned);
+    assert.ok(item, JSON.stringify(planned.doc.plan.groups.willRun.map((i) => i.id)));
+    assert.ok(item.command.args.some((a) => /jgates-semgrep[\\/]rules$/.test(a)));
     const c = catalog.createCatalog ? catalog.createCatalog() : null;
     if (c && c.registerAdapter) c.registerAdapter(semgrepAdapter.semgrepManifest);
     else if (catalog.validateManifest) assert.deepEqual(catalog.validateManifest(semgrepAdapter.semgrepManifest).errors ?? [], []);

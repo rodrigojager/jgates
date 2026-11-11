@@ -60,18 +60,13 @@ jgates tools prepare --instance <instance> --no-interactive
 
 `prepare` applies to Semgrep, whose local rules are downloaded once and pinned by hash. On any other instance it answers `PREPARE_NOT_SUPPORTED`.
 
-### The bridge's scanners in the sidecar image
+### The quality bridge is retired
 
-The quality gate's bridge runs MegaLinter, Semgrep, Gitleaks, Trivy, Checkov, OSV-Scanner and jscpd. On a machine that does not have them installed (on Windows, MegaLinter only exists in the image), each one would come out `missing`. When Docker answers and the sidecar image `jgates/quality-sidecar:latest` exists, the run sends those scanners to the image and keeps the built-in subchecks (file size, the project's tests and coverage) on the host; the two answers become one, and the plan and the result do not change shape. Build the image once, from the `quality-gate` folder of the installed package or of the clone (it is based on MegaLinter: large, and the first build takes a while):
+The quality gate's bridge (MegaLinter and its sidecar image) no longer takes part in the plans. Each scanner is an instance of its own adapter, run in the tools image: Semgrep (`sast`), Gitleaks (`secrets`), OSV-Scanner and Trivy (`dependencies`), Trivy and Checkov (`iac`), jscpd (`duplication`) and file-size (`file-size`) come from the base template; lint comes from the linter of each stack (Ruff, ESLint, golangci-lint, Clippy, the .NET analyzers, ShellCheck, Hadolint) and tests and coverage from the test runner of each stack. No MegaLinter or sidecar image is ever started.
 
-```bash
-docker build -t jgates/quality-sidecar:latest <path>/quality-gate
-```
-
-- `JGATES_BRIDGE_RUNNER` chooses: `auto` (the default) uses the image only when a requested scanner is not on the host; `local` never uses it; `container` always does.
-- The container gets the workspace read-only, its own output folder in the run folder, the network (Trivy, OSV-Scanner and Semgrep's `p/default` download their databases and rules) and a cache in the data folder (`<data folder>/cache/quality-sidecar`, a few GB after the first run), so the next runs reuse the databases. It runs as your user on Linux and macOS and as `nobody` on Windows, never as root.
-- Without Docker or without the image, the missing scanners say so in the result, with the command that builds the image.
-- `jgates ci` (governed mode) and a sidecar of your own (`JGATES_SIDECAR_DIR`) always run on the host.
+- A `.jgates/tools.yml` that still declares an instance of the `quality-bridge` adapter is read as the individual instances that cover the same capabilities; the file on disk is not rewritten, and the overview shows a notice that names the instances. The checks of a profile that name `tool:quality-bridge.<subcheck>` are read as the selector of the instance that took the subcheck over.
+- `jgates ci` (governed mode) keeps reading the bridge's subchecks of the legacy quality gate with its packaged, trusted configuration; the scanners of the individual adapters that read configuration from the analyzed tree are not allowed under a policy.
+- A project with no linter for its stack shows lint as not applicable here, with what to add (for example an ESLint configuration), instead of a blocked plan.
 
 ## What enters the plan
 

@@ -133,14 +133,26 @@ function one(r) {
 
 function result(r) {
   const doc = one(r);
-  assert.ok(validateResult(doc), JSON.stringify(validateResult.errors, null, 2));
+  assert.ok(validateResult(doc), `${doc.code} ${doc.message} ${doc.decision} exit ${doc.exitCode} ${JSON.stringify(doc.unsatisfied ?? doc.stages?.map((x) => [x.id, x.state, x.reason]))}\n${JSON.stringify(validateResult.errors, null, 2)}`);
   assert.equal(doc.exitCode, EXIT_CODES[doc.decision]);
   assert.equal(r.code, doc.exitCode, r.err);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(doc.runDir, "result.json"), "utf8")), doc);
   return doc;
 }
 
-const seenOf = (doc) => JSON.parse(fs.readFileSync(path.join(doc.runDir, "outputs", "quality-bridge", "seen.json"), "utf8"));
+// What the fake sidecar saw: the bridge's output of the legacy option-driven runs, or the PII scan's (the sidecar runs it) of a planned run.
+const seenOf = (doc) => {
+  const found = [];
+  const walk = (d) => {
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      if (entry.isDirectory()) walk(path.join(d, entry.name));
+      else if (entry.name === "seen.json") found.push(path.join(d, entry.name));
+    }
+  };
+  walk(path.join(doc.runDir, "outputs"));
+  assert.ok(found.length > 0, `no seen.json under ${doc.runDir}/outputs`);
+  return JSON.parse(fs.readFileSync(found[0], "utf8"));
+};
 const status = (dir) => git(dir, "status", "--porcelain=v1", "--untracked-files=all", "--ignored");
 const initMinimal = (w) => {
   const init = w.cli(["init", "--cwd", w.dir, "--profile", "minimal", "--no-interactive", "--json"]);
@@ -176,15 +188,9 @@ test("run --scope full --head <older commit> analyzes a snapshot in the data fol
     assert.equal(doc.analyzed.git.head, second);
     assert.equal(doc.provenance.sourceCommit, first);
 
-    // The bridge read the snapshot: the files of the first commit, nothing of the second one or of the local edits.
-    const seen = seenOf(doc);
-    assert.equal(seen.target, doc.analyzed.path);
-    assert.equal(seen.files["app.txt"], "version one\n");
-    assert.equal(seen.files["old.txt"], "only in the first commit\n");
-    assert.ok(!("new.txt" in seen.files));
-    assert.ok(!("scratch.txt" in seen.files));
-    assert.ok(!Object.keys(seen.files).some((f) => f.startsWith(".git/")));
-    assert.ok("jgates.yml" in seen.files);
+    // What the tools read is the snapshot (the files of the first commit, nothing of the second one or of the local edits):
+    // the analyzed path is the snapshot folder, and the tree of the snapshot is the tree of the first commit.
+    assert.equal(doc.analyzed.snapshot.tree, git(w.dir, "rev-parse", `${first}^{tree}`).trim());
 
     // The snapshot lives only during the run; the plan records the commit the reference named.
     assert.equal(doc.analyzed.snapshot.removed, true);
@@ -211,7 +217,7 @@ test("run --scope full --head <older commit> analyzes a snapshot in the data fol
     assert.equal(planned.code, 0, planned.out + planned.err);
     const replay = result(w.cli(["run", "--cwd", w.dir, "--plan", planFile, "--json"]));
     assert.equal(replay.analyzed.snapshot.commit, first);
-    assert.equal(seenOf(replay).files["app.txt"], "version one\n");
+    assert.equal(replay.analyzed.snapshot.tree, doc.analyzed.snapshot.tree);
     assert.equal(status(w.dir), statusBefore);
 
     // A reference that names no commit is refused before any run starts.

@@ -95,7 +95,8 @@
               "command": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
               "args": { "$ref": "#/$defs/stringList" },
               "timeoutSeconds": { "anyOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }] },
-              "config": { "type": "object" }
+              "config": { "type": "object" },
+              "rulePack": { "enum": ["jgates"] }
             }
           }
         },

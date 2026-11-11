@@ -1,4 +1,5 @@
 import path from "node:path";
+import { legacyBridgeLayers } from "../../../adapters/quality-bridge/governed.js";
 import { translator } from "../../../i18n/index.js";
 import { discoverWithSettings, discoverWorkspace, loadWorkspaceSettings, type Inventory } from "../../discovery/index.js";
 import { loadProjectConfig, ROOT_FILE } from "../load/index.js";
@@ -103,7 +104,7 @@ export function resolveConfig(projectDir: string, options: ResolveOptions = {}):
     ops: profileOps(d.body, d.fileSegments),
   }));
   applyAll(store, "defaults", defaults, sink, layers);
-  applyAll(store, "template", selection.layers, sink, layers);
+  applyAll(store, "template", options.legacyBridge === true ? legacyBridgeLayers(selection.layers) : selection.layers, sink, layers);
   applyAll(store, "profile", profileLayers, sink, layers);
   applyAll(store, "project", project, sink, layers);
   applyAll(store, "call", call, sink, layers);

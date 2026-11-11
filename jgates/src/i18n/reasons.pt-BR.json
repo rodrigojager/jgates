@@ -49,6 +49,7 @@
   "plan_action_configure_tool": "Configurar a ferramenta",
   "plan_action_configure_services": "Configurar serviços",
   "plan_action_enable_check": "Ligar a verificação",
+  "plan_action_add_extension_tool": "Adicionar ferramenta própria",
   "toolchain_action_use_default_version": "Usar a versão padrão da imagem",
   "toolchain_action_fix_version_file": "Corrigir o arquivo de versão",
   "env_api_policy_mode": "Preparar o ambiente não está disponível enquanto uma política de CI está sendo editada.",

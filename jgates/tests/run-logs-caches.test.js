@@ -288,6 +288,8 @@ test("a full run on the main fixture leaves no Ruff or Semgrep cache in the proj
     const env = { ...process.env, JGATES_HOME: home, JGATES_PYTHON: PYTHON, JGATES_NO_CACHE: "1", DOCKER_HOST: "tcp://127.0.0.1:1", PATH: [VENV_BIN, ...systemPath].join(path.delimiter) };
     const cli = cliIn(env);
     assert.equal(cli(["init", "--cwd", dir, "--profile", "strict", "--no-interactive", "--json"]).code, 0);
+    // A pytest configuration brings the pytest template, whose unit item the strict profile requires.
+    fs.writeFileSync(path.join(dir, "api", "pytest.ini"), "[pytest]\n");
     fs.mkdirSync(path.join(dir, ".jgates", "rules"), { recursive: true });
     fs.writeFileSync(path.join(dir, ".jgates", "rules", "no-eval.yml"), RULE);
     fs.writeFileSync(path.join(dir, ".jgates", "tools.yml"), `schemaVersion: 1\ntools:\n${SEMGREP_TOOL}`);

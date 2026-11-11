@@ -133,18 +133,18 @@ test("nothing selected means off, with the reason; a category is derived from wh
   });
 });
 
-test("the bridge sub-checks are instances of the quality-bridge adapter and answer to capability and parent selectors", () => {
-  withProject(project(["tool:quality-bridge: { enabled: false }", "capability:lint: { enabled: true }"]), (dir) => {
+test("the base tools answer to tool and capability selectors, and the retired bridge has no selectors", () => {
+  withProject(project(["tool:file-size: { enabled: false }", "capability:file-size: { enabled: true }"]), (dir) => {
     const sel = select(dir);
-    // tool:quality-bridge (parent, 2.5) beats capability:lint (2) in the same layer.
-    assert.equal(item(sel, "tool:quality-bridge.file-size").enabled, false);
-    assert.equal(item(sel, "tool:quality-bridge.megalinter").enabled, false);
+    // tool:file-size (3) beats capability:file-size (2) in the same layer.
+    assert.equal(item(sel, "tool:file-size").enabled, false);
+    assert.equal(sel.items.some((i) => i.kind === "tool" && i.id.startsWith("quality-bridge")), false, "the bridge is not in the universe");
   });
   withProject(project([]), (dir) => {
     const sel = select(dir);
-    const lint = sel.items.filter((i) => i.kind === "tool" && i.id.startsWith("quality-bridge.") && i.capabilities.some((c) => c.capability === "lint"));
-    assert.ok(lint.length > 0);
-    assert.ok(lint.every((i) => i.enabled), "the minimal profile selects capability:lint");
+    const sized = sel.items.filter((i) => i.kind === "tool" && i.capabilities.some((c) => c.capability === "file-size"));
+    assert.ok(sized.length > 0);
+    assert.ok(sized.every((i) => i.enabled), "the minimal profile selects capability:file-size");
   });
 });
 

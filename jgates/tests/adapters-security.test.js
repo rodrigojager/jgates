@@ -292,40 +292,33 @@ test("each adapter plans the step command with the documents chosen in tools.yml
   }
 });
 
-test("with the Gitleaks adapter on, the bridge's gitleaks subcheck is left out of the plan and the JSON says why", () => {
+test("the scanners of the base template are individual items, and no bridge subcheck is in the plan", () => {
   const p = project();
   try {
     const plan = p.cli(["plan", "--cwd", p.dir, "--json"]).doc.plan;
     for (const [sub, cap, by] of [["gitleaks", "secrets", "gitleaks#secrets"], ["trivy", "dependencies", "trivy#dependencies"], ["trivy", "iac", "trivy#iac"], ["osv-scanner", "dependencies", "osv-scanner#dependencies"], ["checkov", "iac", "checkov#iac"]]) {
       const id = `quality-bridge.${sub}#${cap}`;
-      assert.equal(plan.groups.willRun.find((i) => i.id === id), undefined, `${id} does not run`);
-      const off = plan.groups.notApplicableOrDisabled.find((i) => i.id === id);
-      assert.ok(off, id);
-      assert.equal(off.reason.code, "SUPERSEDED", id);
-      assert.ok(off.reason.message.includes(by), off.reason.message);
-      assert.equal(off.state.enabled, false);
+      const every = [...plan.groups.willRun, ...plan.groups.notApplicableOrDisabled];
+      assert.equal(every.find((i) => i.id === id), undefined, `${id} is not in the plan`);
+      assert.ok(every.find((i) => i.id === by), `${by} is an item of the plan`);
     }
-    const bridge = plan.invocations.find((i) => i.adapter === "quality-bridge");
-    for (const sub of ["gitleaks", "trivy", "osv-scanner", "checkov"]) {
-      assert.ok(!bridge || !bridge.subchecks.includes(sub), `the bridge does not invoke ${sub}`);
-      assert.ok(!bridge || !bridge.command.stdin.subchecks.includes(sub), `the bridge request leaves ${sub} out`);
-    }
+    assert.equal(plan.invocations.some((i) => i.adapter === "quality-bridge"), false, "the bridge is not invoked");
     assert.ok(!plan.warnings.some((w) => w.code === "SCANNER_RUNS_TWICE"), JSON.stringify(plan.warnings));
-    assert.equal(plan.selection.reduced, false, "a replaced subcheck does not reduce the run");
+    assert.equal(plan.selection.reduced, false);
   } finally {
     p.cleanup();
   }
 });
 
-test("a Trivy instance with only dependencies leaves Trivy's iac in the bridge, and the plan says the tool runs twice", () => {
+test("a Trivy instance with only dependencies does not run Trivy's iac, and nothing runs the tool twice", () => {
   const p = project({ tools: "schemaVersion: 1\ntools:\n  trivy:\n    adapter: trivy\n    capabilities: [dependencies]\n" });
   try {
     const plan = p.cli(["plan", "--cwd", p.dir, "--json"]).doc.plan;
-    assert.equal(itemOf(plan, "quality-bridge.trivy#dependencies").reason.code, "SUPERSEDED");
-    assert.ok(plan.groups.willRun.some((i) => i.id === "quality-bridge.trivy#iac"));
-    const warning = plan.warnings.find((w) => w.code === "SCANNER_RUNS_TWICE");
-    assert.ok(warning, JSON.stringify(plan.warnings));
-    assert.match(warning.message, /trivy/);
+    const every = [...plan.groups.willRun, ...plan.groups.notApplicableOrDisabled];
+    assert.ok(every.some((i) => i.id === "trivy#dependencies"));
+    assert.equal(every.some((i) => i.id === "trivy#iac"), false);
+    assert.equal(every.some((i) => i.id === "quality-bridge.trivy#iac"), false);
+    assert.equal(plan.warnings.some((w) => w.code === "SCANNER_RUNS_TWICE"), false, JSON.stringify(plan.warnings));
   } finally {
     p.cleanup();
   }

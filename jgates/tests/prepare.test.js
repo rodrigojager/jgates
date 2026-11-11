@@ -239,7 +239,8 @@ test("tools prepare stores the rules by hash, pins the hash in the lock and the 
   const p = project({ env: { JGATES_SEMGREP_RULES_URL: reg.url, JGATES_SEMGREP: REAL_SEMGREP } });
   try {
     const notYet = p.plan();
-    assert.equal(notYet.doc.plan.approvable, false, "without local rules and without a prepared copy the instance has nothing to run");
+    // The base template gives the instance the pack that ships with JGates; the prepared registry copy is not in the plan yet.
+    assert.ok(!JSON.stringify(notYet.doc.plan.groups.willRun).includes("p-default.yml"), "without a prepared copy the plan has no registry rules");
 
     const r = p.prepare();
     assert.equal(r.code, 0, r.out + r.err);

@@ -189,7 +189,6 @@ profiles:
       capability:duplication: { enabled: false }
       capability:iac: { enabled: false }
       capability:pii: { enabled: false }
-      tool:quality-bridge: { enabled: false }
       tool:builtin-pii: { enabled: false }
 `;
 const TOOLS_YML = `schemaVersion: 1

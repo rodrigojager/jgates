@@ -68,6 +68,8 @@ export interface ResolveOptions {
   /** Profile asked by the call; overrides selection.profile. */
   profile?: string;
   overrides?: CallOverride[];
+  /** Read the base template as it was before the quality bridge was retired (the governed CI path keeps the bridge). */
+  legacyBridge?: boolean;
   /** Inventory of the first stage; when absent the discovery runs on the project. */
   inventory?: InventoryLike;
   /** Template entries (ids in jgates.yml templates) with activation manual that this call turns on. */

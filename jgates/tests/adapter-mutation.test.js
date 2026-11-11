@@ -72,7 +72,8 @@ function project({ stack, strong, minimum, env: extraEnv = {} }) {
     }
     return { code: r.status, out: r.stdout, err: r.stderr, doc };
   };
-  const init = cli(["init", "--cwd", dir, "--profile", "strict", "--no-interactive", "--json"]);
+  // The minimal profile: --only turns the mutation instance on, and no other requirement (unit, coverage) is left uncovered.
+  const init = cli(["init", "--cwd", dir, "--profile", "minimal", "--no-interactive", "--json"]);
   assert.equal(init.code, 0, init.out + init.err);
   const settings = `    capabilities: [mutation]\n${minimum !== undefined ? `    minimumScore: ${minimum}\n` : ""}`;
   fs.writeFileSync(path.join(dir, ".jgates", "tools.yml"), `schemaVersion: 1\ntools:\n  mutation:\n    adapter: mutation\n    engine: ${stack === "js" ? "stryker" : "mutmut"}\n${settings}`);

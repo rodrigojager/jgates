@@ -112,8 +112,8 @@ test("a plan built with a policy folder uses only the policy: the project's jgat
     const p = governed.plan;
     assert.equal(p.profile.id, "gate");
     assert.ok(p.profile.chain.some((c) => c.id === "builtin:strict"));
-    // The configuration files of the plan are the policy's, with the policy's bytes.
-    const configFiles = Object.fromEntries(p.inputs.configFiles.filter((f) => !f.file.startsWith("builtin:")).map((f) => [f.file, f.sha256]));
+    // The configuration files of the plan are the policy's, with the policy's bytes (the rule pack that ships with JGates is not one of them).
+    const configFiles = Object.fromEntries(p.inputs.configFiles.filter((f) => !f.file.startsWith("builtin:") && !path.isAbsolute(f.file)).map((f) => [f.file, f.sha256]));
     assert.deepEqual(Object.keys(configFiles).sort(), [".jgates/profiles.yml", "jgates.yml"]);
     assert.equal(configFiles["jgates.yml"], "sha256:" + sha(fs.readFileSync(path.join(policyDir, "jgates.yml"))));
     assert.equal(configFiles[".jgates/profiles.yml"], "sha256:" + sha(fs.readFileSync(path.join(policyDir, ".jgates/profiles.yml"))));
@@ -184,15 +184,15 @@ test("the bundle hash changes when any file JGates reads changes, and not for fi
       "shared/house.yml": "schemaVersion: 1\nid: house\nextends:\n  - shared/base.yml\n",
       "shared/base.yml": "schemaVersion: 1\nid: base\n",
       // A scanner configuration bound in tools.yml, outside .jgates/: read too.
-      ".jgates/tools.yml": "schemaVersion: 1\ntools:\n  quality-bridge:\n    adapter: quality-bridge\n    configFiles:\n      gitleaks:\n        path: scanners/gitleaks.toml\n",
-      "scanners/gitleaks.toml": "title = \"policy\"\n",
+      ".jgates/tools.yml": "schemaVersion: 1\ntools:\n  ruff:\n    adapter: ruff\n    capabilities: [lint]\n    config: scanners/ruff.toml\n",
+      "scanners/ruff.toml": "line-length = 100\n",
       ...NOT_READ,
     };
     write(dir, files);
     const first = policy.readPolicyBundle(dir);
     assert.equal(first.ok, true, JSON.stringify(first.error));
     const listed = first.bundle.files.map((f) => f.path);
-    for (const f of ["shared/house.yml", "shared/base.yml", ".jgates/tools.yml", "scanners/gitleaks.toml"]) assert.ok(listed.includes(f), `${f} in ${listed.join(", ")}`);
+    for (const f of ["shared/house.yml", "shared/base.yml", ".jgates/tools.yml", "scanners/ruff.toml"]) assert.ok(listed.includes(f), `${f} in ${listed.join(", ")}`);
 
     let current = first.bundle.sha256;
     for (const name of [...first.bundle.files.map((f) => f.path)]) {

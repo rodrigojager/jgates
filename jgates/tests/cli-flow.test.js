@@ -95,29 +95,31 @@ test("run --skip capability:unit leaves the run reduced, lists the shutdown and 
   const p = project();
   try {
     assert.equal(p.cli("init", "--cwd", p.dir, "--profile", "strict", "--no-interactive", "--json").code, 0);
+    // A pytest configuration brings the pytest template, whose unit item the strict profile requires.
+    fs.writeFileSync(path.join(p.dir, "api", "pytest.ini"), "[pytest]\n");
     const statusBefore = gitStatus(p.dir);
 
     const full = one(p.cli("run", "--cwd", p.dir, "--no-interactive", "--json"));
     assertValidResult(full);
     assert.equal(full.reduced, false);
-    assert.ok(full.requirements.find((r) => r.id === "quality-bridge.project-tests")?.required);
+    assert.ok(full.requirements.find((r) => r.id === "pytest#unit")?.required);
 
     const run = p.cli("run", "--cwd", p.dir, "--skip", "capability:unit", "--no-interactive", "--json");
     const result = one(run);
     assertValidResult(result);
     assert.equal(result.reduced, true);
     const overrides = result.selection.overrides.map((o) => o.id);
-    assert.ok(overrides.includes("quality-bridge.project-tests"), JSON.stringify(result.selection.overrides));
+    assert.ok(overrides.includes("pytest#unit"), JSON.stringify(result.selection.overrides));
     assert.deepEqual(result.selection.request.skip, ["capability:unit"]);
     assert.ok(result.selection.planOverrides.some((o) => o.source === "--skip" && o.selector === "capability:unit"));
-    assert.equal(result.requirements.find((r) => r.id === "quality-bridge.project-tests").required, false);
-    assert.equal(result.stages.find((s) => s.id === "quality-bridge.project-tests").state, "disabled");
+    assert.ok(!result.requirements.some((r) => r.id === "pytest#unit" && r.required), "the unit requirement left the run");
+    assert.ok(result.disabled?.some((d) => d.id === "pytest#unit") || result.stages.find((s) => s.id === "pytest#unit")?.state === "disabled", JSON.stringify(result.disabled));
     assert.equal(result.workspaceChanges.added.length + result.workspaceChanges.modified.length + result.workspaceChanges.removed.length, 0);
 
     // Nothing changed in the project, and the only difference from a clean checkout is the JGates configuration.
     assert.equal(gitStatus(p.dir), statusBefore);
     const lines = gitStatus(p.dir).split("\n").filter(Boolean);
-    assert.ok(lines.every((l) => /\sjgates\.yml$|\s\.jgates\//.test(l)), lines.join("\n"));
+    assert.ok(lines.every((l) => /\sjgates\.yml$|\s\.jgates\/|\sapi\/pytest\.ini$/.test(l)), lines.join("\n"));
     assert.ok(lines.length > 0);
   } finally {
     p.cleanup();

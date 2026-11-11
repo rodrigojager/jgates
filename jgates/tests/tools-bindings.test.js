@@ -150,7 +150,10 @@ test("tools list shows each instance with its support level", () => {
     // Container-first: one runner; the `runner: local` of the fixture is dropped by the migration reader.
     assert.equal(byId["ruff-api"].runner, "container");
     assert.equal(byId["ruff-api"].component, "api");
-    assert.equal(byId.bridge.supportLevel, "editable-file");
+    // The retired bridge instance is read as the individual instances that took its capabilities over.
+    assert.equal(byId.bridge, undefined);
+    assert.equal(byId.gitleaks.adapter, "gitleaks");
+    assert.equal(byId.semgrep.adapter, "semgrep");
     assert.ok(r.doc.adapters.length > 0);
   });
 });

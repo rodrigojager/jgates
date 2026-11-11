@@ -7,7 +7,8 @@
 //              the image filesystem plus gitleaks over the places a credential could be left);
 //   size       at most 7 GB uncompressed and 3 GB compressed; above it the five largest layers are listed;
 //   scan       Trivy vulnerability scan of the image filesystem; a critical finding with a fix fails;
-//   smoke      `jgates ci` in `in-image` mode on a clean and a known-bad project of the Python and TS stacks.
+//   smoke      `jgates ci` in `in-image` mode on a known-bad and a clean project of every validated row of the matrix
+//              (JGATES_SMOKE_GROUPS=a,b runs only those groups; JGATES_SMOKE_DIST mounts a working-tree build).
 // Reports (SBOM, license report, scan report, one JSON per gate) go to the output folder.
 //
 // Usage (host):    node image-gates.mjs run [--image jgates-tools:dev] [--out <dir>] [--only gate,gate]
@@ -451,8 +452,14 @@ export function checkScan({ report }) {
 // ---------------------------------------------------------------------------------------------------------------------
 // 6. Smoke (runs inside the image)
 // ---------------------------------------------------------------------------------------------------------------------
+// `jgates ci` in `in-image` mode on a known-bad and a clean project of every validated row of the capability-by-stack
+// matrix (core/matrix), so the tools the plan names are the ones of the image and the adapters run natively, under the
+// governed path. A group is one tool configuration (templates of the policy, settings of tools.yml) with its two
+// projects; it covers the rows it names. Every validated row must be covered by a group or be listed with the reason it
+// cannot run in an offline container without services (SMOKE_EXEMPT), or belong to an adapter that a policy is refused
+// from using by design (the trust table: excluded). A row with none of the three fails the gate before anything runs.
 
-const PROFILE_CAPABILITIES = ["file-size", "lint", "secrets", "sast", "dependencies", "duplication", "iac", "unit", "coverage", "pii"];
+const PROFILE_CAPABILITIES = ["file-size", "lint", "secrets", "sast", "dependencies", "duplication", "iac", "unit", "coverage", "pii", "typecheck", "format-check", "integration", "properties", "tests", "mutation", "performance", "migration", "ci-cd", "supply-chain"];
 const git = (cwd, ...args) => spawnSync("git", ["-c", "user.name=JGates", "-c", "user.email=smoke@example.invalid", ...args], { cwd, encoding: "utf8" });
 
 function writeTree(dir, files) {
@@ -465,7 +472,7 @@ function writeTree(dir, files) {
 
 const LONG_FILE = (comment) => Array.from({ length: 40 }, (_, i) => `${comment} filler line ${i}`).join("\n") + "\n";
 
-/** The projects of the smoke: per stack a clean one and a known-bad one (a source file above the policy's line budget). */
+/** The projects of the bridge's file-size subcheck (the legacy quality gate, kept by the governed path): per stack a clean one and a known-bad one. */
 export function smokeProjects() {
   const python = {
     "pyproject.toml": '[project]\nname = "smoke"\nversion = "0.1.0"\n',
@@ -485,41 +492,362 @@ export function smokeProjects() {
   ];
 }
 
-/** Runs inside the image: `jgates ci` on every smoke project, with a policy that bounds a source file to 20 lines. */
-export function smokeInImage(work = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-smoke-"))) {
+const PY = '[project]\nname = "demo"\nversion = "0.1.0"\n';
+const GO_MOD = "module example.com/demo\n\ngo 1.21\n";
+const NPM_PKG = (extra = "") => `{ "name": "demo", "version": "1.0.0", "private": true${extra} }\n`;
+
+/**
+ * The groups. `covers`: the matrix rows (`adapter#capability@stack`) the group proves; `templates`: built-in templates the
+ * policy switches on (activation always: the policy folder holds no evidence); `tools`: tools.yml text added to the
+ * policy; `caps`: the capabilities the policy's profile switches on (the others are off); `bad` and `clean`: a fixture
+ * folder under tests/fixtures (`copy`) or inline `files`; `minimum`: the coverage minimum of the policy.
+ */
+const rowsOf = (adapter, caps, stacks) => caps.flatMap((cap) => stacks.map((stack) => `${adapter}#${cap}@${stack}`));
+const tools = (id, adapter, caps, extra = "") => `schemaVersion: 1\ntools:\n  ${id}:\n    adapter: ${adapter}\n    capabilities: [${caps.join(", ")}]\n${extra}`;
+const TESTS_CAPS = ["unit", "coverage", "integration", "properties"];
+
+export const SMOKE_GROUPS = [
+  {
+    id: "file-size",
+    caps: ["file-size"],
+    covers: rowsOf("file-size", ["file-size"], ["any"]),
+    tools: tools("file-size", "file-size", ["file-size"], "    maxLines: 20\n"),
+    bad: { files: { "src/long.txt": LONG_FILE("#"), "README.md": "demo\n" } },
+    clean: { files: { "src/short.txt": "one\n", "README.md": "demo\n" } },
+  },
+  {
+    id: "pii",
+    caps: ["pii"],
+    covers: rowsOf("builtin-pii", ["pii"], ["any"]),
+    bad: { files: { "README.md": "demo\n", "data/people.txt": "customer document 529.982.247-25 on file\n" } },
+    clean: { files: { "README.md": "demo\n", "data/people.txt": "customer document on file\n" } },
+  },
+  {
+    id: "ruff",
+    caps: ["lint"],
+    covers: rowsOf("ruff", ["lint"], ["python"]),
+    templates: ["python"],
+    bad: { files: { "pyproject.toml": PY, "app/__init__.py": "", "app/core.py": "import os\n\n\ndef double(value):\n    return value * 2\n" } },
+    clean: { files: { "pyproject.toml": PY, "app/__init__.py": "", "app/core.py": "def double(value):\n    return value * 2\n" } },
+  },
+  {
+    id: "semgrep",
+    caps: ["sast"],
+    covers: rowsOf("semgrep", ["sast"], ["python", "javascript", "typescript"]),
+    tools: tools("semgrep", "semgrep", ["sast"], "    rulePack: jgates\n"),
+    bad: { copy: "semgrep-pack/vulnerable" },
+    clean: { copy: "semgrep-pack/clean" },
+  },
+  { id: "zizmor", caps: ["ci-cd"], covers: rowsOf("zizmor", ["ci-cd"], ["any"]), templates: ["github-actions-zizmor"], bad: { copy: "zizmor/injection" }, clean: { copy: "zizmor/clean" } },
+  {
+    id: "supply-chain",
+    caps: ["supply-chain"],
+    covers: rowsOf("supply-chain", ["supply-chain"], ["any"]),
+    templates: ["supply-chain"],
+    tools: tools("supply-chain", "supply-chain", ["supply-chain"], "    blockOn: low\n"),
+    bad: { copy: "supply-chain/npm-risky" },
+    clean: { copy: "supply-chain/npm-clean" },
+  },
+  { id: "build-typescript", caps: ["typecheck"], covers: rowsOf("build-check", ["typecheck"], ["typescript"]), templates: ["typescript-tsc"], bad: { copy: "build-check/typescript/bad" }, clean: { copy: "build-check/typescript/clean" } },
+  { id: "build-python", caps: ["typecheck"], covers: rowsOf("build-check", ["typecheck"], ["python"]), templates: ["python-mypy-defaults"], bad: { copy: "build-check/python/bad" }, clean: { copy: "build-check/python/clean" } },
+  { id: "build-go", caps: ["typecheck"], covers: rowsOf("build-check", ["typecheck"], ["go"]), templates: ["go-build"], bad: { copy: "build-check/go/bad" }, clean: { copy: "build-check/go/clean" } },
+  { id: "build-rust", caps: ["typecheck"], covers: rowsOf("build-check", ["typecheck"], ["rust"]), templates: ["rust-cargo-check"], bad: { copy: "build-check/rust/bad" }, clean: { copy: "build-check/rust/clean" } },
+  { id: "build-csharp", caps: ["typecheck"], covers: rowsOf("build-check", ["typecheck"], ["csharp"]), templates: ["dotnet-build"], bad: { copy: "build-check/csharp/bad" }, clean: { copy: "build-check/csharp/clean" } },
+  { id: "format-python", caps: ["format-check"], covers: rowsOf("format-check", ["format-check"], ["python"]), templates: ["python-format"], bad: { copy: "format-check/python/bad" }, clean: { copy: "format-check/python/clean" } },
+  { id: "format-typescript", caps: ["format-check"], covers: rowsOf("format-check", ["format-check"], ["typescript"]), templates: ["typescript-prettier"], bad: { copy: "format-check/typescript/bad" }, clean: { copy: "format-check/typescript/clean" } },
+  { id: "format-go", caps: ["format-check"], covers: rowsOf("format-check", ["format-check"], ["go"]), templates: ["go-gofmt"], bad: { copy: "format-check/go/bad" }, clean: { copy: "format-check/go/clean" } },
+  { id: "format-rust", caps: ["format-check"], covers: rowsOf("format-check", ["format-check"], ["rust"]), templates: ["rust-rustfmt"], bad: { copy: "format-check/rust/bad" }, clean: { copy: "format-check/rust/clean" } },
+  { id: "format-csharp", caps: ["format-check"], covers: rowsOf("format-check", ["format-check"], ["csharp"]), templates: ["dotnet-format"], bad: { copy: "format-check/csharp/bad" }, clean: { copy: "format-check/csharp/clean" } },
+  { id: "lint-go", caps: ["lint"], covers: rowsOf("golangci-lint", ["lint"], ["go"]), templates: ["go-golangci-lint"], bad: { copy: "lint-stacks/go/bad" }, clean: { copy: "lint-stacks/go/clean" } },
+  { id: "lint-rust", caps: ["lint"], covers: rowsOf("clippy", ["lint"], ["rust"]), templates: ["rust-clippy"], bad: { copy: "lint-stacks/rust/bad" }, clean: { copy: "lint-stacks/rust/clean" } },
+  { id: "lint-csharp", caps: ["lint"], covers: rowsOf("dotnet-analyzers", ["lint"], ["csharp"]), templates: ["dotnet-analyzers"], bad: { copy: "lint-stacks/csharp/bad" }, clean: { copy: "lint-stacks/csharp/clean" } },
+  { id: "lint-shell", caps: ["lint"], covers: rowsOf("shellcheck", ["lint"], ["any"]), templates: ["shell-shellcheck"], bad: { copy: "lint-stacks/shell/bad" }, clean: { copy: "lint-stacks/shell/clean" } },
+  { id: "lint-docker", caps: ["lint"], covers: rowsOf("hadolint", ["lint"], ["any"]), templates: ["docker-hadolint"], bad: { copy: "lint-stacks/docker/bad" }, clean: { copy: "lint-stacks/docker/clean" } },
+  {
+    id: "tests-go",
+    caps: ["unit", "coverage", "integration"],
+    covers: rowsOf("go-test", ["unit", "coverage", "integration"], ["go"]),
+    templates: ["go-test"],
+    minimum: 80,
+    bad: { files: {"go.mod":"module example.com/calc\n\ngo 1.21\n","calc.go":"package calc\n\nfunc Add(a, b int) int { return a - b }\n\nfunc Abs(a int) int {\n\tif a < 0 {\n\t\treturn -a\n\t}\n\treturn a\n}\n\nfunc Mul(a, b int) int { return a * b }\n\nfunc Div(a, b int) int { return a / b }\n\nfunc Neg(a int) int { return -a }\n","calc_test.go":"package calc\n\nimport \"testing\"\n\nfunc TestAdd(t *testing.T) {\n\tif Add(2, 3) != 5 {\n\t\tt.Fatal(\"Add(2, 3) is not 5\")\n\t}\n}\n\nfunc TestAbs(t *testing.T) {\n\tif Abs(-4) != 4 || Abs(4) != 4 {\n\t\tt.Fatal(\"Abs is wrong\")\n\t}\n}\n","integration_test.go":"//go:build integration\n\npackage calc\n\nimport \"testing\"\n\nfunc TestIntegrationAdd(t *testing.T) {\n\tif Add(1, 1) != 2 {\n\t\tt.Fatal(\"Add(1, 1) is not 2\")\n\t}\n}\n"} },
+    clean: { files: {"go.mod":"module example.com/calc\n\ngo 1.21\n","calc.go":"package calc\n\nfunc Add(a, b int) int { return a + b }\n\nfunc Abs(a int) int {\n\tif a < 0 {\n\t\treturn -a\n\t}\n\treturn a\n}\n","calc_test.go":"package calc\n\nimport \"testing\"\n\nfunc TestAdd(t *testing.T) {\n\tif Add(2, 3) != 5 {\n\t\tt.Fatal(\"Add(2, 3) is not 5\")\n\t}\n}\n\nfunc TestAbs(t *testing.T) {\n\tif Abs(-4) != 4 || Abs(4) != 4 {\n\t\tt.Fatal(\"Abs is wrong\")\n\t}\n}\n","integration_test.go":"//go:build integration\n\npackage calc\n\nimport \"testing\"\n\nfunc TestIntegrationAdd(t *testing.T) {\n\tif Add(1, 1) != 2 {\n\t\tt.Fatal(\"Add(1, 1) is not 2\")\n\t}\n}\n"} },
+  },
+  {
+    id: "tests-rust",
+    caps: ["unit", "coverage", "integration", "tests"],
+    covers: [...rowsOf("cargo-test", ["unit", "coverage", "integration"], ["rust"]), "cargo-test#tests@rust"],
+    templates: ["rust-cargo-test"],
+    tools: tools("cargo-test-suite", "cargo-test", ["tests"]),
+    minimum: 80,
+    bad: { files: {"Cargo.toml":"[package]\nname = \"calc\"\nversion = \"0.1.0\"\nedition = \"2021\"\n","Cargo.lock":"version = 3\n\n[[package]]\nname = \"calc\"\nversion = \"0.1.0\"\n","src/lib.rs":"pub fn add(a: i32, b: i32) -> i32 {\n    a - b\n}\n\npub fn abs(a: i32) -> i32 {\n    if a < 0 {\n        -a\n    } else {\n        a\n    }\n}\n\npub fn mul(a: i32, b: i32) -> i32 {\n    a * b\n}\n\npub fn neg(a: i32) -> i32 {\n    -a\n}\n\npub fn twice(a: i32) -> i32 {\n    a * 2\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn adds_two_numbers() {\n        assert_eq!(add(2, 3), 5);\n    }\n\n    #[test]\n    fn absolute_value() {\n        assert_eq!(abs(-4), 4);\n        assert_eq!(abs(4), 4);\n    }\n}\n","tests/store.rs":"use calc::add;\n\n#[test]\nfn integration_adds() {\n    assert_eq!(add(1, 1), 2);\n}\n"} },
+    clean: { files: {"Cargo.toml":"[package]\nname = \"calc\"\nversion = \"0.1.0\"\nedition = \"2021\"\n","Cargo.lock":"version = 3\n\n[[package]]\nname = \"calc\"\nversion = \"0.1.0\"\n","src/lib.rs":"pub fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n\npub fn abs(a: i32) -> i32 {\n    if a < 0 {\n        -a\n    } else {\n        a\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn adds_two_numbers() {\n        assert_eq!(add(2, 3), 5);\n    }\n\n    #[test]\n    fn absolute_value() {\n        assert_eq!(abs(-4), 4);\n        assert_eq!(abs(4), 4);\n    }\n}\n","tests/store.rs":"use calc::add;\n\n#[test]\nfn integration_adds() {\n    assert_eq!(add(1, 1), 2);\n}\n"} },
+  },
+  {
+    id: "tests-python",
+    caps: TESTS_CAPS,
+    covers: rowsOf("pytest", TESTS_CAPS, ["python"]),
+    templates: ["python-pytest"],
+    minimum: 80,
+    bad: { copy: "test-stacks/python/clean", overlay: { "tests/unit/test_failing.py": "def test_fails():\n    assert 1 == 2\n" } },
+    clean: { copy: "test-stacks/python/clean" },
+  },
+  {
+    id: "tests-vitest",
+    caps: ["unit", "coverage", "integration"],
+    covers: rowsOf("vitest", ["unit", "coverage", "integration"], ["typescript"]),
+    templates: ["typescript-vitest"],
+    minimum: 80,
+    // The fixture's property test needs fast-check, a dependency of the project: plain tests stand in for it.
+    bad: { copy: "test-stacks/vitest/clean", overlay: { "src/calc.test.ts": "import { add } from \"./calc\";\n\ntest(\"adds two numbers\", () => {\n  expect(add(2, 3)).toBe(6);\n});\n" } },
+    clean: { copy: "test-stacks/vitest/clean", overlay: { "src/calc.test.ts": "import { absolute, add } from \"./calc\";\n\ntest(\"adds two numbers\", () => {\n  expect(add(2, 3)).toBe(5);\n});\n\ntest(\"absolute value\", () => {\n  expect(absolute(-4)).toBe(4);\n  expect(absolute(4)).toBe(4);\n});\n" } },
+  },
+  {
+    id: "eslint",
+    caps: ["lint"],
+    covers: rowsOf("eslint", ["lint"], ["typescript"]),
+    // The policy binds the configuration (a file of the policy folder); plain rules need no plugin from the project.
+    tools: tools("eslint", "eslint", ["lint"], "    config: eslint.config.mjs\n"),
+    policyFiles: { "eslint.config.mjs": 'export default [{ files: ["**/*.js"], rules: { "no-var": "error" } }];\n' },
+    bad: { files: { "package.json": NPM_PKG(), "src/index.js": "var total = 1;\nconsole.log(total);\n" } },
+    clean: { files: { "package.json": NPM_PKG(), "src/index.js": "const total = 1;\nconsole.log(total);\n" } },
+  },
+  {
+    id: "performance-go",
+    caps: ["performance"],
+    covers: rowsOf("performance", ["performance"], ["go"]),
+    templates: ["go-bench"],
+    tools: tools("go-bench", "performance", ["performance"], "    harness: go-bench\n    budgets:\n      \"*BenchmarkFib20\": 5\n"),
+    bad: { copy: "e2e-migration-performance/perf-go/bad" },
+    clean: { copy: "e2e-migration-performance/perf-go/clean" },
+  },
+  {
+    id: "migration-squawk",
+    caps: ["migration"],
+    covers: rowsOf("migration-drift", ["migration"], ["any"]),
+    templates: ["sql-squawk"],
+    bad: { copy: "e2e-migration-performance/migration-squawk/bad" },
+    clean: { copy: "e2e-migration-performance/migration-squawk/clean" },
+  },
+  {
+    id: "mutation-python",
+    caps: ["mutation"],
+    covers: rowsOf("mutation", ["mutation"], ["python"]),
+    tools: tools("mutation", "mutation", ["mutation"], "    engine: mutmut\n    minimumScore: 90\n"),
+    bad: { copy: "mutation/py" },
+    clean: { copy: ["mutation/py", "mutation/py-strong"] },
+  },
+  {
+    id: "oasdiff",
+    caps: ["api-compatibility"],
+    covers: rowsOf("oasdiff", ["api-compatibility"], ["any"]),
+    templates: ["openapi-oasdiff"],
+    tools: tools("oasdiff", "oasdiff", ["api-compatibility"], "    spec: openapi.yaml\n    baseSpec: base/openapi.yaml\n"),
+    bad: { copy: ["oasdiff/removed", { from: "oasdiff/base", to: "base" }] },
+    clean: { copy: ["oasdiff/additive", { from: "oasdiff/base", to: "base" }] },
+  },
+  {
+    id: "performance-typescript",
+    caps: ["performance"],
+    covers: rowsOf("performance", ["performance"], ["typescript", "javascript"]),
+    templates: ["typescript-vitest-bench"],
+    tools: tools("vitest-bench", "performance", ["performance"], "    harness: vitest-bench\n    budgets:\n      \"*fib(20)\": 5\n"),
+    bad: { copy: "e2e-migration-performance/perf-ts/bad" },
+    clean: { copy: "e2e-migration-performance/perf-ts/clean" },
+  },
+  {
+    id: "mutation-javascript",
+    caps: ["mutation"],
+    covers: rowsOf("mutation", ["mutation"], ["javascript"]),
+    tools: tools("mutation", "mutation", ["mutation"], "    engine: stryker\n    minimumScore: 90\n"),
+    bad: { copy: "mutation/js" },
+    clean: { copy: ["mutation/js", "mutation/js-strong"] },
+  },
+];
+
+/** Rows that cannot run through `jgates ci` in an offline container with no services, each with the reason. */
+export const SMOKE_EXEMPT = {
+  "go-test#properties@go": "the property library (rapid) is a dependency of the project, installed by the dependencies phase",
+  "cargo-test#properties@rust": "the property library (proptest) is a dependency of the project, installed by the dependencies phase",
+  "vitest#properties@typescript": "the property library (fast-check) is a dependency of the project, installed by the dependencies phase",
+  "dotnet-test#unit@csharp": "dotnet test restores the project's NuGet packages: needs the dependency volume or the network",
+  "dotnet-test#coverage@csharp": "dotnet test restores the project's NuGet packages: needs the dependency volume or the network",
+  "dotnet-test#integration@csharp": "dotnet test restores the project's NuGet packages: needs the dependency volume or the network",
+  "dotnet-test#properties@csharp": "dotnet test restores the project's NuGet packages: needs the dependency volume or the network",
+  "jest#unit@javascript": "Jest is the project's own dev dependency, installed into the dependency volume by the dependencies phase",
+  "jest#coverage@javascript": "Jest is the project's own dev dependency, installed into the dependency volume by the dependencies phase",
+  "jest#integration@javascript": "Jest is the project's own dev dependency, installed into the dependency volume by the dependencies phase",
+  "jest#properties@javascript": "Jest is the project's own dev dependency, installed into the dependency volume by the dependencies phase",
+  "schemathesis#api-contract@any": "needs a running target service",
+  "zap#dast@any": "needs a running target service",
+  "govulncheck#dependencies@go": "needs the advisory data volume (jgates-data), which an offline container does not have",
+  "dotnet-vulnerable#dependencies@csharp": "asks the NuGet sources for advisories: needs the network",
+  "mutation#mutation@csharp": "mutation testing runs the suite per mutant (minutes); covered by the real-engine suite",
+  "playwright#e2e@typescript": "needs the project's compose services and browsers",
+  "playwright#e2e@javascript": "needs the project's compose services and browsers",
+  "playwright#e2e@python": "needs the project's compose services and browsers",
+  "migration-drift#migration@python": "needs the project's database service",
+  "migration-drift#migration@typescript": "needs the project's database service",
+  "migration-drift#migration@javascript": "needs the project's database service",
+  "migration-drift#migration@csharp": "needs the project's database service",
+  "performance#performance@python": "pytest-benchmark runs on the project's own pytest, a dependency installed by the dependencies phase into the dependency volume",
+  "performance#performance@rust": "criterion is a crate of the project: it needs the dependency volume or the network",
+  "performance#performance@csharp": "BenchmarkDotNet is a NuGet package of the project: it needs the dependency volume or the network",
+};
+
+/** Rows of the legacy quality gate's bridge, kept by the governed path and proven by the file-size projects. */
+const BRIDGE_ROWS = new Set(["quality-bridge#file-size@any"]);
+
+/**
+ * Which validated rows each part of the smoke covers. `rows`: the matrix rows (`{key, adapter, state}`); `trust`: the
+ * trust table (adapter -> {treatment}). Returns the rows with no group and no reason (`missing`), the rows of adapters a
+ * policy is refused from using (`refused`), the exempt ones and the unknown names in the tables (`stale`).
+ */
+export function smokeCoverage({ rows, trust, groups = SMOKE_GROUPS, exempt = SMOKE_EXEMPT }) {
+  const validated = rows.filter((row) => row.state === "validated");
+  const covered = new Set([...groups.flatMap((group) => group.covers), ...BRIDGE_ROWS]);
+  const refused = [];
+  const exemptRows = [];
+  const missing = [];
+  for (const row of validated) {
+    if (covered.has(row.key)) continue;
+    if (trust[row.adapter]?.treatment === "excluded") refused.push({ key: row.key, reason: "the trust table refuses it under jgates ci (it reads configuration from the analyzed tree)" });
+    else if (exempt[row.key]) exemptRows.push({ key: row.key, reason: exempt[row.key] });
+    else missing.push(row.key);
+  }
+  const known = new Set(validated.map((row) => row.key));
+  const stale = [...groups.flatMap((group) => group.covers), ...Object.keys(exempt)].filter((key) => !known.has(key));
+  return { missing, refused, exempt: exemptRows, stale: [...new Set(stale)] };
+}
+
+function copyFixture(root, relative, target) {
+  fs.cpSync(path.join(root, ...relative.split("/")), target, { recursive: true });
+}
+
+/** Writes the project of one side (bad or clean) of a group. */
+function writeProject(dir, side, fixtures) {
+  fs.mkdirSync(dir, { recursive: true });
+  for (const entry of [side.copy ?? []].flat()) {
+    const { from, to } = typeof entry === "string" ? { from: entry, to: "." } : entry;
+    copyFixture(fixtures, from, path.join(dir, ...to.split("/")));
+  }
+  if (side.files) writeTree(dir, side.files);
+  if (side.overlay) writeTree(dir, side.overlay);
+}
+
+/** The policy folder of a group: jgates.yml with the templates, the profile that switches on only the group's capabilities, tools.yml, policy.yml and the quality policy. */
+function writePolicy(dir, group) {
+  // jgates ci always keeps the quality gate's file-size budgets on (POLICY_BUDGETS_DISABLED otherwise).
+  const on = new Set(["file-size", ...group.caps]);
+  const checks = [...new Set([...PROFILE_CAPABILITIES, ...group.caps])].map((capability) => `      capability:${capability}:\n        enabled: ${on.has(capability)}\n`).join("");
+  const templates = [{ id: "base", source: "builtin:base", activation: "always" }, ...(group.templates ?? []).map((id) => ({ id, source: `builtin:${id}`, activation: "always" }))];
+  const list = templates.map((t) => `  - id: ${t.id}\n    source: ${t.source}\n    activation: ${t.activation}\n`).join("");
+  const files = {
+    "jgates.yml": `schemaVersion: 2\nextends:\n  - .jgates/profiles.yml\nselection:\n  profile: gate\ntemplates:\n${list}`,
+    ".jgates/profiles.yml": `schemaVersion: 1\nprofiles:\n  gate:\n    label: gate\n    extends: builtin:minimal\n    checks:\n${checks}`,
+    ".jgates/quality-policy.json": `${JSON.stringify({ schemaVersion: 1, budgets: { maxFileLines: 5000 } }, null, 2)}\n`,
+  };
+  if (group.tools) files[".jgates/tools.yml"] = group.tools;
+  Object.assign(files, group.policyFiles ?? {});
+  if (group.minimum) files[".jgates/policy.yml"] = `schemaVersion: 1\nrules:\n  coverage.minimum:\n    threshold: ${group.minimum}\n`;
+  writeTree(dir, files);
+}
+
+function policyHash(policyDir) {
+  const probe = spawnSync("node", ["--input-type=module", "-e", "import { readPolicyBundle } from '/opt/jgates/jgates/dist/core/policy/index.js'; console.log(readPolicyBundle(process.argv[1]).bundle.sha256)", policyDir], { encoding: "utf8" });
+  return probe.stdout.trim();
+}
+
+function runCi(dir, policyDir, home, timeout) {
+  const ran = spawnSync("jgates", ["ci", "--cwd", dir, "--policy", policyDir, "--json"], {
+    encoding: "utf8",
+    // In the image the adapters run natively and the bridge starts the quality sidecar's own environment (/opt/tools/python/quality-sidecar).
+    env: { ...process.env, JGATES_HOME: home, JGATES_POLICY_SHA256: policyHash(policyDir), NO_COLOR: "1" },
+    maxBuffer: 64 * 1024 * 1024,
+    timeout,
+  });
+  let document = null;
+  try {
+    document = JSON.parse(ran.stdout);
+  } catch {
+    document = null;
+  }
+  return { ran, document };
+}
+
+/** Stages that count as done: the check ran, or it did not apply (nothing to run in this project), or it was switched off. */
+const SETTLED = new Set(["completed", "not_applicable", "disabled", "skipped"]);
+
+/**
+ * Judges one project. The known-bad side must fail with a finding of the adapters the group proves; the clean side must
+ * have none, with every stage of those adapters settled and at least one completed (a tool that errors, is blocked or is
+ * missing is never a pass). An "incomplete" decision is fine on the clean side only because a self-reported adapter never
+ * satisfies a requirement under jgates ci: it can fail the run, and that is what the bad side shows.
+ */
+const summarize = (project, ran, document, expected, adapters = null) => {
+  const decision = document?.decision ?? null;
+  const stages = (document?.stages ?? []).filter((s) => s.kind !== "composite");
+  const ownStages = adapters ? stages.filter((s) => adapters.includes(s.adapter)) : stages;
+  const findings = document?.findings ?? [];
+  const ownFindings = adapters ? findings.filter((f) => adapters.includes(f.origin) || adapters.includes(f.tool)) : findings;
+  const unsettled = ownStages.filter((s) => !SETTLED.has(s.state));
+  const ok =
+    expected === "failed"
+      ? decision === "failed" && ownFindings.length > 0
+      : (decision === "passed" || decision === "incomplete") && findings.length === 0 && unsettled.length === 0 && ownStages.some((s) => s.state === "completed");
+  return {
+    id: project,
+    expected,
+    decision,
+    complete: document?.complete ?? null,
+    exitCode: ran.status,
+    ok,
+    stages: ownStages.map((s) => s.id + ":" + s.state),
+    unsettled: unsettled.map((s) => s.id + ":" + s.state + ":" + String(s.reason ?? "").slice(0, 240)),
+    findings: ownFindings.slice(0, 3).map((f) => (f.tool ?? f.origin) + ":" + (f.ruleId ?? "?") + ":" + (f.location?.path ?? "?") + " " + String(f.message ?? "").slice(0, 120)),
+    error: document ? (decision ? undefined : (document.code ?? "") + " " + (document.message ?? "") + " " + (document.detail ?? "")) : (ran.stderr || ran.stdout).slice(0, 400),
+  };
+};
+
+/**
+ * Runs inside the image: `jgates ci` on every smoke project. `groups` and `fixtures` come from the host (the groups
+ * file and the read-only mount of tests/fixtures); `only` names the group ids to run (all by default).
+ */
+export function smokeInImage({ groups = SMOKE_GROUPS, fixtures = "/fixtures", only, work = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-smoke-")) } = {}) {
   const results = [];
   const home = path.join(work, "home");
   fs.mkdirSync(home, { recursive: true });
-  const policyDir = path.join(work, "policy");
-  const checks = PROFILE_CAPABILITIES.map((capability) => `      capability:${capability}:\n        enabled: ${capability === "file-size" || capability === "pii"}\n`).join("");
-  writeTree(policyDir, {
-    "jgates.yml": "schemaVersion: 1\nextends:\n  - .jgates/profiles.yml\nselection:\n  profile: gate\n",
-    ".jgates/profiles.yml": `schemaVersion: 1\nprofiles:\n  gate:\n    label: gate\n    extends: builtin:minimal\n    checks:\n${checks}`,
-    ".jgates/quality-policy.json": `${JSON.stringify({ schemaVersion: 1, budgets: { maxFileLines: 20 } }, null, 2)}\n`,
-  });
-  const hashProbe = spawnSync("node", ["--input-type=module", "-e", "import { readPolicyBundle } from '/opt/jgates/jgates/dist/core/policy/index.js'; console.log(readPolicyBundle(process.argv[1]).bundle.sha256)", policyDir], { encoding: "utf8" });
-  const sha = hashProbe.stdout.trim();
-  for (const project of smokeProjects()) {
-    const dir = path.join(work, project.id);
-    writeTree(dir, project.files);
-    git(dir, "init", "-q");
-    git(dir, "add", "-A");
-    git(dir, "commit", "-qm", "smoke");
-    const ran = spawnSync("jgates", ["ci", "--cwd", dir, "--policy", policyDir, "--json"], {
-      encoding: "utf8",
-      // In the image the bridge starts the quality sidecar's own environment (/opt/tools/python/quality-sidecar) by itself.
-      env: { ...process.env, JGATES_HOME: home, JGATES_POLICY_SHA256: sha, NO_COLOR: "1" },
-      maxBuffer: 64 * 1024 * 1024,
-      timeout: 10 * 60_000,
-    });
-    let document = null;
-    try {
-      document = JSON.parse(ran.stdout);
-    } catch {
-      document = null;
+  // 1. The legacy bridge's file-size subcheck and the PII scan: per stack a clean and a known-bad project, with a budget of 20 lines.
+  const budgetPolicy = path.join(work, "policy-budget");
+  const bridgeGroup = { id: "bridge", caps: ["file-size", "pii"] };
+  writePolicy(budgetPolicy, bridgeGroup);
+  fs.writeFileSync(path.join(budgetPolicy, ".jgates", "quality-policy.json"), `${JSON.stringify({ schemaVersion: 1, budgets: { maxFileLines: 20 } }, null, 2)}\n`);
+  if (!only || only.includes("bridge")) {
+    for (const project of smokeProjects()) {
+      const dir = path.join(work, project.id);
+      writeTree(dir, project.files);
+      git(dir, "init", "-q");
+      git(dir, "add", "-A");
+      git(dir, "commit", "-qm", "smoke");
+      const { ran, document } = runCi(dir, budgetPolicy, home, 10 * 60_000);
+      results.push({ ...summarize(`bridge/${project.id}`, ran, document, project.expect, ["quality-bridge"]), stack: project.stack });
     }
-    const decision = document?.decision ?? null;
-    results.push({ id: project.id, stack: project.stack, expected: project.expect, decision, complete: document?.complete ?? null, exitCode: ran.status, ok: decision === project.expect, unsatisfied: document?.unsatisfied?.slice(0, 6), steps: document?.steps?.map((s) => `${s.id}:${s.status}`).slice(0, 12), error: document ? undefined : (ran.stderr || ran.stdout).slice(0, 400) });
+  }
+  // 2. The groups of the matrix rows.
+  for (const group of groups) {
+    if (only && !only.includes(group.id)) continue;
+    const policyDir = path.join(work, `policy-${group.id}`);
+    writePolicy(policyDir, group);
+    for (const [side, expected] of [["bad", "failed"], ["clean", "passed"]]) {
+      const dir = path.join(work, `${group.id}-${side}`);
+      writeProject(dir, group[side], fixtures);
+      git(dir, "init", "-q");
+      git(dir, "add", "-A");
+      git(dir, "commit", "-qm", "smoke");
+      const started = Date.now();
+      const { ran, document } = runCi(dir, policyDir, home, 20 * 60_000);
+      results.push({ ...summarize(`${group.id}/${side}`, ran, document, expected, [...new Set(group.covers.map((row) => row.split("#")[0]))]), group: group.id, seconds: Math.round((Date.now() - started) / 1000) });
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   }
   fs.rmSync(work, { recursive: true, force: true });
   return { gate: "smoke", passed: results.every((r) => r.ok), results };
@@ -604,13 +932,29 @@ async function gateSize({ image, outDir }) {
 }
 
 async function gateSmoke({ image, outDir }) {
-  const ran = docker([...BASE_RUN, "--network", "none", "--read-only", "--tmpfs", "/tmp:exec,uid=10001,gid=10001", "--memory", "4g", ...MOUNT_SELF(self), image, "node", "/gate/image-gates.mjs", "smoke"], { allowFailure: true });
+  // The rows come from the matrix of this build and the trust table; a row nobody covers fails the gate before anything runs.
+  const dist = path.join(packageRoot, "dist");
+  const matrix = await import(pathToFileURL(path.join(dist, "core", "matrix", "index.js")).href);
+  const governed = await import(pathToFileURL(path.join(dist, "core", "governed", "trust.js")).href);
+  const coverage = smokeCoverage({ rows: matrix.buildMatrix().rows, trust: governed.ADAPTER_TRUST });
+  const problems = [
+    ...coverage.missing.map((key) => ({ kind: "row-without-smoke", message: `the validated row ${key} has no smoke group and no stated reason (add one to SMOKE_GROUPS or SMOKE_EXEMPT)` })),
+    ...coverage.stale.map((key) => ({ kind: "unknown-row", message: `${key} is named by the smoke tables but is not a validated row of the matrix` })),
+  ];
+  const only = process.env.JGATES_SMOKE_GROUPS?.split(",").filter(Boolean);
+  const mounts = ["-v", `${hostPath(path.join(packageRoot, "tests", "fixtures"))}:/fixtures:ro`];
+  // Development: the CLI baked into the image is replaced by the build of this working tree (a real build bakes it in).
+  if (process.env.JGATES_SMOKE_DIST) mounts.push("-v", `${hostPath(process.env.JGATES_SMOKE_DIST)}:/opt/jgates/jgates/dist:ro`);
+  const ran = docker([...BASE_RUN, "--network", "none", "--read-only", "--tmpfs", "/tmp:exec,uid=10001,gid=10001,size=4g", "--memory", "6g", ...MOUNT_SELF(self), ...mounts, ...(only ? ["-e", `JGATES_SMOKE_GROUPS=${only.join(",")}`] : []), image, "node", "/gate/image-gates.mjs", "smoke"], { allowFailure: true, timeout: 4 * 60 * 60_000 });
   let result;
   try {
     result = JSON.parse(ran.out);
   } catch {
     result = { gate: "smoke", passed: false, results: [], findings: [{ kind: "smoke-failed", message: (ran.err || ran.out).slice(-600) }] };
   }
+  result.findings = [...(result.findings ?? []), ...problems];
+  result.passed = result.passed === true && problems.length === 0;
+  result.coverage = { groups: SMOKE_GROUPS.length, refused: coverage.refused, exempt: coverage.exempt };
   writeReport(outDir, "smoke-report.json", result);
   return result;
 }
@@ -620,7 +964,8 @@ export const GATES = { versions: gateVersions, licenses: gateLicenses, forbidden
 /** Runs the gates (all of them, in order, even after a failure) and writes `gates-report.json`. */
 export async function runGates({ image = "jgates-tools:dev", outDir = DEFAULT_OUT, only } = {}) {
   fs.mkdirSync(outDir, { recursive: true });
-  const names = only?.length ? only : Object.keys(GATES);
+  const chosen = only?.length ? only : process.env.JGATES_IMAGE_GATES?.split(",").filter(Boolean);
+  const names = chosen?.length ? chosen : Object.keys(GATES);
   const results = [];
   for (const name of names) {
     const started = Date.now();
@@ -644,7 +989,7 @@ function printFailure(result) {
   const lines = [];
   for (const item of (result.findings ?? []).slice(0, 15)) lines.push(`  - ${item.message ?? `${item.kind} ${item.path ?? item.id ?? ""} ${item.detail ?? ""}`}`);
   for (const item of (result.violations ?? []).slice(0, 15)) lines.push(`  - ${item.component} [${item.license}]: ${item.reasons.join("; ")}`);
-  for (const item of (result.results ?? []).filter((r) => !r.ok)) lines.push(`  - ${item.id}: expected ${item.expected}, got ${item.decision} (exit ${item.exitCode}) ${item.error ?? ""}`);
+  for (const item of (result.results ?? []).filter((r) => !r.ok)) lines.push(`  - ${item.id}: expected ${item.expected}, got ${item.decision} (exit ${item.exitCode}) ${item.error ?? ""}${item.unsettled?.length ? ` unsettled: ${item.unsettled.join(" | ")}` : ""}${item.findings?.length ? ` findings: ${item.findings.join(" | ")}` : ""}`);
   if (result.largestLayers) for (const layer of result.largestLayers) lines.push(`  - layer ${layer.size}: ${layer.createdBy}`);
   console.error(`image:gates: ${result.gate} failed:\n${lines.join("\n")}`);
 }
@@ -701,7 +1046,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === self) {
     if (rest.includes("--apt-main")) result.findings.push(...nonMainPackages());
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } else if (command === "smoke") {
-    process.stdout.write(`${JSON.stringify(smokeInImage())}\n`);
+    const only = process.env.JGATES_SMOKE_GROUPS?.split(",").filter(Boolean);
+    process.stdout.write(`${JSON.stringify(smokeInImage({ ...(only?.length ? { only } : {}) }))}\n`);
   } else if (command === "run") {
     const only = option(rest, "only")?.split(",");
     const summary = await runGates({ image: option(rest, "image") ?? "jgates-tools:dev", outDir: option(rest, "out") ?? DEFAULT_OUT, only });

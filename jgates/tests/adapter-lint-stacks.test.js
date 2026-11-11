@@ -257,7 +257,7 @@ test("lint adapters: shell scripts and Dockerfiles come in by their files, liste
   assert.equal(planInit(none, "minimal").templates.some((id) => id === "shell-shellcheck" || id === "docker-hadolint"), false);
 });
 
-test("lint adapters: a strict plan of a Go + Rust + .NET project runs the stack linters and leaves the bridge's lint out", () => {
+test("lint adapters: a strict plan of a Go + Rust + .NET project runs the stack linters and has no bridge lint", () => {
   const dir = tmp("jgates-lint-mixed-");
   for (const stack of ["go", "rust", "csharp"]) fs.cpSync(path.join(FIXTURES, stack, "bad"), dir, { recursive: true });
   assert.equal(spawnSync("git", ["init", "-q"], { cwd: dir }).status, 0);
@@ -267,11 +267,9 @@ test("lint adapters: a strict plan of a Go + Rust + .NET project runs the stack 
   const runs = built.plan.groups.willRun.filter((i) => i.capabilities.includes("lint"));
   assert.deepEqual(runs.map((i) => i.id).sort(), ["clippy#lint", "dotnet-analyzers#lint", "golangci-lint#lint"], "the stack linters run lint");
   for (const item of runs) assert.equal(item.availability.status, "available", `${item.id}: ${item.availability.reason ?? ""}`);
-  const bridge = built.plan.groups.notApplicableOrDisabled.find((i) => i.id === "quality-bridge.megalinter#lint");
-  assert.ok(bridge, "the bridge's lint is listed as left out");
-  assert.equal(bridge.reason.code, "SUPERSEDED");
-  for (const id of ["clippy#lint", "dotnet-analyzers#lint", "golangci-lint#lint"]) assert.ok(bridge.reason.message.includes(id), `${id} is named as what replaces it`);
-  assert.ok(!built.plan.groups.willRun.some((i) => i.id === "quality-bridge.megalinter#lint"));
+  // The quality bridge (MegaLinter) is retired from the plans: it is neither run nor listed as left out.
+  const everyItem = [...built.plan.groups.willRun, ...built.plan.groups.notApplicableOrDisabled];
+  assert.equal(everyItem.some((i) => i.adapter === "quality-bridge"), false);
 });
 
 test("lint adapters: the support matrix shows lint validated for each stack, with its proof", () => {

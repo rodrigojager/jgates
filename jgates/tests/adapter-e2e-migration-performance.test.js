@@ -289,7 +289,8 @@ test("services checks: without services, e2e and migration are SERVICES_REQUIRED
       assert.deepEqual(na.action.tools, [tool]);
       assert.ok(!p.blockers.some((b) => JSON.stringify(b).includes(tool)), JSON.stringify(p.blockers));
       assert.ok(!p.groups.uncoveredRequirements.some((u) => u.selector === `capability:${capability}`));
-      assert.equal(p.approvable, true, JSON.stringify(p.blockers));
+      // Nothing else blocks the plan: the only gaps are the unit tests and coverage this fixture has no runner for.
+      assert.ok(p.blockers.every((b) => (b.items ?? []).every((i) => ["capability:unit", "capability:coverage"].includes(i))), JSON.stringify(p.blockers));
       assert.deepEqual(validatePlanDocument(p), []);
     }
     // Asked for explicitly, the check is blocked with the shared cause: it never starts and never passes.

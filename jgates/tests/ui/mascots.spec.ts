@@ -18,7 +18,7 @@ function checksFixture(): Fixture {
   }
   fs.writeFileSync(path.join(f.dir, ".jgates", "templates", "mascots.yml"), JSON.stringify({ schemaVersion: 1, id: "mascots", config: { tools } }));
   fs.writeFileSync(path.join(f.dir, "jgates.yml"), JSON.stringify({ schemaVersion: 1, extends: [".jgates/profiles.yml"], selection: { profile: "mascots" }, templates: [{ id: "mascots", source: ".jgates/templates/mascots.yml", activation: "always" }] }));
-  fs.writeFileSync(path.join(f.dir, ".jgates", "profiles.yml"), JSON.stringify({ schemaVersion: 1, profiles: { mascots: { checks: { "capability:lint": { enabled: true }, "tool:quality-bridge": { enabled: false } } } } }));
+  fs.writeFileSync(path.join(f.dir, ".jgates", "profiles.yml"), JSON.stringify({ schemaVersion: 1, profiles: { mascots: { checks: { "capability:lint": { enabled: true } } } } }));
   return f;
 }
 
@@ -137,7 +137,7 @@ test("configuration saves refresh selection, and review/cancellation retain the 
     // blocker, then restore the fixture's intentionally lint-only profile before running.
     await expect(quality).toHaveAttribute("data-status", "blocked");
     await expect(page.getByRole("button", { name: "Executar", exact: true })).toBeDisabled();
-    fs.writeFileSync(path.join(fixture.dir, ".jgates", "profiles.yml"), JSON.stringify({ schemaVersion: 1, profiles: { mascots: { checks: { "capability:lint": { enabled: true }, "tool:quality-bridge": { enabled: false } } } } }));
+    fs.writeFileSync(path.join(fixture.dir, ".jgates", "profiles.yml"), JSON.stringify({ schemaVersion: 1, profiles: { mascots: { checks: { "capability:lint": { enabled: true } } } } }));
     await page.getByRole("button", { name: "Atualizar plano", exact: true }).click();
     await expect(quality).toHaveAttribute("data-status", "waiting");
     await page.getByRole("button", { name: "Executar", exact: true }).click();

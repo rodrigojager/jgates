@@ -9,12 +9,16 @@ import { translator } from "../../i18n/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
-import { runSpec, substituteTokens, type ExecutionResult } from "../../core/runner/index.js";
+import { DEFAULT_ENV_ALLOWLIST, runSpec, substituteTokens, type ExecutionResult } from "../../core/runner/index.js";
 import { stepViewOfPaths } from "../../core/runner/container.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { formatCheckManifest } from "./manifest.js";
 import { FORMATTERS, FORMATTER_TOOL, parseFormat, toFindings, type Formatter } from "./normalize.js";
 import { probeFormatter, VERSION_TOOL } from "./probe.js";
+
+/** Variables a toolchain needs beyond the runner's default allowlist (rustfmt finds its toolchain through RUSTUP_HOME and CARGO_HOME when the step runs natively, inside the image). */
+const TOOLCHAIN_ENV = ["ProgramFiles", "ProgramFiles(x86)", "ProgramW6432", "ProgramData", "ALLUSERSPROFILE", "HOMEDRIVE", "HOMEPATH", "WINDIR", "CARGO_HOME", "RUSTUP_HOME", "GOROOT", "GOPATH", "GOCACHE", "GOMODCACHE", "DOTNET_ROOT", "NUGET_PACKAGES", "NUGET_HTTP_CACHE_PATH"] as const;
+const ENV_ALLOWLIST: readonly string[] = [...DEFAULT_ENV_ALLOWLIST, ...TOOLCHAIN_ENV];
 
 export { formatCheckManifest } from "./manifest.js";
 export { FORMATTERS, parseDotnet, parseFormat, parseGofmt, parsePrettier, parseRuff, parseRustfmt } from "./normalize.js";
@@ -157,7 +161,7 @@ async function runFormatCheck(context: AdapterContext, plan: Plan, tool: string)
 
   const result: ExecutionResult = await runSpec(
     { executable: command.executable, args, cwd, env, stdin: null, timeoutMs: timeoutSeconds * 1000, stdoutFile: stdoutLog, stderrFile: stderrLog },
-    { parentEnv: context.env },
+    { parentEnv: context.env, envAllowlist: ENV_ALLOWLIST },
   );
   base.logs = [relToRun(context.runDir, stdoutLog), relToRun(context.runDir, stderrLog)];
 

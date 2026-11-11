@@ -6,7 +6,7 @@
       "description": "O mínimo antes de cada commit: lint, tamanho de arquivo e segredos.",
       "checks": {
         "capability:file-size": { "enabled": true },
-        "capability:lint": { "enabled": true },
+        "capability:lint": { "enabled": true, "when": "available" },
         "capability:secrets": { "enabled": true },
         "capability:sast": { "enabled": false },
         "capability:dependencies": { "enabled": false },

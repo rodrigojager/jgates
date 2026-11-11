@@ -189,7 +189,7 @@ test("tools the image lacks are the single shared TOOL_MISSING cause of the plan
   assert.ok(plan.warnings.filter((w) => w.code === "TOOL_MISSING").length <= 1, JSON.stringify(plan.warnings));
   assert.ok(plan.blockers.filter((b) => b.code === "TOOL_MISSING").length <= 1, JSON.stringify(plan.blockers));
   const missingWarning = plan.warnings.find((w) => w.code === "TOOL_MISSING");
-  if (missingWarning) assert.match(missingWarning.message, /ruff/);
+  if (missingWarning) assert.match(missingWarning.message, /semgrep/);
 });
 
 test("a jgates.yml of schema 1 with execution.runner and a ruff runner in tools.yml load through the migration reader with a notice", async () => {
