@@ -82,6 +82,12 @@ export interface ResolveOptions {
    * and template files come from it too; the project only gives the inventory. Defaults to the project.
    */
   configDir?: string;
+  /**
+   * Go on when the project files have problems (an unknown key, a broken reference): the effective configuration of
+   * what they hold, for screens that show a file as it is (the derived forms). `ok` stays false and CONFIG_INVALID
+   * stays in `errors`; a run never resolves leniently.
+   */
+  lenient?: boolean;
 }
 
 export interface TemplateState {

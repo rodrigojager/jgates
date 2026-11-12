@@ -44,6 +44,7 @@ import type {
 export * from "./types.js";
 export { builtinForms, scanForms, isFormDefinition } from "./registry.js";
 export { tomlPositions, positionOf, splitTomlKey } from "./toml-positions.js";
+export * as derived from "./derived/index.js";
 
 const t = translator("forms");
 /** A catalog key of a form: "area:key" reads the adapter's own catalog (zap:zap_form_target), a bare key the forms one. */

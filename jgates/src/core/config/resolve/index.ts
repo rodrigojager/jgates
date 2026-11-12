@@ -50,8 +50,10 @@ export function resolveConfig(projectDir: string, options: ResolveOptions = {}):
   for (const n of load.notices) warnings.push({ code: n.code, message: n.message, file: n.file, pointer: `/${n.pathSegments.join("/")}` });
   if (!load.valid) {
     errors.push({ code: "CONFIG_INVALID", message: t("resolve_config_invalid", { count: load.diagnostics.length }), fix: t("resolve_config_invalid_fix") });
-    return result;
+    if (options.lenient !== true) return result;
   }
+  // Lenient: the files' own problems are reported and the resolution goes on with what they hold.
+  const tolerated = errors.length;
 
   // Parents before the child: the fragments named in extends (declared order), then jgates.yml.
   const docs = [...load.documents.filter((d) => d.kind !== "root"), ...load.documents.filter((d) => d.kind === "root")];
@@ -93,7 +95,7 @@ export function resolveConfig(projectDir: string, options: ResolveOptions = {}):
       chain: chain.map((d) => ({ id: d.ref, file: d.file, path: d.fileSegments.join(".") })),
     } satisfies ResolvedProfile;
   }
-  if (errors.length > 0) return result;
+  if (errors.length > tolerated) return result;
 
   // Stage 2: every layer, weakest first.
   const store = new FieldStore(missingRemove);
