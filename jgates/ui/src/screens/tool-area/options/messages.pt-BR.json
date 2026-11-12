@@ -25,5 +25,13 @@
   "rtf_saved": "Salvo em {file}.",
   "rtf_back_review": "Voltar para a revisão: o plano é montado de novo com esta configuração",
   "rtf_save_note": "Grava só as chaves alteradas em {file}.",
-  "rtf_save": "Salvar"
+  "rtf_save": "Salvar",
+  "rtf_unrecognized_title": "Valor escrito à mão que o formulário não aceita",
+  "rtf_unrecognized_lead": "O formulário não altera nem remove este valor. Corrija-o no arquivo.",
+  "rtf_unrecognized_value": "Valor no arquivo:",
+  "rtf_open_at_line": "Abrir no arquivo, linha {line}",
+  "rtf_open_in_file": "Abrir no arquivo",
+  "rtf_not_saved": "Nada foi salvo: {fields} continua com o valor escrito à mão, que o formulário não aceita. Corrija-o no arquivo.",
+  "rtf_kept_as_written": "{fields} não foi alterado: continua como está escrito no arquivo.",
+  "rtf_no_field": "Este formulário não tem campo para {settings}; essa configuração é editada no YAML."
 }

@@ -15,7 +15,7 @@ import { currentQuery } from "../../../app/route";
 import { SettingsForm, type SettingsView } from "./settings-form";
 
 /** Adapters whose settings live in tools.<id> of tools.yml and have a guided form (scope "instance" on the server). */
-const SETTINGS_ADAPTERS = new Set(["zap", "schemathesis", "oasdiff"]);
+const SETTINGS_ADAPTERS = new Set(["zap", "schemathesis", "oasdiff", "migration-drift", "performance", "playwright"]);
 
 // Options tab of the tool area: the schema-driven form of the instance (Ruff, pytest...). Each change is an intent per
 // field; the server turns the intents into a minimal patch, the user reviews the diff and saves with the revision the

@@ -25,5 +25,13 @@
   "rtf_saved": "Saved in {file}.",
   "rtf_back_review": "Back to the review: the plan is built again with this setting",
   "rtf_save_note": "Writes only the changed keys to {file}.",
-  "rtf_save": "Save"
+  "rtf_save": "Save",
+  "rtf_unrecognized_title": "Hand-written value the form does not accept",
+  "rtf_unrecognized_lead": "The form does not change or remove this value. Fix it in the file.",
+  "rtf_unrecognized_value": "Value in the file:",
+  "rtf_open_at_line": "Open in the file, line {line}",
+  "rtf_open_in_file": "Open in the file",
+  "rtf_not_saved": "Nothing was saved: {fields} keeps the hand-written value, which the form does not accept. Fix it in the file.",
+  "rtf_kept_as_written": "{fields} was not changed: it stays as written in the file.",
+  "rtf_no_field": "This form has no field for {settings}; that setting is edited in the YAML."
 }

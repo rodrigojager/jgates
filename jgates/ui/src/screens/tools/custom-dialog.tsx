@@ -158,7 +158,40 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
   };
   const index = STEPS.indexOf(step);
 
-  const go = (next: StepId) => {
+  // Anything typed or picked and not saved yet: closing asks first (Escape, Close, Cancel).
+  const dirty = saved === null && (image.trim() !== "" || spec.trim() !== "" || url.trim() !== "" || sha.trim() !== "" || command.trim() !== "" || args.trim() !== "" || idTouched || fileTouched || picked.length > 0 || customCaps.length > 0 || custom.trim() !== "");
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const guard = useRef(false);
+  guard.current = dirty;
+  const keepEditing = useRef<HTMLButtonElement>(null);
+  const requestClose = () => {
+    if (!dirty) onClose(saved);
+    else setConfirmDiscard(true);
+  };
+  useEffect(() => {
+    if (confirmDiscard) keepEditing.current?.focus();
+  }, [confirmDiscard]);
+  // The platform closes a <dialog> on Escape; with typed content the cancel is refused (and a close that happens anyway,
+  // like a second Escape in some browsers, reopens it) so the question below is what answers.
+  useEffect(() => {
+    const dialog = () => root.current?.closest("dialog") ?? null;
+    const onCancel = (e: Event) => {
+      if (guard.current && e.target === dialog()) e.preventDefault();
+    };
+    const onClosed = (e: Event) => {
+      const d = dialog();
+      if (guard.current && d && e.target === d && !d.open) d.showModal();
+    };
+    document.addEventListener("cancel", onCancel, true);
+    document.addEventListener("close", onClosed, true);
+    return () => {
+      document.removeEventListener("cancel", onCancel, true);
+      document.removeEventListener("close", onClosed, true);
+    };
+  }, []);
+
+  const go =(next: StepId) => {
     setError(null);
     setStep(next);
   };
@@ -243,8 +276,25 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
   const stepper = STEPS.map((s, i) => ({ id: s, label: t(`ctl_step_${s}`), done: i < index, disabled: i > index && !(saved && s === "test") }));
 
   return (
-    <Dialog title={t("ctl_title")} onClose={() => onClose(saved)} wide>
-      <div className="stack" data-testid="custom-tool-dialog" data-step={step}>
+    <Dialog title={t("ctl_title")} onClose={requestClose} wide>
+      <div className="stack" data-testid="custom-tool-dialog" data-step={step} ref={root}>
+        {confirmDiscard ? (
+          <div className="notice warn" role="alert" data-testid="ctl-discard">
+            <Icon name="alert" />
+            <div className="stack tight grow">
+              <strong>{t("ctl_discard_title")}</strong>
+              <p className="small">{t("ctl_discard_lead")}</p>
+              <div className="row wrap">
+                <button type="button" className="btn primary" ref={keepEditing} data-testid="ctl-keep" onClick={() => setConfirmDiscard(false)}>
+                  {t("ctl_discard_keep")}
+                </button>
+                <button type="button" className="btn danger" data-testid="ctl-discard-yes" onClick={() => onClose(saved)}>
+                  {t("ctl_discard_yes")}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
         <Stepper steps={stepper} current={step} onSelect={(s) => go(s as StepId)} label={t("ctl_steps_label")} />
         <h3 ref={heading} tabIndex={-1} id="ctl-step-title">
           {t("ctl_step_n", { n: index + 1, total: STEPS.length, name: t(`ctl_step_${step}`) })}
@@ -550,7 +600,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
               {t("ctl_next")}
             </button>
           )}
-          <button type="button" className="btn" onClick={() => onClose(saved)}>
+          <button type="button" className="btn" onClick={requestClose}>
             {t("tools_dialog_cancel")}
           </button>
         </div>

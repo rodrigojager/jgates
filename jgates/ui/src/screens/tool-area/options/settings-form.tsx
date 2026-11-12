@@ -29,6 +29,7 @@ export interface SettingsView extends Omit<FormView, "fields"> {
 }
 
 const OTHER = "__other__";
+const FOCUS_ALIAS: Record<string, string | undefined> = { budgets: "baseline" };
 const GIT_REF = /^[A-Za-z0-9_][A-Za-z0-9._/~^@-]*$/;
 const IMAGE = /^[a-z0-9][a-z0-9._/-]*(?::[A-Za-z0-9._-]+)?(?:@sha256:[0-9a-f]{64})?$/;
 const domId = (field: string) => `rtf-${field.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
@@ -79,13 +80,17 @@ function problemOf(field: SettingsField, value: unknown): string | null {
 }
 
 /** `onSaved(true)` after a save (the parent reloads the view and keeps the notice); `onSaved(false)` only reloads. */
-export function SettingsForm({ view, focus, justSaved, onSaved }: { view: SettingsView; focus: string[]; justSaved: boolean; onSaved: (saved: boolean) => void }) {
+export function SettingsForm({ view, focus: focusIn, justSaved, onSaved }: { view: SettingsView; focus: string[]; justSaved: boolean; onSaved: (saved: boolean) => void }) {
   const fields = view.fields;
+  // A setting the form has no field for (performance budgets, a map kept in the YAML) lands on the field that can stand
+  // in for it (the baseline file) and says where the setting itself is edited.
+  const focus = useMemo(() => focusIn.map((id) => (fields.some((f) => f.id === id) ? id : (FOCUS_ALIAS[id] ?? id))), [focusIn, fields]);
+  const noField = focusIn.filter((id) => !fields.some((f) => f.id === id));
   const choices = view.choices ?? [];
   const inChoice = useMemo(() => new Map(choices.flatMap((c) => c.options.map((o) => [o.field, c.id] as const))), [choices]);
   const original = useMemo(() => new Map(fields.map((f) => [f.id, f.state === "set" ? f.value : undefined])), [fields]);
   // An absent key with a proposed value (prefill) starts as a visible pending change; nothing is written until Save.
-  const [values, setValues] = useState<Record<string, unknown>>(() => Object.fromEntries(fields.map((f) => [f.id, f.state === "set" ? f.value : f.state === "inherited" ? f.prefill : undefined])));
+  const [values, setValues] = useState<Record<string, unknown>>(() => Object.fromEntries(fields.map((f) => [f.id, f.state === "set" || f.state === "unrecognized" ? f.value : f.state === "inherited" ? f.prefill : undefined])));
   // The option of each choice: the one already set, else the one the action named, else the first.
   const [picked, setPicked] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -104,6 +109,8 @@ export function SettingsForm({ view, focus, justSaved, onSaved }: { view: Settin
   const [failure, setFailure] = useState<unknown>(null);
   const [conflict, setConflict] = useState(false);
   const focusedOnce = useRef(false);
+  const unrecognized = fields.filter((f) => f.state === "unrecognized");
+  const [nothingSaved, setNothingSaved] = useState(false);
 
   const shownValue = (f: SettingsField) => (values[f.id] === undefined ? f.defaultValue : values[f.id]);
   const visible = (f: SettingsField) => !f.showWhen || same(shownValue(fields.find((x) => x.id === f.showWhen?.field) as SettingsField) ?? undefined, f.showWhen.equals);
@@ -146,12 +153,14 @@ export function SettingsForm({ view, focus, justSaved, onSaved }: { view: Settin
       const choice = inChoice.get(f.id);
       if (choice && picked[choice] !== f.id) continue;
       if (!visible(f)) continue;
+      // A hand-written value the form does not accept is shown as written and left alone, not judged again here.
+      if (f.state === "unrecognized") continue;
       const problem = problemOf(f, next[f.id]);
       if (problem) found[f.id] = problem;
     }
     for (const c of choices) {
       const chosen = picked[c.id] as string;
-      if (c.required && empty(next[chosen]) && !found[chosen]) found[chosen] = t("rtf_err_required");
+      if (c.required && empty(next[chosen]) && !found[chosen] && fields.find((f) => f.id === chosen)?.state !== "unrecognized") found[chosen] = t("rtf_err_required");
     }
     for (const r of view.rules ?? []) {
       const when = fields.find((f) => f.id === r.when.field);
@@ -192,9 +201,12 @@ export function SettingsForm({ view, focus, justSaved, onSaved }: { view: Settin
     }
     const intents = intentsFor(next);
     if (intents.length === 0) {
-      setSaved(true);
+      // Nothing to write: with a value the form cannot take, that is not a save and the screen does not say it is.
+      setSaved(unrecognized.length === 0);
+      setNothingSaved(unrecognized.length > 0);
       return;
     }
+    setNothingSaved(false);
     setBusy(true);
     try {
       await api("PUT", `/api/forms/${encodeURIComponent(view.instance)}`, { expectedRevision: view.revision, intents });
@@ -347,6 +359,36 @@ export function SettingsForm({ view, focus, justSaved, onSaved }: { view: Settin
 
   const row = (f: SettingsField) => {
     const id = domId(f.id);
+    if (f.state === "unrecognized") {
+      const line = f.position?.line ?? null;
+      const href = `#/config/yaml?file=${encodeURIComponent(file)}${line ? `&line=${line}` : ""}`;
+      return (
+        <div key={f.id} className="rtf-field rtf-invalid" data-field={f.id} data-state="unrecognized">
+          <div className="field-head">
+            <span className="field-label" id={`${id}-label`}>
+              {f.label}
+            </span>
+            <code className="muted small">{f.documentPath}</code>
+          </div>
+          <div className="notice warn" role="status">
+            <Icon name="alert" />
+            <div className="stack tight grow">
+              <strong>{t("rtf_unrecognized_title")}</strong>
+              <p className="small">{t("rtf_unrecognized_lead")}</p>
+              <p className="small">
+                {t("rtf_unrecognized_value")} <code data-testid="rtf-written">{typeof f.value === "string" ? f.value : JSON.stringify(f.value)}</code>
+              </p>
+              <div>
+                <a className="btn link-btn" href={href} data-testid="rtf-open-at-line" id={id}>
+                  <Icon name="file" />
+                  {line ? t("rtf_open_at_line", { line }) : t("rtf_open_in_file")}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div key={f.id} className={`rtf-field${missing(f) ? " rtf-missing" : ""}${errors[f.id] ? " rtf-invalid" : ""}`} data-field={f.id} data-missing={missing(f) ? "true" : undefined}>
         {f.widget === "boolean" ? null : (
@@ -459,6 +501,14 @@ export function SettingsForm({ view, focus, justSaved, onSaved }: { view: Settin
             <p>{t("rtf_needed", { fields: pendingMissing.map((f) => f.label).join(", ") })}</p>
           </div>
         ) : null}
+        {noField.length > 0 ? (
+          <div className="notice" role="note" data-testid="rtf-no-field">
+            <Icon name="info" />
+            <p className="small">
+              {t("rtf_no_field", { settings: noField.join(", ") })} <a href="#/config/yaml">{t("rtf_open_yaml")}</a>
+            </p>
+          </div>
+        ) : null}
         {fields.some((f) => f.format === "http-url") ? (
           <div className="notice" role="note">
             <Icon name="info" />
@@ -499,11 +549,18 @@ export function SettingsForm({ view, focus, justSaved, onSaved }: { view: Settin
         </div>
       ) : null}
       {failure ? <ErrorNotice error={failure} /> : null}
+      {nothingSaved ? (
+        <div className="notice warn" role="status" data-testid="rtf-not-saved">
+          <Icon name="alert" />
+          <p>{t("rtf_not_saved", { fields: unrecognized.map((f) => f.label).join(", ") })}</p>
+        </div>
+      ) : null}
       {saved ? (
         <div className="notice ok" role="status" data-testid="rtf-saved">
           <Icon name="check" />
           <div className="stack tight">
             <p>{t("rtf_saved", { file })}</p>
+            {unrecognized.length > 0 ? <p className="small">{t("rtf_kept_as_written", { fields: unrecognized.map((f) => f.label).join(", ") })}</p> : null}
             <p className="small">
               <a href="#/validations/review">{t("rtf_back_review")}</a>
             </p>

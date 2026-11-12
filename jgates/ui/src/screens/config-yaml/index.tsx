@@ -4,6 +4,7 @@ import { Editor } from "../../components/Editor";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
+import { currentQuery } from "../../app/route";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import "./config-yaml.css";
@@ -255,7 +256,8 @@ function Opened({ list, entry, onChanged }: { list: FileList; entry: FileEntry; 
 
 export default function ConfigYamlScreen() {
   const [tick, setTick] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
+  // A link can name the file to open (#/config/yaml?file=.jgates/architecture.yml).
+  const [selected, setSelected] = useState<string | null>(() => currentQuery().get("file"));
   const list = useAsync<FileList>(() => api("GET", "/api/config/yaml"), `yaml-list:${tick}`);
   const refresh = useCallback(() => setTick((n) => n + 1), []);
 

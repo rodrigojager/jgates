@@ -70,7 +70,9 @@ export function PendingDrafts({ planHash, onUnresolved, onSaved }: PendingDrafts
   const used = (found.data?.drafts ?? []).filter((d) => d.usedByPlan && !d.orphan);
   const others = (found.data?.drafts ?? []).filter((d) => !d.usedByPlan && !d.orphan);
   const unresolved = used.filter((d) => !usingSaved.has(keyOf(d))).length;
-  useEffect(() => onUnresolved(found.loading ? (planHash ? 1 : 0) : unresolved), [found.loading, unresolved, planHash, onUnresolved]);
+  // While the drafts are being read there is nothing to resolve yet: counting the wait as one document made the review
+  // flash "Documento com alterações não salvas" with nothing edited (D25). A run uses the saved files either way.
+  useEffect(() => onUnresolved(found.loading ? 0 : unresolved), [found.loading, unresolved, onUnresolved]);
 
   async function save(d: PendingDraft, allowInvalid: boolean) {
     const key = keyOf(d);

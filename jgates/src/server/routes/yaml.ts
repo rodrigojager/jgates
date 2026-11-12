@@ -195,7 +195,47 @@ function view(server: ServerContext, file: string): Rec {
   };
 }
 
+/** Files that screens ask for and that can be started from a template: the text a new one begins with. */
+const CREATABLE: Readonly<Record<string, string>> = {
+  [`${CONFIG_DIR}/architecture.yml`]: [
+    "# Architecture contract: the layers of the project and the rules between them.",
+    "# JGates never deduces the architecture; it verifies what is declared here.",
+    "schemaVersion: 1",
+    "architecture:",
+    "  layers: []",
+    "  rules: []",
+    "",
+  ].join("\n"),
+  [`${CONFIG_DIR}/pii.yml`]: ["# Personal data detection. Every key is optional; see the guided form for the choices.", "schemaVersion: 1", ""].join("\n"),
+  [`${CONFIG_DIR}/dependencies.yml`]: ["# Private registries and install overrides for the dependency installs.", "schemaVersion: 1", ""].join("\n"),
+  [`${CONFIG_DIR}/policy.yml`]: ["# Policy: rules, required evidence and exceptions.", "schemaVersion: 1", ""].join("\n"),
+};
+
 export const routes: RouteDefinition[] = [
+  {
+    // Starts a configuration file that does not exist yet from its template, so no screen ends in "create the file".
+    method: "POST",
+    path: "/api/config/yaml/create",
+    body: { type: "object", additionalProperties: false, required: ["file"], properties: { file: { type: "string", enum: Object.keys(CREATABLE) } } },
+    handler({ body, server }) {
+      assertWritable();
+      const file = (body as { file: string }).file;
+      const abs = locate(server, file);
+      if (readRevision(abs).exists) throw new HttpError(409, "FILE_EXISTS", `O arquivo ${file} já existe.`, "Abra o arquivo na aba YAML para editá-lo.", { file });
+      const text = CREATABLE[file] as string;
+      const result = check(server, file, text);
+      if (result.diagnostics.some((d) => d.inThisFile)) throw new HttpError(422, "CONFIG_INVALID", `O modelo de ${file} não passou na checagem.`, null, { diagnostics: result.diagnostics });
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      const bytes = Buffer.from(text, "utf8");
+      writeBytesAtomic(abs, bytes, {
+        verify: () => {
+          if (readRevision(abs).exists) throw new HttpError(409, "FILE_EXISTS", `O arquivo ${file} já existe.`, null, { file });
+        },
+      });
+      server.log(`config file created: ${file} (${hashBytes(bytes).slice(0, 12)})`);
+      return { status: 201, json: { schemaVersion: 1, status: "OK", created: true, ...view(server, file) } };
+    },
+  },
   {
     method: "GET",
     path: "/api/config/yaml",

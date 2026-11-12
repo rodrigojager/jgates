@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, Pill, Spinner, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { OriginLine, type OriginRef, type SaveTarget } from "../../components/origin";
 import { useToast } from "../../components/Toast";
@@ -133,6 +133,19 @@ export default function ConfigArchitectureScreen() {
     }
   };
 
+  // Starts the file from its template and opens it in the YAML editor, where the layers and rules are written.
+  const createFile = async () => {
+    setBusy("create");
+    setError(null);
+    try {
+      await api("POST", "/api/config/yaml/create", { file: v.file });
+      window.location.hash = `#/config/yaml?file=${encodeURIComponent(v.file)}`;
+    } catch (e) {
+      setError(e);
+      setBusy(null);
+    }
+  };
+
   return (
     <div className="stack" aria-busy={view.reloading}>
       <div className="between wrap">
@@ -154,9 +167,17 @@ export default function ConfigArchitectureScreen() {
       {error ? <ErrorNotice error={error} /> : null}
 
       {!v.exists ? (
-        <div className="notice" role="status">
+        <div className="notice" role="status" data-testid="arch-missing">
           <Icon name="info" />
-          <p>{t("cfa_missing", { file: v.file })}</p>
+          <div className="stack tight grow">
+            <p>{t("cfa_missing", { file: v.file })}</p>
+            <div>
+              <button type="button" className="btn primary" disabled={governedReason !== null || busy === "create"} onClick={createFile}>
+                {busy === "create" ? <Spinner /> : <Icon name="file" />}
+                {t("cfa_create")}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
       {v.problems.length > 0 ? (

@@ -194,6 +194,8 @@ export default function ChooseScreen() {
 
   const set = (patch: Partial<ValidationRequest>) => setRequest((r) => ({ ...r, ...patch }));
   const git = info?.git ?? null;
+  // A folder target without a folder cannot be reviewed; it is refused here, in the words of this screen.
+  const pathMissing = request.gates !== "semantic" && request.target === "paths" && request.path.trim() === "";
 
   function review() {
     writeRequest(request);
@@ -269,7 +271,7 @@ export default function ChooseScreen() {
         {request.target === "paths" ? (
           <label className="stack" style={{ gap: 4 }}>
             <span>{t("vch_field_path")}</span>
-            <input value={request.path} onChange={(e) => set({ path: e.target.value })} placeholder="src" />
+            <input value={request.path} onChange={(e) => set({ path: e.target.value })} placeholder="src" aria-invalid={pathMissing || undefined} aria-describedby={pathMissing ? "vch-path-problem" : undefined} />
           </label>
         ) : null}
         {request.target === "commit" ? (
@@ -351,10 +353,15 @@ export default function ChooseScreen() {
       {selected ? <Customize key={selected.ref} profile={selected} skip={request.skip} onSkip={(skip) => set({ skip })} onSaved={(id) => { setVersion((n) => n + 1); set({ skip: [], ...(id ? { profile: id } : {}) }); }} /> : null}
 
       <div className="row wrap">
-        <button type="button" className="btn primary" onClick={review} disabled={!selected}>
+        <button type="button" className="btn primary" onClick={review} disabled={!selected || pathMissing} aria-describedby={pathMissing ? "vch-path-problem" : undefined}>
           <Icon name="plan" />
           {t(request.gates === "semantic" ? "vch_review_semantic" : "vch_review")}
         </button>
+        {pathMissing ? (
+          <span className="small field-problem" id="vch-path-problem" role="status" data-testid="path-problem">
+            {t("vch_path_required")}
+          </span>
+        ) : null}
         {request.skip.length > 0 ? <span className="muted small">{t(request.skip.length === 1 ? "vch_skip_count_one" : "vch_skip_count", { count: request.skip.length })}</span> : null}
       </div>
     </div>

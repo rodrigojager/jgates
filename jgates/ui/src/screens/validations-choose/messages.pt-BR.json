@@ -21,6 +21,7 @@
   "vch_target_compare": "Comparação ou pull request",
   "vch_target_compare_hint": "o que mudou entre duas referências locais",
   "vch_field_path": "Diretório (relativo ao workspace)",
+  "vch_path_required": "Informe o diretório a verificar para continuar.",
   "vch_field_commit": "Commit (SHA, branch ou tag locais)",
   "vch_field_base": "Base da comparação",
   "vch_field_head": "Commit comparado",
