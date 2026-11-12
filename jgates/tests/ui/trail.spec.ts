@@ -45,7 +45,7 @@ async function runPlanAndWait(page: Page): Promise<{ planHash: string; findingRu
   await page.getByRole("button", { name: "Executar" }).click();
   await expect(page.getByTestId("run-state")).toHaveAttribute("data-state", "finished", { timeout: 120_000 });
   await expect(page.getByRole("heading", { name: "Resultado" })).toBeVisible();
-  const findingRules = (await page.getByRole("table", { name: "Achados" }).locator("tbody tr td:nth-child(2)").allTextContents()).map((s) => s.trim());
+  const findingRules = (await page.getByRole("list", { name: "Achados" }).getByTestId("finding-rule").allTextContents()).map((s) => s.trim());
   return { planHash, findingRules };
 }
 
@@ -402,7 +402,7 @@ test("the whole trail through the UI: failed with the two findings, fix, Aprovad
     expect(uiFirst.decision).toBe("failed");
     expect(uiFirst.findings.map((f: any) => f.tool).sort()).toEqual(["import-linter", "pytest"]);
     expect(uiFirst.selection.planHash).toBe(first.planHash);
-    await expect(page.getByRole("table", { name: "Achados" }).locator("tbody tr")).toHaveCount(2);
+    await expect(page.getByRole("list", { name: "Achados" }).getByTestId("finding-card")).toHaveCount(2);
 
     // The command the review showed, run by the CLI on the same state: same decision, fingerprints and plan hash.
     const cliFirst = runShownCommand(ui, cliHome, first.command);

@@ -71,7 +71,7 @@ const planHashOf = async (page: Page): Promise<string> => ((await page.getByTest
 async function runCurrentPlan(page: Page): Promise<string[]> {
   await page.getByRole("button", { name: "Executar" }).click();
   await expect(page.getByTestId("run-state")).toHaveAttribute("data-state", "finished", { timeout: 120_000 });
-  return (await page.getByRole("table", { name: "Achados" }).locator("tbody tr td:nth-child(2)").allTextContents()).map((s) => s.trim());
+  return (await page.getByRole("list", { name: "Achados" }).getByTestId("finding-rule").allTextContents()).map((s) => s.trim());
 }
 
 test("a broken Ruff section shows the line, the typed text survives a reload as a draft and the file stays untouched; saving it on purpose blocks the plan", async ({ page }) => {

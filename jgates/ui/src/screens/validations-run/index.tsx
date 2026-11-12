@@ -123,19 +123,12 @@ function eventText(e: StepEvent): string {
 const COLUMNS = 5;
 
 /**
- * One step of the table and, under it when asked, its logs across the whole width of the table. A step that failed
- * shows its logs by itself (once: the person may close them).
+ * One step of the table and, under it when asked, its logs across the whole width of the table. Logs stay closed until
+ * the person opens them, also for a step that failed (its state says so; the log is one key press away).
  */
 function StepRow({ row: r, runId }: { row: Row; runId: string | null }) {
   const failed = r.state === "error" || r.state === "timeout";
-  const [open, setOpen] = useState(failed);
-  const autoOpened = useRef(failed);
-  useEffect(() => {
-    if (failed && !autoOpened.current) {
-      autoOpened.current = true;
-      setOpen(true);
-    }
-  }, [failed]);
+  const [open, setOpen] = useState(false);
   const name = stageName(r);
   const hasLog = runId !== null && r.state !== "pending" && !r.cause;
   const panelId = `step-log-${r.id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
@@ -143,12 +136,12 @@ function StepRow({ row: r, runId }: { row: Row; runId: string | null }) {
     <>
       <tr data-step={r.id} data-state={r.state}>
         <th scope="row">{name}</th>
-        <td>
+        <td data-label={t("vrun_col_state")}>
           <Pill tone={r.state === "completed" ? "green" : failed ? "red" : r.state === "pending" || r.state === "running" ? "blue" : "gold"}>
             {r.state === "pending" ? t("vrun_step_pending") : r.state === "running" ? t("vrun_step_running") : stateText(r.state)}
           </Pill>
         </td>
-        <td>
+        <td data-label={t("vrun_col_why")}>
           {r.cause ? <div>{tOr(`vrun_why_${r.cause}`, t("vrun_why_skipped"))}</div> : null}
           {r.reasons.map((reason) => (
             <div className="small" key={reason}>
@@ -164,8 +157,8 @@ function StepRow({ row: r, runId }: { row: Row; runId: string | null }) {
             </details>
           ) : null}
         </td>
-        <td>{formatDuration(r.durationMs)}</td>
-        <td>
+        <td data-label={t("vrun_col_duration")}>{formatDuration(r.durationMs)}</td>
+        <td data-label={hasLog ? t("vrun_col_log") : undefined}>
           {hasLog ? (
             <button
               type="button"
@@ -424,7 +417,7 @@ export default function RunScreen({ params }: { params: Record<string, string> }
         <section className="stack" aria-labelledby="vrun-steps">
           <h2 id="vrun-steps">{t("vrun_steps")}</h2>
           <div className="card flat table-wrap vrun-steps-card">
-            <table aria-label={t("vrun_progress_label")}>
+            <table className="stack-table" aria-label={t("vrun_progress_label")}>
               <thead>
                 <tr>
                   <th scope="col">{t("vrun_col_step")}</th>
@@ -444,8 +437,10 @@ export default function RunScreen({ params }: { params: Record<string, string> }
         </section>
       ) : null}
       {job ? (
-        <section aria-labelledby="vrun-events" className="stack">
-          <h2 id="vrun-events">{t("vrun_events")}</h2>
+        <details className="stack" open={running || undefined} data-testid="run-events">
+          <summary>
+            <h2 id="vrun-events" style={{ display: "inline" }}>{t("vrun_events")}</h2>
+          </summary>
           {events.length === 0 ? (
             <p>{t("vrun_events_empty")}</p>
           ) : (
@@ -459,9 +454,9 @@ export default function RunScreen({ params }: { params: Record<string, string> }
               </ol>
             </div>
           )}
-        </section>
+        </details>
       ) : null}
-      {final ? <ResultView result={final.result} previous={final.previous} crashed={final.crashed} selectedDomain={selectedDomain} onClearDomain={() => setSelectedDomain(null)} /> : null}
+      {final ? <ResultView compact result={final.result} previous={final.previous} crashed={final.crashed} selectedDomain={selectedDomain} onClearDomain={() => setSelectedDomain(null)} /> : null}
     </div>
   );
 }

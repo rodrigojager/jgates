@@ -1,3 +1,6 @@
+.env-head-title { align-items: center; gap: 12px; flex-wrap: nowrap; min-width: 0; }
+.env-head-title .prq-avatar { margin: 0; }
+@media (max-width: 520px) { .env-head-title .prq-avatar { width: 72px; height: 72px; } }
 .env-section .env-action { align-items: flex-start; }
 .env-section .env-action .command { flex: 1 1 100%; min-width: 0; }
 .env-details > summary { cursor: pointer; }

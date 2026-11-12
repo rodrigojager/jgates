@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { formatLocale } from "../../i18n/locale";
 import { api } from "../../api";
 import { ErrorNotice, Pill } from "../../components/common";
-import { Icon } from "../../components/icons";
+import { Icon, type IconName } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
+import "./result-cards.css";
 
 type Tone = "green" | "gold" | "red" | "blue";
 
@@ -108,51 +109,81 @@ function Banner({ result, crashed }: { result: any; crashed: boolean }) {
   );
 }
 
-function Stages({ result }: { result: any }) {
-  const stages: any[] = result.stages ?? [];
-  if (stages.length === 0) return null;
+export type CardState = "passed" | "failed" | "incomplete" | "blocked" | "not_applicable" | "disabled";
+
+/** What a check card says: the stage state read together with its findings (a completed check with blocking findings failed). */
+export function cardState(stage: any, findings: any[]): CardState {
+  switch (stage.state) {
+    case "completed":
+      return (stage.blockingViolations ?? 0) > 0 || findings.some((f) => f.stageId === stage.id && f.blocking && !f.waived) ? "failed" : "passed";
+    case "blocked":
+      return "blocked";
+    case "not_applicable":
+      return "not_applicable";
+    case "disabled":
+      return "disabled";
+    default:
+      return "incomplete";
+  }
+}
+
+/** One icon and one word per state, so the state never rests on colour alone. */
+const CARD_ICON: Record<CardState, IconName> = { passed: "check", failed: "x", incomplete: "hourglass", blocked: "lock", not_applicable: "info", disabled: "stop" };
+const CARD_TONE: Record<CardState, Tone | undefined> = { passed: "green", failed: "red", incomplete: "gold", blocked: "gold", not_applicable: undefined, disabled: undefined };
+
+export function toolOf(stage: { id: string; adapter?: string }): string {
+  return stage.adapter && stage.adapter !== "" ? stage.adapter : stage.id.split("#")[0] ?? stage.id;
+}
+
+function Stages({ result, domainFilter }: { result: any; domainFilter: DomainFilter | null }) {
+  const findings: any[] = result.findings ?? [];
+  const stages: any[] = (result.stages ?? []).filter((s: any) => !domainFilter || domainFilter.ids.includes(s.id));
+  if ((result.stages ?? []).length === 0) return null;
   return (
     <section className="stack" aria-labelledby="vres-stages">
       <h3 id="vres-stages">{t("vres_stages")}</h3>
-      <div className="card flat table-wrap">
-        <table aria-label={t("vres_stages")}>
-          <thead>
-            <tr>
-              <th scope="col">{t("vres_col_stage")}</th>
-              <th scope="col">{t("vres_col_state")}</th>
-              <th scope="col">{t("vres_col_why")}</th>
-              <th scope="col">{t("vres_col_findings")}</th>
-              <th scope="col">{t("vres_col_duration")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stages.map((s) => {
-              const notRun = s.execution?.notRun;
-              const reused = s.cache?.status === "reused";
-              return (
-                <tr key={s.id}>
-                  <th scope="row">{stageName(s)}</th>
-                  <td>
-                    <Pill tone={STATE_TONE[s.state]}>{stateText(s.state)}</Pill>
-                  </td>
-                  <td>
-                    {notRun ? <div>{tOr(`vres_cause_${notRun.cause}`, notRun.cause)}</div> : null}
-                    {s.reason ? <div className="small">{s.reason}</div> : null}
-                    {reused ? (
-                      <div className="small" data-testid="reused">
-                        {s.cache.at ? t("vres_cache_reused", { date: formatDate(s.cache.at), runId: s.cache.runId ?? "" }) : t("vres_cache_reused_nodate", { runId: s.cache.runId ?? "" })} {t("vres_cache_why")}
-                      </div>
-                    ) : null}
-                    {s.cache?.status === "uncacheable" && s.cache.reason ? <div className="small">{t("vres_cache_uncacheable", { reason: s.cache.reason })}</div> : null}
-                  </td>
-                  <td>{s.findings ?? 0}</td>
-                  <td>{formatDuration(s.execution?.durationMs)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <ul className="res-cards" aria-label={t("vres_stages")} data-testid="check-cards">
+        {stages.map((s) => {
+          const state = cardState(s, findings);
+          const notRun = s.execution?.notRun;
+          const reused = s.cache?.status === "reused";
+          const count = s.findings ?? 0;
+          const duration = formatDuration(s.execution?.durationMs);
+          return (
+            <li key={s.id} className="res-card res-check" data-testid="check-card" data-stage={s.id} data-state={state} data-stage-state={s.state}>
+              <div className="res-card-head">
+                <strong className="res-card-title">{stageName(s)}</strong>
+                <Pill tone={CARD_TONE[state]}>
+                  <Icon name={CARD_ICON[state]} />
+                  {state === "blocked" ? stateText("blocked") : t(`vres_card_${state}`)}
+                </Pill>
+              </div>
+              <dl className="res-card-facts">
+                <div>
+                  <dt>{t("vres_finding_tool")}</dt>
+                  <dd data-testid="check-tool">{toolOf(s)}</dd>
+                </div>
+                <div>
+                  <dt>{t("vres_col_duration")}</dt>
+                  <dd data-testid="check-duration">{duration || "-"}</dd>
+                </div>
+                <div>
+                  <dt>{t("vres_col_findings")}</dt>
+                  <dd data-testid="check-findings">{t("vres_card_findings", { count })}</dd>
+                </div>
+              </dl>
+              {notRun ? <p className="small">{tOr(`vres_cause_${notRun.cause}`, notRun.cause)}</p> : null}
+              {s.reason ? <p className="small">{s.reason}</p> : null}
+              {reused ? (
+                <p className="small" data-testid="reused">
+                  {s.cache.at ? t("vres_cache_reused", { date: formatDate(s.cache.at), runId: s.cache.runId ?? "" }) : t("vres_cache_reused_nodate", { runId: s.cache.runId ?? "" })} {t("vres_cache_why")}
+                </p>
+              ) : null}
+              {s.cache?.status === "uncacheable" && s.cache.reason ? <p className="small">{t("vres_cache_uncacheable", { reason: s.cache.reason })}</p> : null}
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
@@ -230,80 +261,93 @@ function Architecture({ result }: { result: any }) {
   );
 }
 
-function FindingRow({ f }: { f: any }) {
+/** The address that opens the file in the person's editor at the line (the product has no file viewer of its own). */
+export function editorHref(workspacePath: string | undefined, loc: { path: string; line?: number }): string | null {
+  if (!workspacePath || loc.path.startsWith("..")) return null;
+  const root = workspacePath.replace(/\\/g, "/").replace(/\/+$/, "");
+  const file = loc.path.replace(/\\/g, "/").replace(/^\.?\//, "");
+  const abs = /^([A-Za-z]:)?\//.test(file) ? file : `${root}/${file}`;
+  return `vscode://file/${encodeURI(abs.replace(/^\//, ""))}:${loc.line ?? 1}`;
+}
+
+const SEV_TONE: Record<string, Tone | undefined> = { critical: "red", high: "red", medium: "gold", low: "blue", info: undefined, unknown: undefined };
+const SEV_ICON: Record<string, IconName> = { critical: "x", high: "alert", medium: "alert", low: "info", info: "info", unknown: "info" };
+
+function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | undefined }) {
   const loc = f.location?.path ? `${f.location.path}${f.location.line ? `:${f.location.line}` : ""}` : "";
-  const hasDetails = f.remediation || f.evidence || f.waived || f.docsUrl;
+  const href = f.location?.path ? editorHref(workspacePath, f.location) : null;
+  const hasDetails = f.evidence || f.waived || f.docsUrl;
   return (
-    <>
-      <tr>
-        <td>
-          {tOr(`vres_sev_${f.normalizedSeverity}`, String(f.normalizedSeverity))}
-          {f.blocking ? (
-            <>
-              {" "}
-              <Pill tone="red">{t("vres_blocking")}</Pill>
-            </>
-          ) : null}
-          {f.waived ? (
-            <>
-              {" "}
-              <Pill tone="blue">{t("vres_waived")}</Pill>
-            </>
-          ) : null}
-          {f.baselineState ? (
-            <>
-              {" "}
-              <Pill>{f.baselineState === "new" ? t("vres_baseline_new") : t("vres_baseline_unchanged")}</Pill>
-            </>
-          ) : null}
-        </td>
-        <td>
-          <code>{f.ruleId}</code>
-        </td>
-        <td>
-          {f.message}
-          {hasDetails ? (
-            <details>
-              <summary>{t("vres_finding_details")}</summary>
-              <dl className="kv">
-                <dt>{t("vres_finding_tool")}</dt>
-                <dd>{f.tool}</dd>
-                {f.remediation ? (
-                  <>
-                    <dt>{t("vres_finding_remediation")}</dt>
-                    <dd>{f.remediation}</dd>
-                  </>
-                ) : null}
-                {f.waived ? (
-                  <>
-                    <dt>{t("vres_finding_waiver")}</dt>
-                    <dd>{[f.waiverId, f.waiverReason].filter(Boolean).join(": ")}</dd>
-                  </>
-                ) : null}
-                {f.evidence ? (
-                  <>
-                    <dt>{t("vres_finding_evidence")}</dt>
-                    <dd>
-                      <code>{f.evidence}</code>
-                    </dd>
-                  </>
-                ) : null}
-                {f.docsUrl ? (
-                  <>
-                    <dt>{t("vres_finding_docs")}</dt>
-                    <dd>{f.docsUrl}</dd>
-                  </>
-                ) : null}
-              </dl>
-            </details>
-          ) : null}
-        </td>
-        <td>
-          <code>{loc}</code>
-        </td>
-        <td>{f.origin ?? f.tool}</td>
-      </tr>
-    </>
+    <li className="res-card res-finding" data-testid="finding-card" data-severity={f.normalizedSeverity} data-tool={f.tool} data-rule={f.ruleId}>
+      <div className="res-card-head">
+        <Pill tone={SEV_TONE[f.normalizedSeverity]}>
+          <Icon name={SEV_ICON[f.normalizedSeverity] ?? "info"} />
+          <span data-testid="finding-severity">{tOr(`vres_sev_${f.normalizedSeverity}`, String(f.normalizedSeverity))}</span>
+        </Pill>
+        {f.blocking ? <Pill tone="red">{t("vres_blocking")}</Pill> : null}
+        {f.waived ? <Pill tone="blue">{t("vres_waived")}</Pill> : null}
+        {f.baselineState ? <Pill>{f.baselineState === "new" ? t("vres_baseline_new") : t("vres_baseline_unchanged")}</Pill> : null}
+      </div>
+      <p className="res-finding-message" data-testid="finding-message">{f.message}</p>
+      <dl className="res-card-facts">
+        <div>
+          <dt>{t("vres_finding_tool")}</dt>
+          <dd data-testid="finding-tool">{f.origin ?? f.tool}</dd>
+        </div>
+        <div>
+          <dt>{t("vres_col_rule")}</dt>
+          <dd>
+            <code data-testid="finding-rule">{f.ruleId}</code>
+          </dd>
+        </div>
+        {loc ? (
+          <div>
+            <dt>{t("vres_col_location")}</dt>
+            <dd>
+              {href ? (
+                <a href={href} data-testid="finding-location" data-file={f.location.path} data-line={f.location.line ?? ""} aria-label={t("vres_open_at_line", { location: loc })}>
+                  <code>{loc}</code>
+                </a>
+              ) : (
+                <code data-testid="finding-location">{loc}</code>
+              )}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+      {f.remediation ? (
+        <p className="small" data-testid="finding-remediation">
+          <strong>{t("vres_finding_remediation")}:</strong> {f.remediation}
+        </p>
+      ) : null}
+      {hasDetails ? (
+        <details>
+          <summary>{t("vres_finding_details")}</summary>
+          <dl className="kv">
+            {f.waived ? (
+              <>
+                <dt>{t("vres_finding_waiver")}</dt>
+                <dd>{[f.waiverId, f.waiverReason].filter(Boolean).join(": ")}</dd>
+              </>
+            ) : null}
+            {f.evidence ? (
+              <>
+                <dt>{t("vres_finding_evidence")}</dt>
+                <dd>
+                  <code>{f.evidence}</code>
+                </dd>
+              </>
+            ) : null}
+            {f.docsUrl ? (
+              <>
+                <dt>{t("vres_finding_docs")}</dt>
+                <dd>{f.docsUrl}</dd>
+              </>
+            ) : null}
+          </dl>
+        </details>
+      ) : null}
+    </li>
   );
 }
 
@@ -312,23 +356,43 @@ function Findings({ result, domainFilter, onClear }: { result: any; domainFilter
   const [severity, setSeverity] = useState("");
   const [category, setCategory] = useState("");
   const [component, setComponent] = useState("");
+  const [tool, setTool] = useState("");
   const severities = useMemo(() => [...new Set(findings.map((f) => String(f.normalizedSeverity)))], [findings]);
   const categories = useMemo(() => [...new Set(findings.map((f) => String(f.category ?? "")))], [findings]);
   const components = useMemo(() => [...new Set(findings.map((f) => String(f.component ?? "")).filter(Boolean))], [findings]);
-  const shown = findings.filter((f) => (!domainFilter || domainFilter.ids.includes(f.stageId)) && (!severity || String(f.normalizedSeverity) === severity) && (!category || String(f.category ?? "") === category) && (!component || String(f.component ?? "") === component));
+  const tools = useMemo(() => [...new Set(findings.map((f) => String(f.origin ?? f.tool)))], [findings]);
+  const shown = findings.filter(
+    (f) =>
+      (!domainFilter || domainFilter.ids.includes(f.stageId)) &&
+      (!severity || String(f.normalizedSeverity) === severity) &&
+      (!category || String(f.category ?? "") === category) &&
+      (!component || String(f.component ?? "") === component) &&
+      (!tool || String(f.origin ?? f.tool) === tool),
+  );
   return (
     <section className="stack" aria-labelledby="vres-findings">
       <h3 id="vres-findings">{t("vres_findings")}</h3>
       {domainFilter ? <p>{t(`mascot_domain_${domainFilter.domain}`)} <button className="btn" type="button" onClick={onClear}>{t("mascot_clear_filter")}</button></p> : null}
       {findings.length > 0 ? (
-        <div className="row wrap" role="group" aria-label={t("vres_findings")}>
+        <div className="row wrap" role="group" aria-label={t("vres_filters")}>
           <label className="row">
             <span className="muted">{t("vres_filter_severity")}</span>
-            <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
+            <select value={severity} onChange={(e) => setSeverity(e.target.value)} data-testid="filter-severity">
               <option value="">{t("vres_filter_all")}</option>
               {severities.map((s) => (
                 <option key={s} value={s}>
                   {tOr(`vres_sev_${s}`, s)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="row">
+            <span className="muted">{t("vres_filter_tool")}</span>
+            <select value={tool} onChange={(e) => setTool(e.target.value)} data-testid="filter-tool">
+              <option value="">{t("vres_filter_all")}</option>
+              {tools.map((x) => (
+                <option key={x} value={x}>
+                  {x}
                 </option>
               ))}
             </select>
@@ -357,7 +421,7 @@ function Findings({ result, domainFilter, onClear }: { result: any; domainFilter
               </select>
             </label>
           ) : null}
-          <span className="muted" role="status">
+          <span className="muted" role="status" data-testid="filter-count">
             {t("vres_filter_count", { shown: shown.length, total: findings.length })}
           </span>
         </div>
@@ -367,24 +431,11 @@ function Findings({ result, domainFilter, onClear }: { result: any; domainFilter
       ) : shown.length === 0 ? (
         <p>{t("vres_findings_none_filtered")}</p>
       ) : (
-        <div className="card flat table-wrap">
-          <table aria-label={t("vres_findings")}>
-            <thead>
-              <tr>
-                <th scope="col">{t("vres_col_severity")}</th>
-                <th scope="col">{t("vres_col_rule")}</th>
-                <th scope="col">{t("vres_col_message")}</th>
-                <th scope="col">{t("vres_col_location")}</th>
-                <th scope="col">{t("vres_col_origin")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((f, i) => (
-                <FindingRow key={`${f.fingerprint ?? f.ruleId}:${i}`} f={f} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="res-cards" aria-label={t("vres_findings")} data-testid="finding-cards">
+          {shown.map((f, i) => (
+            <FindingCard key={`${f.fingerprint ?? f.ruleId}:${i}`} f={f} workspacePath={result.workspace?.path} />
+          ))}
+        </ul>
       )}
     </section>
   );
@@ -677,7 +728,7 @@ function Actions({ runId }: { runId: string }) {
 
 /** The Resultado of a run: the decision, the steps, metrics, findings, what was turned off and what was left behind. */
 export type DomainFilter = { domain: string; ids: string[] };
-export function ResultView({ result, previous, crashed = false, mascots, selectedDomain, onClearDomain }: { result: any; previous: any; crashed?: boolean; mascots?: MascotSnapshot; selectedDomain?: DomainFilter | null; onClearDomain?: () => void }) {
+export function ResultView({ result, previous, crashed = false, compact = false, mascots, selectedDomain, onClearDomain }: { result: any; previous: any; crashed?: boolean; /** On the run page, whose own step table lists the checks, they are not listed twice. */ compact?: boolean; mascots?: MascotSnapshot; selectedDomain?: DomainFilter | null; onClearDomain?: () => void }) {
   const [localDomain, setDomainFilter] = useState<DomainFilter | null>(null);
   const domainFilter = selectedDomain === undefined ? localDomain : selectedDomain;
   const started = Date.parse(result.startedAt ?? "");
@@ -740,15 +791,30 @@ export function ResultView({ result, previous, crashed = false, mascots, selecte
         </dl>
       </div>
       <Actions runId={result.runId} />
-      <Stages result={result} />
+      {compact ? null : <Stages result={result} domainFilter={domainFilter} />}
       <Findings result={result} domainFilter={domainFilter} onClear={() => { setDomainFilter(null); onClearDomain?.(); }} />
       <Metrics result={result} />
       <Architecture result={result} />
-      <Disabled result={result} />
-      <WorkspaceFiles result={result} />
-      <Policy previous={previous} result={result} />
+      {compact ? (
+        // On the run page what is only occasionally needed stays folded; the provenance and the findings stay in view.
+        <details className="res-more" data-testid="result-more">
+          <summary>{t("vres_more")}</summary>
+          <div className="stack">
+            <Disabled result={result} />
+            <WorkspaceFiles result={result} />
+            <Policy previous={previous} result={result} />
+            <Link result={result} />
+          </div>
+        </details>
+      ) : (
+        <>
+          <Disabled result={result} />
+          <WorkspaceFiles result={result} />
+          <Policy previous={previous} result={result} />
+        </>
+      )}
       <Provenance result={result} />
-      <Link result={result} />
+      {compact ? null : <Link result={result} />}
     </section>
   );
 }

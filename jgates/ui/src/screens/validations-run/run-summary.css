@@ -18,3 +18,13 @@
 @keyframes run-summary-turn { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .run-summary-spinner { animation: none; } .run-summary progress::-webkit-progress-value { transition: none; } }
 @media (max-width: 520px) { .run-summary { padding: 16px; } .run-summary-header { flex-wrap: wrap; gap: 12px; } }
+/* At phone width the step table becomes one stacked card per step: each cell names itself (data-label) above its value. */
+@media (max-width: 640px) {
+  .stack-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .stack-table, .stack-table tbody, .stack-table tr, .stack-table th, .stack-table td { display: block; width: 100%; }
+  .stack-table tr { border: 1px solid var(--line); border-radius: var(--radius); margin: 0 0 10px; padding: 6px 4px; background: var(--surface); }
+  .stack-table th, .stack-table td { border-bottom: 0; padding: 6px 10px; overflow-wrap: anywhere; }
+  .stack-table td:empty { display: none; }
+  .stack-table td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .stack-table tr.step-log-row { border: 0; padding: 0; background: transparent; }
+}

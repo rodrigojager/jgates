@@ -165,7 +165,7 @@ export default function HistoryScreen() {
         </div>
       ) : (
         <div className="card flat table-wrap">
-          <table aria-label={t("history_table")}>
+          <table className="stack-table" aria-label={t("history_table")}>
             <thead>
               <tr>
                 <th scope="col">
@@ -182,7 +182,7 @@ export default function HistoryScreen() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.runId} data-run={r.runId}>
-                  <td>
+                  <td className="st-pick">
                     <input type="checkbox" aria-label={t("history_pick", { runId: r.runId })} checked={picked.includes(r.runId)} disabled={r.unfinished} onChange={() => toggle(r.runId)} />
                   </td>
                   <th scope="row">
@@ -197,7 +197,7 @@ export default function HistoryScreen() {
                       ) : null}
                     </div>
                   </th>
-                  <td>
+                  <td data-label={t("history_col_result")}>
                     <div className="history-pills">
                       <Pill tone={r.running ? "blue" : (TONE[r.decision ?? ""] ?? "blue")}>{r.running ? t("history_running") : r.unfinished ? t("history_unfinished") : tOr(`history_decision_${r.decision}`, r.decision ?? "-")}</Pill>
                       {r.partial && !r.unfinished ? <Pill tone="gold">{t("history_partial")}</Pill> : null}
@@ -205,10 +205,10 @@ export default function HistoryScreen() {
                       {r.preserved ? <Pill tone="green">{t("history_preserved")}</Pill> : null}
                     </div>
                   </td>
-                  <td>{r.profile ?? "-"}</td>
-                  <td>{t("history_findings", { active: r.findings.active, blocking: r.findings.blocking })}</td>
-                  <td className="muted">{formatDuration(r.durationMs)}</td>
-                  <td>
+                  <td data-label={t("history_col_profile")}>{r.profile ?? "-"}</td>
+                  <td data-label={t("history_col_findings")}>{t("history_findings", { active: r.findings.active, blocking: r.findings.blocking })}</td>
+                  <td className="muted" data-label={t("history_col_duration")}>{formatDuration(r.durationMs)}</td>
+                  <td data-label={t("history_col_actions")}>
                     <div className="history-actions">
                       <button type="button" className="btn" disabled={busy === r.runId || r.unfinished} aria-pressed={r.baseline} onClick={() => mark(r, { baseline: !r.baseline }, r.baseline ? "history_baseline_cleared" : "history_baseline_set")}>
                         {r.baseline ? t("history_baseline_remove", { runId: r.runId }) : t("history_baseline_make", { runId: r.runId })}

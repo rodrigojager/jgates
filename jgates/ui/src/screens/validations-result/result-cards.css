@@ -1,0 +1,22 @@
+/* The checks and the findings of a result: one card each, the state and the severity as an icon and a word. */
+.res-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.res-card { display: grid; gap: 8px; align-content: start; min-width: 0; padding: 12px 14px; border: 1px solid var(--line); border-left-width: 4px; border-radius: var(--radius); background: var(--surface); overflow-wrap: anywhere; }
+.res-card p { margin: 0; }
+.res-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.res-card-title { min-width: 0; }
+.res-card-facts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; font-size: 12px; }
+.res-card-facts > div { min-width: 0; }
+.res-card-facts dt { color: var(--muted); font-size: 11px; }
+.res-card-facts dd { margin: 0; overflow-wrap: anywhere; }
+.res-card-facts a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.res-card-facts a:hover { text-decoration: underline; }
+.res-card .pill svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.res-check[data-state="passed"] { border-left-color: var(--accent); }
+.res-check[data-state="failed"] { border-left-color: var(--red); }
+.res-check[data-state="incomplete"], .res-check[data-state="blocked"] { border-left-color: var(--gold); }
+.res-check[data-state="not_applicable"], .res-check[data-state="disabled"] { border-left-color: var(--line); }
+.res-finding[data-severity="critical"], .res-finding[data-severity="high"] { border-left-color: var(--red); }
+.res-finding[data-severity="medium"] { border-left-color: var(--gold); }
+.res-finding[data-severity="low"] { border-left-color: var(--blue); }
+.res-finding-message { font-weight: 600; }
+@media (max-width: 520px) { .res-cards { grid-template-columns: 1fr; } }

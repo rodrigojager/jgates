@@ -1,3 +1,5 @@
 .vrun-phases > li { min-width: 0; }
 .vrun-phases pre.log { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; overflow-x: auto; }
 .vrun-phases .log-block, .vrun-phases .log-block-body, .vrun-phases .log-stream { min-width: 0; max-width: 100%; }
+/* The five phases sit side by side, so the run page stays short; a phase that opens its log grows by itself. */
+ol.vrun-phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: start; }

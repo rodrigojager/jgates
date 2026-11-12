@@ -16,15 +16,17 @@
 .ov-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); font-weight: 600; font-size: 12px; text-decoration: none; }
 .ov-link:hover { text-decoration: underline; }
 .ov-run-title { margin: 10px 0 4px; overflow-wrap: anywhere; }
-.ov-segments { list-style: none; margin: 14px 0; padding: 0; display: flex; gap: 3px; align-items: stretch; flex-wrap: wrap; }
-.ov-seg { flex: 1 1 14px; min-width: 14px; border-radius: 4px; background: var(--accent); color: var(--accent-ink); font-size: 10px; font-weight: 650; line-height: 1.2; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 12px; padding: 0; }
-.ov-seg.has-text { flex: 1 1 74px; min-height: 34px; padding: 3px 5px; }
-.ov-seg.has-text { border: 1px solid currentColor; }
-.ov-seg.s-blocked { background: var(--red-bg); color: var(--red); background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--red) 14%, transparent) 6px 9px); }
+.ov-segments { list-style: none; margin: 14px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.ov-seg { display: grid; gap: 2px; min-width: 0; border: 1px solid currentColor; border-radius: 8px; background: var(--mint); color: var(--accent); padding: 6px 9px; font-size: 12px; line-height: 1.25; }
+.ov-seg-name { color: var(--ink); font-weight: 650; overflow-wrap: anywhere; }
+.ov-seg-state { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.ov-seg-state svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.ov-seg.s-blocked { background: var(--gold-bg); color: var(--gold); border-style: dotted; }
 .ov-seg.s-error, .ov-seg.s-timeout { background: var(--red-bg); color: var(--red); }
 .ov-seg.s-incomplete { background: var(--gold-bg); color: var(--gold); border-style: dashed; }
 .ov-seg.s-pending, .ov-seg.s-running { background: var(--blue-bg); color: var(--blue); }
-.ov-seg.s-disabled, .ov-seg.s-not_applicable, .ov-seg.s-cancelled { background: var(--line); }
+.ov-seg.s-disabled, .ov-seg.s-not_applicable, .ov-seg.s-cancelled { background: var(--surface); color: var(--muted); }
+.ov-quiet-done { display: inline-flex; color: var(--accent); }
 .ov-meta { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
 .ov-next { padding: 4px 20px; }
 .ov-next-row { display: flex; gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }

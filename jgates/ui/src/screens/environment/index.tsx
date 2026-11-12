@@ -9,6 +9,8 @@ import { formatBytes } from "../wizard/api";
 import type { EnvironmentReason } from "../../api/environment";
 import { currentQuery } from "../../app/route";
 import { JobButton, PullProgress, ReasonAction, RecipeCommands, Reasons, SectionCard, ageText, firstActionable, mb, useSectionJob, type Sections } from "./sections";
+import { DoctorAvatar } from "../../components/DoctorAvatar";
+import "../../components/prerequisites.css";
 import "./environment.css";
 
 export const screen: ScreenMeta = { id: "environment", path: "/environment", area: "workspace", navLabel: "nav_environment", navPath: "/environment", order: 30, icon: "tools" };
@@ -347,10 +349,14 @@ export default function EnvironmentScreen() {
   return (
     <div className="stack">
       <WorkspaceTabs selected="environment" />
-      <div className="between wrap">
-        <div>
-          <h1>{t("env_title")}</h1>
-          <p>{t("env_lead")}</p>
+      <div className="between wrap env-head" data-testid="env-head">
+        <div className="row env-head-title">
+          {/* The doctor speaks for the environment: his state follows the one definition of ready. */}
+          <DoctorAvatar state={error ? "error" : !state ? "checking" : notReady === 0 ? "ok" : "needs-you"} />
+          <div>
+            <h1>{t("env_title")}</h1>
+            <p>{t("env_lead")}</p>
+          </div>
         </div>
         <button type="button" className="btn" onClick={load} disabled={checking}>
           <Icon name="refresh" />

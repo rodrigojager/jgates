@@ -62,7 +62,15 @@ function readLastRun(server: ServerContext): Record<string, unknown> | null {
   const finished = Date.parse(result.finishedAt ?? "");
   const stages = (Array.isArray(result.stages) ? result.stages : [])
     .filter((s: any) => s.kind !== "composite")
-    .map((s: any) => ({ id: String(s.id), label: typeof s.label === "string" ? s.label : String(s.id), state: String(s.state), reason: typeof s.reason === "string" ? s.reason : null }));
+    .map((s: any) => ({
+      id: String(s.id),
+      label: typeof s.label === "string" && s.label !== "" ? s.label : String(s.id),
+      // The tile names the check (its tool) and carries its state and the number of findings.
+      tool: typeof s.adapter === "string" && s.adapter !== "" ? s.adapter : String(s.id).split("#")[0],
+      state: String(s.state),
+      findings: typeof s.findings === "number" ? s.findings : 0,
+      reason: typeof s.reason === "string" ? s.reason : null,
+    }));
   // What the run used besides the project: the tools image and the age of the advisory data when it started.
   const container = result.provenance?.container;
   const stamps = container && typeof container.dataTimestamps === "object" && container.dataTimestamps !== null ? Object.values(container.dataTimestamps as Record<string, unknown>) : [];
@@ -86,6 +94,27 @@ function readLastRun(server: ServerContext): Record<string, unknown> | null {
   };
 }
 
+export interface NextStep {
+  kind: "open-result";
+  runId: string;
+  decision: string;
+  /** UI route (without "#/"). */
+  route: string;
+}
+
+/**
+ * The step the person should take after the last validation: when it did not pass (failed, incomplete, invalid,
+ * cancelled or interrupted), read its result. A passed or still running validation has none.
+ */
+export function nextStepOf(last: Record<string, unknown> | null): NextStep | null {
+  if (!last || last.running === true) return null;
+  const decision = String(last.decision ?? "");
+  if (decision === "passed" && last.partial !== true) return null;
+  const runId = String(last.runId ?? "");
+  if (runId === "") return null;
+  return { kind: "open-result", runId, decision: decision || "incomplete", route: `validations/result/${encodeURIComponent(runId)}` };
+}
+
 export const routes: RouteDefinition[] = [
   {
     method: "GET",
@@ -99,6 +128,7 @@ export const routes: RouteDefinition[] = [
       const built = await withEngineFacts(() => buildPlan(server.projectDir, { version: server.version, home: server.home, compare: false }), { prime: { version: server.version } });
       const plan = built.ok ? built.plan : null;
       const categories = plan ? categoriesOf(plan) : [];
+      const lastRun = readLastRun(server);
       return {
         status: 200,
         json: {
@@ -119,7 +149,8 @@ export const routes: RouteDefinition[] = [
           // Settings the configuration reader migrated or dropped (for example the retired quality bridge).
           notices: plan ? plan.warnings.filter((w) => w.code === "CONFIG_MIGRATED").map((w) => ({ code: w.code, message: w.message })) : [],
           mascots: projectMascots({ plan, invalid: !built.ok }),
-          lastRun: readLastRun(server),
+          lastRun,
+          nextStep: nextStepOf(lastRun),
         },
       };
     },

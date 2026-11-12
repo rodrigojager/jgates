@@ -22,6 +22,8 @@ export interface PrerequisiteItem {
   hosts: string[];
   message: string | null;
   fix: string | null;
+  /** The UI route (without "#/") that fixes it, or null when the item is fixed in place. */
+  route?: string | null;
 }
 
 interface Report {
@@ -62,6 +64,13 @@ function texts(item: PrerequisiteItem, platform: string): { icon: IconName; titl
     default:
       return { icon: "alert", title: t("prq_manual_title", { name: item.names.join(", ") }), text: item.message ?? "", button: "" };
   }
+}
+
+/** The button that takes the person to the place that fixes the item (never a command to copy). */
+function routeLabel(item: PrerequisiteItem): string {
+  if (item.route === "environment?section=codeql") return t("prq_route_codeql");
+  if (item.route?.startsWith("environment")) return t("prq_route_environment");
+  return t("prq_route_tools");
 }
 
 function Commands({ commands }: { commands: string[] }) {
@@ -164,7 +173,7 @@ function Row({ item, platform, onRun, waiting, inEnvironment }: { item: Prerequi
         </div>
         <p className="small">{x.text}</p>
         {copyOnly ? <p className="small muted">{t(item.kind === "git-trust" ? "prq_copy_note_git" : "prq_copy_note_sudo")}</p> : null}
-        {item.kind === "manual" && item.fix ? <p className="small">{t("prq_manual_fix", { fix: item.fix })}</p> : null}
+        {item.kind === "manual" && item.fix && !item.route ? <p className="small">{t("prq_manual_fix", { fix: item.fix })}</p> : null}
         {item.action === null && item.kind !== "manual" && item.message ? <p className="small">{item.message}</p> : null}
         {waiting ? (
           <p className="small" role="status" data-testid="prq-waiting">
@@ -180,9 +189,9 @@ function Row({ item, platform, onRun, waiting, inEnvironment }: { item: Prerequi
           </button>
         ) : null}
         {copyOnly ? <CopyButton text={item.commands.join("\n")} /> : null}
-        {item.kind === "data-prepare" && !inEnvironment ? (
-          <a className="prq-link" href="#/environment">
-            {t("prq_see_environment")}
+        {item.route && !(inEnvironment && item.route.startsWith("environment")) ? (
+          <a className="btn" href={`#/${item.route}`} data-testid={`prq-route-${item.id.replace(/[^A-Za-z0-9_-]/g, "_")}`}>
+            {routeLabel(item)}
           </a>
         ) : null}
       </div>

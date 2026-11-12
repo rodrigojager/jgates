@@ -273,7 +273,7 @@ function writeStepLogs(fixture: Fixture, workspaceId: string) {
   fs.writeFileSync(path.join(dir, "events.jsonl"), `${lines.join("\n")}\n`);
 }
 
-test("step logs: one block per tool with both streams, the command collapsed, '(sem saída)' and the failed step opened", async ({ page }) => {
+test("step logs: closed until opened, one block per tool with both streams, the command collapsed, '(sem saída)' and the failed step highlighted", async ({ page }) => {
   await withServer(page, async ({ fixture, base }) => {
     const ws = await workspaceIdOf(fixture);
     writeStoredRun(fixture, ws, storedResult({}));
@@ -281,13 +281,15 @@ test("step logs: one block per tool with both streams, the command collapsed, '(
     await page.goto(`${base}#/runs/${RUN_ID}`);
     await expect(page.locator('tr[data-step="ruff"]')).toBeVisible({ timeout: 30_000 });
 
-    // The failed step shows its log by itself, highlighted; the others wait for a click.
+    // Logs stay closed until opened, also the one of the failed step; once opened it is highlighted.
     const pytestLog = page.getByRole("region", { name: "Log de pytest" });
+    await expect(pytestLog).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Log de Ruff" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Ver log de pytest" }).click();
     await expect(pytestLog).toBeVisible();
     await expect(pytestLog.getByTestId("log-block").first()).toHaveAttribute("data-failed", "true");
     await expect(pytestLog).toContainText("Esta etapa falhou");
     await expect(pytestLog.locator('[data-stream="stderr"] pre')).toHaveText("DeprecationWarning: something old\n");
-    await expect(page.getByRole("region", { name: "Log de Ruff" })).toHaveCount(0);
 
     // Ruff: one block named after the tool; its error stream had only the JGates header, so it reads "(sem saída)".
     const show = page.getByRole("button", { name: "Ver log de Ruff" });
@@ -358,6 +360,7 @@ test("step logs: one block per tool with both streams, the command collapsed, '(
     const stored = fs.existsSync(prefs) ? JSON.parse(fs.readFileSync(prefs, "utf8")) : { schemaVersion: 1, theme: "system" };
     fs.writeFileSync(prefs, `${JSON.stringify({ ...stored, language: "en" }, null, 2)}\n`, { mode: 0o600 });
     await page.reload();
+    await page.getByRole("button", { name: "Show log of pytest" }).click();
     const enLog = page.getByRole("region", { name: "Log of pytest" });
     await expect(enLog.getByTestId("log-note")).toHaveText(/error output; that is normal\. Whether the step failed is told by its state/);
     await page.getByRole("button", { name: "Show log of Ruff" }).click();

@@ -4,14 +4,39 @@
 // from the cached facts (core/engine/facts.ts): reading the list never blocks the server.
 import { withEngineFacts, invalidateEngineFacts, invalidateGitFacts } from "../../core/engine/facts.js";
 import { assessEnvironment } from "../../core/install/index.js";
-import { fixPrerequisite, listPrerequisites, PrerequisiteError } from "../../core/prerequisites/index.js";
+import { fixPrerequisite, listPrerequisites, PrerequisiteError, type Prerequisite } from "../../core/prerequisites/index.js";
 import { refreshPath, refreshPathAsync } from "../../core/env-refresh/index.js";
 import { HttpError } from "../http.js";
 import { collectStatus } from "../../core/lifecycle/index.js";
 import { readinessOf } from "./environment.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 
-const listOf = (server: ServerContext) => withEngineFacts(() => listPrerequisites(server.projectDir), { prime: { version: server.version, gitDir: server.projectDir } });
+/**
+ * Where the person fixes an item: a UI route (without the leading "#/"), or null when the item is fixed in place (the
+ * confirmation dialog runs it). CodeQL (customer supplied) is prepared in Ambiente, at its own section.
+ */
+export function routeOf(item: Prerequisite): string | null {
+  if (item.id === "docker") return "environment?section=engine";
+  if (item.id === "image") return "environment?section=image";
+  if (item.id === "data") return "environment?section=data";
+  if (item.kind !== "manual") return null;
+  if (item.id.startsWith("manual:runtime:")) return "environment?section=engine";
+  return item.names.some((n) => /codeql/i.test(n)) || /codeql/i.test(item.id) ? "environment?section=codeql" : "tools";
+}
+
+/** Every item carries its action route; an item with a route no longer asks the person to copy a command. */
+export function withRoutes<T extends { items: Prerequisite[] }>(list: T): T & { items: Array<Prerequisite & { route: string | null }> } {
+  return {
+    ...list,
+    items: list.items.map((item) => {
+      const route = routeOf(item);
+      if (route === null) return { ...item, route };
+      return { ...item, route, action: item.action === "copy" ? null : item.action, fix: item.kind === "manual" ? null : item.fix };
+    }),
+  };
+}
+
+const listOf = async (server: ServerContext) => withRoutes(await withEngineFacts(() => listPrerequisites(server.projectDir), { prime: { version: server.version, gitDir: server.projectDir } }));
 
 export const routes: RouteDefinition[] = [
   {

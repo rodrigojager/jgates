@@ -14,6 +14,8 @@ export const screen: ScreenMeta = { id: "overview", path: "/overview", area: "ov
 interface Stage {
   id: string;
   label: string;
+  tool?: string;
+  findings?: number;
   state: string;
   reason: string | null;
 }
@@ -50,6 +52,8 @@ interface Overview {
   plan: { planHash: string | null; approvable: boolean; blocked: string | null; uncovered: Array<{ selector: string; category: string | null; reason: string; message: string }> };
   categories: Category[];
   lastRun: LastRun | null;
+  /** What to do after a validation that did not pass: read its result. */
+  nextStep?: { kind: "open-result"; runId: string; decision: string; route: string } | null;
 }
 
 const DECISION_TONE: Record<string, "green" | "gold" | "red" | "blue"> = { passed: "green", failed: "red", incomplete: "gold", invalid: "red", cancelled: "gold" };
@@ -69,24 +73,23 @@ function runWhen(runId: string): string {
 const stateLabel = (state: string): string => tOr(`overview_stage_state_${state}`, state);
 const categoryLabel = (id: string): string => tOr(`overview_category_${id}`, id);
 
-/** States that need no words on the bar: it went well, or nothing was meant to run. */
-const QUIET = new Set(["completed", "disabled", "not_applicable"]);
+const STATE_ICON: Record<string, IconName> = { completed: "check", error: "x", timeout: "x", blocked: "lock", incomplete: "hourglass", cancelled: "stop", pending: "hourglass", running: "refresh", disabled: "stop", not_applicable: "info" };
 
-/** One segment per stage; any state other than completed carries its name as text, not only a color. */
+/** One tile per stage: the name of the check, its state as an icon and as text, never only a color. */
 function Segments({ stages }: { stages: Stage[] }) {
   const done = stages.filter((s) => s.state === "completed").length;
   return (
     <div>
       <ul className="ov-segments" aria-label={t("overview_stages_label")} data-testid="stage-segments">
-        {stages.map((s) => {
-          const text = !QUIET.has(s.state);
-          return (
-            <li key={s.id} className={`ov-seg s-${s.state}${text ? " has-text" : ""}`} data-stage={s.id} data-state={s.state} title={`${s.label}: ${stateLabel(s.state)}`}>
-              {text ? <span>{stateLabel(s.state)}</span> : null}
-              <span className="sr-only">{`${s.label}: ${stateLabel(s.state)}`}</span>
-            </li>
-          );
-        })}
+        {stages.map((s) => (
+          <li key={s.id} className={`ov-seg s-${s.state}`} data-stage={s.id} data-state={s.state} title={s.reason ? `${s.label}: ${stateLabel(s.state)} - ${s.reason}` : `${s.label}: ${stateLabel(s.state)}`}>
+            <span className="ov-seg-name">{s.label}</span>
+            <span className="ov-seg-state">
+              <Icon name={STATE_ICON[s.state] ?? "info"} />
+              {stateLabel(s.state)}
+            </span>
+          </li>
+        ))}
       </ul>
       <p className="small" data-testid="stage-summary">
         {t("overview_stages_summary", { done, total: stages.length })}
@@ -157,6 +160,8 @@ interface Step {
   readiness?: ReadinessId;
   actionLabel?: string;
   external?: boolean;
+  /** The step that opens the result of a validation that did not pass. */
+  result?: boolean;
 }
 
 type ReadinessId = "engine" | "image" | "data" | "dependencies" | "services";
@@ -236,8 +241,27 @@ function Readiness({ items }: { items: ReadinessItem[] }) {
   );
 }
 
+/** After a validation that did not pass, the first step is to read its result (the decision names why). */
+function resultStep(data: Overview): Step | null {
+  const next = data.nextStep;
+  if (!next) return null;
+  const decision = tOr(`overview_decision_${next.decision}`, next.decision);
+  return {
+    n: "result",
+    icon: "alert",
+    title: t("overview_next_result_title"),
+    text: t("overview_next_result_text", { decision }),
+    pending: t("overview_next_result_text", { decision }),
+    href: `#/${next.route}`,
+    open: t("overview_next_result_action"),
+    actionLabel: t("overview_next_result_action"),
+    result: true,
+  };
+}
+
 function steps(data: Overview, readiness: Step | null): Step[] {
   const d = data.discovery;
+  const result = resultStep(data);
   const gaps = data.categories.filter((c) => c.state === "gap");
   let step1: string | null = null;
   if (d.ambiguous.length > 0) step1 = t("overview_step1_pending", { count: d.ambiguous.length, ids: d.ambiguous.map((a) => a.root).join(", ") });
@@ -247,6 +271,7 @@ function steps(data: Overview, readiness: Step | null): Step[] {
   else if (gaps.length > 0) step2 = t("overview_step2_pending_gaps", { count: gaps.length, ids: gaps.map((g) => categoryLabel(g.id)).join(", ") });
   return [
     ...(readiness ? [readiness] : []),
+    ...(result ? [result] : []),
     { n: "01", icon: "folder", title: t("overview_step1_title"), text: t("overview_step1_text"), pending: step1, href: "#/workspace", open: t("overview_step1_open") },
     { n: "02", icon: "sliders", title: t("overview_step2_title"), text: t("overview_step2_text"), pending: step2, href: "#/config", open: t("overview_step2_open") },
     { n: "03", icon: "play", title: t("overview_step3_title"), text: t("overview_step3_text"), pending: data.lastRun ? null : t("overview_step3_pending"), href: "#/validations/choose", open: t("overview_step3_open") },
@@ -257,8 +282,8 @@ function NextSteps({ data, readiness }: { data: Overview; readiness: Step | null
   return (
     <ol className="card ov-next" style={{ listStyle: "none", margin: 0 }} data-testid="next-steps">
       {steps(data, readiness).map((s) => (
-        <li key={s.n} className={`ov-next-row${s.pending ? " pending" : ""}`} data-step={s.readiness ? "readiness" : s.n} data-readiness={s.readiness} data-pending={s.pending ? "true" : "false"}>
-          <span className="step-number">{s.readiness ? "!" : s.n}</span>
+        <li key={s.n} className={`ov-next-row${s.pending ? " pending" : ""}${data.nextStep && !s.result && !s.readiness && !s.pending ? " quiet" : ""}`} data-step={s.readiness ? "readiness" : s.n} data-readiness={s.readiness} data-pending={s.pending ? "true" : "false"}>
+          <span className="step-number">{s.readiness || s.result ? "!" : s.n}</span>
           <Icon name={s.icon} />
           <div className="grow">
             <strong>{s.title}</strong>
@@ -269,7 +294,14 @@ function NextSteps({ data, readiness }: { data: Overview; readiness: Step | null
               </a>
             ) : null}
           </div>
-          <Pill tone={s.pending ? "gold" : "green"}>{s.pending ? t("overview_next_pending") : t("overview_next_done")}</Pill>
+          {/* While a result waits to be read, the steps that are fine say so with an icon, not a repeated "Em dia". */}
+          {data.nextStep && !s.result && !s.readiness && !s.pending ? (
+            <span className="ov-quiet-done" role="img" aria-label={t("overview_next_done")}>
+              <Icon name="check" />
+            </span>
+          ) : (
+            <Pill tone={s.pending ? "gold" : "green"}>{s.pending ? t("overview_next_pending") : t("overview_next_done")}</Pill>
+          )}
           {s.actionLabel ? null : (
             <a className="icon-btn" href={s.href} aria-label={s.open}>
               <Icon name="chevron" />
