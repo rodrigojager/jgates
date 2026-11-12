@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { OriginLine, type OriginRef, type SaveTarget } from "../../components/origin";
 import { useToast } from "../../components/Toast";
@@ -121,9 +121,11 @@ export default function ConfigArchitectureScreen() {
     setBusy(rule.id);
     setError(null);
     try {
-      await api("PUT", `/api/config/architecture/rules/${encodeURIComponent(rule.id)}`, { enabled, expectedRevision: v.revision });
+      // The answer is the same payload as the GET: the screen takes it instead of asking again.
+      const answer = await api<View>("PUT", `/api/config/architecture/rules/${encodeURIComponent(rule.id)}`, { enabled, expectedRevision: v.revision });
       toast(t(enabled ? "cfa_rule_on" : "cfa_rule_off", { id: rule.id }), "ok");
-      setRevision((n) => n + 1);
+      if (answer?.rules) view.prime(answer);
+      else setRevision((n) => n + 1);
     } catch (e) {
       setError(e);
     } finally {
@@ -132,11 +134,12 @@ export default function ConfigArchitectureScreen() {
   };
 
   return (
-    <div className="stack">
+    <div className="stack" aria-busy={view.reloading}>
       <div className="between wrap">
         <div>
           <h1>{t("cfa_title")}</h1>
           <p>{t("cfa_lead")}</p>
+          <Updating active={view.reloading} />
         </div>
         <a className="btn" href="#/config/yaml" data-testid="edit-yaml">
           {t("cfa_edit_yaml")}
@@ -210,7 +213,7 @@ export default function ConfigArchitectureScreen() {
                   <OriginLine origin={rule.origin} saveTo={rule.saveTo} />
                 </div>
                 <div className="stack tight arch-switch">
-                  <Switch checked={rule.enabled} label={t("cfa_toggle_aria", { id: rule.id })} disabled={governedReason !== null || busy === rule.id} onChange={(next) => toggle(rule, next)} testId={`toggle-${rule.id}`} />
+                  <Switch checked={rule.enabled} label={t("cfa_toggle_aria", { id: rule.id })} disabled={governedReason !== null || busy === rule.id} pending={busy === rule.id} onChange={(next) => toggle(rule, next)} testId={`toggle-${rule.id}`} />
                   {governedReason ? <span className="small muted">{governedReason}</span> : null}
                 </div>
               </div>

@@ -1,12 +1,12 @@
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { useState } from "react";
 import { api } from "../../api";
-import { ErrorNotice, Loading, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { Policy, type PolicyView } from "./policy";
-import { ProfileCards, type Card, type Starter } from "./profiles";
+import { ProfileCards, type Card, type Starter, type WriteAnswer } from "./profiles";
 import { Protect, type CategoryView } from "./protect";
 import "./config-profiles.css";
 
@@ -25,6 +25,29 @@ export default function ConfigProfilesScreen() {
   const availability = useAsync(() => api("GET", `/api/config/profile/plan${query}`), `plan:${selected ?? "-"}:${revision}`);
   const planPart = (availability.data as any) ?? null;
 
+  // A write answers with the updated list and view (ADR-0010): they go in place of the requests; only the plan part is asked.
+  const applyAnswer = (answer: WriteAnswer | null, next?: string | null) => {
+    const target = next === undefined ? selected : next;
+    if (answer?.profiles && answer.view) {
+      list.prime(answer.profiles as any, `profiles:${revision}`);
+      view.prime(answer.view as any, `view:${target ?? "-"}:${revision}`);
+      // A new profile on screen changes the plan key, which asks by itself; the same one is asked again by hand.
+      if (target === selected) availability.reload();
+      setSelected(target);
+    } else {
+      setSelected(target);
+      refresh();
+    }
+  };
+  // A write of the profile on screen (selection, policy): its answer carries the view; the cards read their changes again.
+  const applyView = (answer: { view?: unknown } | null) => {
+    if (answer?.view) {
+      view.prime(answer.view as any);
+      list.reload();
+      availability.reload();
+    } else refresh();
+  };
+
   if (list.error) return <ErrorNotice error={list.error} onRetry={list.reload} />;
   if (view.error) return <ErrorNotice error={view.error} onRetry={view.reload} />;
   if (!list.data || !view.data) return <Loading />;
@@ -35,11 +58,12 @@ export default function ConfigProfilesScreen() {
   const current = v.profile.ref as string;
 
   return (
-    <div className="stack">
+    <div className="stack" aria-busy={list.reloading || view.reloading}>
       <div>
         <h1>{t("cfgp_title")}</h1>
         <p>{t("cfgp_lead")}</p>
       </div>
+      <Updating active={list.reloading || view.reloading} />
 
       {(v.selectionErrors as any[]).length > 0 ? (
         <div className="notice warn" role="alert">
@@ -58,12 +82,12 @@ export default function ConfigProfilesScreen() {
         </div>
       ) : null}
 
-      <ProfileCards cards={cards} starters={starters} selected={current} onSelect={setSelected} onChanged={refresh} />
+      <ProfileCards cards={cards} starters={starters} selected={current} followsDefault={selected === null} onSelect={setSelected} onChanged={applyAnswer} />
 
       <QualityMascotStrip snapshot={planPart?.profile === current ? planPart.mascots : null} />
       <div className="cfgp-columns">
-        <Protect categories={v.categories as CategoryView[]} plan={planPart?.profile === current ? (planPart.plan ?? null) : null} profile={current} editable={v.profile.editable === true} onChanged={refresh} />
-        <Policy policy={v.policy as PolicyView} governedPolicy={v.governed?.policy ?? null} onChanged={refresh} />
+        <Protect categories={v.categories as CategoryView[]} plan={planPart?.profile === current ? (planPart.plan ?? null) : null} profile={current} editable={v.profile.editable === true} onChanged={applyView} />
+        <Policy policy={v.policy as PolicyView} governedPolicy={v.governed?.policy ?? null} profile={current} onChanged={applyView} />
       </div>
 
       <div className="notice ok">

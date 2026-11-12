@@ -6,6 +6,7 @@
   "workspace_label": "Workspace",
   "brand_preview": "preview",
   "loading": "Carregando...",
+  "updating": "Atualizando...",
   "retry": "Tentar de novo",
   "close": "Fechar",
   "cancel": "Cancelar",

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
@@ -71,9 +71,11 @@ export default function ConfigTemplatesScreen() {
     setBusy(row.id);
     setError(null);
     try {
-      await api("PUT", `/api/config/templates/${encodeURIComponent(row.id)}/enabled`, { enabled, expectedRevision: v.revision });
+      const answer = await api<TemplatesView>("PUT", `/api/config/templates/${encodeURIComponent(row.id)}/enabled`, { enabled, expectedRevision: v.revision });
       toast(t(enabled ? "cft_on" : "cft_off", { id: row.id }), "ok");
-      refresh();
+      // The answer is the view the GET gives: the screen takes it instead of asking again.
+      if (answer?.templates) view.prime(answer);
+      else refresh();
     } catch (e) {
       setError(e);
     } finally {
@@ -112,7 +114,7 @@ export default function ConfigTemplatesScreen() {
                 <button type="button" className="btn" aria-label={t("cft_details_aria", { name: row.label })} onClick={() => setOpen(row.id)}>
                   {t("cft_details")}
                 </button>
-                <Switch checked={row.enabled} label={t("cft_toggle_aria", { name: row.label })} disabled={locked !== null || busy === row.id} onChange={(next) => toggle(row, next)} />
+                <Switch checked={row.enabled} label={t("cft_toggle_aria", { name: row.label })} disabled={locked !== null || busy === row.id} pending={busy === row.id} onChange={(next) => toggle(row, next)} />
               </div>
             </li>
           );
@@ -122,11 +124,12 @@ export default function ConfigTemplatesScreen() {
   );
 
   return (
-    <div className="stack">
+    <div className="stack" aria-busy={view.reloading}>
       <div className="between wrap">
         <div>
           <h1>{t("cft_title")}</h1>
           <p>{t("cft_lead")}</p>
+          <Updating active={view.reloading} />
         </div>
         <button type="button" className="btn primary" disabled={governedReason !== null} onClick={() => setCreating(true)}>
           {t("cft_create")}

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { api } from "../../api";
-import { Dialog, ErrorNotice, Pill } from "../../components/common";
+import { Dialog, ErrorNotice, Pill, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
@@ -41,7 +41,16 @@ function Estimate({ estimate }: { estimate: Card["estimate"] }) {
 
 const nameOf = (card: { id: string; label: string | null }): string => card.label ?? card.id;
 
-function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Card[]; starters: Starter[]; from: string; onClose: () => void; onCreated: (id: string) => void }) {
+/** What a profile write answers besides its own result: the updated list and the updated view (null: the screen asks again). */
+export interface WriteAnswer {
+  profiles?: unknown;
+  view?: unknown;
+}
+
+/** The label of a button whose action is in flight: the turning ring beside it, and aria-busy on the button itself. */
+const busyProps = (busy: boolean) => (busy ? ({ "aria-busy": true, "data-pending": "true" } as const) : {});
+
+function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Card[]; starters: Starter[]; from: string; onClose: () => void; onCreated: (id: string, answer: WriteAnswer) => void }) {
   const toast = useToast();
   const [id, setId] = useState("");
   const [source, setSource] = useState(from);
@@ -55,9 +64,9 @@ function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Ca
     setBusy(true);
     setError(null);
     try {
-      await api("POST", "/api/profiles", { id, from: source, ...(label.trim() ? { label: label.trim() } : {}) });
+      const answer = await api<WriteAnswer>("POST", "/api/profiles", { id, from: source, ...(label.trim() ? { label: label.trim() } : {}) });
       toast(t("cfgp_created", { id }), "ok");
-      onCreated(id);
+      onCreated(id, answer);
     } catch (e) {
       setError(e);
     } finally {
@@ -100,7 +109,8 @@ function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Ca
         </label>
         {error ? <ErrorNotice error={error} /> : null}
         <div className="row">
-          <button type="submit" className="btn primary" disabled={!idOk || busy}>
+          <button type="submit" className="btn primary" disabled={!idOk || busy} {...busyProps(busy)}>
+            {busy ? <Spinner /> : null}
             {t("cfgp_create_confirm")}
           </button>
           <button type="button" className="btn" onClick={onClose}>
@@ -112,7 +122,7 @@ function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Ca
   );
 }
 
-function RenameDialog({ card, onClose, onDone }: { card: Card; onClose: () => void; onDone: (id: string) => void }) {
+function RenameDialog({ card, viewQuery, onClose, onDone }: { card: Card; viewQuery: string; onClose: () => void; onDone: (id: string, answer: WriteAnswer) => void }) {
   const toast = useToast();
   const [to, setTo] = useState(card.id);
   const [error, setError] = useState<unknown>(null);
@@ -123,9 +133,9 @@ function RenameDialog({ card, onClose, onDone }: { card: Card; onClose: () => vo
     setBusy(true);
     setError(null);
     try {
-      await api("PUT", `/api/profiles/${encodeURIComponent(card.id)}/rename`, { to });
+      const answer = await api<WriteAnswer>("PUT", `/api/profiles/${encodeURIComponent(card.id)}/rename${viewQuery}`, { to });
       toast(t("cfgp_renamed", { id: card.id, to }), "ok");
-      onDone(to);
+      onDone(to, answer);
     } catch (e) {
       setError(e);
     } finally {
@@ -142,7 +152,8 @@ function RenameDialog({ card, onClose, onDone }: { card: Card; onClose: () => vo
         <p className="small muted">{t("cfgp_rename_note")}</p>
         {error ? <ErrorNotice error={error} /> : null}
         <div className="row">
-          <button type="submit" className="btn primary" disabled={!ok || busy}>
+          <button type="submit" className="btn primary" disabled={!ok || busy} {...busyProps(busy)}>
+            {busy ? <Spinner /> : null}
             {t("cfgp_rename_confirm")}
           </button>
           <button type="button" className="btn" onClick={onClose}>
@@ -154,7 +165,7 @@ function RenameDialog({ card, onClose, onDone }: { card: Card; onClose: () => vo
   );
 }
 
-function DeleteDialog({ card, onClose, onDone }: { card: Card; onClose: () => void; onDone: () => void }) {
+function DeleteDialog({ card, viewQuery, onClose, onDone }: { card: Card; viewQuery: string; onClose: () => void; onDone: (answer: WriteAnswer) => void }) {
   const toast = useToast();
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -162,9 +173,9 @@ function DeleteDialog({ card, onClose, onDone }: { card: Card; onClose: () => vo
     setBusy(true);
     setError(null);
     try {
-      await api("DELETE", `/api/profiles/${encodeURIComponent(card.id)}`);
+      const answer = await api<WriteAnswer>("DELETE", `/api/profiles/${encodeURIComponent(card.id)}${viewQuery}`);
       toast(t("cfgp_deleted", { id: card.id }), "ok");
-      onDone();
+      onDone(answer);
     } catch (e) {
       setError(e);
     } finally {
@@ -181,7 +192,8 @@ function DeleteDialog({ card, onClose, onDone }: { card: Card; onClose: () => vo
           </div>
         ) : null}
         <div className="row">
-          <button type="button" className="btn danger" disabled={busy} onClick={confirm}>
+          <button type="button" className="btn danger" disabled={busy} onClick={confirm} {...busyProps(busy)}>
+            {busy ? <Spinner /> : null}
             {t("cfgp_delete_confirm")}
           </button>
           <button type="button" className="btn" onClick={onClose}>
@@ -196,19 +208,41 @@ function DeleteDialog({ card, onClose, onDone }: { card: Card; onClose: () => vo
 type Dialogs = { kind: "create"; from: string } | { kind: "rename"; card: Card } | { kind: "delete"; card: Card } | null;
 
 /** One card per profile of .jgates/profiles.yml, with the actions: edit, duplicate, rename, make default, delete. */
-export function ProfileCards({ cards, starters, selected, onSelect, onChanged }: { cards: Card[]; starters: Starter[]; selected: string; onSelect: (id: string) => void; onChanged: () => void }) {
+export function ProfileCards({
+  cards,
+  starters,
+  selected,
+  followsDefault,
+  onSelect,
+  onChanged,
+}: {
+  cards: Card[];
+  starters: Starter[];
+  selected: string;
+  /** The screen shows whichever profile is the default (no profile picked by hand). */
+  followsDefault: boolean;
+  onSelect: (id: string) => void;
+  /** A write went through: its answer (list and view), and the profile to show next (undefined: the same; null: the default). */
+  onChanged: (answer: WriteAnswer | null, next?: string | null) => void;
+}) {
   const toast = useToast();
   const [dialog, setDialog] = useState<Dialogs>(null);
   const [error, setError] = useState<unknown>(null);
+  const [defaulting, setDefaulting] = useState<string | null>(null);
+  // The view the answer of a write carries: the profile on screen (when the write does not move the screen elsewhere).
+  const keepView = `?view=${encodeURIComponent(selected)}`;
 
   const makeDefault = async (card: Card) => {
     setError(null);
+    setDefaulting(card.id);
     try {
-      await api("PUT", `/api/profiles/${encodeURIComponent(card.id)}/default`, {});
+      const answer = await api<WriteAnswer>("PUT", `/api/profiles/${encodeURIComponent(card.id)}/default${followsDefault ? "" : keepView}`, {});
       toast(t("cfgp_default_set", { id: card.id }), "ok");
-      onChanged();
+      onChanged(answer);
     } catch (e) {
       setError(e);
+    } finally {
+      setDefaulting(null);
     }
   };
 
@@ -275,7 +309,8 @@ export function ProfileCards({ cards, starters, selected, onSelect, onChanged }:
               <button type="button" className="btn" aria-label={t("cfgp_rename_aria", { name: nameOf(card) })} onClick={() => setDialog({ kind: "rename", card })}>
                 {t("cfgp_rename")}
               </button>
-              <button type="button" className="btn" disabled={card.isDefault} aria-label={t("cfgp_make_default_aria", { name: nameOf(card) })} onClick={() => makeDefault(card)}>
+              <button type="button" className="btn" disabled={card.isDefault || defaulting !== null} aria-label={t("cfgp_make_default_aria", { name: nameOf(card) })} onClick={() => makeDefault(card)} {...busyProps(defaulting === card.id)}>
+                {defaulting === card.id ? <Spinner /> : null}
                 {t("cfgp_make_default")}
               </button>
               <button type="button" className="btn danger" aria-label={t("cfgp_delete_aria", { name: nameOf(card) })} onClick={() => setDialog({ kind: "delete", card })}>
@@ -291,31 +326,31 @@ export function ProfileCards({ cards, starters, selected, onSelect, onChanged }:
           starters={starters}
           from={dialog.from}
           onClose={() => setDialog(null)}
-          onCreated={(id) => {
+          onCreated={(id, answer) => {
             setDialog(null);
-            onSelect(id);
-            onChanged();
+            onChanged(answer, id);
           }}
         />
       ) : null}
       {dialog?.kind === "rename" ? (
         <RenameDialog
           card={dialog.card}
+          viewQuery={selected === dialog.card.ref ? "" : keepView}
           onClose={() => setDialog(null)}
-          onDone={(id) => {
+          onDone={(id, answer) => {
             setDialog(null);
-            if (selected === dialog.card.ref) onSelect(id);
-            onChanged();
+            onChanged(answer, selected === dialog.card.ref ? id : undefined);
           }}
         />
       ) : null}
       {dialog?.kind === "delete" ? (
         <DeleteDialog
           card={dialog.card}
+          viewQuery={selected === dialog.card.ref ? "" : keepView}
           onClose={() => setDialog(null)}
-          onDone={() => {
+          onDone={(answer) => {
             setDialog(null);
-            onChanged();
+            onChanged(answer, selected === dialog.card.ref ? null : undefined);
           }}
         />
       ) : null}

@@ -50,7 +50,7 @@ function CoverageRow({ scope, onSave, busy, governedReason }: { scope: PolicyVie
 }
 
 /** "Quando bloquear a entrega?": severity limit, minimum coverage (denominator and component) and the missing-check policy. */
-export function Policy({ policy, governedPolicy, onChanged }: { policy: PolicyView; governedPolicy: string | null; onChanged: () => void }) {
+export function Policy({ policy, governedPolicy, profile, onChanged }: { policy: PolicyView; governedPolicy: string | null; profile: string; onChanged: (answer: { view?: unknown } | null) => void }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -60,9 +60,9 @@ export function Policy({ policy, governedPolicy, onChanged }: { policy: PolicyVi
     setBusy(true);
     setError(null);
     try {
-      await api("PUT", "/api/config/policy", { changes });
+      const answer = await api("PUT", `/api/config/policy?profile=${encodeURIComponent(profile)}`, { changes });
       toast(t("cfgp_policy_saved"), "ok");
-      onChanged();
+      onChanged(answer);
     } catch (e) {
       setError(e);
     } finally {
@@ -85,7 +85,7 @@ export function Policy({ policy, governedPolicy, onChanged }: { policy: PolicyVi
           <label htmlFor="cfgp-severity" className="field-label">
             {t("cfgp_severity_label")}
           </label>
-          <select id="cfgp-severity" className="input" value={policy.severity.value} disabled={busy} onChange={(e) => save([{ control: "severity", value: e.target.value }])}>
+          <select id="cfgp-severity" className="input" value={policy.severity.value} disabled={busy} aria-busy={busy || undefined} onChange={(e) => save([{ control: "severity", value: e.target.value }])}>
             {LEVELS.map((level) => (
               <option key={level} value={level}>
                 {t(`cfgp_level_${level}`)}
@@ -118,7 +118,7 @@ export function Policy({ policy, governedPolicy, onChanged }: { policy: PolicyVi
             <label id="cfgp-missing-label" className="field-label">
               {t("cfgp_missing_label")}
             </label>
-            <Switch checked={policy.onMissing.value === "block"} label={t("cfgp_missing_label")} disabled={busy} onChange={(next) => save([{ control: "onMissing", value: next ? "block" : "warn" }])} />
+            <Switch checked={policy.onMissing.value === "block"} label={t("cfgp_missing_label")} disabled={busy} pending={busy} onChange={(next) => save([{ control: "onMissing", value: next ? "block" : "warn" }])} />
           </div>
           <p className="small muted">{policy.onMissing.value === "block" ? t("cfgp_missing_block_help") : t("cfgp_missing_warn_help")}</p>
           <p className="small muted">{t("cfgp_not_applied")}</p>

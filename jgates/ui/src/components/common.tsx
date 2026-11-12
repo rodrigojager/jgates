@@ -4,22 +4,47 @@ import { t } from "../i18n";
 import { Icon } from "./icons";
 
 /** Loads data once per key; exposes the error and a reload function. */
-export function useAsync<T>(load: () => Promise<T>, key: string): { data: T | null; error: unknown; loading: boolean; reload: () => void } {
+export function useAsync<T>(load: () => Promise<T>, key: string): { data: T | null; error: unknown; loading: boolean; reloading: boolean; reload: () => void; prime: (data: T, forKey?: string) => void } {
   const [state, setState] = useState<{ data: T | null; error: unknown; loading: boolean }>({ data: null, error: null, loading: true });
   const [tick, setTick] = useState(0);
+  const primed = useRef<string | null>(null);
+  const generation = useRef(0);
   useEffect(() => {
+    // The answer of a write already carries this key's data (see prime): nothing to ask.
+    if (primed.current === key) {
+      primed.current = null;
+      return;
+    }
     let live = true;
+    const mine = ++generation.current;
     setState((s) => ({ ...s, loading: true, error: null }));
     load().then(
-      (data) => live && setState({ data, error: null, loading: false }),
-      (error) => live && setState({ data: null, error, loading: false }),
+      (data) => live && mine === generation.current && setState({ data, error: null, loading: false }),
+      (error) => live && mine === generation.current && setState({ data: null, error, loading: false }),
     );
     return () => {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, tick]);
-  return { ...state, reload: () => setTick((n) => n + 1) };
+  /** Puts data that came from elsewhere (the answer of a write) in place of a request; `forKey` is the key it will have next. */
+  const prime = (data: T, forKey?: string) => {
+    generation.current += 1;
+    primed.current = forKey !== undefined && forKey !== key ? forKey : null;
+    setState({ data, error: null, loading: false });
+  };
+  // Reloading: asking again while the previous data stays on screen (the screen shows it with an updating indicator).
+  return { ...state, reloading: state.loading && state.data !== null, reload: () => setTick((n) => n + 1), prime };
+}
+
+/** The one indicator of a screen that keeps its content while it asks again; the screen puts aria-busy on its content too. */
+export function Updating({ active }: { active: boolean }) {
+  if (!active) return null;
+  return (
+    <p className="spinner-text" role="status" aria-busy="true" data-testid="updating">
+      {t("updating")}
+    </p>
+  );
 }
 
 export function errorText(error: unknown): { message: string; fix: string | null } {

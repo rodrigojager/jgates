@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { LockedField } from "../../components/LockedField";
 import { OriginLine, type OriginRef, type SaveTarget } from "../../components/origin";
@@ -77,7 +77,7 @@ function FieldRow({ field, locked, busy, onSave }: { field: Field; locked: strin
             ))}
           </select>
         )}
-        <button type="button" className="btn" disabled={!changed || !valid || busy} aria-label={t("cfe_save_aria", { name: label })} onClick={() => onSave(field.key, parsed)}>
+        <button type="button" className="btn" disabled={!changed || !valid || busy} aria-label={t("cfe_save_aria", { name: label })} onClick={() => onSave(field.key, parsed)} aria-busy={busy || undefined}>
           {t("save")}
         </button>
         {field.explicit ? (
@@ -109,9 +109,11 @@ export default function ConfigExecutionScreen() {
     setBusy(true);
     setError(null);
     try {
-      await api("PUT", "/api/config/execution", { expectedRevision: v.revision, changes: { [key]: value } });
+      // The answer is the same payload as the GET: the screen takes it instead of asking again.
+      const answer = await api<View>("PUT", "/api/config/execution", { expectedRevision: v.revision, changes: { [key]: value } });
       toast(t("cfe_saved", { name: t(`cfe_f_${key}`) }), "ok");
-      setRevision((n) => n + 1);
+      if (answer?.fields) view.prime(answer);
+      else setRevision((n) => n + 1);
     } catch (e) {
       setError(e);
     } finally {
@@ -120,11 +122,12 @@ export default function ConfigExecutionScreen() {
   };
 
   return (
-    <div className="stack">
+    <div className="stack" aria-busy={view.reloading}>
       <div>
         <h1>{t("cfe_title")}</h1>
         <p>{t("cfe_lead")}</p>
       </div>
+      <Updating active={view.reloading} />
       {locked ? (
         <div className="notice warn" role="status" data-testid="governed-note">
           <Icon name="lock" />

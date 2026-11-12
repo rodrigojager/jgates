@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { Dialog, ErrorNotice, Pill, useAsync } from "../../components/common";
+import { Dialog, ErrorNotice, Pill, Spinner, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
@@ -129,6 +129,7 @@ export function ComponentsTab({
   const [why, setWhy] = useState<Classification | null>(null);
   const [declare, setDeclare] = useState<{ title: string; initial: Declared } | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const components = classifications.filter((c) => ["explicit", "detected", "ambiguous"].includes(c.classificationStatus));
   // Readable names of languages and frameworks (the ids stay in the files), and the templates jgates.yml really uses.
   const vocabulary = useAsync(() => api("GET", "/api/workspace/vocabulary") as Promise<Vocabulary>, "ws-vocabulary");
@@ -150,12 +151,15 @@ export function ComponentsTab({
 
   const remove = async (c: Classification) => {
     setError(null);
+    setRemoving(c.id);
     try {
       await api("PUT", "/api/workspace/settings", { expectedRevision: settings.revision, components: settings.components.filter((d) => d.id !== c.id) });
       toast(t("ws_saved_toast"), "ok");
       onChanged();
     } catch (e) {
       setError(e);
+    } finally {
+      setRemoving(null);
     }
   };
 
@@ -218,7 +222,8 @@ export function ComponentsTab({
                     <button type="button" className="btn" onClick={() => setDeclare({ title: t("ws_correct_title", { name: c.id }), initial: { ...fromCard(c), ...(settings.components.find((d) => d.id === c.id) ?? {}) } })}>
                       {t("ws_correct")}
                     </button>
-                    <button type="button" className="btn" onClick={() => remove(c)}>
+                    <button type="button" className="btn" disabled={removing !== null} onClick={() => remove(c)} {...(removing === c.id ? { "aria-busy": true } : {})}>
+                      {removing === c.id ? <Spinner /> : null}
                       {t("ws_remove_declared")}
                     </button>
                   </>

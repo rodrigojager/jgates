@@ -199,7 +199,7 @@ function CapabilityBlock({ capability, state, ctx, profile, editable, busy, onTo
   );
 }
 
-function CategoryBlock({ category, states, ctx, profile, editable, busy, onToggle }: { category: CategoryView; states: Map<string, CapState>; ctx: StateContext; profile: string; editable: boolean; busy: boolean; onToggle: Toggle }) {
+function CategoryBlock({ category, states, ctx, profile, editable, busy, pending, onToggle }: { category: CategoryView; states: Map<string, CapState>; ctx: StateContext; profile: string; editable: boolean; busy: boolean; pending: string | null; onToggle: Toggle }) {
   const [open, setOpen] = useState(false);
   const caps = category.capabilities;
   const onCount = caps.filter((c) => c.enabled).length;
@@ -227,7 +227,7 @@ function CategoryBlock({ category, states, ctx, profile, editable, busy, onToggl
           </p>
         </div>
         {lockedInside > 0 ? <Pill tone="gold">{t("cfgp_category_locked", { count: lockedInside })}</Pill> : null}
-        <Switch checked={category.enabled} label={t("cfgp_category_switch", { name: category.label })} disabled={!editable || busy} onChange={toggleCategory} testId={`category-${category.id}`} />
+        <Switch checked={category.enabled} label={t("cfgp_category_switch", { name: category.label })} disabled={!editable || busy} pending={pending === category.selector} onChange={toggleCategory} testId={`category-${category.id}`} />
       </div>
       {open ? (
         <ul id={`cat-body-${category.id}`} className="capabilities">
@@ -241,9 +241,11 @@ function CategoryBlock({ category, states, ctx, profile, editable, busy, onToggl
 }
 
 /** "O que você quer proteger?": categories that open into capabilities, tools and rules, each with its own toggle. */
-export function Protect({ categories, plan, profile, editable, onChanged }: { categories: CategoryView[]; plan: any; profile: string; editable: boolean; onChanged: () => void }) {
+export function Protect({ categories, plan, profile, editable, onChanged }: { categories: CategoryView[]; plan: any; profile: string; editable: boolean; onChanged: (answer: { view?: unknown } | null) => void }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  // The selector whose write is in flight: its switch shows the turning ring until the answer arrives.
+  const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   // What the plan of this profile says about each capability here (will run, not applicable and why, off and by whom).
   const states = useMemo(() => {
@@ -253,21 +255,23 @@ export function Protect({ categories, plan, profile, editable, onChanged }: { ca
     };
     return new Map(capabilityStates(plan, catalog).flatMap((g) => g.items.map((s) => [s.id, s] as const)));
   }, [categories, plan]);
-  const ctx: StateContext = { profile: editable ? profile : null, onChanged };
+  const ctx: StateContext = { profile: editable ? profile : null, onChanged: () => onChanged(null) };
   const counts = { run: 0, na: 0, off: 0, blocked: 0 };
   for (const s of states.values()) counts[s.kind] += 1;
 
   const onToggle: Toggle = async (changes) => {
     setBusy(true);
+    setPending(changes[0]?.selector ?? null);
     setError(null);
     try {
-      await api("PUT", "/api/config/selection", { profile, changes });
+      const answer = await api("PUT", "/api/config/selection", { profile, changes });
       toast(t("cfgp_saved", { count: changes.length, profile }), "ok");
-      onChanged();
+      onChanged(answer);
     } catch (e) {
       setError(e);
     } finally {
       setBusy(false);
+      setPending(null);
     }
   };
 
@@ -291,7 +295,7 @@ export function Protect({ categories, plan, profile, editable, onChanged }: { ca
       ) : null}
       <div className="categories" data-testid="categories">
         {categories.map((c) => (
-          <CategoryBlock key={c.id} category={c} states={states} ctx={ctx} profile={profile} editable={editable} busy={busy} onToggle={onToggle} />
+          <CategoryBlock key={c.id} category={c} states={states} ctx={ctx} profile={profile} editable={editable} busy={busy} pending={pending} onToggle={onToggle} />
         ))}
       </div>
     </section>
