@@ -8,6 +8,7 @@
   "vrun_preparing": "Preparando a execução",
   "vrun_waiting_step": "Aguardando a próxima etapa…",
   "vrun_state_running": "Em andamento",
+  "vrun_open_result": "Abrir o resultado",
   "vrun_state_finished": "Concluída",
   "vrun_state_failed": "Falhou",
   "vrun_state_cancelled": "Interrompida",

@@ -38,6 +38,9 @@
   "exec_limit_memory": "Memory (MB)",
   "exec_limit_cpus": "Processors",
   "exec_limit_timeout": "Time limit (minutes)",
-  "exec_limits_hint": "These are the default limits of every step; they are changed in the YAML file.",
+  "exec_origin_default": "JGates default",
+  "exec_origin_adapter": "Set by this tool",
+  "exec_origin_configuration": "Set in jgates.yml (execution.timeoutSeconds)",
+  "exec_limits_hint": "These are the limits this instance runs with; they are changed in the YAML file.",
   "exec_edit_yaml": "Edit in the YAML"
 }

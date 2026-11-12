@@ -63,7 +63,7 @@ test("after a run the Overview shows real counts, the profile and one segment pe
     expect(blocked).toBeTruthy();
     await expect(page.locator(`li[data-stage="${blocked.id}"]`)).toContainText("Bloqueada");
     await expect(page.getByTestId("last-run")).toContainText(result.decision === "failed" ? "Reprovado" : "Incompleto");
-    await expect(page.getByRole("link", { name: "Ver resultado" })).toHaveAttribute("href", `#/runs/${result.runId}`);
+    await expect(page.getByRole("link", { name: "Ver resultado" })).toHaveAttribute("href", `#/validations/result/${result.runId}`);
     await expect(page.getByTestId("new-run")).toHaveAttribute("href", "#/validations/choose");
     await expect(page.getByTestId("hero-review")).toHaveAttribute("href", "#/validations/review");
     // One primary action on the page: "Nova validação".

@@ -67,6 +67,23 @@ function extensionOf(server: ServerContext, status: StatusReport, locale?: strin
 }
 
 /**
+ * The one definition of ready, for the environment state, the overview and the doctor card: the engine, image and
+ * dependencies in a usable state; the advisory data is a warning, not a blocker (inside the tools image there is no
+ * engine or image to ask for). Pure: it reads a status, so the doctor can use it without the environment's other reads.
+ */
+export function readinessOf(status: StatusReport): { ready: boolean; notReady: Array<"engine" | "image" | "dependencies"> } {
+  const units = status.workspace?.dependencies ?? [];
+  const dependencies = units.length === 0 ? "none" : units.some((u) => u.state === "failed") ? "failed" : units.every((u) => u.state === "ready") ? "ready" : "not-ready";
+  const states: Record<"engine" | "image" | "dependencies", { state: string; ok: string[] }> = {
+    engine: { state: String(status.engine.state), ok: ["ready"] },
+    image: { state: String(status.image.state), ok: ["ready"] },
+    dependencies: { state: dependencies, ok: ["ready", "none"] },
+  };
+  const notReady = (["engine", "image", "dependencies"] as const).filter((id) => !(status.mode === "in-image" && id !== "dependencies") && !states[id].ok.includes(states[id].state));
+  return { ready: status.ready && notReady.length === 0, notReady };
+}
+
+/**
  * Every section of the environment with its state and its reasons (the shared catalogue's text and action). Called
  * inside withEngineFacts, the engine answers come from the cached facts: a working engine's answers are a few seconds
  * old at most and refreshed in the background, while a missing or stopped engine is asked again at every call, so a
@@ -111,7 +128,8 @@ export async function environmentState(server: ServerContext, locale?: string): 
   };
   // When the engine was read: the oldest cached answer used, or now.
   const checkedAt = factsAsOf() ?? new Date().toISOString();
-  return { schemaVersion: 1, status: "OK", mode: status.mode, ready: status.ready, checkedAt, disk: status.disk, reasons: status.reasons, warnings: status.warnings, sections };
+  const { ready, notReady } = readinessOf(status);
+  return { schemaVersion: 1, status: "OK", mode: status.mode, ready, notReady, checkedAt, disk: status.disk, reasons: status.reasons, warnings: status.warnings, sections };
 }
 
 /** The environment state, read from the engine facts without blocking the server; `fresh` asks the engine everything again. */

@@ -342,7 +342,8 @@ export default function EnvironmentScreen() {
   const sections = state?.sections as unknown as Sections | undefined;
   const engineReady = state?.mode === "in-image" || sections?.engine.state === "ready";
   const imageReady = state?.mode === "in-image" || sections?.image.state === "ready";
-  const notReady = sections ? (["engine", "image", "data", "dependencies"] as const).filter((id) => !["ready", "fresh", "none"].includes(sections[id].state)).length : 0;
+  // The server's one definition of ready (`ready`, `notReady`), the same the overview and the API use.
+  const notReady = state?.notReady?.length ?? 0;
   return (
     <div className="stack">
       <WorkspaceTabs selected="environment" />

@@ -9,6 +9,7 @@
   "vrun_waiting_step": "Waiting for the next stage…",
   "vrun_state_running": "In progress",
   "vrun_state_finished": "Finished",
+  "vrun_open_result": "Open the result",
   "vrun_state_failed": "Failed",
   "vrun_state_cancelled": "Interrupted",
   "vrun_state_crashed": "Died before finishing",

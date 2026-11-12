@@ -319,6 +319,10 @@ export default function RunScreen({ params }: { params: Record<string, string> }
   const closed = rows.filter((r) => r.state !== "pending" && r.state !== "running").length;
   const current = rows.find((r) => r.state === "running");
   const uiState = job?.state === "crashed" ? "crashed" : final?.result && job?.state === "running" ? "finished" : (job?.state ?? "running");
+  // A run that ended with a decision other than "passed" never reads as a bare "Finished": it names the decision.
+  const decision = typeof final?.result?.decision === "string" ? (final.result.decision as string) : null;
+  const endedLabel =
+    uiState === "finished" && decision && decision !== "passed" ? tOr(`vres_decision_${decision}`, decision) : tOr(`vrun_state_${uiState}`, uiState);
   const startedAt: string | undefined = job?.startedAt ?? events[0]?.at;
   const elapsed = since(startedAt, now);
   const currentStart = current ? [...events].reverse().find((e) => e.type === "step-started" && e.data.step === current.id)?.at : undefined;
@@ -353,8 +357,13 @@ export default function RunScreen({ params }: { params: Record<string, string> }
                 {running ? null : <Icon name={uiState === "finished" ? "check" : uiState === "cancelled" ? "stop" : "alert"} />}
               </span>
               <strong data-testid="run-state" data-state={uiState}>
-                {tOr(`vrun_state_${uiState}`, uiState)}
+                {endedLabel}
               </strong>
+              {runId && final && !running ? (
+                <a className="btn primary" href={`#/validations/result/${encodeURIComponent(runId)}`} data-testid="run-open-result">
+                  {t("vrun_open_result")}
+                </a>
+              ) : null}
             </div>
           {running ? (
               <button type="button" className="btn" onClick={cancel} disabled={cancelling}>

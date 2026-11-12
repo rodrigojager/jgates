@@ -137,7 +137,7 @@ function LastRunCard({ run, image }: { run: LastRun | null; image: { id?: string
           ) : null}
           {run.dataAgeDays !== null && run.dataAgeDays !== undefined ? <span data-testid="run-data-age">{t("overview_run_data_age", { days: run.dataAgeDays })}</span> : null}
         </div>
-        <a className="ov-link" href={`#/runs/${encodeURIComponent(run.runId)}`}>
+        <a className="ov-link" href={run.running ? `#/runs/${encodeURIComponent(run.runId)}` : `#/validations/result/${encodeURIComponent(run.runId)}`}>
           {run.running ? t("overview_follow_run") : t("overview_view_result")} <Icon name="chevron" />
         </a>
       </div>
@@ -188,7 +188,8 @@ function readinessOf(env: EnvironmentState | null): ReadinessItem[] {
     const section = s[id] as { state: string; reasons: EnvironmentReason[] };
     // Inside the tools image there is no engine to ask and the data is whatever the job mounted.
     if (inImage && (id === "engine" || id === "image" || id === "data")) return { id, state: id === "data" ? "unknown" : "ready", ok: id === "data" ? null : true, reason: null };
-    const ok = OK_STATES[id].includes(section.state) && section.reasons.length === 0;
+    // The server's one definition of ready (notReady) decides; a reason on a ready section still asks for attention.
+    const ok = !(env.notReady ?? []).includes(id as never) && OK_STATES[id].includes(section.state) && section.reasons.length === 0;
     return { id, state: section.state, ok, reason: section.reasons.find((r) => r.action.kind !== "none") ?? section.reasons[0] ?? null };
   });
 }

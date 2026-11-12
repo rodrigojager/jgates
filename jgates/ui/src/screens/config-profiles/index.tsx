@@ -5,6 +5,7 @@ import { ErrorNotice, Loading, Updating, useAsync } from "../../components/commo
 import { Icon } from "../../components/icons";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
+import { ConfigDiagnostics, diagnosticsOf } from "./diagnostics";
 import { Policy, type PolicyView } from "./policy";
 import { ProfileCards, type Card, type Starter, type WriteAnswer } from "./profiles";
 import { Protect, type CategoryView } from "./protect";
@@ -48,6 +49,29 @@ export default function ConfigProfilesScreen() {
     } else refresh();
   };
 
+  // An invalid key in a configuration file: the screen stays, with the diagnostics (file, key, line) and the way to the YAML editor.
+  const diagnostics = diagnosticsOf(list.error) ?? diagnosticsOf(view.error);
+  if (diagnostics) {
+    return (
+      <div className="stack">
+        <div>
+          <h1>{t("cfgp_title")}</h1>
+          <p>{t("cfgp_lead")}</p>
+        </div>
+        <ConfigDiagnostics
+          diagnostics={diagnostics}
+          onRetry={() => {
+            list.reload();
+            view.reload();
+          }}
+        />
+        <div className="notice ok">
+          <Icon name="info" />
+          <p className="small">{t("cfgp_files_note")}</p>
+        </div>
+      </div>
+    );
+  }
   if (list.error) return <ErrorNotice error={list.error} onRetry={list.reload} />;
   if (view.error) return <ErrorNotice error={view.error} onRetry={view.reload} />;
   if (!list.data || !view.data) return <Loading />;

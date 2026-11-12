@@ -103,6 +103,7 @@ export function planAvailability(plan: Plan | null) {
   const brief = (i: PlanItem) => ({ id: i.id, tool: i.tool, adapter: i.adapter, label: i.label, capabilities: i.capabilities, requirement: i.requirement, availability: i.availability, state: { enabled: i.state.enabled, when: i.state.when ?? null } });
   return {
     profile: plan.profile,
+    counts: { unit: "steps", steps: plan.groups.willRun.length },
     groups: {
       willRun: plan.groups.willRun.map(brief),
       notApplicableOrDisabled: plan.groups.notApplicableOrDisabled.map(brief),
@@ -248,6 +249,9 @@ function buildView(server: ServerContext, ref: string) {
     governed: mode.governed,
     profile: { ref, id: ref.replace(/^builtin:/, ""), editable, isDefault: def === ref, file },
     categories,
+    // The number the screen counts here is the capabilities that are on; the plan and the run count steps (`counts.steps`
+    // of /api/config/profile/plan, `total` of /api/setup/profiles): both units are returned and named.
+    counts: { unit: "capabilities", capabilities: categories.reduce((n, c) => n + c.capabilities.filter((x) => x.enabled).length, 0) },
     policy,
     selectionErrors: selection.errors.map((e) => ({ code: e.code, selector: e.selector, message: e.message, fix: e.fix ?? null })),
     warnings: result.warnings,

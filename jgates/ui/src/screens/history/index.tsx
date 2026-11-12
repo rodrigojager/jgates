@@ -186,7 +186,7 @@ export default function HistoryScreen() {
                     <input type="checkbox" aria-label={t("history_pick", { runId: r.runId })} checked={picked.includes(r.runId)} disabled={r.unfinished} onChange={() => toggle(r.runId)} />
                   </td>
                   <th scope="row">
-                    <a href={`#/runs/${encodeURIComponent(r.runId)}`}>{r.runId}</a>
+                    <a href={r.unfinished ? `#/runs/${encodeURIComponent(r.runId)}` : `#/validations/result/${encodeURIComponent(r.runId)}`}>{r.runId}</a>
                     <div className="small muted">
                       {formatWhen(r.startedAt)}
                       {r.commit ? (

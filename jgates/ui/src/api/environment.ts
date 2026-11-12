@@ -27,6 +27,8 @@ export interface EnvironmentSection {
 
 export interface EnvironmentState {
   ready: boolean;
+  /** The sections that keep the environment from being ready (engine, image, dependencies). */
+  notReady: Array<"engine" | "image" | "data" | "dependencies">;
   mode: "container" | "in-image";
   checkedAt: string;
   reasons: EnvironmentReason[];

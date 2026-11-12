@@ -6,6 +6,17 @@ import { builtinManifests } from "../../adapters/manifests.js";
 import { resolveToolBindings } from "./index.js";
 
 const DEFAULT_TIMEOUT_SECONDS = 30 * 60;
+// The defaults of the step container (core/engine DEFAULT_RESOURCES).
+const DEFAULT_MEMORY_MB = 4096;
+const DEFAULT_CPUS = 2;
+
+export interface ExecutionLimits {
+  memoryMb: number;
+  cpus: number;
+  timeoutSeconds: number;
+  /** "adapter": the adapter's manifest; "configuration": execution.timeoutSeconds in jgates.yml; "default": JGates' own. */
+  origin: { memoryMb: "adapter" | "default"; cpus: "adapter" | "default"; timeoutSeconds: "configuration" | "default" };
+}
 
 export interface RenderedCommand {
   executable: string;
@@ -28,6 +39,8 @@ export interface ExecutionView {
   runtime: { name: string; interpreter: string | null; available: boolean } | null;
   toolVersion: string | null;
   availability: { status: string; reason: string | null } | null;
+  /** The limits the step of this instance runs with and where each value comes from; null without a process of its own. */
+  limits: ExecutionLimits | null;
   network: boolean;
   /** Effects declared by the adapter manifest (for example executesProjectCode). */
   effects: Record<string, boolean>;
@@ -62,7 +75,7 @@ export function renderExecution(dir: string, instanceId: string, env: NodeJS.Pro
     limitations: manifest?.limitations ?? [],
     runner: bound.runner,
   };
-  const none = (reason: string): ExecutionView => ({ ...base, planned: false, reason, command: null, runtime: null, toolVersion: null, availability: null, network: false, output: null, configFiles: [], conditions: [] });
+  const none = (reason: string): ExecutionView => ({ ...base, planned: false, reason, command: null, runtime: null, toolVersion: null, availability: null, limits: null, network: false, output: null, configFiles: [], conditions: [] });
   const adapter = externalAdapter(bound.adapter);
   if (!adapter || !manifest) return none("NO_OWN_PROCESS");
 
@@ -70,6 +83,17 @@ export function renderExecution(dir: string, instanceId: string, env: NodeJS.Pro
   const config = resolved.config as Record<string, unknown>;
   const execution = typeof config.execution === "object" && config.execution !== null ? (config.execution as Record<string, unknown>) : {};
   const timeoutSeconds = typeof execution.timeoutSeconds === "number" ? execution.timeoutSeconds : DEFAULT_TIMEOUT_SECONDS;
+  const own = manifest.resources;
+  const limits: ExecutionLimits = {
+    memoryMb: own?.memoryMb ?? DEFAULT_MEMORY_MB,
+    cpus: own?.cpus ?? DEFAULT_CPUS,
+    timeoutSeconds,
+    origin: {
+      memoryMb: own?.memoryMb !== undefined ? "adapter" : "default",
+      cpus: own?.cpus !== undefined ? "adapter" : "default",
+      timeoutSeconds: typeof execution.timeoutSeconds === "number" ? "configuration" : "default",
+    },
+  };
   const planned = adapter.plan({ dir, env, tool: bound.id, capability: manifest.capabilities[0] ?? "", componentRoot: bound.componentRoot, timeoutSeconds, config });
   const container = planned.command.container;
   return {
@@ -87,6 +111,7 @@ export function renderExecution(dir: string, instanceId: string, env: NodeJS.Pro
     runtime: planned.runtime,
     toolVersion: planned.toolVersion,
     availability: planned.availability,
+    limits,
     network: planned.network,
     output: planned.output,
     configFiles: planned.configFiles,

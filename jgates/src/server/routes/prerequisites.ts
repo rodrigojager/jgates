@@ -7,6 +7,8 @@ import { assessEnvironment } from "../../core/install/index.js";
 import { fixPrerequisite, listPrerequisites, PrerequisiteError } from "../../core/prerequisites/index.js";
 import { refreshPath, refreshPathAsync } from "../../core/env-refresh/index.js";
 import { HttpError } from "../http.js";
+import { collectStatus } from "../../core/lifecycle/index.js";
+import { readinessOf } from "./environment.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 
 const listOf = (server: ServerContext) => withEngineFacts(() => listPrerequisites(server.projectDir), { prime: { version: server.version, gitDir: server.projectDir } });
@@ -18,7 +20,12 @@ export const routes: RouteDefinition[] = [
     timeoutMs: 120_000,
     async handler({ server }) {
       if (!server.policyMode) await refreshPathAsync();
-      return { status: 200, json: { schemaVersion: 1, status: "OK", ...(await listOf(server)) } };
+      const list = await listOf(server);
+      // The one definition of ready (engine, image, data, dependencies: routes/environment.ts) decides, next to the
+      // essential items of this list; the doctor card says "ready" only when both agree.
+      // Only the status is read (no CodeQL volume read, which would block the server).
+      const env = readinessOf(await withEngineFacts(() => collectStatus({ env: process.env, version: server.version, projectDir: server.projectDir }), { prime: { version: server.version } }));
+      return { status: 200, json: { schemaVersion: 1, status: "OK", ...list, ready: list.ready && env.ready, notReady: env.notReady } };
     },
   },
   {

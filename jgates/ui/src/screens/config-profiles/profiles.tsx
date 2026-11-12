@@ -197,7 +197,7 @@ function DeleteDialog({ card, viewQuery, onClose, onDone }: { card: Card; viewQu
             {t("cfgp_delete_confirm")}
           </button>
           <button type="button" className="btn" onClick={onClose}>
-            {t("close")}
+            {t("cancel")}
           </button>
         </div>
       </div>
@@ -313,9 +313,30 @@ export function ProfileCards({
                 {defaulting === card.id ? <Spinner /> : null}
                 {t("cfgp_make_default")}
               </button>
-              <button type="button" className="btn danger" aria-label={t("cfgp_delete_aria", { name: nameOf(card) })} onClick={() => setDialog({ kind: "delete", card })}>
-                {t("cfgp_delete")}
-              </button>
+              {(() => {
+                const reason = card.isDefault ? t("cfgp_delete_default_reason") : null;
+                const reasonId = `cfgp-delete-reason-${card.id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+                return (
+                  <>
+                    <button
+                      type="button"
+                      className="btn danger"
+                      disabled={reason !== null}
+                      title={reason ?? undefined}
+                      aria-describedby={reason ? reasonId : undefined}
+                      aria-label={t("cfgp_delete_aria", { name: nameOf(card) })}
+                      onClick={() => setDialog({ kind: "delete", card })}
+                    >
+                      {t("cfgp_delete")}
+                    </button>
+                    {reason ? (
+                      <span id={reasonId} className="small muted" data-testid="delete-disabled-reason">
+                        {reason}
+                      </span>
+                    ) : null}
+                  </>
+                );
+              })()}
             </div>
           </article>
         ))}

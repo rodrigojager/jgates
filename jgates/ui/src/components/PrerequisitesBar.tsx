@@ -25,7 +25,9 @@ export interface PrerequisiteItem {
 }
 
 interface Report {
+  /** The one definition of ready (the same as /api/environment/state). */
   ready: boolean;
+  notReady?: string[];
   platform: string;
   items: PrerequisiteItem[];
 }
@@ -268,6 +270,17 @@ export function PrerequisitesBar({ showReady = false, inEnvironment = false, onC
     state = "checking";
     className = "prq prq-slim prq-checking";
     body = <p className="small">{t("prq_checking")}</p>;
+  } else if (report.items.length === 0 && report.ready === false && (report.notReady?.length ?? 0) > 0) {
+    // No action of the doctor, but the environment is not ready by the shared definition: say so, never "ready".
+    state = "needs-you";
+    body = (
+      <>
+        <strong>{t("env_not_ready", { count: report.notReady?.length ?? 0 })}</strong>
+        <p className="small">
+          <a href="#/environment">{t("overview_ready_label")}</a>
+        </p>
+      </>
+    );
   } else if (report.items.length === 0) {
     if (!showReady && (!fixedAll || celebrated)) return null;
     state = "ok";

@@ -13,6 +13,7 @@ export interface ExecutionData {
   runtime: { name: string; interpreter: string | null; available: boolean } | null;
   toolVersion: string | null;
   availability: { status: string; reason: string | null } | null;
+  limits?: { memoryMb: number; cpus: number; timeoutSeconds: number; origin: { memoryMb: "adapter" | "default"; cpus: "adapter" | "default"; timeoutSeconds: "configuration" | "default" } } | null;
   network: boolean;
   effects: Record<string, boolean>;
   context: { granularity: string[]; minimumContext: string[]; componentRoot: string | null };
@@ -28,7 +29,12 @@ const DEFAULT_TIMEOUT_MINUTES = 30;
 
 function ContainerLimits({ execution }: { execution: ExecutionData }) {
   const container = execution.command?.container ?? null;
-  const networkOn = execution.network || execution.effects.usesNetwork === true;
+  // The effective values of this instance and where they come from; the defaults only when the server sent none.
+  const limits = execution.limits ?? null;
+  const memoryMb = limits?.memoryMb ?? DEFAULT_MEMORY_MB;
+  const cpus = limits?.cpus ?? DEFAULT_CPUS;
+  const timeoutMinutes = limits ? Math.round((limits.timeoutSeconds / 60) * 100) / 100 : DEFAULT_TIMEOUT_MINUTES;
+  const networkOn =execution.network || execution.effects.usesNetwork === true;
   return (
     <fieldset className="stack tight" data-testid="execution-limits">
       <legend>{t("exec_limits")}</legend>
@@ -47,15 +53,18 @@ function ContainerLimits({ execution }: { execution: ExecutionData }) {
       </label>
       <label className="stack tight">
         <span>{t("exec_limit_memory")}</span>
-        <input type="number" value={DEFAULT_MEMORY_MB} readOnly disabled data-free-text="identifier" data-testid="execution-memory" />
+        <input type="number" value={memoryMb} readOnly disabled data-free-text="identifier" data-testid="execution-memory" />
+        <span className="small muted" data-testid="execution-memory-origin">{t(`exec_origin_${limits?.origin.memoryMb ?? "default"}`)}</span>
       </label>
       <label className="stack tight">
         <span>{t("exec_limit_cpus")}</span>
-        <input type="number" value={DEFAULT_CPUS} readOnly disabled data-free-text="identifier" data-testid="execution-cpus" />
+        <input type="number" value={cpus} readOnly disabled data-free-text="identifier" data-testid="execution-cpus" />
+        <span className="small muted" data-testid="execution-cpus-origin">{t(`exec_origin_${limits?.origin.cpus ?? "default"}`)}</span>
       </label>
       <label className="stack tight">
         <span>{t("exec_limit_timeout")}</span>
-        <input type="number" value={DEFAULT_TIMEOUT_MINUTES} readOnly disabled data-free-text="identifier" data-testid="execution-timeout" />
+        <input type="number" value={timeoutMinutes} readOnly disabled data-free-text="identifier" data-testid="execution-timeout" />
+        <span className="small muted" data-testid="execution-timeout-origin">{t(`exec_origin_${limits?.origin.timeoutSeconds ?? "default"}`)}</span>
       </label>
       <p className="small">
         {t("exec_limits_hint")} <a href="#/config/yaml">{t("exec_edit_yaml")}</a>

@@ -415,7 +415,7 @@ function writeConfig(server: ServerContext, profile: string, services: SetupStat
   }
 }
 
-type ProfileCount = { id: string; total: number; categories: Array<{ id: string; count: number }>; error: string | null };
+type ProfileCount = { id: string; unit: "steps"; total: number; categories: Array<{ id: string; count: number }>; error: string | null };
 
 /**
  * "O que roda" of each starter profile, in one pass: one discovery for the three plans, kept in the project cache until
@@ -448,13 +448,13 @@ function computeProfileCounts(server: ServerContext): ProfileCount[] {
       try {
         result = buildPlan(server.projectDir, { profile: id, compare: false, home: server.home, version: server.version, inventory, ...(configDir ? { configDir } : {}) });
       } catch (error) {
-        if (error instanceof BuiltinError) return { id, total: 0, categories: [], error: error.message };
+        if (error instanceof BuiltinError) return { id, unit: "steps", total: 0, categories: [], error: error.message };
         throw error;
       }
-      if (!result.ok) return { id, total: 0, categories: [], error: result.error.message };
+      if (!result.ok) return { id, unit: "steps", total: 0, categories: [], error: result.error.message };
       const counts = new Map<string, number>();
       for (const item of result.plan.groups.willRun) counts.set(item.category ?? "custom", (counts.get(item.category ?? "custom") ?? 0) + 1);
-      return { id, total: result.plan.groups.willRun.length, categories: [...counts].map(([category, count]) => ({ id: category, count })), error: null };
+      return { id, unit: "steps", total: result.plan.groups.willRun.length, categories: [...counts].map(([category, count]) => ({ id: category, count })), error: null };
     });
   } finally {
     if (temp) fs.rmSync(temp, { recursive: true, force: true });

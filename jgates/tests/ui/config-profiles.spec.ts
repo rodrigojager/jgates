@@ -67,12 +67,11 @@ test("deleting the default profile is refused with the reason and the file does 
     const card = page.locator('[data-profile="minimal"]');
     await expect(card.getByText("Padrão", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Apagar o perfil Essencial" }).click();
-    await page.getByRole("button", { name: "Apagar perfil" }).click();
-    await expect(page.getByTestId("delete-refusal")).toContainText("é o padrão do projeto");
+    // The action is disabled and says why; there is no dialog to confirm.
+    await expect(page.getByRole("button", { name: "Apagar o perfil Essencial" })).toBeDisabled();
+    await expect(card.getByTestId("delete-disabled-reason")).toContainText("O perfil padrão não pode ser apagado");
     expect(sha256(read(PROFILES(fixture)))).toBe(before);
     expect(sha256(read(path.join(fixture.dir, "jgates.yml")))).toBe(root);
-    await page.getByRole("button", { name: "Fechar" }).first().click();
 
     // A profile another one extends is refused too: the reason names the profile that depends on it.
     await page.getByRole("button", { name: "Criar perfil" }).click();
