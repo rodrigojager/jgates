@@ -119,6 +119,17 @@ function matching(match: { languages: string[]; frameworks: string[] }, componen
     .map((c) => c.id);
 }
 
+/**
+ * A template that comes in by a file (docker-hadolint: a Dockerfile) has no language or framework to select
+ * components with, but its state says whether the file is there: when it is, the template applies to every component
+ * (to the workspace root, "." , when discovery found none); when it is not, to none.
+ */
+function byEvidence(state: { reason: string } | undefined, match: { languages: string[]; frameworks: string[] }, components: Classification[]): string[] {
+  if (match.languages.length > 0 || match.frameworks.length > 0) return [];
+  if (state?.reason !== "DETECTED" && state?.reason !== "REQUESTED") return [];
+  return components.length > 0 ? components.map((c) => c.id) : ["."];
+}
+
 function describe(server: ServerContext): Rec {
   const root = readRevision(path.join(server.projectDir, ROOT_FILE));
   const parsedRoot = root.exists ? parseYamlText(root.text, ROOT_FILE) : null;
@@ -154,7 +165,7 @@ function describe(server: ServerContext): Rec {
       required: activation === "always" && enabled,
       status: state?.reason ?? (enabled ? "UNKNOWN" : "DISABLED"),
       match,
-      components: activation === "always" ? components.map((c) => c.id) : matching(match, components),
+      components: activation === "always" ? components.map((c) => c.id) : matching(match, components).length > 0 ? matching(match, components) : byEvidence(state, match, components),
       support,
       extends: strings(value.extends),
       problem: node === null ? "Arquivo do template não encontrado ou ilegível." : null,

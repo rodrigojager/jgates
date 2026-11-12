@@ -15,7 +15,7 @@ import { testTool } from "../../core/extension/test-tool.js";
 import { createCoreCatalog } from "../../core/catalog/index.js";
 import { CustomToolError, INSTALL_METHODS, REPORT_FORMATS, hasExtension, installLines, planCustomTool, writeCustomTool, type CustomToolErrorCode, type CustomToolRequest } from "../../core/extension/index.js";
 import { engineCommand, engineRuntime, inspectImage, type EngineContext } from "../../core/engine/index.js";
-import { imageToolCatalogue } from "../../core/tools-image/index.js";
+import { imageToolCatalogue, NOT_IMAGE_TOOLS } from "../../core/tools-image/index.js";
 import fs from "node:fs";
 import path from "node:path";
 import { workspaceDir } from "../../core/home/index.js";
@@ -35,6 +35,30 @@ function readTested(server: ServerContext): Record<string, string> {
 function writeTested(server: ServerContext, next: Record<string, string>): void {
   fs.mkdirSync(path.dirname(testedFile(server)), { recursive: true });
   fs.writeFileSync(testedFile(server), `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 });
+}
+
+/** Adapters that are not catalogue entries: the quality bridge was retired with the Python sidecar. */
+const RETIRED_ADAPTERS: ReadonlySet<string> = new Set(["quality-bridge"]);
+
+const PROJECT_TOOLS: ReadonlySet<string> = new Set(["compiler", "formatter", "jest", "playwright", "migration-tool", "benchmark"]);
+
+interface Origin {
+  kind: "image" | "own" | "customer" | "prepared" | "project";
+  /** The version of the tool in the image (kind image). */
+  version: string | null;
+  /** True only for a tool the customer has to install: an image tool never has an install instruction. */
+  installRequired: boolean;
+}
+
+/** Where a catalogue tool comes from, derived from the image tool list (not from the distribution records). */
+function originOf(adapter: string, toolName: string, imageTools: Record<string, string>, mode: string | null): Origin {
+  if (adapter === "generic-command") return { kind: "own", version: null, installRequired: false };
+  if (toolName in imageTools && !NOT_IMAGE_TOOLS.has(toolName)) return { kind: "image", version: imageTools[toolName] ?? null, installRequired: false };
+  // The project's own toolchain (compiler, formatter, Jest, Playwright, its migration and benchmark tools) is the project's.
+  if (PROJECT_TOOLS.has(toolName)) return { kind: "project", version: null, installRequired: false };
+  if (mode === "customer-supplied") return { kind: "customer", version: null, installRequired: true };
+  if (mode === "prepared-from-authorized-source") return { kind: "prepared", version: null, installRequired: false };
+  return { kind: "project", version: null, installRequired: false };
 }
 
 const CUSTOM_STATUS: Record<CustomToolErrorCode, number> = {
@@ -155,7 +179,13 @@ export const routes: RouteDefinition[] = [
     method: "GET",
     path: "/api/tool-catalog",
     handler() {
-      return { status: 200, json: { schemaVersion: 1, status: "OK", adapters: toolCatalog() } };
+      const image = imageToolCatalogue(process.env);
+      // The retired quality bridge is not a catalogue entry; what ships in the image says so, with its version.
+      const modes = new Map(buildMatrix().adapters.map((a) => [a.id, a.distribution?.mode ?? null]));
+      const adapters = toolCatalog()
+        .filter((a) => !RETIRED_ADAPTERS.has(a.adapter))
+        .map((a) => ({ ...a, origin: originOf(a.adapter, a.toolName, image?.tools ?? {}, modes.get(a.adapter) ?? null) }));
+      return { status: 200, json: { schemaVersion: 1, status: "OK", adapters } };
     },
   },
   {
@@ -167,7 +197,16 @@ export const routes: RouteDefinition[] = [
     handler({ server }) {
       const matrix = buildMatrix();
       const applicability = unitApplicability(discoverWorkspace(server.projectDir).inventory, matrix);
-      return { status: 200, json: { schemaVersion: 1, status: "OK", matrix, problems: verifyMatrix(matrix), applicability } };
+      // What the image ships is "shipped" for the screen, whatever the release record of the adapter still says
+      // (the records are release work); only what the customer really supplies stays customer-supplied.
+      const image = imageToolCatalogue(process.env)?.tools ?? {};
+      const shown = {
+        ...matrix,
+        adapters: matrix.adapters
+          .filter((a) => !RETIRED_ADAPTERS.has(a.id))
+          .map((a) => (a.distribution && a.tool in image && !NOT_IMAGE_TOOLS.has(a.tool) ? { ...a, distribution: { mode: "shipped" as const, ...(a.distribution.spdx ? { spdx: a.distribution.spdx } : {}), ...(a.distribution.sourceUrl ? { sourceUrl: a.distribution.sourceUrl } : {}) } } : a)),
+      };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", matrix: shown, problems: verifyMatrix(matrix), applicability } };
     },
   },
   {
