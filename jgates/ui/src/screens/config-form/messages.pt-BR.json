@@ -1,0 +1,10 @@
+{
+  "cff_title": "Formulário guiado",
+  "cff_lead": "Cada chave de um arquivo de configuração com o seu controle, de onde vem o valor, a volta ao herdado e o atalho para o YAML. Cada alteração mostra a diferença do arquivo antes de gravar.",
+  "cff_choose": "Arquivo ou ferramenta",
+  "cff_choose_none": "Escolha um arquivo ou uma ferramenta...",
+  "cff_files": "Arquivos de configuração",
+  "cff_instances": "Ferramentas do projeto",
+  "cff_file_new": "{file} (ainda não existe)",
+  "cff_pick_first": "Escolha acima o arquivo ou a ferramenta a configurar."
+}

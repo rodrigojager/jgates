@@ -1,0 +1,5 @@
+/* Value pickers (components/pickers). Tokens from theme.css. */
+.picker { min-width: 0; max-width: 100%; }
+.picker-select { width: 100%; max-width: 32rem; border: 1px solid var(--line); border-radius: var(--radius); padding: 7px 10px; min-width: 0; text-overflow: ellipsis; }
+.picker-typed { gap: 8px; max-width: 32rem; }
+.picker-typed .input { min-width: 0; }

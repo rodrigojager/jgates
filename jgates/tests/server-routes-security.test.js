@@ -48,6 +48,8 @@ const PARAM_SAMPLES = {
   hash: `sha256:${"0".repeat(64)}`,
   runId: RUN_ID,
   name: "stdout.log",
+  // A value source of the derived forms' pickers (/api/pickers/:source); anything else fails the route's enum.
+  source: "project-file",
   // `id` depends on the group: a job or run id, a profile, a template, an architecture rule.
   id: (route) => (route.path.startsWith("/api/runs/") ? JOB_ID : "standard"),
 };

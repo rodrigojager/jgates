@@ -1,0 +1,10 @@
+{
+  "cff_title": "Guided form",
+  "cff_lead": "Every key of a configuration file with its control, where the value comes from, the way back to the inherited value and the shortcut to the YAML. Every change shows the difference of the file before writing.",
+  "cff_choose": "File or tool",
+  "cff_choose_none": "Choose a file or a tool...",
+  "cff_files": "Configuration files",
+  "cff_instances": "Tools of the project",
+  "cff_file_new": "{file} (does not exist yet)",
+  "cff_pick_first": "Choose above the file or the tool to configure."
+}

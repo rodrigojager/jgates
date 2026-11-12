@@ -23,6 +23,14 @@ export const FREE_TEXT_REASONS = new Set([
   "arguments",
   "report-file",
   "capability-name",
+  // The derived forms (forms/derived): a key the schema does not know (written by hand, edited as YAML), a value the
+  // schema leaves open (an object without declared keys), a number with no presets, the base URL of a runtime target,
+  // and a string the schema declares with no enum, pattern set or value source.
+  "custom-key",
+  "yaml-value",
+  "number",
+  "url",
+  "open-text",
 ]);
 
 /** Labels of controls whose value set is known. */
