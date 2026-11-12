@@ -3,7 +3,7 @@
 // root helper, image inspection and one `docker run` per container under the step contract (`--pull never`,
 // read-only root, tmpfs /tmp, no capabilities, no new privileges, limits, network off unless declared, a minimal
 // environment), plus detection, pulls with progress and retry, listing/removal/kill/prune by JGates label, sizes and compose.
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -138,6 +138,11 @@ export interface EngineRunSpec {
   stderrFile?: string;
   /** Text written to the container's stdin (adds `--interactive`); absent or null: stdin is closed. */
   stdin?: string | null;
+  /**
+   * The container only computes its output from its standard input (nothing mounted, no network, no state): inside
+   * withEngineFacts its answer is read from the facts cache like a read, keyed by the input, instead of a blocking run.
+   */
+  pure?: boolean;
   onStdout?: (chunk: string) => void;
   onStderr?: (chunk: string) => void;
   /** Header of the stderr log, built from the exact `docker run` line that is started. */
@@ -392,10 +397,13 @@ export interface EngineRunSyncResult {
 export function runInEngineSync(spec: EngineRunSpec, context: EngineContext = {}, maxBufferBytes = 64 * 1024 * 1024): EngineRunSyncResult {
   const runtime = context.runtime ?? engineRuntime(context.runnerOptions?.parentEnv ?? process.env);
   const { args, name } = buildRunArgs(spec);
-  // A container that only prints what it reads (no standard input: the status files of the data and CodeQL volumes)
-  // is a read the local server may answer from its cache. Its identity is what it runs and mounts, never its name.
-  if (readCache && (spec.stdin === undefined || spec.stdin === null)) {
-    const key = JSON.stringify(["run", runtime, spec.image, spec.command, spec.mounts ?? [], spec.user ?? IMAGE_USER, spec.env ?? {}, spec.network ?? "none", spec.workdir ?? ""]);
+  // A container that only prints what it reads (no standard input: the status files of the data and CodeQL volumes),
+  // or a pure one that computes from its input alone (the TOML helper), is a read the local server may answer from its
+  // cache. Its identity is what it runs, mounts and reads on stdin, never its name.
+  const pure = spec.pure === true && (spec.mounts ?? []).length === 0;
+  if (readCache && (spec.stdin === undefined || spec.stdin === null || pure)) {
+    const input = typeof spec.stdin === "string" ? createHash("sha256").update(spec.stdin).digest("hex") : "";
+    const key = JSON.stringify(["run", runtime, spec.image, spec.command, spec.mounts ?? [], spec.user ?? IMAGE_USER, spec.env ?? {}, spec.network ?? "none", spec.workdir ?? "", input]);
     const { name: _name, ...unnamed } = spec;
     const served = readCache.readSync(key, () => runInEngine(unnamed, { ...context, runtime }));
     if (served) return { ...syncAnswer(served), name, args };

@@ -1,10 +1,15 @@
 // Project profiles (Configuração > Perfil): list with what each one changes against its parent, create from an existing
 // one (or duplicate), rename, delete (refused with the reason) and mark as default. All writes go through the same
 // core functions as `jgates profiles`, by patch on .jgates/profiles.yml and jgates.yml.
+//
+// The list comes from the project cache (core/cache/project.ts): it is computed again only when the configuration or the
+// runs of the workspace change. Every write answers with the updated list and the updated Perfil view, so the screen
+// does not ask again.
 import fs from "node:fs";
 import path from "node:path";
 import { listRuns } from "../../core/artifacts/index.js";
-import { resolveConfig } from "../../core/config/resolve/index.js";
+import { cachedProject, invalidateProjectCache, projectInventory, projectResolve } from "../../core/cache/project.js";
+import { getLocale } from "../../i18n/index.js";
 import {
   ProfileError,
   createProfile,
@@ -18,6 +23,7 @@ import {
 import { resolveSelection } from "../../core/selection/index.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
+import { profileViewAnswer } from "./config.js";
 
 const STATUS: Record<string, number> = {
   CONFIG_INVALID: 422,
@@ -111,12 +117,46 @@ function estimateOf(ref: string, id: string, durations: Map<string, number[]>): 
 
 /** What a profile resolves per selector, to compare each of its own entries with the parent's value. */
 function resolvedEnabled(dir: string, profile: string): Map<string, boolean> {
-  const result = resolveConfig(dir, { profile });
+  const result = projectResolve(dir, { profile });
   const map = new Map<string, boolean>();
   if (!result.ok) return map;
-  for (const item of resolveSelection(result).items) map.set(item.selector, item.enabled);
+  for (const item of resolveSelection(result, { inventory: projectInventory(dir) }).items) map.set(item.selector, item.enabled);
   return map;
 }
+
+/** The answer of GET /api/profiles, from the cache while the configuration and the runs of the workspace stay the same. */
+export function profilesPayload(server: ServerContext) {
+  return cachedProject(`profiles:${getLocale()}`, [server.projectDir, path.join(server.home, "workspaces")], () => {
+    const { list, cards } = describeProfiles(server);
+    const starters = list.profiles.filter((p) => p.origin === "builtin").map((p) => ({ id: p.id, ref: p.ref, label: p.label, description: p.description }));
+    return { schemaVersion: 1, status: "OK", default: list.default, profiles: cards, starters, revisions: list.revisions };
+  });
+}
+
+/** The event loop's turn: requests that arrived meanwhile are served before the next computation. */
+const turn = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
+
+/**
+ * What a profile write answers: its own result, the updated list and the updated view of `viewRef`. The cache is cleared
+ * at once (nothing from before the write is served again); the view and the list are then computed in turns of their
+ * own, so a request that came in with the write does not wait for both.
+ */
+async function afterWrite<T extends object>(server: ServerContext, result: T, viewRef: string) {
+  invalidateProjectCache();
+  await turn();
+  const updated = profileViewAnswer(server, viewRef);
+  await turn();
+  let profiles: ReturnType<typeof profilesPayload> | null = null;
+  try {
+    profiles = profilesPayload(server);
+  } catch {
+    // The write went through; the screen reads the list again.
+  }
+  return { schemaVersion: 1, status: "OK", ...result, profiles, ...updated };
+}
+
+/** ?view=<profile>: the profile whose view a write answers with (each write has its own default). */
+const VIEW_QUERY = { type: "object", properties: { view: { type: "string", pattern: "^(builtin:)?[a-z0-9][a-z0-9._-]{0,127}$" } }, additionalProperties: false };
 
 export function describeProfiles(server: ServerContext): { list: ProfileList; cards: ProfileCard[] } {
   const list = listProfiles(server.projectDir);
@@ -146,11 +186,7 @@ export const routes: RouteDefinition[] = [
     method: "GET",
     path: "/api/profiles",
     handler({ server }) {
-      return guard(() => {
-        const { list, cards } = describeProfiles(server);
-        const starters = list.profiles.filter((p) => p.origin === "builtin").map((p) => ({ id: p.id, ref: p.ref, label: p.label, description: p.description }));
-        return { status: 200, json: { schemaVersion: 1, status: "OK", default: list.default, profiles: cards, starters, revisions: list.revisions } };
-      });
+      return guard(() => ({ status: 200, json: profilesPayload(server) }));
     },
   },
   {
@@ -169,18 +205,19 @@ export const routes: RouteDefinition[] = [
       required: ["id", "from"],
       additionalProperties: false,
     },
-    handler({ body, server }) {
+    query: VIEW_QUERY,
+    async handler({ body, query, server }) {
       const input = body as { id: string; from: string; label?: string; description?: string; expectedHash?: string };
-      return guard(() => {
-        const result = createProfile(server.projectDir, input.id, {
+      const result = guard(() =>
+        createProfile(server.projectDir, input.id, {
           from: input.from,
           ...(input.label ? { label: input.label } : {}),
           ...(input.description ? { description: input.description } : {}),
           ...(input.expectedHash ? { expectedHash: input.expectedHash } : {}),
-        });
-        server.log(`profile created ${result.id}`);
-        return { status: 201, json: { schemaVersion: 1, status: "OK", ...result } };
-      });
+        }),
+      );
+      server.log(`profile created ${result.id}`);
+      return { status: 201, json: await afterWrite(server, result, query.view ?? result.id) };
     },
   },
   {
@@ -188,13 +225,12 @@ export const routes: RouteDefinition[] = [
     path: "/api/profiles/:id/default",
     params: { type: "object", properties: { id: { type: "string", pattern: refPattern } }, required: ["id"], additionalProperties: false },
     body: { type: "object", properties: { expectedHash: { type: "string", pattern: hashPattern } }, additionalProperties: false },
-    handler({ params, body, server }) {
+    query: VIEW_QUERY,
+    async handler({ params, body, query, server }) {
       const input = body as { expectedHash?: string };
-      return guard(() => {
-        const result = setDefaultProfile(server.projectDir, params.id as string, input.expectedHash ? { expectedHash: input.expectedHash } : {});
-        server.log(`profile default ${result.default}`);
-        return { status: 200, json: { schemaVersion: 1, status: "OK", ...result } };
-      });
+      const result = guard(() => setDefaultProfile(server.projectDir, params.id as string, input.expectedHash ? { expectedHash: input.expectedHash } : {}));
+      server.log(`profile default ${result.default}`);
+      return { status: 200, json: await afterWrite(server, result, query.view ?? result.default) };
     },
   },
   {
@@ -207,13 +243,12 @@ export const routes: RouteDefinition[] = [
       required: ["to"],
       additionalProperties: false,
     },
-    handler({ params, body, server }) {
+    query: VIEW_QUERY,
+    async handler({ params, body, query, server }) {
       const input = body as { to: string; expectedHash?: string };
-      return guard(() => {
-        const result = renameProfile(server.projectDir, params.id as string, input.to, input.expectedHash ? { expectedHash: input.expectedHash } : {});
-        server.log(`profile renamed ${result.id} ${result.to}`);
-        return { status: 200, json: { schemaVersion: 1, status: "OK", ...result } };
-      });
+      const result = guard(() => renameProfile(server.projectDir, params.id as string, input.to, input.expectedHash ? { expectedHash: input.expectedHash } : {}));
+      server.log(`profile renamed ${result.id} ${result.to}`);
+      return { status: 200, json: await afterWrite(server, result, query.view ?? result.to) };
     },
   },
   {
@@ -221,12 +256,13 @@ export const routes: RouteDefinition[] = [
     method: "DELETE",
     path: "/api/profiles/:id",
     params: { type: "object", properties: { id: { type: "string", pattern: idPattern } }, required: ["id"], additionalProperties: false },
-    handler({ params, server }) {
-      return guard(() => {
-        const result = deleteProfile(server.projectDir, params.id as string);
-        server.log(`profile deleted ${result.id}`);
-        return { status: 200, json: { schemaVersion: 1, status: "OK", ...result } };
-      });
+    query: VIEW_QUERY,
+    async handler({ params, query, server }) {
+      const result = guard(() => deleteProfile(server.projectDir, params.id as string));
+      server.log(`profile deleted ${result.id}`);
+      // Without ?view, the view of the default profile (the deleted one is never the default).
+      const viewRef = query.view ?? guard(() => listProfiles(server.projectDir).default);
+      return { status: 200, json: await afterWrite(server, result, viewRef) };
     },
   },
 ];

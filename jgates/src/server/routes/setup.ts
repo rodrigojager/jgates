@@ -19,9 +19,12 @@ import { workspaceDir } from "../../core/home/index.js";
 import { DEFAULT_PROFILE, STARTER_PROFILES, existingConfigFiles, planInit, writeInit } from "../../core/init/index.js";
 import { collectStatus, diskRequirement, engineContextOf, engineReason, type LifecycleReason } from "../../core/lifecycle/index.js";
 import { buildPlan, type Plan } from "../../core/plan/index.js";
+import { cachedProject, projectInventory } from "../../core/cache/project.js";
+import { discoverFor } from "../../core/config/resolve/index.js";
+import { withEngineFacts } from "../../core/engine/facts.js";
 import { stepMode } from "../../core/runner/in-image.js";
 import { readToolsImagePin, toolsImageTarget } from "../../core/tools-image/index.js";
-import { normalizeLocale, translator } from "../../i18n/index.js";
+import { getLocale, normalizeLocale, translator } from "../../i18n/index.js";
 import { HttpError, refuse } from "../http.js";
 import { jobView } from "../runs.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
@@ -236,11 +239,15 @@ function ensureDownloads(server: ServerContext, state: SetupState, locale?: stri
   return { ...state, jobs: { ...state.jobs, pull: started.job.id } };
 }
 
+/** Whether the tools image is there; inside withEngineFacts only (the inspect comes from the cached engine facts). */
 function imageReady(): boolean {
   if (stepMode(process.env) === "in-image") return true;
   const target = toolsImageTarget(process.env, readToolsImagePin());
   return inspectImageSync(target.reference, engineContextOf(process.env)) !== null;
 }
+
+/** imageReady for a handler: read before any action, so an action never runs twice while the engine is asked. */
+const imageReadyNow = (server: ServerContext): Promise<boolean> => withEngineFacts(() => imageReady(), { prime: { version: server.version, data: false, codeql: false } });
 
 // ---- step 3: the project --------------------------------------------------------------------------------------------
 
@@ -268,7 +275,7 @@ const component = (c: Classification) => ({
 });
 
 function projectInfo(server: ServerContext, state: SetupState): Record<string, unknown> {
-  const { inventory } = discoverWorkspace(server.projectDir);
+  const inventory = projectInventory(server.projectDir);
   const shown = inventory.classifications.filter((c) => c.classificationStatus !== "ignored");
   // The ambiguous ones first: they are the ones that need the person.
   const ordered = [...shown.filter((c) => c.classificationStatus === "ambiguous" || c.dependencies?.state === "ambiguous"), ...shown.filter((c) => !(c.classificationStatus === "ambiguous" || c.dependencies?.state === "ambiguous"))];
@@ -408,8 +415,19 @@ function writeConfig(server: ServerContext, profile: string, services: SetupStat
   }
 }
 
-/** "O que roda" of each starter profile: the items of the real plan by category (a plan of a temporary copy of the configuration when there is none yet). */
-function profileCounts(server: ServerContext): Array<{ id: string; total: number; categories: Array<{ id: string; count: number }>; error: string | null }> {
+type ProfileCount = { id: string; total: number; categories: Array<{ id: string; count: number }>; error: string | null };
+
+/**
+ * "O que roda" of each starter profile, in one pass: one discovery for the three plans, kept in the project cache until
+ * the project's files change (core/cache/project.ts). Runs inside withEngineFacts: the plans read the engine from its
+ * cached facts.
+ */
+function profileCounts(server: ServerContext): ProfileCount[] {
+  return cachedProject(`setup-profiles:${getLocale()}`, [server.projectDir], () => computeProfileCounts(server));
+}
+
+/** The items of the real plan by category (a plan of a temporary copy of the configuration when there is none yet). */
+function computeProfileCounts(server: ServerContext): ProfileCount[] {
   let configDir: string | undefined;
   let temp: string | null = null;
   if (!configured(server)) {
@@ -423,10 +441,12 @@ function profileCounts(server: ServerContext): Array<{ id: string; total: number
     configDir = temp;
   }
   try {
+    // One discovery for the three plans (the temporary configuration has the project's own discovery settings).
+    const inventory = configDir ? discoverFor(server.projectDir, configDir) : projectInventory(server.projectDir);
     return STARTER_PROFILES.map((id) => {
       let result;
       try {
-        result = buildPlan(server.projectDir, { profile: id, compare: false, home: server.home, version: server.version, ...(configDir ? { configDir } : {}) });
+        result = buildPlan(server.projectDir, { profile: id, compare: false, home: server.home, version: server.version, inventory, ...(configDir ? { configDir } : {}) });
       } catch (error) {
         if (error instanceof BuiltinError) return { id, total: 0, categories: [], error: error.message };
         throw error;
@@ -454,7 +474,7 @@ const selectedProfile = (server: ServerContext): string | null => {
 // ---- step 5: the dependencies ---------------------------------------------------------------------------------------
 
 /** Starts the dependencies now when the image is there, or queues them after the pull (starting the pull if needed). */
-function ensureDependencies(server: ServerContext, state: SetupState, locale?: string): SetupState {
+function ensureDependencies(server: ServerContext, state: SetupState, ready: boolean, locale?: string): SetupState {
   const running = state.jobs.dependencies ? environmentJob(server, state.jobs.dependencies) : null;
   if (running?.state === "running") return { ...state, dependencies: "started" };
   const pull = runningEnvironmentJob(server, "pull");
@@ -462,7 +482,7 @@ function ensureDependencies(server: ServerContext, state: SetupState, locale?: s
     afterPull(server, pull.id, startEnvironmentJob(server, "pull", locale).finished, locale);
     return { ...state, dependencies: "queued", jobs: { ...state.jobs, pull: pull.id } };
   }
-  if (!imageReady()) {
+  if (!ready) {
     const next = ensureDownloads(server, { ...state, dependencies: "queued" }, locale);
     return next;
   }
@@ -470,7 +490,7 @@ function ensureDependencies(server: ServerContext, state: SetupState, locale?: s
 }
 
 function dependencyUnits(server: ServerContext): Array<Record<string, unknown>> {
-  const { inventory } = discoverWorkspace(server.projectDir);
+  const inventory = projectInventory(server.projectDir);
   const { units } = installUnits(inventory.classifications.filter((c) => c.approvable));
   return units.map((u) => ({
     unit: u.id,
@@ -576,7 +596,11 @@ export const routes: RouteDefinition[] = [
       } else if (b.step === "dependencies") {
         if (b.skip) state = settle({ ...state, dependencies: "skipped" }, "dependencies", "skipped");
         else {
-          if (state.dependencies === "idle" || state.dependencies === "skipped") state = ensureDependencies(server, state, locale);
+          if (state.dependencies === "idle" || state.dependencies === "skipped") {
+            const ready = await imageReadyNow(server);
+            // Read again after the engine answered: a background job may have saved the state meanwhile.
+            state = ensureDependencies(server, current(server), ready, locale);
+          }
           state = settle(state, "dependencies", "done");
         }
       } else {
@@ -625,7 +649,7 @@ export const routes: RouteDefinition[] = [
       const locale = localeOf(query.locale);
       refreshPath({ force: true });
       const pin = readToolsImagePin();
-      const status = await collectStatus({ env: process.env, version: server.version, projectDir: server.projectDir, light: true, ...(locale ? { locale } : {}) });
+      const status = await withEngineFacts(() => collectStatus({ env: process.env, version: server.version, projectDir: server.projectDir, light: true, ...(locale ? { locale } : {}) }), { prime: { version: server.version } });
       const state = current(server);
       const need = diskRequirement(pin);
       const reasons = [...status.reasons, ...status.warnings].filter((r) => r.code.startsWith("IMAGE_") || r.code.startsWith("DATA_") || r.code === "DISK_LOW");
@@ -671,9 +695,10 @@ export const routes: RouteDefinition[] = [
     method: "GET",
     path: "/api/setup/profiles",
     timeoutMs: 120_000,
-    handler({ server }) {
+    async handler({ server }) {
       guard(server);
-      const ready = imageReady();
+      // The image and the plans read the engine from its cached facts, never with a blocking call.
+      const { ready, profiles } = await withEngineFacts(() => ({ ready: imageReady(), profiles: profileCounts(server) }), { prime: { version: server.version } });
       const selected = configured(server) ? selectedProfile(server) : null;
       return {
         status: 200,
@@ -684,7 +709,7 @@ export const routes: RouteDefinition[] = [
           recommended: ready ? "strict" : DEFAULT_PROFILE,
           selected,
           toolsReady: ready,
-          profiles: profileCounts(server),
+          profiles,
           command: "jgates init --profile <perfil>",
         },
       };
@@ -711,7 +736,7 @@ export const routes: RouteDefinition[] = [
       guard(server);
       const locale = localeOf(query.locale);
       const units = dependencyUnits(server);
-      const status = await collectStatus({ env: process.env, version: server.version, projectDir: server.projectDir, ...(locale ? { locale } : {}) });
+      const status = await withEngineFacts(() => collectStatus({ env: process.env, version: server.version, projectDir: server.projectDir, ...(locale ? { locale } : {}) }), { prime: { version: server.version } });
       const states = new Map((status.workspace?.dependencies ?? []).map((d) => [d.unit, d.state]));
       const state = current(server);
       return {
@@ -733,10 +758,11 @@ export const routes: RouteDefinition[] = [
     method: "POST",
     path: "/api/setup/dependencies",
     body: { type: "object", properties: { locale: LOCALE }, additionalProperties: false },
-    handler({ body, server }) {
+    async handler({ body, server }) {
       const locale = localeOf((body as { locale?: string }).locale);
       guard(server, locale);
-      const state = writeState(server, ensureDependencies(server, current(server), locale));
+      const ready = await imageReadyNow(server);
+      const state = writeState(server, ensureDependencies(server, current(server), ready, locale));
       return { status: 200, json: view(server, state) };
     },
   },

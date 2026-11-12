@@ -4,6 +4,7 @@
 import type { AdapterManifest } from "../catalog/index.js";
 import type { AdapterContext, AdapterOutput } from "../run/types.js";
 import type { Plan, PlanCommand, PlanItem } from "./types.js";
+import type { Inventory } from "../discovery/types.js";
 import { builtinPiiAdapter } from "../../adapters/builtin-pii/index.js";
 import { ruffAdapter } from "../../adapters/ruff/index.js";
 import { semgrepAdapter } from "../../adapters/semgrep/index.js";
@@ -61,6 +62,11 @@ export interface ExternalPlanInput {
    * off the suppressions the tool lets it turn off.
    */
   policyDir?: string;
+  /**
+   * The inventory (discovery) of `dir` with its own settings, when the plan has it (never under a CI policy, whose
+   * discovery settings differ): an adapter that needs the components reads them here instead of discovering again.
+   */
+  inventory?: Inventory;
 }
 
 export interface ExternalPlan {

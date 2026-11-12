@@ -100,7 +100,7 @@ function planBuildCheck(input: ExternalPlanInput): ExternalPlan {
   const governed = input.policyDir !== undefined;
   const checker = settings.checker ?? "tsc";
   const unitSettings: UnitSettings = { checker: settings.checker, tsconfig: settings.tsconfig, withoutConfig: settings.withoutConfig };
-  const plan = settings.problems.length > 0 ? { units: [] as BuildUnit[], skipped: [] as SkippedUnit[] } : planUnits({ dir: input.dir, env: input.env, checker, componentRoot: input.componentRoot, settings: unitSettings, skipWorkspace: governed });
+  const plan = settings.problems.length > 0 ? { units: [] as BuildUnit[], skipped: [] as SkippedUnit[] } : planUnits({ dir: input.dir, env: input.env, checker, componentRoot: input.componentRoot, settings: unitSettings, skipWorkspace: governed, ...(input.inventory ? { inventory: input.inventory } : {}) });
 
   let availability: ExternalPlan["availability"];
   let blocksPlan = false;

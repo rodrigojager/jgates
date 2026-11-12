@@ -370,7 +370,8 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   // The configuration folder: the analyzed files themselves, or an external policy that replaces their configuration.
   const configDir = options.configDir === undefined ? dir : path.resolve(options.configDir);
 
-  const inventory: Inventory = discoverFor(dir, configDir);
+  // The caller's inventory is the work tree's: a plan of another commit (a snapshot) discovers its own files.
+  const inventory: Inventory = options.inventory !== undefined && dir === workspaceDir ? options.inventory : discoverFor(dir, configDir);
   const common = {
     inventory,
     ...(configDir !== dir ? { configDir } : {}),
@@ -537,7 +538,8 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       timeoutSeconds,
       config: effective.config,
       selection: selEff,
-      ...(configDir !== dir ? { policyDir: configDir } : {}),
+      // Under a CI policy the discovery settings are the policy's: an adapter discovers the project's own way itself.
+      ...(configDir !== dir ? { policyDir: configDir } : { inventory }),
     };
     // Under a CI policy the trust table of the governed path decides what an adapter may do (core/governed).
     const planned = configDir !== dir ? governExternalPlan(adapter.manifest.id, tool.id, adapter.plan(planInput)) : adapter.plan(planInput);

@@ -1,16 +1,22 @@
 // Configuração > Perfil: the selected profile's checks by category (capabilities, tools, rules) with the origin of every
 // value, "why is this on?" (the same chain `jgates config resolve --explain` prints), granular on/off written into the
 // profile by patch, and the policy controls (severity, minimum coverage, missing verification).
+//
+// The view (GET /api/config/profile) is read from the configuration and the discovery only, through the project cache
+// (core/cache/project.ts): it builds no plan and asks the engine nothing, so it answers at once and every write can
+// answer with it. What the plan says about each capability here ("vai rodar", "não se aplica") and the mascots come
+// from GET /api/config/profile/plan, which the screen asks next and which may wait on the engine.
 import { buildPlan, type Plan, type PlanItem } from "../../core/plan/index.js";
 import { findNativeMinimum } from "../../adapters/pytest/coverage.js";
 import { projectMascots } from "../../core/mascots/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
+import { cachedProject, invalidateProjectCache, projectInventory, projectResolve } from "../../core/cache/project.js";
 import { createCoreCatalog, subcheckLabel } from "../../core/catalog/index.js";
-import { encodePointer, resolveConfig, type ResolvedField, type ResolveResult } from "../../core/config/resolve/index.js";
+import { encodePointer, type ResolvedField, type ResolveResult } from "../../core/config/resolve/index.js";
 import { withEngineFacts } from "../../core/engine/facts.js";
 import { listProfiles, setPolicyRules, setProfileChecks, type PolicyChange } from "../../core/profiles/index.js";
 import { resolveSelection, type SelectionItem, type SelectionResult } from "../../core/selection/index.js";
-import { translator } from "../../i18n/index.js";
+import { getLocale, translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { guard } from "./profiles.js";
@@ -41,18 +47,24 @@ interface Resolved {
 }
 
 function resolveProfile(server: ServerContext, ref: string): Resolved {
-  const result = resolveConfig(server.projectDir, { profile: ref });
+  const result = projectResolve(server.projectDir, { profile: ref });
   if (!result.ok) {
     const first = result.errors[0];
     throw new HttpError(422, first?.code ?? "CONFIG_INVALID", first?.message ?? t("cfgp_resolve_failed", { first: "" }), first?.fix ?? null, { errors: result.errors, diagnostics: result.diagnostics });
   }
-  return { ref, result, selection: resolveSelection(result) };
+  // Computed from the cached configuration inside the cached computation, so it depends on everything that one read.
+  const selection = cachedProject(`selection:${ref}|${getLocale()}`, [server.projectDir], () =>
+    resolveSelection(projectResolve(server.projectDir, { profile: ref }), { inventory: projectInventory(server.projectDir) }),
+  );
+  return { ref, result, selection };
 }
 
 function projectProfileIds(server: ServerContext): { ids: string[]; def: string; file: string } {
-  const list = listProfiles(server.projectDir);
-  const file = list.profiles.find((p) => p.origin === "project")?.file ?? ".jgates/profiles.yml";
-  return { ids: list.profiles.filter((p) => p.origin === "project").map((p) => p.id), def: list.default, file };
+  return cachedProject("profile-ids", [server.projectDir], () => {
+    const list = listProfiles(server.projectDir);
+    const file = list.profiles.find((p) => p.origin === "project")?.file ?? ".jgates/profiles.yml";
+    return { ids: list.profiles.filter((p) => p.origin === "project").map((p) => p.id), def: list.default, file };
+  });
 }
 
 const origin = (f: ResolvedField | undefined) => (f ? { layer: f.layer, source: f.source, file: f.file, path: f.path } : null);
@@ -98,6 +110,34 @@ export function planAvailability(plan: Plan | null) {
       notApplicableRequirements: plan.groups.notApplicableRequirements ?? [],
     },
   };
+}
+
+/**
+ * The view of the Perfil screen for profile `ref`, from the cache while the configuration and the files discovery read
+ * stay the same. Builds no plan and reads nothing from the engine.
+ */
+export function profileView(server: ServerContext, ref: string): ReturnType<typeof buildView> {
+  const mode = modeOf();
+  return cachedProject(`config-view:${JSON.stringify([ref, getLocale(), mode.mode, mode.governed])}`, [server.projectDir], () => buildView(server, ref));
+}
+
+/** The view after a write: the cache is cleared first (the write may fall in the same clock tick as the last read). */
+export function profileViewAfterWrite(server: ServerContext, ref: string): ViewAnswer {
+  invalidateProjectCache();
+  return profileViewAnswer(server, ref);
+}
+
+export type ViewAnswer = { view: ReturnType<typeof buildView> | null; viewError: { code: string; message: string } | null };
+
+/** The view of `ref` for the answer of a write: a configuration the write left unresolvable gives viewError. */
+export function profileViewAnswer(server: ServerContext, ref: string): ViewAnswer {
+  try {
+    return { view: guard(() => profileView(server, ref)), viewError: null };
+  } catch (error) {
+    // The write went through; a configuration it left unresolvable is what the screen shows next, not a failed write.
+    if (error instanceof HttpError) return { view: null, viewError: { code: error.code, message: error.message } };
+    throw error;
+  }
 }
 
 function buildView(server: ServerContext, ref: string) {
@@ -165,8 +205,8 @@ function buildView(server: ServerContext, ref: string) {
   const field = (key: string, name: string) => result.fields[encodePointer(["policy", "rules", key, name])];
   const severityField = field(POLICY_KEYS.severity.key, "severity");
   const missingField = field(POLICY_KEYS.onMissing.key, "enabled");
-  const built = buildPlan(server.projectDir, { profile: ref, home: server.home, version: server.version, compare: false });
-  const roots = new Map<string, string | null>((built.ok ? built.plan.components : []).map((c) => [c.id, c.root]));
+  // The roots of the components, as the plan gives them: from the discovery.
+  const roots = new Map<string, string | null>(projectInventory(server.projectDir).classifications.map((c) => [c.id, c.componentRoot]));
   const coverageScopes = [
     { scope: null as string | null, key: POLICY_KEYS.coverage.key },
     ...selection.universe.components.map((c) => ({ scope: c as string | null, key: `${POLICY_KEYS.coverage.key}.${c}` })),
@@ -204,12 +244,10 @@ function buildView(server: ServerContext, ref: string) {
   return {
     schemaVersion: 1,
     status: "OK",
-    mascots: projectMascots({ plan: built.ok ? built.plan : null, invalid: !built.ok }),
     mode: mode.mode,
     governed: mode.governed,
     profile: { ref, id: ref.replace(/^builtin:/, ""), editable, isDefault: def === ref, file },
     categories,
-    plan: planAvailability(built.ok ? built.plan : null),
     policy,
     selectionErrors: selection.errors.map((e) => ({ code: e.code, selector: e.selector, message: e.message, fix: e.fix ?? null })),
     warnings: result.warnings,
@@ -225,11 +263,34 @@ export const routes: RouteDefinition[] = [
     method: "GET",
     path: "/api/config/profile",
     query: { type: "object", properties: { profile: { type: "string", pattern: refPattern } }, additionalProperties: false },
+    handler({ query, server }) {
+      // From the configuration and the discovery only (cached): no plan, no engine.
+      return { status: 200, json: guard(() => profileView(server, target(server, query.profile))) };
+    },
+  },
+  {
+    // What the plan of the profile says about each capability here, and the mascots: the part of the Perfil screen that
+    // needs a plan. The plan reads the engine facts from their cache (core/engine/facts.ts), never with a blocking call.
+    method: "GET",
+    path: "/api/config/profile/plan",
+    query: { type: "object", properties: { profile: { type: "string", pattern: refPattern } }, additionalProperties: false },
     timeoutMs: 120_000,
     async handler({ query, server }) {
-      // The view's plan reads the engine facts from the cache (core/engine/facts.ts), never with a blocking call.
-      const json = await withEngineFacts(() => guard(() => buildView(server, target(server, query.profile))), { prime: { version: server.version } });
-      return { status: 200, json };
+      const ref = guard(() => target(server, query.profile));
+      const inventory = projectInventory(server.projectDir);
+      const built = await withEngineFacts(() => buildPlan(server.projectDir, { profile: ref, home: server.home, version: server.version, compare: false, inventory }), { prime: { version: server.version } });
+      const plan = built.ok ? built.plan : null;
+      return {
+        status: 200,
+        json: {
+          schemaVersion: 1,
+          status: "OK",
+          profile: ref,
+          plan: planAvailability(plan),
+          mascots: projectMascots({ plan, invalid: !built.ok }),
+          error: built.ok ? null : { code: built.error.code, message: built.error.message, fix: built.error.fix ?? null },
+        },
+      };
     },
   },
   {
@@ -302,7 +363,8 @@ export const routes: RouteDefinition[] = [
       return guard(() => {
         const result = setProfileChecks(server.projectDir, input.profile, input.changes, input.expectedHash ? { expectedHash: input.expectedHash } : {});
         server.log(`selection ${input.profile} ${input.changes.length} change(s)`);
-        return { status: 200, json: { schemaVersion: 1, status: "OK", ...result } };
+        // The answer carries the updated view (the same as GET /api/config/profile): the screen does not ask again.
+        return { status: 200, json: { schemaVersion: 1, status: "OK", ...result, ...profileViewAfterWrite(server, input.profile) } };
       });
     },
   },
@@ -333,7 +395,9 @@ export const routes: RouteDefinition[] = [
       required: ["changes"],
       additionalProperties: false,
     },
-    handler({ body, server }) {
+    // The profile whose view the answer carries (the default one when absent).
+    query: { type: "object", properties: { profile: { type: "string", pattern: refPattern } }, additionalProperties: false },
+    handler({ body, query, server }) {
       const input = body as { changes: Array<{ control: "severity" | "onMissing" | "coverage"; value: string | number; scope?: string }>; expectedHash?: string };
       if (modeOf().mode === "governed") throw new HttpError(403, "POLICY_GOVERNED", t("cfgp_policy_governed"), t("cfgp_policy_governed_fix"));
       const bad = (field: string) => new HttpError(400, "POLICY_VALUE_INVALID", t("cfgp_policy_value_invalid", { field }), t("cfgp_policy_value_invalid_fix"));
@@ -352,7 +416,7 @@ export const routes: RouteDefinition[] = [
       return guard(() => {
         const result = setPolicyRules(server.projectDir, changes, input.expectedHash ? { expectedHash: input.expectedHash } : {});
         server.log(`policy ${changes.length} change(s)`);
-        return { status: 200, json: { schemaVersion: 1, status: "OK", ...result } };
+        return { status: 200, json: { schemaVersion: 1, status: "OK", ...result, ...profileViewAfterWrite(server, target(server, query.profile)) } };
       });
     },
   },

@@ -8,12 +8,13 @@ import { stringify } from "yaml";
 import { getBuiltinTemplate, listBuiltinTemplates } from "../../builtin/index.js";
 import { patchYamlFile, patchYamlText, readRevision, YamlPatchError, type YamlEdit } from "../../core/codecs/yaml/index.js";
 import { ROOT_FILE, parseYamlText, validateDocument } from "../../core/config/load/index.js";
-import { resolveConfig, type ResolveIssue } from "../../core/config/resolve/index.js";
+import { cachedProject, invalidateProjectCache, projectInventory, projectResolve } from "../../core/cache/project.js";
+import { type ResolveIssue } from "../../core/config/resolve/index.js";
 import { templateOps } from "../../core/config/resolve/layers.js";
 import { TemplateGraph } from "../../core/config/resolve/templates.js";
 import { builtinTemplateText } from "../../core/catalog/index.js";
-import { discoverWorkspace } from "../../core/discovery/index.js";
 import type { Classification } from "../../core/discovery/types.js";
+import { getLocale } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { modeOf } from "./workspaces.js";
@@ -130,13 +131,27 @@ function byEvidence(state: { reason: string } | undefined, match: { languages: s
   return components.length > 0 ? components.map((c) => c.id) : ["."];
 }
 
+/**
+ * The Templates screen, from the project cache (core/cache/project.ts) while the configuration and the files discovery
+ * read stay the same. A write clears the cache and answers with the view built once after it.
+ */
 function describe(server: ServerContext): Rec {
+  const mode = modeOf();
+  return cachedProject(`templates-view:${JSON.stringify([getLocale(), mode.mode, mode.governed])}`, [server.projectDir], () => buildDescription(server));
+}
+
+function describeAfterWrite(server: ServerContext): Rec {
+  invalidateProjectCache();
+  return describe(server);
+}
+
+function buildDescription(server: ServerContext): Rec {
   const root = readRevision(path.join(server.projectDir, ROOT_FILE));
   const parsedRoot = root.exists ? parseYamlText(root.text, ROOT_FILE) : null;
   const declaredList = isRec(parsedRoot?.value) && Array.isArray((parsedRoot?.value as Rec).templates) ? ((parsedRoot?.value as Rec).templates as unknown[]) : null;
-  const resolved = resolveConfig(server.projectDir);
+  const resolved = projectResolve(server.projectDir);
   const states = new Map([...resolved.templates.active, ...resolved.templates.inactive].map((s) => [s.id, s]));
-  const components = discoverWorkspace(server.projectDir).inventory.classifications.filter((c) => c.approvable);
+  const components = projectInventory(server.projectDir).classifications.filter((c) => c.approvable);
 
   const entries: Array<{ id: string; entry: Rec; declared: boolean }> = [];
   for (const raw of declaredList ?? []) if (isRec(raw) && typeof raw.id === "string") entries.push({ id: raw.id, entry: raw, declared: true });
@@ -281,12 +296,13 @@ function create(server: ServerContext, body: CreateBody): Rec {
     throw error;
   }
   server.log(`project template created: ${relative}`);
-  return describe(server);
+  return describeAfterWrite(server);
 }
 
 function setEnabled(server: ServerContext, id: string, enabled: boolean, expectedRevision: string | null): Rec {
   const root = readRevision(path.join(server.projectDir, ROOT_FILE));
   if (!root.exists) throw new HttpError(422, "ROOT_MISSING", "Não há jgates.yml neste projeto.");
+  // The view the person saw (from the cache when it is current): the only view built before the write.
   const view = describe(server) as { templates: Row[] };
   const row = view.templates.find((r) => r.id === id);
   if (!row) throw new HttpError(404, "TEMPLATE_NOT_FOUND", `Não há template com o identificador ${id}.`);
@@ -297,12 +313,13 @@ function setEnabled(server: ServerContext, id: string, enabled: boolean, expecte
   let edits: YamlEdit[];
   if (index >= 0) edits = [{ op: "set", path: ["templates", index, "enabled"], value: enabled }];
   else {
-    const entry: Rec = { id, source: row.source, activation: row.activation, ...(row.match.languages.length + row.match.frameworks.length > 0 ? { match: { ...(row.match.languages.length > 0 ? { languages: row.match.languages } : {}), ...(row.match.frameworks.length > 0 ? { frameworks: row.match.frameworks } : {}) } } : {}), enabled };
-    const implicit: Rec[] = view.templates.filter((r) => r.declared || r.enabled).map((r) => ({ id: r.id, source: r.source, activation: r.activation, ...(r.match.languages.length + r.match.frameworks.length > 0 ? { match: { ...(r.match.languages.length > 0 ? { languages: r.match.languages } : {}), ...(r.match.frameworks.length > 0 ? { frameworks: r.match.frameworks } : {}) } } : {}) }));
+    // Copies: the cached view is frozen and the edits go to the YAML writer.
+    const entry: Rec = { id, source: row.source, activation: row.activation, ...(row.match.languages.length + row.match.frameworks.length > 0 ? { match: { ...(row.match.languages.length > 0 ? { languages: [...row.match.languages] } : {}), ...(row.match.frameworks.length > 0 ? { frameworks: [...row.match.frameworks] } : {}) } } : {}), enabled };
+    const implicit: Rec[] = view.templates.filter((r) => r.declared || r.enabled).map((r) => ({ id: r.id, source: r.source, activation: r.activation, ...(r.match.languages.length + r.match.frameworks.length > 0 ? { match: { ...(r.match.languages.length > 0 ? { languages: [...r.match.languages] } : {}), ...(r.match.frameworks.length > 0 ? { frameworks: [...r.match.frameworks] } : {}) } } : {}) }));
     edits = list === null ? [{ op: "set", path: ["templates"], value: [...implicit.filter((e) => e.id !== id), entry] }] : [{ op: "set", path: ["templates", list.length], value: entry }];
   }
   patchConfigFile(server, ROOT_FILE, "root", edits, expectedRevision);
-  return describe(server);
+  return describeAfterWrite(server);
 }
 
 const effectsSchema = { type: "object", additionalProperties: false, properties: Object.fromEntries(EFFECTS.map((k) => [k, { type: "boolean" }])) };

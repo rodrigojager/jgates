@@ -141,7 +141,8 @@ export async function runPiiHelper(request: unknown, files: readonly HelperFile[
 
 /** Runs the sidecar's tomlkit helper: the request document in, the response document out. */
 export function runTomlHelper(request: unknown, timeoutMs: number, env: NodeJS.ProcessEnv = process.env): HelperOutcome {
-  const spec = { ...specOf(env, [IMAGE_SIDECAR_PYTHON, "-m", "quality_sidecar.toml_edit"], JSON.stringify(request), timeoutMs, 64), workdir: "/tmp" };
+  // Pure: the answer depends on the request alone, so the local server reads it from the engine facts cache.
+  const spec = { ...specOf(env, [IMAGE_SIDECAR_PYTHON, "-m", "quality_sidecar.toml_edit"], JSON.stringify(request), timeoutMs, 64), workdir: "/tmp", pure: true };
   const started = Date.now();
   const result = runInEngineSync(spec, contextOf(env));
   return outcomeOf(result, Date.now() - started);

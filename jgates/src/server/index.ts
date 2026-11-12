@@ -7,6 +7,7 @@ import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { invalidateProjectCache, projectCacheGeneration } from "../core/cache/project.js";
 import { ensureWorkspaceDirs, registerWorkspace, resolveHome, workspaceDir } from "../core/home/index.js";
 import { translator } from "../i18n/index.js";
 import { HttpError, escapeHtml, readBody, refuse, sendBody, sendError, sendJson } from "./http.js";
@@ -288,10 +289,19 @@ export async function startServer(opts: StartOptions): Promise<RunningServer> {
       check(route.query, query, "query");
       check(route.params, params, "params");
 
-      const result = await withTimeout(
-        Promise.resolve().then(() => route.def.handler({ params, query, body, session, server: context, raw: req })),
-        route.def.timeoutMs ?? limits.handlerTimeoutMs,
-      );
+      // Whatever a mutation wrote in the project, the next screen reads it: the project cache keeps nothing from before
+      // (its stamps would see the change too, unless the write fell in the clock tick of the last read). A handler that
+      // cleared the cache itself after its write, and answered with the view built then, keeps that view.
+      const generation = projectCacheGeneration();
+      let result: Awaited<ReturnType<typeof route.def.handler>>;
+      try {
+        result = await withTimeout(
+          Promise.resolve().then(() => route.def.handler({ params, query, body, session, server: context, raw: req })),
+          route.def.timeoutMs ?? limits.handlerTimeoutMs,
+        );
+      } finally {
+        if (mutation && projectCacheGeneration() === generation) invalidateProjectCache();
+      }
       send(res, result, method === "HEAD");
     } catch (error) {
       if (error instanceof HttpError) sendError(res, error);

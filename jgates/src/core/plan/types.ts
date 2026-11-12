@@ -1,5 +1,6 @@
 import type { ReasonAction } from "../reasons/index.js";
 import type { LayerName } from "../config/resolve/index.js";
+import type { Inventory } from "../discovery/types.js";
 import type { CheckCondition, LockInfo, SelectionDecision, SelectionIssue, SelectionReason } from "../selection/index.js";
 
 /**
@@ -462,6 +463,11 @@ export interface BuildPlanOptions {
   bridgePolicy?: { file: string; sha256: string };
   /** Container-first inputs the planning does not read itself yet (extension images, dependency keys, data timestamps, services); the tools image is read from the engine. */
   container?: Partial<ContainerInputs>;
+  /**
+   * The inventory (discovery) of the workspace with this plan's configuration folder, when the caller already has it (the
+   * local server keeps it in a cache). Used only for a plan of the work tree, never for a plan of another commit.
+   */
+  inventory?: Inventory;
 }
 
 export interface PlanError {

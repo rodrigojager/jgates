@@ -21,6 +21,9 @@ export default function ConfigProfilesScreen() {
   const list = useAsync(() => api("GET", "/api/profiles"), `profiles:${revision}`);
   const query = selected ? `?profile=${encodeURIComponent(selected)}` : "";
   const view = useAsync(() => api("GET", `/api/config/profile${query}`), `view:${selected ?? "-"}:${revision}`);
+  // What the plan says about each capability here and the mascots: asked next to the view, never holding the screen.
+  const availability = useAsync(() => api("GET", `/api/config/profile/plan${query}`), `plan:${selected ?? "-"}:${revision}`);
+  const planPart = (availability.data as any) ?? null;
 
   if (list.error) return <ErrorNotice error={list.error} onRetry={list.reload} />;
   if (view.error) return <ErrorNotice error={view.error} onRetry={view.reload} />;
@@ -57,9 +60,9 @@ export default function ConfigProfilesScreen() {
 
       <ProfileCards cards={cards} starters={starters} selected={current} onSelect={setSelected} onChanged={refresh} />
 
-      <QualityMascotStrip snapshot={v.mascots} />
+      <QualityMascotStrip snapshot={planPart?.profile === current ? planPart.mascots : null} />
       <div className="cfgp-columns">
-        <Protect categories={v.categories as CategoryView[]} plan={v.plan ?? null} profile={current} editable={v.profile.editable === true} onChanged={refresh} />
+        <Protect categories={v.categories as CategoryView[]} plan={planPart?.profile === current ? (planPart.plan ?? null) : null} profile={current} editable={v.profile.editable === true} onChanged={refresh} />
         <Policy policy={v.policy as PolicyView} governedPolicy={v.governed?.policy ?? null} onChanged={refresh} />
       </div>
 

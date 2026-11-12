@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import path from "node:path";
+import { toolsImageReference } from "../../engine/index.js";
 import { findQualityGateDir, sidecarRuntime } from "../../bridge/index.js";
 import { translator } from "../../../i18n/index.js";
 import { runTomlHelper } from "../../pii-fix/helper.js";
@@ -77,7 +79,31 @@ function parseResponse(stdout: string, stderr: string, status: number | null): C
   return { kind: "response", response };
 }
 
+/**
+ * Answers of the helper to `read`, by input: a read is a pure function of the text (and of the helper that answered),
+ * so the same text is never sent twice in one process (a plan validates the same pyproject.toml for every tool).
+ * Only answers are kept: an unavailable helper is asked again.
+ */
+const READS = new Map<string, CallResult>();
+const MAX_READS = 64;
+
 function callHelper(request: Record<string, unknown>, env: NodeJS.ProcessEnv): CallResult {
+  if (request.operation !== "read") return callHelperNow(request, env);
+  const runtime = sidecarRuntime(env);
+  const key = createHash("sha256")
+    .update(JSON.stringify([runtime.native, runtime.native ? (runtime.interpreter ?? "") : toolsImageReference(env), request]))
+    .digest("hex");
+  const known = READS.get(key);
+  if (known) return known;
+  const answer = callHelperNow(request, env);
+  if (answer.kind === "response") {
+    READS.set(key, answer);
+    if (READS.size > MAX_READS) READS.delete(READS.keys().next().value as string);
+  }
+  return answer;
+}
+
+function callHelperNow(request: Record<string, unknown>, env: NodeJS.ProcessEnv): CallResult {
   // tomlkit lives in the sidecar's environment of the tools image: natively only inside the image (no Python on the host).
   const runtime = sidecarRuntime(env);
   if (!runtime.native) return callContainerHelper(request, env);

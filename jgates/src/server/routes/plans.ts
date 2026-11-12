@@ -8,7 +8,8 @@ import { patchYamlFile, patchYamlText, readRevision } from "../../core/codecs/ya
 import { loadProjectConfig, validateDocument } from "../../core/config/load/index.js";
 import { parseYamlText } from "../../core/config/load/yaml.js";
 import { encodePointer, resolveConfig, type CallOverride } from "../../core/config/resolve/index.js";
-import { discoverWorkspace } from "../../core/discovery/index.js";
+import { projectInventory } from "../../core/cache/project.js";
+import { withEngineFacts } from "../../core/engine/facts.js";
 import { buildPlan, readLastPlan, saveLastPlan, PLAN_SCOPES, type Plan, type PlanScopeKind } from "../../core/plan/index.js";
 import { createProfile, listProfiles, ProfileError, PROFILES_FILE } from "../../core/profiles/index.js";
 import { createCoreCatalog } from "../../core/catalog/index.js";
@@ -96,7 +97,7 @@ function reviewCatalog(selection: SelectionResult): ReviewCatalog {
 export function selectionReview(projectDir: string, b: PlanBody): { ties: ReviewTie[]; execution: { concurrency: number | null; network: string | null }; catalog: ReviewCatalog | null } {
   const none = { ties: [] as ReviewTie[], execution: { concurrency: null as number | null, network: null as string | null }, catalog: null };
   try {
-    const inventory = discoverWorkspace(projectDir).inventory;
+    const inventory = projectInventory(projectDir);
     const overrides: CallOverride[] = [
       ...(b.only ?? []).map((selector) => ({ pointer: encodePointer(["checks", selector, "enabled"]), value: true, source: "--only" })),
       ...skipOverrides(b.skip ?? []),
@@ -169,22 +170,29 @@ export const routes: RouteDefinition[] = [
       additionalProperties: false,
     },
     timeoutMs: 120_000,
-    handler({ body, server }) {
+    async handler({ body, server }) {
       const b = body as PlanBody;
       let result;
       try {
-        result = buildPlan(server.projectDir, {
-          ...(b.profile !== undefined ? { profile: b.profile } : {}),
-          ...(b.scope !== undefined ? { scope: b.scope } : {}),
-          ...(b.base !== undefined ? { base: b.base } : {}),
-          ...(b.head !== undefined ? { head: b.head } : {}),
-          paths: b.paths ?? [],
-          skip: b.skip ?? [],
-          only: b.only ?? [],
-          templates: b.templates ?? [],
-          version: server.version,
-          home: server.home,
-        });
+        // The engine and Git answers come from their cached facts (never a blocking call); the discovery from the
+        // project cache (a plan of another commit discovers its snapshot itself).
+        const inventory = projectInventory(server.projectDir);
+        const compute = () =>
+          buildPlan(server.projectDir, {
+            ...(b.profile !== undefined ? { profile: b.profile } : {}),
+            ...(b.scope !== undefined ? { scope: b.scope } : {}),
+            ...(b.base !== undefined ? { base: b.base } : {}),
+            ...(b.head !== undefined ? { head: b.head } : {}),
+            paths: b.paths ?? [],
+            skip: b.skip ?? [],
+            only: b.only ?? [],
+            templates: b.templates ?? [],
+            version: server.version,
+            home: server.home,
+            inventory,
+          });
+        // A plan of another commit (head) writes its snapshot: it runs once, outside the facts' repeated rounds, as before.
+        result = b.head === undefined ? await withEngineFacts(compute, { prime: { version: server.version, gitDir: server.projectDir } }) : compute();
       } catch (error) {
         if (error instanceof BuiltinError) throw new HttpError(500, "BUILTIN_INVALID", error.message);
         throw error;

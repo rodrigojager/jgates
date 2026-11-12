@@ -5,7 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { translator } from "../../i18n/index.js";
-import { discoverWorkspace } from "../../core/discovery/index.js";
+import { discoverWorkspace, type Inventory } from "../../core/discovery/index.js";
 import { satisfiesRange } from "../../core/prepare/semver.js";
 import { CHECKER_ENV, probeChecker, type Checker, type CheckerProbe } from "./probe.js";
 
@@ -182,9 +182,10 @@ function problemOf(checker: Checker, probe: CheckerProbe): string | null {
 }
 
 /** The units of an instance: the discovered components of the checker's languages that carry the evidence. */
-export function planUnits(opts: { dir: string; env: NodeJS.ProcessEnv; checker: Checker; componentRoot: string | null; settings: UnitSettings; skipWorkspace?: boolean }): UnitPlan {
+export function planUnits(opts: { dir: string; env: NodeJS.ProcessEnv; checker: Checker; componentRoot: string | null; settings: UnitSettings; skipWorkspace?: boolean; inventory?: Inventory }): UnitPlan {
   const { dir, env, checker, settings } = opts;
-  const inventory = discoverWorkspace(dir).inventory;
+  // The plan's own discovery when it has it (the same project and settings): never a second walk of the tree.
+  const inventory = opts.inventory ?? discoverWorkspace(dir).inventory;
   const candidates = inventory.classifications.filter((c) => c.approvable && c.language !== null && LANGUAGES[checker].includes(c.language) && (opts.componentRoot === null || opts.componentRoot === c.componentRoot));
   const units: BuildUnit[] = [];
   const skipped: SkippedUnit[] = [];
