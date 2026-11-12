@@ -60,6 +60,7 @@ JGates explains why something did not run with a fixed code, a text in your lang
 - **`SERVICES_NOT_READY`**: a service did not become healthy in time; see [services](services.en.md).
 - **`SERVICES_REQUIRED`**: a check needs services and none is set up; see [services](services.en.md).
 - **`NOT_APPLICABLE_TO_PROJECT`**: the check does not apply to this project; it never blocks.
+- **`MUTATION_TESTS_FAILING`**: mutation testing did not run because the project's own tests fail; it needs them green to start. Fix the failing tests and run again.
 - **`HOST_EXECUTION_REFUSED`**: a step would have run outside the container, so JGates refused it. There is no action for you: report it as a defect.
 
 ## The plan is refused (exit 3)

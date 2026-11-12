@@ -162,7 +162,7 @@ test("mutation javascript: the weak suite leaves surviving mutants and the stren
   }
 });
 
-test("mutation javascript: a red baseline suite has no score and is an error, never a pass", () => {
+test("mutation javascript: a red baseline suite has no score and is not applicable, never a pass", () => {
   const stryker = findStryker();
   if (!stryker) {
     assert.equal(findStryker(), null, "without Stryker the blocked case above is the evidence");
@@ -172,9 +172,8 @@ test("mutation javascript: a red baseline suite has no score and is an error, ne
   try {
     fs.writeFileSync(path.join(p.dir, "test", "age.test.js"), `const test = require("node:test");\ntest("red", () => { throw new Error("broken"); });\n`);
     const ran = p.run();
-    assert.notEqual(ran.code, 0);
-    assert.equal(stage(ran.doc).state, "error");
-    assert.match(stage(ran.doc).reason, /fail before any mutation/i);
+    assert.equal(stage(ran.doc).state, "not_applicable");
+    assert.match(stage(ran.doc).reason, /own tests fail/i);
     assert.equal(metric(ran.doc, "mutation.score").measured, false);
     assert.equal(metric(ran.doc, "mutation.score").value, undefined);
   } finally {

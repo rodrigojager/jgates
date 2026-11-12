@@ -18,7 +18,6 @@
   "mutation_copy_failed": "The component could not be copied into the run folder: {detail}",
   "mutation_timeout": "Mutation testing exceeded the limit of {seconds} s and was ended; there is no score.",
   "mutation_cancelled": "The run was cancelled; the engine was stopped and its partial output was kept in the logs.",
-  "mutation_baseline_red": "The project's tests fail before any mutation, so no mutation score can be measured. Make the suite green first.",
   "mutation_no_report": "The engine produced no readable result (code {code}): {detail}",
   "mutation_exit_error": "The mutation engine ended with code {code}: {detail}",
   "mutation_invalid_output": "The mutation result could not be interpreted: {detail}",

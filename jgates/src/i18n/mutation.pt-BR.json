@@ -18,7 +18,6 @@
   "mutation_copy_failed": "Não foi possível copiar o componente para a pasta da execução: {detail}",
   "mutation_timeout": "O teste de mutação excedeu o limite de {seconds} s e foi encerrado; não há pontuação.",
   "mutation_cancelled": "A execução foi cancelada; o motor foi parado e a saída parcial ficou nos logs.",
-  "mutation_baseline_red": "Os testes do projeto falham antes de qualquer mutação, então não dá para medir a pontuação de mutação. Deixe a suíte verde primeiro.",
   "mutation_no_report": "O motor não produziu um resultado legível (código {code}): {detail}",
   "mutation_exit_error": "O motor de mutação terminou com o código {code}: {detail}",
   "mutation_invalid_output": "O resultado da mutação não pôde ser interpretado: {detail}",

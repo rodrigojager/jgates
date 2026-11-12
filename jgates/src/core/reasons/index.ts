@@ -66,6 +66,8 @@ export const REASONS: Readonly<Record<string, ReasonEntry>> = Object.freeze({
   SERVICES_NOT_READY: entry("SERVICES_NOT_READY", { kind: "route", route: "environment" }),
   SERVICES_REQUIRED: entry("SERVICES_REQUIRED", { kind: "route", route: "environment" }),
   NOT_APPLICABLE_TO_PROJECT: entry("NOT_APPLICABLE_TO_PROJECT", { kind: "route", route: "validations/review" }),
+  // Mutation testing needs a green suite to start from: the project's own tests fail before any mutation.
+  MUTATION_TESTS_FAILING: entry("MUTATION_TESTS_FAILING", { kind: "route", route: "validations/review" }),
   // Developer-facing: a step that would run outside the container is a defect, with nothing to click.
   HOST_EXECUTION_REFUSED: entry("HOST_EXECUTION_REFUSED", { kind: "none" }),
   UNSUPPORTED_PLATFORM: entry("UNSUPPORTED_PLATFORM", { kind: "link", url: DOCKER_RESOURCES_URL }),

@@ -1,5 +1,5 @@
 {
-  "run_description": "Executa um plano do JGates no workspace (hoje, o quality-gate pela ponte) e grava o resultado fora do projeto.",
+  "run_description": "Executa um plano do JGates no workspace e grava o resultado fora do projeto.",
   "run_option_cwd": "Pasta do workspace a validar (padrão: a pasta atual).",
   "run_option_bridge_mode": "Só em projetos sem jgates.yml: modo do quality-gate, full (padrão), quick ou offline. quick e offline desligam as ferramentas externas nesta execução.",
   "run_option_enable_pii": "Só em projetos sem jgates.yml: liga a detecção de dados pessoais (PII). Com jgates.yml, use o perfil ou --only.",

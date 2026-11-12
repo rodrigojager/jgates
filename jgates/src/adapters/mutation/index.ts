@@ -8,6 +8,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { contentHash } from "../../core/ids/index.js";
+import { resolveReason } from "../../core/reasons/index.js";
 import { translator } from "../../i18n/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
@@ -302,6 +303,18 @@ function planMutation(input: ExternalPlanInput): ExternalPlan {
 }
 
 const relToRun = (runDir: string, p: string): string => path.relative(runDir, p).split(path.sep).join("/");
+
+/**
+ * The engine stopped at its baseline because the project's own tests fail (mutmut: "stopping after 1 failures ...
+ * failed to collect stats"; Stryker and Stryker.NET: the initial test run failed). Mutation testing is then not
+ * applicable until the tests pass; it is not an engine error.
+ */
+export function baselineTestsFailed(engine: MutationEngine, output: string): boolean {
+  if (engine === "mutmut") return /failed to collect stats|stopping after \d+ failures?/i.test(output);
+  if (engine === "stryker-net") return /initial test run|No test result reported|no tests? (?:were )?found/i.test(output);
+  return /failed tests in the initial test run|initial test run/i.test(output);
+}
+
 const tail = (text: string): string => text.trim().split(/\r?\n/).slice(-3).join(" ");
 
 function readTextOf(abs: string): string {
@@ -448,6 +461,10 @@ async function runMutation(context: AdapterContext, plan: Plan, tool: string): P
     logs: [] as string[],
     outputs: [relToRun(context.runDir, outDir)],
   };
+  const baselineReason = (): string => {
+    const r = resolveReason("MUTATION_TESTS_FAILING");
+    return `${r.message} ${r.action.label}.`;
+  };
   const withLogs = (o: AdapterOutput): AdapterOutput => ({ ...o, logs: base.logs });
   const stopped = (state: ResultStage["state"], reason: string, extra: Partial<ResultStage> = {}): AdapterOutput => withLogs({ ...base, stages: [stageFor(state, reason, extra)], findings: [], metrics: [notMeasured(reason)] });
 
@@ -481,8 +498,8 @@ async function runMutation(context: AdapterContext, plan: Plan, tool: string): P
       text = null;
     }
     if (text === null) {
-      const red = /initial test run|No test result reported|no tests? (?:were )?found/i.test(`${result.stdout}\n${result.stderr}`);
-      return stopped("error", red ? t("mutation_baseline_red") : t("mutation_no_report", { code: result.exitCode ?? "-", detail }), { interpreted: false, nativeStatus: `exit ${result.exitCode ?? "-"}` });
+      if (baselineTestsFailed(engine, `${result.stdout}\n${result.stderr}`)) return stopped("not_applicable", baselineReason(), { nativeStatus: `exit ${result.exitCode ?? "-"}` });
+      return stopped("error", t("mutation_no_report", { code: result.exitCode ?? "-", detail }), { interpreted: false, nativeStatus: `exit ${result.exitCode ?? "-"}` });
     }
     // Stryker.NET names the files by their path in the copy (as the step saw it): relative to the copy here.
     const copyView = stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, cwd).replace(/\\/g, "/").replace(/\/+$/, "");
@@ -497,11 +514,12 @@ async function runMutation(context: AdapterContext, plan: Plan, tool: string): P
       text = null;
     }
     if (text === null) {
-      const red = /failed tests in the initial test run|initial test run/i.test(`${result.stdout}\n${result.stderr}`);
-      return stopped("error", red ? t("mutation_baseline_red") : t("mutation_no_report", { code: result.exitCode ?? "-", detail }), { interpreted: false, nativeStatus: `exit ${result.exitCode ?? "-"}` });
+      if (baselineTestsFailed(engine, `${result.stdout}\n${result.stderr}`)) return stopped("not_applicable", baselineReason(), { nativeStatus: `exit ${result.exitCode ?? "-"}` });
+      return stopped("error", t("mutation_no_report", { code: result.exitCode ?? "-", detail }), { interpreted: false, nativeStatus: `exit ${result.exitCode ?? "-"}` });
     }
     reading = parseStrykerReport(text);
   } else {
+    if (result.exitCode !== 0 && baselineTestsFailed(engine, `${result.stdout}\n${result.stderr}`)) return stopped("not_applicable", baselineReason(), { nativeStatus: `exit ${result.exitCode ?? "-"}` });
     if (result.exitCode !== 0) return stopped("error", t("mutation_exit_error", { code: result.exitCode ?? "-", detail }), { interpreted: false, nativeStatus: `exit ${result.exitCode ?? "-"}` });
     const sub = (name: string): string[] => (args[0] === "-m" ? ["-m", "mutmut", name] : [name]);
     const results = await spawn({ executable: command.executable, args: sub("results") }, null);

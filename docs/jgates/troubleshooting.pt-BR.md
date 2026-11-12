@@ -60,6 +60,7 @@ O JGates explica por que algo não rodou com um código fixo, um texto no seu id
 - **`SERVICES_NOT_READY`**: um serviço não ficou saudável a tempo; veja [serviços](services.pt-BR.md).
 - **`SERVICES_REQUIRED`**: uma verificação precisa de serviços e nenhum está configurado; veja [serviços](services.pt-BR.md).
 - **`NOT_APPLICABLE_TO_PROJECT`**: a verificação não se aplica a este projeto; ela nunca bloqueia.
+- **`MUTATION_TESTS_FAILING`**: o teste de mutação não rodou porque os testes do próprio projeto falham; ele precisa deles passando para começar. Corrija os testes que falham e rode de novo.
 - **`HOST_EXECUTION_REFUSED`**: um passo rodaria fora do contêiner, então o JGates o recusou. Não há ação para você: reporte como um defeito.
 
 ## O plano é recusado (saída 3)

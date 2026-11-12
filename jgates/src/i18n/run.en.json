@@ -1,5 +1,5 @@
 {
-  "run_description": "Runs a JGates plan in the workspace (today, quality-gate through the bridge) and writes the result outside the project.",
+  "run_description": "Runs a JGates plan in the workspace and writes the result outside the project.",
   "run_option_cwd": "Workspace folder to validate (default: the current folder).",
   "run_option_bridge_mode": "Only in projects without jgates.yml: quality-gate mode, full (default), quick or offline. quick and offline switch the external tools off in this run.",
   "run_option_enable_pii": "Only in projects without jgates.yml: turns on personal data (PII) detection. With jgates.yml, use the profile or --only.",
