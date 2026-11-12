@@ -145,6 +145,44 @@ function foldersOf(server: ServerContext, inventory: Inventory): Array<{ path: s
   return [...detected.map((p) => ({ path: p, detected: true })), ...rest.map((p) => ({ path: p, detected: false }))].slice(0, MAX_FOLDERS);
 }
 
+const sameValue = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * The edits that turn the `components` list into `next` touching only what differs: entries match by id (an entry
+ * renamed in place matches by position), changed keys are set one by one, so comments and hand-written keys of
+ * the entries stay. Removed entries are deleted from the last to the first; new ones are appended.
+ */
+function componentEdits(current: unknown[], next: Rec[]): YamlEdit[] {
+  const edits: YamlEdit[] = [];
+  const used = new Set<number>();
+  const pairing = next.map((entry) => {
+    const at = current.findIndex((c, i) => !used.has(i) && (c as Rec | null)?.id === entry.id);
+    if (at >= 0) used.add(at);
+    return at;
+  });
+  pairing.forEach((at, i) => {
+    if (at >= 0 || i >= current.length || used.has(i) || pairing.includes(i)) return;
+    pairing[i] = i;
+    used.add(i);
+  });
+  const appended: Rec[] = [];
+  next.forEach((entry, i) => {
+    const at = pairing[i] as number;
+    if (at < 0) {
+      appended.push(entry);
+      return;
+    }
+    const old = (current[at] ?? {}) as Rec;
+    for (const [k, v] of Object.entries(entry)) if (!sameValue(old[k], v)) edits.push({ op: "set", path: ["components", at, k], value: v });
+    for (const k of Object.keys(old)) if (!(k in entry)) edits.push({ op: "delete", path: ["components", at, k] });
+  });
+  const removed = current.map((_, i) => i).filter((i) => !used.has(i));
+  for (const i of removed.reverse()) edits.push({ op: "delete", path: ["components", i] });
+  const remaining = current.length - removed.length;
+  appended.forEach((entry, n) => edits.push({ op: "set", path: ["components", remaining + n], value: entry }));
+  return edits;
+}
+
 const patternList = { type: "array", maxItems: 200, items: { type: "string", minLength: 1, maxLength: 512, pattern: "^[^\\u0000\\n\\r]+$" } };
 const component = {
   type: "object",
@@ -155,6 +193,12 @@ const component = {
     framework: { type: "string", minLength: 1, maxLength: 60 },
     kind: { type: "string", minLength: 1, maxLength: 60 },
     enabled: { type: "boolean" },
+    // Written by the guided setup (the package manager of the component); kept as it is.
+    dependencies: {
+      type: "object",
+      properties: { manager: { type: "string", minLength: 1, maxLength: 60 }, groups: { type: "array", maxItems: 100, items: { type: "string", minLength: 1, maxLength: 120 } } },
+      additionalProperties: false,
+    },
     // Not edited by the screen, but a correction sends the whole entry back and these must survive it.
     include: patternList,
     exclude: patternList,
@@ -302,10 +346,12 @@ export const routes: RouteDefinition[] = [
         const existing = current.exists ? (parseYamlText(current.text, WORKSPACE_FILE).value as Rec | undefined)?.discovery : undefined;
         if (existing && (existing as Rec).enabled === false) edits.push({ op: "delete", path: ["discovery", "enabled"] });
       }
+      const currentValue = current.exists ? (parseYamlText(current.text, WORKSPACE_FILE).value as Rec | undefined) : undefined;
       for (const key of ["include", "exclude", "components"] as const) {
         const value = b[key];
         if (!Array.isArray(value)) continue;
-        edits.push(value.length === 0 ? { op: "delete", path: [key] } : { op: "set", path: [key], value });
+        if (key === "components" && value.length > 0 && Array.isArray(currentValue?.components)) edits.push(...componentEdits(currentValue.components as unknown[], value as Rec[]));
+        else edits.push(value.length === 0 ? { op: "delete", path: [key] } : { op: "set", path: [key], value });
       }
       if (edits.length === 0) throw new HttpError(400, "NOTHING_TO_SAVE", "Nenhuma alteração para gravar.", null);
 

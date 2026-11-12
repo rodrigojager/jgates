@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ApiError, api } from "../../api";
 import { useShell } from "../../app/shell-context";
 import { DiffView } from "../../components/DiffView";
-import { ErrorNotice, Loading, Pill, Spinner, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, Pill, Spinner, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
@@ -90,7 +90,7 @@ function Problem({ error }: { error: unknown }) {
     return (
       <div className="notice error" role="alert" data-testid="svc-error" data-code={error.code}>
         <Icon name="alert" />
-        <p>{t(`svc_err_${error.code}`, { service: String(error.body.service ?? "") })}</p>
+        <p>{t(`svc_err_${error.code}`, { service: String(error.body.service ?? ""), file: String(error.body.file ?? "") })}</p>
       </div>
     );
   }
@@ -191,15 +191,16 @@ export default function ServicesScreen() {
     }
   };
 
-  const changeFiles = (next: string[]) =>
-    run("discover", async () => {
-      setCompose(next);
-      setPreview(null);
-      setTest(null);
-      const found = await api<{ roles: Record<string, Role>; discovery: Discovery }>("POST", "/api/services/discover", { compose: next });
-      setDiscovery(found.discovery);
-      setRoles((old) => Object.fromEntries(Object.entries(found.roles).map(([n, r]) => [n, old[n] ?? r])));
-    });
+  // The list changes only when the server accepts it (a file that does not exist is refused and never listed).
+  const applyFiles = async (next: string[]) => {
+    const found = await api<{ roles: Record<string, Role>; discovery: Discovery }>("POST", "/api/services/discover", { compose: next });
+    setCompose(next);
+    setPreview(null);
+    setTest(null);
+    setDiscovery(found.discovery);
+    setRoles((old) => Object.fromEntries(Object.entries(found.roles).map(([n, r]) => [n, old[n] ?? r])));
+  };
+  const changeFiles = (next: string[]) => run("discover", () => applyFiles(next));
   const toggleFile = (file: string, on: boolean) => {
     const next = on ? [...compose, file] : compose.filter((f) => f !== file);
     // The order of the list is the order of the files (later files override earlier ones).
@@ -208,9 +209,11 @@ export default function ServicesScreen() {
   const addFile = () => {
     const file = extra.trim().replace(/\\/g, "/");
     if (!file) return;
-    setExtra("");
-    setExtraFiles((old) => [...old, file]);
-    void changeFiles([...compose.filter((f) => f !== file), file]);
+    void run("discover", async () => {
+      await applyFiles([...compose.filter((f) => f !== file), file]);
+      setExtra("");
+      setExtraFiles((old) => (old.includes(file) ? old : [...old, file]));
+    });
   };
   const setRole = (name: string, role: Role) => {
     setPreview(null);
@@ -257,11 +260,12 @@ export default function ServicesScreen() {
   const canPreview = !readOnly && busy === null && services.length > 0 && !needsPort;
 
   return (
-    <div className="stack" data-testid="services-screen">
+    <div className="stack" data-testid="services-screen" aria-busy={view.reloading}>
       <div>
         <h1>{t("svc_title")}</h1>
         <p>{t("svc_lead")}</p>
       </div>
+      <Updating active={view.reloading} />
       {governed ? (
         <div className="notice warn" role="status" data-testid="svc-governed">
           <Icon name="lock" />

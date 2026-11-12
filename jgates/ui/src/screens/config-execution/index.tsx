@@ -9,7 +9,7 @@ import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import "./config-execution.css";
 
-// Configuração > Execução. Runner, concurrency, network, fail-fast and budgets: policy of the repository (execution.* in
+// Configuração > Execução. Concurrency, network, fail-fast and budgets: policy of the repository (execution.* in
 // jgates.yml), never a personal preference. The retention of runs is per user and lives in Armazenamento.
 export const screen: ScreenMeta = { id: "config-execution", path: "/config/execution", area: "config", navLabel: "cfe_nav", navPath: "/config/execution", order: 43, icon: "settings" };
 
@@ -19,6 +19,8 @@ interface Field {
   options: string[] | null;
   applied: boolean;
   value: string | number | boolean | null;
+  /** The value the engine uses when nothing is set. */
+  default: string | number | boolean | null;
   explicit: boolean;
   origin: OriginRef;
   saveTo: SaveTarget;
@@ -32,7 +34,7 @@ interface View {
 }
 
 const GROUPS: Array<{ id: string; keys: string[] }> = [
-  { id: "run", keys: ["runner", "concurrency", "network", "failFast"] },
+  { id: "run", keys: ["concurrency", "network", "failFast"] },
   { id: "budgets", keys: ["timeoutSeconds", "budgets.totalSeconds", "budgets.memoryMegabytes", "budgets.processes", "budgets.logMegabytes"] },
 ];
 
@@ -80,7 +82,7 @@ function FieldRow({ field, locked, busy, onSave }: { field: Field; locked: strin
         <button type="button" className="btn" disabled={!changed || !valid || busy} aria-label={t("cfe_save_aria", { name: label })} onClick={() => onSave(field.key, parsed)} aria-busy={busy || undefined}>
           {t("save")}
         </button>
-        {field.explicit ? (
+        {field.explicit && field.value !== field.default ? (
           <button type="button" className="btn" disabled={busy} aria-label={t("cfe_reset_aria", { name: label })} onClick={() => onSave(field.key, null)}>
             {t("cfe_reset")}
           </button>

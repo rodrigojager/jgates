@@ -73,6 +73,7 @@
   "svc_saving": "Salvando...",
   "svc_err_CONFIG_MISSING": "Ainda não existe jgates.yml. Conclua a configuração guiada primeiro.",
   "svc_err_COMPOSE_EMPTY": "Os arquivos escolhidos não têm serviços.",
+  "svc_err_COMPOSE_FILE_MISSING": "O arquivo {file} não existe no projeto.",
   "svc_err_COMPOSE_PATH_INVALID": "Escolha arquivos de dentro da pasta do projeto.",
   "svc_err_SERVICE_UNKNOWN": "Os arquivos de compose não têm o serviço {service}.",
   "svc_err_APPLICATION_MANY": "Só um serviço pode ser a aplicação testada.",

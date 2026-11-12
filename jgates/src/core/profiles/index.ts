@@ -3,7 +3,8 @@ import { translator } from "../../i18n/index.js";
 import { builtinProfileBody, getBuiltinProfile, listBuiltinProfiles } from "../../builtin/index.js";
 import { CONFIG_DIR, loadProjectConfig, ROOT_FILE, suggestName, validateDocument, type ConfigLoadResult } from "../config/load/index.js";
 import { DEFAULT_PROFILE, resolveConfig } from "../config/resolve/index.js";
-import { hashBytes, patchYamlText, patchYamlFile, readRevision, YamlPatchError, type YamlEdit } from "../codecs/yaml/index.js";
+import { hashBytes, patchYamlText, patchYamlFile, readRevision, writeFileAtomic, YamlPatchError, type YamlEdit } from "../codecs/yaml/index.js";
+import { renameKeyInText } from "./yaml-rename.js";
 import { parseYamlText } from "../config/load/yaml.js";
 import { knownSelectors, parseSelector, parseSkipList, resolveSelection, skipOverrides } from "../selection/index.js";
 import type { GateKind } from "../gates/types.js";
@@ -180,6 +181,31 @@ export function applyEdits(dir: string, file: string, kind: "profiles" | "root" 
     }
     throw error;
   }
+}
+
+/** Like applyEdits, for a change that is made on the text itself (a key renamed in place); same revision and validity checks. */
+function applyTextChange(dir: string, file: string, kind: "profiles" | "root" | "policy", change: (text: string) => string | undefined, expectedHash: string | undefined): { hash: string } {
+  const t = translator("profiles");
+  const absolute = path.join(dir, file);
+  const rev = readRevision(absolute);
+  if (expectedHash !== undefined && expectedHash !== rev.hash) throw conflict(file, expectedHash, rev.hash);
+  if (!rev.exists) throw new ProfileError("PATCH_FAILED", t("profiles_patch_failed", { file, detail: "the file does not exist" }), t("profiles_patch_invalid_fix"));
+  const next = change(rev.text);
+  if (next === undefined) throw new ProfileError("PATCH_FAILED", t("profiles_patch_failed", { file, detail: "the entry was not found" }), t("profiles_patch_invalid_fix"));
+  const parsed = parseYamlText(next.charCodeAt(0) === 0xfeff ? next.slice(1) : next, file);
+  const diagnostics = [...parsed.diagnostics, ...(parsed.diagnostics.length === 0 ? validateDocument(kind, parsed.value, file, { doc: parsed.doc, lineCounter: parsed.lineCounter }) : [])];
+  if (diagnostics.length > 0) {
+    const d = diagnostics[0]!;
+    throw new ProfileError("PATCH_FAILED", t("profiles_patch_invalid", { file, detail: d.message }), t("profiles_patch_invalid_fix"), { diagnostics });
+  }
+  if (readRevision(absolute).hash !== rev.hash) throw conflict(file, rev.hash, readRevision(absolute).hash);
+  try {
+    writeFileAtomic(absolute, next);
+  } catch (error) {
+    if (error instanceof YamlPatchError) throw new ProfileError("PATCH_FAILED", t("profiles_patch_failed", { file, detail: error.message }), t("profiles_patch_invalid_fix"));
+    throw error;
+  }
+  return { hash: readRevision(absolute).hash as string };
 }
 
 function conflict(file: string, expected: string | null, current: string | null): ProfileError {
@@ -421,10 +447,22 @@ export function renameProfile(dir: string, id: string, to: string, options: Writ
   }
   if (Object.hasOwn(map, to) && to !== id) throw new ProfileError("PROFILE_EXISTS", t("profiles_exists", { id: to }), t("profiles_exists_fix", { id: to }));
   if (to === id) throw new ProfileError("PROFILE_EXISTS", t("profiles_exists", { id: to }), t("profiles_exists_fix", { id: to }));
-  const edits: YamlEdit[] = [{ op: "set", path: ["profiles", to], value: map[id] }, { op: "delete", path: ["profiles", id] }];
-  for (const [other, body] of Object.entries(map)) if (other !== id && body.extends === id) edits.push({ op: "set", path: ["profiles", other, "extends"], value: to });
+  // The entry keeps its body, comments and place: only its key changes; the profiles that extend it follow.
+  const followers: YamlEdit[] = [];
+  for (const [other, body] of Object.entries(map)) if (other !== id && body.extends === id) followers.push({ op: "set", path: ["profiles", other, "extends"], value: to });
   const wasDefault = defaultOf(load) === id;
-  const result = applyEdits(projectDir, file, "profiles", edits, { expectedHash: options.expectedHash });
+  const before = readRevision(path.join(projectDir, file)).hash;
+  const done = applyTextChange(
+    projectDir,
+    file,
+    "profiles",
+    (text) => {
+      const renamed = renameKeyInText(text, ["profiles"], id, to);
+      return renamed === undefined || followers.length === 0 ? renamed : patchYamlText(renamed, followers).text;
+    },
+    options.expectedHash,
+  );
+  const result = { hash: done.hash, previousHash: before, changed: true, strategy: "text" };
   if (wasDefault) applyEdits(projectDir, ROOT_FILE, "root", [{ op: "set", path: ["selection", "profile"], value: to }], { expectedHash: undefined });
   return { id, to, file, ...result };
 }

@@ -5,7 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { discoverWorkspace } from "../discovery/index.js";
 import { parse as parseYamlValue } from "yaml";
-import { patchYamlFile, readRevision, YamlPatchError, type YamlEdit } from "../codecs/yaml/index.js";
+import { patchYamlFile, readRevision, writeFileAtomic, YamlPatchError, type YamlEdit } from "../codecs/yaml/index.js";
+import { renameKeyInText, renameToolSelectors } from "../profiles/yaml-rename.js";
 import { openDocument, formatOf } from "../documents/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { insideBySegments } from "../documents/paths.js";
@@ -123,6 +124,8 @@ export interface InstanceChange {
   /** Files that mention the instance id as a selector (tool:<id>), so the UI can warn about them. */
   references: string[];
   config: string | null;
+  /** Files whose `tool:<old>` selectors were rewritten by a rename. */
+  updated?: string[];
 }
 
 /** Workspace files (jgates.yml and the .jgates fragments) that mention `tool:<id>`. */
@@ -193,15 +196,37 @@ export function renameInstance(dir: string, id: string, to: string, expectedHash
   const { tools, hash } = readTools(dir);
   if (!Object.prototype.hasOwnProperty.call(tools, id)) throw new InstanceError("INSTANCE_NOT_FOUND", `The instance ${id} does not exist.`, { id });
   if (Object.prototype.hasOwnProperty.call(tools, to)) throw new InstanceError("INSTANCE_EXISTS", `The instance ${to} already exists.`, { id: to });
-  applyEdits(
-    dir,
-    [
-      { op: "set", path: ["tools", to], value: tools[id] },
-      { op: "delete", path: ["tools", id] },
-    ],
-    expectedHash === undefined ? hash : expectedHash,
-  );
-  return { id: to, references: referencesTo(dir, id), config: null };
+  // Only the key changes: the body of the entry, its comments and its place stay as written.
+  const file = toolsFile(dir);
+  const rev = readRevision(file);
+  const wanted = expectedHash === undefined ? hash : expectedHash;
+  if (wanted !== rev.hash) throw new InstanceError("TOOLS_FILE_CONFLICT", "the file changed since it was read", { expectedHash: wanted, currentHash: rev.hash, file });
+  const renamed = renameKeyInText(rev.text, ["tools"], id, to);
+  if (renamed === undefined) throw new InstanceError("TOOLS_FILE_INVALID", `The entry ${id} could not be renamed in place.`, { id });
+  mapped(() => writeFileAtomic(file, renamed));
+  const updated = renameSelectorsInWorkspace(dir, id, to);
+  return { id: to, references: referencesTo(dir, id), config: null, updated };
+}
+
+/** Rewrites the `tool:<from>` selectors of jgates.yml and of the .jgates fragments (profiles included) to `tool:<to>`; returns the files changed. */
+function renameSelectorsInWorkspace(dir: string, from: string, to: string): string[] {
+  const root = path.resolve(dir);
+  const files = [path.join(root, "jgates.yml")];
+  try {
+    for (const name of fs.readdirSync(path.join(root, ".jgates"))) if (name.endsWith(".yml")) files.push(path.join(root, ".jgates", name));
+  } catch {
+    // no .jgates folder
+  }
+  const changed: string[] = [];
+  for (const f of files) {
+    const rev = readRevision(f);
+    if (!rev.exists) continue;
+    const next = renameToolSelectors(rev.text, from, to);
+    if (next.count === 0) continue;
+    mapped(() => writeFileAtomic(f, next.text));
+    changed.push(slash(path.relative(root, f)));
+  }
+  return changed;
 }
 
 /** Removes an instance from tools.yml. Files it pointed at are never touched. */

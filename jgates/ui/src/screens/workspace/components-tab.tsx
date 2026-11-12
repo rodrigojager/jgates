@@ -56,7 +56,7 @@ function WhyDialog({ item, templates, onClose }: { item: Classification; templat
           </dd>
           <dt>{t("ws_why_reason")}</dt>
           <dd>
-            {reasonText(item.reasonCode)} <code>{item.reasonCode}</code>
+            <span data-testid="why-reason">{reasonText(item.reasonCode)}</span>
           </dd>
           <dt>{t("ws_why_detector")}</dt>
           <dd>
@@ -254,7 +254,7 @@ export function ComponentsTab({
 
       <Tree items={classifications} configFile={configFile} />
 
-      {why ? <WhyDialog item={why} templates={templates[why.id] ?? []} onClose={() => setWhy(null)} /> : null}
+      {why ? <WhyDialog item={why} templates={inUse ? (templates[why.id] ?? []).filter((x) => inUse.has(x)) : (templates[why.id] ?? [])} onClose={() => setWhy(null)} /> : null}
       {declare ? (
         <DeclareDialog title={declare.title} initial={declare.initial} declared={settings.components} revision={settings.revision} onClose={() => setDeclare(null)} onSaved={onChanged} />
       ) : null}

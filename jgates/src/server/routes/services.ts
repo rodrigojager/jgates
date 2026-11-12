@@ -13,6 +13,7 @@ import { unifiedDiff } from "../../core/documents/diff.js";
 import { composeDown, engineCommand, engineLabels, engineRuntime, inspectImageSync, runInEngine, type EngineContext } from "../../core/engine/index.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { HEALTH_POLL, readServicesConfig, servicesOverride, servicesProjectName, DEFAULT_SERVICES_TIMEOUT_SECONDS, type ServicesConfig } from "../../core/services/index.js";
+import { resolveToolBindings } from "../../core/tools/index.js";
 import { toolsImageTarget } from "../../core/tools-image/index.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
@@ -141,6 +142,25 @@ function sectionOf(input: SectionInput, discovery: ComposeDiscovery, application
   return section;
 }
 
+/** The keys of `services:` this screen owns; every other key (profiles, hand-written ones) and its comments are never touched. */
+const OWNED_KEYS = ["compose", "start", "target", "build", "writableBinds", "allowHostEffects", "timeoutSeconds"];
+
+/** Key-by-key edits that turn the current `services:` value into the section, leaving the keys the screen does not own. */
+function servicesEdits(current: unknown, section: Record<string, unknown>): YamlEdit[] {
+  if (!isRecord(current)) return Object.keys(section).length > 0 ? [{ op: "set", path: ["services"], value: section }] : [];
+  const edits: YamlEdit[] = [];
+  for (const [key, value] of Object.entries(section)) if (JSON.stringify(current[key]) !== JSON.stringify(value)) edits.push({ op: "set", path: ["services", key], value });
+  for (const key of OWNED_KEYS) if (key in current && !(key in section)) edits.push({ op: "delete", path: ["services", key] });
+  const remaining = new Set([...Object.keys(current).filter((k) => !OWNED_KEYS.includes(k)), ...Object.keys(section)]);
+  // Nothing left in the block: the block goes too, instead of `services: {}`.
+  return remaining.size === 0 ? [{ op: "delete", path: ["services"] }] : edits;
+}
+
+/** The workspace-relative tools file (where the instances of zap and schemathesis live). */
+function toolsFileOf(server: ServerContext): string {
+  return resolveToolBindings(server.projectDir, { skipInventory: true }).configFile ?? ".jgates/tools.yml";
+}
+
 function targetText(application: string, target: { port: number; path?: string }): string {
   const base = pathOf(target.path, "") ?? "";
   return `service:${application}:${target.port}${base === "/" ? "" : base}`;
@@ -150,6 +170,8 @@ interface Preview {
   section: Record<string, unknown>;
   before: string;
   after: string;
+  /** The tools file to write too, when "usar como alvo" changes instances. */
+  tools: { file: string; absolute: string; hash: string | null; after: string } | null;
   diff: string;
   revision: string | null;
   targets: Array<{ tool: string; before: string | null; after: string }>;
@@ -165,38 +187,56 @@ function buildPreview(server: ServerContext, input: SectionInput): Preview {
   if (discovery.services.length === 0) throw fail(422, "COMPOSE_EMPTY", "The chosen compose files have no services.", { problems: discovery.problems });
   const { application } = checkInput(discovery, input);
   const section = sectionOf(input, discovery, application);
-  const edits: YamlEdit[] = [{ op: "set", path: ["services"], value: section }];
+  const parsedRoot = parseYamlText(root.text.charCodeAt(0) === 0xfeff ? root.text.slice(1) : root.text, ROOT_FILE).value;
+  const edits = servicesEdits(isRecord(parsedRoot) ? parsedRoot.services : undefined, section);
+  // "usar como alvo": the existing instances of zap and schemathesis (tools.yml, under the ids the user gave them) get the target.
   const targets: Preview["targets"] = [];
-  if (application && input.target && input.setTargets) {
-    const parsed = parseYamlText(root.text.charCodeAt(0) === 0xfeff ? root.text.slice(1) : root.text, ROOT_FILE).value;
+  const toolsEdits: YamlEdit[] = [];
+  const toolsFile = toolsFileOf(server);
+  const toolsRev = readRevision(path.join(server.projectDir, toolsFile));
+  if (application && input.target && input.setTargets && toolsRev.exists) {
+    const parsed = parseYamlText(toolsRev.text.charCodeAt(0) === 0xfeff ? toolsRev.text.slice(1) : toolsRev.text, toolsFile).value;
     const tools = isRecord(parsed) && isRecord(parsed.tools) ? parsed.tools : {};
     const value = targetText(application, input.target);
-    for (const id of TARGET_TOOLS) {
-      const body = tools[id];
+    for (const instance of resolveToolBindings(server.projectDir, { skipInventory: true }).instances) {
+      if (!(TARGET_TOOLS as readonly string[]).includes(instance.adapter)) continue;
+      const body = tools[instance.id];
       if (!isRecord(body)) continue;
       const before = typeof body.target === "string" ? body.target : null;
       if (before === value) continue;
-      edits.push({ op: "set", path: ["tools", id, "target"], value });
-      targets.push({ tool: id, before, after: value });
+      toolsEdits.push({ op: "set", path: ["tools", instance.id, "target"], value });
+      targets.push({ tool: instance.id, before, after: value });
     }
   }
   let after: string;
+  let toolsAfter: string = toolsRev.text;
   try {
     after = patchYamlText(root.text, edits).text;
+    if (toolsEdits.length > 0) toolsAfter = patchYamlText(toolsRev.text, toolsEdits).text;
   } catch (error) {
     if (error instanceof YamlPatchError) throw fail(422, "CONFIG_INVALID", error.message);
     throw error;
   }
-  const checked = parseYamlText(after.charCodeAt(0) === 0xfeff ? after.slice(1) : after, ROOT_FILE);
-  const problems = [...checked.diagnostics, ...(checked.value === undefined ? [] : validateDocument("root", checked.value, ROOT_FILE, { doc: checked.doc, lineCounter: checked.lineCounter }))];
-  if (problems.length > 0) throw fail(422, "CONFIG_INVALID", problems[0]?.message ?? "invalid configuration");
+  const checkText = (kind: "root" | "tools", text: string, file: string): void => {
+    const checked = parseYamlText(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text, file);
+    const problems = [...checked.diagnostics, ...(checked.value === undefined ? [] : validateDocument(kind, checked.value, file, { doc: checked.doc, lineCounter: checked.lineCounter }))];
+    if (problems.length > 0) throw fail(422, "CONFIG_INVALID", problems[0]?.message ?? "invalid configuration");
+  };
+  checkText("root", after, ROOT_FILE);
+  if (toolsEdits.length > 0) checkText("tools", toolsAfter, toolsFile);
   const effects = effectsOf(discovery, startedOf(discovery, input));
   const hash = effectsHash(input.compose, effects);
   return {
     section,
     before: root.text,
     after,
-    diff: unifiedDiff(root.text, after, { oldLabel: `a/${ROOT_FILE}`, newLabel: `b/${ROOT_FILE}` }),
+    tools: toolsEdits.length > 0 ? { file: toolsFile, absolute: path.join(server.projectDir, toolsFile), hash: toolsRev.hash, after: toolsAfter } : null,
+    diff: [
+      unifiedDiff(root.text, after, { oldLabel: `a/${ROOT_FILE}`, newLabel: `b/${ROOT_FILE}` }),
+      ...(toolsEdits.length > 0 ? [unifiedDiff(toolsRev.text, toolsAfter, { oldLabel: `a/${toolsFile}`, newLabel: `b/${toolsFile}` })] : []),
+    ]
+      .filter((d) => d !== "")
+      .join("\n"),
     revision: root.hash,
     targets,
     effects,
@@ -252,6 +292,13 @@ function checkFiles(server: ServerContext, files: string[]): void {
     const abs = path.resolve(root, file);
     const rel = path.relative(root, abs);
     if (path.isAbsolute(file) || rel.startsWith("..") || path.isAbsolute(rel)) throw fail(422, "COMPOSE_PATH_INVALID", `${file} is not inside the project.`, { file });
+    let isFile = false;
+    try {
+      isFile = fs.statSync(abs).isFile();
+    } catch {
+      isFile = false;
+    }
+    if (!isFile) throw fail(422, "COMPOSE_FILE_MISSING", `${file} does not exist in the project.`, { file });
   }
 }
 
@@ -335,6 +382,10 @@ export const routes: RouteDefinition[] = [
         fs.writeFileSync(ackFile(server), `${JSON.stringify({ schemaVersion: 1, hash: p.hash })}\n`, { mode: 0o600 });
       }
       writeFileAtomic(rootAbs(server), p.after);
+      if (p.tools) {
+        if (readRevision(p.tools.absolute).hash !== p.tools.hash) throw fail(409, "REVISION_CONFLICT", `${p.tools.file} changed since it was read.`);
+        writeFileAtomic(p.tools.absolute, p.tools.after);
+      }
       server.log("services saved");
       return { status: 200, json: { schemaVersion: 1, status: "OK", section: p.section, targets: p.targets, revision: readRevision(rootAbs(server)).hash } };
     },
