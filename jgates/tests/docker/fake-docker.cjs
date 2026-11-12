@@ -504,8 +504,41 @@ if (argv[0] === "run") {
       process.stdout.write(JSON.stringify({ schemaVersion: 1, operation: "pii", ok: true, status: findings.length ? "FINDINGS" : "OK", exitCode: 0, entities: ["cpf"], findings }) + "\n");
       process.exit(0);
     }
+    const bridgeAt = argv.indexOf("quality_sidecar");
+    const bridgeMount = mounts.find((m) => m.target === "/workspace" && m.type === "volume");
+    if (bridgeAt > 0 && argv[bridgeAt + 1] === "bridge" && bridgeMount && runLabels["org.jgates.kind"] === "step") {
+      // The PII detector as a step of a run: the request is on standard input and its target must be a folder of the
+      // container (/workspace holds the synchronized project). The fake scans the volume for a formatted CPF, answers like the
+      // bridge (rule, entity, path, line; never the value) or with the bridge error target-missing, and records the request
+      // target in pii-step.jsonl.
+      const request = JSON.parse(fs.readFileSync(0, "utf8"));
+      fs.appendFileSync(path.join(state, "pii-step.jsonl"), JSON.stringify({ target: request.target, operation: request.operation }) + "\n");
+      const reply = (body) => {
+        process.stdout.write(JSON.stringify({ schemaVersion: 1, operation: "pii", ...body }) + "\n");
+        process.exit(0);
+      };
+      const rel = typeof request.target === "string" && request.target.startsWith("/workspace") ? request.target.slice("/workspace".length).replace(/^\/+/, "") : null;
+      const base = rel === null ? null : path.join(hostOf(bridgeMount), rel);
+      if (base === null || !fs.existsSync(base) || !fs.statSync(base).isDirectory()) {
+        reply({ ok: false, error: { code: "target-missing", message: `target is not a directory: ${request.target}` } });
+      }
+      const findings = [];
+      const walk = (dir, prefix) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+          if (entry.isDirectory()) walk(path.join(dir, entry.name), relPath);
+          else if (entry.isFile()) {
+            fs.readFileSync(path.join(dir, entry.name), "utf8").split("\n").forEach((line, index) => {
+              if (/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/.test(line)) findings.push({ rule: "pii.cpf", entity: "cpf", severity: "medium", path: relPath, line: index + 1, message: "CPF found" });
+            });
+          }
+        }
+      };
+      walk(base, "");
+      reply({ ok: true, status: findings.length ? "FINDINGS" : "OK", exitCode: 0, entities: ["cpf"], findings });
+    }
     const stage = mounts.find((m) => m.target === "/stage");
-    const dst = mounts.find((m) => m.target === "/dst");
+    const dst =mounts.find((m) => m.target === "/dst");
     const workspaceMount = mounts.find((m) => m.target === "/workspace" && m.type === "volume");
     if (stage && dst) {
       // The sync helper (jgates/src/core/sync): removes the listed paths, unpacks changes.tar into the volume, and records

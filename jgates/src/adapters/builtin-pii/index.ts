@@ -9,6 +9,7 @@ import { sidecarAvailability } from "../../core/bridge/index.js";
 import type { ExternalAdapter, ExternalPlan, ExternalPlanInput } from "../../core/plan/adapters.js";
 import type { Plan, PlanItem } from "../../core/plan/types.js";
 import { exceptionLine, runSpec, substituteTokens } from "../../core/runner/index.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { builtinPiiManifest } from "./manifest.js";
 import { parsePiiResponse } from "./normalize.js";
@@ -96,7 +97,10 @@ async function runPii(context: AdapterContext, plan: Plan, tool: string): Promis
   const cwd = substituteTokens(command.cwd, tokens);
   const args = command.args.map((a) => substituteTokens(a, tokens));
   const env = Object.fromEntries(Object.entries(command.env).map(([k, v]) => [k, substituteTokens(v, tokens)]));
-  const request = JSON.stringify(command.stdin, (_k, v: unknown) => (typeof v === "string" ? substituteTokens(v, tokens) : v));
+  // The request travels on standard input, where the launcher cannot rewrite host paths: the target must be the one the
+  // detector sees inside the step container (/workspace), so it exists there.
+  const roots = { workspace: context.workspacePath, runDir: context.runDir };
+  const request = JSON.stringify(command.stdin, (_k, v: unknown) => (typeof v === "string" ? stepViewOfPaths(context.env, roots, substituteTokens(v, tokens)) : v));
   const timeoutSeconds = Math.min(...items.map((i) => i.limits.timeoutSeconds));
   const version = items[0]?.versions.toolVersion ?? null;
 
