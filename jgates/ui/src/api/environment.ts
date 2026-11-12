@@ -48,8 +48,17 @@ export interface JobPage {
   next: number;
 }
 
-export const fetchEnvironmentState = (locale?: string, signal?: AbortSignal): Promise<EnvironmentState> =>
-  api<EnvironmentState>("GET", `/api/environment/state${locale ? `?locale=${encodeURIComponent(locale)}` : ""}`, undefined, signal);
+/**
+ * The environment state. The server answers from its cached engine facts (a few seconds old at most, refreshed in the
+ * background); `fresh` is an explicit "check again", which asks the engine everything anew.
+ */
+export const fetchEnvironmentState = (locale?: string, signal?: AbortSignal, fresh = false): Promise<EnvironmentState> => {
+  const query = new URLSearchParams();
+  if (locale) query.set("locale", locale);
+  if (fresh) query.set("fresh", "1");
+  const text = query.toString();
+  return api<EnvironmentState>("GET", `/api/environment/state${text ? `?${text}` : ""}`, undefined, signal);
+};
 
 export const startEnvironmentJob = (kind: JobKind, locale?: string): Promise<{ job: JobPage["job"]; reused: boolean }> =>
   api("POST", "/api/environment/jobs", { kind, ...(locale ? { locale } : {}) });

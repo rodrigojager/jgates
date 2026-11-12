@@ -7,6 +7,7 @@ import { projectMascots } from "../../core/mascots/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { createCoreCatalog, subcheckLabel } from "../../core/catalog/index.js";
 import { encodePointer, resolveConfig, type ResolvedField, type ResolveResult } from "../../core/config/resolve/index.js";
+import { withEngineFacts } from "../../core/engine/facts.js";
 import { listProfiles, setPolicyRules, setProfileChecks, type PolicyChange } from "../../core/profiles/index.js";
 import { resolveSelection, type SelectionItem, type SelectionResult } from "../../core/selection/index.js";
 import { translator } from "../../i18n/index.js";
@@ -224,8 +225,11 @@ export const routes: RouteDefinition[] = [
     method: "GET",
     path: "/api/config/profile",
     query: { type: "object", properties: { profile: { type: "string", pattern: refPattern } }, additionalProperties: false },
-    handler({ query, server }) {
-      return guard(() => ({ status: 200, json: buildView(server, target(server, query.profile)) }));
+    timeoutMs: 120_000,
+    async handler({ query, server }) {
+      // The view's plan reads the engine facts from the cache (core/engine/facts.ts), never with a blocking call.
+      const json = await withEngineFacts(() => guard(() => buildView(server, target(server, query.profile))), { prime: { version: server.version } });
+      return { status: 200, json };
     },
   },
   {

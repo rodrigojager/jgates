@@ -5,8 +5,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { ROOT_FILE } from "../../core/config/load/index.js";
+import { gitDirty, warmEngineFacts } from "../../core/engine/facts.js";
 import { readRegistry, workspaceDir, workspaceLineage, type WorkspaceEntry } from "../../core/home/index.js";
-import { resolveGit, runGit } from "../../core/snapshot/git.js";
 import { translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
 import { modeOf, policyEditingDir } from "../policy-mode.js";
@@ -17,18 +17,6 @@ import type { RouteDefinition, ServerContext } from "../types.js";
 const t = translator("shell");
 
 export { modeOf };
-
-/**
- * Uncommitted change in the work tree (tracked changes or untracked files that are not ignored). Read-only Git, with
- * the repository-configured file system monitor off so reading the status never runs a program of the repository.
- */
-export function isDirty(dir: string, env: NodeJS.ProcessEnv = process.env): boolean | null {
-  const git = resolveGit(env);
-  if (!git) return null;
-  const r = runGit(git, ["-c", "core.fsmonitor=false", "status", "--porcelain=v1", "--untracked-files=normal", "--ignore-submodules=dirty", "--", "."], dir, env);
-  if (r.status !== 0) return null;
-  return r.stdout.trim() !== "";
-}
 
 function countRuns(server: ServerContext): number {
   let count = 0;
@@ -148,10 +136,16 @@ function target(server: ServerContext, body: { id?: string; path?: string }): Wo
 
 export const routes: RouteDefinition[] = [
   {
+    // The frame reads this on load, when the window gets the focus and after an action: it waits for a new Git status,
+    // read asynchronously with a time limit. Its periodic refresh asks `git=cached`: the last status, without starting Git.
     method: "GET",
     path: "/api/shell",
-    handler({ server }) {
+    query: { type: "object", properties: { git: { type: "string", enum: ["cached"] } }, additionalProperties: false },
+    async handler({ server, query }) {
       const git = readGitContext(server.projectDir);
+      const dirty = git ? await gitDirty(server.projectDir, { refresh: query.git !== "cached" }) : null;
+      // The first screen comes right after the frame: start reading the engine for it.
+      if (!server.policyMode) warmEngineFacts({ version: server.version, gitDir: server.projectDir });
       const active = server.runs.active;
       const { mode, governed } = modeOf();
       return {
@@ -164,7 +158,7 @@ export const routes: RouteDefinition[] = [
           governed,
           policyMode: policyEditingDir() !== null,
           workspace: { ...server.workspace, configured: fs.existsSync(path.join(server.projectDir, ROOT_FILE)) },
-          git: git ? { branch: git.branch, detached: git.detached, commit: git.commit, dirty: isDirty(server.projectDir) } : null,
+          git: git ? { branch: git.branch, detached: git.detached, commit: git.commit, dirty } : null,
           runs: { count: countRuns(server), active: active ? { id: active.id, startedAt: active.startedAt } : null },
           workspaces: knownWorkspaces(server),
         },

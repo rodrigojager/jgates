@@ -21,9 +21,9 @@ function useEnvironment() {
   const [checking, setChecking] = useState(false);
   const alive = useRef(true);
   useEffect(() => () => void (alive.current = false), []);
-  const load = useCallback(() => {
+  const read = useCallback((fresh: boolean) => {
     setChecking(true);
-    fetchEnvironmentState(getLocale())
+    fetchEnvironmentState(getLocale(), undefined, fresh)
       .then((next) => {
         if (!alive.current) return;
         setState(next as State);
@@ -32,7 +32,9 @@ function useEnvironment() {
       .catch((e) => alive.current && setError(e))
       .finally(() => alive.current && setChecking(false));
   }, []);
-  useEffect(load, [load]);
+  // Opening the screen reads the server's facts; "check again", the focus and the end of a job ask the engine anew.
+  const load = useCallback(() => read(true), [read]);
+  useEffect(() => read(false), [read]);
   useRecheckOnFocus(load);
   return { state, error, checking, load };
 }

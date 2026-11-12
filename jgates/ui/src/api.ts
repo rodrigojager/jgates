@@ -24,6 +24,9 @@ async function ensureCsrf(): Promise<{ header: string; token: string }> {
   return csrf;
 }
 
+/** Event fired after every write the server accepted, so the frame reads what an action may have changed (Git state). */
+export const CHANGED_EVENT = "jgates:changed";
+
 export async function api<T = any>(method: "GET" | "POST" | "PUT" | "DELETE", path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (method !== "GET") {
@@ -40,6 +43,7 @@ export async function api<T = any>(method: "GET" | "POST" | "PUT" | "DELETE", pa
   });
   const json = (await response.json().catch(() => ({}))) as Record<string, any>;
   if (!response.ok) throw new ApiError(response.status, String(json.code ?? "ERROR"), String(json.message ?? response.statusText), (json.fix as string | null) ?? null, json);
+  if (method !== "GET" && typeof window !== "undefined") window.dispatchEvent(new Event(CHANGED_EVENT));
   return json as T;
 }
 

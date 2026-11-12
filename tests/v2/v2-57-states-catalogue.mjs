@@ -177,7 +177,9 @@ test("V2-57: every reason code in the plan and environment results has pt-BR and
     for (const state of states) {
       state.prepare();
       for (const locale of LOCALES) {
-        const r = await call("GET", `/api/environment/state?locale=${locale}`);
+        // The machine changed behind the server's back: the screen's "check again" (fresh=1) asks the engine anew
+        // instead of the server's cached facts (ADR-0010).
+        const r = await call("GET", `/api/environment/state?locale=${locale}&fresh=1`);
         assert.equal(r.status, 200, `${state.name}: ${r.text}`);
         assert.ok(Object.keys(r.json.sections).length >= 7, state.name);
         for (const reason of reasonsOf(r.json)) note(reason, locale);

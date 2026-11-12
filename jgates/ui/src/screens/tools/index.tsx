@@ -63,7 +63,10 @@ export function OriginRow({ kind, version, untested, spdx }: { kind: "shipped" |
   return (
     <div className="row wrap" data-testid="origin-row" data-origin={kind}>
       <span className="small">{t("tools_origin_label")}</span>
-      <Pill tone={kind === "customer" ? "gold" : kind === "own" ? "blue" : "green"}>{text}</Pill>
+      {/* The text wraps inside the pill: "Incluída nas ferramentas do JGates (versão x)" is wider than a card at 375 px. */}
+      <Pill tone={kind === "customer" ? "gold" : kind === "own" ? "blue" : "green"}>
+        <span style={{ whiteSpace: "normal", overflowWrap: "anywhere" }}>{text}</span>
+      </Pill>
       {untested ? <Pill tone="gold">{t("tools_origin_untested")}</Pill> : null}
       {spdx ? <span className="small muted">{t("tools_origin_license", { spdx })}</span> : null}
     </div>

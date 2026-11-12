@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ApiError, api } from "../api";
+import { ApiError, CHANGED_EVENT, api } from "../api";
 
 /** What GET /api/shell answers: everything the frame of the application shows. */
 export interface ShellInfo {
@@ -33,8 +33,11 @@ export type Connection = "ok" | "stopped" | "expired";
 interface ShellApi {
   info: ShellInfo | null;
   connection: Connection;
-  /** Reads the shell data again (after a change the frame shows, or when the user asks). */
-  reload(): Promise<void>;
+  /**
+   * Reads the shell data again (after a change the frame shows, or when the user asks), with a new Git status unless
+   * `git: false` (the periodic refresh reads the server's last Git status and never makes it run Git).
+   */
+  reload(options?: { git?: boolean }): Promise<void>;
   /** Asks the server whether it still answers; sets `connection`. */
   probe(): Promise<Connection>;
 }
@@ -48,6 +51,8 @@ export const PROBE_EVENT = "jgates:probe";
 
 const REFRESH_MS = 10_000;
 const DOWN_REFRESH_MS = 3_000;
+/** A burst of writes (an action that saves several things) asks for one Git status. */
+const CHANGED_DEBOUNCE_MS = 300;
 
 async function ping(): Promise<Connection> {
   try {
@@ -62,6 +67,8 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const [info, setInfo] = useState<ShellInfo | null>(null);
   const [connection, setConnection] = useState<Connection>("ok");
   const busy = useRef(false);
+  // A Git refresh asked while a read was on its way: one more read follows it.
+  const wantGit = useRef(false);
 
   const probe = useCallback(async () => {
     const state = await ping();
@@ -69,13 +76,18 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     return state;
   }, []);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (options: { git?: boolean } = {}) => {
+    if (options.git !== false) wantGit.current = true;
     if (busy.current) return;
     busy.current = true;
     try {
-      const next = await api<ShellInfo>("GET", "/api/shell");
-      setInfo(next);
-      setConnection("ok");
+      do {
+        const git = wantGit.current;
+        wantGit.current = false;
+        const next = await api<ShellInfo>("GET", git ? "/api/shell" : "/api/shell?git=cached");
+        setInfo(next);
+        setConnection("ok");
+      } while (wantGit.current);
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.status === 401) setConnection("expired");
@@ -93,23 +105,36 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     void reload();
   }, [reload]);
 
-  // Refresh while the tab is in front; faster while the server is down so the screen recovers by itself.
+  // Refresh while the tab is in front; faster while the server is down so the screen recovers by itself. The timer
+  // reads the server's last Git status; the focus and every accepted write ask for a new one (the work tree may have
+  // changed meanwhile).
   useEffect(() => {
     const every = connection === "ok" ? REFRESH_MS : DOWN_REFRESH_MS;
     const tick = () => {
       if (document.visibilityState === "hidden") return;
-      if (connection === "ok") void reload();
+      if (connection === "ok") void reload({ git: false });
       else void probe().then((state) => (state === "ok" ? reload() : undefined));
     };
     const timer = window.setInterval(tick, every);
-    const onFocus = () => tick();
+    const onFocus = () => {
+      if (connection === "ok") void reload();
+      else tick();
+    };
     const onProbe = () => void probe();
+    let changed: number | undefined;
+    const onChanged = () => {
+      window.clearTimeout(changed);
+      changed = window.setTimeout(() => void reload(), CHANGED_DEBOUNCE_MS);
+    };
     window.addEventListener("focus", onFocus);
     window.addEventListener(PROBE_EVENT, onProbe);
+    window.addEventListener(CHANGED_EVENT, onChanged);
     return () => {
       window.clearInterval(timer);
+      window.clearTimeout(changed);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener(PROBE_EVENT, onProbe);
+      window.removeEventListener(CHANGED_EVENT, onChanged);
     };
   }, [connection, reload, probe]);
 

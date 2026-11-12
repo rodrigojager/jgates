@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { listRuns } from "../../core/artifacts/index.js";
 import { discoverWorkspace } from "../../core/discovery/index.js";
+import { withEngineFacts } from "../../core/engine/facts.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { buildPlan, type Plan } from "../../core/plan/index.js";
 import { RESULT_FILE } from "../../core/run/index.js";
@@ -90,11 +91,12 @@ export const routes: RouteDefinition[] = [
     method: "GET",
     path: "/api/overview",
     timeoutMs: 120_000,
-    handler({ server }) {
+    async handler({ server }) {
       const { inventory } = discoverWorkspace(server.projectDir);
       const approvable = inventory.classifications.filter((c) => c.approvable);
       const ambiguous = inventory.classifications.filter((c) => c.classificationStatus === "ambiguous");
-      const built = buildPlan(server.projectDir, { version: server.version, home: server.home, compare: false });
+      // The engine facts of the plan (engine, tools image, data timestamps) come from the cache, never a blocking call.
+      const built = await withEngineFacts(() => buildPlan(server.projectDir, { version: server.version, home: server.home, compare: false }), { prime: { version: server.version } });
       const plan = built.ok ? built.plan : null;
       const categories = plan ? categoriesOf(plan) : [];
       return {

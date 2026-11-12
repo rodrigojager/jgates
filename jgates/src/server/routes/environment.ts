@@ -5,9 +5,10 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PrepareError, diagnoseEnvironment, prepareInstance, previewPrepare } from "../../core/prepare/index.js";
-import { refreshPath } from "../../core/env-refresh/index.js";
+import { refreshPath, refreshPathAsync } from "../../core/env-refresh/index.js";
 import { CODEQL_TERMS_URL, prepareCodeql, readCodeqlStatusSync, releaseUrls } from "../../core/codeql-prepare/index.js";
 import { updateData } from "../../core/data/index.js";
+import { factsAsOf, invalidateEngineFacts, withEngineFacts } from "../../core/engine/facts.js";
 import { collectStatus, runSetup, type LifecycleReason, type StatusReport } from "../../core/lifecycle/index.js";
 import { resolveReason } from "../../core/reasons/index.js";
 import { extensionState, hasExtension } from "../../core/extension/index.js";
@@ -66,8 +67,10 @@ function extensionOf(server: ServerContext, status: StatusReport, locale?: strin
 }
 
 /**
- * Every section of the environment with its state and its reasons (the shared catalogue's text and action), read fresh
- * at every call: nothing is cached, so a Docker installed or started after the server began shows on the next check.
+ * Every section of the environment with its state and its reasons (the shared catalogue's text and action). Called
+ * inside withEngineFacts, the engine answers come from the cached facts: a working engine's answers are a few seconds
+ * old at most and refreshed in the background, while a missing or stopped engine is asked again at every call, so a
+ * Docker installed or started after the server began shows on the next check.
  */
 export async function environmentState(server: ServerContext, locale?: string): Promise<Record<string, unknown>> {
   const status: StatusReport = await collectStatus({ env: process.env, version: server.version, projectDir: server.projectDir, ...(locale ? { locale } : {}) });
@@ -106,7 +109,14 @@ export async function environmentState(server: ServerContext, locale?: string): 
     extension: extensionOf(server, status, locale),
     codeql,
   };
-  return { schemaVersion: 1, status: "OK", mode: status.mode, ready: status.ready, checkedAt: new Date().toISOString(), disk: status.disk, reasons: status.reasons, warnings: status.warnings, sections };
+  // When the engine was read: the oldest cached answer used, or now.
+  const checkedAt = factsAsOf() ?? new Date().toISOString();
+  return { schemaVersion: 1, status: "OK", mode: status.mode, ready: status.ready, checkedAt, disk: status.disk, reasons: status.reasons, warnings: status.warnings, sections };
+}
+
+/** The environment state, read from the engine facts without blocking the server; `fresh` asks the engine everything again. */
+export function cachedEnvironmentState(server: ServerContext, locale?: string, fresh = false): Promise<Record<string, unknown>> {
+  return withEngineFacts(() => environmentState(server, locale), { prime: { version: server.version }, fresh });
 }
 
 // ---- preparation jobs ------------------------------------------------------------------------------------------------
@@ -141,6 +151,8 @@ function push(job: Job, event: Record<string, unknown>): void {
 }
 
 function finishJob(job: Job, ok: boolean, result: Record<string, unknown>): void {
+  // A pull, a data update, the dependencies or CodeQL changed what the engine holds: the next reads ask it again.
+  invalidateEngineFacts();
   job.state = ok ? "done" : "failed";
   push(job, { type: "end", ok, ...result });
   job.settle(ok);
@@ -230,13 +242,17 @@ export function runningEnvironmentJob(server: ServerContext, kind: JobKind): Env
 export const routes: RouteDefinition[] = [
   {
     // Every section (engine, image, data, dependencies, services, extension, CodeQL) with its state and its reasons.
+    // `fresh=1` is the screen's "check again": the engine is asked everything anew instead of the cached facts.
     method: "GET",
     path: "/api/environment/state",
-    query: LOCALE_QUERY,
+    query: { type: "object", properties: { ...LOCALE_QUERY.properties, fresh: { type: "string", enum: ["1"] } }, additionalProperties: false },
+    timeoutMs: 120_000,
     async handler({ server, query }) {
-      if (!server.policyMode) refreshPath({ force: true });
+      const fresh = query.fresh === "1";
+      // The PATH is read again at most every few seconds, and at once on "check again" (a Docker installed meanwhile).
+      if (!server.policyMode) await refreshPathAsync({ force: fresh });
       const locale = normalizeLocale(query.locale) ?? undefined;
-      return { status: 200, json: await environmentState(server, locale) };
+      return { status: 200, json: await cachedEnvironmentState(server, locale, fresh) };
     },
   },
   {
@@ -291,9 +307,10 @@ export const routes: RouteDefinition[] = [
   {
     method: "GET",
     path: "/api/environment",
-    handler({ server }) {
-      if (!server.policyMode) refreshPath();
-      return { status: 200, json: { status: "OK", ...diagnoseEnvironment(server.projectDir) } };
+    timeoutMs: 120_000,
+    async handler({ server }) {
+      if (!server.policyMode) await refreshPathAsync();
+      return { status: 200, json: { status: "OK", ...(await withEngineFacts(() => diagnoseEnvironment(server.projectDir), { prime: { version: server.version } })) } };
     },
   },
   {
@@ -319,7 +336,8 @@ export const routes: RouteDefinition[] = [
         if (input.dryRun !== false) return { status: 200, json: { schemaVersion: 1, status: "OK", dryRun: true, preview } };
         const result = await prepareInstance(server.projectDir, input.instance, { allowVersionChange: input.allowVersionChange === true });
         server.log(`prepare ${input.instance} ${result.rules.hash}`);
-        return { status: 200, json: { schemaVersion: 1, status: "OK", dryRun: false, preview, result, environment: diagnoseEnvironment(server.projectDir) } };
+        const environment = await withEngineFacts(() => diagnoseEnvironment(server.projectDir), { prime: { version: server.version } });
+        return { status: 200, json: { schemaVersion: 1, status: "OK", dryRun: false, preview, result, environment } };
       } catch (error) {
         if (error instanceof PrepareError) throw toHttp(error);
         throw error;

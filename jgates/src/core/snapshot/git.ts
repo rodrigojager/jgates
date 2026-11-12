@@ -1,7 +1,7 @@
 // Read-only Git queries about the workspace, to record what a run really analyzed. Nothing here
 // writes in the user's repository: no checkout, no reset, no index refresh (GIT_OPTIONAL_LOCKS=0), and the snapshot
 // of another commit is materialized through a private index file in the data folder (see materialize.ts).
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { findOnPath } from "../bridge/index.js";
@@ -22,18 +22,100 @@ export interface GitCall {
   stderr: string;
 }
 
-/** Runs git without a shell, with the redirecting variables removed and optional locks off. */
-export function runGit(git: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, extra: Record<string, string> = {}): GitCall {
+function gitEnv(env: NodeJS.ProcessEnv, extra: Record<string, string>): NodeJS.ProcessEnv {
   const clean: NodeJS.ProcessEnv = { ...env };
   for (const name of GIT_REDIRECTS) delete clean[name];
+  return { ...clean, GIT_OPTIONAL_LOCKS: "0", GIT_TERMINAL_PROMPT: "0", ...extra };
+}
+
+/**
+ * Where the local server keeps the answers of read-only Git questions (core/engine/facts.ts, ADR-0010): inside one of its
+ * scopes a read is answered from the cache, or throws the cache's pending marker while it is probed asynchronously.
+ * Outside a scope it returns undefined and Git runs as it always did.
+ */
+export interface GitReadCache {
+  readSync(key: string, probe: () => Promise<GitCall>): GitCall | undefined;
+}
+
+let readCache: GitReadCache | null = null;
+
+/** Installs (or removes) the read cache; only core/engine/facts.ts calls it. */
+export function setGitReadCache(cache: GitReadCache | null): void {
+  readCache = cache;
+}
+
+/** The Git commands that only read and whose answer is small: the only ones a cached answer may stand for. */
+const READ_VERBS = new Set(["rev-parse", "symbolic-ref", "status"]);
+
+function verbOf(args: readonly string[]): string | undefined {
+  let i = 0;
+  while (args[i] === "-c" && i + 1 < args.length) i += 2;
+  return args[i];
+}
+
+/** Runs git without a shell, with the redirecting variables removed and optional locks off. */
+export function runGit(git: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, extra: Record<string, string> = {}): GitCall {
+  if (readCache && Object.keys(extra).length === 0 && READ_VERBS.has(verbOf(args) ?? "")) {
+    const served = readCache.readSync(JSON.stringify(["git", git, path.resolve(cwd), ...args]), () => runGitAsync(git, args, cwd, env));
+    if (served) return served;
+  }
   const r = spawnSync(git, args, {
     cwd,
-    env: { ...clean, GIT_OPTIONAL_LOCKS: "0", GIT_TERMINAL_PROMPT: "0", ...extra },
+    env: gitEnv(env, extra),
     encoding: "utf8",
     maxBuffer: MAX_BUFFER,
     windowsHide: true,
   });
   return { status: r.error ? null : r.status, stdout: r.stdout ?? "", stderr: r.error ? r.error.message : (r.stderr ?? "") };
+}
+
+/** Largest answer runGitAsync keeps (its callers ask small questions). */
+const ASYNC_MAX_BUFFER = 16 * 1024 * 1024;
+
+/**
+ * runGit without blocking the event loop, for the local server: the same environment, plus a time limit after which
+ * Git is stopped and the answer has no status (as when it could not start).
+ */
+export function runGitAsync(git: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, extra: Record<string, string> = {}, timeoutMs = 30_000): Promise<GitCall> {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let stderr = "";
+    let size = 0;
+    let settled = false;
+    const done = (call: GitCall): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(call);
+    };
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(git, args, { cwd, env: gitEnv(env, extra), windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+    } catch (error) {
+      resolve({ status: null, stdout: "", stderr: error instanceof Error ? error.message : String(error) });
+      return;
+    }
+    const timer = setTimeout(() => {
+      child.kill();
+      done({ status: null, stdout, stderr: `git ${verbOf(args) ?? ""} did not answer within ${timeoutMs} ms` });
+    }, timeoutMs);
+    const take = (chunk: string, into: "out" | "err"): void => {
+      size += chunk.length;
+      if (size > ASYNC_MAX_BUFFER) {
+        child.kill();
+        done({ status: null, stdout, stderr: "git printed more than the answer may hold" });
+        return;
+      }
+      if (into === "out") stdout += chunk;
+      else stderr += chunk;
+    };
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
+    child.stdout?.on("data", (chunk: string) => take(chunk, "out"));
+    child.stderr?.on("data", (chunk: string) => take(chunk, "err"));
+    child.on("error", (error) => done({ status: null, stdout, stderr: error.message }));
+    child.on("close", (code) => done({ status: code, stdout, stderr }));
+  });
 }
 
 /**

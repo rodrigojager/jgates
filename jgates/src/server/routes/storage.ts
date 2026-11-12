@@ -1,10 +1,11 @@
 // Storage (Preferences > Storage): where the data folder is, the space of each workspace and of the JGates images, the
 // retention, and the workspaces whose path no longer exists (relink them, or delete their artifacts after a
 // confirmation). Deleting only ever happens inside <data folder>/workspaces (applyRetention checks it again).
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { applyRetention, dirBytes, listRuns, planRetention } from "../../core/artifacts/index.js";
 import { KEPT_CONFIG, applyCleanup, checkHome, effectiveRetention, engineContextFor, homeBytes, itemsJson, keyStoreFacts, planCleanup, removeHome, removeKeyStore, storageReport, type CleanScope } from "../../core/cleanup/index.js";
+import { engineCommand, engineRuntime } from "../../core/engine/index.js";
+import { invalidateEngineFacts, withEngineFacts } from "../../core/engine/facts.js";
 import { RelinkError, readRegistry, relinkWorkspace, workspaceDir, workspaceLineage, type WorkspaceEntry } from "../../core/home/index.js";
 import { translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
@@ -25,10 +26,9 @@ function isDirectory(p: string): boolean {
 export { effectiveRetention };
 
 /** Images built by the work on JGates (label org.jgates.dev); empty and `available: false` when no container runtime answers. */
-function readImages(env: NodeJS.ProcessEnv = process.env): { available: boolean; items: Array<{ name: string; size: string }> } {
-  const runtime = env.JGATES_CONTAINER_RUNTIME?.trim() || "docker";
-  const r = spawnSync(runtime, ["image", "ls", "--filter", `label=${IMAGE_LABEL}`, "--format", "{{.Repository}}:{{.Tag}}\t{{.Size}}"], { encoding: "utf8", timeout: 4000, env });
-  if (r.error || r.status !== 0) return { available: false, items: [] };
+async function readImages(env: NodeJS.ProcessEnv = process.env): Promise<{ available: boolean; items: Array<{ name: string; size: string }> }> {
+  const r = await engineCommand(["image", "ls", "--filter", `label=${IMAGE_LABEL}`, "--format", "{{.Repository}}:{{.Tag}}\t{{.Size}}"], { runtime: engineRuntime(env), runnerOptions: { parentEnv: env } }, 4000);
+  if (r.spawnError || r.exitCode !== 0) return { available: false, items: [] };
   const items = r.stdout
     .split("\n")
     .map((line) => line.trim())
@@ -143,7 +143,13 @@ export const routes: RouteDefinition[] = [
       if (!confirmed || (wanted.size === 0 && !uninstall)) throw new HttpError(400, "CONFIRMATION_REQUIRED", t("storage_confirm_required"), t("storage_confirm_required_fix"));
       // Only what the person saw and is still removable now; nothing else.
       const items = plan.items.filter((i) => i.action === "remove" && wanted.has(itemKey(i)));
-      const applied = await applyCleanup({ ...plan, items, retention: plan.retention ? { ...plan.retention, missingWorkspaces: [] } : null }, home, engineContextFor(process.env));
+      let applied: Awaited<ReturnType<typeof applyCleanup>>;
+      try {
+        applied = await applyCleanup({ ...plan, items, retention: plan.retention ? { ...plan.retention, missingWorkspaces: [] } : null }, home, engineContextFor(process.env));
+      } finally {
+        // Objects were removed: the next reads ask the engine again.
+        invalidateEngineFacts();
+      }
       server.log(`cleanup ${input.mode} removed=${applied.removed} inUse=${applied.inUse} failed=${applied.failed}`);
       let homeRemoved = false;
       let keyRemoved = false;
@@ -177,7 +183,8 @@ export const routes: RouteDefinition[] = [
     path: "/api/storage",
     async handler({ server }) {
       const entries = readRegistry(server.home).workspaces.filter((w) => !w.relinkedTo);
-      const report = await storageReport(process.env, engineContextFor(process.env));
+      // The engine's listings and sizes come from the cached facts (a clean invalidates them); never a blocking call.
+      const { report, images } = await withEngineFacts(async () => ({ report: await storageReport(process.env, engineContextFor(process.env)), images: await readImages() }));
       const workspaces = entries
         .map((w) => {
           const own = describe(server, w);
@@ -197,7 +204,7 @@ export const routes: RouteDefinition[] = [
           totalBytes: dirBytes(server.home),
           workspaces,
           retention: { ...policy, fromEnvironment, wouldRemoveRuns: plan.runs.length, wouldFreeBytes: plan.freedBytes },
-          images: readImages(),
+          images,
           // Engine objects by category, from the JGates labels; shared image layers are counted once.
           categories: {
             engine: report.engine,

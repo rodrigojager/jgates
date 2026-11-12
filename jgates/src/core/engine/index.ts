@@ -240,13 +240,51 @@ function clientOptions(context: EngineContext): RunnerOptions {
 /** Never-aborting signal: cleanup must run even when the run itself was cancelled. */
 const NEVER = new AbortController().signal;
 
+// ---- read cache of the local server -------------------------------------------------------------------------------
+
+/**
+ * Where the local server keeps the answers of read-only engine questions (core/engine/facts.ts, ADR-0010). Inside one of
+ * its scopes a read is answered from the cache, and a synchronous read the cache does not have yet throws its pending
+ * marker instead of blocking the event loop (the scope probes it asynchronously and computes again). Outside a scope
+ * both return undefined and the command runs as it always did (the CLI never opens a scope).
+ */
+export interface EngineReadCache {
+  read(key: string, probe: () => Promise<ExecutionResult>): Promise<ExecutionResult> | undefined;
+  readSync(key: string, probe: () => Promise<ExecutionResult>): ExecutionResult | undefined;
+}
+
+let readCache: EngineReadCache | null = null;
+
+/** Installs (or removes) the read cache; only core/engine/facts.ts calls it. */
+export function setEngineReadCache(cache: EngineReadCache | null): void {
+  readCache = cache;
+}
+
+/** The client commands that only read: the only ones a cached answer may stand for. */
+const READ_COMMANDS: readonly string[][] = [["info"], ["version"], ["image", "inspect"], ["image", "ls"], ["images"], ["volume", "inspect"], ["volume", "ls"], ["container", "ls"], ["ps"], ["network", "ls"], ["system", "df"]];
+
+export function isEngineRead(args: readonly string[]): boolean {
+  return READ_COMMANDS.some((verb) => verb.every((word, i) => args[i] === word));
+}
+
+const commandKey = (runtime: string, args: readonly string[]): string => JSON.stringify(["command", runtime, ...args]);
+
+function rawEngineCommand(args: string[], context: EngineContext, timeoutMs: number): Promise<ExecutionResult> {
+  return runInScope({}, () => runSpec({ executable: context.runtime ?? engineRuntime(), args, cwd: os.tmpdir(), timeoutMs, signal: NEVER }, clientOptions(context)));
+}
+
 /**
  * One engine client command (not a container run): inspect, volume create/rm, and so on. It runs outside the execution
  * scope of the step that may be calling it, so it is never taken for one of the step's processes (its exit code is not
  * the step's) and is never handed to the step launcher.
  */
 export function engineCommand(args: string[], context: EngineContext = {}, timeoutMs = 60_000): Promise<ExecutionResult> {
-  return runInScope({}, () => runSpec({ executable: context.runtime ?? engineRuntime(), args, cwd: os.tmpdir(), timeoutMs, signal: NEVER }, clientOptions(context)));
+  if (readCache && isEngineRead(args)) {
+    const runtime = context.runtime ?? engineRuntime();
+    const served = readCache.read(commandKey(runtime, args), () => rawEngineCommand(args, { ...context, runtime }, timeoutMs));
+    if (served) return served;
+  }
+  return rawEngineCommand(args, context, timeoutMs);
 }
 
 export interface EngineBuildSpec {
@@ -309,6 +347,10 @@ export interface EngineSyncResult {
  */
 export function engineCommandSync(args: string[], context: EngineContext = {}, timeoutMs = 20_000): EngineSyncResult {
   const executable = context.runtime ?? engineRuntime(context.runnerOptions?.parentEnv ?? process.env);
+  if (readCache && isEngineRead(args)) {
+    const served = readCache.readSync(commandKey(executable, args), () => rawEngineCommand(args, { ...context, runtime: executable }, timeoutMs));
+    if (served) return syncAnswer(served);
+  }
   const script = /\.(?:mjs|cjs|js)$/i.test(executable);
   const result = spawnSync(script ? process.execPath : executable, script ? [executable, ...args] : args, {
     cwd: os.tmpdir(),
@@ -330,6 +372,8 @@ export function engineCommandSync(args: string[], context: EngineContext = {}, t
   };
 }
 
+const syncAnswer = (result: ExecutionResult): EngineSyncResult => ({ stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode, timedOut: result.timedOut, spawnError: result.spawnError });
+
 export interface EngineRunSyncResult {
   stdout: string;
   stderr: string;
@@ -348,6 +392,14 @@ export interface EngineRunSyncResult {
 export function runInEngineSync(spec: EngineRunSpec, context: EngineContext = {}, maxBufferBytes = 64 * 1024 * 1024): EngineRunSyncResult {
   const runtime = context.runtime ?? engineRuntime(context.runnerOptions?.parentEnv ?? process.env);
   const { args, name } = buildRunArgs(spec);
+  // A container that only prints what it reads (no standard input: the status files of the data and CodeQL volumes)
+  // is a read the local server may answer from its cache. Its identity is what it runs and mounts, never its name.
+  if (readCache && (spec.stdin === undefined || spec.stdin === null)) {
+    const key = JSON.stringify(["run", runtime, spec.image, spec.command, spec.mounts ?? [], spec.user ?? IMAGE_USER, spec.env ?? {}, spec.network ?? "none", spec.workdir ?? ""]);
+    const { name: _name, ...unnamed } = spec;
+    const served = readCache.readSync(key, () => runInEngine(unnamed, { ...context, runtime }));
+    if (served) return { ...syncAnswer(served), name, args };
+  }
   const script = /\.(?:mjs|cjs|js)$/i.test(runtime);
   const result = spawnSync(script ? process.execPath : runtime, script ? [runtime, ...args] : args, {
     cwd: os.tmpdir(),
