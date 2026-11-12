@@ -56,6 +56,8 @@ export const osvScanner: ScannerDefinition = {
       "--recursive",
       "--allow-no-lockfiles",
       "--offline-vulnerabilities",
+      // No transitive resolution: it asks api.deps.dev, which fails (exit 127) with no network on a clean requirements.txt.
+      "--no-resolve",
       "--format",
       "json",
       "--output-file",

@@ -267,7 +267,7 @@ test("each adapter plans the step command with the documents chosen in tools.yml
     const expected = {
       "gitleaks#secrets": ["dir", "--redact=100", "--no-banner", "--no-color", "--log-level", "warn", "--exit-code", "3", "--report-format", "json", "--report-path", `${out("gitleaks")}/report.json`, "--config", "{workspace}/.gitleaks.toml", "--gitleaks-ignore-path", "{workspace}/.gitleaksignore", "."],
       "trivy#dependencies": ["--config", "{workspace}/trivy.yaml", "fs", "--scanners", "vuln,misconfig", "--format", "json", "--output", `${out("trivy")}/report.json`, "--exit-code", "0", "--cache-dir", `${p.data}/trivy`, "--cache-backend", "memory", "--skip-db-update", "--offline-scan", "--skip-check-update", "--skip-java-db-update", "--skip-version-check", "--disable-telemetry", "--no-progress", "--ignorefile", "{workspace}/.trivyignore", "."],
-      "osv-scanner#dependencies": ["scan", "source", "--recursive", "--allow-no-lockfiles", "--offline-vulnerabilities", "--format", "json", "--output-file", `${out("osv-scanner")}/report.json`, "--config", "{workspace}/osv-scanner.toml", "."],
+      "osv-scanner#dependencies": ["scan", "source", "--recursive", "--allow-no-lockfiles", "--offline-vulnerabilities", "--no-resolve", "--format", "json", "--output-file", `${out("osv-scanner")}/report.json`, "--config", "{workspace}/osv-scanner.toml", "."],
       "checkov#iac": ["--config-file", "{workspace}/.checkov.yaml", "--directory", ".", "--output", "json", "--output-file-path", out("checkov"), "--quiet", "--compact", "--skip-download"],
     };
     for (const [id, args] of Object.entries(expected)) {
