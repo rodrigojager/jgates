@@ -61,7 +61,7 @@ test("V2-31: the Semantic/AI area has its own screens and runs, and Quality masc
       assert.ok(route, `route ${method} ${routePath} exists`);
       return route.handler({ params, query, body, server });
     };
-    const { mascotForStage, SEMANTIC_MASCOTS } = await importDist("core", "semantic-mascots", "index.js");
+    const { mascotForStage, SEMANTIC_MASCOTS, SEMANTIC_MASCOT_GROUPS } = await importDist("core", "semantic-mascots", "index.js");
     const { MASCOT_DOMAINS } = await importDist("core", "mascots", "index.js");
 
     // Configuration and setup screens: options, then the impact/context preview (nothing started, nothing written).
@@ -142,7 +142,10 @@ test("V2-31: the Semantic/AI area has its own screens and runs, and Quality masc
     for (const view of snapshot.mascots) {
       const owned = expected.filter((s) => mascotForStage(s) === view.mascot);
       assert.deepEqual(view.stages.map((s) => s.id).sort(), owned.map((s) => s.id).sort(), `${view.mascot}: the stages it owns`);
-      const want = owned.length === 0 ? "incomplete" : owned.every((s) => s.state === "completed") ? "done" : view.state;
+      // A phase with no stage of its own did not happen (incomplete), except the host phases (structured output,
+      // reporting), which JGates does after the model stages: done when every stage of the run completed.
+      const hostDone = SEMANTIC_MASCOT_GROUPS[view.mascot].host && expected.length > 0 && expected.every((s) => s.state === "completed");
+      const want = owned.length === 0 ? (hostDone ? "done" : "incomplete") : owned.every((s) => s.state === "completed") ? "done" : view.state;
       assert.equal(view.state, want, `${view.mascot}: state from its stages`);
       if (owned.some((s) => s.state !== "completed")) assert.notEqual(view.state, "done", `${view.mascot}: never done with unfinished stages`);
     }

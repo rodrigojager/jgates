@@ -249,14 +249,14 @@ test("cancelling a running Semantic review stops it, keeps partial evidence, and
       const mascots = page.getByTestId("semantic-mascots");
       await expect(mascots).toHaveAttribute("data-running", "true");
       await expect(mascots.locator('li[data-state="working"]').first()).toBeVisible({ timeout: 30_000 });
-      await expect(mascots.locator("li[data-mascot]")).toHaveCount(4);
+      await expect(mascots.locator("li[data-mascot]")).toHaveCount(6);
 
-      // Motion on: a working AI mascot animates (so the check below can fail).
+      // Motion on: the badge of a working AI mascot pulses (so the check below can fail); the 3D models never move.
       await page.emulateMedia({ reducedMotion: "no-preference" });
       const animated = () =>
         page.evaluate(() => {
           const out: string[] = [];
-          for (const el of document.querySelectorAll('[data-testid="semantic-mascots"] .sem-mascot[data-state="working"] .m-anim')) {
+          for (const el of document.querySelectorAll('[data-testid="semantic-mascots"] .sem3d[data-state="working"] .sem3d-badge')) {
             const name = getComputedStyle(el).animationName;
             if (name && name !== "none") out.push(name);
           }
@@ -268,7 +268,7 @@ test("cancelling a running Semantic review stops it, keeps partial evidence, and
       await expect.poll(animated).toEqual([]);
       const anyAnimation = await page.evaluate(() => {
         const out: string[] = [];
-        for (const el of document.querySelectorAll('[data-testid="semantic-mascots"] svg *')) {
+        for (const el of document.querySelectorAll('[data-testid="semantic-mascots"] .sem3d, [data-testid="semantic-mascots"] .sem3d *')) {
           const style = getComputedStyle(el);
           if (style.animationName !== "none" || style.transitionDuration.split(",").some((d) => parseFloat(d) > 0)) out.push(`${el.tagName}.${el.getAttribute("class")}`);
         }

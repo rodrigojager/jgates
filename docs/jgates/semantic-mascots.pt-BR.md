@@ -1,33 +1,39 @@
 # Mascotes do Semantic
 
-O gate Semantic tem quatro mascotes próprios. São personagens SVG planos e contornados, de uma família diferente dos
-seis mascotes do Quality; os mascotes do Quality nunca mostram trabalho de IA e estes nunca mostram um domínio do Quality.
+O gate Semantic tem seis mascotes próprios, um por fase do método de auditoria de segurança da Cloudflare. São modelos 3D
+estáticos da mesma família dos seis mascotes do Quality (vinil acetinado, os olhos, braços e botas da família) com uma
+cápsula transparente com um cérebro no alto; os mascotes do Quality nunca mostram trabalho de IA e estes nunca mostram um
+domínio do Quality.
 
-| Mascote | Responsabilidade | Etapas que mostra |
+| Mascote | Fase | Etapas que mostra |
 |---|---|---|
-| Batedor (Scout) | Análise: mapear o código e planejar a cobertura | `reconnaissance`, `coverage-planning`, `semantic-context` |
-| Rastreador (Tracker) | Investigação: caçar problemas candidatos | `hunting`, `hunt`, `semantic-review` |
-| Desafiante (Challenger) | Validação adversarial: tentar refutar a cobertura e os candidatos | `coverage-critic`, `refutation`, `validate` |
-| Verificador (Verifier) | Relatório: verificação independente dos registros finais | `verification` e qualquer etapa de relatório |
+| Atlas (bússola) | Reconhecimento: mapear o código, suas superfícies e fronteiras de confiança, e planejar a cobertura | `reconnaissance`, `coverage-planning`, `semantic-context` |
+| Trace (lupa-serpente) | Caça guiada pela cobertura: caçar candidatos e achar as lacunas de cobertura | `hunting`, `coverage-critic`, `hunt`, `semantic-review` |
+| Verdict (martelo de juiz) | Validação dos candidatos: tentar refutar cada candidato pelo código-fonte | `refutation`, `validate` |
+| Fit (caixa de encaixe) | Saída estruturada: registros no formato do esquema e a conferência do registro de cobertura | `structured-output`, ou nenhuma (feita pelo JGates) |
+| Seal (carimbo) | Verificação independente: reconferir os registros finais em contexto novo | `verification` |
+| Folio (prancheta de relatório) | Relatório neutro quanto ao alvo: o relatório legível a partir dos registros verificados | `reporting`, `report`, ou nenhuma (feita pelo JGates) |
 
 Cada etapa pertence a exatamente um mascote. O id da etapa é lido sem o prefixo do módulo (`security-audit/hunting`
 vira `hunting`).
 
 ## De onde vem o agrupamento
 
-- **Auditoria de segurança da Cloudflare** (fluxo fixado em `jgates/vendor/cloudflare-security-audit/prompts`):
-  reconhecimento e planejamento de cobertura só montam um retrato e um plano (Batedor); a caça é a única fase que gera
-  candidatos (Rastreador); o crítico de cobertura e a refutação por candidato são contextos independentes cujo trabalho é
-  desmentir (Desafiante); a verificação reconfere cada registro mantido em contexto novo antes do relatório (Verificador).
+- **Auditoria de segurança da Cloudflare** (fluxo fixado em `jgates/vendor/cloudflare-security-audit/prompts`): os seis
+  mascotes são as suas seis fases. O reconhecimento e o plano de cobertura (a síntese da fase 1) são o Atlas; a onda de
+  caça e o seu crítico de cobertura são a fase 2, o Trace; a refutação por candidato é a fase 3, o Verdict; a verificação
+  reconfere cada registro mantido em contexto novo, fase 5, o Seal. As fases 4 (saída estruturada) e 6 (relatório) são
+  código do JGates (ele valida e grava os registros e depois gera os relatórios), então o Fit e o Folio em geral não têm
+  etapa de modelo.
 - **Revisão geral** (os prompts do Semantic em `semantic-gate/templates`, executados pelas etapas `hunt` / `validate` do
-  módulo de investigação embutido): `hunt` examina e reporta candidatos (Rastreador), `validate` julga cada candidato em
-  contexto novo (Desafiante). A etapa de coleta de contexto vai para o Batedor.
-- Um id de etapa que não está na lista também recebe um mascote, escolhido pelo papel: etapa em modo de verificação ou id de
-  relatório/resumo vai para o Verificador, etapa `validate` para o Desafiante, id sobre reconhecimento/plano/contexto/escopo
-  para o Batedor, o resto para o Rastreador. Um módulo novo aparece sem mudança de código.
-
-Os prompts explicam por que são quatro mascotes e não um por prompt: os seis prompts da Cloudflare se reduzem às quatro
-responsabilidades acima, e a revisão geral as reaproveita.
+  módulo de investigação embutido): `hunt` examina e reporta candidatos (Trace), `validate` julga cada candidato em
+  contexto novo (Verdict). A etapa de coleta de contexto vai para o Atlas. Ela não tem verificação independente.
+- Um id de etapa que não está na lista também recebe um mascote, o da fase mais próxima: etapa em modo de verificação ou id
+  de verificação vai para o Seal, id de relatório/resumo para o Folio, id de saída/formato/esquema/registro para o Fit,
+  etapa `validate` ou id de refutação/crítica para o Verdict, id sobre reconhecimento/plano/contexto/escopo para o Atlas, o
+  resto para o Trace. Um módulo novo aparece sem mudança de código.
+- Execuções guardadas com os quatro primeiros mascotes (`scout`, `tracker`, `challenger`, `verifier`) continuam legíveis:
+  esses ids viram Atlas, Trace, Verdict e Seal.
 
 ## Estados
 
@@ -36,13 +42,21 @@ Aguardando, trabalhando, concluído, incompleto, falhou e cancelado. Um selo no 
 
 - `concluído` exige todas as etapas do mascote completas. Etapa ausente, orçamento esgotado ou etapa não executada mostram
   `incompleto`; etapa inválida, com tempo esgotado ou com erro mostra `falhou`.
+- Uma fase sem etapa própria aguarda enquanto a execução roda. Quando a execução para, uma fase de modelo sem etapa fica
+  `incompleto` (não aconteceu, como a verificação numa revisão geral), enquanto o Fit e o Folio, feitos pelo JGates
+  depois das etapas de modelo, ficam `concluído` quando todas as etapas da execução terminaram e `incompleto` se não.
 - Uma execução que não está mais rodando nunca deixa um mascote aguardando ou trabalhando.
 - Uma execução cancelada nunca mostra um mascote como concluído: etapas que terminaram antes do cancelamento mostram
   `incompleto` (a evidência é mantida, a execução não está completa) e as demais mostram `cancelado`.
 
-## Acessibilidade e temas
+## Desenho, acessibilidade e temas
 
-Todo SVG tem `role="img"` e um rótulo acessível com o mascote e o estado, em inglês e português. As cores vêm das variáveis
-do tema do app, então os temas claro e escuro usam o mesmo desenho; o tamanho segue `--sem-mascot-size` e encolhe com o
-contêiner. A animação (agulha, varredura da lente, faísca, carimbo) só roda enquanto trabalha e é desligada com
-`prefers-reduced-motion`.
+Os modelos nunca se mexem. Cada um é uma pose estática em três quartos com a iluminação do estudo, desenhada sob demanda
+por um único contexto WebGL compartilhado na tela (canvas) do próprio mascote (sem laço de animação; um tamanho já visto é
+redesenhado a partir de uma cópia). "Aguardando" deixa o modelo esmaecido e "trabalhando" faz o selo pulsar, o que para com
+`prefers-reduced-motion`. Onde não há WebGL, cada mascote mostra a sua imagem pré-renderizada
+(`jgates/ui/src/mascots/semantic/fallback/`, gerada a partir dos mesmos modelos por
+`node jgates/scripts/render-semantic-mascots.mjs`) com o mesmo rótulo e o mesmo selo. As imagens têm fundo transparente,
+então os temas claro e escuro usam o mesmo desenho.
+
+Todo mascote tem `role="img"` e um rótulo acessível com o nome, a fase e o estado, em inglês e português.

@@ -102,7 +102,7 @@ test("the six Quality domains show coverage subdimensions and no AI stage", asyn
     const uncovered = strip.locator('li[data-sub][data-covered="false"]');
     if ((await uncovered.count()) > 0) await expect(uncovered.first()).toContainText("sem cobertura");
     // Quality panels never carry a Semantic/AI element.
-    await expect(strip.locator('[data-mascot="scout"], [data-mascot="tracker"], [data-mascot="challenger"], [data-mascot="verifier"], .sem-mascot')).toHaveCount(0);
+    await expect(strip.locator('[data-mascot], .sem3d')).toHaveCount(0);
     expect(await strip.innerText()).not.toMatch(/semantic|semântic|\bIA\b/i);
   });
 });

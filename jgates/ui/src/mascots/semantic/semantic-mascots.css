@@ -1,0 +1,17 @@
+/* One Semantic mascot: the static 3D picture (its own canvas, or the pre-rendered image without WebGL) and a corner
+   badge that repeats the state, so color is never the only signal. The model never moves: "waiting" dims it and
+   "working" pulses the badge (switched off under reduced motion). */
+.sem3d { position: relative; display: inline-block; width: var(--sem-mascot-size, 136px); max-width: 100%; aspect-ratio: 1; flex: none; }
+.sem3d-model { display: block; width: 100%; height: 100%; object-fit: contain; }
+.sem3d[data-state="waiting"] .sem3d-model { opacity: .45; filter: saturate(.55); }
+.sem3d[data-state="cancelled"] .sem3d-model { opacity: .7; filter: saturate(.4); }
+.sem3d-badge { position: absolute; right: 2%; bottom: 4%; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; border: 2px solid currentColor; background: var(--surface, #fff); color: var(--muted, #5a675e); box-sizing: border-box; }
+.sem3d-badge svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.sem3d-badge[data-state="working"] { color: var(--accent, #20674f); animation: sem3d-pulse 1.6s ease-in-out infinite; }
+.sem3d-badge[data-state="done"] { color: var(--accent, #20674f); background: var(--mint, #e6efe7); }
+.sem3d-badge[data-state="failed"] { color: var(--red, #aa4b3e); background: var(--red-bg, #fbefec); }
+.sem3d-badge[data-state="incomplete"] { color: var(--gold, #855716); background: var(--gold-bg, #fcf3e3); }
+.sem3d-badge[data-state="waiting"] { color: var(--blue, #536a9c); background: var(--blue-bg, #eff2f9); }
+.sem3d-badge[data-state="cancelled"] { color: var(--muted, #5a675e); }
+@keyframes sem3d-pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, currentColor 22%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .sem3d-badge[data-state="working"] { animation: none; } }

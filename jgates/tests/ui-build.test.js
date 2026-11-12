@@ -72,6 +72,8 @@ test("the UI sources have no emoji or decorative pictograms and use only catalog
   const pictograph = /[\p{Extended_Pictographic}\u{FE0F}\u{20E3}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{25A0}-\u{25FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
   const used = new Set();
   for (const file of walk(uiSrc)) {
+    // Text sources only: an image (the pre-rendered mascots) is bytes, where any byte run can read as a pictogram.
+    if (!/\.(tsx?|jsx?|mjs|json|css|html|svg|md)$/.test(file)) continue;
     const text = fs.readFileSync(file, "utf8");
     const match = pictograph.exec(text);
     assert.equal(match, null, `${path.relative(uiSrc, file)} has a pictogram (${match?.[0]})`);
