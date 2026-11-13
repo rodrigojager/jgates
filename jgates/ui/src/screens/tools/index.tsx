@@ -12,7 +12,7 @@ import { CreateDialog, RemoveDialog, RenameDialog, type CatalogAdapter } from ".
 import { EditOwnTool } from "./edit-own";
 import { OwnTest } from "./own-test";
 
-export const screen: ScreenMeta = { id: "tools", path: "/tools", navLabel: "nav_tools", navPath: "/tools", order: 10, icon: "tools" };
+export const screen: ScreenMeta = { id: "tools", path: "/tools", area: "config", navLabel: "nav_tools", navPath: "/tools", order: 41.5, icon: "tools" };
 
 const SUPPORT_TONE: Record<string, "green" | "gold" | "red" | "blue"> = {
   full: "green",

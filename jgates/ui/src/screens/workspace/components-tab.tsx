@@ -2,8 +2,10 @@ import { useState } from "react";
 import { api } from "../../api";
 import { Dialog, ErrorNotice, Pill, Spinner, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
+import { loadForm } from "../../forms/derived/api";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
+import { ComponentFields } from "./component-fields";
 import { DeclareDialog, type Vocabulary } from "./declare-dialog";
 
 export interface Classification {
@@ -134,6 +136,9 @@ export function ComponentsTab({
   // Readable names of languages and frameworks (the ids stay in the files), and the templates jgates.yml really uses.
   const vocabulary = useAsync(() => api("GET", "/api/workspace/vocabulary") as Promise<Vocabulary>, "ws-vocabulary");
   const templateRows = useAsync(() => api("GET", "/api/config/templates") as Promise<{ templates: Array<{ id: string; source: string; declared: boolean; enabled: boolean }> }>, `ws-templates-${classifications.length}-${settings.revision ?? ""}`);
+  // The workspace.yml as a derived form: the keys of a declared component the dialog does not edit. It is read again
+  // whenever the file changes (its revision is part of the key).
+  const form = useAsync(() => loadForm({ file: ".jgates/workspace.yml" }), `ws-form:${settings.revision ?? ""}`);
   const inUse = templateRows.data ? new Set(templateRows.data.templates.filter((r) => r.declared && r.enabled).map((r) => r.source.replace(/^builtin:/, ""))) : null;
   const languageOf = (id: string | null) => (id ? (vocabulary.data?.languages.find((l) => l.id === id) ?? null) : null);
   const languageName = (id: string | null) => {
@@ -211,6 +216,9 @@ export function ComponentsTab({
                 <p className="small muted" data-testid="card-templates-available">
                   {t("ws_card_template_available", { templates: available.join(", ") })} <a href="#/config/templates">{t("ws_card_template_manage")}</a>
                 </p>
+              ) : null}
+              {c.classificationStatus === "explicit" && form.data?.available && settings.components.some((d) => d.id === c.id) ? (
+                <ComponentFields id={c.id} index={settings.components.findIndex((d) => d.id === c.id)} form={form.data} reload={form.reload} onWrite={onChanged} />
               ) : null}
               <div className="row">
                 <button type="button" className="btn" onClick={() => setWhy(c)}>

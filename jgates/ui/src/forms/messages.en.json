@@ -203,5 +203,19 @@
   "key_auth": "Authentication",
   "key_bindings": "Bindings",
   "key_externalRoots": "External roots",
-  "key_schemaVersion": "Schema version"
+  "key_schemaVersion": "Schema version",
+  "key_kind": "Kind",
+  "key_manager": "Dependency manager",
+  "key_groups": "Dependency groups",
+  "key_fix": "Check and fix of the files",
+  "key_hook": "Commit hook",
+  "key_backupRetentionDays": "Keep the originals for",
+  "key_includes": "Included files",
+  "key_excludes": "Excluded files",
+  "key_passEnv": "Environment variables passed on",
+  "key_registries": "Private registries",
+  "key_tokenSecret": "Name of the token secret",
+  "key_url": "Address (URL)",
+  "key_install": "Install",
+  "key_discovery": "Detection"
 }

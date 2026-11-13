@@ -23,6 +23,8 @@ const ROUTES: Array<{ id: string; hash: string }> = [
   { id: "tools", hash: "#/tools" },
   { id: "tool", hash: "#/tools/ruff" },
   { id: "pii", hash: "#/tools/builtin-pii" },
+  { id: "dependencies", hash: "#/config/dependencies" },
+  { id: "extension-image", hash: "#/config/image" },
   { id: "history", hash: "#/validations" },
   { id: "choose", hash: "#/validations/choose" },
   { id: "review", hash: "#/validations/review" },

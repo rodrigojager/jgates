@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { api } from "../../api";
 import { Dialog, ErrorNotice, Loading, Spinner, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
+import { ValuePicker } from "../../components/pickers";
 import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import type { Declared } from "./components-tab";
@@ -197,25 +198,7 @@ function DeclareForm({
       <div className="ws-form-grid">
         <div className="ws-field">
           <label htmlFor="ws-decl-path">{t("ws_field_path")}</label>
-          <input
-            id="ws-decl-path"
-            data-free-text="project-path"
-            type="text"
-            required
-            autoFocus
-            autoComplete="off"
-            list="ws-decl-folders"
-            value={path}
-            onChange={(e) => changePath(e.target.value)}
-            aria-describedby="ws-decl-path-help"
-          />
-          <datalist id="ws-decl-folders">
-            {vocabulary.folders.map((f) => (
-              <option key={f.path} value={f.path}>
-                {f.detected ? t("ws_folder_detected") : ""}
-              </option>
-            ))}
-          </datalist>
+          <ValuePicker id="ws-decl-path" source={{ name: "project-folder" }} value={path} fieldLabel={t("ws_field_path")} describedBy="ws-decl-path-help" autoFocus onChange={changePath} />
           <Help id="ws-decl-path-help">{t("ws_help_path")}</Help>
         </div>
 
@@ -322,7 +305,7 @@ function DeclareForm({
       <p className="small">{t("ws_declare_hint")}</p>
       {error ? <ErrorNotice error={error} /> : null}
       <div className="row">
-        <button type="submit" className="btn primary" disabled={saving}>
+        <button type="submit" className="btn primary" disabled={saving || path.trim() === ""}>
           {saving ? <Spinner /> : null}
           {saving ? t("ws_saving") : t("ws_declare_save")}
         </button>

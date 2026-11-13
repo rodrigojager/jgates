@@ -1,13 +1,23 @@
 import { useState } from "react";
 import { ApiError, api } from "../../api";
-import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
+import { DerivedFormView } from "../../forms/derived/DerivedForm";
+import { loadForm } from "../../forms/derived/api";
+import { useKeyEditor } from "../../forms/derived/editor";
+import type { DerivedField } from "../../forms/derived/types";
+import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { tp, tpOr } from "./messages";
 
-// Configuration, Tools, PII: one row per entity, each saved by patch into .jgates/pii.yml (route /api/pii).
+// Configuration > Personal data: one row per entity, each saved by patch into .jgates/pii.yml (route /api/pii), and the
+// other keys of the file (instance switch and severity, external tools, fix, hook mode) as the derived form of the file.
 // It takes the place of the generic file area for the builtin-pii instance (static route before ":instance").
-export const screen: ScreenMeta = { id: "pii", path: "/tools/builtin-pii", order: 15 };
+export const screen: ScreenMeta = { id: "pii", path: "/tools/builtin-pii", area: "config", navLabel: "pii_nav", navPath: "/tools/builtin-pii", order: 48, icon: "lock" };
+
+// The keys the entity table, detection, report and remediation sections already edit stay out of the derived form.
+const OTHER_KEYS = new Set(["enabled", "severity", "tools", "fix", "hook"]);
+const otherKeys = (field: DerivedField) => OTHER_KEYS.has(String(field.path[0]));
 
 interface Edit {
   op: "set" | "delete";
@@ -17,15 +27,16 @@ interface Edit {
 
 export default function PiiScreen() {
   const loaded = useAsync(() => api("GET", "/api/pii"), "pii");
-  const [override, setOverride] = useState<any | null>(null);
+  const form = useAsync(() => loadForm({ file: ".jgates/pii.yml" }), "pii-form");
+  const editor = useKeyEditor(form.reload, () => loaded.reload());
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
   const [problem, setProblem] = useState<unknown>(null);
   const [conflict, setConflict] = useState(false);
 
-  if (loaded.loading) return <Loading />;
-  if (loaded.error) return <ErrorNotice error={loaded.error} onRetry={loaded.reload} />;
-  const data = (override ?? loaded.data) as any;
+  if (loaded.loading && !loaded.data) return <Loading />;
+  if (loaded.error && !loaded.data) return <ErrorNotice error={loaded.error} onRetry={loaded.reload} />;
+  const data = loaded.data as any;
 
   async function save(edits: Edit[]) {
     setBusy(true);
@@ -34,7 +45,8 @@ export default function PiiScreen() {
     setConflict(false);
     try {
       const next = await api("PUT", "/api/pii", { expectedRevision: data.revision, edits });
-      setOverride(next);
+      loaded.prime(next);
+      form.reload();
       setSaved(tp("pii_saved", { file: next.file }));
     } catch (error) {
       if (error instanceof ApiError && error.code === "REVISION_CONFLICT") setConflict(true);
@@ -48,9 +60,9 @@ export default function PiiScreen() {
   const entities: any[] = data.entities ?? [];
 
   return (
-    <div className="stack">
+    <div className="stack" aria-busy={loaded.reloading || form.reloading ? true : undefined}>
+      <Updating active={loaded.reloading || form.reloading} />
       <div className="stack">
-        <a href="#/tools">{tp("pii_back")}</a>
         <h1>{tp("pii_title")}</h1>
         <p>{tp("pii_lead")}</p>
         <p className="small muted">{data.exists ? tp("pii_file", { file: data.file }) : tp("pii_file_new")}</p>
@@ -71,7 +83,6 @@ export default function PiiScreen() {
                 type="button"
                 className="btn"
                 onClick={() => {
-                  setOverride(null);
                   setConflict(false);
                   loaded.reload();
                 }}
@@ -84,17 +95,17 @@ export default function PiiScreen() {
         </div>
       ) : null}
       {problem ? <ErrorNotice error={problem} /> : null}
-      <div className="notice ok" role="status" data-testid="pii-status">
+      <div role="status" data-testid="pii-status">
         {busy ? (
-          <p>{tp("pii_saving")}</p>
+          <div className="notice ok">
+            <p>{tp("pii_saving")}</p>
+          </div>
         ) : saved ? (
-          <>
+          <div className="notice ok">
             <Icon name="check" />
             <p>{saved}</p>
-          </>
-        ) : (
-          <p className="muted">{data.exists ? String(data.revision).slice(0, 12) : ""}</p>
-        )}
+          </div>
+        ) : null}
       </div>
 
       <section className="stack" aria-labelledby="pii-entities">
@@ -221,6 +232,18 @@ export default function PiiScreen() {
             </span>
           </label>
         </div>
+      </section>
+
+      <section className="stack" aria-labelledby="pii-other" data-testid="pii-other">
+        <h2 id="pii-other">{t("pii_other_title")}</h2>
+        <p className="small muted">{t("pii_other_lead")}</p>
+        {form.error && !form.data ? (
+          <ErrorNotice error={form.error} onRetry={form.reload} />
+        ) : form.data ? (
+          <DerivedFormView form={form.data} editor={editor} reload={form.reload} include={otherKeys} headingLevel={3} />
+        ) : (
+          <Loading />
+        )}
       </section>
     </div>
   );

@@ -157,7 +157,7 @@ test("Declarar componente offers languages, frameworks and folders as choices, k
     const dialog = page.getByRole("dialog", { name: "Corrigir api" });
     const form = dialog.getByTestId("declare-form");
     await expect(form).toBeVisible();
-    const pathField = dialog.getByLabel("Caminho");
+    const pathField = dialog.getByLabel("Caminho", { exact: true });
     const idField = dialog.getByLabel("Identificador");
     const language = dialog.getByLabel("Linguagem", { exact: true });
     const framework = dialog.getByLabel("Framework", { exact: true });
@@ -227,13 +227,15 @@ test("Declarar componente offers languages, frameworks and folders as choices, k
     // A new declaration: folders are suggested (detected ones first), the id follows the path, Esc closes.
     await page.getByRole("button", { name: "Declarar componente" }).click();
     const fresh = page.getByRole("dialog", { name: "Declarar componente" });
-    const folders = fresh.locator("#ws-decl-folders option");
-    await expect(folders.first()).toHaveAttribute("value", "api");
-    await expect(fresh.locator('#ws-decl-folders option[value="web"]')).toHaveText("componente detectado");
-    await expect(fresh.locator('#ws-decl-folders option[value="web/src"]')).toHaveCount(1);
+    const picker = fresh.getByLabel("Caminho", { exact: true });
+    await expect(picker.locator('option[value="api"]')).toHaveCount(1);
+    await expect(picker.locator('option[value="web"]')).toHaveCount(1);
+    await expect(picker.locator('option[value="web/src"]')).toHaveCount(1);
     await expect(fresh.getByLabel("Linguagem", { exact: true })).toHaveValue("");
     await expect(fresh.getByLabel("Framework", { exact: true }).locator('option[value="fastapi"]')).toHaveCount(1);
-    await page.keyboard.type("libs/Shared Code");    await expect(fresh.getByLabel("Identificador")).toHaveValue("libs-shared-code");
+    await picker.selectOption({ label: "Outro..." });
+    await fresh.getByLabel("Outro valor de Caminho").fill("libs/Shared Code");
+    await expect(fresh.getByLabel("Identificador")).toHaveValue("libs-shared-code");
     await page.keyboard.press("Escape");
     await expect(fresh).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Declarar componente" })).toBeFocused();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../../api";
 import { errorText } from "../common";
 import { pk } from "./i18n";
@@ -141,11 +141,13 @@ export interface ValuePickerProps {
   placeholder?: string;
   /** Offer "URL..." besides the list (targets of runtime checks). Defaults to true for service-target. */
   allowUrl?: boolean;
+  /** Focus the select when it appears (the first field of a dialog). */
+  autoFocus?: boolean;
   onChange: (value: string) => void;
 }
 
 /** A select of the values of a source, with "Outro..." (and "URL...") for typing. */
-export function ValuePicker({ id, source, value, fieldLabel, labelledBy, describedBy, disabled, placeholder, allowUrl, onChange }: ValuePickerProps) {
+export function ValuePicker({ id, source, value, fieldLabel, labelledBy, describedBy, disabled, placeholder, allowUrl, autoFocus, onChange }: ValuePickerProps) {
   const { list, error, loading } = usePicker(source);
   const urlAllowed = allowUrl ?? source.name === "service-target";
   const current = value ?? "";
@@ -156,6 +158,11 @@ export function ValuePicker({ id, source, value, fieldLabel, labelledBy, describ
   // Typing: chosen by the person, or the value is a URL and the field takes URLs.
   const [typing, setTyping] = useState<"other" | "url" | null>(looksUrl && !known ? "url" : null);
   const typedId = `${id}-typed`;
+  const selectRef = useRef<HTMLSelectElement>(null);
+  // The select is disabled while the list loads, so the focus asked for waits for it.
+  useEffect(() => {
+    if (autoFocus && !loading) selectRef.current?.focus();
+  }, [autoFocus, loading]);
 
   const choose = (next: string) => {
     if (next === OTHER) return setTyping("other");
@@ -171,6 +178,7 @@ export function ValuePicker({ id, source, value, fieldLabel, labelledBy, describ
         className="input picker-select"
         value={typing === "other" ? OTHER : typing === "url" ? URL_CHOICE : current}
         disabled={disabled || loading}
+        ref={selectRef}
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         aria-busy={loading ? true : undefined}

@@ -151,5 +151,8 @@
   "ws_saved_toast": "Gravado em .jgates/workspace.yml",
   "ws_invalid_file": "O .jgates/workspace.yml tem problemas: {message}",
   "ws_overview_aria": "Resumo da descoberta",
-  "ws_offer_later": "Agora não"
+  "ws_offer_later": "Agora não",
+  "ws_fields_summary": "Mais campos de {name}",
+  "ws_fields_lead": "Tipo, ativação, inclusões e exclusões, e o gerenciador de dependências do componente. Cada campo é gravado sozinho, com a diferença do arquivo à vista.",
+  "ws_discovery_title": "Detecção automática"
 }

@@ -203,5 +203,19 @@
   "key_auth": "Autenticação",
   "key_bindings": "Vínculos",
   "key_externalRoots": "Pastas externas",
-  "key_schemaVersion": "Versão do esquema"
+  "key_schemaVersion": "Versão do esquema",
+  "key_kind": "Tipo",
+  "key_manager": "Gerenciador de dependências",
+  "key_groups": "Grupos de dependências",
+  "key_fix": "Verificação e correção dos arquivos",
+  "key_hook": "Hook de commit",
+  "key_backupRetentionDays": "Guardar os originais por",
+  "key_includes": "Arquivos incluídos",
+  "key_excludes": "Arquivos excluídos",
+  "key_passEnv": "Variáveis de ambiente repassadas",
+  "key_registries": "Registries privados",
+  "key_tokenSecret": "Nome do segredo do token",
+  "key_url": "Endereço (URL)",
+  "key_install": "Instalação",
+  "key_discovery": "Detecção"
 }

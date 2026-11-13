@@ -12,7 +12,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "enabled": { "type": "boolean" },
+        "enabled": { "type": "boolean", "default": true, "description": "Automatic detection of components. Default true; false keeps only the components declared here." },
         "mode": { "enum": ["auto", "explicit", "report-only"] }
       }
     },
@@ -28,7 +28,7 @@
           "language": { "type": "string", "minLength": 1 },
           "framework": { "type": "string", "minLength": 1 },
           "kind": { "type": "string", "minLength": 1 },
-          "enabled": { "type": "boolean" },
+          "enabled": { "type": "boolean", "default": true, "description": "Whether the checks run on this component. Default true." },
           "dependencies": {
             "type": "object",
             "additionalProperties": false,

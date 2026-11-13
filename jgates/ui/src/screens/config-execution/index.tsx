@@ -1,26 +1,34 @@
 import { useState } from "react";
-import { api } from "../../api";
-import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
+import { ApiError, api } from "../../api";
+import { Dialog, ErrorNotice, Loading, Pill, Spinner, Updating, useAsync } from "../../components/common";
+import { DiffView } from "../../components/DiffView";
 import { Icon } from "../../components/icons";
 import { LockedField } from "../../components/LockedField";
 import { OriginLine, type OriginRef, type SaveTarget } from "../../components/origin";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
+import "../../forms/derived/derived.css";
 import "./config-execution.css";
 
-// Configuração > Execução. Concurrency, network, fail-fast and budgets: policy of the repository (execution.* in
-// jgates.yml), never a personal preference. The retention of runs is per user and lives in Armazenamento.
+// Configuração > Execução. Concurrency, network, fail-fast, advisory data age, extension images, trust and budgets: policy
+// of the repository (execution.* in jgates.yml), never a personal preference. Every control edits a draft; one "Revisar e
+// salvar" shows the diff of jgates.yml and writes all the changes at once. The retention of runs is per user and lives in
+// Armazenamento.
 export const screen: ScreenMeta = { id: "config-execution", path: "/config/execution", area: "config", navLabel: "cfe_nav", navPath: "/config/execution", order: 43, icon: "settings" };
+
+type Value = string | number | boolean | null;
 
 interface Field {
   key: string;
   kind: "enum" | "integer" | "boolean";
   options: string[] | null;
+  presets: number[] | null;
+  unit: "seconds" | "days" | "megabytes" | null;
   applied: boolean;
-  value: string | number | boolean | null;
+  value: Value;
   /** The value the engine uses when nothing is set. */
-  default: string | number | boolean | null;
+  default: Value;
   explicit: boolean;
   origin: OriginRef;
   saveTo: SaveTarget;
@@ -33,63 +41,188 @@ interface View {
   fields: Field[];
 }
 
-const GROUPS: Array<{ id: string; keys: string[] }> = [
-  { id: "run", keys: ["concurrency", "network", "failFast"] },
-  { id: "budgets", keys: ["timeoutSeconds", "budgets.totalSeconds", "budgets.memoryMegabytes", "budgets.processes", "budgets.logMegabytes"] },
-];
-
-function show(field: Field): string {
-  if (field.value === null || field.value === undefined) return t("cfe_unset");
-  if (field.kind === "boolean") return t(field.value ? "cfe_on" : "cfe_off");
-  if (field.kind === "enum") return tOr(`cfe_opt_${field.key}_${field.value}`, String(field.value));
-  return String(field.value);
+interface Preview {
+  changed: boolean;
+  diff: string;
 }
 
-function FieldRow({ field, locked, busy, onSave }: { field: Field; locked: string | null; busy: boolean; onSave: (key: string, value: string | number | boolean | null) => void }) {
-  const initial = field.value === null || field.value === undefined ? "" : String(field.value);
-  const [draft, setDraft] = useState(initial);
-  const label = t(`cfe_f_${field.key}`);
-  const inputId = `cfe-${field.key}`;
-  const parsed = field.kind === "integer" ? Number(draft) : field.kind === "boolean" ? draft === "true" : draft;
-  const valid = field.kind === "integer" ? Number.isInteger(parsed) && (parsed as number) >= 1 : draft !== "";
-  const changed = draft !== initial;
+const GROUPS: Array<{ id: string; keys: string[] }> = [
+  { id: "run", keys: ["concurrency", "network", "failFast", "timeoutSeconds"] },
+  { id: "ci", keys: ["dataMaxAgeDays", "extensionImage", "trustSelfReported"] },
+  { id: "budgets", keys: ["budgets.totalSeconds", "budgets.memoryMegabytes", "budgets.processes", "budgets.logMegabytes"] },
+];
 
-  if (locked) {
+const OTHER = "__other__";
+const UNSET = "__unset__";
+
+function amount(field: Field, n: number): string {
+  if (field.unit === "seconds") return t("cfe_unit_seconds", { n });
+  if (field.unit === "days") return t("cfe_unit_days", { n });
+  if (field.unit === "megabytes") return t("cfe_unit_megabytes", { n });
+  return String(n);
+}
+
+function show(field: Field, value: Value): string {
+  if (value === null || value === undefined) return t(field.kind === "integer" ? "cfe_unset" : "cfe_unset_choice");
+  if (field.kind === "boolean") return t(value ? "cfe_on" : "cfe_off");
+  if (field.kind === "enum") return tOr(`cfe_opt_${field.key}_${value}`, String(value));
+  return typeof value === "number" ? amount(field, value) : String(value);
+}
+
+function Switch({ id, labelId, helpId, checked, disabled, onChange }: { id: string; labelId: string; helpId: string; checked: boolean; disabled: boolean; onChange: (next: boolean) => void }) {
+  return (
+    <div className="row df-switch-row">
+      <button id={id} type="button" role="switch" className="df-switch" aria-checked={checked} aria-labelledby={labelId} aria-describedby={helpId} disabled={disabled} onClick={() => onChange(!checked)}>
+        <span className="df-switch-knob" aria-hidden="true" />
+      </button>
+      <span className="small" aria-hidden="true">
+        {t(checked ? "cfe_on" : "cfe_off")}
+      </span>
+    </div>
+  );
+}
+
+/** A duration, size or count: presets plus "Outro valor", and "Sem limite" where the setting has no default. */
+function NumberControl({ field, id, labelId, helpId, label, value, disabled, onChange }: { field: Field; id: string; labelId: string; helpId: string; label: string; value: Value; disabled: boolean; onChange: (next: number | null) => void }) {
+  const current = typeof value === "number" ? value : null;
+  const presets = field.presets ?? [];
+  const choices = current !== null && !presets.includes(current) ? [...presets, current].sort((a, b) => a - b) : presets;
+  const [typing, setTyping] = useState(false);
+  const [text, setText] = useState(current === null ? "" : String(current));
+  const problem = typing && text !== "" && !(Number.isInteger(Number(text)) && Number(text) >= 1) ? t("cfe_number_invalid") : null;
+  const box = (
+    <input
+      id={presets.length > 0 ? `${id}-other` : id}
+      type="number"
+      inputMode="numeric"
+      min={1}
+      className="input number"
+      value={text}
+      disabled={disabled}
+      autoFocus={presets.length > 0}
+      aria-label={presets.length > 0 ? t("cfe_other_of", { name: label }) : undefined}
+      aria-labelledby={presets.length > 0 ? undefined : labelId}
+      aria-describedby={helpId}
+      aria-invalid={problem ? true : undefined}
+      data-free-text="number"
+      onChange={(e) => {
+        setText(e.target.value);
+        const n = Number(e.target.value);
+        if (e.target.value !== "" && Number.isInteger(n) && n >= 1) onChange(n);
+      }}
+    />
+  );
+  if (presets.length === 0) {
     return (
-      <div data-field={field.key}>
-        <LockedField label={label} value={show(field)} reason={locked} />
+      <div className="stack tight">
+        {box}
+        {problem ? (
+          <span className="small field-problem" role="alert">
+            {problem}
+          </span>
+        ) : null}
       </div>
     );
   }
   return (
-    <div className="field" data-field={field.key} {...(field.applied ? {} : { "data-control-unavailable": t("cfe_not_applied") })}>
+    <div className="stack tight">
+      <select
+        id={id}
+        className="input"
+        value={typing ? OTHER : current === null ? UNSET : String(current)}
+        disabled={disabled}
+        aria-labelledby={labelId}
+        aria-describedby={helpId}
+        onChange={(e) => {
+          if (e.target.value === OTHER) {
+            setText(current === null ? "" : String(current));
+            return setTyping(true);
+          }
+          setTyping(false);
+          onChange(e.target.value === UNSET ? null : Number(e.target.value));
+        }}
+      >
+        {field.default === null ? <option value={UNSET}>{t("cfe_unset")}</option> : null}
+        {choices.map((n) => (
+          <option key={n} value={String(n)}>
+            {amount(field, n)}
+          </option>
+        ))}
+        <option value={OTHER}>{t("cfe_other_value")}</option>
+      </select>
+      {typing ? (
+        <div className="row wrap">
+          {box}
+          <button type="button" className="btn" onClick={() => setTyping(false)}>
+            {t("cfe_back_to_list")}
+          </button>
+        </div>
+      ) : null}
+      {problem ? (
+        <span className="small field-problem" role="alert">
+          {problem}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function Choice({ field, id, labelId, helpId, value, disabled, onChange }: { field: Field; id: string; labelId: string; helpId: string; value: Value; disabled: boolean; onChange: (next: string | null) => void }) {
+  const options = [...(field.default === null ? [UNSET] : []), ...(field.options ?? [])];
+  const text = (o: string) => (o === UNSET ? t("cfe_unset_choice") : tOr(`cfe_opt_${field.key}_${o}`, o));
+  const chosen = value === null || value === undefined ? UNSET : String(value);
+  return (
+    <div className="row wrap df-radios" role="radiogroup" id={id} aria-labelledby={labelId} aria-describedby={helpId}>
+      {options.map((o) => (
+        <label key={o} className="row choice df-choice">
+          <input type="radio" name={id} value={o} checked={chosen === o} disabled={disabled} onChange={() => onChange(o === UNSET ? null : o)} />
+          {text(o)}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function FieldRow({ field, locked, draft, onChange }: { field: Field; locked: string | null; draft: Map<string, Value>; onChange: (field: Field, next: Value) => void }) {
+  const label = t(`cfe_f_${field.key}`);
+  const id = `cfe-${field.key}`;
+  const labelId = `${id}-label`;
+  const helpId = `${id}-help`;
+  const pending = draft.has(field.key);
+  const value = pending ? (draft.get(field.key) as Value) ?? field.default : field.value;
+  if (locked) {
+    return (
+      <div data-field={field.key}>
+        <LockedField label={label} value={show(field, field.value)} reason={locked} />
+      </div>
+    );
+  }
+  return (
+    <div className={`field${pending ? " changed" : ""}`} data-field={field.key} data-pending={pending ? "true" : undefined} {...(field.applied ? {} : { "data-control-unavailable": t("cfe_not_applied") })}>
       <div className="row wrap">
-        <label htmlFor={inputId} className="field-label">
+        <label id={labelId} htmlFor={id} className="field-label">
           {label}
         </label>
-        {field.kind === "integer" ? (
-          <input id={inputId} className="input number" type="number" min={1} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t("cfe_unset")} />
-        ) : (
-          <select id={inputId} className="input" value={draft} onChange={(e) => setDraft(e.target.value)}>
-            {draft === "" ? <option value="">{t("cfe_unset")}</option> : null}
-            {(field.kind === "boolean" ? ["false", "true"] : (field.options as string[])).map((o) => (
-              <option key={o} value={o}>
-                {field.kind === "boolean" ? t(o === "true" ? "cfe_on" : "cfe_off") : tOr(`cfe_opt_${field.key}_${o}`, o)}
-              </option>
-            ))}
-          </select>
-        )}
-        <button type="button" className="btn" disabled={!changed || !valid || busy} aria-label={t("cfe_save_aria", { name: label })} onClick={() => onSave(field.key, parsed)} aria-busy={busy || undefined}>
-          {t("save")}
-        </button>
-        {field.explicit && field.value !== field.default ? (
-          <button type="button" className="btn" disabled={busy} aria-label={t("cfe_reset_aria", { name: label })} onClick={() => onSave(field.key, null)}>
+        {pending ? <Pill tone="gold">{t("cfe_pending")}</Pill> : null}
+        {!field.applied ? <Pill>{t("cfe_not_applied")}</Pill> : null}
+      </div>
+      <p className="small muted" id={helpId}>
+        {t(`cfe_h_${field.key}`)}
+      </p>
+      {field.kind === "boolean" ? (
+        <Switch id={id} labelId={labelId} helpId={helpId} checked={value === true} disabled={false} onChange={(next) => onChange(field, next)} />
+      ) : field.kind === "enum" ? (
+        <Choice field={field} id={id} labelId={labelId} helpId={helpId} value={value} disabled={false} onChange={(next) => onChange(field, next)} />
+      ) : (
+        <NumberControl key={`${field.key}:${String(field.value)}`} field={field} id={id} labelId={labelId} helpId={helpId} label={label} value={value} disabled={false} onChange={(next) => onChange(field, next)} />
+      )}
+      <div className="row wrap">
+        {field.explicit && !pending && field.value !== field.default ? (
+          <button type="button" className="btn" aria-label={t("cfe_reset_aria", { name: label })} onClick={() => onChange(field, null)}>
             {t("cfe_reset")}
           </button>
         ) : null}
-        {!field.applied ? <Pill>{t("cfe_not_applied")}</Pill> : null}
       </div>
-      <p className="small muted">{t(`cfe_h_${field.key}`)}</p>
       <OriginLine origin={field.origin} saveTo={field.saveTo} />
     </div>
   );
@@ -97,31 +230,53 @@ function FieldRow({ field, locked, busy, onSave }: { field: Field; locked: strin
 
 export default function ConfigExecutionScreen() {
   const toast = useToast();
-  const [revision, setRevision] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  const view = useAsync<View>(() => api("GET", "/api/config/execution"), `execution:${revision}`);
+  const view = useAsync<View>(() => api("GET", "/api/config/execution"), "execution");
+  const [draft, setDraft] = useState<Map<string, Value>>(new Map());
+  const [review, setReview] = useState<{ preview: Preview | null; error: unknown; busy: boolean } | null>(null);
 
-  if (view.error) return <ErrorNotice error={view.error} onRetry={view.reload} />;
+  if (view.error && !view.data) return <ErrorNotice error={view.error} onRetry={view.reload} />;
   if (!view.data) return <Loading />;
   const v = view.data;
   const locked = v.mode === "governed" ? t("cfe_governed_reason", { policy: v.governed?.policy ?? "" }) : null;
 
-  const save = async (key: string, value: string | number | boolean | null) => {
-    setBusy(true);
-    setError(null);
+  // A change that brings a field back to what it already holds is no change.
+  const change = (field: Field, next: Value) => {
+    setDraft((prev) => {
+      const map = new Map(prev);
+      const same = next === null ? !field.explicit : next === field.value;
+      if (same) map.delete(field.key);
+      else map.set(field.key, next);
+      return map;
+    });
+  };
+  const changes = () => Object.fromEntries(draft);
+
+  const openReview = async () => {
+    setReview({ preview: null, error: null, busy: true });
     try {
-      // The answer is the same payload as the GET: the screen takes it instead of asking again.
-      const answer = await api<View>("PUT", "/api/config/execution", { expectedRevision: v.revision, changes: { [key]: value } });
-      toast(t("cfe_saved", { name: t(`cfe_f_${key}`) }), "ok");
-      if (answer?.fields) view.prime(answer);
-      else setRevision((n) => n + 1);
-    } catch (e) {
-      setError(e);
-    } finally {
-      setBusy(false);
+      const preview = await api<Preview>("POST", "/api/config/execution/preview", { changes: changes() });
+      setReview({ preview, error: null, busy: false });
+    } catch (error) {
+      setReview({ preview: null, error, busy: false });
     }
   };
+
+  const save = async () => {
+    setReview((r) => (r ? { ...r, busy: true, error: null } : r));
+    try {
+      // The answer is the same payload as the GET: the screen takes it instead of asking again.
+      const answer = await api<View>("PUT", "/api/config/execution", { expectedRevision: v.revision, changes: changes() });
+      toast(t("cfe_saved", { count: draft.size }), "ok");
+      setDraft(new Map());
+      setReview(null);
+      if (answer?.fields) view.prime(answer);
+      else view.reload();
+    } catch (error) {
+      setReview((r) => (r ? { ...r, busy: false, error } : r));
+    }
+  };
+
+  const conflict = review?.error instanceof ApiError && (review.error.status === 409 || review.error.code === "REVISION_CONFLICT");
 
   return (
     <div className="stack" aria-busy={view.reloading}>
@@ -136,17 +291,28 @@ export default function ConfigExecutionScreen() {
           <p className="small">{locked}</p>
         </div>
       ) : null}
-      {error ? <ErrorNotice error={error} /> : null}
 
       {GROUPS.map((group) => (
         <section key={group.id} className="card pad stack" aria-labelledby={`cfe-${group.id}-title`}>
           <h2 id={`cfe-${group.id}-title`}>{t(`cfe_group_${group.id}`)}</h2>
+          {group.id === "ci" ? <p className="small muted">{t("cfe_group_ci_lead")}</p> : null}
           {group.keys.map((key) => {
             const field = v.fields.find((f) => f.key === key);
-            return field ? <FieldRow key={`${key}:${String(field.value)}:${v.revision}`} field={field} locked={locked} busy={busy} onSave={save} /> : null;
+            return field ? <FieldRow key={`${key}:${v.revision}`} field={field} locked={locked} draft={draft} onChange={change} /> : null;
           })}
         </section>
       ))}
+
+      {!locked ? (
+        <div className="row wrap cfe-actions" role="group" aria-label={t("cfe_actions")}>
+          <button type="button" className="btn primary" disabled={draft.size === 0 || review !== null} onClick={() => void openReview()}>
+            {t("cfe_review", { count: draft.size })}
+          </button>
+          <button type="button" className="btn" disabled={draft.size === 0} onClick={() => setDraft(new Map())}>
+            {t("cfe_discard")}
+          </button>
+        </div>
+      ) : null}
 
       <div className="notice ok">
         <Icon name="info" />
@@ -154,6 +320,49 @@ export default function ConfigExecutionScreen() {
           {t("cfe_retention_note")} <a href="#/preferences/storage">{t("cfe_retention_link")}</a>
         </p>
       </div>
+
+      {review ? (
+        <Dialog title={t("cfe_review_title")} onClose={() => setReview(null)} wide>
+          <div className="stack" data-testid="cfe-review">
+            <p className="small">{t("cfe_review_lead", { file: "jgates.yml" })}</p>
+            {review.busy && !review.preview ? <Loading /> : null}
+            {review.preview ? review.preview.changed ? <DiffView diff={review.preview.diff} /> : <p className="notice" role="status">{t("cfe_review_unchanged")}</p> : null}
+            {conflict ? (
+              <div className="notice warn" role="alert">
+                <Icon name="alert" />
+                <div className="stack tight">
+                  <p className="small">{t("cfe_conflict")}</p>
+                  <div>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => {
+                        setReview(null);
+                        setDraft(new Map());
+                        view.reload();
+                      }}
+                    >
+                      <Icon name="refresh" />
+                      {t("cfe_conflict_reload")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : review.error ? (
+              <ErrorNotice error={review.error} />
+            ) : null}
+            <div className="row wrap">
+              <button type="button" className="btn primary" disabled={!review.preview || !review.preview.changed || review.busy || conflict} onClick={() => void save()}>
+                {review.busy && review.preview ? <Spinner /> : null}
+                {t("save")}
+              </button>
+              <button type="button" className="btn" onClick={() => setReview(null)}>
+                {t("cancel")}
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      ) : null}
     </div>
   );
 }

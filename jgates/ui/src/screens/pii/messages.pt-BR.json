@@ -1,0 +1,5 @@
+{
+  "pii_nav": "Dados pessoais",
+  "pii_other_title": "Instância, ferramentas externas e hook",
+  "pii_other_lead": "O que o detector não decide por entidade: ligar ou desligar a verificação inteira, a severidade padrão, as ferramentas externas, a verificação e correção dos arquivos do projeto e o hook de commit."
+}

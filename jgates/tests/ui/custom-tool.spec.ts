@@ -334,7 +334,8 @@ test("declaring a component in a language JGates has no checks for offers the ow
     await page.goto(`${base}#/workspace`);
     await page.getByRole("button", { name: "Declarar componente" }).click();
     const dialog = page.getByRole("dialog", { name: "Declarar componente" });
-    await dialog.getByLabel("Caminho").fill("native");
+    await dialog.getByLabel("Caminho", { exact: true }).selectOption({ label: "Outro..." });
+    await dialog.getByLabel("Outro valor de Caminho").fill("native");
     await dialog.getByLabel("Linguagem", { exact: true }).selectOption({ label: "C++ (sem ferramentas ainda)" }).catch(async () => {
       const options = await dialog.getByLabel("Linguagem", { exact: true }).locator("option").allTextContents();
       const unsupported = options.find((o) => /sem ferramentas/i.test(o));

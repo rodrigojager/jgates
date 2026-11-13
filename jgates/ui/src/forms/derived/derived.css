@@ -28,12 +28,12 @@
 .df-undo-diff summary { cursor: pointer; font-size: 12px; }
 .df-undo-diff .diff { margin-top: 6px; }
 .df-switch-row { gap: 10px; }
-.df-switch { position: relative; flex: none; width: 40px; height: 22px; padding: 0; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); cursor: pointer; }
+.df-switch { position: relative; flex: none; width: 44px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); cursor: pointer; }
 .df-switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
 .df-switch:disabled { cursor: not-allowed; opacity: 0.6; }
 .df-switch[aria-busy="true"] { cursor: progress; }
-.df-switch-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); transition: transform 0.12s ease; }
-.df-switch[aria-checked="true"] .df-switch-knob { transform: translateX(18px); border-color: transparent; }
+.df-switch-knob { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); transition: transform 0.12s ease; }
+.df-switch[aria-checked="true"] .df-switch-knob { transform: translateX(20px); border-color: transparent; }
 @media (prefers-reduced-motion: reduce) { .df-switch-knob { transition: none; } }
 .df-review .diff { max-height: 45vh; }
 @media (max-width: 600px) {

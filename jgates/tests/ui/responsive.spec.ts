@@ -35,6 +35,9 @@ const SCREENS: Screen[] = [
   { id: "providers-e-chaves", hash: "#/preferences/providers" },
   { id: "sobre", hash: "#/about" },
   { id: "politica-ci", hash: "#/policy" },
+  { id: "dados-pessoais", hash: "#/tools/builtin-pii" },
+  { id: "dependencias", hash: "#/config/dependencies" },
+  { id: "imagem-de-extensao", hash: "#/config/image" },
 ];
 
 let fixture: Fixture;

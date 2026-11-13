@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, api } from "../../api";
 import { Dialog, ErrorNotice, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
+import { DerivedForm } from "../../forms/derived/DerivedForm";
+import type { DerivedField } from "../../forms/derived/types";
 import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import { reasonText, type Classification } from "./components-tab";
 
 type Mode = "auto" | "explicit" | "report-only";
+const discoveryEnabled = (field: DerivedField) => field.path[1] === "enabled";
 const MODES: Mode[] = ["auto", "explicit", "report-only"];
 
 export interface Settings {
@@ -196,6 +199,11 @@ export function ScopeTab({ settings, refreshKey, onChanged }: { settings: Settin
         ))}
       </fieldset>
       {settings.mode === "explicit" ? <p className="small">{t("ws_mode_note_explicit")}</p> : null}
+      <section className="stack" aria-labelledby="ws-discovery-title" data-testid="ws-discovery-switch">
+        <h3 id="ws-discovery-title">{t("ws_discovery_title")}</h3>
+        <DerivedForm key={settings.revision ?? "none"} source={{ file: ".jgates/workspace.yml" }} under={["discovery"]} include={discoveryEnabled} onWrite={onChanged} headingLevel={4} />
+      </section>
+
       <div className="row">
         <button type="button" className="btn" onClick={() => setShowYaml(true)}>
           <Icon name="file" />

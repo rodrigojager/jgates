@@ -140,9 +140,10 @@ test("the Execução tab changes execution.network in jgates.yml and the next pl
     const root = path.join(fixture.dir, "jgates.yml");
     const before = read(root);
 
-    await page.getByLabel("Rede", { exact: true }).selectOption("deny");
-    await page.getByRole("button", { name: "Salvar Rede" }).click();
-    await expect(page.getByText("Rede salvo em jgates.yml.")).toBeVisible();
+    await page.getByRole("radio", { name: "Negada" }).check();
+    await page.getByRole("button", { name: /^Revisar e salvar/ }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect(page.getByText("1 alteração salva em jgates.yml.")).toBeVisible();
     await expect(page.locator('[data-field="network"]').getByTestId("origin-save")).toContainText("jgates.yml");
 
     const after = read(root);
@@ -150,9 +151,12 @@ test("the Execução tab changes execution.network in jgates.yml and the next pl
     expect(after).toContain(before.trimEnd());
     expect(plan(fixture).network.policy).toBe("deny");
 
-    // Back to the inherited value removes the key.
+    // Back to the inherited value removes the key (a draft like any other, saved with the diff).
     await page.getByRole("button", { name: "Voltar ao herdado: Rede" }).click();
-    await expect(page.locator('[data-field="network"] select')).toHaveValue("explicit");
+    await page.getByRole("button", { name: /^Revisar e salvar/ }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Salvar", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("radio", { name: "Explícita" })).toBeChecked();
     expect(plan(fixture).network.policy).toBe("explicit");
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   });

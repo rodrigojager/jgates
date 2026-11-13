@@ -53,6 +53,8 @@
   "extension_build_base_arg": "The Dockerfile must start with the two lines ARG JGATES_TOOLS and FROM ${JGATES_TOOLS}.",
   "extension_build_base_arg_fix": "Add them as the first lines of .jgates/image/Dockerfile.",
   "extension_build_engine": "The container engine failed: {detail}",
+  "extension_build_running": "A build of the extension image is already running.",
+  "extension_build_running_fix": "Wait for it to finish; the screen shows the result.",
   "extension_test_description": "Runs one of your own tools once and shows what its report gave.",
   "extension_test_missing_instance": "Name the tool to test: jgates tools test <instance>",
   "extension_test_not_found": "The tool {instance} is not in the plan: {reason}",

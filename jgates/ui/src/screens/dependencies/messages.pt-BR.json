@@ -1,0 +1,20 @@
+{
+  "dep_nav": "Dependências",
+  "dep_title": "Dependências",
+  "dep_lead": "Como o JGates instala as dependências do projeto antes das verificações: o gerenciador de cada componente e os registries privados, guardados em .jgates/dependencies.yml.",
+  "dep_managers_title": "Gerenciadores",
+  "dep_managers_lead": "O JGates usa o gerenciador que o componente declara; sem declaração, o que a detecção encontrou nos arquivos de lock.",
+  "dep_managers_label": "Gerenciador de dependências de cada componente",
+  "dep_managers_empty": "Nenhum componente com dependências foi encontrado.",
+  "dep_managers_edit": "Mudar o gerenciador ou os grupos de um componente no Workspace",
+  "dep_col_component": "Componente",
+  "dep_col_manager": "Gerenciador",
+  "dep_col_groups": "Grupos",
+  "dep_declared": "declarado",
+  "dep_detected": "detectado",
+  "dep_none": "nenhum",
+  "dep_registries_title": "Registries privados e instalação",
+  "dep_secret_note": "O registry guarda só a URL e o NOME do segredo que contém o token (por exemplo NPM_TOKEN). O valor do token nunca é escrito aqui nem aparece nesta tela; ele vem das chaves guardadas ou do ambiente do CI.",
+  "dep_missing": "O arquivo .jgates/dependencies.yml ainda não existe. Ele é opcional: sem ele, as dependências vêm dos registries públicos.",
+  "dep_create": "Criar .jgates/dependencies.yml"
+}

@@ -1,0 +1,5 @@
+{
+  "pii_nav": "Personal data",
+  "pii_other_title": "Instance, external tools and hook",
+  "pii_other_lead": "What the detector does not decide per entity: turning the whole check on or off, the default severity, the external tools, the check and correction of the project files and the commit hook."
+}

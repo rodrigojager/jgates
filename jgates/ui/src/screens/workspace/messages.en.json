@@ -151,5 +151,8 @@
   "ws_saved_toast": "Written to .jgates/workspace.yml",
   "ws_invalid_file": ".jgates/workspace.yml has problems: {message}",
   "ws_overview_aria": "Discovery summary",
-  "ws_offer_later": "Not now"
+  "ws_offer_later": "Not now",
+  "ws_fields_summary": "More fields of {name}",
+  "ws_fields_lead": "Kind, activation, includes and excludes, and the dependency manager of the component. Each field is written alone, with the change to the file in view.",
+  "ws_discovery_title": "Automatic detection"
 }

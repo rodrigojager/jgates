@@ -25,7 +25,7 @@ const tabModules = Object.values(import.meta.glob<Partial<ToolTabModule>>("../to
   (m): m is ToolTabModule => typeof m.tab === "object" && m.tab !== null && typeof m.default === "function",
 );
 
-export const screen: ScreenMeta = { id: "tool", path: "/tools/:instance", order: 20 };
+export const screen: ScreenMeta = { id: "tool", path: "/tools/:instance", area: "config", order: 60 };
 
 interface Selection {
   binding: string;

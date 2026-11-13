@@ -277,7 +277,7 @@ function ListControl({ field, id, labelId, helpId, title, edit, disabled, onEdit
       <div className="row wrap df-list-add">
         {field.source ? (
           <div className="grow">
-            <ValuePicker id={id} source={field.source} value={draft} fieldLabel={title} placeholder={ft("df_list_pick")} disabled={disabled} onChange={setDraft} />
+            <ValuePicker id={id} source={field.source} value={draft} fieldLabel={title} labelledBy={labelId} describedBy={helpId} placeholder={ft("df_list_pick")} disabled={disabled} onChange={setDraft} />
           </div>
         ) : (
           <input

@@ -53,6 +53,8 @@
   "extension_build_base_arg": "O Dockerfile precisa começar com as duas linhas ARG JGATES_TOOLS e FROM ${JGATES_TOOLS}.",
   "extension_build_base_arg_fix": "Coloque-as como as primeiras linhas de .jgates/image/Dockerfile.",
   "extension_build_engine": "O motor de contêineres falhou: {detail}",
+  "extension_build_running": "Já há uma construção da imagem de extensão em andamento.",
+  "extension_build_running_fix": "Espere ela terminar; a tela mostra o resultado.",
   "extension_test_description": "Roda uma ferramenta sua uma vez e mostra o que o relatório dela deu.",
   "extension_test_missing_instance": "Diga qual ferramenta testar: jgates tools test <instância>",
   "extension_test_not_found": "A ferramenta {instance} não está no plano: {reason}",

@@ -1,0 +1,20 @@
+{
+  "dep_nav": "Dependencies",
+  "dep_title": "Dependencies",
+  "dep_lead": "How JGates installs the project dependencies before the checks: the manager of each component and the private registries, kept in .jgates/dependencies.yml.",
+  "dep_managers_title": "Managers",
+  "dep_managers_lead": "JGates uses the manager the component declares; without a declaration, the one detection found in the lock files.",
+  "dep_managers_label": "Dependency manager of each component",
+  "dep_managers_empty": "No component with dependencies was found.",
+  "dep_managers_edit": "Change the manager or the groups of a component in Workspace",
+  "dep_col_component": "Component",
+  "dep_col_manager": "Manager",
+  "dep_col_groups": "Groups",
+  "dep_declared": "declared",
+  "dep_detected": "detected",
+  "dep_none": "none",
+  "dep_registries_title": "Private registries and install",
+  "dep_secret_note": "A registry keeps only the URL and the NAME of the secret that holds the token (for example NPM_TOKEN). The token value is never written here and never shown on this screen; it comes from the stored keys or from the CI environment.",
+  "dep_missing": "The file .jgates/dependencies.yml does not exist yet. It is optional: without it, dependencies come from the public registries.",
+  "dep_create": "Create .jgates/dependencies.yml"
+}
