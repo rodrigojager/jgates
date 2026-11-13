@@ -2,13 +2,15 @@ import { useMemo, useState } from "react";
 import { api } from "../../api";
 import { currentQuery } from "../../app/route";
 import { useShell } from "../../app/shell-context";
-import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { adapterName, t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { SemanticCard } from "./semantic/card";
 import { CustomToolDialog } from "./custom-dialog";
 import { CreateDialog, RemoveDialog, RenameDialog, type CatalogAdapter } from "./dialogs";
+import { EditOwnTool } from "./edit-own";
+import { OwnTest } from "./own-test";
 
 export const screen: ScreenMeta = { id: "tools", path: "/tools", navLabel: "nav_tools", navPath: "/tools", order: 10, icon: "tools" };
 
@@ -29,6 +31,28 @@ interface CatalogEntry extends CatalogAdapter {
   supportLevel: string;
   platformSupported: boolean;
   executesProjectCode: boolean;
+  /** 0: for a language of the project; 1: for any language; 2: for other languages only. */
+  relevance?: number;
+}
+
+/** A tool the plan of the project runs (GET /api/tool-effective). */
+interface EffectiveTool {
+  tool: string;
+  adapter: string | null;
+  category: string | null;
+  capabilities: string[];
+  components: string[];
+  languages: string[];
+  required: boolean;
+  via: string;
+  declared: boolean;
+}
+
+interface EffectiveData {
+  ok: boolean;
+  languages: string[];
+  tools: EffectiveTool[];
+  error?: string;
 }
 
 interface Distribution {
@@ -55,6 +79,7 @@ interface Availability {
 interface Origins {
   image: { version: string | null; tools: Record<string, string> };
   tested: Record<string, string>;
+  categories?: Array<{ id: string; label: string }>;
 }
 
 /** The origin row of a catalog entry or of an instance: JGates image (with the tool version), own tool or customer supplied. */
@@ -78,6 +103,18 @@ const AVAILABILITY_TONE: Record<string, "green" | "gold"> = { available: "green"
 function matches(haystack: string[], query: string): boolean {
   const q = query.trim().toLowerCase();
   return q === "" || haystack.some((h) => h.toLowerCase().includes(q));
+}
+
+/** How well a catalogue entry answers a search: the name first (exact, prefix, inside), then language, then the rest. */
+function rank(a: CatalogEntry, query: string): number {
+  const q = query.trim().toLowerCase();
+  if (q === "") return 0;
+  const names = [adapterName(a.adapter, a.displayName), a.displayName, a.toolName, a.adapter].map((n) => n.toLowerCase());
+  if (names.some((n) => n === q)) return 0;
+  if (names.some((n) => n.startsWith(q))) return 1;
+  if (names.some((n) => n.includes(q))) return 2;
+  if (a.languages.some((l) => l.toLowerCase().includes(q))) return 3;
+  return 4;
 }
 
 /** Only web links are rendered as links; anything else a manifest might carry is shown as text. */
@@ -112,15 +149,21 @@ function LinkList({ title, links }: { title: string; links: string[] }) {
   );
 }
 
-/** The distribution state of a catalog tool and, for a customer-supplied one, the official setup guidance. */
-export function DistributionInfo({ info }: { info: MatrixInfo | undefined }) {
+/**
+ * Where a catalog tool comes from, said once: the state (with the version of the tool in the JGates image), the licence,
+ * the source and, for a customer-supplied one, the official setup guidance.
+ */
+export function DistributionInfo({ info, version }: { info: MatrixInfo | undefined; version?: string | null }) {
   const d = info?.distribution;
   if (!d) return null;
   return (
     <div className="stack tight" data-testid="catalog-distribution" data-mode={d.mode}>
       <div className="row wrap">
         <span className="small">{t("tools_dist_label")}</span>
-        <Pill tone={d.mode === "customer-supplied" ? "gold" : "green"}>{t(`tools_dist_${d.mode}`)}</Pill>
+        <Pill tone={d.mode === "customer-supplied" ? "gold" : "green"}>
+          <span style={{ whiteSpace: "normal", overflowWrap: "anywhere" }}>{t(`tools_dist_${d.mode}`)}</span>
+        </Pill>
+        {d.mode === "shipped" && version ? <span className="small muted">{t("tools_availability_version", { version })}</span> : null}
         {d.spdx ? <span className="small muted">{t("tools_dist_license", { spdx: d.spdx })}</span> : null}
         {d.sourceUrl && isWebLink(d.sourceUrl) ? (
           <a className="small" href={d.sourceUrl} target="_blank" rel="noopener noreferrer">
@@ -152,8 +195,16 @@ export function AvailabilityPill({ value }: { value: Availability | undefined })
   );
 }
 
-function InstanceOrigin({ instance, toolName, entry, origins }: { instance: any; toolName: string; entry: MatrixInfo | undefined; origins: Origins | null }) {
-  if (instance.adapter === "generic-command") return <OriginRow kind="own" untested={origins !== null && !(instance.id in origins.tested)} />;
+function InstanceOrigin({ instance, toolName, entry, origins, onTested }: { instance: any; toolName: string; entry: MatrixInfo | undefined; origins: Origins | null; onTested: () => void }) {
+  if (instance.adapter === "generic-command") {
+    const untested = origins !== null && !(instance.id in origins.tested);
+    return (
+      <div className="stack tight">
+        <OriginRow kind="own" untested={untested} />
+        {untested ? <OwnTest id={instance.id} onTested={onTested} /> : null}
+      </div>
+    );
+  }
   return <CatalogOrigin entry={{ adapter: instance.adapter, toolName }} info={entry} origins={origins} />;
 }
 
@@ -172,6 +223,7 @@ export default function ToolsScreen() {
   const availability = useAsync(() => api<{ availability: Record<string, Availability> }>("GET", "/api/tool-availability").catch(() => null), "tool-availability");
   const matrix = useAsync(() => api<{ matrix: { adapters: Array<{ id: string } & MatrixInfo> } }>("GET", "/api/tool-matrix").catch(() => null), "tool-matrix");
   const origins = useAsync(() => api<Origins>("GET", "/api/tool-origins").catch(() => null), "tool-origins");
+  const effective = useAsync(() => api<EffectiveData>("GET", "/api/tool-effective"), "tool-effective");
   const matrixOf = useMemo(() => new Map((matrix.data?.matrix.adapters ?? []).map((m) => [m.id, m])), [matrix.data]);
   const shell = useShell();
   const governed = shell.info?.mode === "governed";
@@ -179,8 +231,9 @@ export default function ToolsScreen() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [component, setComponent] = useState("");
+  const [scope, setScope] = useState<"project" | "all">("project");
   // `#/tools?add=<adapter>` (the "Adicionar" action of a check that does not apply yet) opens the creation for that adapter.
-  const [dialog, setDialog] = useState<{ kind: "create"; adapter: string | null } | { kind: "custom"; component: string | null } | { kind: "rename"; id: string } | { kind: "remove"; id: string } | null>(() => {
+  const [dialog, setDialog] = useState<{ kind: "create"; adapter: string | null } | { kind: "custom"; component: string | null } | { kind: "rename"; id: string } | { kind: "remove"; id: string } | { kind: "edit"; id: string } | null>(() => {
     const query = currentQuery();
     // `#/tools?custom=1[&component=<id>]` (the own-tool action of a check without a tool, the unsupported-language offer) opens the own-tool dialog.
     if (query.get("custom")) return { kind: "custom", component: query.get("component") };
@@ -190,7 +243,17 @@ export default function ToolsScreen() {
   const [notice, setNotice] = useState<{ text: string; tool: string; references: string[] } | null>(null);
 
   const instances: any[] = (tools.data as any)?.instances ?? [];
-  const adapters = catalog.data?.adapters ?? [];
+  const catalogData = catalog.data as { adapters: CatalogEntry[]; projectLanguages?: string[] } | null;
+  // What the plan runs counts as "of this project" whatever the languages say; then the project's languages first.
+  const inUse = useMemo(() => new Set((effective.data?.tools ?? []).map((e) => e.adapter).filter((a): a is string => a !== null)), [effective.data]);
+  const adapters = useMemo(
+    () =>
+      (catalogData?.adapters ?? [])
+        .map((a) => ({ ...a, relevance: inUse.has(a.adapter) ? 0 : (a.relevance ?? 1) }))
+        .sort((a, b) => (a.relevance ?? 1) - (b.relevance ?? 1) || adapterName(a.adapter, a.displayName).localeCompare(adapterName(b.adapter, b.displayName))),
+    [catalogData, inUse],
+  );
+  const projectLanguages = catalogData?.projectLanguages ?? [];
   const names = useMemo(() => new Map(adapters.map((a) => [a.adapter, a])), [adapters]);
   const components = useMemo(() => {
     const ids = new Set<string>(discovery.data?.inventory.classifications.map((c) => c.id) ?? []);
@@ -212,12 +275,28 @@ export default function ToolsScreen() {
     const text = [i.id, i.adapter, entry?.displayName ?? "", ...(entry?.languages ?? []), ...(entry?.categories ?? [])];
     return matches(text, query) && (category === "" || entry?.categories.includes(category)) && (component === "" || i.component === component);
   });
-  const visibleCatalog = adapters.filter((a) => matches([a.adapter, a.displayName, a.toolName, ...a.languages, ...a.categories, ...a.capabilities], query) && (category === "" || a.categories.includes(category)));
+  const searching = query.trim() !== "";
+  const matching = adapters.filter((a) => matches([a.adapter, a.displayName, adapterName(a.adapter, a.displayName), a.toolName, ...a.languages, ...a.categories, ...a.capabilities], query) && (category === "" || a.categories.includes(category)));
+  // "Deste projeto" by default; a search looks through everything, best name match first.
+  const visibleCatalog = searching
+    ? matching.map((a, i) => ({ a, i })).sort((x, y) => rank(x.a, query) - rank(y.a, query) || x.i - y.i).map((x) => x.a)
+    : scope === "project"
+      ? matching.filter((a) => (a.relevance ?? 1) < 2)
+      : matching;
+  const hiddenByScope = !searching && scope === "project" ? matching.length - visibleCatalog.length : 0;
+  const categoryLabel = (c: string) => tOr(`tools_category_${c}`, origins.data?.categories?.find((x) => x.id === c)?.label ?? c);
+  const effectiveTools = (effective.data?.tools ?? []).filter((e) => {
+    const entry = e.adapter ? names.get(e.adapter) : undefined;
+    const text = [e.tool, e.adapter ?? "", entry?.displayName ?? "", ...e.capabilities, ...e.languages, ...(e.category ? [e.category] : [])];
+    return matches(text, query) && (category === "" || (e.category ?? "") === category || (entry?.categories.includes(category) ?? false)) && (component === "" || e.components.includes(component));
+  });
+  const effectiveGroups = [...new Set(effectiveTools.map((e) => e.category ?? ""))].sort((a, b) => categoryLabel(a).localeCompare(categoryLabel(b))).map((c) => ({ category: c, items: effectiveTools.filter((e) => (e.category ?? "") === c) }));
 
   const refresh = () => {
     tools.reload();
     origins.reload();
     availability.reload();
+    effective.reload();
   };
   const done = (text: string, tool: string, references: string[] = []) => {
     setDialog(null);
@@ -238,6 +317,7 @@ export default function ToolsScreen() {
         </button>
       </div>
 
+      <Updating active={tools.reloading || catalog.reloading || effective.reloading} />
       {governed ? (
         <div className="notice" role="status" data-testid="tools-governed">
           <Icon name="lock" />
@@ -278,7 +358,7 @@ export default function ToolsScreen() {
             <option value="">{t("tools_filter_all")}</option>
             {categories.map((c) => (
               <option key={c} value={c}>
-                {tOr(`tools_category_${c}`, c)}
+                {categoryLabel(c)}
               </option>
             ))}
           </select>
@@ -295,6 +375,59 @@ export default function ToolsScreen() {
           </select>
         </label>
       </div>
+
+      <section className="stack" aria-labelledby="tools-effective-title" aria-busy={effective.loading ? true : undefined} data-testid="tools-effective">
+        <div>
+          <h2 id="tools-effective-title">{t("tools_effective_title")}</h2>
+          <p className="small">{t("tools_effective_lead")}</p>
+        </div>
+        {effective.loading && !effective.data ? (
+          <p className="spinner-text" role="status">
+            {t("tools_effective_loading")}
+          </p>
+        ) : effective.error ? (
+          <ErrorNotice error={effective.error} onRetry={effective.reload} />
+        ) : effective.data && !effective.data.ok ? (
+          <div className="notice warn" role="status">
+            <Icon name="alert" />
+            <p>{t("tools_effective_failed", { error: effective.data.error ?? "" })}</p>
+          </div>
+        ) : effectiveTools.length === 0 ? (
+          <p>{(effective.data?.tools.length ?? 0) === 0 ? t("tools_effective_none") : t("tools_no_match")}</p>
+        ) : (
+          effectiveGroups.map((g) => (
+            <div key={g.category} className="stack tight" data-testid="effective-group" data-category={g.category}>
+              <h3>
+                {g.category ? categoryLabel(g.category) : t("tools_category_other")} <span className="small muted">{t("tools_effective_count", { count: g.items.length })}</span>
+              </h3>
+              <ul className="tool-cards stack" style={{ listStyle: "none", padding: 0 }}>
+                {g.items.map((e) => {
+                  const entry = e.adapter ? names.get(e.adapter) : undefined;
+                  const label = e.adapter ? adapterName(e.adapter, entry?.displayName ?? e.adapter) : e.tool;
+                  return (
+                    <li key={e.tool} className="card flat stack tight" data-testid="effective-tool" data-tool={e.tool} data-via={e.declared ? "instance" : e.via}>
+                      <div className="between wrap">
+                        <h4>
+                          <a href={`#/tools/${encodeURIComponent(e.tool)}`} aria-label={t("tools_effective_open", { tool: label })}>
+                            {label}
+                          </a>{" "}
+                          {label !== e.tool ? <code className="small muted">{e.tool}</code> : null}
+                        </h4>
+                        <div className="row wrap">
+                          <Pill tone={e.declared ? "blue" : undefined}>{e.declared ? t("tools_effective_via_instance") : e.via === "template" ? t("tools_effective_via_template") : t("tools_effective_via_default")}</Pill>
+                          {e.required ? <Pill>{t("tools_required")}</Pill> : null}
+                        </div>
+                      </div>
+                      {e.capabilities.length > 0 ? <p className="small">{t("tools_effective_caps", { capabilities: e.capabilities.join(", ") })}</p> : null}
+                      {e.components.length > 0 ? <p className="small muted">{t("tools_effective_in", { components: e.components.join(", ") })}</p> : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))
+        )}
+      </section>
 
       <section className="stack" aria-labelledby="tools-instances-title">
         <h2 id="tools-instances-title">{t("tools_instances_title")}</h2>
@@ -326,7 +459,7 @@ export default function ToolsScreen() {
                   <dd>{i.runner === "container" ? t("tools_card_runner_container") : t("tools_card_runner_local")}</dd>
                   <dt>{t("tools_origin_label")}</dt>
                   <dd>
-                    <InstanceOrigin instance={i} toolName={entry?.toolName ?? i.adapter} entry={matrixOf.get(i.adapter)} origins={origins.data} />
+                    <InstanceOrigin instance={i} toolName={entry?.toolName ?? i.adapter} entry={matrixOf.get(i.adapter)} origins={origins.data} onTested={() => origins.reload()} />
                   </dd>
                   <dt>{t("tools_card_availability")}</dt>
                   <dd data-testid="tool-availability">
@@ -348,6 +481,11 @@ export default function ToolsScreen() {
                   </dd>
                 </dl>
                 <div className="row wrap">
+                  {i.adapter === "generic-command" ? (
+                    <button type="button" className="btn" disabled={governed} aria-label={t("tools_card_edit_own", { tool: i.id })} onClick={() => setDialog({ kind: "edit", id: i.id })}>
+                      {t("tools_card_edit")}
+                    </button>
+                  ) : null}
                   <button type="button" className="btn" disabled={governed} aria-label={t("tools_rename_label", { tool: i.id })} onClick={() => setDialog({ kind: "rename", id: i.id })}>
                     {t("tools_rename")}
                   </button>
@@ -366,6 +504,18 @@ export default function ToolsScreen() {
           <h2 id="tools-catalog-title">{t("tools_catalog_title")}</h2>
           <p className="small">{t("tools_catalog_lead")}</p>
         </div>
+        <fieldset className="row wrap" data-testid="tools-scope">
+          <legend className="small">{t("tools_scope_legend")}</legend>
+          <label className="row">
+            <input type="radio" name="tools-scope" value="project" checked={scope === "project"} onChange={() => setScope("project")} />
+            <span>{t("tools_scope_project")}</span>
+          </label>
+          <label className="row">
+            <input type="radio" name="tools-scope" value="all" checked={scope === "all"} onChange={() => setScope("all")} />
+            <span>{t("tools_scope_all")}</span>
+          </label>
+        </fieldset>
+        <p className="small muted">{projectLanguages.length > 0 ? t("tools_scope_note", { languages: projectLanguages.join(", ") }) : t("tools_scope_note_none")}</p>
         {visibleCatalog.length === 0 ? <p>{t("tools_no_match")}</p> : null}
         <ul className="tool-cards stack" style={{ listStyle: "none", padding: 0 }}>
           {visibleCatalog.map((a) => (
@@ -385,9 +535,8 @@ export default function ToolsScreen() {
               </div>
               <p className="small">{a.languages.length > 0 ? t("tools_card_languages", { languages: a.languages.join(", ") }) : t("tools_card_languages_none")}</p>
               <p className="small">{a.categories.map((c) => tOr(`tools_category_${c}`, c)).join(", ")}</p>
-              <p className="small">{t("tools_card_runners", { runners: a.runners.map((r) => (r === "container" ? t("tools_card_runner_container") : t("tools_card_runner_local"))).join(", ") })}</p>
-              <CatalogOrigin entry={a} info={matrixOf.get(a.adapter)} origins={origins.data} />
-              <DistributionInfo info={matrixOf.get(a.adapter)} />
+              {/* Where it comes from, said once: the distribution carries the state, version, licence and source. */}
+              {matrixOf.get(a.adapter)?.distribution ? <DistributionInfo info={matrixOf.get(a.adapter)} version={origins.data?.image.tools[a.toolName] ?? null} /> : <CatalogOrigin entry={a} info={matrixOf.get(a.adapter)} origins={origins.data} />}
               {a.instantiable ? (
                 <div>
                   <button type="button" className="btn" disabled={governed} aria-label={t("tools_card_use", { tool: adapterName(a.adapter, a.displayName) })} onClick={() => setDialog({ kind: "create", adapter: a.adapter })}>
@@ -399,6 +548,11 @@ export default function ToolsScreen() {
             </li>
           ))}
         </ul>
+        {hiddenByScope > 0 ? (
+          <p className="small muted" data-testid="tools-scope-hidden">
+            {t("tools_scope_hidden", { count: hiddenByScope })}
+          </p>
+        ) : null}
       </section>
 
       <SemanticCard />
@@ -412,15 +566,10 @@ export default function ToolsScreen() {
           onClose={() => setDialog(null)}
           onOwn={() => setDialog({ kind: "custom", component: null })}
           onDone={(id) => {
-            // Created from a "not applicable here" action (#/tools?add=<adapter>&focus=<settings>): go straight to the
-            // new instance's options, with the settings the check still needs focused.
-            const query = currentQuery();
-            if (query.get("add")) {
-              const focus = query.get("focus");
-              window.location.hash = `#/tools/${encodeURIComponent(id)}${focus ? `?focus=${encodeURIComponent(focus)}` : ""}`;
-              return;
-            }
-            done(t("tools_done_created", { tool: id }), id);
+            // The flow goes on into the new instance's settings; from a "not applicable here" action
+            // (#/tools?add=<adapter>&focus=<settings>) with the settings the check still needs focused.
+            const focus = currentQuery().get("add") ? currentQuery().get("focus") : null;
+            window.location.hash = `#/tools/${encodeURIComponent(id)}${focus ? `?focus=${encodeURIComponent(focus)}` : ""}`;
           }}
         />
       ) : null}
@@ -435,6 +584,7 @@ export default function ToolsScreen() {
           }}
         />
       ) : null}
+      {dialog?.kind === "edit" ? <EditOwnTool id={dialog.id} onClose={(saved) => (saved ? done(t("tools_done_updated", { tool: saved }), saved) : setDialog(null))} /> : null}
       {dialog?.kind === "rename" ? <RenameDialog id={dialog.id} onClose={() => setDialog(null)} onDone={(to, refs) => done(t("tools_done_renamed", { tool: to }), dialog.id, refs)} /> : null}
       {dialog?.kind === "remove" ? <RemoveDialog id={dialog.id} onClose={() => setDialog(null)} onDone={(refs) => done(t("tools_done_removed", { tool: dialog.id }), dialog.id, refs)} /> : null}
     </div>

@@ -71,10 +71,26 @@ function slug(value: string): string {
     .replace(/^[^a-z0-9]+|-+$/g, "");
 }
 
-export function CustomToolDialog({ components, existing, preselect, onClose }: { components: string[]; existing: string[]; preselect?: string | null; onClose: (saved: string | null) => void }) {
+/** An own tool as tools.yml holds it, in the dialog's terms (GET /api/tools/:instance/own). */
+interface OwnTool {
+  id: string;
+  image: string | null;
+  command: string;
+  args: string[];
+  report: { format: Format; file?: string };
+  capabilities: string[];
+  component: string | null;
+  network: boolean;
+  timeoutSeconds: number | null;
+}
+
+/** With `edit` (the id of an existing own tool) the same six steps open filled in and save over the entry key by key. */
+export function CustomToolDialog({ components, existing, preselect, edit, onClose }: { components: string[]; existing: string[]; preselect?: string | null; edit?: string; onClose: (saved: string | null) => void }) {
   const origins = useAsync<Origins>(() => api("GET", "/api/tool-origins"), "custom-origins");
+  const own = useAsync<{ own: OwnTool } | null>(() => (edit ? api<{ own: OwnTool }>("GET", `/api/tools/${encodeURIComponent(edit)}/own`) : Promise.resolve(null)), `own-tool:${edit ?? ""}`);
   const [step, setStep] = useState<StepId>("obtain");
-  const [source, setSource] = useState<"install" | "image">("install");
+  const [source, setSource] = useState<"keep" | "install" | "image">(edit ? "keep" : "install");
+  const [kept, setKept] = useState<string | null>(null);
   const [image, setImage] = useState("");
   const [method, setMethod] = useState<Method>("pip");
   const [spec, setSpec] = useState("");
@@ -101,6 +117,27 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
   const [error, setError] = useState<unknown>(null);
   const [result, setResult] = useState<TestResult | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+
+  // Editing: the entry of tools.yml fills the steps once it is read.
+  const hydrated = useRef(false);
+  useEffect(() => {
+    const o = own.data?.own;
+    if (!o || hydrated.current) return;
+    hydrated.current = true;
+    setKept(o.image);
+    setId(o.id);
+    setIdTouched(true);
+    setCommand(o.command);
+    setArgs(o.args.join("\n"));
+    setComponent(o.component ?? "");
+    setNetwork(o.network);
+    if (o.timeoutSeconds) setTimeoutSeconds(o.timeoutSeconds);
+    setFormat(o.report.format);
+    setFile(o.report.file ?? "");
+    setFileTouched(true);
+    setPicked(o.capabilities.filter((c) => !c.startsWith("x-custom:")));
+    setCustomCaps(o.capabilities.filter((c) => c.startsWith("x-custom:")));
+  }, [own.data]);
 
   const installRequest = useMemo(() => {
     if (source !== "install") return null;
@@ -138,7 +175,8 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
   const capabilities = [...picked, ...customCaps];
   const request = () => ({
     id,
-    ...(source === "image" ? { image: image.trim() } : { install: installRequest ? [installRequest] : [] }),
+    ...(source === "image" ? { image: image.trim() } : source === "keep" ? (kept ? { image: kept } : {}) : { install: installRequest ? [installRequest] : [] }),
+    ...(edit ? { replace: true } : {}),
     command: command.trim(),
     args: args.split(/\r?\n/).map((a) => a.trim()).filter((a) => a !== ""),
     report: format === "exit-code" ? { format } : { format, file },
@@ -149,7 +187,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
   });
 
   const valid: Record<StepId, boolean> = {
-    obtain: source === "image" ? image.trim() !== "" : method === "binary" ? url.trim().startsWith("https://") && SHA_RE.test(sha.trim()) : spec.trim() !== "",
+    obtain: source === "keep" ? true : source === "image" ? image.trim() !== "" : method === "binary" ? url.trim().startsWith("https://") && SHA_RE.test(sha.trim()) : spec.trim() !== "",
     run: ID_RE.test(id) && command.trim() !== "",
     read: format === "exit-code" || /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(file),
     verify: capabilities.length > 0,
@@ -159,7 +197,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
   const index = STEPS.indexOf(step);
 
   // Anything typed or picked and not saved yet: closing asks first (Escape, Close, Cancel).
-  const dirty = saved === null && (image.trim() !== "" || spec.trim() !== "" || url.trim() !== "" || sha.trim() !== "" || command.trim() !== "" || args.trim() !== "" || idTouched || fileTouched || picked.length > 0 || customCaps.length > 0 || custom.trim() !== "");
+  const dirty = !edit && saved === null && (image.trim() !== "" || spec.trim() !== "" || url.trim() !== "" || sha.trim() !== "" || command.trim() !== "" || args.trim() !== "" || idTouched || fileTouched || picked.length > 0 || customCaps.length > 0 || custom.trim() !== "");
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const guard = useRef(false);
@@ -205,7 +243,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
     setPlan(null);
     try {
       // A tool saved by this dialog is replaced, not refused: its entry goes away first (the Dockerfile lines stay, once).
-      if (saved) {
+      if (saved && !edit) {
         await api("DELETE", `/api/tools/${encodeURIComponent(saved)}`);
         setSaved(null);
       }
@@ -276,7 +314,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
   const stepper = STEPS.map((s, i) => ({ id: s, label: t(`ctl_step_${s}`), done: i < index, disabled: i > index && !(saved && s === "test") }));
 
   return (
-    <Dialog title={t("ctl_title")} onClose={requestClose} wide>
+    <Dialog title={edit ? t("ctl_title_edit", { id: edit }) : t("ctl_title")} onClose={requestClose} wide>
       <div className="stack" data-testid="custom-tool-dialog" data-step={step} ref={root}>
         {confirmDiscard ? (
           <div className="notice warn" role="alert" data-testid="ctl-discard">
@@ -300,10 +338,20 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
           {t("ctl_step_n", { n: index + 1, total: STEPS.length, name: t(`ctl_step_${step}`) })}
         </h3>
         {origins.error ? <Refusal error={origins.error} /> : null}
+        {own.error ? <Refusal error={own.error} /> : null}
+        {edit ? <p className="small" data-testid="ctl-edit-note">{t("ctl_edit_note", { id: edit })}</p> : null}
 
         {step === "obtain" ? (
           <fieldset className="stack tight">
             <legend className="small">{t("ctl_obtain_legend")}</legend>
+            {edit ? (
+              <label className="row">
+                <input type="radio" name="ctl-source" value="keep" checked={source === "keep"} onChange={() => setSource("keep")} />
+                <span>
+                  {t("ctl_obtain_keep")} <span className="small muted">{kept === "extension" ? t("ctl_keep_extension") : kept ? t("ctl_keep_image", { image: kept }) : t("ctl_keep_tools")}</span>
+                </span>
+              </label>
+            ) : null}
             <label className="row">
               <input type="radio" name="ctl-source" value="image" checked={source === "image"} onChange={() => setSource("image")} />
               <span>{t("ctl_obtain_image")}</span>
@@ -312,7 +360,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
               <input type="radio" name="ctl-source" value="install" checked={source === "install"} onChange={() => setSource("install")} />
               <span>{t("ctl_obtain_install")}</span>
             </label>
-            {source === "image" ? (
+            {source === "keep" ? null : source === "image" ? (
               <div className="stack tight">
                 <label className="stack tight">
                   <span className="small">{t("ctl_image_label")}</span>
@@ -375,7 +423,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
           <div className="stack">
             <label className="stack tight">
               <span>{t("ctl_id_label")}</span>
-              <input className="input" type="text" data-free-text="tool-id" data-testid="ctl-id" value={id} autoComplete="off" spellCheck={false} aria-describedby="ctl-id-help" onChange={(e) => (setIdTouched(true), setId(e.target.value))} />
+              <input className="input" type="text" data-free-text="tool-id" data-testid="ctl-id" value={id} readOnly={Boolean(edit)} autoComplete="off" spellCheck={false} aria-describedby="ctl-id-help" onChange={(e) => (setIdTouched(true), setId(e.target.value))} />
               <span className="small muted" id="ctl-id-help">
                 {t("tools_dialog_id_help")}
               </span>
@@ -417,7 +465,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
               <label className="stack tight">
                 <span className="small">{t("ctl_timeout")}</span>
                 <select className="input" data-testid="ctl-timeout" value={timeout} onChange={(e) => setTimeoutSeconds(Number(e.target.value))}>
-                  {TIMEOUTS.map((s) => (
+                  {(TIMEOUTS.includes(timeout) ? TIMEOUTS : [...TIMEOUTS, timeout].sort((a, b) => a - b)).map((s) => (
                     <option key={s} value={s}>
                       {t("svc_timeout_option", { seconds: s })}
                     </option>
@@ -516,7 +564,7 @@ export function CustomToolDialog({ components, existing, preselect, onClose }: {
             ) : null}
             {plan ? (
               <>
-                <p>{t("ctl_review_lead", { id: plan.id })}</p>
+                <p>{t(edit ? "ctl_review_lead_edit" : "ctl_review_lead", { id: plan.id })}</p>
                 {plan.changes.map((c) => (
                   <section key={c.file} className="stack tight" data-testid="ctl-diff" data-file={c.file}>
                     <h4>

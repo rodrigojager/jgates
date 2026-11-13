@@ -63,7 +63,7 @@ tools:
 
 test("a second ESLint instance for another component is written to tools.yml and both appear with their files", async ({ page }) => {
   const fixture = createToolsFixture(ESLINT_WEB, { "web/eslint.config.js": ESLINT_CONFIG, "ui/eslint.config.js": ESLINT_CONFIG });
-  await withServer(page, fixture, async () => {
+  await withServer(page, fixture, async ({ base }) => {
     await expect(page.locator('[data-instance="eslint-web"]')).toContainText("web/eslint.config.js");
 
     // The catalog filters: by language/tool text and by category.
@@ -78,7 +78,11 @@ test("a second ESLint instance for another component is written to tools.yml and
     await dialog.locator("select").nth(1).selectOption("ui");
     await expect(dialog.getByLabel("Nome da instância")).toHaveValue("eslint-ui");
     await dialog.getByRole("button", { name: "Criar instância" }).click();
-    await expect(page.getByTestId("tools-notice")).toContainText("eslint-ui");
+    // The flow goes on into the settings of the new instance; the list shows it when the person comes back.
+    await page.waitForURL(/#\/tools\/eslint-ui/);
+    await expect(page.getByTestId("tool-header")).toBeVisible();
+    await page.goto(`${base}#/tools`);
+    await expect(page.locator('[data-instance="eslint-ui"]')).toBeVisible();
 
     // Written to tools.yml, the first instance untouched.
     const tools = toolsYml(fixture).tools;
@@ -106,11 +110,15 @@ test("a second ESLint instance for another component is written to tools.yml and
 
 test("a creation that does not create the file: the instance is listed with the file missing, nothing is written", async ({ page }) => {
   const fixture = createToolsFixture(ESLINT_WEB, { "web/eslint.config.js": ESLINT_CONFIG });
-  await withServer(page, fixture, async () => {
+  await withServer(page, fixture, async ({ base }) => {
     await page.getByRole("button", { name: "Criar instância de ESLint" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Componente").selectOption("ui");
     await dialog.getByRole("button", { name: "Criar instância" }).click();
+    // The flow goes on into the settings of the new instance.
+    await page.waitForURL(/#\/tools\/eslint-ui/);
+    await expect(page.getByTestId("tool-header")).toBeVisible();
+    await page.goto(`${base}#/tools`);
     await expect(page.locator('[data-instance="eslint-ui"]')).toContainText("ui/eslint.config.js");
     expect(fs.existsSync(path.join(fixture.dir, "ui", "eslint.config.js"))).toBe(false);
   });
@@ -121,6 +129,8 @@ test("a missing configuration file is not created by opening the area; Criar com
   await withServer(page, fixture, async ({ base }) => {
     const file = path.join(fixture.dir, "ui", "eslint.config.js");
     await page.goto(`${base}#/tools/eslint-ui`);
+    // Every tool has the settings tab first; the files are in the second one.
+    await page.getByRole("tab", { name: "Arquivos" }).click();
     await page.getByRole("button", { name: /ui\/eslint\.config\.js/ }).click();
     await expect(page.getByTestId("doc-missing")).toBeVisible();
     expect(fs.existsSync(file)).toBe(false);
@@ -141,6 +151,7 @@ test("Selecionar arquivo points the binding at another file without creating it"
   const fixture = createToolsFixture(`schemaVersion: 1\ntools:\n  eslint-ui:\n    adapter: eslint\n    component: ui\n    config: ui/eslint.config.js\n`, { "ui/lint/eslint.config.mjs": ESLINT_CONFIG });
   await withServer(page, fixture, async ({ base }) => {
     await page.goto(`${base}#/tools/eslint-ui`);
+    await page.getByRole("tab", { name: "Arquivos" }).click();
     await page.getByRole("button", { name: /ui\/eslint\.config\.js/ }).click();
     await page.getByRole("button", { name: "Selecionar arquivo" }).click();
     const dialog = page.getByRole("dialog");
@@ -175,6 +186,7 @@ tools:
   );
   await withServer(page, fixture, async ({ base }) => {
     await page.goto(`${base}#/tools/eslint-shared`);
+    await page.getByRole("tab", { name: "Arquivos" }).click();
     await page.getByRole("button", { name: /eslint\.config\.js/ }).click();
     await expect(page.getByText("Do pacote", { exact: true })).toBeVisible();
     await expect(page.getByTestId("doc-override")).toBeVisible();

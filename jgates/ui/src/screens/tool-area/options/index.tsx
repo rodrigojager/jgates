@@ -8,6 +8,8 @@ import { FormRenderer } from "../../../forms/FormRenderer";
 import { ft } from "../../../forms/i18n";
 import { intentsOf, withPending, type FieldView, type FormView, type Pending } from "../../../forms/model";
 import type { ToolTabMeta, ToolTabProps } from "../../../forms/tab";
+import { DerivedForm } from "../../../forms/derived/DerivedForm";
+import type { DerivedField } from "../../../forms/derived/types";
 import { OpenAtLine } from "../../../forms/widgets";
 import { t } from "../../../i18n";
 import { fetchDraft, type DraftView } from "../editbar/drafts";
@@ -26,8 +28,14 @@ export const tab: ToolTabMeta = {
   label: ft("tab_options"),
   // Before Files (20) and the tab the area opens on: the options are what most people come for.
   order: 10,
-  applies: (instance) => instance?.supportLevel === "assisted" || instance?.supportLevel === "full" || SETTINGS_ADAPTERS.has(instance?.adapter),
+  // The server decides: every instance of an adapter has a derived settings form (hasForm), so the tab is always there.
+  applies: (instance) => instance?.hasForm === true || instance?.supportLevel === "assisted" || instance?.supportLevel === "full" || SETTINGS_ADAPTERS.has(instance?.adapter),
 };
+
+/** The errors that only say this tool has no hand-written form: the derived settings form is then the whole tab. */
+const NO_NATIVE_FORM = new Set(["FORM_NOT_FOUND", "FORM_NO_DOCUMENT", "INSTANCE_NOT_FOUND"]);
+/** Keys every tool instance has; next to a hand-written settings form these are what is left to show. */
+const GENERAL_KEYS = new Set(["enabled", "required", "timeoutSeconds", "capabilities"]);
 
 interface Proposal {
   changes: string[];
@@ -45,7 +53,27 @@ interface Conflict {
 const formPath = (instance: string, suffix = "") => `/api/forms/${encodeURIComponent(instance)}${suffix}`;
 const short = (revision: string | null | undefined) => (revision ? revision.slice(0, 12) : "-");
 
-export default function OptionsTab({ instance, active, openFile }: ToolTabProps) {
+export default function OptionsTab(props: ToolTabProps) {
+  const id = props.instance.id as string;
+  // What the hand-written form is: a form over the tool's own documents, one over tools.<id> (a settings form), or none.
+  const [kind, setKind] = useState<"documents" | "instance" | "none" | null>(null);
+  return (
+    <div className="stack" data-testid="tool-options">
+      <NativeOptions {...props} onKind={setKind} />
+      {kind !== null ? (
+        <section className="stack" aria-labelledby="tool-settings-title" data-testid="tool-settings">
+          <div>
+            <h2 id="tool-settings-title">{kind === "instance" ? t("tools_settings_general") : t("tools_settings_title")}</h2>
+            <p className="small">{t("tools_settings_lead", { tool: id })}</p>
+          </div>
+          <DerivedForm key={id} source={{ instance: id }} headingLevel={3} {...(kind === "instance" ? { include: (f: DerivedField) => GENERAL_KEYS.has(String(f.path[2])) } : {})} />
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function NativeOptions({ instance, active, openFile, onKind }: ToolTabProps & { onKind: (kind: "documents" | "instance" | "none") => void }) {
   const id = instance.id as string;
   const [view, setView] = useState<FormView | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -73,12 +101,20 @@ export default function OptionsTab({ instance, active, openFile }: ToolTabProps)
       const r = await api<{ form: FormView }>("GET", formPath(id));
       setView(r.form);
       setPending(new Map());
+      onKind((r.form as unknown as SettingsView).scope === "instance" ? "instance" : "documents");
       setDraft(await fetchDraft(id, r.form.binding, null).catch(() => null));
     } catch (e) {
-      setError(e);
+      if (e instanceof ApiError && NO_NATIVE_FORM.has(e.code)) {
+        setView(null);
+        onKind("none");
+      } else {
+        setError(e);
+        onKind("none");
+      }
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Reload when the tab is shown again with nothing pending: another tab or editor may have saved the file.
@@ -141,6 +177,7 @@ export default function OptionsTab({ instance, active, openFile }: ToolTabProps)
     );
   }
   if (error) return <ErrorNotice error={error} onRetry={load} />;
+  // A tool without a hand-written form: the derived settings form below is the tab.
   if (!view) return null;
 
   const settings = view as unknown as SettingsView;

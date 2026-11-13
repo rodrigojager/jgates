@@ -69,7 +69,8 @@ test("search by rule and path, and the link to the position of a field in the fi
   await withServer(page, async ({ base }) => {
     await openOptions(page, base, "ruff");
     await page.getByLabel("Buscar opção, regra ou caminho").fill("tool.ruff.lint.select");
-    await expect(page.locator("[data-field]")).toHaveCount(1);
+    // The hand-written form's fields only: the derived settings form of the tool sits below it.
+    await expect(page.locator(".options [data-field]")).toHaveCount(1);
     // The rule codes are searchable: "F" is in select, so searching the rule finds the field.
     await page.getByLabel("Buscar opção, regra ou caminho").fill("quote");
     await expect(page.locator('[data-field="format.quote-style"]')).toBeVisible();

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type Keyboard
 import { formatLocale } from "../../i18n/locale";
 import { ApiError, api, documentPath, entryQuery } from "../../api";
 import { useShell } from "../../app/shell-context";
-import { Dialog, ErrorNotice, Loading, Pill, useAsync, Spinner } from "../../components/common";
+import { Dialog, ErrorNotice, Loading, Pill, Updating, useAsync, Spinner } from "../../components/common";
 import { DiffView } from "../../components/DiffView";
 import { Editor } from "../../components/Editor";
 import { Icon } from "../../components/icons";
@@ -10,6 +10,8 @@ import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { RulesList } from "../tool-area/rules";
 import { Refusal } from "../tools/dialogs";
+import { EditOwnTool } from "../tools/edit-own";
+import { OwnTest } from "../tools/own-test";
 import type { FileTarget, ToolTabModule } from "../../forms/tab";
 import { EditBar } from "../tool-area/editbar";
 import { fetchDraft, useDraftSync, type DraftView } from "../tool-area/editbar/drafts";
@@ -92,7 +94,7 @@ function SelectFileDialog({ instance, binding, current, onClose, onDone }: { ins
       <form className="stack" onSubmit={submit}>
         <label className="stack tight">
           <span>{t("tool_select_label")}</span>
-          <input className="input" value={value} required autoComplete="off" spellCheck={false} aria-describedby="tool-select-help" onChange={(e) => setValue(e.target.value)} />
+          <input className="input" data-free-text="project-path" value={value} required autoComplete="off" spellCheck={false} aria-describedby="tool-select-help" onChange={(e) => setValue(e.target.value)} />
           <span className="small muted" id="tool-select-help">
             {t("tool_select_help")}
           </span>
@@ -615,11 +617,14 @@ export default function ToolScreen({ params }: { params: Record<string, string> 
   const id = params.instance as string;
   const tools = useAsync(() => api("GET", "/api/tools/" + encodeURIComponent(id)), "tool:" + id);
   const execution = useAsync(() => api<{ execution: ExecutionData }>("GET", "/api/tools/" + encodeURIComponent(id) + "/execution").catch(() => null), "tool-exec:" + id);
+  const origins = useAsync(() => api<{ tested: Record<string, string> }>("GET", "/api/tool-origins").catch(() => null), "tool-origins");
+  const [editing, setEditing] = useState(false);
   const failure = tools.error instanceof ApiError && tools.error.status === 404;
   const instance = (tools.data as any)?.instance;
   const reloadAll = () => {
     tools.reload();
     execution.reload();
+    origins.reload();
   };
   return (
     <div className="stack">
@@ -629,12 +634,47 @@ export default function ToolScreen({ params }: { params: Record<string, string> 
         </div>
         <h1>{t("tool_title", { tool: id })}</h1>
       </div>
+      <Updating active={tools.reloading || execution.reloading} />
       {tools.loading && !instance ? <Loading /> : null}
       {failure ? <DeclaredInstance id={id} /> : tools.error ? <ErrorNotice error={tools.error} onRetry={tools.reload} /> : null}
       {instance ? <ToolHeader instance={instance} execution={execution.data?.execution ?? null} loading={execution.loading} /> : null}
+      {instance?.adapter === "generic-command" ? <OwnToolPanel id={id} tested={origins.data ? id in origins.data.tested : null} onEdit={() => setEditing(true)} onTested={reloadAll} /> : null}
       {instance ? <ToolTabs instance={instance} onChanged={reloadAll} /> : null}
       {execution.data?.execution ? <ExecutionPanel execution={execution.data.execution} /> : null}
+      {editing ? (
+        <EditOwnTool
+          id={id}
+          onClose={(saved) => {
+            setEditing(false);
+            if (saved) reloadAll();
+          }}
+        />
+      ) : null}
     </div>
+  );
+}
+
+/** An own tool: what it is, the six-step edit and "Testar agora" (with the `Não testada` state). */
+function OwnToolPanel({ id, tested, onEdit, onTested }: { id: string; tested: boolean | null; onEdit: () => void; onTested: () => void }) {
+  const governed = useShell().info?.mode === "governed";
+  return (
+    <section className="card flat stack" aria-labelledby="own-tool-title" data-testid="own-tool-panel">
+      <div className="between wrap">
+        <h2 id="own-tool-title">{t("tools_own_edit_title")}</h2>
+        <div className="row wrap">
+          <Pill tone="blue">{t("tools_origin_own")}</Pill>
+          {tested === false ? <Pill tone="gold">{t("tools_origin_untested")}</Pill> : null}
+        </div>
+      </div>
+      <p className="small">{t("tools_own_edit_lead")}</p>
+      <div className="row wrap">
+        <button type="button" className="btn primary" disabled={governed} data-testid="own-tool-edit" onClick={onEdit}>
+          <Icon name="file" />
+          {t("tools_card_edit_own", { tool: id })}
+        </button>
+      </div>
+      <OwnTest id={id} onTested={onTested} />
+    </section>
   );
 }
 
@@ -643,17 +683,18 @@ export default function ToolScreen({ params }: { params: Record<string, string> 
  * template), the form is shown and its first save creates the entry; otherwise the plain "not found".
  */
 function DeclaredInstance({ id }: { id: string }) {
-  const form = useAsync(() => api<{ form: { scope?: string; form: { adapter: string } } }>("GET", "/api/forms/" + encodeURIComponent(id)).catch(() => null), "declared-form:" + id);
+  // Every instance the effective configuration has (the tools file's or a template's) has a derived settings form.
+  const form = useAsync(() => api<{ form: { instance: { adapter: string } } }>("GET", "/api/forms/derived/instance/" + encodeURIComponent(id)).catch(() => null), "declared-form:" + id);
   if (form.loading) return <Loading />;
-  const view = form.data?.form;
-  if (!view || view.scope !== "instance") return <p>{t("tool_missing", { tool: id })}</p>;
+  const adapter = form.data?.form.instance.adapter;
+  if (!adapter) return <p>{t("tool_missing", { tool: id })}</p>;
   return (
     <div className="stack">
       <div className="notice" role="status" data-testid="tool-declared">
         <Icon name="info" />
         <p className="small">{t("tool_declared_by_template", { tool: id })}</p>
       </div>
-      <OptionsTab instance={{ id, adapter: view.form.adapter }} active openFile={() => undefined} />
+      <OptionsTab instance={{ id, adapter, hasForm: true }} active openFile={() => undefined} />
     </div>
   );
 }

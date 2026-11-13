@@ -18,6 +18,10 @@ import { engineCommand, engineRuntime, inspectImage, type EngineContext } from "
 import { imageToolCatalogue, NOT_IMAGE_TOOLS } from "../../core/tools-image/index.js";
 import fs from "node:fs";
 import path from "node:path";
+import { parse as parseYaml } from "yaml";
+import { projectInventory } from "../../core/cache/project.js";
+import { withEngineFacts } from "../../core/engine/facts.js";
+import { buildPlan } from "../../core/plan/index.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { HttpError, refuse } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
@@ -100,6 +104,7 @@ const customBody = {
     component: { type: "string", minLength: 1, maxLength: 256 },
     network: { type: "boolean" },
     timeoutSeconds: { type: "integer", minimum: 1, maximum: 86_400 },
+    replace: { type: "boolean" },
   },
   required: ["id", "command", "report", "capabilities"],
   additionalProperties: false,
@@ -118,10 +123,61 @@ function customRequest(body: unknown): CustomToolRequest {
     ...(b.component !== undefined ? { component: b.component } : {}),
     network: b.network === true,
     ...(b.timeoutSeconds !== undefined ? { timeoutSeconds: b.timeoutSeconds } : {}),
+    ...(b.replace === true ? { replace: true } : {}),
+  };
+}
+
+/** What the six-step dialog needs to edit an own tool: its entry of tools.yml in the dialog's terms. */
+function ownToolOf(projectDir: string, configFile: string | null, id: string): Record<string, unknown> | null {
+  let doc: { tools?: Record<string, unknown> } | null;
+  try {
+    doc = parseYaml(fs.readFileSync(path.resolve(projectDir, configFile ?? ".jgates/tools.yml"), "utf8")) as { tools?: Record<string, unknown> } | null;
+  } catch {
+    return null;
+  }
+  const entry = doc?.tools?.[id];
+  if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return null;
+  const e = entry as Record<string, unknown>;
+  if (e.adapter !== "generic-command") return null;
+  const config = (typeof e.config === "object" && e.config !== null ? e.config : {}) as { effects?: { usesNetwork?: unknown }; evidence?: { kind?: unknown; file?: unknown } };
+  const kind = typeof config.evidence?.kind === "string" ? config.evidence.kind : "exit-code";
+  const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+  return {
+    id,
+    image: typeof e.image === "string" ? e.image : null,
+    command: typeof e.command === "string" ? e.command : "",
+    args: strings(e.args).map((a) => a.split("{outputDir}").join("{output}").split("{componentRoot}").join("{component}")),
+    report: kind === "exit-code" ? { format: "exit-code" } : { format: kind, file: typeof config.evidence?.file === "string" ? config.evidence.file : "" },
+    capabilities: strings(e.capabilities),
+    component: typeof e.component === "string" ? e.component : null,
+    network: config.effects?.usesNetwork === true,
+    timeoutSeconds: typeof e.timeoutSeconds === "number" ? e.timeoutSeconds : null,
   };
 }
 
 export const ID_PATTERN = "^[a-z0-9][a-z0-9._-]{0,127}$";
+
+/** Every instance has a settings form derived from its adapter's schema (ADR-0009): the UI shows it by this flag. */
+const withForm = <T extends object>(instance: T): T & { hasForm: true } => ({ ...instance, hasForm: true });
+
+/** javascript and typescript are one toolchain for the tools that serve them. */
+const languageKey = (language: string): string => {
+  const l = language.toLowerCase();
+  return l === "javascript" || l === "ts" || l === "js" ? "typescript" : l;
+};
+
+/** The languages of the project's components, from the cached discovery. */
+function projectLanguages(projectDir: string): Set<string> {
+  const out = new Set<string>();
+  try {
+    const inventory = projectInventory(projectDir);
+    for (const l of inventory.languages) out.add(languageKey(l));
+    for (const c of inventory.classifications) if (c.language) out.add(languageKey(c.language));
+  } catch {
+    // A project that cannot be discovered has no languages: the catalogue is then shown whole.
+  }
+  return out;
+}
 
 const STATUS: Record<InstanceErrorCode, number> = {
   INSTANCE_ID_INVALID: 400,
@@ -171,21 +227,57 @@ export const routes: RouteDefinition[] = [
       const r = resolveToolBindings(server.projectDir);
       return {
         status: 200,
-        json: { schemaVersion: 1, status: "OK", ok: r.ok, configFile: r.configFile, externalRoots: r.externalRoots, instances: r.instances, documents: r.documents, diagnostics: r.diagnostics },
+        json: { schemaVersion: 1, status: "OK", ok: r.ok, configFile: r.configFile, externalRoots: r.externalRoots, instances: r.instances.map(withForm), documents: r.documents, diagnostics: r.diagnostics },
       };
     },
   },
   {
     method: "GET",
     path: "/api/tool-catalog",
-    handler() {
+    handler({ server }) {
       const image = imageToolCatalogue(process.env);
       // The retired quality bridge is not a catalogue entry; what ships in the image says so, with its version.
       const modes = new Map(buildMatrix().adapters.map((a) => [a.id, a.distribution?.mode ?? null]));
+      const languages = projectLanguages(server.projectDir);
       const adapters = toolCatalog()
         .filter((a) => !RETIRED_ADAPTERS.has(a.adapter))
-        .map((a) => ({ ...a, origin: originOf(a.adapter, a.toolName, image?.tools ?? {}, modes.get(a.adapter) ?? null) }));
-      return { status: 200, json: { schemaVersion: 1, status: "OK", adapters } };
+        .map((a) => ({
+          ...a,
+          origin: originOf(a.adapter, a.toolName, image?.tools ?? {}, modes.get(a.adapter) ?? null),
+          // 0: for a language of this project; 1: for any language; 2: for other languages only.
+          relevance: a.languages.length === 0 ? 1 : a.languages.some((l) => languages.has(languageKey(l))) ? 0 : 2,
+        }));
+      return { status: 200, json: { schemaVersion: 1, status: "OK", projectLanguages: [...languages].sort(), adapters } };
+    },
+  },
+  {
+    // The tools the plan of the project really runs (the ones the templates bring and the project's own instances),
+    // grouped by the caller by category; `declared` says whether the tool has an instance of its own in tools.yml.
+    method: "GET",
+    path: "/api/tool-effective",
+    timeoutMs: 120_000,
+    async handler({ server }) {
+      const declared = new Set(resolveToolBindings(server.projectDir, { skipInventory: true }).instances.map((i) => i.id));
+      const inventory = projectInventory(server.projectDir);
+      const languages = projectLanguages(server.projectDir);
+      const result = await withEngineFacts(
+        () => buildPlan(server.projectDir, { paths: [], skip: [], only: [], templates: [], version: server.version, home: server.home, inventory, compare: false }),
+        { prime: { version: server.version, gitDir: server.projectDir } },
+      );
+      if (!result.ok) return { status: 200, json: { schemaVersion: 1, status: "OK", ok: false, languages: [...languages].sort(), tools: [], error: result.error.message } };
+      const byTool = new Map<string, { tool: string; adapter: string | null; category: string | null; capabilities: Set<string>; components: Set<string>; languages: Set<string>; required: boolean; via: string }>();
+      for (const item of result.plan.groups.willRun) {
+        const known = byTool.get(item.tool) ?? { tool: item.tool, adapter: item.adapter, category: item.category, capabilities: new Set<string>(), components: new Set<string>(), languages: new Set<string>(), required: false, via: item.includedBy[0]?.kind ?? "adapter" };
+        for (const c of item.capabilities) known.capabilities.add(c);
+        for (const c of item.components) known.components.add(c.id);
+        for (const l of item.languages) known.languages.add(l);
+        if (item.requirement === "required") known.required = true;
+        byTool.set(item.tool, known);
+      }
+      const tools = [...byTool.values()]
+        .map((k) => ({ tool: k.tool, adapter: k.adapter, category: k.category, capabilities: [...k.capabilities].sort(), components: [...k.components].sort(), languages: [...k.languages].sort(), required: k.required, via: k.via, declared: declared.has(k.tool) }))
+        .sort((a, b) => a.tool.localeCompare(b.tool));
+      return { status: 200, json: { schemaVersion: 1, status: "OK", ok: true, languages: [...languages].sort(), tools } };
     },
   },
   {
@@ -335,7 +427,19 @@ export const routes: RouteDefinition[] = [
       const r = resolveToolBindings(server.projectDir);
       const instance = r.instances.find((i) => i.id === params.instance);
       if (!instance) throw refuse(404, "INSTANCE_NOT_FOUND", { name: params.instance as string });
-      return { status: 200, json: { schemaVersion: 1, status: "OK", instance, diagnostics: r.diagnostics } };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", instance: withForm(instance), diagnostics: r.diagnostics } };
+    },
+  },
+  {
+    // The own tool in the dialog's terms, for the six steps of the edit.
+    method: "GET",
+    path: "/api/tools/:instance/own",
+    params: instanceParams,
+    handler({ params, server }) {
+      const r = resolveToolBindings(server.projectDir, { skipInventory: true });
+      const own = ownToolOf(server.projectDir, r.configFile, params.instance as string);
+      if (!own) throw refuse(404, "INSTANCE_NOT_FOUND", { name: params.instance as string });
+      return { status: 200, json: { schemaVersion: 1, status: "OK", own } };
     },
   },
   {

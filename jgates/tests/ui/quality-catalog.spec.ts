@@ -33,6 +33,8 @@ test("a fresh standard installation lists the new integrations in the catalog, w
   await withGates(page, async ({ base }) => {
     await page.goto(`${base}#/tools`);
     await expect(page.getByRole("heading", { name: "Ferramentas", level: 1 })).toBeVisible();
+    // The whole catalogue is under "Todas"; "Deste projeto" (the default) keeps the project's languages first.
+    await page.getByTestId("tools-scope").getByRole("radio", { name: "Todas" }).check();
     for (const adapter of NEW_INTEGRATIONS) await expect(page.locator(`[data-testid="catalog-card"][data-adapter="${adapter}"]`), adapter).toBeVisible();
 
     // The filter narrows the catalog and an unknown term says so.

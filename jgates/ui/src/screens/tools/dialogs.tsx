@@ -118,6 +118,7 @@ export function CreateDialog({ adapters, components, initialAdapter, existing, o
           <span>{t("tools_dialog_id")}</span>
           <input
             className="input"
+            data-free-text="tool-id"
             value={id}
             required
             autoComplete="off"
@@ -172,7 +173,7 @@ export function RenameDialog({ id, onClose, onDone }: { id: string; onClose: () 
       <form className="stack" onSubmit={submit}>
         <label className="stack tight">
           <span>{t("tools_dialog_id")}</span>
-          <input className="input" value={name} required autoComplete="off" spellCheck={false} onChange={(e) => setName(e.target.value)} />
+          <input className="input" data-free-text="tool-id" value={name} required autoComplete="off" spellCheck={false} onChange={(e) => setName(e.target.value)} />
         </label>
         <p className="small">{t("tools_dialog_rename_note", { tool: id })}</p>
         {error ? <Refusal error={error} /> : null}

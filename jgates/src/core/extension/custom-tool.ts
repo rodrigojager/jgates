@@ -30,6 +30,8 @@ export interface CustomToolRequest {
   component?: string;
   network: boolean;
   timeoutSeconds?: number;
+  /** Edits the existing entry of `id` key by key (its other keys, such as enabled or required, stay) instead of refusing it. */
+  replace?: boolean;
 }
 
 export type CustomToolErrorCode =
@@ -187,12 +189,33 @@ export function planCustomTool(projectDir: string, request: CustomToolRequest): 
       throw new CustomToolError("TOOLS_FILE_INVALID", (error as Error).message, { file: TOOLS_FILE, detail: (error as Error).message });
     }
   }
-  if (Object.prototype.hasOwnProperty.call(existing, request.id)) throw new CustomToolError("ID_EXISTS", `the tool ${request.id} already exists`, { id: request.id });
+  const present = Object.prototype.hasOwnProperty.call(existing, request.id);
+  if (present && request.replace !== true) throw new CustomToolError("ID_EXISTS", `the tool ${request.id} already exists`, { id: request.id });
 
   const entry = entryOf(request, image);
   let toolsAfter: string;
   try {
-    toolsAfter = patchYamlText(toolsBefore ?? TOOLS_FILE_START, [{ op: "set", path: ["tools", request.id], value: entry }]).text;
+    const old = existing[request.id];
+    const oldEntry = request.replace === true && present && typeof old === "object" && old !== null && !Array.isArray(old) ? (old as Record<string, unknown>) : null;
+    if (oldEntry) {
+      // Key by key: what the dialog manages is set (or removed when it no longer applies); enabled, required and the rest stay.
+      const id = request.id;
+      const edits: Array<{ op: "set"; path: string[]; value: unknown } | { op: "delete"; path: string[] }> = [];
+      for (const key of ["adapter", "image", "command", "args", "capabilities", "component", "timeoutSeconds"]) {
+        if (key in entry) edits.push({ op: "set", path: ["tools", id, key], value: entry[key] });
+        else if (key in oldEntry) edits.push({ op: "delete", path: ["tools", id, key] });
+      }
+      const config = entry.config as Record<string, unknown>;
+      const oldConfig = oldEntry.config;
+      if (typeof oldConfig === "object" && oldConfig !== null && !Array.isArray(oldConfig)) {
+        for (const key of ["effects", "evidence"]) edits.push({ op: "set", path: ["tools", id, "config", key], value: config[key] });
+      } else {
+        edits.push({ op: "set", path: ["tools", id, "config"], value: config });
+      }
+      toolsAfter = patchYamlText(toolsBefore ?? TOOLS_FILE_START, edits).text;
+    } else {
+      toolsAfter = patchYamlText(toolsBefore ?? TOOLS_FILE_START, [{ op: "set", path: ["tools", request.id], value: entry }]).text;
+    }
   } catch (error) {
     throw new CustomToolError("TOOLS_FILE_INVALID", (error as Error).message, { file: TOOLS_FILE, detail: (error as Error).message });
   }
