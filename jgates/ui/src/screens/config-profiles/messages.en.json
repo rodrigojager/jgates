@@ -157,5 +157,8 @@
   "cfgp_diag_text_readable": "This screen shows what the files hold; a validation refuses the configuration until this is fixed.",
   "cfgp_diag_open_line": "Open at line {line}",
   "cfgp_defaults_title": "Project defaults",
-  "cfgp_defaults_lead": "What a validation uses when it asks for nothing else (scope, paths, gates) and the configuration files jgates.yml extends."
+  "cfgp_defaults_lead": "What a validation uses when it asks for nothing else (scope, paths, gates) and the configuration files jgates.yml extends.",
+  "cfgp_saved_draft": "{count, plural, one {# change} other {# changes}} in the draft of the profile {profile}. Nothing is written to the project before Save and continue.",
+  "cfgp_protect_lead_draft": "Turns checks on and off in the draft's profile {profile}. Each category opens into capabilities, tools and rules.",
+  "cfgp_created_draft": "Profile {id} created in the draft. It goes to .jgates/profiles.yml when you save."
 }

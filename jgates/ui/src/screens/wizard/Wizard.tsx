@@ -11,7 +11,8 @@ import { t } from "../../i18n";
 import { STEPS, closeSetup, fetchSetup, gotoStep, type SetupView, type StepId } from "./api";
 import { DependenciesStep, ReviewStep } from "./step-finish";
 import { DockerStep, ToolsStep } from "./step-machine";
-import { ProfileStep, ProjectStep } from "./step-project";
+import { ProfileStep } from "./step-profile";
+import { ProjectStep } from "./step-project";
 import "./wizard.css";
 
 export interface StepProps {

@@ -1,16 +1,14 @@
-// Steps 3 and 4: the components in words ("Projeto Python na pasta raiz") with the files that identified them and the
-// state of each fact, corrected with selects that follow each other (the frameworks and the managers of the chosen
-// language, D26), a component declared in a dialog inside the wizard, the compose checkbox; and the starter profile as
-// radio cards with what each one runs here; the configuration is previewed before it is written.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+// Step 3: the components in words ("Projeto Python na pasta raiz") with the files that identified them and the state of
+// each fact, corrected with selects that follow each other (the frameworks and the managers of the chosen language,
+// D26), a component declared in a dialog inside the wizard, and the compose checkbox. Step 4 is step-profile.tsx.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../api";
-import { useShell } from "../../app/shell-context";
-import { Dialog, ErrorNotice, Loading, Pill, Spinner } from "../../components/common";
+import { ErrorNotice, Loading, Pill, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
-import { t, tOr } from "../../i18n";
+import { t } from "../../i18n";
 import type { Declared } from "../workspace/components-tab";
 import { DeclareDialog } from "../workspace/declare-dialog";
-import { advance, fetchProfiles, fetchProject, previewConfig, type FieldState, type ProfilesInfo, type ProjectComponent, type ProjectInfo } from "./api";
+import { advance, fetchProject, type FieldState, type ProjectComponent, type ProjectInfo } from "./api";
 import { EquivalentCommand, StepNav } from "./parts";
 import type { StepProps } from "./Wizard";
 
@@ -243,109 +241,6 @@ export function ProjectStep({ view, act, busy, back }: StepProps) {
       )}
       <EquivalentCommand command="jgates discover" />
       <StepNav onBack={back} busy={busy} onNext={next} />
-    </div>
-  );
-}
-
-export function ProfileStep({ view, act, busy, back }: StepProps) {
-  const { reload } = useShell();
-  const [info, setInfo] = useState<ProfilesInfo | null>(null);
-  const [error, setError] = useState<unknown>(null);
-  const [choice, setChoice] = useState<string | null>(null);
-  const [preview, setPreview] = useState<Array<{ file: string; exists: boolean; text: string }> | null>(null);
-  const [previewing, setPreviewing] = useState(false);
-  const load = useCallback(() => {
-    fetchProfiles().then((next) => {
-      setInfo(next);
-      setError(null);
-      setChoice((c) => c ?? view.setup.choices.profile ?? next.selected ?? next.recommended);
-    }, setError);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useEffect(load, [load]);
-  const totals = useMemo(() => new Map((info?.profiles ?? []).map((p) => [p.id, p])), [info]);
-
-  if (!info) return error ? <ErrorNotice error={error} onRetry={load} /> : <Loading />;
-  const showPreview = async () => {
-    if (!choice || previewing) return;
-    setPreviewing(true);
-    try {
-      setPreview((await previewConfig(choice)).files);
-    } catch (e) {
-      setError(e);
-    } finally {
-      setPreviewing(false);
-    }
-  };
-  const save = () =>
-    void act(async () => {
-      const next = await advance("profile", { profile: choice });
-      void reload();
-      return next;
-    });
-
-  return (
-    <div className="stack" data-testid="wizard-step-profile">
-      <p className="wizard-lead">{t("wizard_profile_lead")}</p>
-      {error ? <ErrorNotice error={error} /> : null}
-      <fieldset className="stack wizard-fieldset">
-        <legend>{t("wizard_profile_legend")}</legend>
-        <ul className="wizard-cards wizard-grid">
-          {info.profiles.map((p) => {
-            const active = choice === p.id;
-            return (
-              <li key={p.id}>
-                <label className={`card flat stack wizard-radio${active ? " active" : ""}`} data-profile={p.id}>
-                  <span className="row wrap">
-                    <input type="radio" name="wizard-profile" value={p.id} checked={active} onChange={() => setChoice(p.id)} />
-                    <strong>{t(`wizard_profile_${p.id}`)}</strong>
-                    {info.recommended === p.id ? <Pill tone="green">{t("wizard_recommended")}</Pill> : null}
-                  </span>
-                  <span className="small muted">{t(`wizard_profile_${p.id}_text`)}</span>
-                  {p.error ? (
-                    <span className="small">{p.error}</span>
-                  ) : (
-                    <span className="stack wizard-runs">
-                      <span className="small">{t("wizard_profile_runs", { count: totals.get(p.id)?.total ?? 0 })}</span>
-                      <span className="small muted">{p.categories.map((c) => `${tOr(`wizard_category_${c.id}`, c.id)} ${c.count}`).join(" · ")}</span>
-                    </span>
-                  )}
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-      </fieldset>
-      {info.recommended === "strict" ? null : <p className="small muted">{t("wizard_profile_strict_later")}</p>}
-      <details>
-        <summary>{t("wizard_profile_customize")}</summary>
-        <p>{t("wizard_profile_customize_text")}</p>
-        <p>
-          <a href="#/config">{t("wizard_profile_customize_link")}</a>
-        </p>
-      </details>
-      <div className="row wrap">
-        {/* Never disabled while it loads: a disabled button loses the focus, and the dialog gives the focus back to it. */}
-        <button type="button" className="btn" onClick={() => void showPreview()} disabled={!choice} aria-busy={previewing}>
-          {previewing ? <Spinner /> : <Icon name="file" />}
-          {t("wizard_profile_preview")}
-        </button>
-      </div>
-      {preview ? (
-        <Dialog title={t("wizard_profile_preview_title")} onClose={() => setPreview(null)} wide>
-          <div className="stack" data-testid="wizard-config-preview">
-            {preview.map((f) => (
-              <section key={f.file} className="stack">
-                <h3 className="mono">{f.file}</h3>
-                <p className="small muted">{f.exists ? t("wizard_profile_preview_changes") : t("wizard_profile_preview_new")}</p>
-                <pre className="wizard-pre">{f.text}</pre>
-              </section>
-            ))}
-          </div>
-        </Dialog>
-      ) : null}
-      <EquivalentCommand command={`jgates init --profile ${choice ?? "standard"}`} />
-      <StepNav onBack={back} busy={busy} nextDisabled={!choice} onNext={save} nextLabel={view.configured ? t("wizard_profile_save_existing") : t("wizard_profile_save")} />
     </div>
   );
 }

@@ -47,27 +47,40 @@ interface Resolved {
 }
 
 /**
+ * Where a view reads the configuration: the project's own files, or a configuration folder elsewhere for the same
+ * project (the first-run wizard's draft, ADR-0008), whose discovery settings and profiles are the folder's.
+ */
+export interface ConfigSource {
+  projectDir: string;
+  configDir?: string;
+}
+
+const projectSource = (server: ServerContext): ConfigSource => ({ projectDir: server.projectDir });
+const rootsOfSource = (source: ConfigSource): string[] => (source.configDir ? [source.projectDir, source.configDir] : [source.projectDir]);
+const configOptions = (source: ConfigSource) => (source.configDir ? { configDir: source.configDir } : {});
+
+/**
  * The configuration of profile `ref` as the files hold it. A file the schema refuses (a key written by hand that does
  * not exist) does not take the screen away: the view is built from what the files hold and carries the diagnostics
  * (file, key, line). Any other problem (a profile that does not exist, a cycle) is refused.
  */
-function resolveProfile(server: ServerContext, ref: string): Resolved {
-  const result = projectResolveReadable(server.projectDir, { profile: ref });
+function resolveProfile(source: ConfigSource, ref: string): Resolved {
+  const result = projectResolveReadable(source.projectDir, { profile: ref, ...configOptions(source) });
   if (!result.ok && !onlyFileProblems(result)) {
     const first = result.errors[0];
     throw new HttpError(422, first?.code ?? "CONFIG_INVALID", first?.message ?? t("cfgp_resolve_failed", { first: "" }), first?.fix ?? null, { errors: result.errors, diagnostics: result.diagnostics });
   }
   // Computed from the cached configuration inside the cached computation, so it depends on everything that one read.
-  const selection = cachedProject(`selection:${ref}|${getLocale()}`, [server.projectDir], () =>
-    resolveSelection(projectResolveReadable(server.projectDir, { profile: ref }), { inventory: projectInventory(server.projectDir) }),
+  const selection = cachedProject(`selection:${ref}|${getLocale()}|${source.configDir ?? ""}`, rootsOfSource(source), () =>
+    resolveSelection(projectResolveReadable(source.projectDir, { profile: ref, ...configOptions(source) }), { inventory: projectInventory(source.projectDir, source.configDir) }),
   );
   return { ref, result, selection };
 }
 
 
-function projectProfileIds(server: ServerContext): { ids: string[]; def: string; file: string } {
-  return cachedProject("profile-ids", [server.projectDir], () => {
-    const list = listProfiles(server.projectDir);
+function projectProfileIds(source: ConfigSource): { ids: string[]; def: string; file: string } {
+  return cachedProject(`profile-ids:${source.configDir ?? ""}`, rootsOfSource(source), () => {
+    const list = listProfiles(source.configDir ?? source.projectDir);
     const file = list.profiles.find((p) => p.origin === "project")?.file ?? ".jgates/profiles.yml";
     return { ids: list.profiles.filter((p) => p.origin === "project").map((p) => p.id), def: list.default, file };
   });
@@ -124,8 +137,18 @@ export function planAvailability(plan: Plan | null) {
  * stay the same. Builds no plan and reads nothing from the engine.
  */
 export function profileView(server: ServerContext, ref: string): ReturnType<typeof buildView> {
+  return sourceProfileView(projectSource(server), ref);
+}
+
+/** The same view read from a configuration source (the wizard's draft): profiles, selection and discovery settings are the source's. */
+export function sourceProfileView(source: ConfigSource, ref: string): ReturnType<typeof buildView> {
   const mode = modeOf();
-  return cachedProject(`config-view:${JSON.stringify([ref, getLocale(), mode.mode, mode.governed])}`, [server.projectDir], () => buildView(server, ref));
+  return cachedProject(`config-view:${JSON.stringify([ref, getLocale(), mode.mode, mode.governed, source.configDir ?? null])}`, rootsOfSource(source), () => buildView(source, ref));
+}
+
+/** The profile a source selects (`selection.profile`, the default one otherwise). */
+export function sourceDefaultProfile(source: ConfigSource): string {
+  return projectProfileIds(source).def;
 }
 
 /** The view after a write: the cache is cleared first (the write may fall in the same clock tick as the last read). */
@@ -147,9 +170,9 @@ export function profileViewAnswer(server: ServerContext, ref: string): ViewAnswe
   }
 }
 
-function buildView(server: ServerContext, ref: string) {
-  const { ids, def, file } = projectProfileIds(server);
-  const { result, selection } = resolveProfile(server, ref);
+function buildView(source: ConfigSource, ref: string) {
+  const { ids, def, file } = projectProfileIds(source);
+  const { result, selection } = resolveProfile(source, ref);
   const editable = ids.includes(ref);
   const saveFor = (selector: string) => (editable ? { file, path: `profiles.${ref}.checks.${selector}.enabled` } : null);
   const catalog = createCoreCatalog().toDocument();
@@ -227,14 +250,14 @@ function buildView(server: ServerContext, ref: string) {
   const severityField = field(POLICY_KEYS.severity.key, "severity");
   const missingField = field(POLICY_KEYS.onMissing.key, "enabled");
   // The roots of the components, as the plan gives them: from the discovery.
-  const roots = new Map<string, string | null>(projectInventory(server.projectDir).classifications.map((c) => [c.id, c.componentRoot]));
+  const roots = new Map<string, string | null>(projectInventory(source.projectDir, source.configDir).classifications.map((c) => [c.id, c.componentRoot]));
   const coverageScopes = [
     { scope: null as string | null, key: POLICY_KEYS.coverage.key },
     ...selection.universe.components.map((c) => ({ scope: c as string | null, key: `${POLICY_KEYS.coverage.key}.${c}` })),
   ].map(({ scope, key }) => {
     const f = field(key, "threshold");
     // Without a minimum of its own, the component's coverage configuration (`fail_under`) is the one that applies.
-    const native = findNativeMinimum(server.projectDir, scope === null ? null : (roots.get(scope) ?? null));
+    const native = findNativeMinimum(source.projectDir, scope === null ? null : (roots.get(scope) ?? null));
     return {
       scope,
       key,
@@ -288,7 +311,7 @@ function buildView(server: ServerContext, ref: string) {
 }
 
 function target(server: ServerContext, requested: string | undefined): string {
-  return requested ?? projectProfileIds(server).def;
+  return requested ?? projectProfileIds(projectSource(server)).def;
 }
 
 export const routes: RouteDefinition[] = [
@@ -339,13 +362,13 @@ export const routes: RouteDefinition[] = [
     handler({ query, server }) {
       return guard(() => {
         const ref = target(server, query.profile);
-        const { result, selection } = resolveProfile(server, ref);
+        const { result, selection } = resolveProfile(projectSource(server), ref);
         const selector = query.selector as string;
         const item = selection.items.find((i) => i.selector === selector);
         if (!item) throw new HttpError(404, "SELECTOR_UNKNOWN", t("cfgp_explain_unknown", { selector }), null);
         const pointer = item.decision?.pointer ? item.decision.pointer : null;
         const field = pointer ? (result.fields[pointer] ?? null) : null;
-        const { ids, file } = projectProfileIds(server);
+        const { ids, file } = projectProfileIds(projectSource(server));
         return {
           status: 200,
           json: {

@@ -3,6 +3,7 @@
 import { api } from "../../api";
 import type { EnvironmentReason } from "../../api/environment";
 import { getLocale } from "../../i18n";
+import type { MascotSnapshot } from "../../../../src/core/mascots/index";
 
 export const STEPS = ["docker", "tools", "project", "profile", "dependencies", "review"] as const;
 export type StepId = (typeof STEPS)[number];
@@ -140,12 +141,36 @@ export interface ProjectInfo {
   command: string;
 }
 
+export interface DraftProfile {
+  id: string;
+  ref: string;
+  label: string | null;
+  description: string | null;
+  extends: string | null;
+  /** One of the three starter profiles (Essencial, Equilibrado, Rigoroso). */
+  starter: boolean;
+  /** The count is in plan steps, the unit of the plan and of the review. */
+  unit: "steps";
+  total: number;
+  categories: Array<{ id: string; count: number }>;
+  error: string | null;
+}
+
+/** Step 4: the profiles of the wizard's draft (ADR-0008), the selected one's plan and the mascots. */
 export interface ProfilesInfo {
   recommended: string;
   selected: string | null;
   toolsReady: boolean;
-  profiles: Array<{ id: string; total: number; categories: Array<{ id: string; count: number }>; error: string | null }>;
+  profiles: DraftProfile[];
+  plan: ({ profile: { id: string } } & Record<string, unknown>) | null;
+  mascots: MascotSnapshot | null;
+  error: { code: string; message: string; fix: string | null } | null;
+  categoryOrder: string[];
+  draft: { mode: "new" | "existing"; edited: boolean; chosen: boolean };
 }
+
+/** One profile of the draft as Configuração > Perfil reads it (categories, selectors, universe, editable). */
+export type DraftProfileView = Record<string, any> & { profile: { ref: string; id: string; editable: boolean }; categories: any[]; selectors?: any[]; universe: { components: string[]; tools: string[] } };
 
 export interface DependencyUnit {
   unit: string;
@@ -158,6 +183,14 @@ export interface DependencyUnit {
   languageVersionSource: string | null;
   note: string | null;
   state: string;
+  /** What the preparation installs: from the lockfile (frozen) or from the manifest, the files and the commands. */
+  install: { mode: "frozen" | "manifest"; files: string[]; commands: string[] } | null;
+  /** Why this unit cannot be prepared, when it cannot. */
+  blocked: string | null;
+  /** Where it goes: the unit's volume (its name once prepared), mounted at `target` in the checks; never the project. */
+  volume: { name: string | null; prefix: string; target: string | null };
+  /** The network the install uses: the package registry, only while installing. */
+  network: { kind: "bridge"; registry: string | null; private: boolean };
 }
 
 export interface DependenciesInfo {
@@ -181,7 +214,13 @@ export const fetchTools = (): Promise<ToolsInfo> => api<ToolsInfo>("GET", `/api/
 export const startDownloads = (): Promise<SetupView> => api<SetupView>("POST", "/api/setup/downloads", { locale: locale() });
 export const fetchProject = (): Promise<ProjectInfo> => api<ProjectInfo>("GET", `/api/setup/project${q()}`);
 export const fetchProfiles = (): Promise<ProfilesInfo> => api<ProfilesInfo>("GET", "/api/setup/profiles");
-export const previewConfig = (profile: string): Promise<{ files: Array<{ file: string; exists: boolean; before: string | null; text: string }> }> => api("POST", "/api/setup/config/preview", { profile });
+export const fetchDraftProfile = (profile: string): Promise<DraftProfileView> => api<DraftProfileView>("GET", `/api/setup/profile?profile=${encodeURIComponent(profile)}`);
+export const chooseDraftProfile = (profile: string): Promise<{ selected: string | null; view: DraftProfileView }> => api("PUT", "/api/setup/profile/choice", { profile });
+export const writeDraftSelection = (profile: string, changes: Array<{ selector: string; enabled: boolean; when?: "available" | null }>): Promise<{ view: DraftProfileView }> =>
+  api("PUT", "/api/setup/profile/selection", { profile, changes });
+export const createDraftProfile = (body: { id: string; from: string; label?: string; description?: string }): Promise<{ id: string; view: DraftProfileView }> => api("POST", "/api/setup/profile", body);
+export const discardDraft = (): Promise<{ selected: string | null }> => api("DELETE", "/api/setup/profile/draft");
+export const previewConfig = (): Promise<{ mode: "new" | "existing"; files: Array<{ file: string; exists: boolean; before: string | null; text: string }> }> => api("POST", "/api/setup/config/preview", {});
 export const fetchDependencies = (): Promise<DependenciesInfo> => api<DependenciesInfo>("GET", `/api/setup/dependencies${q()}`);
 export const prepareDependencies = (): Promise<SetupView> => api<SetupView>("POST", "/api/setup/dependencies", { locale: locale() });
 export const reopenSetup = (step: StepId = "docker"): Promise<SetupView> => api<SetupView>("POST", "/api/setup/reopen", { step, locale: locale() });

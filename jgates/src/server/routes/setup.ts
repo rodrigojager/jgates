@@ -5,15 +5,14 @@
 // Every check reads the machine fresh: a Docker installed while the page is open is seen at the next check.
 import crypto from "node:crypto";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { BuiltinError } from "../../builtin/index.js";
 import { patchYamlText, readRevision, YamlPatchError, type YamlEdit } from "../../core/codecs/yaml/index.js";
-import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE, parseYamlText, validateDocument } from "../../core/config/load/index.js";
+import { CONFIG_DIR, ROOT_FILE, parseYamlText, validateDocument } from "../../core/config/load/index.js";
 import { discoverCompose } from "../../core/discovery/compose.js";
 import { buildVocabulary, discoverWorkspace, loadWorkspaceSettings, WORKSPACE_FILE, type Classification, type DeclaredComponent } from "../../core/discovery/index.js";
-import { installUnits } from "../../core/deps/index.js";
-import { detectEngine, inspectImageSync, type EngineDetection } from "../../core/engine/index.js";
+import { installUnits, loadDependencySettings, planUnit, readDepsState } from "../../core/deps/index.js";
+import { dependencyVolumeName, detectEngine, inspectImageSync, type EngineDetection } from "../../core/engine/index.js";
 import { NAMED_RUNTIMES, readRuntimePreference, resolveRuntime, validRuntimeValue } from "../../core/engine/runtime-preference.js";
 import { invalidateEngineFacts } from "../../core/engine/facts.js";
 import { DATA_VOLUME, DATABASE_IDS } from "../../core/data/index.js";
@@ -25,11 +24,13 @@ import { imageToolCatalogue } from "../../core/tools-image/catalogue.js";
 import { readPreferences, writePreferences } from "./preferences.js";
 import { refreshPath } from "../../core/env-refresh/index.js";
 import { workspaceDir } from "../../core/home/index.js";
-import { DEFAULT_PROFILE, STARTER_PROFILES, existingConfigFiles, planInit, writeInit } from "../../core/init/index.js";
+import { DEFAULT_PROFILE, PROFILES_FILE, STARTER_PROFILES, existingConfigFiles, planInit, writeInit } from "../../core/init/index.js";
+import { workspaceId } from "../../core/ids/index.js";
+import { MASCOT_DOMAINS, projectMascots } from "../../core/mascots/index.js";
+import { createProfile, listProfiles, setDefaultProfile, setProfileChecks } from "../../core/profiles/index.js";
 import { collectStatus, diskRequirement, engineContextOf, engineReason, type LifecycleReason } from "../../core/lifecycle/index.js";
 import { buildPlan, type Plan } from "../../core/plan/index.js";
-import { cachedProject, projectInventory } from "../../core/cache/project.js";
-import { discoverFor } from "../../core/config/resolve/index.js";
+import { cachedProject, invalidateProjectCache, projectInventory } from "../../core/cache/project.js";
 import { withEngineFacts } from "../../core/engine/facts.js";
 import { stepMode } from "../../core/runner/in-image.js";
 import { readToolsImagePin, toolsImageTarget } from "../../core/tools-image/index.js";
@@ -39,6 +40,8 @@ import { jobView } from "../runs.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { environmentJob, runningEnvironmentJob, startEnvironmentJob, type EnvironmentJobView } from "./environment.js";
 import { PLAN_HASH_PATTERN, findPlan } from "./plans.js";
+import { planAvailability, sourceProfileView, type ConfigSource } from "./config.js";
+import { guard as profileGuard } from "./profiles.js";
 
 export const SETUP_STEPS = ["docker", "tools", "project", "profile", "dependencies", "review"] as const;
 export type SetupStepId = (typeof SETUP_STEPS)[number];
@@ -79,6 +82,10 @@ const LOCALE = { type: "string", enum: ["en", "pt-BR"] };
 const LOCALE_QUERY = { type: "object", properties: { locale: LOCALE }, additionalProperties: false };
 const STEP = { type: "string", enum: [...SETUP_STEPS] };
 const NAME = { type: "string", minLength: 1, maxLength: 60, pattern: "^[A-Za-z0-9][A-Za-z0-9._+#-]*$" };
+/** A profile of the draft (its id) or a starter one (builtin:<id>). */
+const PROFILE_REF = "^(builtin:)?[a-z0-9][a-z0-9._-]{0,127}$";
+const PROFILE_ID = "^[a-z0-9][a-z0-9._-]{0,127}$";
+const SELECTOR = "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/:-]+$";
 
 const now = (): string => new Date().toISOString();
 
@@ -523,7 +530,15 @@ function writeChecked(abs: string, hash: string | null, text: string, locale?: s
   fs.writeFileSync(abs, text, "utf8");
 }
 
-// ---- step 4: the profile and the configuration ----------------------------------------------------------------------
+// ---- step 4: the profile, edited in a draft until the step is confirmed (ADR-0008) ------------------------------------
+//
+// The profile step embeds the profile editor: switches per check, a profile created from another one and customized,
+// before jgates.yml exists. Every change goes to a draft configuration folder in the data folder of the workspace
+// (`setup-draft/`, beside setup.json), never to the project. The draft owns jgates.yml and the file that holds the
+// profiles; the rest of the configuration (.jgates/*, files named in `extends`) mirrors the project, so the views,
+// the plans and the counts are computed as for the project with `configDir` pointing at the draft. Confirming the step
+// writes the owned files that differ into the project (new ones as `jgates init` writes them, existing ones only if
+// they are still the revision the draft started from) and drops the draft.
 
 interface ConfigFile {
   file: string;
@@ -532,91 +547,348 @@ interface ConfigFile {
   text: string;
 }
 
-/** The files step 4 writes: new ones as `jgates init` writes them, or the profile (and services) patched into jgates.yml. */
-function configFiles(server: ServerContext, profile: string, services: SetupState["choices"]["services"]): { files: ConfigFile[]; hash: string | null } {
-  const rootAbs = path.join(server.projectDir, ROOT_FILE);
-  const root = readRevision(rootAbs);
-  if (root.exists) {
-    const edits: YamlEdit[] = [{ op: "set", path: ["selection", "profile"], value: profile }];
-    if (services?.use && services.compose.length > 0 && !servicesOfConfig(server)) edits.push({ op: "set", path: ["services", "compose"], value: services.compose });
-    if (services && !services.use && servicesOfConfig(server)) edits.push({ op: "delete", path: ["services"] });
-    const text = patchYamlText(root.text, edits).text;
-    return { files: [{ file: ROOT_FILE, exists: true, before: root.text, text }], hash: root.hash };
-  }
-  const plan = planInit(server.projectDir, profile);
-  const files = plan.files.map((f) => {
-    let text = f.text;
-    if (f.file === ROOT_FILE && services?.use && services.compose.length > 0) text = patchYamlText(text, [{ op: "set", path: ["services", "compose"], value: services.compose }]).text;
-    const exists = fs.existsSync(path.join(server.projectDir, f.file));
-    return { file: f.file, exists, before: exists ? fs.readFileSync(path.join(server.projectDir, f.file), "utf8") : null, text };
-  });
-  return { files, hash: null };
+interface DraftMeta {
+  schemaVersion: 1;
+  /** "new": the project had no jgates.yml when the draft started (it holds init's files); "existing": a copy of its files. */
+  mode: "new" | "existing";
+  /** The files the draft owns (jgates.yml and the file of the profiles); everything else mirrors the project. */
+  owned: string[];
+  /** Revision of each owned file in the project when the draft started (null: it did not exist). */
+  base: Record<string, string | null>;
+  /** Revision of each owned file of the draft when it started: a draft whose files still match was not edited. */
+  seed: Record<string, string | null>;
+  /** The person picked a profile: the draft no longer follows the recommended one. */
+  chosen: boolean;
 }
 
-function writeConfig(server: ServerContext, profile: string, services: SetupState["choices"]["services"], locale?: string): string[] {
-  const t = translator("setup", locale);
-  const { files, hash } = configFiles(server, profile, services);
-  const root = files.find((f) => f.file === ROOT_FILE);
-  if (root) assertValid("root", root.text, ROOT_FILE, locale);
-  if (hash !== null) {
-    writeChecked(path.join(server.projectDir, ROOT_FILE), hash, (root as ConfigFile).text, locale);
-    return [ROOT_FILE];
-  }
-  // A new configuration: the same files as `jgates init`, never over a file that exists.
-  const clash = existingConfigFiles(server.projectDir).filter((f) => files.some((x) => x.file === f));
-  if (clash.length > 0) throw new HttpError(409, "CONFIG_EXISTS", t("setup_config_exists", { files: clash.join(", ") }), t("setup_config_exists_fix"));
+interface Draft {
+  dir: string;
+  meta: DraftMeta;
+}
+
+/** The draft configuration folder and its record, beside setup.json. */
+const draftDirOf = (server: ServerContext): string => path.join(workspaceDir(server.home, server.workspace.id), "setup-draft");
+const draftMetaFile = (server: ServerContext): string => path.join(workspaceDir(server.home, server.workspace.id), "setup-draft.json");
+const draftSource = (server: ServerContext, draft: Draft): ConfigSource => ({ projectDir: server.projectDir, configDir: draft.dir });
+const hashIn = (dir: string, file: string): string | null => readRevision(path.join(dir, file)).hash;
+const readText = (abs: string): string | null => {
   try {
-    return writeInit(server.projectDir, { profile, templates: [], components: [], files: files.map((f) => ({ file: f.file, text: f.text })) });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new HttpError(409, "CONFIG_EXISTS", t("setup_config_exists", { files: ROOT_FILE }), t("setup_config_exists_fix"));
-    throw error;
+    return fs.readFileSync(abs, "utf8");
+  } catch {
+    return null;
+  }
+};
+
+function readDraftMeta(server: ServerContext): DraftMeta | null {
+  try {
+    const raw = JSON.parse(fs.readFileSync(draftMetaFile(server), "utf8")) as Partial<DraftMeta>;
+    if (raw.schemaVersion !== 1 || (raw.mode !== "new" && raw.mode !== "existing") || !Array.isArray(raw.owned)) return null;
+    return { schemaVersion: 1, mode: raw.mode, owned: raw.owned.filter((f) => typeof f === "string"), base: raw.base ?? {}, seed: raw.seed ?? {}, chosen: raw.chosen === true };
+  } catch {
+    return null;
   }
 }
 
-type ProfileCount = { id: string; unit: "steps"; total: number; categories: Array<{ id: string; count: number }>; error: string | null };
+function writeDraftMeta(server: ServerContext, meta: DraftMeta): void {
+  const file = draftMetaFile(server);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.${process.pid}.${crypto.randomBytes(3).toString("hex")}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(meta, null, 2), { encoding: "utf8", mode: 0o600 });
+  fs.renameSync(tmp, file);
+}
+
+function dropDraft(server: ServerContext): void {
+  fs.rmSync(draftDirOf(server), { recursive: true, force: true });
+  fs.rmSync(draftMetaFile(server), { force: true });
+  invalidateProjectCache();
+}
+
+/** The file that holds the project's profiles (`.jgates/profiles.yml` unless the configuration keeps them elsewhere). */
+function profilesFileOf(projectDir: string): string {
+  try {
+    return listProfiles(projectDir).profiles.find((p) => p.origin === "project")?.file ?? PROFILES_FILE;
+  } catch {
+    return PROFILES_FILE;
+  }
+}
+
+/** Relative paths of the files under `rel` of `dir` (at most a few levels, plain files only). */
+function filesUnder(dir: string, rel: string, depth = 0, out: string[] = []): string[] {
+  if (depth > 6) return out;
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(path.join(dir, ...rel.split("/")), { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const entry of entries) {
+    const child = rel === "" ? entry.name : `${rel}/${entry.name}`;
+    if (entry.isDirectory()) filesUnder(dir, child, depth + 1, out);
+    else if (entry.isFile()) out.push(child);
+  }
+  return out;
+}
+
+/** The project files `extends` of the draft's jgates.yml names outside .jgates (relative, inside the project). */
+function extendedFiles(draftDir: string): string[] {
+  const text = readText(path.join(draftDir, ROOT_FILE));
+  if (text === null) return [];
+  try {
+    const value = parseYamlText(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text, ROOT_FILE).value as { extends?: unknown } | undefined;
+    const list = Array.isArray(value?.extends) ? value.extends : [];
+    return list.filter((e): e is string => typeof e === "string" && !path.isAbsolute(e) && !e.split(/[\\/]/).includes("..")).map((e) => e.replace(/\\/g, "/").replace(/^\.\//, ""));
+  } catch {
+    return [];
+  }
+}
+
+const MIRROR_MAX_BYTES = 2 * 1024 * 1024;
 
 /**
- * "O que roda" of each starter profile, in one pass: one discovery for the three plans, kept in the project cache until
- * the project's files change (core/cache/project.ts). Runs inside withEngineFacts: the plans read the engine from its
- * cached facts.
+ * Makes the draft's other configuration files the project's: .jgates/* and the files `extends` names, copied when they
+ * differ (so the cached views stay valid while nothing changed), and removed when the project no longer has them.
  */
-function profileCounts(server: ServerContext): ProfileCount[] {
-  return cachedProject(`setup-profiles:${getLocale()}`, [server.projectDir], () => computeProfileCounts(server));
+function mirrorProject(server: ServerContext, draft: Draft): void {
+  const owned = new Set(draft.meta.owned);
+  const wanted = new Set<string>([...filesUnder(server.projectDir, CONFIG_DIR), ...extendedFiles(draft.dir).filter((f) => fs.existsSync(path.join(server.projectDir, f)))]);
+  for (const file of owned) wanted.delete(file);
+  for (const file of wanted) {
+    const from = path.join(server.projectDir, ...file.split("/"));
+    const to = path.join(draft.dir, ...file.split("/"));
+    let bytes: Buffer;
+    try {
+      if (fs.statSync(from).size > MIRROR_MAX_BYTES) continue;
+      bytes = fs.readFileSync(from);
+    } catch {
+      continue;
+    }
+    let same = false;
+    try {
+      same = fs.readFileSync(to).equals(bytes);
+    } catch {
+      same = false;
+    }
+    if (same) continue;
+    fs.mkdirSync(path.dirname(to), { recursive: true });
+    fs.writeFileSync(to, bytes);
+  }
+  for (const file of filesUnder(draft.dir, "")) {
+    if (!owned.has(file) && !wanted.has(file)) fs.rmSync(path.join(draft.dir, ...file.split("/")), { force: true });
+  }
 }
 
-/** The items of the real plan by category (a plan of a temporary copy of the configuration when there is none yet). */
-function computeProfileCounts(server: ServerContext): ProfileCount[] {
-  let configDir: string | undefined;
-  let temp: string | null = null;
-  if (!configured(server)) {
-    temp = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-setup-plan-"));
-    const fragments = path.join(server.projectDir, CONFIG_DIR);
-    if (fs.existsSync(fragments)) fs.cpSync(fragments, path.join(temp, CONFIG_DIR), { recursive: true });
-    for (const f of planInit(server.projectDir, DEFAULT_PROFILE).files) {
-      fs.mkdirSync(path.dirname(path.join(temp, f.file)), { recursive: true });
-      fs.writeFileSync(path.join(temp, f.file), f.text, "utf8");
+/** A new draft: the project's own files when it has jgates.yml, otherwise the files `jgates init --profile <profile>` would write. */
+function seedDraft(server: ServerContext, profile: string): Draft {
+  dropDraft(server);
+  const dir = draftDirOf(server);
+  fs.mkdirSync(dir, { recursive: true });
+  let meta: DraftMeta;
+  if (configured(server)) {
+    const owned = [...new Set([ROOT_FILE, profilesFileOf(server.projectDir)])];
+    for (const file of owned) {
+      const text = readText(path.join(server.projectDir, ...file.split("/")));
+      if (text === null) continue;
+      fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+      fs.writeFileSync(path.join(dir, file), text, "utf8");
     }
-    configDir = temp;
+    meta = { schemaVersion: 1, mode: "existing", owned, base: Object.fromEntries(owned.map((f) => [f, hashIn(server.projectDir, f)])), seed: {}, chosen: false };
+  } else {
+    const files = planInit(server.projectDir, profile).files;
+    for (const f of files) {
+      fs.mkdirSync(path.dirname(path.join(dir, f.file)), { recursive: true });
+      fs.writeFileSync(path.join(dir, f.file), f.text, "utf8");
+    }
+    const owned = files.map((f) => f.file);
+    meta = { schemaVersion: 1, mode: "new", owned, base: Object.fromEntries(owned.map((f) => [f, hashIn(server.projectDir, f)])), seed: {}, chosen: false };
   }
+  meta.seed = Object.fromEntries(meta.owned.map((f) => [f, hashIn(dir, f)]));
+  writeDraftMeta(server, meta);
+  const draft = { dir, meta };
+  mirrorProject(server, draft);
+  return draft;
+}
+
+/** Whether the draft holds a change of the person (an owned file differs from what the draft started with). */
+const edited = (draft: Draft): boolean => draft.meta.owned.some((f) => hashIn(draft.dir, f) !== (draft.meta.seed[f] ?? null));
+
+/**
+ * The draft of this workspace, started when there is none. A draft of the other kind (the project got or lost its
+ * jgates.yml meanwhile), or an untouched draft of files the project changed since, starts again from the project.
+ */
+function openDraft(server: ServerContext, profile: string): Draft {
+  const meta = readDraftMeta(server);
+  const dir = draftDirOf(server);
+  if (!meta || !fs.existsSync(path.join(dir, ROOT_FILE))) return seedDraft(server, profile);
+  const draft = { dir, meta };
+  if ((meta.mode === "existing") !== configured(server)) return seedDraft(server, profile);
+  if (meta.mode === "existing" && !edited(draft) && meta.owned.some((f) => hashIn(server.projectDir, f) !== (meta.base[f] ?? null))) return seedDraft(server, profile);
+  mirrorProject(server, draft);
+  return draft;
+}
+
+/** The profile the draft's jgates.yml selects (null when it selects none). */
+function draftSelected(draft: Draft): string | null {
   try {
-    // One discovery for the three plans (the temporary configuration has the project's own discovery settings).
-    const inventory = configDir ? discoverFor(server.projectDir, configDir) : projectInventory(server.projectDir);
-    return STARTER_PROFILES.map((id) => {
+    const text = readText(path.join(draft.dir, ROOT_FILE)) ?? "";
+    const profile = (parseYamlText(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text, ROOT_FILE).value as { selection?: { profile?: unknown } } | undefined)?.selection?.profile;
+    return typeof profile === "string" ? profile : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Selects `profile` in the draft (a profile of the draft or a starter one). */
+function chooseInDraft(server: ServerContext, draft: Draft, profile: string, byPerson: boolean): void {
+  if (draftSelected(draft) !== profile) profileGuard(() => setDefaultProfile(draft.dir, profile));
+  if (byPerson && !draft.meta.chosen) {
+    draft.meta = { ...draft.meta, chosen: true };
+    writeDraftMeta(server, draft.meta);
+  } else if (!byPerson && draft.meta.mode === "new") {
+    // Following the recommendation is not a change of the person's.
+    draft.meta = { ...draft.meta, seed: { ...draft.meta.seed, [ROOT_FILE]: hashIn(draft.dir, ROOT_FILE) } };
+    writeDraftMeta(server, draft.meta);
+  }
+  invalidateProjectCache();
+}
+
+/** The services chosen at step 3, applied to the draft's jgates.yml as the project will get it. */
+function withServices(server: ServerContext, draft: Draft, text: string, services: SetupState["choices"]["services"]): string {
+  const edits: YamlEdit[] = [];
+  if (draft.meta.mode === "new") {
+    if (services?.use && services.compose.length > 0) edits.push({ op: "set", path: ["services", "compose"], value: services.compose });
+  } else {
+    if (services?.use && services.compose.length > 0 && !servicesOfConfig(server)) edits.push({ op: "set", path: ["services", "compose"], value: services.compose });
+    if (services && !services.use && servicesOfConfig(server)) edits.push({ op: "delete", path: ["services"] });
+  }
+  return edits.length > 0 ? patchYamlText(text, edits).text : text;
+}
+
+/** The files confirming the step writes: the draft's owned files as the project will hold them. */
+function draftFiles(server: ServerContext, draft: Draft, services: SetupState["choices"]["services"], selection?: string): ConfigFile[] {
+  return draft.meta.owned.flatMap((file) => {
+    let text = readText(path.join(draft.dir, ...file.split("/")));
+    if (text === null) return [];
+    if (file === ROOT_FILE) {
+      if (selection && draftSelected(draft) !== selection) text = patchYamlText(text, [{ op: "set", path: ["selection", "profile"], value: selection }]).text;
+      text = withServices(server, draft, text, services);
+    }
+    const before = readText(path.join(server.projectDir, ...file.split("/")));
+    return [{ file, exists: before !== null, before, text }];
+  });
+}
+
+/** Writes the draft into the project: init's files for a new configuration, otherwise each owned file that changed. */
+function writeDraft(server: ServerContext, draft: Draft, services: SetupState["choices"]["services"], locale?: string): string[] {
+  const t = translator("setup", locale);
+  const files = draftFiles(server, draft, services);
+  const root = files.find((f) => f.file === ROOT_FILE);
+  if (root) assertValid("root", root.text, ROOT_FILE, locale);
+  if (draft.meta.mode === "new") {
+    // A new configuration: the same files as `jgates init`, never over a file that exists.
+    const clash = existingConfigFiles(server.projectDir).filter((f) => files.some((x) => x.file === f));
+    if (clash.length > 0) throw new HttpError(409, "CONFIG_EXISTS", t("setup_config_exists", { files: clash.join(", ") }), t("setup_config_exists_fix"));
+    try {
+      return writeInit(server.projectDir, { profile: draftSelected(draft) ?? DEFAULT_PROFILE, templates: [], components: [], files: files.map((f) => ({ file: f.file, text: f.text })) });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new HttpError(409, "CONFIG_EXISTS", t("setup_config_exists", { files: ROOT_FILE }), t("setup_config_exists_fix"));
+      throw error;
+    }
+  }
+  const changed = files.filter((f) => f.before !== f.text);
+  // Every file is checked before any is written: another editor may have saved the project meanwhile.
+  for (const f of changed) {
+    if (readRevision(path.join(server.projectDir, ...f.file.split("/"))).hash !== (draft.meta.base[f.file] ?? null)) {
+      throw new HttpError(409, "REVISION_CONFLICT", t("setup_config_conflict", { file: f.file }), t("setup_draft_conflict_fix"));
+    }
+  }
+  for (const f of changed) {
+    const abs = path.join(server.projectDir, ...f.file.split("/"));
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    writeChecked(abs, draft.meta.base[f.file] ?? null, f.text, locale);
+  }
+  return changed.map((f) => f.file);
+}
+
+type ProfileCount = {
+  id: string;
+  ref: string;
+  label: string | null;
+  description: string | null;
+  extends: string | null;
+  /** One of the three starter profiles (minimal, standard, strict) of a new configuration. */
+  starter: boolean;
+  unit: "steps";
+  total: number;
+  categories: Array<{ id: string; count: number }>;
+  error: string | null;
+};
+
+/** The categories in one order everywhere: the quality mascot strip's, then the project's own checks. */
+export const CATEGORY_ORDER: readonly string[] = [...MASCOT_DOMAINS, "custom"];
+const categoryRank = (id: string): number => {
+  const at = CATEGORY_ORDER.indexOf(id);
+  return at < 0 ? CATEGORY_ORDER.length : at;
+};
+const byCategory = <T extends { id: string }>(list: readonly T[]): T[] => [...list].sort((a, b) => categoryRank(a.id) - categoryRank(b.id));
+
+interface DraftPlans {
+  profiles: ProfileCount[];
+  selected: string | null;
+  mascots: ReturnType<typeof projectMascots>;
+  plan: ReturnType<typeof planAvailability>;
+  error: { code: string; message: string; fix: string | null } | null;
+}
+
+/**
+ * "O que roda" of every profile of the draft and, for the one it selects, what the plan says about each capability and
+ * the mascots: one discovery for all the plans, kept in the project cache until the project or the draft changes.
+ * Runs inside withEngineFacts: the plans read the engine from its cached facts.
+ */
+function draftPlans(server: ServerContext, draft: Draft): DraftPlans {
+  return cachedProject(`setup-profiles:${getLocale()}`, [server.projectDir, draft.dir], () => {
+    const inventory = projectInventory(server.projectDir, draft.dir);
+    const list = listProfiles(draft.dir);
+    const selected = draftSelected(draft);
+    const own = list.profiles.filter((p) => p.origin === "project");
+    const ordered = [...STARTER_PROFILES.flatMap((id) => own.filter((p) => p.id === id)), ...own.filter((p) => !(STARTER_PROFILES as readonly string[]).includes(p.id))];
+    // A configuration whose own profiles are not the starters still offers the starters (as built-in profiles).
+    const shown = ordered.length > 0 ? ordered : list.profiles.filter((p) => p.origin === "builtin" && (STARTER_PROFILES as readonly string[]).includes(p.id));
+    if (selected && !shown.some((p) => p.ref === selected || p.id === selected)) {
+      const extra = list.profiles.find((p) => p.ref === selected || p.ref === `builtin:${selected}`);
+      if (extra) shown.push(extra);
+    }
+    let selectedPlan: Plan | null = null;
+    let selectedError: DraftPlans["error"] = null;
+    const profiles = shown.map((p): ProfileCount => {
+      const base = { id: p.id, ref: p.ref, label: p.label, description: p.description, extends: p.extends, starter: (STARTER_PROFILES as readonly string[]).includes(p.id), unit: "steps" as const };
+      const isSelected = selected !== null && (p.ref === selected || p.id === selected);
       let result;
       try {
-        result = buildPlan(server.projectDir, { profile: id, compare: false, home: server.home, version: server.version, inventory, ...(configDir ? { configDir } : {}) });
+        result = buildPlan(server.projectDir, { profile: p.ref, compare: false, home: server.home, version: server.version, inventory, configDir: draft.dir, configIsProject: true });
       } catch (error) {
-        if (error instanceof BuiltinError) return { id, unit: "steps", total: 0, categories: [], error: error.message };
+        if (error instanceof BuiltinError) {
+          if (isSelected) selectedError = { code: "BUILTIN_ERROR", message: error.message, fix: null };
+          return { ...base, total: 0, categories: [], error: error.message };
+        }
         throw error;
       }
-      if (!result.ok) return { id, unit: "steps", total: 0, categories: [], error: result.error.message };
+      if (!result.ok) {
+        if (isSelected) selectedError = { code: result.error.code, message: result.error.message, fix: result.error.fix ?? null };
+        return { ...base, total: 0, categories: [], error: result.error.message };
+      }
+      if (isSelected) selectedPlan = result.plan;
       const counts = new Map<string, number>();
       for (const item of result.plan.groups.willRun) counts.set(item.category ?? "custom", (counts.get(item.category ?? "custom") ?? 0) + 1);
-      return { id, unit: "steps", total: result.plan.groups.willRun.length, categories: [...counts].map(([category, count]) => ({ id: category, count })), error: null };
+      return { ...base, total: result.plan.groups.willRun.length, categories: byCategory([...counts].map(([category, count]) => ({ id: category, count }))), error: null };
     });
-  } finally {
-    if (temp) fs.rmSync(temp, { recursive: true, force: true });
-  }
+    return { profiles, selected, mascots: projectMascots({ plan: selectedPlan, invalid: selectedError !== null }), plan: planAvailability(selectedPlan), error: selectedError };
+  });
+}
+
+/** The view of one profile of the draft (the same as Configuração > Perfil), its categories in the strip's order. */
+function draftView(server: ServerContext, draft: Draft, ref: string) {
+  const view = profileGuard(() => sourceProfileView(draftSource(server, draft), ref));
+  return { ...view, categories: byCategory(view.categories) };
 }
 
 const selectedProfile = (server: ServerContext): string | null => {
@@ -647,20 +919,51 @@ function ensureDependencies(server: ServerContext, state: SetupState, ready: boo
   return { ...state, dependencies: "started", jobs: { ...state.jobs, dependencies: startEnvironmentJob(server, "dependencies", locale).job.id } };
 }
 
-function dependencyUnits(server: ServerContext): Array<Record<string, unknown>> {
+/** The public registry each ecosystem installs from when .jgates/dependencies.yml names none. */
+const DEFAULT_REGISTRY: Record<string, string> = { python: "pypi.org", node: "registry.npmjs.org", go: "proxy.golang.org", rust: "index.crates.io", dotnet: "api.nuget.org" };
+
+const hostOf = (url: string): string => {
+  try {
+    return new URL(url).host || url;
+  } catch {
+    return url;
+  }
+};
+
+/**
+ * One row per install unit (D27, PLAN-guided-flows.md section 2 step 5): manager, lockfile, what is installed (the
+ * recipe's mode, the files it installs from and its commands), where it goes (the unit's volume and where steps mount
+ * it, never the project folder) and the network the install uses (the package registry, only while installing).
+ */
+function dependencyUnits(server: ServerContext, locale?: string): Array<Record<string, unknown>> {
   const inventory = projectInventory(server.projectDir);
   const { units } = installUnits(inventory.classifications.filter((c) => c.approvable));
-  return units.map((u) => ({
-    unit: u.id,
-    components: u.components,
-    installRoot: u.installRoot,
-    ecosystem: u.info.ecosystem,
-    manager: u.info.manager,
-    lockfile: u.info.lockfile,
-    languageVersion: u.info.language.version,
-    languageVersionSource: u.info.language.source,
-    note: u.info.note,
-  }));
+  const workspace = workspaceId(server.projectDir);
+  const settings = loadDependencySettings(server.projectDir);
+  const record = readDepsState(server.home, workspace);
+  const td = translator("deps", locale);
+  return units.map((u) => {
+    // No key store lookup here: the registry is named from the settings; its secret is the preparation's business.
+    const planned = planUnit(u, { projectDir: server.projectDir, workspace, imageId: null, governed: false, settings, env: process.env, vault: false });
+    const recipe = planned.recipe;
+    const registryUrl = settings.registries[u.info.ecosystem]?.url ?? null;
+    const blocked = planned.blocked && planned.blocked.reasonKey !== "deps_not_ready_secret" ? td(planned.blocked.reasonKey, planned.blocked.params) : null;
+    return {
+      unit: u.id,
+      components: u.components,
+      installRoot: u.installRoot,
+      ecosystem: u.info.ecosystem,
+      manager: u.info.manager,
+      lockfile: u.info.lockfile,
+      languageVersion: u.info.language.version,
+      languageVersionSource: u.info.language.source,
+      note: u.info.note,
+      install: recipe ? { mode: recipe.mode, files: recipe.keyFiles, commands: recipe.commands.map((argv) => argv.join(" ")) } : null,
+      blocked,
+      volume: { name: record.units[u.id]?.volume ?? null, prefix: dependencyVolumeName(workspace, u.id), target: recipe?.target ?? null },
+      network: { kind: "bridge", registry: registryUrl ? hostOf(registryUrl) : (DEFAULT_REGISTRY[u.info.ecosystem] ?? null), private: registryUrl !== null },
+    };
+  });
 }
 
 // ---- the routes ----------------------------------------------------------------------------------------------------
@@ -709,7 +1012,7 @@ export const routes: RouteDefinition[] = [
         skip: { type: "boolean" },
         components: { type: "array", maxItems: 200, items: componentChoice },
         services: { type: "object", properties: { use: { type: "boolean" } }, required: ["use"], additionalProperties: false },
-        profile: { enum: [...STARTER_PROFILES] },
+        profile: { type: "string", pattern: PROFILE_REF },
         planHash: { type: "string", pattern: PLAN_HASH_PATTERN },
       },
       required: ["step"],
@@ -746,9 +1049,17 @@ export const routes: RouteDefinition[] = [
         state = { ...state, choices: { ...state.choices, components: b.components ?? [], services: { use: services.use && compose.length > 0, compose } } };
         state = settle(state, "project", "done");
       } else if (b.step === "profile") {
-        const profile = b.profile ?? (configured(server) ? selectedProfile(server) : null);
+        // A new configuration needs a choice: the draft's (the step was shown) or the one sent.
+        if (!b.profile && !configured(server) && readDraftMeta(server) === null) throw new HttpError(422, "PROFILE_REQUIRED", t("setup_profile_required"), null);
+        const draft = openDraft(server, b.profile ?? DEFAULT_PROFILE);
+        if (b.profile) chooseInDraft(server, draft, b.profile, true);
+        const profile = draftSelected(draft) ?? (configured(server) ? selectedProfile(server) : null);
         if (!profile) throw new HttpError(422, "PROFILE_REQUIRED", t("setup_profile_required"), null);
-        if (b.profile) written.push(...writeConfig(server, profile, state.choices.services, locale));
+        // The draft becomes the project's configuration (only the files that differ), then it is gone.
+        written.push(...writeDraft(server, draft, state.choices.services, locale));
+        dropDraft(server);
+        // Read again after the write: a background job may have saved the state meanwhile.
+        state = current(server);
         state = { ...state, choices: { ...state.choices, profile } };
         state = settle(state, "profile", "done");
       } else if (b.step === "dependencies") {
@@ -878,39 +1189,145 @@ export const routes: RouteDefinition[] = [
     },
   },
   {
-    // Step 4: the starter profiles with what each one runs in this project, by category, and the recommended one.
+    // Step 4: every profile of the draft with what it runs in this project (plan steps, by category), the recommended
+    // one, the one the draft selects with what its plan says about each capability and the mascots (ADR-0008).
     method: "GET",
     path: "/api/setup/profiles",
     timeoutMs: 120_000,
     async handler({ server }) {
       guard(server);
       // The image and the plans read the engine from its cached facts, never with a blocking call.
-      const { ready, profiles } = await withEngineFacts(() => ({ ready: imageReady(), profiles: profileCounts(server) }), { prime: { version: server.version } });
-      const selected = configured(server) ? selectedProfile(server) : null;
+      const ready = await withEngineFacts(() => imageReady(), { prime: { version: server.version } });
+      // Rigoroso when the tools are there (everything it asks for can run); the default profile otherwise.
+      const recommended = ready ? "strict" : DEFAULT_PROFILE;
+      const draft = openDraft(server, recommended);
+      // A new configuration follows the recommendation until the person picks a profile.
+      if (draft.meta.mode === "new" && !draft.meta.chosen && draftSelected(draft) !== recommended) chooseInDraft(server, draft, recommended, false);
+      const plans = await withEngineFacts(() => draftPlans(server, draft), { prime: { version: server.version } });
       return {
         status: 200,
         json: {
           schemaVersion: 1,
           status: "OK",
-          // Rigoroso when the tools are there (everything it asks for can run); the default profile otherwise.
-          recommended: ready ? "strict" : DEFAULT_PROFILE,
-          selected,
+          recommended,
+          selected: plans.selected,
           toolsReady: ready,
-          profiles,
+          profiles: plans.profiles,
+          // The selected profile's plan: what it says about each capability here, and the quality mascots.
+          plan: plans.plan,
+          mascots: plans.mascots,
+          error: plans.error,
+          categoryOrder: CATEGORY_ORDER,
+          draft: { mode: draft.meta.mode, edited: edited(draft), chosen: draft.meta.chosen },
           command: "jgates init --profile <perfil>",
         },
       };
     },
   },
   {
-    // Step 4: the files the chosen profile would write, before anything is written.
-    method: "POST",
-    path: "/api/setup/config/preview",
-    body: { type: "object", properties: { profile: { enum: [...STARTER_PROFILES] } }, required: ["profile"], additionalProperties: false },
+    // Step 4: one profile of the draft as Configuração > Perfil shows it (categories, capabilities, tools, rules).
+    method: "GET",
+    path: "/api/setup/profile",
+    query: { type: "object", properties: { profile: { type: "string", pattern: PROFILE_REF } }, additionalProperties: false },
+    handler({ query, server }) {
+      guard(server);
+      const draft = openDraft(server, DEFAULT_PROFILE);
+      const ref = query.profile ?? draftSelected(draft) ?? DEFAULT_PROFILE;
+      return { status: 200, json: draftView(server, draft, ref) };
+    },
+  },
+  {
+    // Step 4: the profile the draft selects (a radio card). Nothing is written to the project.
+    method: "PUT",
+    path: "/api/setup/profile/choice",
+    body: { type: "object", properties: { profile: { type: "string", pattern: PROFILE_REF } }, required: ["profile"], additionalProperties: false },
     handler({ body, server }) {
       guard(server);
-      const { files } = configFiles(server, (body as { profile: string }).profile, current(server).choices.services);
-      return { status: 200, json: { schemaVersion: 1, status: "OK", files } };
+      const profile = (body as { profile: string }).profile;
+      const draft = openDraft(server, DEFAULT_PROFILE);
+      chooseInDraft(server, draft, profile, true);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", selected: draftSelected(draft), view: draftView(server, draft, profile) } };
+    },
+  },
+  {
+    // Step 4: checks turned on or off in a profile of the draft (the switches of the category list).
+    method: "PUT",
+    path: "/api/setup/profile/selection",
+    body: {
+      type: "object",
+      properties: {
+        profile: { type: "string", pattern: PROFILE_ID },
+        changes: {
+          type: "array",
+          minItems: 1,
+          maxItems: 200,
+          items: {
+            type: "object",
+            properties: { selector: { type: "string", pattern: SELECTOR }, enabled: { type: "boolean" }, when: { enum: ["available", null] } },
+            required: ["selector", "enabled"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["profile", "changes"],
+      additionalProperties: false,
+    },
+    handler({ body, server }) {
+      guard(server);
+      const input = body as { profile: string; changes: Array<{ selector: string; enabled: boolean; when?: "available" | null }> };
+      const draft = openDraft(server, DEFAULT_PROFILE);
+      const inventory = projectInventory(server.projectDir, draft.dir);
+      const result = profileGuard(() => setProfileChecks(draft.dir, input.profile, input.changes, { project: { dir: server.projectDir, inventory } }));
+      invalidateProjectCache();
+      server.log(`setup draft selection ${input.profile} ${input.changes.length} change(s)`);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", id: result.id, changes: result.changes, changed: result.changed, view: draftView(server, draft, input.profile) } };
+    },
+  },
+  {
+    // Step 4: "Criar perfil a partir deste": a profile of the draft that extends another one, then customized here.
+    method: "POST",
+    path: "/api/setup/profile",
+    body: {
+      type: "object",
+      properties: { id: { type: "string", pattern: PROFILE_ID }, from: { type: "string", pattern: PROFILE_REF }, label: { type: "string", maxLength: 120 }, description: { type: "string", maxLength: 400 } },
+      required: ["id", "from"],
+      additionalProperties: false,
+    },
+    handler({ body, server }) {
+      guard(server);
+      const input = body as { id: string; from: string; label?: string; description?: string };
+      const draft = openDraft(server, DEFAULT_PROFILE);
+      const result = profileGuard(() => createProfile(draft.dir, input.id, { from: input.from, ...(input.label ? { label: input.label } : {}), ...(input.description ? { description: input.description } : {}) }));
+      invalidateProjectCache();
+      server.log(`setup draft profile created ${result.id}`);
+      return { status: 201, json: { schemaVersion: 1, status: "OK", id: result.id, extends: result.extends, view: draftView(server, draft, result.id) } };
+    },
+  },
+  {
+    // Step 4: "Desfazer as mudanças": the draft starts again from the project (or from init's files).
+    method: "DELETE",
+    path: "/api/setup/profile/draft",
+    async handler({ server }) {
+      guard(server);
+      const ready = await withEngineFacts(() => imageReady(), { prime: { version: server.version } });
+      dropDraft(server);
+      const draft = openDraft(server, ready ? "strict" : DEFAULT_PROFILE);
+      server.log("setup draft discarded");
+      return { status: 200, json: { schemaVersion: 1, status: "OK", selected: draftSelected(draft) } };
+    },
+  },
+  {
+    // Step 4: the files confirming the step would write (the draft as the project will hold it), before anything is written.
+    method: "POST",
+    path: "/api/setup/config/preview",
+    body: { type: "object", properties: { profile: { type: "string", pattern: PROFILE_REF } }, additionalProperties: false },
+    handler({ body, server }) {
+      guard(server);
+      const profile = (body as { profile?: string }).profile;
+      const draft = openDraft(server, profile ?? DEFAULT_PROFILE);
+      // An existing configuration lists only the files that change.
+      const files = draftFiles(server, draft, current(server).choices.services, profile).filter((f) => draft.meta.mode === "new" || f.before !== f.text);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", mode: draft.meta.mode, files } };
     },
   },
   {
@@ -922,7 +1339,7 @@ export const routes: RouteDefinition[] = [
     async handler({ query, server }) {
       guard(server);
       const locale = localeOf(query.locale);
-      const units = dependencyUnits(server);
+      const units = dependencyUnits(server, locale);
       const status = await withEngineFacts(() => collectStatus({ env: process.env, version: server.version, projectDir: server.projectDir, ...(locale ? { locale } : {}) }), { prime: { version: server.version } });
       const states = new Map((status.workspace?.dependencies ?? []).map((d) => [d.unit, d.state]));
       const state = current(server);

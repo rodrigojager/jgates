@@ -64,6 +64,14 @@ export interface SelectorGroup {
 
 type Toggle = (changes: Array<{ selector: string; enabled: boolean; when?: "available" | null }>, note?: string) => void;
 
+/**
+ * The editor embedded in the first-run wizard (ADR-0008): the switches write to the wizard's draft through `write`, and
+ * nothing leads out of the wizard (no "why is this on?", no tool page, no own-tool dialog, no actions of other screens).
+ */
+export interface DraftEditing {
+  write: (changes: Array<{ selector: string; enabled: boolean; when?: "available" | null }>) => Promise<{ view?: unknown }>;
+}
+
 type Mode = "required" | "available" | "off";
 const MODES: Mode[] = ["required", "available", "off"];
 const modeOf = (c: CapabilityView): Mode => (!c.enabled ? "off" : c.when === "available" ? "available" : "required");
@@ -73,7 +81,7 @@ const modeOf = (c: CapabilityView): Mode => (!c.enabled ? "off" : c.when === "av
  * blocks), on where a tool exists (never blocks), or off. Below it, what the plan of this profile says about it here:
  * will run (with which tools), does not apply here (why, and the action that would enable it) or off and by whom.
  */
-function CapabilityRow({ capability, state, ctx, editable, busy, onToggle, profile }: { capability: CapabilityView; state: CapState | undefined; ctx: StateContext; editable: boolean; busy: boolean; onToggle: Toggle; profile: string }) {
+function CapabilityRow({ capability, state, ctx, editable, busy, onToggle, profile, inDraft }: { capability: CapabilityView; state: CapState | undefined; ctx: StateContext; editable: boolean; busy: boolean; onToggle: Toggle; profile: string; inDraft: boolean }) {
   const lock = capability.locked[0];
   const mode = modeOf(capability);
   const id = `cap-mode-${capability.id}`;
@@ -123,18 +131,18 @@ function CapabilityRow({ capability, state, ctx, editable, busy, onToggle, profi
       ) : null}
       {state?.kind === "na" ? (
         <>
-          <NaAction state={state} ctx={ctx} />
+          {inDraft ? null : <NaAction state={state} ctx={ctx} />}
           <Details na={state.na} />
         </>
       ) : null}
       <OriginLine origin={capability.decision} saveTo={editable ? capability.saveTo : null} fallback={t(`cfgp_reason_${capability.reason}`)} />
-      <OriginButton selector={capability.selector} profile={profile} label={capability.label} />
+      {inDraft ? null : <OriginButton selector={capability.selector} profile={profile} label={capability.label} />}
     </div>
   );
 }
 
 /** One check: its toggle (or the padlock with the reason when the policy locks it), the origin and "why is this on?". */
-function CheckRow({ label, secondary, description, item, profile, editable, busy, onToggle, level }: { label: string; secondary?: string; description?: string; item: ItemBase; profile: string; editable: boolean; busy: boolean; onToggle: Toggle; level: "capability" | "tool" | "rule" }) {
+function CheckRow({ label, secondary, description, item, profile, editable, busy, onToggle, level, inDraft }: { label: string; secondary?: string; description?: string; item: ItemBase; profile: string; editable: boolean; busy: boolean; onToggle: Toggle; level: "capability" | "tool" | "rule"; inDraft: boolean }) {
   const lock = item.locked[0];
   return (
     <div className={`check-row level-${level}`} data-selector={item.selector} data-enabled={item.enabled} data-locked={lock ? "true" : "false"}>
@@ -185,19 +193,19 @@ function CheckRow({ label, secondary, description, item, profile, editable, busy
         )}
       </div>
       <OriginLine origin={item.decision} saveTo={editable ? item.saveTo : null} fallback={t(`cfgp_reason_${item.reason}`)} />
-      <OriginButton selector={item.selector} profile={profile} label={label} />
+      {inDraft ? null : <OriginButton selector={item.selector} profile={profile} label={label} />}
     </div>
   );
 }
 
-function ToolRow({ tool, capabilityLabel, profile, editable, busy, onToggle }: { tool: ToolView; capabilityLabel: string; profile: string; editable: boolean; busy: boolean; onToggle: Toggle }) {
+function ToolRow({ tool, capabilityLabel, profile, editable, busy, onToggle, inDraft }: { tool: ToolView; capabilityLabel: string; profile: string; editable: boolean; busy: boolean; onToggle: Toggle; inDraft: boolean }) {
   return (
     <div className="tool-block" data-tool={tool.id}>
-      <CheckRow label={tool.label} secondary={tool.id} item={tool} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="tool" />
+      <CheckRow label={tool.label} secondary={tool.id} item={tool} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="tool" inDraft={inDraft} />
       {tool.alsoCapabilities.length > 0 ? (
         <p className="small muted tool-note">{t("cfgp_tool_shared", { capability: capabilityLabel, others: tool.alsoCapabilities.join(", ") })}</p>
       ) : null}
-      {!tool.id.includes(".") ? (
+      {!tool.id.includes(".") && !inDraft ? (
         <p className="small tool-note">
           <a href={`#/tools/${encodeURIComponent(tool.id)}`}>{t("cfgp_tool_options", { tool: tool.label })}</a>
         </p>
@@ -206,7 +214,7 @@ function ToolRow({ tool, capabilityLabel, profile, editable, busy, onToggle }: {
         <div className="rules-block" role="group" aria-label={t("cfgp_rules_of", { tool: tool.label })}>
           <h5>{t("cfgp_rules")}</h5>
           {tool.rules.map((rule) => (
-            <CheckRow key={rule.selector} label={rule.label} item={rule} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="rule" />
+            <CheckRow key={rule.selector} label={rule.label} item={rule} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="rule" inDraft={inDraft} />
           ))}
         </div>
       ) : null}
@@ -214,11 +222,11 @@ function ToolRow({ tool, capabilityLabel, profile, editable, busy, onToggle }: {
   );
 }
 
-function CapabilityBlock({ capability, state, ctx, profile, editable, busy, onToggle }: { capability: CapabilityView; state: CapState | undefined; ctx: StateContext; profile: string; editable: boolean; busy: boolean; onToggle: Toggle }) {
+function CapabilityBlock({ capability, state, ctx, profile, editable, busy, onToggle, inDraft }: { capability: CapabilityView; state: CapState | undefined; ctx: StateContext; profile: string; editable: boolean; busy: boolean; onToggle: Toggle; inDraft: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <li className="capability" data-capability={capability.id}>
-      <CapabilityRow capability={capability} state={state} ctx={ctx} profile={profile} editable={editable} busy={busy} onToggle={onToggle} />
+      <CapabilityRow capability={capability} state={state} ctx={ctx} profile={profile} editable={editable} busy={busy} onToggle={onToggle} inDraft={inDraft} />
       {capability.tools.length > 0 ? (
         <>
           <button type="button" className="btn link-btn tools-toggle" aria-expanded={open} aria-controls={`tools-${capability.id}`} onClick={() => setOpen(!open)}>
@@ -228,7 +236,7 @@ function CapabilityBlock({ capability, state, ctx, profile, editable, busy, onTo
           {open ? (
             <div id={`tools-${capability.id}`} className="tools-list">
               {capability.tools.map((tool) => (
-                <ToolRow key={tool.id} tool={tool} capabilityLabel={capability.label} profile={profile} editable={editable} busy={busy} onToggle={onToggle} />
+                <ToolRow key={tool.id} tool={tool} capabilityLabel={capability.label} profile={profile} editable={editable} busy={busy} onToggle={onToggle} inDraft={inDraft} />
               ))}
             </div>
           ) : null}
@@ -240,7 +248,8 @@ function CapabilityBlock({ capability, state, ctx, profile, editable, busy, onTo
   );
 }
 
-function CategoryBlock({ category, states, ctx, profile, editable, busy, pending, onToggle, onAddOwn }: { category: CategoryView; states: Map<string, CapState>; ctx: StateContext; profile: string; editable: boolean; busy: boolean; pending: string | null; onToggle: Toggle; onAddOwn: () => void }) {
+function CategoryBlock({ category, states, ctx, profile, editable, busy, pending, onToggle, onAddOwn }: { category: CategoryView; states: Map<string, CapState>; ctx: StateContext; profile: string; editable: boolean; busy: boolean; pending: string | null; onToggle: Toggle; onAddOwn: (() => void) | null }) {
+  const inDraft = onAddOwn === null;
   const own = category.id === "custom";
   const [open, setOpen] = useState(false);
   const caps = category.capabilities;
@@ -268,7 +277,7 @@ function CategoryBlock({ category, states, ctx, profile, editable, busy, pending
             {category.description} {own && caps.length === 0 ? t("cfgp_custom_empty") : t("cfgp_category_count", { on: onCount, total: caps.length })}
           </p>
         </div>
-        {own ? (
+        {own && onAddOwn ? (
           <button type="button" className="btn" data-testid="add-own-tool" onClick={onAddOwn}>
             <Icon name="tools" />
             {t("cfgp_custom_add")}
@@ -280,7 +289,7 @@ function CategoryBlock({ category, states, ctx, profile, editable, busy, pending
       {open ? (
         <ul id={`cat-body-${category.id}`} className="capabilities">
           {caps.map((cap) => (
-            <CapabilityBlock key={cap.id} capability={cap} state={states.get(cap.id)} ctx={ctx} profile={profile} editable={editable} busy={busy} onToggle={onToggle} />
+            <CapabilityBlock key={cap.id} capability={cap} state={states.get(cap.id)} ctx={ctx} profile={profile} editable={editable} busy={busy} onToggle={onToggle} inDraft={inDraft} />
           ))}
         </ul>
       ) : null}
@@ -289,7 +298,7 @@ function CategoryBlock({ category, states, ctx, profile, editable, busy, pending
 }
 
 /** The personal data entities, the architecture rules and the components the profile can switch (pii:, architecture:, component:). */
-function Selectors({ groups, profile, editable, busy, onToggle }: { groups: SelectorGroup[]; profile: string; editable: boolean; busy: boolean; onToggle: Toggle }) {
+function Selectors({ groups, profile, editable, busy, onToggle, inDraft }: { groups: SelectorGroup[]; profile: string; editable: boolean; busy: boolean; onToggle: Toggle; inDraft: boolean }) {
   const shown = groups.filter((g) => g.items.length > 0);
   if (shown.length === 0) return null;
   return (
@@ -302,7 +311,7 @@ function Selectors({ groups, profile, editable, busy, onToggle }: { groups: Sele
         <div key={group.kind} className="stack" role="group" aria-labelledby={`cfgp-sel-${group.kind}`} data-selector-kind={group.kind}>
           <h4 id={`cfgp-sel-${group.kind}`}>{t(`cfgp_selectors_${group.kind}`)}</h4>
           {group.items.map((item) => (
-            <CheckRow key={item.selector} label={item.label} secondary={item.selector} item={item} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="rule" />
+            <CheckRow key={item.selector} label={item.label} secondary={item.selector} item={item} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="rule" inDraft={inDraft} />
           ))}
         </div>
       ))}
@@ -311,7 +320,7 @@ function Selectors({ groups, profile, editable, busy, onToggle }: { groups: Sele
 }
 
 /** "O que você quer proteger?": categories that open into capabilities, tools and rules, each with its own toggle. */
-export function Protect({ categories, selectors, universe, plan, profile, editable, onChanged }: { categories: CategoryView[]; selectors: SelectorGroup[]; universe: { components: string[]; tools: string[] }; plan: any; profile: string; editable: boolean; onChanged: (answer: { view?: unknown } | null) => void }) {
+export function Protect({ categories, selectors, universe, plan, profile, editable, onChanged, draft }: { categories: CategoryView[]; selectors: SelectorGroup[]; universe: { components: string[]; tools: string[] }; plan: any; profile: string; editable: boolean; onChanged: (answer: { view?: unknown } | null) => void; draft?: DraftEditing }) {
   const [ownDialog, setOwnDialog] = useState(false);
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -335,8 +344,8 @@ export function Protect({ categories, selectors, universe, plan, profile, editab
     setPending(changes[0]?.selector ?? null);
     setError(null);
     try {
-      const answer = await api("PUT", "/api/config/selection", { profile, changes });
-      toast(t("cfgp_saved", { count: changes.length, profile }), "ok");
+      const answer = draft ? await draft.write(changes) : await api("PUT", "/api/config/selection", { profile, changes });
+      toast(t(draft ? "cfgp_saved_draft" : "cfgp_saved", { count: changes.length, profile }), "ok");
       onChanged(answer);
     } catch (e) {
       setError(e);
@@ -350,7 +359,7 @@ export function Protect({ categories, selectors, universe, plan, profile, editab
     <section className="card pad stack" aria-labelledby="cfgp-protect-title">
       <div>
         <h2 id="cfgp-protect-title">{t("cfgp_protect_title")}</h2>
-        <p className="small muted">{t("cfgp_protect_lead", { profile })}</p>
+        <p className="small muted">{t(draft ? "cfgp_protect_lead_draft" : "cfgp_protect_lead", { profile })}</p>
       </div>
       {!editable ? (
         <div className="notice warn" role="status" data-testid="readonly-profile">
@@ -366,10 +375,10 @@ export function Protect({ categories, selectors, universe, plan, profile, editab
       ) : null}
       <div className="categories" data-testid="categories">
         {categories.map((c) => (
-          <CategoryBlock key={c.id} category={c} states={states} ctx={ctx} profile={profile} editable={editable} busy={busy} pending={pending} onToggle={onToggle} onAddOwn={() => setOwnDialog(true)} />
+          <CategoryBlock key={c.id} category={c} states={states} ctx={ctx} profile={profile} editable={editable} busy={busy} pending={pending} onToggle={onToggle} onAddOwn={draft ? null : () => setOwnDialog(true)} />
         ))}
       </div>
-      <Selectors groups={selectors} profile={profile} editable={editable} busy={busy} onToggle={onToggle} />
+      <Selectors groups={selectors} profile={profile} editable={editable} busy={busy} onToggle={onToggle} inDraft={draft !== undefined} />
       {ownDialog ? (
         <CustomToolDialog
           components={universe.components}

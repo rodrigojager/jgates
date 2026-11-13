@@ -157,5 +157,8 @@
   "cfgp_diag_text_readable": "Esta tela mostra o que os arquivos têm; a validação recusa a configuração até isso ser corrigido.",
   "cfgp_diag_open_line": "Abrir na linha {line}",
   "cfgp_defaults_title": "Padrões do projeto",
-  "cfgp_defaults_lead": "O que uma validação usa quando não pede outra coisa (escopo, caminhos, portões) e os arquivos de configuração que o jgates.yml estende."
+  "cfgp_defaults_lead": "O que uma validação usa quando não pede outra coisa (escopo, caminhos, portões) e os arquivos de configuração que o jgates.yml estende.",
+  "cfgp_saved_draft": "{count, plural, one {# alteração} other {# alterações}} no rascunho do perfil {profile}. Nada é gravado no projeto antes de Salvar e continuar.",
+  "cfgp_protect_lead_draft": "Liga e desliga verificações no perfil {profile} do rascunho. Cada categoria abre em capacidades, ferramentas e regras.",
+  "cfgp_created_draft": "Perfil {id} criado no rascunho. Ele vai para .jgates/profiles.yml quando você salvar."
 }

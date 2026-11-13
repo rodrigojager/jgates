@@ -8,6 +8,7 @@ import { renameKeyInText } from "./yaml-rename.js";
 import { parseYamlText } from "../config/load/yaml.js";
 import { knownSelectors, parseSelector, parseSkipList, resolveSelection, skipOverrides } from "../selection/index.js";
 import type { GateKind } from "../gates/types.js";
+import type { Inventory } from "../discovery/index.js";
 import { normalizeGates } from "../sequence/selection.js";
 
 /** Project profiles: list, create, set the default and delete, by patch on .jgates/profiles.yml and jgates.yml. */
@@ -387,6 +388,14 @@ export function deleteProfile(dir: string, id: string, options: WriteOptions = {
 export { hashBytes };
 
 
+/**
+ * `dir` is a configuration folder outside the project (the first-run wizard's draft, ADR-0008): the checks are resolved
+ * against `project.dir` (its discovery, with the folder's discovery settings), never against the folder itself.
+ */
+export interface ElsewhereOptions {
+  project?: { dir: string; inventory?: Inventory };
+}
+
 export interface SelectionChange {
   selector: string;
   enabled: boolean;
@@ -406,7 +415,7 @@ function configTranslator() {
  * one can name, a builtin profile and a requirement locked by the policy are refused with the reason, and the file
  * stays as it is.
  */
-export function setProfileChecks(dir: string, id: string, changes: SelectionChange[], options: WriteOptions = {}): WriteResult & { id: string; changes: SelectionChange[] } {
+export function setProfileChecks(dir: string, id: string, changes: SelectionChange[], options: WriteOptions & ElsewhereOptions = {}): WriteResult & { id: string; changes: SelectionChange[] } {
   const t = configTranslator();
   const projectDir = path.resolve(dir);
   const load = loadValid(projectDir);
@@ -417,7 +426,10 @@ export function setProfileChecks(dir: string, id: string, changes: SelectionChan
     throw new ProfileError("PROFILE_NOT_FOUND", t("cfgp_not_found", { id }), suggestion ? t("cfgp_suggest", { suggestion }) : null, suggestion ? { suggestion } : {});
   }
   if (changes.length === 0) throw new ProfileError("SELECTION_REJECTED", t("cfgp_no_changes"), t("cfgp_no_changes_fix"));
-  const resolved = resolveReadable(projectDir, { profile: id });
+  // A configuration folder outside the project (the wizard's draft) is resolved against the project it configures.
+  const resolved = options.project
+    ? resolveReadable(options.project.dir, { profile: id, configDir: projectDir, ...(options.project.inventory ? { inventory: options.project.inventory } : {}) })
+    : resolveReadable(projectDir, { profile: id });
   if (!resolved.ok && !onlyFileProblems(resolved)) {
     const first = resolved.errors[0];
     throw new ProfileError("CONFIG_INVALID", t("cfgp_resolve_failed", { first: first?.message ?? "" }), t("profiles_config_invalid_fix"), { errors: resolved.errors });

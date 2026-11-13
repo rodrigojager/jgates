@@ -369,6 +369,8 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   const env = options.env ?? process.env;
   // The configuration folder: the analyzed files themselves, or an external policy that replaces their configuration.
   const configDir = options.configDir === undefined ? dir : path.resolve(options.configDir);
+  // A CI policy replaces the project's configuration; a stand-in for the project's own one (the wizard's draft) does not.
+  const policy = configDir !== dir && options.configIsProject !== true;
 
   // The caller's inventory is the work tree's: a plan of another commit (a snapshot) discovers its own files.
   const inventory: Inventory = options.inventory !== undefined && dir === workspaceDir ? options.inventory : discoverFor(dir, configDir);
@@ -467,7 +469,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   selection.subchecks = requestedSubs;
   // Project configuration files of the scanners that will run (local mode only: with an external configuration
   // folder the analyzed files never choose the scanners' configuration, so the packaged ones are used).
-  const bridgeConfigs = bridgeToolConfigs(dir, anyBridge && configDir === dir ? requestedSubs : []);
+  const bridgeConfigs = bridgeToolConfigs(dir, anyBridge && !policy ? requestedSubs : []);
   if (Object.keys(bridgeConfigs.toolConfigs).length > 0) selection.toolConfigs = { ...bridgeConfigs.toolConfigs };
   const subPlans = new Map<string, SubcheckPlan>(planSubchecks(selection, [...subchecks.keys()]).map((p) => [p.subcheckId, p]));
   const runtime = bridgeRuntime(env);
@@ -539,10 +541,10 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       config: effective.config,
       selection: selEff,
       // Under a CI policy the discovery settings are the policy's: an adapter discovers the project's own way itself.
-      ...(configDir !== dir ? { policyDir: configDir } : { inventory }),
+      ...(policy ? { policyDir: configDir } : { inventory }),
     };
     // Under a CI policy the trust table of the governed path decides what an adapter may do (core/governed).
-    const planned = configDir !== dir ? governExternalPlan(adapter.manifest.id, tool.id, adapter.plan(planInput)) : adapter.plan(planInput);
+    const planned = policy ? governExternalPlan(adapter.manifest.id, tool.id, adapter.plan(planInput)) : adapter.plan(planInput);
     externals.set(tool.id, { adapter, plan: planned });
     for (const f of planned.configFiles) hashes.set(f.file, f.sha256);
   }

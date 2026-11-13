@@ -61,7 +61,19 @@ export interface WriteAnswer {
 /** The label of a button whose action is in flight: the turning ring beside it, and aria-busy on the button itself. */
 const busyProps = (busy: boolean) => (busy ? ({ "aria-busy": true, "data-pending": "true" } as const) : {});
 
-function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Card[]; starters: Starter[]; from: string; onClose: () => void; onCreated: (id: string, answer: WriteAnswer) => void }) {
+/** The body of "Criar perfil": the profile it extends, its name (the identifier follows it) and a description. */
+export interface CreateBody {
+  id: string;
+  from: string;
+  label?: string;
+  description?: string;
+}
+
+/**
+ * "Criar perfil": name first, the identifier derived from it. `draft` creates the profile in the first-run wizard's draft
+ * instead of .jgates/profiles.yml (ADR-0008).
+ */
+export function CreateDialog({ cards, starters, from, onClose, onCreated, draft }: { cards: Array<Pick<Card, "id" | "ref" | "label">>; starters: Starter[]; from: string; onClose: () => void; onCreated: (id: string, answer: WriteAnswer) => void; draft?: { create: (body: CreateBody) => Promise<WriteAnswer> } }) {
   const toast = useToast();
   const [id, setId] = useState("");
   const [idTouched, setIdTouched] = useState(false);
@@ -81,8 +93,9 @@ function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Ca
     setBusy(true);
     setError(null);
     try {
-      const answer = await api<WriteAnswer>("POST", "/api/profiles", { id, from: source, ...(label.trim() ? { label: label.trim() } : {}), ...(description.trim() ? { description: description.trim() } : {}) });
-      toast(t("cfgp_created", { id }), "ok");
+      const body: CreateBody = { id, from: source, ...(label.trim() ? { label: label.trim() } : {}), ...(description.trim() ? { description: description.trim() } : {}) };
+      const answer = draft ? await draft.create(body) : await api<WriteAnswer>("POST", "/api/profiles", body);
+      toast(t(draft ? "cfgp_created_draft" : "cfgp_created", { id }), "ok");
       onCreated(id, answer);
     } catch (e) {
       setError(e);
@@ -104,13 +117,15 @@ function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Ca
                 </option>
               ))}
             </optgroup>
-            <optgroup label={t("cfgp_group_starters")}>
-              {starters.map((s) => (
-                <option key={s.ref} value={s.ref}>
-                  {s.label ?? s.id} ({s.ref})
-                </option>
-              ))}
-            </optgroup>
+            {starters.length > 0 ? (
+              <optgroup label={t("cfgp_group_starters")}>
+                {starters.map((s) => (
+                  <option key={s.ref} value={s.ref}>
+                    {s.label ?? s.id} ({s.ref})
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
           </select>
         </label>
         <label className="field">

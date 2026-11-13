@@ -457,6 +457,11 @@ export interface BuildPlanOptions {
    */
   configDir?: string;
   /**
+   * `configDir` stands for the project's own configuration, not a CI policy (the first-run wizard's draft, ADR-0008):
+   * the adapters plan with the inventory and no governed treatment, so the plan counts what the project's plan will.
+   */
+  configIsProject?: boolean;
+  /**
    * Governed (CI) bridge: the bridge runs in its complete mode with this quality policy (a file path, `{runDir}` allowed,
    * and its sha256), so the analyzed project's own quality policy file is never read.
    */

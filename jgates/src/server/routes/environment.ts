@@ -202,7 +202,8 @@ function startJob(server: ServerContext, kind: JobKind, locale?: string): Job {
       .catch(failed);
   } else {
     // The dependencies are the CLI's `deps prepare` in a child process (one code path, one set of logs).
-    const child = spawn(process.execPath, [cliMain(), "deps", "prepare", "--json", "--cwd", server.projectDir], { cwd: server.projectDir, env: process.env, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+    // In the language of the screen that asked: the units' messages are shown as they come.
+    const child = spawn(process.execPath, [cliMain(), "deps", "prepare", "--json", "--cwd", server.projectDir], { cwd: server.projectDir, env: { ...process.env, ...(locale ? { JGATES_LOCALE: locale } : {}) }, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
     let out = "";
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk: string) => (out += chunk));

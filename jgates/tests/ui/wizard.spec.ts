@@ -10,7 +10,10 @@ import { REPO, createFixture, pageGet, startServer, type Fixture } from "./suppo
 // with the first run started; afterwards the overview is the dashboard, and "Refazer a configuração guiada" opens the
 // wizard again only when asked, at a chosen step, without taking over the overview (D13). Step 1 has the doctor mascot
 // (checking, needs you, ok, error) and the runtime list with "Testar"; locked steps say what unlocks them; step 2 never
-// keeps a promise that no longer holds (D29); step 3 has no bare "." and declares a component in a dialog of its own.
+// keeps a promise that no longer holds (D29); step 3 has no bare "." and declares a component in a dialog of its own;
+// step 4 embeds the profile editor (ADR-0008): switches, the quality mascot strip following them and "Criar perfil a
+// partir deste", all on a draft until "Salvar e continuar" (D10); step 5 says per unit what is installed, where it goes
+// and the network it uses, and takes its state from the job's result (D27).
 
 const FAKE = path.join(REPO, "jgates", "tests", "docker", "fake-docker.cjs");
 const CLI_VERSION = JSON.parse(fs.readFileSync(path.join(REPO, "package.json"), "utf8")).version as string;
@@ -41,7 +44,21 @@ interface Texts {
   declareTitle: string;
   reopenOpen: string;
   reopenStep: string;
+  planSteps: string;
+  categories: string[];
+  openQuality: string;
+  createFrom: string;
+  createTitle: string;
+  profileName: string;
+  create: string;
+  installs: string;
+  volume: string;
+  network: string;
+  installed: string;
 }
+
+/** The categories in the mascot strip's order, then the project's own checks. */
+const CATEGORY_ORDER = ["quality", "security", "dependencies", "tests", "architecture", "infrastructure", "custom"];
 
 const PT: Texts = {
   steps: ["Docker", "Ferramentas", "Projeto", "Perfil", "Dependências", "Revisão"],
@@ -51,7 +68,7 @@ const PT: Texts = {
   download: "Baixar as ferramentas do JGates",
   preview: "Ver o arquivo antes de salvar",
   previewTitle: "O que vai ser gravado",
-  minimal: "Mínimo",
+  minimal: "Essencial",
   recommended: "Recomendado",
   save: "Salvar e continuar",
   prepare: "Preparar dependências",
@@ -68,6 +85,17 @@ const PT: Texts = {
   declareTitle: "Declarar componente",
   reopenOpen: "Abrir o assistente",
   reopenStep: "Começar no passo",
+  planSteps: "etapas do plano",
+  categories: ["Qualidade", "Segurança", "Dependências", "Testes", "Arquitetura", "Infraestrutura", "Verificações próprias"],
+  openQuality: "Abrir a categoria Qualidade",
+  createFrom: "Criar perfil a partir de Essencial",
+  createTitle: "Criar perfil",
+  profileName: "Nome do perfil",
+  create: "Criar",
+  installs: "Os pacotes declarados em",
+  volume: "No volume",
+  network: "Só durante a instalação",
+  installed: "Dependências instaladas",
 };
 
 const EN: Texts = {
@@ -78,7 +106,7 @@ const EN: Texts = {
   download: "Download the JGates tools",
   preview: "See the file before saving",
   previewTitle: "What will be written",
-  minimal: "Minimal",
+  minimal: "Essential",
   recommended: "Recommended",
   save: "Save and continue",
   prepare: "Prepare dependencies",
@@ -95,6 +123,17 @@ const EN: Texts = {
   declareTitle: "Declare a component",
   reopenOpen: "Open the wizard",
   reopenStep: "Start at step",
+  planSteps: "plan steps",
+  categories: ["Quality", "Security", "Dependencies", "Tests", "Architecture", "Infrastructure", "Your own checks"],
+  openQuality: "Open the category Quality",
+  createFrom: "Create a profile from Essential",
+  createTitle: "Create profile",
+  profileName: "Profile name",
+  create: "Create",
+  installs: "The packages declared in",
+  volume: "In the volume",
+  network: "Only while installing",
+  installed: "Dependencies installed",
 };
 
 /** A project without jgates.yml, served with the fake engine (not in-image): the image exists once it was pulled. */
@@ -127,6 +166,7 @@ function wizardFixture(language: "pt-BR" | "en"): Fixture {
 /** Presses Tab until the control has the focus (the keyboard path reaches it), never clicking. */
 async function tabTo(page: Page, target: Locator, max = 80): Promise<void> {
   await expect(target).toBeVisible();
+  await expect(target).toBeEnabled();
   for (let i = 0; i < max; i++) {
     if (await target.evaluate((el) => el === document.activeElement)) return;
     await page.keyboard.press("Tab");
@@ -134,9 +174,9 @@ async function tabTo(page: Page, target: Locator, max = 80): Promise<void> {
   throw new Error(`the keyboard never reached ${await target.evaluate((el) => el.outerHTML.slice(0, 200))}`);
 }
 
-async function press(page: Page, target: Locator, key = "Enter"): Promise<void> {
+async function press(page: Page, target: Locator, key = "Enter", max = 80): Promise<void> {
   await expect(target).toBeEnabled();
-  await tabTo(page, target);
+  await tabTo(page, target, max);
   await page.keyboard.press(key);
 }
 
@@ -213,38 +253,104 @@ async function walk(page: Page, fixture: Fixture, text: Texts, narrow: boolean):
   await expect(declare).toBeFocused();
   await press(page, nav.getByRole("button", { name: text.next }));
 
-  // 4 Perfil: radio cards with what each runs; the tools are there, so Rigoroso is the recommended (and preselected) one.
+  // 4 Perfil: the profile editor inside the wizard (ADR-0008). Radio cards with what each runs; the tools are there, so
+  // Rigoroso is the recommended (and preselected) one.
   await atStep(4);
+  const profileStep = wizard.getByTestId("wizard-step-profile");
   const strict = wizard.locator('[data-profile="strict"]');
   await expect(strict).toContainText(text.recommended);
   await expect(strict.getByRole("radio")).toBeChecked();
-  // The arrow keys move the choice inside the group: two up from Rigoroso is Mínimo.
+  // The arrow keys move the choice inside the group: two up from Rigoroso is Essencial.
   await tabTo(page, strict.getByRole("radio"));
   await page.keyboard.press("ArrowUp");
   await page.keyboard.press("ArrowUp");
+  const minimal = wizard.locator('[data-profile="minimal"]');
   await expect(wizard.getByRole("radio", { name: new RegExp(`^${text.minimal}`) })).toBeChecked();
-  // The file before it is written: a dialog that Esc closes, giving the focus back to its button.
+  await expect(minimal.getByTestId("wizard-profile-runs")).toContainText(text.planSteps);
+  // The category list of the chosen profile, the same component as Configuração > Perfil: one fixed order, the names of
+  // the mascot strip; the quality mascot strip of the selected profile beside it.
+  const editor = wizard.getByTestId("wizard-profile-editor");
+  await expect(editor).toHaveAttribute("data-editing", "minimal");
+  const categories = editor.getByTestId("categories").locator("section.category[data-category]");
+  await expect(categories).toHaveCount(CATEGORY_ORDER.length);
+  expect(await categories.evaluateAll((els) => els.map((e) => e.getAttribute("data-category")))).toEqual(CATEGORY_ORDER);
+  expect(await categories.locator("h3").allTextContents()).toEqual(text.categories);
+  const strip = wizard.getByTestId("wizard-profile-mascots").getByTestId("quality-mascots");
+  await expect(strip.locator("[data-domain]")).toHaveCount(6);
+  const security = strip.locator('[data-domain="security"]');
+  await expect(security).not.toHaveAttribute("data-selection", "disabled");
+  const totalBefore = Number(await minimal.getAttribute("data-total"));
+  // A switch: Segurança off, with the keyboard. The draft changes, the count and the mascot follow; the project does not.
+  const securitySwitch = editor.getByTestId("category-security");
+  await expect(securitySwitch).toHaveAttribute("aria-checked", "true");
+  await tabTo(page, securitySwitch);
+  await page.keyboard.press("Space");
+  await expect(securitySwitch).toHaveAttribute("aria-checked", "false");
+  await expect(security).toHaveAttribute("data-selection", "disabled");
+  await expect.poll(async () => Number(await minimal.getAttribute("data-total"))).toBeLessThan(totalBefore);
+  expect(fs.existsSync(path.join(fixture.dir, "jgates.yml")), "a switch writes nothing to the project").toBe(false);
+  // A category opens into its capabilities; nothing in the step leads out of the wizard.
+  const qualityOpen = editor.locator('section.category[data-category="quality"]').getByRole("button", { name: text.openQuality });
+  await press(page, qualityOpen, "Enter", 150);
+  await expect(editor.locator('section.category[data-category="quality"] li.capability').first()).toBeVisible();
+  await expect(profileStep.locator('a[href^="#"]')).toHaveCount(0);
+  if (narrow) await noSidewaysScroll(page, "profile editor");
+  // "Criar perfil a partir deste" on Essencial: a dialog of the wizard, the name first and the identifier from it.
+  const createFrom = minimal.getByRole("button", { name: text.createFrom });
+  await press(page, createFrom, "Enter", 150);
+  const createDialog = page.getByRole("dialog", { name: text.createTitle });
+  await expect(createDialog).toBeVisible();
+  await expect.poll(() => new URL(page.url()).hash, { message: "the dialog opens inside the wizard" }).toBe("#/overview");
+  if (narrow) await noSidewaysScroll(page, "create dialog");
+  await tabTo(page, createDialog.getByRole("textbox", { name: text.profileName }));
+  await page.keyboard.type("Rapido");
+  await press(page, createDialog.getByRole("button", { name: text.create, exact: true }));
+  await expect(createDialog).toHaveCount(0);
+  const rapido = wizard.locator('[data-profile="rapido"]');
+  await expect(rapido.getByRole("radio")).toBeChecked();
+  await expect(editor).toHaveAttribute("data-editing", "rapido");
+  // It inherits Essencial as the draft holds it (Segurança off) and is customized here: Qualidade off too.
+  await expect(editor.getByTestId("category-security")).toHaveAttribute("aria-checked", "false");
+  const rapidoQuality = editor.getByTestId("category-quality");
+  await press(page, rapidoQuality, "Space", 150);
+  await expect(rapidoQuality).toHaveAttribute("aria-checked", "false");
+  await expect(strip.locator('[data-domain="quality"]')).toHaveAttribute("data-selection", "disabled");
+  expect(fs.existsSync(path.join(fixture.dir, "jgates.yml")), "creating a profile writes nothing to the project").toBe(false);
+  // The files before they are written: a dialog that Esc closes, giving the focus back to its button.
   const previewButton = wizard.getByRole("button", { name: text.preview });
-  await press(page, previewButton);
+  await press(page, previewButton, "Enter", 150);
   const dialog = page.getByRole("dialog", { name: text.previewTitle });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByTestId("wizard-config-preview")).toContainText("profile: minimal");
+  await expect(dialog.getByTestId("wizard-config-preview")).toContainText("profile: rapido");
   if (narrow) await noSidewaysScroll(page, "preview dialog");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(previewButton).toBeFocused();
   expect(fs.existsSync(path.join(fixture.dir, "jgates.yml")), "the preview wrote nothing").toBe(false);
-  await press(page, nav.getByRole("button", { name: text.save }));
+  await press(page, nav.getByRole("button", { name: text.save }), "Enter", 150);
 
-  // 5 Dependências: jgates.yml is written; the dependencies are prepared now (the tools are there).
+  // 5 Dependências: jgates.yml and the profiles are written from the draft; each unit says what it installs, where it
+  // goes and the network it uses; after the job its state is the job's result and no stale button is left (D27).
   await atStep(5);
-  expect(fs.readFileSync(path.join(fixture.dir, "jgates.yml"), "utf8")).toMatch(/profile: minimal/);
-  const prepare = wizard.getByRole("button", { name: text.prepare });
-  if (await prepare.count()) {
-    await press(page, prepare);
-    await expect(wizard.getByTestId("wizard-deps-status")).toHaveAttribute("data-state", "done");
-  }
+  expect(fs.readFileSync(path.join(fixture.dir, "jgates.yml"), "utf8")).toMatch(/profile: rapido/);
+  expect(fs.readFileSync(path.join(fixture.dir, ".jgates", "profiles.yml"), "utf8")).toMatch(/rapido:/);
+  const unit = wizard.locator("li[data-unit]").first();
+  await expect(unit.locator('[data-fact="manager"]')).not.toHaveText("");
+  await expect(unit.locator('[data-fact="lockfile"]')).not.toHaveText("");
+  await expect(unit.locator('[data-fact="installs"]')).toContainText(text.installs);
+  await expect(unit.locator('[data-fact="volume"]')).toContainText(text.volume);
+  await expect(unit.locator('[data-fact="volume"]')).toContainText("-deps-");
+  await expect(unit.locator('[data-fact="network"]')).toContainText(text.network);
   if (narrow) await noSidewaysScroll(page, "dependencies");
+  const prepare = wizard.getByRole("button", { name: text.prepare });
+  await press(page, prepare);
+  await expect(wizard.getByTestId("wizard-deps-status")).toHaveAttribute("data-state", "done");
+  await expect(unit).toHaveAttribute("data-state", "ready");
+  // The job's own words are in the language of the screen.
+  await expect(unit.locator("details summary")).toHaveText(text.installed);
+  await expect(wizard.getByTestId("wizard-deps-ready")).toBeVisible();
+  await expect(wizard.getByRole("button", { name: text.prepare })).toHaveCount(0);
+  if (narrow) await noSidewaysScroll(page, "dependencies ready");
   await press(page, nav.getByRole("button", { name: text.next }));
 
   // 6 Revisão: the plan of the first validation; its button starts the run and opens the run screen.
