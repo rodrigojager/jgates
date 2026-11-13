@@ -19,5 +19,6 @@
   "cfgp_policy_value_invalid": "The value of '{field}' is not valid.",
   "cfgp_policy_value_invalid_fix": "See the accepted values on the screen.",
   "cfgp_profile_query_invalid": "The profile '{id}' does not exist.",
-  "cfgp_explain_unknown": "'{selector}' does not name any check of this project."
+  "cfgp_explain_unknown": "'{selector}' does not name any check of this project.",
+  "cfgp_custom_capability_description": "Own tool of the project: {id}."
 }

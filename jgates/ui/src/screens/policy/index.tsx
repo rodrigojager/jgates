@@ -6,6 +6,7 @@ import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { useShell } from "../../app/shell-context";
 import { CopyButton } from "./CopyButton";
+import { ProjectPolicyRules } from "./rules";
 import "./policy.css";
 
 export const screen: ScreenMeta = { id: "policy", path: "/policy", area: "config", navLabel: "pol_nav", navPath: "/policy", order: 45, icon: "lock" };
@@ -194,6 +195,7 @@ function NotEditing({ state }: { state: PolicyState }) {
         </div>
         <p className="small muted">{t("pol_project_note")}</p>
       </section>
+      <ProjectPolicyRules governed={state.mode === "governed" ? { policy: state.governed?.policy ?? "" } : null} />
     </div>
   );
 }

@@ -56,5 +56,13 @@
   "pol_test_blockers": "O que bloqueia",
   "pol_test_will_run": "Vão rodar",
   "pol_test_nothing": "Nenhuma verificação rodaria.",
-  "pol_test_config_files": "Arquivos de configuração usados"
+  "pol_test_config_files": "Arquivos de configuração usados",
+  "pol_rules_title": "Regras da política deste projeto",
+  "pol_rules_lead": "Regras, evidências exigidas e exceções de {file}. Cada chave tem o seu controle e grava sozinha, depois de mostrar a diferença.",
+  "pol_rules_readonly_pill": "Somente leitura",
+  "pol_rules_governed": "Este projeto é governado pela política {policy}, que fica fora do repositório. As regras abaixo são só para consulta e não mudam por aqui; para alterá-las, edite o repositório de políticas.",
+  "pol_rules_missing": "O arquivo {file} ainda não existe. Crie-o para definir regras de bloqueio, evidências exigidas e exceções com os controles desta tela.",
+  "pol_rules_missing_governed": "O arquivo {file} não existe neste projeto. A política que vale é a do repositório de políticas.",
+  "pol_rules_create": "Criar {file}",
+  "pol_rules_created": "{file} criado."
 }

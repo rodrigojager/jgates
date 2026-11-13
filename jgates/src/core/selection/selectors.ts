@@ -12,7 +12,7 @@ export interface Selector {
   raw: string;
 }
 
-const SELECTOR_PATTERN = /^(category|capability|tool|rule|pii|architecture|component):([A-Za-z0-9._/-]+)$/;
+const SELECTOR_PATTERN = /^(category|capability|tool|rule|pii|architecture|component):([A-Za-z0-9._/:-]+)$/;
 
 export function parseSelector(raw: string): Selector | undefined {
   const m = SELECTOR_PATTERN.exec(raw);
@@ -61,6 +61,12 @@ function keysOf(value: unknown): string[] {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : [];
 }
 
+/** The ids of the architecture rules: the keys of a map, or the `id` of each rule of a list (as architecture.yml writes them). */
+function ruleIds(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap((rule) => (rule !== null && typeof rule === "object" && typeof (rule as { id?: unknown }).id === "string" ? [(rule as { id: string }).id] : []));
+  return keysOf(value);
+}
+
 function isRecordOf(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
@@ -101,13 +107,23 @@ export function buildUniverse(config: Record<string, unknown>, inventory?: Inven
   for (const c of inventory?.classifications ?? []) if (typeof c.id === "string" && c.id !== "") components.add(c.id);
   for (const id of keysOf(at(config, "workspace", "components"))) components.add(id);
 
+  // The capabilities of the project's own tools (x-custom:<name>) are not in the catalogue: they join the "custom" category.
+  const known = new Set(catalog.capabilities.map((c) => c.id));
+  const own: Array<{ id: string; category: string | null }> = [];
+  for (const tool of tools.values()) {
+    for (const id of tool.capabilities) {
+      if (!id.startsWith("x-custom:") || known.has(id)) continue;
+      known.add(id);
+      own.push({ id, category: "custom" });
+    }
+  }
   return {
     categories: catalog.categories.map((c) => c.id),
-    capabilities: catalog.capabilities.map((c) => ({ id: c.id, category: c.category ?? null })),
+    capabilities: [...catalog.capabilities.map((c) => ({ id: c.id, category: c.category ?? null })), ...own],
     tools: [...tools.values()],
     rules,
     pii: [...new Set<string>([...DEFAULT_PII_ENTITIES, ...keysOf(at(config, "pii", "entities"))])],
-    architecture: keysOf(at(config, "architecture", "rules")),
+    architecture: ruleIds(at(config, "architecture", "rules") ?? at(config, "architecture", "architecture", "rules")),
     components: [...components],
     parents: [...new Set([...tools.values()].map((t) => t.parent).filter((p): p is string => p !== null))],
   };

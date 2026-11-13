@@ -29,7 +29,7 @@
         "additionalProperties": false,
         "required": ["check"],
         "properties": {
-          "check": { "type": "string", "pattern": "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/-]+$" },
+          "check": { "type": "string", "pattern": "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/:-]+$" },
           "locked": { "type": "boolean" },
           "reason": { "type": "string" }
         }

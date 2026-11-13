@@ -39,6 +39,17 @@ function Estimate({ estimate }: { estimate: Card["estimate"] }) {
   return <span data-testid="estimate">{t("cfgp_estimate_value", { time: seconds >= 90 ? `${Math.round(seconds / 60)} min` : `${seconds} s`, runs: estimate.runs })}</span>;
 }
 
+/** The identifier a profile name suggests: lower case, no accents, anything else turned into a hyphen. */
+export function deriveId(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^[^a-z0-9]+|[-._]+$/g, "")
+    .slice(0, 60);
+}
+
 const nameOf = (card: { id: string; label: string | null }): string => card.label ?? card.id;
 
 /** What a profile write answers besides its own result: the updated list and the updated view (null: the screen asks again). */
@@ -53,18 +64,24 @@ const busyProps = (busy: boolean) => (busy ? ({ "aria-busy": true, "data-pending
 function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Card[]; starters: Starter[]; from: string; onClose: () => void; onCreated: (id: string, answer: WriteAnswer) => void }) {
   const toast = useToast();
   const [id, setId] = useState("");
+  const [idTouched, setIdTouched] = useState(false);
   const [source, setSource] = useState(from);
   const [label, setLabel] = useState("");
+  const [description, setDescription] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const idOk = ID_RE.test(id);
+  // The name comes first and the identifier follows it until the person writes one; a name is needed unless they did.
+  const ready = idOk && (label.trim() !== "" || idTouched);
+  const taken = cards.some((c) => c.id === id);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!ready || taken) return;
     setBusy(true);
     setError(null);
     try {
-      const answer = await api<WriteAnswer>("POST", "/api/profiles", { id, from: source, ...(label.trim() ? { label: label.trim() } : {}) });
+      const answer = await api<WriteAnswer>("POST", "/api/profiles", { id, from: source, ...(label.trim() ? { label: label.trim() } : {}), ...(description.trim() ? { description: description.trim() } : {}) });
       toast(t("cfgp_created", { id }), "ok");
       onCreated(id, answer);
     } catch (e) {
@@ -97,19 +114,45 @@ function CreateDialog({ cards, starters, from, onClose, onCreated }: { cards: Ca
           </select>
         </label>
         <label className="field">
+          <span className="field-label">{t("cfgp_create_label")}</span>
+          <input
+            className="input"
+            value={label}
+            maxLength={120}
+            data-free-text="identifier"
+            autoComplete="off"
+            onChange={(e) => {
+              setLabel(e.target.value);
+              if (!idTouched) setId(deriveId(e.target.value));
+            }}
+          />
+        </label>
+        <label className="field">
           <span className="field-label">{t("cfgp_create_id")}</span>
-          <input className="input" value={id} onChange={(e) => setId(e.target.value)} aria-invalid={id !== "" && !idOk} aria-describedby="cfgp-id-help" autoComplete="off" spellCheck={false} />
+          <input
+            className="input"
+            value={id}
+            data-free-text="identifier"
+            onChange={(e) => {
+              setId(e.target.value);
+              setIdTouched(true);
+            }}
+            aria-invalid={(id !== "" && !idOk) || taken}
+            aria-describedby="cfgp-id-help"
+            autoComplete="off"
+            spellCheck={false}
+          />
           <span className="small muted" id="cfgp-id-help">
-            {t("cfgp_create_id_help")}
+            {taken ? t("cfgp_create_id_taken", { id }) : t("cfgp_create_id_help")}
           </span>
         </label>
         <label className="field">
-          <span className="field-label">{t("cfgp_create_label")}</span>
-          <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={120} />
+          <span className="field-label">{t("cfgp_create_description")}</span>
+          <textarea className="input" rows={2} value={description} maxLength={400} data-free-text="open-text" onChange={(e) => setDescription(e.target.value)} />
         </label>
         {error ? <ErrorNotice error={error} /> : null}
         <div className="row">
-          <button type="submit" className="btn primary" disabled={!idOk || busy} {...busyProps(busy)}>
+          <button type="submit" className="btn primary" disabled={!ready || taken || busy} {...busyProps(busy)}>
             {busy ? <Spinner /> : null}
             {t("cfgp_create_confirm")}
           </button>

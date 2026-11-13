@@ -56,5 +56,13 @@
   "pol_test_blockers": "What blocks",
   "pol_test_will_run": "Will run",
   "pol_test_nothing": "No check would run.",
-  "pol_test_config_files": "Configuration files used"
+  "pol_test_config_files": "Configuration files used",
+  "pol_rules_title": "Policy rules of this project",
+  "pol_rules_lead": "Rules, required evidence and exceptions of {file}. Every key has its own control and saves by itself, after showing the difference.",
+  "pol_rules_readonly_pill": "Read only",
+  "pol_rules_governed": "This project is governed by the policy {policy}, which lives outside the repository. The rules below are for reference only and do not change here; to change them, edit the policy repository.",
+  "pol_rules_missing": "The file {file} does not exist yet. Create it to set blocking rules, required evidence and exceptions with the controls of this screen.",
+  "pol_rules_missing_governed": "The file {file} does not exist in this project. The policy that applies is the one in the policy repository.",
+  "pol_rules_create": "Create {file}",
+  "pol_rules_created": "{file} created."
 }

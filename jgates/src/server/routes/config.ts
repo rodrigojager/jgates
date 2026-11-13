@@ -26,7 +26,7 @@ const t = translator("config-profiles");
 
 const refPattern = "^(builtin:)?[a-z0-9][a-z0-9._-]{0,127}$";
 const hashPattern = "^[0-9a-f]{64}$";
-const selectorPattern = "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/-]+$";
+const selectorPattern = "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/:-]+$";
 
 /** The four levels of the "Quando bloquear a entrega?" control mapped to the severities the policy schema knows. */
 export const SEVERITY_LEVELS = { critical: "blocking", high: "error", medium: "warning", low: "info" } as const;
@@ -151,10 +151,22 @@ function buildView(server: ServerContext, ref: string) {
   const byKey = new Map(selection.items.map((i) => [i.selector, i]));
   const parents = new Set(selection.universe.parents);
 
+  const toolsConfig = (result.config.tools ?? {}) as Record<string, { adapter?: unknown } | undefined>;
+  const labelOfTool = (id: string): string => {
+    const adapter = toolsConfig[id]?.adapter;
+    // An own tool (generic-command) has no catalogue name: its instance id is the name.
+    if (typeof adapter === "string" && adapter !== "generic-command") return labels.get(adapter) ?? labels.get(id) ?? id;
+    return labels.get(id) ?? id;
+  };
+  // The capabilities of the catalogue, then the own ones (x-custom:<name>) the universe added to their category.
+  const known = new Map(catalog.capabilities.map((c) => [c.id, c] as const));
+  const capabilitiesOf = (category: string) =>
+    selection.universe.capabilities
+      .filter((c) => c.category === category)
+      .map((c) => known.get(c.id) ?? { id: c.id, category, label: c.id.replace(/^x-custom:/, ""), description: t("cfgp_custom_capability_description", { id: c.id.replace(/^x-custom:/, "") }) });
+
   const categories = catalog.categories.map((category) => {
-    const capabilities = catalog.capabilities
-      .filter((c) => c.category === category.id)
-      .map((capability) => {
+    const capabilities = capabilitiesOf(category.id).map((capability) => {
         const capSelector = `capability:${capability.id}`;
         const capItem = byKey.get(capSelector);
         const tools = selection.universe.tools
@@ -170,7 +182,7 @@ function buildView(server: ServerContext, ref: string) {
               });
             return {
               id: tool.id,
-              label: labels.get(tool.id) ?? tool.id,
+              label: labelOfTool(tool.id),
               selector: `tool:${tool.id}`,
               enabled: pair?.enabled ?? false,
               reason: pair?.reason ?? "NOT_SELECTED",
@@ -249,6 +261,13 @@ function buildView(server: ServerContext, ref: string) {
     governed: mode.governed,
     profile: { ref, id: ref.replace(/^builtin:/, ""), editable, isDefault: def === ref, file },
     categories,
+    // The selectors that are not in the category tree: the personal data entities, the architecture rules and the components.
+    selectors: (["pii", "architecture", "component"] as const).map((kind) => ({
+      kind,
+      items: selection.items.filter((i) => i.kind === kind).map((i) => ({ id: i.id, label: i.id, ...itemView(i, saveFor(i.selector)) })),
+    })),
+    // What the own-tool dialog needs: the components of the project and the instances that already exist.
+    universe: { components: [...selection.universe.components].sort(), tools: selection.universe.tools.filter((x) => !parents.has(x.id)).map((x) => x.id) },
     // The number the screen counts here is the capabilities that are on; the plan and the run count steps (`counts.steps`
     // of /api/config/profile/plan, `total` of /api/setup/profiles): both units are returned and named.
     counts: { unit: "capabilities", capabilities: categories.reduce((n, c) => n + c.capabilities.filter((x) => x.enabled).length, 0) },

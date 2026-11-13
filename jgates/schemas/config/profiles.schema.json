@@ -37,7 +37,7 @@
           },
           "checks": {
             "type": "object",
-            "propertyNames": { "pattern": "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/-]+$" },
+            "propertyNames": { "pattern": "^(category|capability|tool|rule|pii|architecture|component):[A-Za-z0-9._/:-]+$" },
             "additionalProperties": {
               "type": "object",
               "additionalProperties": false,

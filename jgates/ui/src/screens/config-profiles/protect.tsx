@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CustomToolDialog } from "../tools/custom-dialog";
 import { Details, NaAction, StateLine, capabilityStates, summaryText, type CapState, type CapabilityCatalog, type StateContext } from "../validations-review/capability-states";
 import { api } from "../../api";
 import { ErrorNotice, Pill } from "../../components/common";
@@ -48,6 +49,15 @@ export interface CategoryView extends ItemBase {
   label: string;
   description: string;
   capabilities: CapabilityView[];
+}
+
+interface SelectorItem extends ItemBase {
+  id: string;
+  label: string;
+}
+export interface SelectorGroup {
+  kind: "pii" | "architecture" | "component";
+  items: SelectorItem[];
 }
 
 type Toggle = (changes: Array<{ selector: string; enabled: boolean; when?: "available" | null }>, note?: string) => void;
@@ -122,7 +132,7 @@ function CapabilityRow({ capability, state, ctx, editable, busy, onToggle, profi
 }
 
 /** One check: its toggle (or the padlock with the reason when the policy locks it), the origin and "why is this on?". */
-function CheckRow({ label, description, item, profile, editable, busy, onToggle, level }: { label: string; description?: string; item: ItemBase; profile: string; editable: boolean; busy: boolean; onToggle: Toggle; level: "capability" | "tool" | "rule" }) {
+function CheckRow({ label, secondary, description, item, profile, editable, busy, onToggle, level }: { label: string; secondary?: string; description?: string; item: ItemBase; profile: string; editable: boolean; busy: boolean; onToggle: Toggle; level: "capability" | "tool" | "rule" }) {
   const lock = item.locked[0];
   return (
     <div className={`check-row level-${level}`} data-selector={item.selector} data-enabled={item.enabled} data-locked={lock ? "true" : "false"}>
@@ -138,6 +148,14 @@ function CheckRow({ label, description, item, profile, editable, busy, onToggle,
         ) : (
           <div className="grow">
             <strong>{label}</strong>
+            {secondary && secondary !== label ? (
+              <>
+                {" "}
+                <code className="muted small" data-testid="secondary-id">
+                  {secondary}
+                </code>
+              </>
+            ) : null}
             {description ? <p className="small muted">{description}</p> : null}
           </div>
         )}
@@ -152,7 +170,7 @@ function CheckRow({ label, description, item, profile, editable, busy, onToggle,
 function ToolRow({ tool, capabilityLabel, profile, editable, busy, onToggle }: { tool: ToolView; capabilityLabel: string; profile: string; editable: boolean; busy: boolean; onToggle: Toggle }) {
   return (
     <div className="tool-block" data-tool={tool.id}>
-      <CheckRow label={tool.label} item={tool} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="tool" />
+      <CheckRow label={tool.label} secondary={tool.id} item={tool} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="tool" />
       {tool.alsoCapabilities.length > 0 ? (
         <p className="small muted tool-note">{t("cfgp_tool_shared", { capability: capabilityLabel, others: tool.alsoCapabilities.join(", ") })}</p>
       ) : null}
@@ -199,7 +217,8 @@ function CapabilityBlock({ capability, state, ctx, profile, editable, busy, onTo
   );
 }
 
-function CategoryBlock({ category, states, ctx, profile, editable, busy, pending, onToggle }: { category: CategoryView; states: Map<string, CapState>; ctx: StateContext; profile: string; editable: boolean; busy: boolean; pending: string | null; onToggle: Toggle }) {
+function CategoryBlock({ category, states, ctx, profile, editable, busy, pending, onToggle, onAddOwn }: { category: CategoryView; states: Map<string, CapState>; ctx: StateContext; profile: string; editable: boolean; busy: boolean; pending: string | null; onToggle: Toggle; onAddOwn: () => void }) {
+  const own = category.id === "custom";
   const [open, setOpen] = useState(false);
   const caps = category.capabilities;
   const onCount = caps.filter((c) => c.enabled).length;
@@ -223,9 +242,15 @@ function CategoryBlock({ category, states, ctx, profile, editable, busy, pending
         <div className="grow">
           <h3 id={`cat-${category.id}`}>{category.label}</h3>
           <p className="small muted">
-            {category.description} {t("cfgp_category_count", { on: onCount, total: caps.length })}
+            {category.description} {own && caps.length === 0 ? t("cfgp_custom_empty") : t("cfgp_category_count", { on: onCount, total: caps.length })}
           </p>
         </div>
+        {own ? (
+          <button type="button" className="btn" data-testid="add-own-tool" onClick={onAddOwn}>
+            <Icon name="tools" />
+            {t("cfgp_custom_add")}
+          </button>
+        ) : null}
         {lockedInside > 0 ? <Pill tone="gold">{t("cfgp_category_locked", { count: lockedInside })}</Pill> : null}
         <Switch checked={category.enabled} label={t("cfgp_category_switch", { name: category.label })} disabled={!editable || busy} pending={pending === category.selector} onChange={toggleCategory} testId={`category-${category.id}`} />
       </div>
@@ -240,8 +265,31 @@ function CategoryBlock({ category, states, ctx, profile, editable, busy, pending
   );
 }
 
+/** The personal data entities, the architecture rules and the components the profile can switch (pii:, architecture:, component:). */
+function Selectors({ groups, profile, editable, busy, onToggle }: { groups: SelectorGroup[]; profile: string; editable: boolean; busy: boolean; onToggle: Toggle }) {
+  const shown = groups.filter((g) => g.items.length > 0);
+  if (shown.length === 0) return null;
+  return (
+    <section className="category" data-category="selectors" aria-labelledby="cfgp-selectors-title" data-testid="selectors">
+      <div>
+        <h3 id="cfgp-selectors-title">{t("cfgp_selectors_title")}</h3>
+        <p className="small muted">{t("cfgp_selectors_lead")}</p>
+      </div>
+      {shown.map((group) => (
+        <div key={group.kind} className="stack" role="group" aria-labelledby={`cfgp-sel-${group.kind}`} data-selector-kind={group.kind}>
+          <h4 id={`cfgp-sel-${group.kind}`}>{t(`cfgp_selectors_${group.kind}`)}</h4>
+          {group.items.map((item) => (
+            <CheckRow key={item.selector} label={item.label} secondary={item.selector} item={item} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="rule" />
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 /** "O que você quer proteger?": categories that open into capabilities, tools and rules, each with its own toggle. */
-export function Protect({ categories, plan, profile, editable, onChanged }: { categories: CategoryView[]; plan: any; profile: string; editable: boolean; onChanged: (answer: { view?: unknown } | null) => void }) {
+export function Protect({ categories, selectors, universe, plan, profile, editable, onChanged }: { categories: CategoryView[]; selectors: SelectorGroup[]; universe: { components: string[]; tools: string[] }; plan: any; profile: string; editable: boolean; onChanged: (answer: { view?: unknown } | null) => void }) {
+  const [ownDialog, setOwnDialog] = useState(false);
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   // The selector whose write is in flight: its switch shows the turning ring until the answer arrives.
@@ -295,9 +343,20 @@ export function Protect({ categories, plan, profile, editable, onChanged }: { ca
       ) : null}
       <div className="categories" data-testid="categories">
         {categories.map((c) => (
-          <CategoryBlock key={c.id} category={c} states={states} ctx={ctx} profile={profile} editable={editable} busy={busy} pending={pending} onToggle={onToggle} />
+          <CategoryBlock key={c.id} category={c} states={states} ctx={ctx} profile={profile} editable={editable} busy={busy} pending={pending} onToggle={onToggle} onAddOwn={() => setOwnDialog(true)} />
         ))}
       </div>
+      <Selectors groups={selectors} profile={profile} editable={editable} busy={busy} onToggle={onToggle} />
+      {ownDialog ? (
+        <CustomToolDialog
+          components={universe.components}
+          existing={universe.tools}
+          onClose={(saved) => {
+            setOwnDialog(false);
+            if (saved) onChanged(null);
+          }}
+        />
+      ) : null}
     </section>
   );
 }

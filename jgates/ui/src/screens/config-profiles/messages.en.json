@@ -8,8 +8,8 @@
   "cfgp_create_title": "Create profile",
   "cfgp_create_from": "Create from",
   "cfgp_create_id": "Profile identifier",
-  "cfgp_create_id_help": "Lowercase letters, numbers, dot, hyphen and underscore. Example: fast.",
-  "cfgp_create_label": "Name (optional)",
+  "cfgp_create_id_help": "Derived from the name; change it if you like. Lowercase letters, numbers, dot, hyphen and underscore. Example: fast.",
+  "cfgp_create_label": "Profile name",
   "cfgp_create_confirm": "Create",
   "cfgp_group_project": "Project profiles",
   "cfgp_group_starters": "Starter profiles",
@@ -55,7 +55,6 @@
   "cfgp_diag_open_yaml": "Open the YAML editor",
   "cfgp_diag_retry": "Check again",
   "cfgp_selection_errors": "The selection of this profile has problems:",
-
   "cfgp_protect_title": "What do you want to protect?",
   "cfgp_protect_lead": "Turns checks on and off in the profile {profile}. Each category opens into capabilities, tools and rules.",
   "cfgp_readonly_notice": "{profile} is a starter profile and cannot be edited. Create a project profile from it to change the checks.",
@@ -84,7 +83,6 @@
   "cfgp_mode_available_help": "Runs where a tool exists. Where none does, it shows as not applicable, with the reason, and does not block.",
   "cfgp_mode_off_help": "Does not run in this profile. Pick another option to turn it on.",
   "cfgp_saved": "{count, plural, one {# change} other {# changes}} written to the profile {profile}.",
-
   "cfgp_policy_title": "When to block delivery?",
   "cfgp_policy_lead": "Approval criteria, independent of intensity. Written to .jgates/policy.yml.",
   "cfgp_policy_saved": "Policy written to .jgates/policy.yml.",
@@ -112,7 +110,6 @@
   "cfgp_governed_reason": "Governed mode: this value comes from the policy {policy}, outside the repository, and does not change here.",
   "cfgp_governed_missing": "Governed mode: the policy {policy} always blocks when a check is missing.",
   "cfgp_files_note": "Each control shows the file it writes to and the origin of the value. The plan shows the result of combining with the templates.",
-
   "origin_why": "Why is this on?",
   "origin_why_for": "Why is this on? {name}",
   "origin_title": "Origin of the value of {selector}",
@@ -142,5 +139,19 @@
   "origin_layer_template": "Template",
   "origin_layer_profile": "Profile",
   "origin_layer_project": "Project",
-  "origin_layer_call": "Call"
+  "origin_layer_call": "Call",
+  "cfgp_create_id_taken": "A profile with the identifier {id} already exists.",
+  "cfgp_create_description": "Description (optional)",
+  "cfgp_editor_title": "Editing the profile {name}",
+  "cfgp_editor_lead": "Name, description, parent profile, intensity, scope and gates of {id}, written to {file} one key at a time.",
+  "cfgp_editor_starter": "{id} is a JGates starter profile.",
+  "cfgp_custom_empty": "This project has no own tool yet. An own tool runs your command and reads its report; add one to switch it on here.",
+  "cfgp_custom_add": "Add own tool",
+  "cfgp_selectors_title": "Personal data, architecture and components",
+  "cfgp_selectors_lead": "Switches each entity, rule or component on or off in the profile.",
+  "cfgp_selectors_pii": "Personal data",
+  "cfgp_selectors_architecture": "Architecture rules",
+  "cfgp_selectors_component": "Components",
+  "cfgp_policy_moved": "The blocking criteria (severity, minimum coverage, required evidence) live in the file .jgates/policy.yml.",
+  "cfgp_policy_moved_link": "Open Policy"
 }
