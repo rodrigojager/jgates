@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { yamlHref } from "../../forms/derived/api";
 import { api } from "../../api";
 import { DiffView } from "../../components/DiffView";
 import { Dialog, ErrorNotice, Loading, Spinner, useAsync } from "../../components/common";
@@ -175,7 +176,7 @@ export function TemplateWizard({ folder, editing, revision, onClose, onDone }: {
         <div className="notice warn" role="status" data-testid="tpl-not-editable">
           <p>{t("cft_w_not_editable")}</p>
         </div>
-        <a className="btn" href="#/config/yaml">
+        <a className="btn" href={yamlHref(`.jgates/templates/${editing}.yml`, "")}>
           {t("cft_d_open_yaml")}
         </a>
       </Dialog>

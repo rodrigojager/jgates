@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { yamlHref } from "../../../forms/derived/api";
 import { formatLocale } from "../../../i18n/locale";
 import { ApiError, api } from "../../../api";
 import { Dialog, ErrorNotice, Pill, Spinner } from "../../../components/common";
@@ -190,7 +191,7 @@ function NativeOptions({ instance, active, openFile, onKind }: ToolTabProps & { 
             <strong>{ft("unavailable_title")}</strong>
             <p>{view.unavailable?.message}</p>
             <p className="small">
-              <a href="#/config/yaml">{t("rtf_open_yaml")}</a>
+              <a href={yamlHref(settings.document.relPath ?? ".jgates/tools.yml", settings.section.join("."))}>{t("rtf_open_yaml")}</a>
             </p>
           </div>
         </div>

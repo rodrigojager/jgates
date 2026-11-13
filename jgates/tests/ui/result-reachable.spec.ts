@@ -101,7 +101,7 @@ test("one invalid key shows the diagnostics with file, key and line and a link t
     await expect(diagnostics.getByTestId("diag-file").first()).toHaveText("jgates.yml");
     await expect(diagnostics.getByTestId("diag-key").first()).toContainText("not_a_real_key");
     await expect(diagnostics).toContainText(/linha \d+/);
-    await expect(diagnostics.getByTestId("diag-open-yaml")).toHaveAttribute("href", "#/config/yaml");
+    await expect(diagnostics.getByTestId("diag-open-yaml")).toHaveAttribute("href", "#/config/yaml?file=jgates.yml&path=not_a_real_key");
   }, page);
 });
 

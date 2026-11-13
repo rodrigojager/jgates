@@ -1,4 +1,5 @@
 import { api } from "../../api";
+import { yamlHref } from "../../forms/derived/api";
 import { Dialog, ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { showValue } from "../../components/origin";
 import { t, tOr } from "../../i18n";
@@ -100,7 +101,7 @@ export function TemplateDetail({ id, onClose }: { id: string; onClose: () => voi
               {d.yaml.text}
             </pre>
             {!d.yaml.readOnly ? (
-              <a className="btn" href="#/config/yaml">
+              <a className="btn" href={yamlHref(d.yaml.file, "")}>
                 {t("cft_d_open_yaml")}
               </a>
             ) : null}

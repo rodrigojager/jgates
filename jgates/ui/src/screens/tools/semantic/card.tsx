@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { yamlHref } from "../../../forms/derived/api";
 import { api, ApiError } from "../../../api";
 import { ErrorNotice, Loading, Pill, useAsync, Spinner } from "../../../components/common";
 import { Icon } from "../../../components/icons";
@@ -161,7 +162,7 @@ function SemanticForm({ info, onSaved, onClose }: { info: SemanticInfo; onSaved:
       <p className="small muted" data-testid="semantic-connections">
         {connections.length > 0 ? t("semantic_connections", { names: connections.join(", ") }) : t("semantic_connections_none")} <a href="#/semantic/providers">{t("semantic_providers_link")}</a>
       </p>
-      <FormRenderer view={view} pending={pending} query="" readOnly={busy || conflict} onPending={(field, next) => setPending((p) => withPending(p, field, next))} openAt={() => (window.location.hash = "#/config/yaml")} />
+      <FormRenderer view={view} pending={pending} query="" readOnly={busy || conflict} onPending={(field, next) => setPending((p) => withPending(p, field, next))} openAt={(line) => (window.location.hash = `${yamlHref(info.form.file, info.form.section.join("."))}${line ? `&line=${line}` : ""}`)} />
       <div className="notice" data-testid="semantic-advanced">
         <Icon name="info" />
         <p className="small">

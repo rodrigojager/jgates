@@ -16,7 +16,7 @@
   "cfy_draft_kept": "Há um rascunho deste arquivo guardado fora do projeto. Ele só vira o arquivo quando você salvar.",
   "cfy_draft_stale": "O arquivo mudou no disco depois deste rascunho. Confira o texto antes de salvar: a gravação será recusada até a revisão bater.",
   "cfy_check_ok": "A estrutura está válida: sintaxe, schema e referências.",
-  "cfy_errors": "{count} problemas na estrutura",
+  "cfy_errors": "{count, plural, one {# problema na estrutura} other {# problemas na estrutura}}",
   "cfy_other_files": "Problemas em outros arquivos, vistos junto com {file}:",
   "cfy_kind_syntax": "Sintaxe",
   "cfy_kind_schema": "Schema",
@@ -27,5 +27,14 @@
   "cfy_saved": "{file} salvo.",
   "cfy_discarded": "Alterações de {file} descartadas.",
   "cfy_editor_label": "Texto de {file}",
-  "cfy_keys": "Tab insere dois espaços e Esc sai do editor."
+  "cfy_keys": "Tab insere dois espaços e Esc sai do editor.",
+  "cfy_save_anyway": "Salvar mesmo assim",
+  "cfy_goto": "Ir para a linha {line}",
+  "cfy_create": "Criar",
+  "cfy_missing_tag": "Não criado",
+  "cfy_missing_file": "{file} ainda não existe. Crie-o a partir do modelo para editá-lo aqui.",
+  "cfy_created": "{file} criado.",
+  "cfy_checking": "Checando a estrutura...",
+  "cfy_save_anyway_hint": "O arquivo tem problemas. Corrija-os, ou salve mesmo assim sabendo que o plano deixará de ser aprovável.",
+  "cfy_at_missing": "A chave {path} ainda não está neste arquivo; o cursor está na seção mais próxima."
 }

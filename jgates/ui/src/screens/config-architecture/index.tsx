@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { yamlHref } from "../../forms/derived/api";
 import { api } from "../../api";
 import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
@@ -149,7 +150,7 @@ export default function ConfigArchitectureScreen() {
               {t("cfa_edit_guided")}
             </button>
           ) : null}
-          <a className="btn" href="#/config/yaml" data-testid="edit-yaml">
+          <a className="btn" href={yamlHref(v.file, "")} data-testid="edit-yaml">
             {t("cfa_edit_yaml")}
           </a>
         </div>

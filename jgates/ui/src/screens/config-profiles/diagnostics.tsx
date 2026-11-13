@@ -1,4 +1,5 @@
 import { ApiError } from "../../api";
+import { yamlHref } from "../../forms/derived/api";
 import { Icon } from "../../components/icons";
 import { t } from "../../i18n";
 
@@ -46,7 +47,7 @@ export function ConfigDiagnostics({ diagnostics, onRetry }: { diagnostics: Confi
           ))}
         </ul>
         <div className="row wrap">
-          <a className="btn primary" href="#/config/yaml" data-testid="diag-open-yaml">
+          <a className="btn primary" href={yamlHref(diagnostics[0]?.file ?? "jgates.yml", diagnostics[0]?.path ?? "")} data-testid="diag-open-yaml">
             <Icon name="file" />
             {t("cfgp_diag_open_yaml")}
           </a>

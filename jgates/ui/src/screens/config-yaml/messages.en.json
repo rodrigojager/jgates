@@ -16,7 +16,7 @@
   "cfy_draft_kept": "There is a draft of this file kept outside the project. It only becomes the file when you save.",
   "cfy_draft_stale": "The file changed on disk after this draft. Check the text before saving: writing will be refused until the revision matches.",
   "cfy_check_ok": "The structure is valid: syntax, schema and references.",
-  "cfy_errors": "{count} problems in the structure",
+  "cfy_errors": "{count, plural, one {# problem in the structure} other {# problems in the structure}}",
   "cfy_other_files": "Problems in other files, seen together with {file}:",
   "cfy_kind_syntax": "Syntax",
   "cfy_kind_schema": "Schema",
@@ -27,5 +27,14 @@
   "cfy_saved": "{file} saved.",
   "cfy_discarded": "Changes to {file} discarded.",
   "cfy_editor_label": "Text of {file}",
-  "cfy_keys": "Tab inserts two spaces and Esc leaves the editor."
+  "cfy_keys": "Tab inserts two spaces and Esc leaves the editor.",
+  "cfy_save_anyway": "Save anyway",
+  "cfy_goto": "Go to line {line}",
+  "cfy_create": "Create",
+  "cfy_missing_tag": "Not created",
+  "cfy_missing_file": "{file} does not exist yet. Create it from its template to edit it here.",
+  "cfy_created": "{file} created.",
+  "cfy_checking": "Checking the structure...",
+  "cfy_save_anyway_hint": "The file has problems. Fix them, or save anyway knowing that the plan will stop being approvable.",
+  "cfy_at_missing": "The key {path} is not in this file yet; the cursor is on its closest section."
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactElement } from "react";
+import { yamlHref } from "../../../forms/derived/api";
 import { ApiError, api } from "../../../api";
 import { ErrorNotice, Spinner } from "../../../components/common";
 import { Icon } from "../../../components/icons";
@@ -505,7 +506,7 @@ export function SettingsForm({ view, focus: focusIn, justSaved, onSaved }: { vie
           <div className="notice" role="note" data-testid="rtf-no-field">
             <Icon name="info" />
             <p className="small">
-              {t("rtf_no_field", { settings: noField.join(", ") })} <a href="#/config/yaml">{t("rtf_open_yaml")}</a>
+              {t("rtf_no_field", { settings: noField.join(", ") })} <a href={yamlHref(file, view.section.join("."))}>{t("rtf_open_yaml")}</a>
             </p>
           </div>
         ) : null}
@@ -528,11 +529,11 @@ export function SettingsForm({ view, focus: focusIn, justSaved, onSaved }: { vie
       {view.unsupported.length > 0 ? (
         <p className="small muted" data-testid="rtf-kept">
           {t("rtf_kept", { keys: view.unsupported.map((u) => u.documentPath).join(", ") })}{" "}
-          <a href="#/config/yaml">{t("rtf_open_yaml")}</a>
+          <a href={yamlHref(file, view.section.join("."))}>{t("rtf_open_yaml")}</a>
         </p>
       ) : (
         <p className="small muted">
-          <a href="#/config/yaml">{t("rtf_open_yaml")}</a>
+          <a href={yamlHref(file, view.section.join("."))}>{t("rtf_open_yaml")}</a>
         </p>
       )}
       {conflict ? (

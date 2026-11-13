@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { yamlHref } from "../../forms/derived/api";
 import { ApiError, api } from "../../api";
 import { useShell } from "../../app/shell-context";
 import { DiffView } from "../../components/DiffView";
@@ -493,7 +494,7 @@ export default function ServicesScreen() {
             </fieldset>
           ) : null}
           <p className="small">
-            <a href="#/config/yaml">{t("svc_edit_yaml")}</a>
+            <a href={yamlHref("jgates.yml", "services")}>{t("svc_edit_yaml")}</a>
           </p>
         </div>
       </details>

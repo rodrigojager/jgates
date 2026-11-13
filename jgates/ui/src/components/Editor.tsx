@@ -3,8 +3,8 @@ import { json } from "@codemirror/lang-json";
 import { yaml } from "@codemirror/lang-yaml";
 import { HighlightStyle, StreamLanguage, bracketMatching, indentOnInput, syntaxHighlighting, type LanguageSupport } from "@codemirror/language";
 import { toml } from "@codemirror/legacy-modes/mode/toml";
-import { Compartment, EditorState, type Extension } from "@codemirror/state";
-import { EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from "@codemirror/view";
+import { Compartment, EditorState, StateEffect, StateField, type Extension } from "@codemirror/state";
+import { Decoration, EditorView, GutterMarker, drawSelection, gutter, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { useEffect, useRef } from "react";
 
@@ -30,6 +30,59 @@ const theme = EditorView.theme({
   "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection": { backgroundColor: "var(--blue-bg)" },
   ".cm-content": { caretColor: "var(--ink)" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--ink)" },
+  ".cm-diag-line": { backgroundColor: "color-mix(in srgb, var(--red) 14%, transparent)", textDecoration: "underline wavy var(--red)", textUnderlineOffset: "3px" },
+  ".cm-diag-gutter": { width: "1.2em" },
+  ".cm-diag-mark": { color: "var(--red)", fontWeight: "700" },
+});
+
+/** A problem the parent found in the text: the 1-based line and what is wrong (shown as the tooltip of the line). */
+export interface EditorMarker {
+  line: number;
+  message: string;
+}
+
+const setMarkers = StateEffect.define<EditorMarker[]>();
+
+/** The marked lines, by line number, with the first message of each. */
+const markerField = StateField.define<Map<number, string>>({
+  create: () => new Map(),
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setMarkers)) {
+        const next = new Map<number, string>();
+        for (const m of effect.value) if (!next.has(m.line)) next.set(m.line, m.message);
+        return next;
+      }
+    }
+    return value;
+  },
+  provide: (field) =>
+    EditorView.decorations.compute([field], (state) => {
+      const marks = state.field(field);
+      const ranges = [...marks.entries()]
+        .filter(([line]) => line >= 1 && line <= state.doc.lines)
+        .sort((a, b) => a[0] - b[0])
+        .map(([line, message]) => Decoration.line({ class: "cm-diag-line", attributes: { "data-diag-line": String(line), title: message } }).range(state.doc.line(line).from));
+      return Decoration.set(ranges);
+    }),
+});
+
+class ProblemMarker extends GutterMarker {
+  toDOM(): Node {
+    const el = document.createElement("span");
+    el.className = "cm-diag-mark";
+    el.textContent = "!";
+    el.setAttribute("data-diag-mark", "true");
+    return el;
+  }
+}
+const problemMarker = new ProblemMarker();
+
+const problemGutter = gutter({
+  class: "cm-diag-gutter",
+  lineMarker: (view, block) => (view.state.field(markerField).has(view.state.doc.lineAt(block.from).number) ? problemMarker : null),
+  lineMarkerChange: (update) => update.transactions.some((tr) => tr.effects.some((e) => e.is(setMarkers))),
+  initialSpacer: () => problemMarker,
 });
 
 function languageFor(format: string): Extension {
@@ -56,10 +109,14 @@ export interface EditorProps {
   onChange: (text: string) => void;
   /** 1-based line to place the cursor on and scroll to (the "open at the position in the file" link). */
   line?: number | null;
+  /** Changes when the same line has to be reached again (a click on a problem of the list). */
+  lineJump?: number;
+  /** Lines with a problem: marked in the gutter and in the text. */
+  markers?: EditorMarker[];
 }
 
 /** CodeMirror 6 bound to a text value; the parent re-keys it (by document) to load another file. */
-export function Editor({ value, format, readOnly, label, onChange, line }: EditorProps) {
+export function Editor({ value, format, readOnly, label, onChange, line, lineJump, markers }: EditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const change = useRef(onChange);
@@ -80,6 +137,8 @@ export function Editor({ value, format, readOnly, label, onChange, line }: Edito
       extensions: [
         theme,
         lineNumbers(),
+        markerField,
+        problemGutter,
         highlightActiveLine(),
         highlightActiveLineGutter(),
         history(),
@@ -140,7 +199,11 @@ export function Editor({ value, format, readOnly, label, onChange, line }: Edito
     const target = instance.state.doc.line(Math.min(Math.max(1, line), instance.state.doc.lines));
     instance.dispatch({ selection: { anchor: target.from }, effects: EditorView.scrollIntoView(target.from, { y: "center" }) });
     instance.focus();
-  }, [line]);
+  }, [line, lineJump]);
+
+  useEffect(() => {
+    view.current?.dispatch({ effects: setMarkers.of(markers ?? []) });
+  }, [markers]);
 
   return <div className="editor-host" ref={host} data-testid="editor" data-line={line ?? undefined} />;
 }

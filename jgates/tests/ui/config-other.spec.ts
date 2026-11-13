@@ -193,9 +193,9 @@ test("an unknown key in the YAML tab shows the file and the field on 'Checar est
     await expect(errors.getByTestId("diag-path").first()).toContainText("network_typo");
     expect(read(root)).toBe(original);
 
-    // Saving the wrong text is refused and nothing is written.
-    await page.getByRole("button", { name: "Salvar", exact: true }).click();
-    await expect(page.getByRole("alert").filter({ hasText: "não foi salvo" })).toBeVisible();
+    // Saving the wrong text is not offered (only "Salvar mesmo assim") and nothing is written.
+    await expect(page.getByRole("button", { name: "Salvar", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Salvar mesmo assim" })).toBeVisible();
     expect(read(root)).toBe(original);
 
     // The draft survives leaving the screen: it is kept outside the project.

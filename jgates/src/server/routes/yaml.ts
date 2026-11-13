@@ -9,6 +9,7 @@ import { writeBytesAtomic } from "../../core/documents/atomic.js";
 import { hashBytes, readRevision } from "../../core/codecs/yaml/index.js";
 import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE, loadProjectConfig, parseYamlText, validateDocument, type ConfigDiagnostic } from "../../core/config/load/index.js";
 import { ensureWorkspaceDirs } from "../../core/home/index.js";
+import { isMap, isNode, isPair, isSeq } from "yaml";
 import { HttpError } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { assertWritable, conflict } from "./templates.js";
@@ -177,7 +178,50 @@ function fileState(server: ServerContext, file: string): Rec {
   };
 }
 
-function view(server: ServerContext, file: string): Rec {
+/** The segments of a key path as the screens write it: `tools.zap.target`, `layers[2].id`. */
+function pathSegments(keyPath: string): string[] {
+  return keyPath
+    .replace(/\[(\d+)\]/g, ".$1")
+    .split(".")
+    .filter((s) => s !== "");
+}
+
+/**
+ * The line (1-based) of a key path in a text: the key itself when it exists, otherwise the deepest key that does, so a
+ * link to a key that is not written yet still lands on its section. `resolved` tells which of the two happened.
+ */
+export function lineOfPath(text: string, file: string, keyPath: string): { line: number; column: number; resolved: boolean } {
+  const parsed = parseYamlText(text, file);
+  const segments = pathSegments(keyPath);
+  const start = { line: 1, column: 1, resolved: false };
+  if (!parsed.doc || segments.length === 0) return start;
+  const at = (offset: number): { line: number; column: number } => {
+    const pos = parsed.lineCounter.linePos(offset);
+    return { line: pos.line, column: pos.col };
+  };
+  let node: unknown = parsed.doc.contents;
+  let found: { line: number; column: number } | null = null;
+  let depth = 0;
+  for (const segment of segments) {
+    if (isMap(node)) {
+      const pair = node.items.find((p) => isPair(p) && String(isNode(p.key) ? (p.key as { value?: unknown }).value : p.key) === segment);
+      if (!pair) break;
+      const range = isNode(pair.key) ? pair.key.range : undefined;
+      if (range) found = at(range[0]);
+      node = pair.value;
+    } else if (isSeq(node)) {
+      const item = node.items[Number(segment)];
+      if (item === undefined) break;
+      const range = isNode(item) ? item.range : undefined;
+      if (range) found = at(range[0]);
+      node = item;
+    } else break;
+    depth += 1;
+  }
+  return found ? { ...found, resolved: depth === segments.length } : start;
+}
+
+function view(server: ServerContext, file: string, keyPath?: string): Rec {
   const abs = locate(server, file);
   const rev = readRevision(abs);
   if (!rev.exists) throw new HttpError(404, "FILE_MISSING", `O arquivo ${file} não existe.`, null, { file });
@@ -192,6 +236,7 @@ function view(server: ServerContext, file: string): Rec {
     mode: mode.mode,
     governed: mode.governed,
     draft: differs ? { text: draft.text, baseRevision: draft.baseRevision, updatedAt: draft.updatedAt, stale: draft.baseRevision !== rev.hash } : null,
+    ...(keyPath ? { at: { path: keyPath, ...lineOfPath(differs ? draft.text : rev.text, file, keyPath) } } : {}),
   };
 }
 
@@ -241,15 +286,24 @@ export const routes: RouteDefinition[] = [
     path: "/api/config/yaml",
     handler({ server }) {
       const mode = modeOf();
-      return { status: 200, json: { schemaVersion: 1, status: "OK", mode: mode.mode, governed: mode.governed, files: listFiles(server).map((f) => fileState(server, f)) } };
+      return { status: 200, json: {
+          schemaVersion: 1,
+          status: "OK",
+          mode: mode.mode,
+          governed: mode.governed,
+          files: listFiles(server).map((f) => fileState(server, f)),
+          // The files a screen can start from a template and that are not there yet (offered with "Criar").
+          missing: Object.keys(CREATABLE).filter((f) => !readRevision(locate(server, f)).exists),
+        },
+      };
     },
   },
   {
     method: "GET",
     path: "/api/config/yaml/file",
-    query: { type: "object", required: ["file"], additionalProperties: false, properties: { file: { type: "string", pattern: FILE_PATTERN } } },
+    query: { type: "object", required: ["file"], additionalProperties: false, properties: { file: { type: "string", pattern: FILE_PATTERN }, path: { type: "string", maxLength: 300 } } },
     handler({ query, server }) {
-      return { status: 200, json: view(server, query.file as string) };
+      return { status: 200, json: view(server, query.file as string, typeof query.path === "string" ? query.path : undefined) };
     },
   },
   {

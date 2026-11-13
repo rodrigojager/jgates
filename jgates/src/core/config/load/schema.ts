@@ -138,7 +138,10 @@ export function validateDocument(
   if (kind === "root" || kind === "tools") value = migrateDocument(kind, value, file).value;
   validate(value);
   const out: ConfigDiagnostic[] = [];
+  // A value that fits no branch of a oneOf/anyOf is one problem: the errors of the branches would only repeat it.
+  const choices = (validate.errors ?? []).filter((e) => e.keyword === "oneOf" || e.keyword === "anyOf").map((e) => e.instancePath);
   for (const error of validate.errors ?? []) {
+    if (error.keyword !== "oneOf" && error.keyword !== "anyOf" && choices.some((at) => error.instancePath === at || error.instancePath.startsWith(`${at}/`))) continue;
     // propertyNames reports the failing keyword and then itself; keep the one that names the key.
     if (error.schemaPath?.includes("/propertyNames/") && error.keyword !== "propertyNames") continue;
     let segments = pointerSegments(error.instancePath);
@@ -187,6 +190,30 @@ export function validateDocument(
         keyOf = name;
         break;
       }
+      case "pattern":
+        code = "PATTERN";
+        message = t("config_pattern", { pattern: String(error.params.pattern) });
+        break;
+      case "minimum":
+      case "maximum":
+      case "exclusiveMinimum":
+      case "exclusiveMaximum":
+        code = "LIMIT";
+        message = t(error.keyword === "minimum" ? "config_minimum" : error.keyword === "maximum" ? "config_maximum" : error.keyword === "exclusiveMinimum" ? "config_exclusive_minimum" : "config_exclusive_maximum", { limit: String(error.params.limit) });
+        break;
+      case "minItems":
+      case "maxItems":
+      case "minLength":
+      case "maxLength":
+      case "minProperties":
+        code = "LIMIT";
+        message = t(`config_${error.keyword.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)}`, { limit: Number(error.params.limit) });
+        break;
+      case "oneOf":
+      case "anyOf":
+        code = "ONE_OF";
+        message = t("config_one_of");
+        break;
       default:
         message = t("config_schema_detail", { detail: error.message ?? error.keyword });
     }

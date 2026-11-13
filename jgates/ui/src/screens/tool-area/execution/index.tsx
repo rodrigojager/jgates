@@ -1,4 +1,5 @@
 import { Pill } from "../../../components/common";
+import { yamlHref } from "../../../forms/derived/api";
 import { Icon } from "../../../components/icons";
 import { t, tOr } from "../../../i18n";
 
@@ -67,7 +68,7 @@ function ContainerLimits({ execution }: { execution: ExecutionData }) {
         <span className="small muted" data-testid="execution-timeout-origin">{t(`exec_origin_${limits?.origin.timeoutSeconds ?? "default"}`)}</span>
       </label>
       <p className="small">
-        {t("exec_limits_hint")} <a href="#/config/yaml">{t("exec_edit_yaml")}</a>
+        {t("exec_limits_hint")} <a href={yamlHref("jgates.yml", "execution")}>{t("exec_edit_yaml")}</a>
       </p>
     </fieldset>
   );
