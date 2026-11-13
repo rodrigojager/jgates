@@ -6,6 +6,7 @@ import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components
 import { Icon } from "../../components/icons";
 import { adapterName, t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
+import { ConfigDiagnostics, type ConfigDiagnostic } from "../config-profiles/diagnostics";
 import { SemanticCard } from "./semantic/card";
 import { CustomToolDialog } from "./custom-dialog";
 import { CreateDialog, RemoveDialog, RenameDialog, type CatalogAdapter } from "./dialogs";
@@ -53,6 +54,8 @@ interface EffectiveData {
   languages: string[];
   tools: EffectiveTool[];
   error?: string;
+  /** Problems of the configuration files (file, key, line) when there is no plan. */
+  diagnostics?: ConfigDiagnostic[];
 }
 
 interface Distribution {
@@ -387,15 +390,29 @@ export default function ToolsScreen() {
           </p>
         ) : effective.error ? (
           <ErrorNotice error={effective.error} onRetry={effective.reload} />
-        ) : effective.data && !effective.data.ok ? (
-          <div className="notice warn" role="status">
-            <Icon name="alert" />
-            <p>{t("tools_effective_failed", { error: effective.data.error ?? "" })}</p>
-          </div>
+        ) : effective.data && !effective.data.ok && effectiveTools.length === 0 ? (
+          <>
+            <div className="notice warn" role="status">
+              <Icon name="alert" />
+              <p>{t("tools_effective_failed", { error: effective.data.error ?? "" })}</p>
+            </div>
+            {(effective.data.diagnostics ?? []).length > 0 ? <ConfigDiagnostics readable diagnostics={effective.data.diagnostics ?? []} onRetry={effective.reload} /> : null}
+          </>
         ) : effectiveTools.length === 0 ? (
           <p>{(effective.data?.tools.length ?? 0) === 0 ? t("tools_effective_none") : t("tools_no_match")}</p>
         ) : (
-          effectiveGroups.map((g) => (
+          <>
+          {/* No plan (a key written by hand that the schema refuses): the tools are those the files declare. */}
+          {effective.data && !effective.data.ok ? (
+            <>
+              <div className="notice warn" role="status">
+                <Icon name="alert" />
+                <p>{t("tools_effective_failed", { error: effective.data.error ?? "" })}</p>
+              </div>
+              {(effective.data.diagnostics ?? []).length > 0 ? <ConfigDiagnostics readable diagnostics={effective.data.diagnostics ?? []} onRetry={effective.reload} /> : null}
+            </>
+          ) : null}
+          {effectiveGroups.map((g) => (
             <div key={g.category} className="stack tight" data-testid="effective-group" data-category={g.category}>
               <h3>
                 {g.category ? categoryLabel(g.category) : t("tools_category_other")} <span className="small muted">{t("tools_effective_count", { count: g.items.length })}</span>
@@ -425,7 +442,8 @@ export default function ToolsScreen() {
                 })}
               </ul>
             </div>
-          ))
+          ))}
+          </>
         )}
       </section>
 

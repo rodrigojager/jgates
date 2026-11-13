@@ -35,8 +35,19 @@ export const tab: ToolTabMeta = {
 
 /** The errors that only say this tool has no hand-written form: the derived settings form is then the whole tab. */
 const NO_NATIVE_FORM = new Set(["FORM_NOT_FOUND", "FORM_NO_DOCUMENT", "INSTANCE_NOT_FOUND"]);
-/** Keys every tool instance has; next to a hand-written settings form these are what is left to show. */
+
+/** Keys every tool instance has; next to a hand-written settings form these are shown with what the file holds. */
 const GENERAL_KEYS = new Set(["enabled", "required", "timeoutSeconds", "capabilities"]);
+
+/**
+ * Next to a settings form: the general keys, and every other key written in the file that the form has no field for
+ * (the authentication of ZAP...), each with its control; the adapter is not edited here.
+ */
+function besideOverlay(f: DerivedField, overlay: ReadonlySet<string>): boolean {
+  const key = String(f.path[2]);
+  if (key === "adapter" || overlay.has(key)) return false;
+  return GENERAL_KEYS.has(key) || f.state !== "inherited";
+}
 
 interface Proposal {
   changes: string[];
@@ -58,23 +69,32 @@ export default function OptionsTab(props: ToolTabProps) {
   const id = props.instance.id as string;
   // What the hand-written form is: a form over the tool's own documents, one over tools.<id> (a settings form), or none.
   const [kind, setKind] = useState<"documents" | "instance" | "none" | null>(null);
+  // The keys of tools.<id> a settings form has fields for: every other key of the instance (the general ones, and those
+  // written by hand that the form does not know, like the authentication of ZAP) is in the derived form below.
+  const [overlay, setOverlay] = useState<ReadonlySet<string>>(new Set());
   return (
     <div className="stack" data-testid="tool-options">
-      <NativeOptions {...props} onKind={setKind} />
+      <NativeOptions
+        {...props}
+        onKind={(next, keys) => {
+          setKind(next);
+          setOverlay(keys ?? new Set());
+        }}
+      />
       {kind !== null ? (
         <section className="stack" aria-labelledby="tool-settings-title" data-testid="tool-settings">
           <div>
             <h2 id="tool-settings-title">{kind === "instance" ? t("tools_settings_general") : t("tools_settings_title")}</h2>
             <p className="small">{t("tools_settings_lead", { tool: id })}</p>
           </div>
-          <DerivedForm key={id} source={{ instance: id }} headingLevel={3} {...(kind === "instance" ? { include: (f: DerivedField) => GENERAL_KEYS.has(String(f.path[2])) } : {})} />
+          <DerivedForm key={id} source={{ instance: id }} headingLevel={3} {...(kind === "instance" ? { include: (f: DerivedField) => besideOverlay(f, overlay) } : {})} />
         </section>
       ) : null}
     </div>
   );
 }
 
-function NativeOptions({ instance, active, openFile, onKind }: ToolTabProps & { onKind: (kind: "documents" | "instance" | "none") => void }) {
+function NativeOptions({ instance, active, openFile, onKind }: ToolTabProps & { onKind: (kind: "documents" | "instance" | "none", overlay?: ReadonlySet<string>) => void }) {
   const id = instance.id as string;
   const [view, setView] = useState<FormView | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -102,7 +122,8 @@ function NativeOptions({ instance, active, openFile, onKind }: ToolTabProps & { 
       const r = await api<{ form: FormView }>("GET", formPath(id));
       setView(r.form);
       setPending(new Map());
-      onKind((r.form as unknown as SettingsView).scope === "instance" ? "instance" : "documents");
+      const scope = (r.form as unknown as SettingsView).scope === "instance" ? "instance" : "documents";
+      onKind(scope, scope === "instance" ? new Set(r.form.fields.map((f) => String(f.path[0]))) : undefined);
       setDraft(await fetchDraft(id, r.form.binding, null).catch(() => null));
     } catch (e) {
       if (e instanceof ApiError && NO_NATIVE_FORM.has(e.code)) {
@@ -203,6 +224,7 @@ function NativeOptions({ instance, active, openFile, onKind }: ToolTabProps & { 
         view={settings}
         focus={focus}
         justSaved={settingsSaved}
+        keptBelow
         onSaved={(ok) => {
           setSettingsSaved(ok);
           void load();

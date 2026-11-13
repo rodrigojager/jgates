@@ -1,0 +1,15 @@
+# Personal data detection, written by hand.
+schemaVersion: 1
+enabled: true
+severity: high
+entities:
+  cpf:
+    enabled: true
+    severity: critical   # CPFs never leave the repository
+  phone:
+    enabled: false
+reporting:
+  redactMatchedValues: true
+hook:
+  mode: block
+  modo: fix              # a typo: this key does not exist

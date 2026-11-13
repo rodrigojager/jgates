@@ -153,5 +153,9 @@
   "cfgp_selectors_architecture": "Regras de arquitetura",
   "cfgp_selectors_component": "Componentes",
   "cfgp_policy_moved": "Os critérios de bloqueio (severidade, cobertura mínima, evidências exigidas) ficam no arquivo .jgates/policy.yml.",
-  "cfgp_policy_moved_link": "Abrir Política"
+  "cfgp_policy_moved_link": "Abrir Política",
+  "cfgp_diag_text_readable": "Esta tela mostra o que os arquivos têm; a validação recusa a configuração até isso ser corrigido.",
+  "cfgp_diag_open_line": "Abrir na linha {line}",
+  "cfgp_defaults_title": "Padrões do projeto",
+  "cfgp_defaults_lead": "O que uma validação usa quando não pede outra coisa (escopo, caminhos, portões) e os arquivos de configuração que o jgates.yml estende."
 }

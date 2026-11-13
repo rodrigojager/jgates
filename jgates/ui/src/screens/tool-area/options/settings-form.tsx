@@ -80,8 +80,11 @@ function problemOf(field: SettingsField, value: unknown): string | null {
   return null;
 }
 
-/** `onSaved(true)` after a save (the parent reloads the view and keeps the notice); `onSaved(false)` only reloads. */
-export function SettingsForm({ view, focus: focusIn, justSaved, onSaved }: { view: SettingsView; focus: string[]; justSaved: boolean; onSaved: (saved: boolean) => void }) {
+/**
+ * `onSaved(true)` after a save (the parent reloads the view and keeps the notice); `onSaved(false)` only reloads.
+ * `keptBelow`: the keys this form has no field for are in the derived form under it (no "kept as written" note).
+ */
+export function SettingsForm({ view, focus: focusIn, justSaved, onSaved, keptBelow = false }: { view: SettingsView; focus: string[]; justSaved: boolean; onSaved: (saved: boolean) => void; keptBelow?: boolean }) {
   const fields = view.fields;
   // A setting the form has no field for (performance budgets, a map kept in the YAML) lands on the field that can stand
   // in for it (the baseline file) and says where the setting itself is edited.
@@ -526,7 +529,7 @@ export function SettingsForm({ view, focus: focusIn, justSaved, onSaved }: { vie
           <div className="stack">{blocks(advanced)}</div>
         </details>
       ) : null}
-      {view.unsupported.length > 0 ? (
+      {view.unsupported.length > 0 && !keptBelow ? (
         <p className="small muted" data-testid="rtf-kept">
           {t("rtf_kept", { keys: view.unsupported.map((u) => u.documentPath).join(", ") })}{" "}
           <a href={yamlHref(file, view.section.join("."))}>{t("rtf_open_yaml")}</a>

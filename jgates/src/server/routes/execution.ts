@@ -5,7 +5,8 @@ import path from "node:path";
 import { patchYamlText, readRevision, type YamlEdit } from "../../core/codecs/yaml/index.js";
 import { unifiedDiff } from "../../core/documents/diff.js";
 import { ROOT_FILE, parseYamlText } from "../../core/config/load/index.js";
-import { encodePointer, resolveConfig } from "../../core/config/resolve/index.js";
+import { encodePointer } from "../../core/config/resolve/index.js";
+import { fileDiagnostics, invalidateProjectCache, projectResolveReadable } from "../../core/cache/project.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { assertWritable, patchConfigFile } from "./templates.js";
@@ -46,7 +47,9 @@ const FIELDS: FieldSpec[] = [
 function describe(server: ServerContext): Rec {
   const mode = modeOf();
   const root = readRevision(path.join(server.projectDir, ROOT_FILE));
-  const resolved = resolveConfig(server.projectDir);
+  // A key written by hand that the schema refuses (in any file) does not hide the values of jgates.yml: they are read as
+  // the files hold them, and the diagnostics say where the problem is.
+  const resolved = projectResolveReadable(server.projectDir);
   const fields = FIELDS.map((spec) => {
     const field = resolved.fields[encodePointer(spec.path)];
     return {
@@ -74,6 +77,7 @@ function describe(server: ServerContext): Rec {
     revision: root.hash,
     fields,
     retention: "storage",
+    diagnostics: fileDiagnostics(resolved),
   };
 }
 
@@ -160,6 +164,8 @@ export const routes: RouteDefinition[] = [
       const edits = editsOf(root.text, b.changes);
       if (edits.length === 0) return { status: 200, json: describe(server) };
       patchConfigFile(server, ROOT_FILE, "root", edits, b.expectedRevision);
+      // The answer is read again from the files just written (a write may fall in the clock tick of the last read).
+      invalidateProjectCache();
       server.log(`execution settings saved: ${Object.keys(b.changes).join(", ")}`);
       return { status: 200, json: describe(server) };
     },

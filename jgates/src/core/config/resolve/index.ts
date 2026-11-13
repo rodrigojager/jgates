@@ -23,6 +23,21 @@ export { DEFAULT_PROFILE, IMPLICIT_TEMPLATES } from "./layers.js";
  * (starter profiles first) < project files (fragments before jgates.yml) < call overrides. A template never changes
  * the discovery that activated it. Never throws for configuration problems: they come back in `errors`.
  */
+/** The resolution failed only because a file has problems of its own (CONFIG_INVALID): the files can still be read. */
+export function onlyFileProblems(result: ResolveResult): boolean {
+  return !result.ok && result.errors.length > 0 && result.errors.every((e) => e.code === "CONFIG_INVALID");
+}
+
+/**
+ * The configuration as a screen shows it (ADR-0009): the strict resolution or, when the only problem is a file the
+ * schema refuses (a key written by hand it does not know), the lenient one. That keeps `ok: false` and CONFIG_INVALID,
+ * so a plan or a run still refuses it; its `diagnostics` say file, key and line.
+ */
+export function resolveReadable(projectDir: string, options: ResolveOptions = {}): ResolveResult {
+  const strict = resolveConfig(projectDir, options);
+  return onlyFileProblems(strict) ? resolveConfig(projectDir, { ...options, lenient: true }) : strict;
+}
+
 export function resolveConfig(projectDir: string, options: ResolveOptions = {}): ResolveResult {
   const t = translator("config");
   const dir = path.resolve(projectDir);

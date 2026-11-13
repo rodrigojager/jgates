@@ -5,6 +5,7 @@ import { ErrorNotice, Loading, Updating, useAsync } from "../../components/commo
 import { Icon } from "../../components/icons";
 import { t } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
+import { DerivedForm } from "../../forms/derived/DerivedForm";
 import { ConfigDiagnostics, diagnosticsOf } from "./diagnostics";
 import { ProfileEditor, type ScrollRequest } from "./editor";
 import { ProfileCards, type Card, type Starter, type WriteAnswer } from "./profiles";
@@ -99,6 +100,18 @@ export default function ConfigProfilesScreen() {
       </div>
       <Updating active={list.reloading || view.reloading} />
 
+      {/* A key written by hand that the schema refuses: the profile is still shown as the files hold it. */}
+      {((v.diagnostics ?? []) as any[]).length > 0 ? (
+        <ConfigDiagnostics
+          readable
+          diagnostics={v.diagnostics}
+          onRetry={() => {
+            list.reload();
+            view.reload();
+          }}
+        />
+      ) : null}
+
       {(v.selectionErrors as any[]).length > 0 ? (
         <div className="notice warn" role="alert">
           <Icon name="alert" />
@@ -142,6 +155,23 @@ export default function ConfigProfilesScreen() {
         editable={v.profile.editable === true}
         onChanged={applyView}
       />
+      {/* The project's own defaults in jgates.yml (scope, paths, gates... of a validation that names nothing) and the
+          configuration files it extends: every key with its control, written one at a time. The default profile is the
+          cards' "Marcar como padrão". */}
+      <section className="card pad stack" aria-labelledby="cfgp-defaults-title" data-testid="project-defaults">
+        <h2 id="cfgp-defaults-title">{t("cfgp_defaults_title")}</h2>
+        <p className="small muted">{t("cfgp_defaults_lead")}</p>
+        <DerivedForm
+          key={`defaults:${writes}`}
+          source={{ file: "jgates.yml" }}
+          include={(f) => (f.path[0] === "selection" && f.path[1] !== "profile") || f.path[0] === "extends"}
+          onWrite={() => {
+            list.reload();
+            view.reload();
+          }}
+        />
+      </section>
+
       <div className="notice ok" data-testid="policy-pointer">
         <Icon name="lock" />
         <p className="small">

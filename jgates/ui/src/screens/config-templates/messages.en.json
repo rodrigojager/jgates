@@ -114,5 +114,9 @@
   "cft_w_new_file": "(new file)",
   "cft_w_to_review": "Review",
   "cft_w_next": "Next",
-  "cft_w_save": "Save changes"
+  "cft_w_save": "Save changes",
+  "cft_d_entry": "How the project uses this template",
+  "cft_d_entry_lead": "The template's entry in jgates.yml: when it applies, to which languages and with which priority.",
+  "cft_d_keys": "Settings of the template",
+  "cft_d_keys_lead": "Every key of {file}, including those written by hand, saved one at a time."
 }

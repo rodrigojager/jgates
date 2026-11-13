@@ -1,7 +1,7 @@
 // What a tool instance would run, rendered from the same adapter code the plan uses (the adapter's plan() builds the
 // command), so the area of the tool shows the command of the plan and not a second description of it. Nothing runs.
 import { externalAdapter } from "../plan/adapters.js";
-import { resolveConfig } from "../config/resolve/index.js";
+import { resolveReadable } from "../config/resolve/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { resolveToolBindings } from "./index.js";
 
@@ -79,7 +79,8 @@ export function renderExecution(dir: string, instanceId: string, env: NodeJS.Pro
   const adapter = externalAdapter(bound.adapter);
   if (!adapter || !manifest) return none("NO_OWN_PROCESS");
 
-  const resolved = resolveConfig(dir);
+  // What the files hold, also while a key written by hand makes the configuration invalid.
+  const resolved = resolveReadable(dir);
   const config = resolved.config as Record<string, unknown>;
   const execution = typeof config.execution === "object" && config.execution !== null ? (config.execution as Record<string, unknown>) : {};
   const timeoutSeconds = typeof execution.timeoutSeconds === "number" ? execution.timeoutSeconds : DEFAULT_TIMEOUT_SECONDS;

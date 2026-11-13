@@ -68,6 +68,13 @@ function describe(server: ServerContext): Rec {
   };
 }
 
+/** The syntax and schema problems of a pii.yml text. */
+function problemsOf(text: string): Array<{ path: string; code: string; message: string }> {
+  const parsed = parseYamlText(text, FILE);
+  return [...parsed.diagnostics, ...(parsed.value === undefined ? [] : validateDocument("pii", parsed.value, FILE, { doc: parsed.doc, lineCounter: parsed.lineCounter }))];
+}
+const problemKey = (p: { path: string; code: string; message: string }) => `${p.path}|${p.code}|${p.message}`;
+
 const PATHS: Array<[string[], "boolean" | "severity" | "string"]> = [
   [["enabled"], "boolean"],
   [["severity"], "severity"],
@@ -147,9 +154,10 @@ export const routes: RouteDefinition[] = [
       }
       try {
         // The result must still be a valid pii.yml before anything is written.
+        // A problem the file already had (a key written by hand) stays its own; only a new one refuses the change.
         const next = patchYamlText(current.exists ? current.text : SEED, b.edits);
-        const parsed = parseYamlText(next.text, FILE);
-        const problems = [...parsed.diagnostics, ...(parsed.value === undefined ? [] : validateDocument("pii", parsed.value, FILE, { doc: parsed.doc, lineCounter: parsed.lineCounter }))];
+        const known = new Set(current.exists ? problemsOf(current.text).map(problemKey) : []);
+        const problems = problemsOf(next.text).filter((p) => !known.has(problemKey(p)));
         if (problems.length > 0) {
           const first = problems[0] as { message: string; path: string };
           throw new HttpError(422, "PII_INVALID", t("pii_route_invalid", { message: first.message }), null, { path: first.path });

@@ -1,0 +1,17 @@
+# Layers of the app, written by hand.
+schemaVersion: 1
+architecture:
+  layers:
+    - id: domain
+      label: Domínio
+      paths: ["app/domain/**"]
+    - id: infrastructure
+      paths: ["app/infrastructure/**"]   # database and HTTP clients
+  rules:
+    # The domain never imports the infrastructure.
+    - id: domain-isolation
+      kind: forbidden-dependency
+      from: domain
+      to: [infrastructure]
+      severity: high
+      message: "O domínio não importa a infraestrutura."

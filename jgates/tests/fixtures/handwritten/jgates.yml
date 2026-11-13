@@ -1,0 +1,43 @@
+# Hand-written JGates configuration (acceptance fixture V2-66).
+# Comments, blank lines, key order and quoting are part of what every guided screen must keep.
+schemaVersion: 2
+
+extends:
+  - .jgates/profiles.yml   # the team's profiles
+
+selection:
+  profile: team            # our own profile (see .jgates/profiles.yml)
+  scope: changed
+
+templates:
+  # Base checks for every project.
+  - id: base
+    source: builtin:base
+    activation: always
+  - id: python
+    source: builtin:python
+    activation: detected
+  # Our own template, written by hand.
+  - id: team-extras
+    source: .jgates/templates/team-extras.yml
+    activation: detected
+    match:
+      languages: [python]
+    priority: 50
+
+execution:
+  concurrency: 2           # two checks at a time
+  network: explicit
+  timeoutSeconds: 900
+  dataMaxAgeDays: 14
+
+services:
+  # The compose files of the stack, in order.
+  compose:
+    - compose.yaml
+  profiles: [backend, "debug"]   # only these compose profiles start
+  target:
+    service: api
+    port: 8000
+    health: /health          # polled before the checks
+  timeoutSeconds: 90

@@ -152,6 +152,13 @@ const sameValue = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSO
  * renamed in place matches by position), changed keys are set one by one, so comments and hand-written keys of
  * the entries stay. Removed entries are deleted from the last to the first; new ones are appended.
  */
+/** The syntax and schema problems of a workspace.yml text. */
+function problemsOf(text: string): Array<{ path: string; code: string; message: string }> {
+  const parsed = parseYamlText(text, WORKSPACE_FILE);
+  return [...parsed.diagnostics, ...(parsed.value === undefined ? [] : validateDocument("workspace", parsed.value, WORKSPACE_FILE, { doc: parsed.doc, lineCounter: parsed.lineCounter }))];
+}
+const problemKey = (p: { path: string; code: string; message: string }) => `${p.path}|${p.code}|${p.message}`;
+
 function componentEdits(current: unknown[], next: Rec[]): YamlEdit[] {
   const edits: YamlEdit[] = [];
   const used = new Set<number>();
@@ -357,9 +364,10 @@ export const routes: RouteDefinition[] = [
 
       try {
         // The result must still be a valid workspace.yml before anything is written.
+        // A problem the file already had (a key written by hand) stays its own; only a new one refuses the change.
         const next = patchYamlText(current.exists ? current.text : SEED, edits);
-        const parsed = parseYamlText(next.text, WORKSPACE_FILE);
-        const problems = [...parsed.diagnostics, ...(parsed.value === undefined ? [] : validateDocument("workspace", parsed.value, WORKSPACE_FILE, { doc: parsed.doc, lineCounter: parsed.lineCounter }))];
+        const known = new Set(current.exists ? problemsOf(current.text).map(problemKey) : []);
+        const problems = problemsOf(next.text).filter((p) => !known.has(problemKey(p)));
         if (problems.length > 0) {
           const first = problems[0] as { message: string; path: string };
           throw new HttpError(422, "WORKSPACE_INVALID", `O workspace.yml ficaria inválido: ${first.message}`, null, { path: first.path });

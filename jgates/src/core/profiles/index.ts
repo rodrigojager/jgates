@@ -2,7 +2,7 @@ import path from "node:path";
 import { translator } from "../../i18n/index.js";
 import { builtinProfileBody, getBuiltinProfile, listBuiltinProfiles } from "../../builtin/index.js";
 import { CONFIG_DIR, loadProjectConfig, ROOT_FILE, suggestName, validateDocument, type ConfigLoadResult } from "../config/load/index.js";
-import { DEFAULT_PROFILE, resolveConfig } from "../config/resolve/index.js";
+import { DEFAULT_PROFILE, onlyFileProblems, resolveReadable } from "../config/resolve/index.js";
 import { hashBytes, patchYamlText, patchYamlFile, readRevision, writeFileAtomic, YamlPatchError, type YamlEdit } from "../codecs/yaml/index.js";
 import { renameKeyInText } from "./yaml-rename.js";
 import { parseYamlText } from "../config/load/yaml.js";
@@ -73,10 +73,15 @@ function asRecord(v: unknown): Record<string, unknown> {
   return v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
 
+/**
+ * The configuration files, readable: a file that does not parse or a reference to nothing (a profile, a fragment)
+ * refuses every profile operation; a key the schema refuses does not (the profiles are read as the files hold them, and
+ * each write is checked for the problems it brings).
+ */
 function loadValid(dir: string): ConfigLoadResult {
   const t = translator("profiles");
   const load = loadProjectConfig(dir);
-  if (!load.valid) {
+  if (!load.valid && load.diagnostics.some((d) => d.kind !== "schema")) {
     const first = load.diagnostics[0];
     throw new ProfileError("CONFIG_INVALID", t("profiles_config_invalid", { count: load.diagnostics.length, first: first ? `${first.file}${first.path ? ` (${first.path})` : ""}: ${first.message}` : "" }), t("profiles_config_invalid_fix"), {
       diagnostics: load.diagnostics,
@@ -155,6 +160,22 @@ function allRefs(map: Record<string, unknown>): string[] {
   return [...Object.keys(map), ...listBuiltinProfiles().map((p) => `builtin:${p.id}`)];
 }
 
+/** The syntax and schema problems of a YAML text of `kind`. */
+function problemsOf(kind: "profiles" | "root" | "policy", file: string, text: string) {
+  const parsed = parseYamlText(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text, file);
+  return [...parsed.diagnostics, ...(parsed.diagnostics.length === 0 ? validateDocument(kind, parsed.value, file, { doc: parsed.doc, lineCounter: parsed.lineCounter }) : [])];
+}
+
+/**
+ * The problems a change brings: those of the new text the file did not already have. A key written by hand that the
+ * schema refuses stays the file's own problem (its diagnostic says where); it does not block a change elsewhere.
+ */
+function freshProblems(kind: "profiles" | "root" | "policy", file: string, before: string | null, after: string) {
+  const key = (d: { path: string; code: string; message: string }) => `${d.path}|${d.code}|${d.message}`;
+  const known = new Set(before === null ? [] : problemsOf(kind, file, before).map(key));
+  return problemsOf(kind, file, after).filter((d) => !known.has(key(d)));
+}
+
 /** Applies the edits to a YAML file of the project, validating the result against its schema before any write. */
 export function applyEdits(dir: string, file: string, kind: "profiles" | "root" | "policy", edits: YamlEdit[], options: { expectedHash: string | undefined; createWith?: string }): { hash: string; previousHash: string | null; changed: boolean; strategy: string } {
   const t = translator("profiles");
@@ -166,8 +187,7 @@ export function applyEdits(dir: string, file: string, kind: "profiles" | "root" 
   try {
     const base = rev.exists ? rev.text : (options.createWith ?? "");
     const preview = patchYamlText(base, edits);
-    const parsed = parseYamlText(preview.text.charCodeAt(0) === 0xfeff ? preview.text.slice(1) : preview.text, file);
-    const diagnostics = [...parsed.diagnostics, ...(parsed.diagnostics.length === 0 ? validateDocument(kind, parsed.value, file, { doc: parsed.doc, lineCounter: parsed.lineCounter }) : [])];
+    const diagnostics = freshProblems(kind, file, rev.exists ? rev.text : null, preview.text);
     if (diagnostics.length > 0) {
       const d = diagnostics[0]!;
       throw new ProfileError("PATCH_FAILED", t("profiles_patch_invalid", { file, detail: d.message }), t("profiles_patch_invalid_fix"), { diagnostics });
@@ -192,8 +212,7 @@ function applyTextChange(dir: string, file: string, kind: "profiles" | "root" | 
   if (!rev.exists) throw new ProfileError("PATCH_FAILED", t("profiles_patch_failed", { file, detail: "the file does not exist" }), t("profiles_patch_invalid_fix"));
   const next = change(rev.text);
   if (next === undefined) throw new ProfileError("PATCH_FAILED", t("profiles_patch_failed", { file, detail: "the entry was not found" }), t("profiles_patch_invalid_fix"));
-  const parsed = parseYamlText(next.charCodeAt(0) === 0xfeff ? next.slice(1) : next, file);
-  const diagnostics = [...parsed.diagnostics, ...(parsed.diagnostics.length === 0 ? validateDocument(kind, parsed.value, file, { doc: parsed.doc, lineCounter: parsed.lineCounter }) : [])];
+  const diagnostics = freshProblems(kind, file, rev.text, next);
   if (diagnostics.length > 0) {
     const d = diagnostics[0]!;
     throw new ProfileError("PATCH_FAILED", t("profiles_patch_invalid", { file, detail: d.message }), t("profiles_patch_invalid_fix"), { diagnostics });
@@ -320,8 +339,8 @@ export function setProfileGates(dir: string, id: string, gates: GateKind[] | nul
 /** Selectors the new profile would turn off must exist and must not touch a locked requirement. */
 function rejectBadSkips(projectDir: string, from: string, skip: string[]): void {
   const t = translator("profiles");
-  const resolved = resolveConfig(projectDir, { profile: from, overrides: skipOverrides(skip) });
-  if (!resolved.ok) {
+  const resolved = resolveReadable(projectDir, { profile: from, overrides: skipOverrides(skip) });
+  if (!resolved.ok && !onlyFileProblems(resolved)) {
     const first = resolved.errors[0];
     throw new ProfileError("CONFIG_INVALID", t("profiles_config_invalid", { count: resolved.errors.length, first: first?.message ?? "" }), t("profiles_config_invalid_fix"), { errors: resolved.errors });
   }
@@ -398,8 +417,8 @@ export function setProfileChecks(dir: string, id: string, changes: SelectionChan
     throw new ProfileError("PROFILE_NOT_FOUND", t("cfgp_not_found", { id }), suggestion ? t("cfgp_suggest", { suggestion }) : null, suggestion ? { suggestion } : {});
   }
   if (changes.length === 0) throw new ProfileError("SELECTION_REJECTED", t("cfgp_no_changes"), t("cfgp_no_changes_fix"));
-  const resolved = resolveConfig(projectDir, { profile: id });
-  if (!resolved.ok) {
+  const resolved = resolveReadable(projectDir, { profile: id });
+  if (!resolved.ok && !onlyFileProblems(resolved)) {
     const first = resolved.errors[0];
     throw new ProfileError("CONFIG_INVALID", t("cfgp_resolve_failed", { first: first?.message ?? "" }), t("profiles_config_invalid_fix"), { errors: resolved.errors });
   }

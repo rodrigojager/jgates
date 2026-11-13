@@ -91,5 +91,7 @@
   "cfa_ed_to_review": "Revisar",
   "cfa_ed_save": "Salvar alterações",
   "cfa_ed_create": "Criar arquivo",
-  "cfa_ed_saved": "{file} salvo."
+  "cfa_ed_saved": "{file} salvo.",
+  "cfa_keys_title": "Todas as chaves das regras e camadas",
+  "cfa_keys_lead": "Cada chave de {file}, inclusive as escritas à mão, com o controle dela e gravada uma por vez."
 }

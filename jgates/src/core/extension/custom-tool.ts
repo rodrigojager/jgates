@@ -208,7 +208,16 @@ export function planCustomTool(projectDir: string, request: CustomToolRequest): 
       const config = entry.config as Record<string, unknown>;
       const oldConfig = oldEntry.config;
       if (typeof oldConfig === "object" && oldConfig !== null && !Array.isArray(oldConfig)) {
-        for (const key of ["effects", "evidence"]) edits.push({ op: "set", path: ["tools", id, "config", key], value: config[key] });
+        edits.push({ op: "set", path: ["tools", id, "config", "evidence"], value: config.evidence });
+        // Of the effects, the dialog decides only the network and whether a report is written; the others written by
+        // hand (a tool that runs the project's code) stay as they are.
+        const effects = config.effects as Record<string, unknown>;
+        const oldEffects = (oldConfig as Record<string, unknown>).effects;
+        if (typeof oldEffects === "object" && oldEffects !== null && !Array.isArray(oldEffects)) {
+          for (const [key, value] of Object.entries(effects)) {
+            if (key === "usesNetwork" || key === "writesOutputs" || !(key in oldEffects)) edits.push({ op: "set", path: ["tools", id, "config", "effects", key], value });
+          }
+        } else edits.push({ op: "set", path: ["tools", id, "config", "effects"], value: effects });
       } else {
         edits.push({ op: "set", path: ["tools", id, "config"], value: config });
       }

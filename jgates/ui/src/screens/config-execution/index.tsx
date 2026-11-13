@@ -8,6 +8,7 @@ import { OriginLine, type OriginRef, type SaveTarget } from "../../components/or
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
+import { ConfigDiagnostics, type ConfigDiagnostic } from "../config-profiles/diagnostics";
 import "../../forms/derived/derived.css";
 import "./config-execution.css";
 
@@ -39,6 +40,8 @@ interface View {
   governed: { policy: string } | null;
   revision: string | null;
   fields: Field[];
+  /** Problems of the configuration files (file, key, line); the values above are what the files hold. */
+  diagnostics?: ConfigDiagnostic[];
 }
 
 interface Preview {
@@ -285,6 +288,8 @@ export default function ConfigExecutionScreen() {
         <p>{t("cfe_lead")}</p>
       </div>
       <Updating active={view.reloading} />
+      {/* A key written by hand that the schema refuses (in any file): the values are still those the files hold. */}
+      {(v.diagnostics ?? []).length > 0 ? <ConfigDiagnostics readable diagnostics={v.diagnostics ?? []} onRetry={view.reload} /> : null}
       {locked ? (
         <div className="notice warn" role="status" data-testid="governed-note">
           <Icon name="lock" />

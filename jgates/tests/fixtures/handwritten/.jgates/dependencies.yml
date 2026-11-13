@@ -1,0 +1,8 @@
+# Private registry of the team, written by hand. The token is read from the secret named here, never written.
+schemaVersion: 1
+registries:
+  python:
+    url: https://pypi.example.test/simple   # the company mirror
+    tokenSecret: PYPI_TOKEN
+install:
+  command: pip install -r requirements.txt

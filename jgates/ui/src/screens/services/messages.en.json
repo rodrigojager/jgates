@@ -87,5 +87,8 @@
   "svc_step_roles": "Roles",
   "svc_step_target": "Target",
   "svc_step_review": "Review",
-  "svc_next": "Next"
+  "svc_next": "Next",
+  "svc_profiles_title": "Compose profiles",
+  "svc_profiles_help": "The services of a compose profile start only when it is checked here (services.profiles).",
+  "svc_profiles_not_found": "(no compose file declares this profile)"
 }

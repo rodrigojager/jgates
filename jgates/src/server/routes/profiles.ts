@@ -8,7 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { listRuns } from "../../core/artifacts/index.js";
-import { cachedProject, invalidateProjectCache, projectInventory, projectResolve } from "../../core/cache/project.js";
+import { cachedProject, fileDiagnostics, invalidateProjectCache, onlyFileProblems, projectInventory, projectResolveReadable } from "../../core/cache/project.js";
 import { getLocale } from "../../i18n/index.js";
 import {
   ProfileError,
@@ -117,9 +117,9 @@ function estimateOf(ref: string, id: string, durations: Map<string, number[]>): 
 
 /** What a profile resolves per selector, to compare each of its own entries with the parent's value. */
 function resolvedEnabled(dir: string, profile: string): Map<string, boolean> {
-  const result = projectResolve(dir, { profile });
+  const result = projectResolveReadable(dir, { profile });
   const map = new Map<string, boolean>();
-  if (!result.ok) return map;
+  if (!result.ok && !onlyFileProblems(result)) return map;
   for (const item of resolveSelection(result, { inventory: projectInventory(dir) }).items) map.set(item.selector, item.enabled);
   return map;
 }
@@ -129,7 +129,9 @@ export function profilesPayload(server: ServerContext) {
   return cachedProject(`profiles:${getLocale()}`, [server.projectDir, path.join(server.home, "workspaces")], () => {
     const { list, cards } = describeProfiles(server);
     const starters = list.profiles.filter((p) => p.origin === "builtin").map((p) => ({ id: p.id, ref: p.ref, label: p.label, description: p.description }));
-    return { schemaVersion: 1, status: "OK", default: list.default, profiles: cards, starters, revisions: list.revisions };
+    // A key written by hand that the schema refuses: the profiles are listed as the files hold them, with where it is.
+    const diagnostics = fileDiagnostics(projectResolveReadable(server.projectDir));
+    return { schemaVersion: 1, status: "OK", default: list.default, profiles: cards, starters, revisions: list.revisions, diagnostics };
   });
 }
 

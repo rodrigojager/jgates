@@ -183,18 +183,126 @@ function nestMissing(doc: Document.Parsed, edit: YamlEdit): YamlEdit {
 
 type Splice ={ start: number; end: number; insert: string };
 
+const isPlainObject = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
+
+function valueAt(root: unknown, segments: readonly PathSegment[]): { found: boolean; value: unknown } {
+  let node = root;
+  for (const seg of segments) {
+    if (Array.isArray(node) && typeof seg === "number" && seg < node.length) node = node[seg];
+    else if (isPlainObject(node) && typeof seg === "string" && Object.prototype.hasOwnProperty.call(node, seg)) node = node[seg];
+    else return { found: false, value: undefined };
+  }
+  return { found: true, value: node };
+}
+
+/**
+ * One edit as the smallest edits with the same outcome: a set of the value already there is dropped, a set of a map
+ * onto a map becomes a set per changed key and a delete per key it no longer has, a set of a list onto a list of the
+ * same length becomes a set per changed item. What does not change keeps its comments, quoting and layout.
+ */
+function narrow(root: unknown, edit: YamlEdit): YamlEdit[] {
+  if (edit.op !== "set") return [edit];
+  const at = valueAt(root, edit.path);
+  if (!at.found) return [edit];
+  if (canonical(at.value) === canonical(edit.value)) return [];
+  if (isPlainObject(at.value) && isPlainObject(edit.value) && Object.keys(edit.value).length > 0) {
+    const out: YamlEdit[] = [];
+    for (const [k, v] of Object.entries(edit.value)) out.push(...narrow(root, { op: "set", path: [...edit.path, k], value: v }));
+    for (const k of Object.keys(at.value)) if (!(k in edit.value)) out.push({ op: "delete", path: [...edit.path, k] });
+    return out;
+  }
+  if (Array.isArray(at.value) && Array.isArray(edit.value) && at.value.length === edit.value.length && at.value.length > 0) {
+    return edit.value.flatMap((v, i) => narrow(root, { op: "set", path: [...edit.path, i], value: v }));
+  }
+  return [edit];
+}
+
+function narrowAll(root: unknown, edits: readonly YamlEdit[]): YamlEdit[] {
+  const out: YamlEdit[] = [];
+  let current = root;
+  for (const edit of edits) {
+    out.push(...narrow(current, edit));
+    current = applyToValue(current, [edit]);
+  }
+  return out;
+}
+
+const FLOW_INDICATORS = /[,[\]{}]/;
+
+/**
+ * A scalar as one line of YAML, in the quoting style of the value it replaces when that was a quoted string; inside a
+ * flow collection a plain text with a flow indicator is double-quoted. Undefined when it needs more than one line.
+ */
+function scalarText(value: unknown, old: unknown, flow: boolean): string | undefined {
+  if (typeof value === "string" && isScalar(old)) {
+    if (old.type === "QUOTE_DOUBLE") return JSON.stringify(value);
+    if (old.type === "QUOTE_SINGLE" && !/[\n\r]/.test(value)) return `'${value.replace(/'/g, "''")}'`;
+  }
+  const rendered = valueLines(value);
+  if (rendered.length !== 1) return undefined;
+  const line = rendered[0] as string;
+  return flow && typeof value === "string" && FLOW_INDICATORS.test(line) ? JSON.stringify(value) : line;
+}
+
+/** A list of scalars as a one-line flow sequence, with the spacing and item quoting of the one it replaces. */
+function flowSeqText(text: string, old: { range: [number, number, number]; items: unknown[] }, value: unknown[]): string | undefined {
+  if (!value.every(isScalarValue)) return undefined;
+  const spaced = text[old.range[0] + 1] === " ";
+  const model = old.items[0];
+  const items: string[] = [];
+  for (const v of value) {
+    const item = scalarText(v, model, true);
+    if (item === undefined) return undefined;
+    items.push(item);
+  }
+  if (items.length === 0) return "[]";
+  return spaced ? `[ ${items.join(", ")} ]` : `[${items.join(", ")}]`;
+}
+
+/** An item of a list replaced by a scalar (a block or flow list), or undefined when the text path does not apply. */
+function itemSplice(doc: Document.Parsed, edit: YamlEdit): Splice | undefined {
+  if (edit.op !== "set" || !isScalarValue(edit.value)) return undefined;
+  let node: unknown = doc.contents;
+  for (const seg of edit.path.slice(0, -1)) {
+    if (isSeq(node) && typeof seg === "number") node = node.items[seg];
+    else if (isMap(node) && typeof seg === "string") node = node.get(seg, true);
+    else return undefined;
+  }
+  const index = edit.path[edit.path.length - 1] as number;
+  if (!isSeq(node) || index >= node.items.length) return undefined;
+  const item = node.items[index];
+  if (!isScalar(item) || !item.range || item.type === "BLOCK_FOLDED" || item.type === "BLOCK_LITERAL") return undefined;
+  const insert = scalarText(edit.value, item, node.flow === true);
+  return insert === undefined ? undefined : { start: item.range[0], end: item.range[1], insert };
+}
+
 /** One edit as a splice of the source text, or undefined when the text path does not apply. */
 function spliceFor(text: string, doc: Document.Parsed, original: YamlEdit, eol: string): Splice | undefined {
+  if (typeof original.path[original.path.length - 1] === "number") return itemSplice(doc, original);
   if (typeof original.path[original.path.length - 1] !== "string") return undefined;
   const edit = original.op === "set" ? nestMissing(doc, original) : original;
   const parentPath = edit.path.slice(0, -1);
   const key = edit.path[edit.path.length - 1] as string;
   const parent = parentPath.length === 0 ? (isMap(doc.contents) ? doc.contents : undefined) : mapAt(doc, parentPath);
   if (!parent) return undefined;
+  const pair = findPair(parent, key);
+
+  // A value replaced in place needs no indentation: a scalar (also inside a flow map) or a one-line flow list.
+  if (edit.op === "set" && pair) {
+    const old = pair.value as { range?: [number, number, number] } | null;
+    if (old?.range && isScalar(pair.value) && isScalarValue(edit.value) && pair.value.type !== "BLOCK_FOLDED" && pair.value.type !== "BLOCK_LITERAL") {
+      const insert = scalarText(edit.value, pair.value, parent.flow === true);
+      return insert === undefined ? undefined : { start: old.range[0], end: old.range[1], insert };
+    }
+    if (old?.range && isSeq(pair.value) && pair.value.flow && Array.isArray(edit.value) && !text.slice(old.range[0], old.range[1]).includes("\n")) {
+      const insert = flowSeqText(text, { range: old.range, items: pair.value.items }, edit.value);
+      if (insert !== undefined) return { start: old.range[0], end: old.range[1], insert };
+    }
+  }
+
   const indent = blockIndent(text, parent);
   if (indent === undefined) return undefined;
   const pad = " ".repeat(indent);
-  const pair = findPair(parent, key);
 
   if (edit.op === "delete") {
     if (!pair) return { start: 0, end: 0, insert: "" };
@@ -235,6 +343,16 @@ function spliceFor(text: string, doc: Document.Parsed, original: YamlEdit, eol: 
     const lines = valueLines(value).map((l, i) => (i === 0 ? l : vpad + l));
     return { start: old.range[0], end: old.range[1], insert: `${lines.join(eol)}${eol}` };
   }
+  // A block list replaced by another list: the new items at the column of the old dashes.
+  if (isSeq(pair.value) && !pair.value.flow && Array.isArray(value) && value.length > 0 && pair.value.items.length > 0) {
+    const first = old.range[0];
+    const lineStart = lineStartOf(text, first);
+    if (!/^[ ]*$/.test(text.slice(lineStart, first)) || text[first] !== "-") return undefined;
+    const vpad = " ".repeat(first - lineStart);
+    const lines = valueLines(value).map((l, i) => (i === 0 ? l : vpad + l));
+    const end = endOfLine(text, old.range[1]);
+    return { start: first, end, insert: `${lines.join(eol)}${eol}` };
+  }
   return undefined;
 }
 
@@ -260,10 +378,11 @@ export function patchYamlText(input: string, edits: readonly YamlEdit[], options
   // `options.expected` lets a caller that knows better (a value shared by aliases changes every consumer) supply it.
   const expected = canonical("expected" in options ? options.expected : applyToValue(before.value, edits));
 
-  // Text path: one splice at a time, re-parsing between edits so ranges stay valid.
+  // Text path: one splice at a time, re-parsing between edits so ranges stay valid. A value set over another is narrowed
+  // to the keys and items that really change, so what the caller sent back unchanged keeps its bytes.
   let current = text;
   let viaText = true;
-  for (const edit of edits) {
+  for (const edit of narrowAll(before.value, edits)) {
     const { doc } = parseStrict(current);
     const splice = spliceFor(current, doc, edit, eol);
     if (!splice) {

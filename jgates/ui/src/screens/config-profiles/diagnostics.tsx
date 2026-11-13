@@ -20,14 +20,17 @@ export function diagnosticsOf(error: unknown): ConfigDiagnostic[] | null {
   return Array.isArray(list) && list.length > 0 ? (list as ConfigDiagnostic[]) : null;
 }
 
-/** An invalid key in a configuration file: where it is, what is wrong and the way to the YAML editor. The screen stays. */
-export function ConfigDiagnostics({ diagnostics, onRetry }: { diagnostics: ConfigDiagnostic[]; onRetry: () => void }) {
+/**
+ * An invalid key in a configuration file: where it is, what is wrong and the way to the YAML editor (each problem links
+ * to its key and line). The screen stays. `readable`: the screen around it still shows what the files hold.
+ */
+export function ConfigDiagnostics({ diagnostics, onRetry, readable = false }: { diagnostics: ConfigDiagnostic[]; onRetry: () => void; readable?: boolean }) {
   return (
     <div className="notice warn" role="alert" data-testid="config-diagnostics">
       <Icon name="alert" />
       <div className="grow stack" style={{ gap: 8 }}>
         <strong>{t("cfgp_diag_title", { count: diagnostics.length })}</strong>
-        <p className="small">{t("cfgp_diag_text")}</p>
+        <p className="small">{readable ? t("cfgp_diag_text_readable") : t("cfgp_diag_text")}</p>
         <ul>
           {diagnostics.map((d, i) => (
             <li key={`${d.file}:${d.path ?? ""}:${d.code}:${i}`} data-diagnostic={d.code}>
@@ -38,7 +41,10 @@ export function ConfigDiagnostics({ diagnostics, onRetry }: { diagnostics: Confi
                   {t("cfgp_diag_key")} <code data-testid="diag-key">{d.path}</code>
                 </>
               ) : null}
-              {d.line ? <span className="small muted"> {t("cfgp_diag_line", { line: d.line })}</span> : null}
+              {d.line ? <span className="small muted"> {t("cfgp_diag_line", { line: d.line })}</span> : null}{" "}
+              <a href={yamlHref(d.file, d.path ?? "")} className="small" data-testid="diag-line-link">
+                {d.line ? t("cfgp_diag_open_line", { line: d.line }) : t("cfgp_diag_open_yaml")}
+              </a>
               <div className="small">
                 {d.message}
                 {d.suggestion ? <span className="muted"> {t("cfgp_diag_suggestion", { name: d.suggestion })}</span> : null}

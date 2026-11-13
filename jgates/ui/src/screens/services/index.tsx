@@ -53,10 +53,12 @@ interface View {
   revision: string | null;
   found: string[];
   selected: string[];
-  config: { target: { service: string; port: number; path: string; health: string | null } | null; build: "allow" | "forbid"; writableBinds: string[]; allowHostEffects: string[]; timeoutSeconds: number } | null;
+  config: { target: { service: string; port: number; path: string; health: string | null } | null; build: "allow" | "forbid"; writableBinds: string[]; allowHostEffects: string[]; timeoutSeconds: number; profiles?: string[] | null } | null;
   roles: Record<string, Role>;
   discovery: Discovery;
   acknowledged: boolean;
+  /** The current target of each zap and schemathesis instance (null: none). */
+  instanceTargets?: Array<{ tool: string; target: string | null }>;
 }
 
 interface Preview {
@@ -130,6 +132,8 @@ export default function ServicesScreen() {
   const [writable, setWritable] = useState<string[]>([]);
   const [allow, setAllow] = useState<string[]>([]);
   const [timeout, setTimeoutSeconds] = useState(120);
+  // services.profiles: the compose profiles a run starts (kept in the order of the file).
+  const [composeProfiles, setComposeProfiles] = useState<string[]>([]);
   const [setTargets, setSetTargets] = useState(true);
   const [extra, setExtra] = useState("");
   const [extraFiles, setExtraFiles] = useState<string[]>([]);
@@ -157,6 +161,9 @@ export default function ServicesScreen() {
     setWritable(data.config?.writableBinds ?? []);
     setAllow(data.config?.allowHostEffects ?? []);
     setTimeoutSeconds(data.config?.timeoutSeconds ?? 120);
+    setComposeProfiles(data.config?.profiles ?? []);
+    // "Usar como alvo" starts checked unless it would replace a target written by hand (a URL of an instance).
+    setSetTargets((data.instanceTargets ?? []).every((i) => i.target === null || i.target.startsWith("service:")));
     setExtraFiles([]);
     setPreview(null);
     setTest(null);
@@ -168,6 +175,9 @@ export default function ServicesScreen() {
   const appService = services.find((s) => s.name === application) ?? null;
   const started = useMemo(() => startedOf(services, roles), [services, roles]);
   const files = useMemo(() => [...new Set([...(data?.found ?? []), ...compose, ...extraFiles])], [data, compose, extraFiles]);
+  // The profiles the compose files declare, then those written in jgates.yml that no file declares (kept, and said so).
+  const discoveredProfiles = useMemo(() => [...new Set(services.flatMap((s) => s.profiles))].sort(), [services]);
+  const profileChoices = useMemo(() => [...discoveredProfiles, ...composeProfiles.filter((p) => !discoveredProfiles.includes(p))], [discoveredProfiles, composeProfiles]);
   const timeoutChoices = useMemo(() => (TIMEOUTS.includes(timeout) ? TIMEOUTS : [...TIMEOUTS, timeout].sort((a, b) => a - b)), [timeout]);
   const effectKinds = useMemo(() => [...new Set(services.filter((s) => started.has(s.name)).flatMap((s) => s.hostEffects).filter((e) => !(e.kind === "bind-mount" && e.insideProject)).map((e) => e.kind))], [services, started]);
 
@@ -183,6 +193,7 @@ export default function ServicesScreen() {
     allowHostEffects: allow.filter((k) => effectKinds.includes(k)),
     timeoutSeconds: timeout,
     setTargets,
+    profiles: composeProfiles,
   });
   const run = async (kind: NonNullable<typeof busy>, work: () => Promise<void>) => {
     setBusy(kind);
@@ -481,6 +492,27 @@ export default function ServicesScreen() {
             <input type="checkbox" data-testid="svc-build" checked={build} disabled={readOnly} onChange={(e) => setBuild(e.target.checked)} />
             <span className="small">{t("svc_build")}</span>
           </label>
+          {profileChoices.length > 0 ? (
+            <fieldset className="stack tight" data-testid="svc-profiles">
+              <legend className="small">{t("svc_profiles_title")}</legend>
+              <p className="small muted">{t("svc_profiles_help")}</p>
+              {profileChoices.map((p) => (
+                <label key={p} className="row">
+                  <input
+                    type="checkbox"
+                    value={p}
+                    checked={composeProfiles.includes(p)}
+                    disabled={readOnly}
+                    onChange={(e) => setComposeProfiles((old) => (e.target.checked ? [...old, p] : old.filter((x) => x !== p)))}
+                  />
+                  <span className="small">
+                    <code>{p}</code>
+                    {discoveredProfiles.includes(p) ? null : <span className="muted"> {t("svc_profiles_not_found")}</span>}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          ) : null}
           {effectKinds.length > 0 ? (
             <fieldset className="stack tight">
               <legend className="small">{t("svc_allow_title")}</legend>

@@ -1,0 +1,34 @@
+# Tool instances written by hand.
+schemaVersion: 1
+tools:
+  # DAST against the local API; the token comes from the environment.
+  dast:
+    adapter: zap
+    target: http://localhost:8000   # the api service of compose.yaml
+    mode: passive
+    auth:                           # not in the ZAP form
+      header: Authorization
+      valueEnv: DAST_TOKEN
+    blockingRisk: high
+    timeoutSeconds: 600
+
+  # Workflow audit with the pedantic persona (an adapter without a hand-written form).
+  workflows:
+    adapter: zizmor
+    persona: pedantic
+    required: false
+
+  # Our own check: a command with its arguments.
+  my-lint:
+    adapter: generic-command
+    command: python
+    args:
+      - -m
+      - compileall
+      - "-q"          # quiet
+      - app
+    capabilities: [x-custom:compile]
+    timeoutSeconds: 120
+    config:
+      effects: { readsCode: true, writesOutputs: false, mayChangeCode: false, executesProjectCode: true, usesNetwork: false }
+      evidence: { kind: exit-code }

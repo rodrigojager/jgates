@@ -91,5 +91,7 @@
   "cfa_ed_to_review": "Review",
   "cfa_ed_save": "Save changes",
   "cfa_ed_create": "Create file",
-  "cfa_ed_saved": "{file} saved."
+  "cfa_ed_saved": "{file} saved.",
+  "cfa_keys_title": "Every key of the rules and layers",
+  "cfa_keys_lead": "Every key of {file}, including those written by hand, with its control and saved one at a time."
 }

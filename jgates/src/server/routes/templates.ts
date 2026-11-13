@@ -253,7 +253,10 @@ function detail(server: ServerContext, id: string): Rec {
   const loaded = loadSource(server, row.source);
   const yamlText = loaded ? (row.source.startsWith("builtin:") ? stringify(loaded.value, { lineWidth: 0 }) : fs.readFileSync(path.join(server.projectDir, row.source), "utf8")) : "";
   const model = row.origin === "project" && loaded ? editableModel(loaded.value, id) : null;
-  return { schemaVersion: 1, status: "OK", template: row, chain, errors, model, yaml: { text: yamlText, file: loaded?.file ?? row.source, readOnly: row.origin === "builtin" } };
+  // Where the template is listed in jgates.yml (templates[<entry>]): its activation, match and priority are edited there.
+  const rootValue = parseYamlText(readRevision(path.join(server.projectDir, ROOT_FILE)).text, ROOT_FILE).value;
+  const listed = isRec(rootValue) && Array.isArray(rootValue.templates) ? (rootValue.templates as unknown[]).findIndex((e) => isRec(e) && e.id === id) : -1;
+  return { schemaVersion: 1, status: "OK", template: row, chain, errors, model, entry: listed >= 0 ? listed : null, yaml: { text: yamlText, file: loaded?.file ?? row.source, readOnly: row.origin === "builtin" } };
 }
 
 /** The key of the generic-command check a project template file declares (the model of "Criar template"), or null. */

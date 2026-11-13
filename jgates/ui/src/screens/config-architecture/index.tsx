@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { yamlHref } from "../../forms/derived/api";
+import { DerivedForm } from "../../forms/derived/DerivedForm";
 import { api } from "../../api";
 import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
@@ -239,6 +240,16 @@ export default function ConfigArchitectureScreen() {
           ))}
         </ul>
       </section>
+
+      {/* Every key of the file (labels, severities, messages, fan limits...), including those written by hand, each with
+          its control and written one at a time; the guided editor above draws the layers and the dependency rules. */}
+      {v.exists && v.problems.length === 0 ? (
+        <section className="card pad stack" aria-labelledby="cfa-keys-title" data-testid="arch-keys">
+          <h2 id="cfa-keys-title">{t("cfa_keys_title")}</h2>
+          <p className="small muted">{t("cfa_keys_lead", { file: v.file })}</p>
+          <DerivedForm key={v.revision ?? "none"} source={{ file: v.file }} include={(f) => f.path[0] !== "schemaVersion"} readOnly={governedReason !== null} onWrite={() => setRevision((n) => n + 1)} />
+        </section>
+      ) : null}
 
       <section className="card pad stack" aria-labelledby="cfa-unres-title" data-testid="arch-evidence">
         <h2 id="cfa-unres-title">{t("cfa_unresolved_title")}</h2>

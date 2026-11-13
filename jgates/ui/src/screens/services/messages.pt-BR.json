@@ -87,5 +87,8 @@
   "svc_step_roles": "Papéis",
   "svc_step_target": "Alvo",
   "svc_step_review": "Revisão",
-  "svc_next": "Avançar"
+  "svc_next": "Avançar",
+  "svc_profiles_title": "Perfis do compose",
+  "svc_profiles_help": "Os serviços de um perfil do compose só sobem quando ele está marcado aqui (services.profiles).",
+  "svc_profiles_not_found": "(nenhum arquivo de compose declara este perfil)"
 }

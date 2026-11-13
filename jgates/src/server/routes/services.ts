@@ -33,6 +33,8 @@ interface SectionInput {
   allowHostEffects: string[];
   timeoutSeconds: number;
   setTargets: boolean;
+  /** The compose profiles to start (services.profiles); null: the screen leaves them as they are. */
+  profiles: string[] | null;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -139,19 +141,23 @@ function sectionOf(input: SectionInput, discovery: ComposeDiscovery, application
   const allow = HOST_EFFECT_KINDS.filter((k) => input.allowHostEffects.includes(k));
   if (allow.length > 0) section.allowHostEffects = allow;
   if (input.timeoutSeconds !== DEFAULT_SERVICES_TIMEOUT_SECONDS) section.timeoutSeconds = input.timeoutSeconds;
+  if (input.profiles && input.profiles.length > 0) section.profiles = input.profiles;
   return section;
 }
 
 /** The keys of `services:` this screen owns; every other key (profiles, hand-written ones) and its comments are never touched. */
 const OWNED_KEYS = ["compose", "start", "target", "build", "writableBinds", "allowHostEffects", "timeoutSeconds"];
 
-/** Key-by-key edits that turn the current `services:` value into the section, leaving the keys the screen does not own. */
-function servicesEdits(current: unknown, section: Record<string, unknown>): YamlEdit[] {
+/**
+ * Key-by-key edits that turn the current `services:` value into the section, leaving the keys the screen does not own
+ * (`profiles` is owned only when the request carries it).
+ */
+function servicesEdits(current: unknown, section: Record<string, unknown>, owned: readonly string[] = OWNED_KEYS): YamlEdit[] {
   if (!isRecord(current)) return Object.keys(section).length > 0 ? [{ op: "set", path: ["services"], value: section }] : [];
   const edits: YamlEdit[] = [];
   for (const [key, value] of Object.entries(section)) if (JSON.stringify(current[key]) !== JSON.stringify(value)) edits.push({ op: "set", path: ["services", key], value });
-  for (const key of OWNED_KEYS) if (key in current && !(key in section)) edits.push({ op: "delete", path: ["services", key] });
-  const remaining = new Set([...Object.keys(current).filter((k) => !OWNED_KEYS.includes(k)), ...Object.keys(section)]);
+  for (const key of owned) if (key in current && !(key in section)) edits.push({ op: "delete", path: ["services", key] });
+  const remaining = new Set([...Object.keys(current).filter((k) => !owned.includes(k)), ...Object.keys(section)]);
   // Nothing left in the block: the block goes too, instead of `services: {}`.
   return remaining.size === 0 ? [{ op: "delete", path: ["services"] }] : edits;
 }
@@ -159,6 +165,18 @@ function servicesEdits(current: unknown, section: Record<string, unknown>): Yaml
 /** The workspace-relative tools file (where the instances of zap and schemathesis live). */
 function toolsFileOf(server: ServerContext): string {
   return resolveToolBindings(server.projectDir, { skipInventory: true }).configFile ?? ".jgates/tools.yml";
+}
+
+/** The current target of every zap and schemathesis instance of the tools file (null when it has none). */
+function instanceTargets(server: ServerContext): Array<{ tool: string; target: string | null }> {
+  const file = toolsFileOf(server);
+  const rev = readRevision(path.join(server.projectDir, file));
+  if (!rev.exists) return [];
+  const parsed = parseYamlText(rev.text.charCodeAt(0) === 0xfeff ? rev.text.slice(1) : rev.text, file).value;
+  const tools = isRecord(parsed) && isRecord(parsed.tools) ? parsed.tools : {};
+  return Object.entries(tools)
+    .filter(([, body]) => isRecord(body) && (TARGET_TOOLS as readonly string[]).includes(String(body.adapter)))
+    .map(([tool, body]) => ({ tool, target: typeof (body as Record<string, unknown>).target === "string" ? ((body as Record<string, unknown>).target as string) : null }));
 }
 
 function targetText(application: string, target: { port: number; path?: string }): string {
@@ -188,7 +206,7 @@ function buildPreview(server: ServerContext, input: SectionInput): Preview {
   const { application } = checkInput(discovery, input);
   const section = sectionOf(input, discovery, application);
   const parsedRoot = parseYamlText(root.text.charCodeAt(0) === 0xfeff ? root.text.slice(1) : root.text, ROOT_FILE).value;
-  const edits = servicesEdits(isRecord(parsedRoot) ? parsedRoot.services : undefined, section);
+  const edits = servicesEdits(isRecord(parsedRoot) ? parsedRoot.services : undefined, section, input.profiles === null ? OWNED_KEYS : [...OWNED_KEYS, "profiles"]);
   // "usar como alvo": the existing instances of zap and schemathesis (tools.yml, under the ids the user gave them) get the target.
   const targets: Preview["targets"] = [];
   const toolsEdits: YamlEdit[] = [];
@@ -266,6 +284,7 @@ const inputSchema = {
     allowHostEffects: { type: "array", maxItems: 16, items: { type: "string", enum: [...HOST_EFFECT_KINDS] } },
     timeoutSeconds: { type: "integer", minimum: 5, maximum: 3600 },
     setTargets: { type: "boolean" },
+    profiles: { type: "array", maxItems: 64, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 128 } },
   },
   required: ["compose", "roles"],
   additionalProperties: false,
@@ -282,6 +301,7 @@ function inputOf(body: unknown): SectionInput {
     allowHostEffects: b.allowHostEffects ?? [],
     timeoutSeconds: b.timeoutSeconds ?? DEFAULT_SERVICES_TIMEOUT_SECONDS,
     setTargets: b.setTargets === true,
+    profiles: Array.isArray(b.profiles) ? b.profiles : null,
   };
 }
 
@@ -331,6 +351,9 @@ export const routes: RouteDefinition[] = [
           discovery: describe(discovery),
           acknowledged: effects.length === 0 || acknowledged(server) === effectsHash(selected, effects),
           tools: TARGET_TOOLS,
+          // The targets the instances of those tools have now: "usar como alvo" starts unchecked when it would replace
+          // one written by hand (a URL), so saving the other settings never rewrites it unasked.
+          instanceTargets: instanceTargets(server),
         },
       };
     },

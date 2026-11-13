@@ -12,7 +12,7 @@ import { unifiedDiff } from "../../core/documents/diff.js";
 import { defaultReadDir, walkProject } from "../../core/discovery/walk.js";
 import { writeBytesAtomic } from "../../core/documents/atomic.js";
 import { cachedProject } from "../../core/cache/project.js";
-import { resolveConfig } from "../../core/config/resolve/index.js";
+import { onlyFileProblems, resolveReadable } from "../../core/config/resolve/index.js";
 import { resolveSelection } from "../../core/selection/index.js";
 import { HttpError } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
@@ -105,8 +105,8 @@ function describe(server: ServerContext): Rec {
   if (!read.declaration) return { ...base, valid: read.problems.length === 0, problems: read.problems, layers: [], rules: [], tools: [], evidence: lastRunEvidence(server) };
 
   // The tools that can verify a rule: the active instances with the architecture capability.
-  const resolved = resolveConfig(server.projectDir);
-  const selection = resolved.ok ? resolveSelection(resolved) : null;
+  const resolved = resolveReadable(server.projectDir);
+  const selection = resolved.ok || onlyFileProblems(resolved) ? resolveSelection(resolved) : null;
   const capability = selection?.items.find((i) => i.selector === "capability:architecture");
   const tools = (selection?.universe.tools ?? [])
     .filter((t) => t.capabilities.includes("architecture") && t.parent === null)

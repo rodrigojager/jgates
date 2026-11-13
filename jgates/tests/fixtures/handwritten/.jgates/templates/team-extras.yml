@@ -1,0 +1,24 @@
+# Team extras: settings the team adds to every Python project, written by hand.
+schemaVersion: 1
+id: team-extras
+label: Extras do time
+description: Longer timeouts and the format check for our Python services.
+priority: 50
+match:
+  languages: [python]
+config:
+  execution:
+    timeoutSeconds: 600     # our test suite is slow
+  tools:
+    # The format check, as the team runs it.
+    team-extras-check:
+      adapter: generic-command
+      command: python
+      args: ["-m", "black", "--check", "app"]
+      capabilities: [format-check]
+      config:
+        effects: { readsCode: true, writesOutputs: false, mayChangeCode: false, executesProjectCode: true, usesNetwork: false }
+        evidence: { kind: exit-code }
+  checks:
+    capability:format-check:
+      enabled: true

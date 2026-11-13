@@ -153,5 +153,9 @@
   "cfgp_selectors_architecture": "Architecture rules",
   "cfgp_selectors_component": "Components",
   "cfgp_policy_moved": "The blocking criteria (severity, minimum coverage, required evidence) live in the file .jgates/policy.yml.",
-  "cfgp_policy_moved_link": "Open Policy"
+  "cfgp_policy_moved_link": "Open Policy",
+  "cfgp_diag_text_readable": "This screen shows what the files hold; a validation refuses the configuration until this is fixed.",
+  "cfgp_diag_open_line": "Open at line {line}",
+  "cfgp_defaults_title": "Project defaults",
+  "cfgp_defaults_lead": "What a validation uses when it asks for nothing else (scope, paths, gates) and the configuration files jgates.yml extends."
 }

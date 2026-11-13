@@ -16,7 +16,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { discoverFor, resolveConfig, type ResolveOptions, type ResolveResult } from "../config/resolve/index.js";
+import { discoverFor, onlyFileProblems, resolveConfig, type ResolveOptions, type ResolveResult } from "../config/resolve/index.js";
 import type { Inventory } from "../discovery/types.js";
 import { getLocale } from "../../i18n/index.js";
 
@@ -219,4 +219,30 @@ export function projectResolve(projectDir: string, options: ProjectResolveOption
       inventory: projectInventory(projectDir, options.configDir),
     }),
   );
+}
+
+export { onlyFileProblems };
+
+/**
+ * The resolved configuration a screen shows (ADR-0009: the screens show what the files hold): the strict one or, when
+ * the only problem is a file the schema refuses (a key it does not know, a value out of its set), the lenient one. That
+ * one keeps `ok: false` and CONFIG_INVALID, and its `diagnostics` say file, key and line; a run still refuses it.
+ */
+export function projectResolveReadable(projectDir: string, options: ProjectResolveOptions = {}): ResolveResult {
+  const strict = projectResolve(projectDir, options);
+  if (!onlyFileProblems(strict)) return strict;
+  const key = `resolve-lenient:${JSON.stringify([options.profile ?? null, options.configDir ?? null, options.templates ?? [], getLocale()])}`;
+  return cachedProject(key, rootsOf(projectDir, options.configDir), () =>
+    resolveConfig(projectDir, {
+      ...options,
+      lenient: true,
+      inventory: projectInventory(projectDir, options.configDir),
+    }),
+  );
+}
+
+/** The problems of the files (file, key, line) a view built from a lenient resolution carries; empty when valid. */
+export function fileDiagnostics(result: ResolveResult): Array<{ code: string; file: string; path: string; message: string; suggestion?: string; line?: number; column?: number }> {
+  if (result.ok) return [];
+  return result.diagnostics.map((d) => ({ code: d.code, file: d.file, path: d.path, message: d.message, ...(d.suggestion ? { suggestion: d.suggestion } : {}), ...(d.line ? { line: d.line } : {}), ...(d.column ? { column: d.column } : {}) }));
 }

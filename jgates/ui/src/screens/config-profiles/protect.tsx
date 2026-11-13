@@ -24,6 +24,8 @@ interface ItemBase {
   decision: (OriginRef & { value: unknown }) | null;
   locked: Lock[];
   saveTo: SaveTarget | null;
+  /** "available" written for this selector (on only where a tool for it exists); null otherwise. */
+  when?: string | null;
 }
 
 interface RuleView extends ItemBase {
@@ -159,7 +161,28 @@ function CheckRow({ label, secondary, description, item, profile, editable, busy
             {description ? <p className="small muted">{description}</p> : null}
           </div>
         )}
-        <Switch checked={item.enabled} label={label} disabled={Boolean(lock) || !editable || busy} onChange={(next) => onToggle([{ selector: item.selector, enabled: next }])} />
+        {level === "tool" && item.when === "available" ? (
+          // A "when available" written for this check (by hand, or by a template): the three states, as for a capability.
+          <select
+            className="input cap-mode"
+            aria-label={label}
+            value={!item.enabled ? "off" : "available"}
+            disabled={Boolean(lock) || !editable || busy}
+            onChange={(e) => {
+              const next = e.target.value as Mode;
+              onToggle([next === "off" ? { selector: item.selector, enabled: false } : { selector: item.selector, enabled: true, when: next === "available" ? "available" : null }]);
+            }}
+            data-testid="check-mode"
+          >
+            {MODES.map((m) => (
+              <option key={m} value={m}>
+                {t(`cfgp_mode_${m}`)}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <Switch checked={item.enabled} label={label} disabled={Boolean(lock) || !editable || busy} onChange={(next) => onToggle([{ selector: item.selector, enabled: next }])} />
+        )}
       </div>
       <OriginLine origin={item.decision} saveTo={editable ? item.saveTo : null} fallback={t(`cfgp_reason_${item.reason}`)} />
       <OriginButton selector={item.selector} profile={profile} label={label} />

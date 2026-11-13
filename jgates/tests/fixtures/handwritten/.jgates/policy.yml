@@ -1,0 +1,16 @@
+# The local policy of the project, written by hand.
+schemaVersion: 1
+rules:
+  security.block-from:
+    severity: error        # high findings block
+  coverage.minimum:
+    threshold: 70
+  missing-check.block:
+    enabled: true
+exceptions:
+  # Legacy module, until the rewrite.
+  - id: legacy-size
+    rule: file-size
+    paths: ["app/legacy/**"]
+    reason: Rewrite planned for Q1.
+    expires: "2027-03-31"

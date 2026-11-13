@@ -1,0 +1,19 @@
+# Components declared by hand.
+schemaVersion: 1
+discovery:
+  enabled: true
+  mode: auto
+components:
+  # The API service.
+  - id: app
+    path: app
+    language: python
+    kind: service
+    include: ["**/*.py"]
+    exclude:
+      - "**/migrations/**"
+    dependencies:
+      manager: pip
+      groups: [dev]
+exclude:
+  - build/**     # generated

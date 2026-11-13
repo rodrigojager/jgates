@@ -10,7 +10,7 @@ import { buildPlan, type Plan, type PlanItem } from "../../core/plan/index.js";
 import { findNativeMinimum } from "../../adapters/pytest/coverage.js";
 import { projectMascots } from "../../core/mascots/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
-import { cachedProject, invalidateProjectCache, projectInventory, projectResolve } from "../../core/cache/project.js";
+import { cachedProject, invalidateProjectCache, fileDiagnostics, onlyFileProblems, projectInventory, projectResolveReadable } from "../../core/cache/project.js";
 import { createCoreCatalog, subcheckLabel } from "../../core/catalog/index.js";
 import { encodePointer, type ResolvedField, type ResolveResult } from "../../core/config/resolve/index.js";
 import { withEngineFacts } from "../../core/engine/facts.js";
@@ -46,18 +46,24 @@ interface Resolved {
   selection: SelectionResult;
 }
 
+/**
+ * The configuration of profile `ref` as the files hold it. A file the schema refuses (a key written by hand that does
+ * not exist) does not take the screen away: the view is built from what the files hold and carries the diagnostics
+ * (file, key, line). Any other problem (a profile that does not exist, a cycle) is refused.
+ */
 function resolveProfile(server: ServerContext, ref: string): Resolved {
-  const result = projectResolve(server.projectDir, { profile: ref });
-  if (!result.ok) {
+  const result = projectResolveReadable(server.projectDir, { profile: ref });
+  if (!result.ok && !onlyFileProblems(result)) {
     const first = result.errors[0];
     throw new HttpError(422, first?.code ?? "CONFIG_INVALID", first?.message ?? t("cfgp_resolve_failed", { first: "" }), first?.fix ?? null, { errors: result.errors, diagnostics: result.diagnostics });
   }
   // Computed from the cached configuration inside the cached computation, so it depends on everything that one read.
   const selection = cachedProject(`selection:${ref}|${getLocale()}`, [server.projectDir], () =>
-    resolveSelection(projectResolve(server.projectDir, { profile: ref }), { inventory: projectInventory(server.projectDir) }),
+    resolveSelection(projectResolveReadable(server.projectDir, { profile: ref }), { inventory: projectInventory(server.projectDir) }),
   );
   return { ref, result, selection };
 }
+
 
 function projectProfileIds(server: ServerContext): { ids: string[]; def: string; file: string } {
   return cachedProject("profile-ids", [server.projectDir], () => {
@@ -189,6 +195,8 @@ function buildView(server: ServerContext, ref: string) {
               decision: pair?.decision ?? null,
               locked: pair?.locked ?? [],
               saveTo: saveFor(`tool:${tool.id}`),
+              // "available" written for the tool itself (on only where it can run): the row offers the three states.
+              when: pair?.when ?? null,
               alsoCapabilities: tool.capabilities.filter((c) => c !== capability.id),
               rules,
             };
@@ -274,6 +282,8 @@ function buildView(server: ServerContext, ref: string) {
     policy,
     selectionErrors: selection.errors.map((e) => ({ code: e.code, selector: e.selector, message: e.message, fix: e.fix ?? null })),
     warnings: result.warnings,
+    // A file the schema refuses: the view shows what the files hold, and these say where the problem is.
+    diagnostics: fileDiagnostics(result),
   };
 }
 

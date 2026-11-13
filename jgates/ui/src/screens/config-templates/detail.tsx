@@ -1,5 +1,6 @@
 import { api } from "../../api";
 import { yamlHref } from "../../forms/derived/api";
+import { DerivedForm } from "../../forms/derived/DerivedForm";
 import { Dialog, ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { showValue } from "../../components/origin";
 import { t, tOr } from "../../i18n";
@@ -18,6 +19,8 @@ interface Detail {
   template: TemplateRow;
   chain: ChainNode[];
   errors: string[];
+  /** Index of the template in the templates list of jgates.yml (null: not listed there). */
+  entry?: number | null;
   yaml: { text: string; file: string; readOnly: boolean };
 }
 
@@ -73,6 +76,26 @@ export function TemplateDetail({ id, onClose }: { id: string; onClose: () => voi
             </div>
           ) : null}
 
+          {/* Every key of the entry in jgates.yml and of a project template's own file, each with its control and written
+              one at a time (the stepper edits the command; what was written by hand is edited here). */}
+          {typeof d.entry === "number" ? (
+            <details className="card flat stack" data-testid="template-entry">
+              <summary>
+                <h3>{t("cft_d_entry")}</h3>
+              </summary>
+              <p className="small muted">{t("cft_d_entry_lead")}</p>
+              <DerivedForm source={{ file: "jgates.yml" }} under={["templates", d.entry]} headingLevel={4} onWrite={() => detail.reload()} />
+            </details>
+          ) : null}
+          {!d.yaml.readOnly ? (
+            <details className="card flat stack" data-testid="template-keys">
+              <summary>
+                <h3>{t("cft_d_keys")}</h3>
+              </summary>
+              <p className="small muted">{t("cft_d_keys_lead", { file: d.yaml.file })}</p>
+              <DerivedForm source={{ file: d.yaml.file }} headingLevel={4} onWrite={() => detail.reload()} />
+            </details>
+          ) : null}
           <section className="stack" aria-labelledby="cft-chain-title">
             <h3 id="cft-chain-title">{t("cft_d_chain")}</h3>
             <p className="small muted">{t("cft_d_chain_lead")}</p>

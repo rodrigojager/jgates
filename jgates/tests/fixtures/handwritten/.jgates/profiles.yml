@@ -1,0 +1,27 @@
+# Team profiles, written by hand.
+schemaVersion: 1
+profiles:
+  team:
+    label: Time
+    description: "Our checks: lint, secrets, our own compile check and the architecture rule."
+    extends: builtin:standard   # start from the balanced profile
+    scope: changed
+    checks:
+      capability:lint:
+        enabled: true
+      capability:secrets:
+        enabled: true
+      # Selectors the check tree has no row for.
+      pii:cpf:
+        enabled: false
+      architecture:domain-isolation:
+        enabled: true
+      tool:my-lint:
+        enabled: true
+        when: available
+  quick:
+    label: Rápido
+    extends: team
+    checks:
+      capability:sast:
+        enabled: false

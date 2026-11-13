@@ -175,11 +175,16 @@ function FieldRow({ field, ctx, level }: { field: DerivedField; ctx: RenderConte
 }
 
 function GroupSection({ group, ctx, level }: { group: DerivedGroup; ctx: RenderContext; level: number }) {
-  const headingId = `${domId(group.id)}-heading`;
+  // Two forms on one screen (a template's entry and its file) can hold groups with the same key: the file makes the
+  // heading id unique, and the key path, read by assistive technology, keeps their regions apart.
+  const headingId = `${domId(`${ctx.form.file.file}:${group.id}`)}-heading`;
   const title = groupTitle(group);
   const empty = !ctx.fields.some((f) => startsWith(f.path, group.path)) && !ctx.groups.some((g) => g.group === group.id);
   return (
-    <section className={`df-group df-group-${group.kind}`} aria-labelledby={headingId} data-group={group.id} data-kind={group.kind}>
+    <section className={`df-group df-group-${group.kind}`} aria-labelledby={`${headingId} ${headingId}-where`} data-group={group.id} data-kind={group.kind}>
+      <span id={`${headingId}-where`} className="sr-only">
+        {`${ctx.form.file.file} ${group.id}`}
+      </span>
       <div className="df-group-head">
         <Heading level={level} id={headingId}>
           {title}

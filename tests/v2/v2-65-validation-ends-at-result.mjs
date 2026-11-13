@@ -198,10 +198,11 @@ test("V2-65: delete in edition, counts with their unit, one ready, diagnostics w
     assert.equal(timed.json.execution.limits.timeoutSeconds, 600);
     assert.equal(timed.json.execution.limits.origin.timeoutSeconds, "configuration");
 
-    // One invalid key: the refusal carries the diagnostics with file, key and line.
+    // One invalid key: the view still answers with what the files hold (ADR-0009, V2-66) and carries the diagnostics
+    // with file, key and line.
     fs.writeFileSync(rootFile, `${original.trimEnd()}\nnot_a_real_key: true\n`);
     const broken = await call("GET", "/api/config/profile");
-    assert.equal(broken.status, 422, broken.text);
+    assert.equal(broken.status, 200, broken.text);
     assert.ok(Array.isArray(broken.json.diagnostics) && broken.json.diagnostics.length > 0, broken.text);
     const diagnostic = broken.json.diagnostics[0];
     assert.equal(diagnostic.file, "jgates.yml");

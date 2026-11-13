@@ -19,7 +19,9 @@ import { imageToolCatalogue, NOT_IMAGE_TOOLS } from "../../core/tools-image/inde
 import fs from "node:fs";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
-import { projectInventory } from "../../core/cache/project.js";
+import { fileDiagnostics, onlyFileProblems, projectInventory, projectResolveReadable } from "../../core/cache/project.js";
+import type { ResolveResult } from "../../core/config/resolve/index.js";
+import { resolveSelection } from "../../core/selection/index.js";
 import { withEngineFacts } from "../../core/engine/facts.js";
 import { buildPlan } from "../../core/plan/index.js";
 import { workspaceDir } from "../../core/home/index.js";
@@ -63,6 +65,28 @@ function originOf(adapter: string, toolName: string, imageTools: Record<string, 
   if (mode === "customer-supplied") return { kind: "customer", version: null, installRequired: true };
   if (mode === "prepared-from-authorized-source") return { kind: "prepared", version: null, installRequired: false };
   return { kind: "project", version: null, installRequired: false };
+}
+
+/** The tool instances of a configuration that has no plan (a file the schema refuses), from what the files hold. */
+function unplannedTools(resolved: ResolveResult, inventory: ReturnType<typeof projectInventory>, declared: Set<string>) {
+  const universe = resolveSelection(resolved, { inventory }).universe;
+  const parents = new Set(universe.parents);
+  const categoryOf = new Map(universe.capabilities.map((c) => [c.id, c.category]));
+  const config = (resolved.config.tools ?? {}) as Record<string, { adapter?: unknown; enabled?: unknown; required?: unknown } | undefined>;
+  return universe.tools
+    .filter((t) => !parents.has(t.id) && config[t.id]?.enabled !== false)
+    .map((t) => ({
+      tool: t.id,
+      adapter: typeof config[t.id]?.adapter === "string" ? (config[t.id]?.adapter as string) : null,
+      category: t.capabilities.map((c) => categoryOf.get(c)).find((c): c is string => typeof c === "string") ?? null,
+      capabilities: [...t.capabilities].sort(),
+      components: t.component ? [t.component] : [],
+      languages: [] as string[],
+      required: config[t.id]?.required === true,
+      via: declared.has(t.id) ? "instance" : "template",
+      declared: declared.has(t.id),
+    }))
+    .sort((a, b) => a.tool.localeCompare(b.tool));
 }
 
 const CUSTOM_STATUS: Record<CustomToolErrorCode, number> = {
@@ -264,7 +288,13 @@ export const routes: RouteDefinition[] = [
         () => buildPlan(server.projectDir, { paths: [], skip: [], only: [], templates: [], version: server.version, home: server.home, inventory, compare: false }),
         { prime: { version: server.version, gitDir: server.projectDir } },
       );
-      if (!result.ok) return { status: 200, json: { schemaVersion: 1, status: "OK", ok: false, languages: [...languages].sort(), tools: [], error: result.error.message } };
+      if (!result.ok) {
+        // No plan. When only a file the schema refuses stands in the way (a key written by hand), the tools are still
+        // listed from what the files hold (planned: false), with the diagnostics that say file, key and line.
+        const readable = projectResolveReadable(server.projectDir);
+        const tools = onlyFileProblems(readable) ? unplannedTools(readable, inventory, declared) : [];
+        return { status: 200, json: { schemaVersion: 1, status: "OK", ok: false, planned: false, languages: [...languages].sort(), tools, error: result.error.message, diagnostics: fileDiagnostics(readable) } };
+      }
       const byTool = new Map<string, { tool: string; adapter: string | null; category: string | null; capabilities: Set<string>; components: Set<string>; languages: Set<string>; required: boolean; via: string }>();
       for (const item of result.plan.groups.willRun) {
         const known = byTool.get(item.tool) ?? { tool: item.tool, adapter: item.adapter, category: item.category, capabilities: new Set<string>(), components: new Set<string>(), languages: new Set<string>(), required: false, via: item.includedBy[0]?.kind ?? "adapter" };

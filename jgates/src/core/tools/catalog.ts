@@ -3,7 +3,7 @@
 // is per instance and comes from the adapter's own probe, in availability().
 import { builtinManifests } from "../../adapters/manifests.js";
 import { externalAdapter } from "../plan/adapters.js";
-import { resolveConfig } from "../config/resolve/index.js";
+import { resolveReadable } from "../config/resolve/index.js";
 import { instanceAdapters } from "./instances.js";
 import { resolveToolBindings, supportLevelFor, type SupportLevel } from "./index.js";
 
@@ -60,7 +60,8 @@ export interface InstanceAvailability {
 export function instanceAvailability(dir: string, env: NodeJS.ProcessEnv = process.env): Record<string, InstanceAvailability> {
   const out: Record<string, InstanceAvailability> = {};
   const { instances } = resolveToolBindings(dir);
-  const config = resolveConfig(dir).config as Record<string, unknown>;
+  // What the files hold, also while a key written by hand makes the configuration invalid (the target of a ZAP is still there).
+  const config = resolveReadable(dir).config as Record<string, unknown>;
   const manifests = builtinManifests();
   for (const instance of instances) {
     const adapter = externalAdapter(instance.adapter);
