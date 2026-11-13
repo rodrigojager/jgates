@@ -8,7 +8,9 @@ import { REPO, createFixture, pageGet, startServer, type Fixture } from "./suppo
 // fresh project with the fake container engine: in Portuguese at desktop width, and in English at 375 px, where no step
 // may scroll sideways. A dialog closes with Esc and gives the focus back to the button that opened it. The walk ends
 // with the first run started; afterwards the overview is the dashboard, and "Refazer a configuração guiada" opens the
-// wizard again.
+// wizard again only when asked, at a chosen step, without taking over the overview (D13). Step 1 has the doctor mascot
+// (checking, needs you, ok, error) and the runtime list with "Testar"; locked steps say what unlocks them; step 2 never
+// keeps a promise that no longer holds (D29); step 3 has no bare "." and declares a component in a dialog of its own.
 
 const FAKE = path.join(REPO, "jgates", "tests", "docker", "fake-docker.cjs");
 const CLI_VERSION = JSON.parse(fs.readFileSync(path.join(REPO, "package.json"), "utf8")).version as string;
@@ -29,6 +31,16 @@ interface Texts {
   run: string;
   redo: string;
   close: string;
+  locked: string;
+  lockedNote: string;
+  custom: string;
+  runtimePath: string;
+  test: string;
+  stale: RegExp;
+  declare: string;
+  declareTitle: string;
+  reopenOpen: string;
+  reopenStep: string;
 }
 
 const PT: Texts = {
@@ -46,6 +58,16 @@ const PT: Texts = {
   run: "Executar a primeira validação",
   redo: "Refazer a configuração guiada",
   close: "Fechar o assistente",
+  locked: "Abre quando o passo Docker estiver concluído.",
+  lockedNote: "Os próximos passos abrem quando você concluir o passo Docker.",
+  custom: "Outro executável…",
+  runtimePath: "Caminho do executável",
+  test: "Testar",
+  stale: /vão ser baixados|vai ser baixado/i,
+  declare: "Declarar componente",
+  declareTitle: "Declarar componente",
+  reopenOpen: "Abrir o assistente",
+  reopenStep: "Começar no passo",
 };
 
 const EN: Texts = {
@@ -63,6 +85,16 @@ const EN: Texts = {
   run: "Run the first validation",
   redo: "Redo the guided setup",
   close: "Close the wizard",
+  locked: "Opens once the Docker step is done.",
+  lockedNote: "The next steps open once you finish the Docker step.",
+  custom: "Another executable…",
+  runtimePath: "Path of the executable",
+  test: "Test",
+  stale: /will be downloaded/i,
+  declare: "Declare a component",
+  declareTitle: "Declare a component",
+  reopenOpen: "Open the wizard",
+  reopenStep: "Start at step",
 };
 
 /** A project without jgates.yml, served with the fake engine (not in-image): the image exists once it was pulled. */
@@ -123,17 +155,41 @@ async function walk(page: Page, fixture: Fixture, text: Texts, narrow: boolean):
     if (narrow) await noSidewaysScroll(page, text.title(n));
   };
 
-  // 1 Docker: the fake engine is running.
+  // 1 Docker: the fake engine is running; the doctor says so (or needs you for a low value) beside the requirements.
   await atStep(1);
   await expect(wizard.getByTestId("wizard-engine")).toHaveAttribute("data-engine", "ready");
+  const requirements = wizard.getByTestId("wizard-requirements");
+  await expect(requirements.locator("[data-requirement]")).toHaveCount(4);
+  await expect(requirements.locator('[data-requirement="memory"] [data-testid="wizard-requirement-value"]')).not.toHaveText("");
+  const warned = await requirements.locator('[data-state="warn"]').count();
+  await expect(wizard.getByTestId("wizard-doctor")).toHaveAttribute("data-state", warned > 0 ? "needs-you" : "ok");
+  await expect(wizard.locator('[data-mascot="doctor"]')).toHaveAttribute("data-state", warned > 0 ? "needs-you" : "ok");
+  // The steps that cannot open yet say what unlocks them.
+  await expect(wizard.getByRole("navigation", { name: text.stepsNav }).locator('[data-step="tools"]')).toHaveAttribute("title", text.locked);
+  await expect(wizard.getByTestId("wizard-locked-note")).toHaveText(text.lockedNote);
   await expect(wizard.getByTestId("wizard-command")).toBeVisible();
+  if (narrow) await noSidewaysScroll(page, "requirements and runtime");
   await press(page, nav.getByRole("button", { name: text.next }));
 
   // 2 Ferramentas: the download starts; the title of the new step has the focus.
   await atStep(2);
   await expect(heading).toBeFocused();
+  // What will be on the machine: the image with its tools, the security databases, the totals.
+  await expect(wizard.getByTestId("wizard-image")).toContainText("jgates-tools");
+  await expect(wizard.getByTestId("wizard-data").locator("[data-database]")).toHaveCount(4);
+  await expect(wizard.getByTestId("wizard-totals")).not.toHaveText("");
+  // No download runs yet: the button is "Continuar" (D29).
+  await expect(nav.getByRole("button", { name: text.next, exact: true })).toBeVisible();
+  const list = wizard.getByTestId("wizard-tools-list");
+  await press(page, list.locator("summary"));
+  await expect(list.locator("tr[data-tool]").first()).toBeVisible();
+  if (narrow) await noSidewaysScroll(page, "tools list");
+  await press(page, list.locator("summary"));
   await press(page, wizard.getByRole("button", { name: text.download }));
   await expect(wizard.getByTestId("wizard-download")).toHaveAttribute("data-state", "ready");
+  // Once ready nothing says the data "will be downloaded" any more, and the button is "Continuar" again.
+  await expect(wizard.getByTestId("wizard-step-tools")).not.toContainText(text.stale);
+  await expect(nav.getByRole("button", { name: text.next, exact: true })).toBeVisible();
   if (narrow) await noSidewaysScroll(page, "download finished");
   await press(page, nav.getByRole("button", { name: text.next }));
 
@@ -141,6 +197,20 @@ async function walk(page: Page, fixture: Fixture, text: Texts, narrow: boolean):
   await atStep(3);
   const component = wizard.locator("li[data-component]").first();
   await expect(component.getByRole("combobox").first()).toHaveValue("python");
+  await expect(component.getByTestId("wizard-component-sentence")).not.toHaveText(".");
+  const bare = await wizard.getByTestId("wizard-step-project").evaluate((el) => [...el.querySelectorAll("*")].filter((n) => n.children.length === 0 && n.textContent?.trim() === ".").length);
+  expect(bare, "no bare . on step 3").toBe(0);
+  // Declaring a component opens a dialog inside the wizard, with the folder picker; Esc gives the focus back.
+  const declare = wizard.getByRole("button", { name: text.declare });
+  await press(page, declare);
+  const declareDialog = page.getByRole("dialog", { name: text.declareTitle });
+  await expect(declareDialog).toBeVisible();
+  await expect(declareDialog.locator('[data-picker="project-folder"] select')).toBeVisible();
+  await expect.poll(() => new URL(page.url()).hash, { message: "the dialog opens inside the wizard" }).toBe("#/overview");
+  if (narrow) await noSidewaysScroll(page, "declare dialog");
+  await page.keyboard.press("Escape");
+  await expect(declareDialog).toHaveCount(0);
+  await expect(declare).toBeFocused();
   await press(page, nav.getByRole("button", { name: text.next }));
 
   // 4 Perfil: radio cards with what each runs; the tools are there, so Rigoroso is the recommended (and preselected) one.
@@ -195,11 +265,28 @@ async function afterSetup(page: Page, text: Texts): Promise<void> {
   await page.goto(`${base}#/overview`);
   await expect(page.locator("main h1").first()).toBeVisible();
   await expect(wizard).toHaveCount(0);
-  // "Refazer a configuração guiada" (Workspace) opens it again at step 1, and "Fechar o assistente" leaves it.
+  // "Refazer a configuração guiada" (Workspace) opens a screen that changes nothing by itself (D13): the person picks the
+  // step to start at and opens the wizard.
   await page.goto(`${base}#/workspace`);
   await press(page, page.getByRole("link", { name: text.redo }));
-  await expect(wizard.getByRole("heading", { level: 1 })).toHaveText(text.title(1));
+  const reopen = page.locator('[data-state="wizard-reopen"]');
+  await expect(reopen).toBeVisible();
+  await expect(wizard).toHaveCount(0);
+  const chooser = reopen.getByRole("combobox", { name: text.reopenStep });
+  await tabTo(page, chooser);
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await expect(chooser).toHaveValue("project");
+  await press(page, reopen.getByRole("button", { name: text.reopenOpen }));
+  await expect(wizard.getByRole("heading", { level: 1 })).toHaveText(text.title(3));
   await expect(wizard.getByRole("navigation", { name: text.stepsNav }).locator('[data-step="review"]')).toBeEnabled();
+  // The reopened wizard does not replace the overview.
+  await page.goto(`${base}#/overview`);
+  await expect(page.locator("main h1").first()).toBeVisible();
+  await expect(wizard).toHaveCount(0);
+  // Back on #/setup it is where it was; "Fechar o assistente" leaves it.
+  await page.goto(`${base}#/setup`);
+  await expect(wizard.getByRole("heading", { level: 1 })).toHaveText(text.title(3));
   await press(page, wizard.getByRole("button", { name: text.close }));
   await expect.poll(() => new URL(page.url()).hash).toBe("#/overview");
   await expect(wizard).toHaveCount(0);
@@ -255,6 +342,77 @@ test("the wizard resumes at the same step after a reload of the page", async ({ 
     await press(page, wizard.getByTestId("wizard-nav").getByRole("button", { name: "Voltar" }));
     await expect(wizard.getByRole("heading", { level: 1 })).toHaveText(PT.title(1));
   } finally {
+    await server.stop();
+    fixture.cleanup();
+  }
+});
+
+test("step 1: the doctor follows the machine check (checking, needs you, ok, error) and Testar asks another executable", async ({ page }) => {
+  const fixture = wizardFixture("pt-BR");
+  const server = await startServer(fixture);
+  // The machine check, held and then rewritten: the doctor's state comes from the answer.
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  let mode: "real" | "low" | "unsupported" = "real";
+  await page.route(/\/api\/setup\/docker\?/, async (route) => {
+    await held;
+    let response;
+    try {
+      response = await route.fetch();
+    } catch {
+      // The server stopped at the end of the test while a check was on its way.
+      await route.abort().catch(() => undefined);
+      return;
+    }
+    const json = await response.json();
+    if (mode === "low") {
+      json.requirements = json.requirements.map((r: { id: string; state: string }) => (r.id === "memory" ? { ...r, state: "warn", value: 2048 } : r));
+    }
+    if (mode === "unsupported") {
+      json.ready = false;
+      json.state = "unsupported";
+    }
+    await route.fulfill({ response, json });
+  });
+  try {
+    await page.goto(server.bootstrapUrl);
+    const wizard = page.locator('[data-state="wizard"]');
+    const doctor = wizard.getByTestId("wizard-doctor");
+    await expect(doctor).toHaveAttribute("data-state", "checking");
+    await expect(wizard.locator('[data-mascot="doctor"]')).toHaveAttribute("data-state", "checking");
+    mode = "low";
+    release();
+    await expect(doctor).toHaveAttribute("data-state", "needs-you");
+    await expect(wizard.getByTestId("wizard-requirements").locator('[data-requirement="memory"]')).toHaveAttribute("data-state", "warn");
+    // A low value is a warning: "Continuar" stays enabled.
+    await expect(wizard.getByTestId("wizard-nav").getByRole("button", { name: PT.next })).toBeEnabled();
+    mode = "unsupported";
+    await press(page, wizard.getByRole("button", { name: "Verificar de novo" }));
+    await expect(doctor).toHaveAttribute("data-state", "error");
+    mode = "real";
+    await press(page, wizard.getByRole("button", { name: "Verificar de novo" }));
+    await expect(doctor).toHaveAttribute("data-state", /^(ok|needs-you)$/);
+
+    // Another executable: its path, then "Testar" (nothing saved yet).
+    const runtime = wizard.getByTestId("wizard-runtime");
+    const custom = runtime.getByRole("radio", { name: PT.custom });
+    await tabTo(page, runtime.getByRole("radio").first());
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await expect(custom).toBeChecked();
+    const pathBox = runtime.getByRole("textbox", { name: PT.runtimePath });
+    await tabTo(page, pathBox);
+    await page.keyboard.type(fixture.env.JGATES_CONTAINER_RUNTIME as string);
+    await press(page, runtime.getByRole("button", { name: PT.test }));
+    await expect(runtime.getByTestId("wizard-runtime-test")).toHaveAttribute("data-ok", "true");
+    await expect(runtime.getByTestId("wizard-runtime-test")).toContainText("27.0.1-fake");
+    expect(JSON.parse(fs.readFileSync(path.join(fixture.home, "preferences.json"), "utf8")).containerRuntime, "Testar saves nothing").toBeUndefined();
+    await press(page, runtime.getByRole("button", { name: "Usar este executável" }));
+    await expect.poll(() => JSON.parse(fs.readFileSync(path.join(fixture.home, "preferences.json"), "utf8")).containerRuntime).toBe(fixture.env.JGATES_CONTAINER_RUNTIME);
+    // The variable of the fixture wins over the choice, and the screen says so.
+    await expect(runtime).toContainText("JGATES_CONTAINER_RUNTIME");
+  } finally {
+    await page.unrouteAll({ behavior: "ignoreErrors" });
     await server.stop();
     fixture.cleanup();
   }

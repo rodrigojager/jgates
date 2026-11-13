@@ -20,7 +20,7 @@ import { probeSchemathesis } from "../../adapters/schemathesis/probe.js";
 import { probeZap } from "../../adapters/zap/probe.js";
 import { readVersion } from "../../cli/version.js";
 import { findOnPath, sidecarAvailability } from "../bridge/index.js";
-import { detectEngineSync, inspectImageSync, type EngineContext } from "../engine/index.js";
+import { detectEngineSync, engineRuntime, inspectImageSync, type EngineContext } from "../engine/index.js";
 import { resolveReason } from "../reasons/index.js";
 import { readImageJson, stepMode } from "../runner/in-image.js";
 import { IMAGE_VERSION_LABEL, toolsImageTarget } from "../tools-image/index.js";
@@ -204,7 +204,7 @@ function engineRuntimes(env: NodeJS.ProcessEnv): RuntimeStatus[] {
   }
   const context: EngineContext = { runnerOptions: { parentEnv: env } };
   const engine = detectEngineSync({ requiredMemoryMb: 0, requiredDiskMb: 0 }, context);
-  const runtimeName = env.JGATES_CONTAINER_RUNTIME?.trim() || "docker";
+  const runtimeName = engineRuntime(env);
   const client = findOnPath(runtimeName, env);
   const target = toolsImageTarget(env);
   const notChecked: RuntimeStatus = { id: "image", state: "not_checked", version: null, path: target.reference, optional: false, message: t("prepare_image_needs_engine", { image: target.reference }), fix: null };

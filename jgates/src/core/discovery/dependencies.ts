@@ -72,6 +72,12 @@ const MANAGERS_OF: Readonly<Record<DependencyEcosystem, readonly DependencyManag
   dotnet: ["dotnet"],
 };
 
+/** The managers JGates installs with for a language (empty when the language has no supported package manager). */
+export function managersOfLanguage(language: string | null | undefined): readonly DependencyManager[] {
+  const ecosystem = language ? ECOSYSTEM_OF_LANGUAGE[language] : undefined;
+  return ecosystem ? MANAGERS_OF[ecosystem] : [];
+}
+
 const LOCKFILES: Readonly<Record<string, DependencyManager>> = {
   "uv.lock": "uv",
   "poetry.lock": "poetry",

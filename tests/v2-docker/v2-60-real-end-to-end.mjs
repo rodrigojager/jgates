@@ -224,7 +224,10 @@ test("V2-60 (real engine): setup and a first run of a copy of the real test proj
     assert.equal(initial.json.configured, true, "the test project brings its jgates.yml");
     const reopened = await call("POST", "/api/setup/reopen", {});
     assert.equal(reopened.status, 200, reopened.text);
-    assert.equal(reopened.json.open, true);
+    // Reopened on purpose: it runs on #/setup and does not take over the overview (D13).
+    assert.equal(reopened.json.open, false);
+    assert.equal(reopened.json.reopened, true);
+    assert.equal(reopened.json.setup.completed, false);
     assert.deepEqual(reopened.json.setup.steps.map((s) => s.id), STEPS);
     assert.equal(reopened.json.setup.step, "docker");
 

@@ -2,11 +2,12 @@
 // project: nothing here touches the workspace.
 import fs from "node:fs";
 import path from "node:path";
+import { PREFERENCES_FILE, forgetRuntimePreference, validRuntimeValue } from "../../core/engine/runtime-preference.js";
 import { ensureHome } from "../../core/home/index.js";
 import { normalizeLocale, setLocale } from "../../i18n/index.js";
 import type { RouteDefinition } from "../types.js";
 
-export const PREFERENCES_FILE = "preferences.json";
+export { PREFERENCES_FILE };
 export const THEMES = ["light", "dark", "system"] as const;
 export const LANGUAGES = ["pt-BR", "en"] as const;
 
@@ -14,6 +15,8 @@ export interface Preferences {
   schemaVersion: 1;
   theme: (typeof THEMES)[number];
   language: (typeof LANGUAGES)[number];
+  /** The container runtime chosen in the wizard: docker, podman or an absolute path (core/engine/runtime-preference.ts). */
+  containerRuntime?: string;
 }
 
 const DEFAULTS: Preferences = { schemaVersion: 1, theme: "system", language: "pt-BR" };
@@ -26,6 +29,7 @@ export function readPreferences(home: string): Preferences {
       schemaVersion: 1,
       theme: THEMES.includes(parsed.theme as never) ? (parsed.theme as Preferences["theme"]) : DEFAULTS.theme,
       language: LANGUAGES.includes(parsed.language as never) ? (parsed.language as Preferences["language"]) : DEFAULTS.language,
+      ...(validRuntimeValue(parsed.containerRuntime) ? { containerRuntime: parsed.containerRuntime.trim() } : {}),
     };
   } catch {
     return { ...DEFAULTS };
@@ -39,6 +43,7 @@ export function writePreferences(home: string, next: Preferences): void {
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 });
   fs.renameSync(tmp, file);
+  forgetRuntimePreference();
 }
 
 /** The server speaks the language the user chose in the UI, so the API messages match the screen. */

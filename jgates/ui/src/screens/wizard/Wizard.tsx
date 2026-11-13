@@ -1,6 +1,7 @@
 // The first-run wizard: six steps, recommended choices preselected, Voltar/Continuar, the state saved on the server (a
 // reload resumes at the same step), the downloads going on in the background. It is the overview's content until the
-// setup ends (app/states.tsx, SetupGate) and the screen of #/setup ("Refazer a configuração guiada").
+// setup ends (app/states.tsx, SetupGate), and on #/setup once it was reopened on purpose ("Refazer a configuração
+// guiada", index.tsx). Steps that cannot open yet say which step unlocks them.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { navigate } from "../../app/route";
 import { useShell } from "../../app/shell-context";
@@ -22,6 +23,12 @@ export interface StepProps {
   back: (() => void) | null;
   /** The setup ended (first run started, or the person finished without one). */
   finished: (runId: string | null) => void;
+}
+
+/** The first step before `step` that is neither done nor skipped: finishing it is what unlocks `step`. */
+function blockerOf(view: SetupView, step: StepId): StepId | null {
+  const index = STEPS.indexOf(step);
+  return view.setup.steps.slice(0, index).find((s) => s.state !== "done" && s.state !== "skipped")?.id ?? null;
 }
 
 export default function Wizard({ onClosed }: { onClosed?: () => void }) {
@@ -78,6 +85,9 @@ export default function Wizard({ onClosed }: { onClosed?: () => void }) {
   const index = STEPS.indexOf(current);
   const back = index > 0 ? () => void act(() => gotoStep(STEPS[index - 1] as StepId)) : null;
   const props: StepProps = { view, act, apply: setView, busy, back, finished };
+  // The step the locked ones wait for (said once under the stepper, and as the hint of each locked step).
+  const firstLocked = view.setup.steps.find((s) => !s.reachable);
+  const lockedBy = firstLocked ? blockerOf(view, firstLocked.id) : null;
   const close = () =>
     void act(async () => {
       await closeSetup();
@@ -100,11 +110,19 @@ export default function Wizard({ onClosed }: { onClosed?: () => void }) {
       <Stepper
         label={t("wizard_steps_label")}
         current={current}
-        steps={view.setup.steps.map((s) => ({ id: s.id, label: t(`wizard_step_${s.id}`), done: s.state === "done" || s.state === "skipped", disabled: !s.reachable || busy }))}
+        steps={view.setup.steps.map((s) => {
+          const blocker = s.reachable ? null : blockerOf(view, s.id);
+          return { id: s.id, label: t(`wizard_step_${s.id}`), done: s.state === "done" || s.state === "skipped", disabled: !s.reachable || busy, ...(blocker ? { hint: t("wizard_step_locked", { step: t(`wizard_step_${blocker}`) }) } : {}) };
+        })}
         onSelect={(id) => {
           if (id !== current) void act(() => gotoStep(id as StepId));
         }}
       />
+      {lockedBy ? (
+        <p className="small muted" data-testid="wizard-locked-note">
+          {t("wizard_steps_locked_note", { step: t(`wizard_step_${lockedBy}`) })}
+        </p>
+      ) : null}
       {error ? <ErrorNotice error={error} /> : null}
       <div className="wizard-body card stack">
         {current === "docker" ? <DockerStep key={current} {...props} /> : null}

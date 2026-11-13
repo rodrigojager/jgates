@@ -10,6 +10,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildEnv, DEFAULT_ENV_ALLOWLIST, runSpec, type ExecutionResult, type RunnerOptions } from "../runner/process.js";
 import { currentScope, runInScope } from "../runner/scope.js";
+import { resolveRuntime } from "./runtime-preference.js";
 
 /** Development image, used when JGATES_TOOLS_IMAGE asks for it (and until the pin file exists). */
 export const DEV_TOOLS_IMAGE = "jgates-tools:dev";
@@ -44,9 +45,12 @@ export class EngineSpecError extends Error {
   }
 }
 
-/** The engine executable: JGATES_CONTAINER_RUNTIME, otherwise `docker`. */
+/**
+ * The engine executable, the one resolver every caller uses: JGATES_CONTAINER_RUNTIME, otherwise the runtime the user
+ * chose (preferences.json of the data folder, see runtime-preference.ts), otherwise `docker`.
+ */
 export function engineRuntime(env: NodeJS.ProcessEnv = process.env): string {
-  return env.JGATES_CONTAINER_RUNTIME?.trim() || "docker";
+  return resolveRuntime(env).runtime;
 }
 
 /** The tools image reference: JGATES_TOOLS_IMAGE (for example jgates-tools:dev), otherwise the development image. */

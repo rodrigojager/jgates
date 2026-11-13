@@ -13,7 +13,16 @@ import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE, parseYamlText, validateDocument 
 import { discoverCompose } from "../../core/discovery/compose.js";
 import { buildVocabulary, discoverWorkspace, loadWorkspaceSettings, WORKSPACE_FILE, type Classification, type DeclaredComponent } from "../../core/discovery/index.js";
 import { installUnits } from "../../core/deps/index.js";
-import { detectEngine, inspectImageSync } from "../../core/engine/index.js";
+import { detectEngine, inspectImageSync, type EngineDetection } from "../../core/engine/index.js";
+import { NAMED_RUNTIMES, readRuntimePreference, resolveRuntime, validRuntimeValue } from "../../core/engine/runtime-preference.js";
+import { invalidateEngineFacts } from "../../core/engine/facts.js";
+import { DATA_VOLUME, DATABASE_IDS } from "../../core/data/index.js";
+import { managersOfLanguage } from "../../core/discovery/dependencies.js";
+import { formatMegabytes } from "../../core/reasons/index.js";
+import { findOnPath } from "../../core/runner/path-lookup.js";
+import { DATABASE_ABOUT, TOOL_ABOUT } from "../../core/tools-image/about.js";
+import { imageToolCatalogue } from "../../core/tools-image/catalogue.js";
+import { readPreferences, writePreferences } from "./preferences.js";
 import { refreshPath } from "../../core/env-refresh/index.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { DEFAULT_PROFILE, STARTER_PROFILES, existingConfigFiles, planInit, writeInit } from "../../core/init/index.js";
@@ -60,6 +69,8 @@ interface SetupState {
   /** idle; queued: starts when the image is there; started: its job ran or runs; skipped by the person. */
   dependencies: "idle" | "queued" | "started" | "skipped";
   run: string | null;
+  /** Opened again on purpose (#/setup) after the project had its configuration: it does not take over the overview. */
+  reopened?: boolean;
   startedAt: string;
   updatedAt: string;
 }
@@ -126,7 +137,7 @@ const configured = (server: ServerContext): boolean => fs.existsSync(path.join(s
 function isOpen(server: ServerContext, state: SetupState | null): boolean {
   if (server.policyMode) return false;
   if (!configured(server)) return true;
-  return state !== null && !state.completed;
+  return state !== null && !state.completed && state.reopened !== true;
 }
 
 const indexOf = (step: SetupStepId): number => SETUP_STEPS.indexOf(step);
@@ -147,6 +158,7 @@ function view(server: ServerContext, state: SetupState | null): Record<string, u
     status: "OK",
     open: isOpen(server, state),
     started: state !== null,
+    reopened: s.reopened === true,
     configured: configured(server),
     policyMode: server.policyMode,
     setup: {
@@ -187,16 +199,128 @@ function settle(state: SetupState, step: SetupStepId, how: "done" | "skipped"): 
 
 // ---- step 1: the engine ----------------------------------------------------------------------------------------------
 
-async function engineCheck(locale?: string): Promise<Record<string, unknown>> {
+/** What the machine should have (PLAN-guided-flows.md section 2): each step is limited to 4 GB and 2 CPUs. */
+export const MACHINE_NEEDS = { memoryMb: 8192, diskMb: 15 * 1024, cpus: 2 } as const;
+/** An engine given 8 GB reports a little less (the VM keeps some): the same margin as the engine's own memory check. */
+const MEMORY_MARGIN = 0.9;
+
+type RequirementState = "ok" | "warn" | "error" | "unknown";
+interface Requirement {
+  id: "engine" | "memory" | "disk" | "cpus";
+  state: RequirementState;
+  /** Only the engine blocks the wizard: too little memory, disk or CPUs is a warning that names what may not run. */
+  blocking: boolean;
+  /** The measured value: MB for memory and disk, a count for CPUs, the engine version for the engine. */
+  value: number | string | null;
+  need: number | null;
+  unit: "mb" | "count" | null;
+  message: string;
+}
+
+function requirements(detection: EngineDetection | null, locale?: string): Requirement[] {
+  const t = translator("setup", locale);
+  const mb = (value: number) => formatMegabytes(value, locale);
+  if (detection === null) return [];
+  const facts = detection.facts;
+  const engineState: RequirementState = facts.running ? (detection.code === "UNSUPPORTED_PLATFORM" ? "error" : "ok") : "error";
+  const engine: Requirement = {
+    id: "engine",
+    state: engineState,
+    blocking: true,
+    value: facts.serverVersion,
+    need: null,
+    unit: null,
+    message: facts.running ? (engineState === "ok" ? t("setup_req_engine_ok", { version: facts.serverVersion ?? "?" }) : t("setup_req_engine_unsupported", { platform: `${facts.os ?? "?"}/${facts.arch ?? "?"}` })) : facts.installed ? t("setup_req_engine_stopped") : t("setup_req_engine_missing"),
+  };
+  if (!facts.running) return [engine];
+  const memoryState: RequirementState = facts.memoryMb === null ? "unknown" : facts.memoryMb >= MACHINE_NEEDS.memoryMb * MEMORY_MARGIN ? "ok" : "warn";
+  const diskState: RequirementState = facts.diskFreeMb === null ? "unknown" : facts.diskFreeMb >= MACHINE_NEEDS.diskMb ? "ok" : "warn";
+  const cpuState: RequirementState = facts.cpus === null ? "unknown" : facts.cpus >= MACHINE_NEEDS.cpus ? "ok" : "warn";
+  return [
+    engine,
+    {
+      id: "memory",
+      state: memoryState,
+      blocking: false,
+      value: facts.memoryMb,
+      need: MACHINE_NEEDS.memoryMb,
+      unit: "mb",
+      message: memoryState === "unknown" ? t("setup_req_unknown") : memoryState === "ok" ? t("setup_req_memory_ok", { have: mb(facts.memoryMb ?? 0), need: mb(MACHINE_NEEDS.memoryMb) }) : t("setup_req_memory_low", { have: mb(facts.memoryMb ?? 0), need: mb(MACHINE_NEEDS.memoryMb) }),
+    },
+    {
+      id: "disk",
+      state: diskState,
+      blocking: false,
+      value: facts.diskFreeMb,
+      need: MACHINE_NEEDS.diskMb,
+      unit: "mb",
+      message: diskState === "unknown" ? t("setup_req_unknown") : diskState === "ok" ? t("setup_req_disk_ok", { have: mb(facts.diskFreeMb ?? 0), need: mb(MACHINE_NEEDS.diskMb) }) : t("setup_req_disk_low", { have: mb(facts.diskFreeMb ?? 0), need: mb(MACHINE_NEEDS.diskMb) }),
+    },
+    {
+      id: "cpus",
+      state: cpuState,
+      blocking: false,
+      value: facts.cpus,
+      need: MACHINE_NEEDS.cpus,
+      unit: "count",
+      message: cpuState === "unknown" ? t("setup_req_unknown") : cpuState === "ok" ? t("setup_req_cpus_ok", { have: facts.cpus ?? 0, need: MACHINE_NEEDS.cpus }) : t("setup_req_cpus_low", { have: facts.cpus ?? 0, need: MACHINE_NEEDS.cpus }),
+    },
+  ];
+}
+
+/** The runtimes the wizard offers, which of them is on the PATH, the one in use and where that choice came from. */
+function runtimeInfo(home: string): Record<string, unknown> {
+  const { runtime, source } = resolveRuntime(process.env);
+  // The choice shown is the person's (the preference, docker by default), even while the variable overrides it.
+  const chosen = readRuntimePreference(home) ?? "docker";
+  const named = (NAMED_RUNTIMES as readonly string[]).includes(chosen);
+  return {
+    current: runtime,
+    selected: named ? chosen : "custom",
+    path: named ? null : chosen,
+    source,
+    envOverride: source === "env" ? runtime : null,
+    options: [...NAMED_RUNTIMES.map((id) => ({ id, found: findOnPath(id, process.env) })), { id: "custom", found: null }],
+  };
+}
+
+async function engineCheck(home: string, locale?: string): Promise<Record<string, unknown>> {
   refreshPath({ force: true });
-  if (stepMode(process.env) === "in-image") return { ready: true, state: "ready", mode: "in-image", facts: null, reasons: [], command: "jgates setup" };
-  const detection = await detectEngine({ requiredDiskMb: 0 }, engineContextOf(process.env));
+  if (stepMode(process.env) === "in-image") return { ready: true, state: "ready", mode: "in-image", facts: null, requirements: [], runtime: runtimeInfo(home), reasons: [], command: "jgates setup" };
+  // The free disk is read from the disk the engine stores on, as the host sees it (no helper container: this check runs
+  // every 3 s while the engine is missing, and it must never start anything).
+  const detection = await detectEngine({ requiredDiskMb: 1 }, engineContextOf(process.env));
   const reason = engineReason(detection, locale);
   const state = reason === null ? "ready" : reason.code === "ENGINE_NOT_INSTALLED" ? "not-installed" : reason.code === "ENGINE_STOPPED" ? "stopped" : reason.code === "ENGINE_LOW_MEMORY" ? "low-memory" : "unsupported";
-  const { serverVersion, os: engineOs, arch, memoryMb, cpus } = detection.facts;
+  const { serverVersion, os: engineOs, arch, memoryMb, cpus, diskFreeMb } = detection.facts;
   // Too little memory does not stop the first steps: the plan says which checks need more.
   const ready = reason === null || reason.code === "ENGINE_LOW_MEMORY";
-  return { ready, state, mode: "container", facts: { serverVersion, os: engineOs, arch, memoryMb, cpus }, reasons: reason ? [reason] : [], command: "jgates setup" };
+  return {
+    ready,
+    state,
+    mode: "container",
+    facts: { serverVersion, os: engineOs, arch, memoryMb, cpus, diskFreeMb },
+    requirements: requirements(detection, locale),
+    runtime: runtimeInfo(home),
+    reasons: reason ? [reason] : [],
+    command: "jgates setup",
+  };
+}
+
+/** "Testar" of another executable: asks that executable for the engine's info, without saving anything. */
+async function testRuntime(executable: string, locale?: string): Promise<Record<string, unknown>> {
+  const t = translator("setup", locale);
+  const detection = await detectEngine({ requiredDiskMb: 0, requiredMemoryMb: 0 }, { runtime: executable, runnerOptions: { parentEnv: process.env } });
+  const facts = detection.facts;
+  const ok = facts.running && detection.code !== "UNSUPPORTED_PLATFORM";
+  const message = ok
+    ? t("setup_runtime_test_ok", { version: facts.serverVersion ?? "?" })
+    : facts.running
+      ? t("setup_req_engine_unsupported", { platform: `${facts.os ?? "?"}/${facts.arch ?? "?"}` })
+      : facts.installed
+        ? t("setup_req_engine_stopped")
+        : t("setup_runtime_test_missing", { path: executable });
+  return { ok, version: facts.serverVersion, message, details: detection.details || null };
 }
 
 // ---- step 2: the tools image and the advisory data ------------------------------------------------------------------
@@ -251,13 +375,42 @@ const imageReadyNow = (server: ServerContext): Promise<boolean> => withEngineFac
 
 // ---- step 3: the project --------------------------------------------------------------------------------------------
 
-const component = (c: Classification) => ({
+type FieldState = "declared" | "detected" | "ambiguous" | "unknown" | "none" | "unsupported" | "found" | "missing";
+
+/** The state of each fact of a component, with a sentence for the ones that need the person (D26, PLAN-guided-flows section 2). */
+function componentFields(c: Classification, labels: Map<string, string>, t: (key: string, params?: Record<string, string | number>) => string): Record<string, { state: FieldState; reason: string | null }> {
+  const origin: FieldState = c.classificationStatus === "explicit" ? "declared" : c.classificationStatus === "ambiguous" ? "ambiguous" : "detected";
+  const deps = c.dependencies;
+  const language = c.language === null ? { state: "unknown" as const, reason: t("setup_field_language_unknown") } : { state: origin, reason: origin === "ambiguous" ? t("setup_field_ambiguous") : null };
+  const framework = c.framework === null ? { state: "none" as const, reason: null } : { state: origin, reason: null };
+  const manager = !deps
+    ? { state: "none" as const, reason: c.language ? t("setup_field_manager_none", { language: labels.get(c.language) ?? c.language }) : null }
+    : deps.state === "ambiguous"
+      ? { state: "ambiguous" as const, reason: t("setup_field_manager_ambiguous", { managers: deps.candidates.join(", ") }) }
+      : deps.state === "unsupported"
+        ? { state: "unsupported" as const, reason: t("setup_field_manager_unsupported") }
+        : { state: deps.chosenBy === "workspace-config" ? ("declared" as const) : ("detected" as const), reason: null };
+  const lockfile = !deps ? { state: "none" as const, reason: null } : deps.lockfile ? { state: "found" as const, reason: null } : { state: "missing" as const, reason: t("setup_field_lockfile_missing") };
+  return { language, framework, manager, lockfile };
+}
+
+/** "Projeto Python na pasta raiz": what the component is, in words. */
+function componentSentence(c: Classification, labels: Map<string, string>, frameworks: Map<string, string>, t: (key: string, params?: Record<string, string | number>) => string): string {
+  const where = c.componentRoot === "." ? t("setup_sentence_root") : t("setup_sentence_folder", { folder: c.componentRoot });
+  const language = c.language ? (labels.get(c.language) ?? c.language) : null;
+  const framework = c.framework ? (frameworks.get(c.framework) ?? c.framework) : null;
+  if (!language) return t("setup_sentence_unknown", { where });
+  return framework ? t("setup_sentence_framework", { language, framework, where }) : t("setup_sentence", { language, where });
+}
+
+const component = (c: Classification, words?: { labels: Map<string, string>; frameworks: Map<string, string>; t: (key: string, params?: Record<string, string | number>) => string }) => ({
   id: c.id,
   root: c.componentRoot,
   status: c.classificationStatus,
   reasonCode: c.reasonCode,
   language: c.language,
   framework: c.framework,
+  ...(words ? { sentence: componentSentence(c, words.labels, words.frameworks, words.t), fields: componentFields(c, words.labels, words.t) } : {}),
   evidence: c.evidencePaths.slice(0, 3),
   dependencies: c.dependencies
     ? {
@@ -274,18 +427,23 @@ const component = (c: Classification) => ({
     : null,
 });
 
-function projectInfo(server: ServerContext, state: SetupState): Record<string, unknown> {
+function projectInfo(server: ServerContext, state: SetupState, locale?: string): Record<string, unknown> {
   const inventory = projectInventory(server.projectDir);
   const shown = inventory.classifications.filter((c) => c.classificationStatus !== "ignored");
   // The ambiguous ones first: they are the ones that need the person.
   const ordered = [...shown.filter((c) => c.classificationStatus === "ambiguous" || c.dependencies?.state === "ambiguous"), ...shown.filter((c) => !(c.classificationStatus === "ambiguous" || c.dependencies?.state === "ambiguous"))];
   const compose = discoverCompose(server.projectDir);
   const existing = configured(server) ? servicesOfConfig(server) : null;
+  const languages = buildVocabulary().languages;
+  const labels = new Map(languages.map((l) => [l.id, l.label]));
+  const frameworks = new Map(languages.flatMap((l) => l.frameworks.map((f) => [f.id, f.label] as [string, string])));
+  const words = { labels, frameworks, t: translator("setup", locale) };
   return {
     schemaVersion: 1,
     status: "OK",
-    components: ordered.map(component),
-    vocabulary: buildVocabulary().languages,
+    components: ordered.map((c) => component(c, words)),
+    // Each language with the managers JGates installs with: the manager select follows the chosen language (D26).
+    vocabulary: languages.map((l) => ({ ...l, managers: [...managersOfLanguage(l.id)] })),
     compose: { files: compose.files, services: compose.services.map((s) => ({ name: s.name, image: s.image, role: s.role, hostEffects: s.hostEffects.map((e) => e.kind) })) },
     // The checkbox starts checked when compose files exist (the complete path), or as the configuration already says.
     servicesDefault: existing !== null ? existing : compose.files.length > 0,
@@ -570,7 +728,7 @@ export const routes: RouteDefinition[] = [
       let run: Record<string, unknown> | null = null;
 
       if (b.step === "docker") {
-        const check = await engineCheck(locale);
+        const check = await engineCheck(server.home, locale);
         if (!check.ready) {
           const [reason] = check.reasons as LifecycleReason[];
           throw new HttpError(409, reason?.code ?? "ENGINE_NOT_INSTALLED", reason?.message ?? "", reason?.action.label ?? null, { reasons: check.reasons, engine: check.state });
@@ -635,7 +793,7 @@ export const routes: RouteDefinition[] = [
     timeoutMs: 60_000,
     async handler({ query, server }) {
       if (server.policyMode) guard(server);
-      return { status: 200, json: { schemaVersion: 1, status: "OK", ...(await engineCheck(localeOf(query.locale))) } };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", ...(await engineCheck(server.home, localeOf(query.locale))) } };
     },
   },
   {
@@ -653,15 +811,43 @@ export const routes: RouteDefinition[] = [
       const state = current(server);
       const need = diskRequirement(pin);
       const reasons = [...status.reasons, ...status.warnings].filter((r) => r.code.startsWith("IMAGE_") || r.code.startsWith("DATA_") || r.code === "DISK_LOW");
+      const t = translator("setup", locale);
+      const catalogue = imageToolCatalogue(process.env);
+      const tools = Object.entries(catalogue?.tools ?? {})
+        .sort(([a], [b]) => a.localeCompare(b, "en"))
+        .map(([name, version]) => {
+          const about = TOOL_ABOUT[name];
+          return { name, version, license: about?.license ?? null, purpose: about?.purpose ?? null, purposeText: about ? t(`setup_purpose_${about.purpose.replace(/-/g, "_")}`) : null };
+        });
+      const ages = new Map(status.data.databases.map((d) => [d.id, d]));
+      const databases = DATABASE_IDS.map((id) => {
+        const about = DATABASE_ABOUT[id];
+        const age = ages.get(id);
+        return { id, name: about.name, source: about.source, sizeBytes: about.approxBytes, approximate: true, usedBy: about.usedBy, state: age?.state ?? "missing", fetchedAt: age?.fetchedAt ?? null };
+      });
+      const dataBytes = databases.reduce((sum, d) => sum + d.sizeBytes, 0);
+      // What is already on the machine does not count again: the image when it is there, the data when it is fresh.
+      const imageThere = status.mode === "in-image" || status.image.state === "ready";
+      const pendingData = databases.filter((d) => d.state !== "fresh").reduce((sum, d) => sum + d.sizeBytes, 0);
       return {
         status: 200,
         json: {
           schemaVersion: 1,
           status: "OK",
           mode: status.mode,
-          image: { state: status.image.state, reference: status.image.reference, version: status.image.version, sizeBytes: pin.sizeBytes },
-          disk: { freeMb: status.disk.freeMb, requiredMb: need.totalMb },
-          data: { state: status.data.state, databases: status.data.databases },
+          image: {
+            state: status.image.state,
+            name: pin.name,
+            reference: status.image.reference,
+            version: status.image.version ?? catalogue?.imageVersion ?? pin.imageVersion,
+            sizeBytes: pin.sizeBytes,
+            downloadBytes: need.compressedBytes,
+            diskBytes: need.uncompressedBytes,
+            tools,
+          },
+          totals: { downloadBytes: need.compressedBytes + dataBytes, diskBytes: need.uncompressedBytes + dataBytes, pendingDownloadBytes: (imageThere ? 0 : need.compressedBytes) + pendingData, pendingDiskBytes: (imageThere ? 0 : need.uncompressedBytes) + pendingData },
+          disk: { freeMb: status.disk.freeMb, requiredMb: need.totalMb, freeBytes: status.disk.freeMb === null ? null : status.disk.freeMb * 1024 * 1024 },
+          data: { state: status.data.state, volume: DATA_VOLUME, databases },
           jobs: { pull: jobState(server, state.jobs.pull), data: jobState(server, state.jobs.data) },
           reasons,
           command: "jgates setup",
@@ -685,9 +871,10 @@ export const routes: RouteDefinition[] = [
     // Step 3: the components as discovery sees them, the vocabulary of the selects and the compose files.
     method: "GET",
     path: "/api/setup/project",
-    handler({ server }) {
+    query: LOCALE_QUERY,
+    handler({ query, server }) {
       guard(server);
-      return { status: 200, json: projectInfo(server, current(server)) };
+      return { status: 200, json: projectInfo(server, current(server), localeOf(query.locale)) };
     },
   },
   {
@@ -770,11 +957,62 @@ export const routes: RouteDefinition[] = [
     // "Refazer a configuração guiada": the wizard opens again with the current values.
     method: "POST",
     path: "/api/setup/reopen",
-    body: { type: "object", additionalProperties: false },
-    handler({ server }) {
-      guard(server);
+    // An explicit action ("Abrir o assistente" on #/setup): it starts at the chosen step (one whose previous steps are
+    // settled) and, once the project has its configuration, it lives on #/setup only: the overview stays the overview (D13).
+    body: { type: "object", properties: { step: STEP, locale: LOCALE }, additionalProperties: false },
+    handler({ body, server }) {
+      const b = body as { step?: SetupStepId; locale?: string };
+      const locale = localeOf(b.locale);
+      guard(server, locale);
       const state = readState(server) ?? freshState();
-      return { status: 200, json: view(server, writeState(server, { ...state, completed: false, step: "docker", run: null })) };
+      const step = b.step ?? "docker";
+      if (!reachable(state, step)) throw new HttpError(409, "SETUP_STEP_UNREACHABLE", translator("setup", locale)("setup_step_unreachable"), null, { step: state.step });
+      return { status: 200, json: view(server, writeState(server, { ...state, completed: false, reopened: configured(server), step, run: null })) };
+    },
+  },
+  {
+    // Step 1: the runtime JGates uses (docker, podman, or another executable), saved in the user's preferences: the next
+    // engine call of this server and every CLI command of the same data folder use it. JGATES_CONTAINER_RUNTIME still wins.
+    method: "PUT",
+    path: "/api/setup/runtime",
+    body: {
+      type: "object",
+      properties: { runtime: { enum: [...NAMED_RUNTIMES, "custom"] }, path: { type: "string", minLength: 1, maxLength: 1024 }, locale: LOCALE },
+      required: ["runtime"],
+      additionalProperties: false,
+    },
+    handler({ body, server }) {
+      const b = body as { runtime: "docker" | "podman" | "custom"; path?: string; locale?: string };
+      const locale = localeOf(b.locale);
+      const t = translator("setup", locale);
+      guard(server, locale);
+      let value: string = b.runtime;
+      if (b.runtime === "custom") {
+        const p = (b.path ?? "").trim();
+        if (!validRuntimeValue(p) || (NAMED_RUNTIMES as readonly string[]).includes(p)) throw new HttpError(422, "RUNTIME_PATH_INVALID", t("setup_runtime_path_invalid"), t("setup_runtime_path_invalid_fix"));
+        if (!fs.existsSync(p) || !fs.statSync(p).isFile()) throw new HttpError(422, "RUNTIME_PATH_MISSING", t("setup_runtime_test_missing", { path: p }), t("setup_runtime_path_invalid_fix"));
+        value = p;
+      }
+      writePreferences(server.home, { ...readPreferences(server.home), containerRuntime: value });
+      // The cached engine answers belong to the previous runtime.
+      invalidateEngineFacts();
+      server.log(`setup runtime ${b.runtime}`);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", runtime: runtimeInfo(server.home) } };
+    },
+  },
+  {
+    // "Testar": whether another executable answers as a container engine, before it is saved.
+    method: "POST",
+    path: "/api/setup/runtime/test",
+    body: { type: "object", properties: { path: { type: "string", minLength: 1, maxLength: 1024 }, locale: LOCALE }, required: ["path"], additionalProperties: false },
+    timeoutMs: 60_000,
+    async handler({ body, server }) {
+      const b = body as { path: string; locale?: string };
+      const locale = localeOf(b.locale);
+      guard(server, locale);
+      const p = b.path.trim();
+      if (!validRuntimeValue(p)) throw new HttpError(422, "RUNTIME_PATH_INVALID", translator("setup", locale)("setup_runtime_path_invalid"), translator("setup", locale)("setup_runtime_path_invalid_fix"));
+      return { status: 200, json: { schemaVersion: 1, status: "OK", ...(await testRuntime(p, locale)) } };
     },
   },
   {

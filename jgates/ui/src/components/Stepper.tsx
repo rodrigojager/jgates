@@ -7,6 +7,8 @@ export interface StepperStep {
   disabled?: boolean;
   /** Finished: shows a check instead of its number. */
   done?: boolean;
+  /** Why a disabled step cannot be opened yet (what unlocks it), shown as its tooltip and given to assistive technology. */
+  hint?: string;
 }
 
 /**
@@ -25,6 +27,7 @@ export function Stepper({ steps, current, onSelect, label }: { steps: StepperSte
               data-state={step.done ? "done" : current === step.id ? "current" : "todo"}
               onClick={() => onSelect(step.id)}
               disabled={step.disabled === true}
+              {...(step.disabled && step.hint ? { title: step.hint, "aria-description": step.hint } : {})}
               {...(current === step.id ? { "aria-current": "step" as const } : {})}
             >
               {step.label}

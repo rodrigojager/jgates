@@ -4,6 +4,7 @@
 // the one the release pins (or JGATES_TOOLS_IMAGE for a development image). There is no local runner and no image to
 // prepare per instance.
 import { findOnPath } from "../../core/bridge/index.js";
+import { engineRuntime } from "../../core/engine/index.js";
 import { DOCKER_CLIENT_ENV } from "../../core/runner/index.js";
 import { probeImageTool } from "../../core/tools-image/catalogue.js";
 import { toolsImageTarget } from "../../core/tools-image/index.js";
@@ -14,9 +15,9 @@ export type ImageProblem = "not_in_image";
 /** The legacy sidecar image (quality-gate/Dockerfile) of the bridge's container mode and of `trivy image` scans. */
 export const SIDECAR_IMAGE = "jgates/quality-sidecar:latest";
 
-/** JGATES_CONTAINER_RUNTIME (default docker), looked up on the PATH. */
+/** The engine's runtime (JGATES_CONTAINER_RUNTIME, the user's preference, else docker), looked up on the PATH. */
 export function containerRuntime(env: NodeJS.ProcessEnv): { name: string; path: string | null } {
-  const name = env.JGATES_CONTAINER_RUNTIME?.trim() || "docker";
+  const name = engineRuntime(env);
   return { name, path: findOnPath(name, env) };
 }
 
@@ -43,7 +44,7 @@ export function runtimeClientEnv(env: NodeJS.ProcessEnv): Record<string, string>
   return out;
 }
 
-/** The tools image and the scanner's version in it, with the runtime client (JGATES_CONTAINER_RUNTIME, default docker). */
+/** The tools image and the scanner's version in it, with the runtime client (see containerRuntime). */
 export function probeScannerImage(env: NodeJS.ProcessEnv, toolName: string): ScannerImageProbe {
   const { name: runtimeName, path: runtime } = containerRuntime(env);
   let image: string | null;

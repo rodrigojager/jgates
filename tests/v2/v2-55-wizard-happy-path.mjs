@@ -320,11 +320,17 @@ test("V2-55: the wizard's six steps in order, the pull in the background while s
     }, 180_000);
     assert.ok(dockerCalls().some((c) => c[0] === "run" && c.includes("org.jgates.kind=step")), "the first run ran its steps in containers");
 
-    // "Refazer a configuração guiada" opens it again with the current values.
+    // "Refazer a configuração guiada" opens it again with the current values, on #/setup only: the overview stays the
+    // overview (D13). It can start at a chosen step.
     const reopened = await call("POST", "/api/setup/reopen", {});
     assert.equal(reopened.status, 200, reopened.text);
-    assert.equal(reopened.json.open, true);
+    assert.equal(reopened.json.open, false);
+    assert.equal(reopened.json.reopened, true);
+    assert.equal(reopened.json.setup.completed, false);
     assert.equal(reopened.json.setup.step, "docker");
+    const atProject = await call("POST", "/api/setup/reopen", { step: "project" });
+    assert.equal(atProject.status, 200, atProject.text);
+    assert.equal(atProject.json.setup.step, "project");
     assert.equal(reopened.json.setup.choices.profile, "minimal");
     const closed = await call("POST", "/api/setup/close", {});
     assert.equal(closed.json.open, false);

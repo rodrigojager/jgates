@@ -17,6 +17,8 @@ export interface JobRef {
 export interface SetupView {
   open: boolean;
   started: boolean;
+  /** Opened again on purpose (#/setup) once the project had its configuration: the overview stays the overview. */
+  reopened?: boolean;
   configured: boolean;
   setup: {
     step: StepId;
@@ -33,24 +35,79 @@ export interface Reason extends EnvironmentReason {
   recipe?: { id: string; available: boolean; commands?: string[]; reason?: string; sudo?: boolean };
 }
 
+export interface Requirement {
+  id: "engine" | "memory" | "disk" | "cpus";
+  state: "ok" | "warn" | "error" | "unknown";
+  blocking: boolean;
+  value: number | string | null;
+  need: number | null;
+  unit: "mb" | "count" | null;
+  message: string;
+}
+
+export type RuntimeId = "docker" | "podman" | "custom";
+
+export interface RuntimeInfo {
+  /** The executable in use. */
+  current: string;
+  selected: RuntimeId;
+  /** The path of another executable, when that is the choice. */
+  path: string | null;
+  source: "env" | "preference" | "default";
+  /** JGATES_CONTAINER_RUNTIME, when it is set: it wins over the choice. */
+  envOverride: string | null;
+  options: Array<{ id: RuntimeId; found: string | null }>;
+}
+
 export interface DockerCheck {
   ready: boolean;
   state: "ready" | "not-installed" | "stopped" | "low-memory" | "unsupported";
   mode: "container" | "in-image";
-  facts: { serverVersion: string | null; os: string | null; arch: string | null; memoryMb: number | null; cpus: number | null } | null;
+  facts: { serverVersion: string | null; os: string | null; arch: string | null; memoryMb: number | null; cpus: number | null; diskFreeMb?: number | null } | null;
+  requirements: Requirement[];
+  runtime: RuntimeInfo;
   reasons: Reason[];
   command: string;
 }
 
+export interface RuntimeTest {
+  ok: boolean;
+  version: string | null;
+  message: string;
+  details: string | null;
+}
+
+export interface ImageTool {
+  name: string;
+  version: string;
+  license: string | null;
+  purpose: string | null;
+  purposeText: string | null;
+}
+
+export interface SecurityDatabase {
+  id: string;
+  name: string;
+  source: string;
+  sizeBytes: number;
+  approximate: boolean;
+  usedBy: string;
+  state: "fresh" | "stale" | "missing";
+  fetchedAt: string | null;
+}
+
 export interface ToolsInfo {
   mode: "container" | "in-image";
-  image: { state: "ready" | "missing" | "version-mismatch" | "unknown"; reference: string; version: string | null; sizeBytes: number };
-  disk: { freeMb: number | null; requiredMb: number };
-  data: { state: "fresh" | "stale" | "missing" };
+  image: { state: "ready" | "missing" | "version-mismatch" | "unknown"; name: string; reference: string; version: string | null; sizeBytes: number; downloadBytes: number; diskBytes: number; tools: ImageTool[] };
+  totals: { downloadBytes: number; diskBytes: number; pendingDownloadBytes: number; pendingDiskBytes: number };
+  disk: { freeMb: number | null; requiredMb: number; freeBytes: number | null };
+  data: { state: "fresh" | "stale" | "missing"; volume: string; databases: SecurityDatabase[] };
   jobs: { pull: JobRef | null; data: JobRef | null };
   reasons: Reason[];
   command: string;
 }
+
+export type FieldState = "declared" | "detected" | "ambiguous" | "unknown" | "none" | "unsupported" | "found" | "missing";
 
 export interface ProjectComponent {
   id: string;
@@ -59,6 +116,9 @@ export interface ProjectComponent {
   reasonCode: string;
   language: string | null;
   framework: string | null;
+  /** "Projeto Python na pasta raiz". */
+  sentence: string;
+  fields: Record<"language" | "framework" | "manager" | "lockfile", { state: FieldState; reason: string | null }>;
   evidence: string[];
   dependencies: {
     ecosystem: string;
@@ -74,7 +134,7 @@ export interface ProjectComponent {
 
 export interface ProjectInfo {
   components: ProjectComponent[];
-  vocabulary: Array<{ id: string; label: string; supported: boolean; frameworks: Array<{ id: string; label: string }> }>;
+  vocabulary: Array<{ id: string; label: string; supported: boolean; frameworks: Array<{ id: string; label: string }>; managers: string[] }>;
   compose: { files: string[]; services: Array<{ name: string; image: string | null; role: string | null; hostEffects: string[] }> };
   servicesDefault: boolean;
   command: string;
@@ -115,14 +175,16 @@ export const gotoStep = (step: StepId): Promise<SetupView> => api<SetupView>("PU
 export const advance = (step: StepId, payload: Record<string, unknown> = {}): Promise<SetupView & { written: string[]; run?: { id: string } }> =>
   api("POST", "/api/setup/advance", { step, locale: locale(), ...payload });
 export const fetchDocker = (): Promise<DockerCheck> => api<DockerCheck>("GET", `/api/setup/docker${q()}`);
+export const saveRuntime = (runtime: RuntimeId, path?: string): Promise<{ runtime: RuntimeInfo }> => api("PUT", "/api/setup/runtime", { runtime, ...(path ? { path } : {}), locale: locale() });
+export const testRuntime = (path: string): Promise<RuntimeTest> => api<RuntimeTest>("POST", "/api/setup/runtime/test", { path, locale: locale() });
 export const fetchTools = (): Promise<ToolsInfo> => api<ToolsInfo>("GET", `/api/setup/tools${q()}`);
 export const startDownloads = (): Promise<SetupView> => api<SetupView>("POST", "/api/setup/downloads", { locale: locale() });
-export const fetchProject = (): Promise<ProjectInfo> => api<ProjectInfo>("GET", "/api/setup/project");
+export const fetchProject = (): Promise<ProjectInfo> => api<ProjectInfo>("GET", `/api/setup/project${q()}`);
 export const fetchProfiles = (): Promise<ProfilesInfo> => api<ProfilesInfo>("GET", "/api/setup/profiles");
 export const previewConfig = (profile: string): Promise<{ files: Array<{ file: string; exists: boolean; before: string | null; text: string }> }> => api("POST", "/api/setup/config/preview", { profile });
 export const fetchDependencies = (): Promise<DependenciesInfo> => api<DependenciesInfo>("GET", `/api/setup/dependencies${q()}`);
 export const prepareDependencies = (): Promise<SetupView> => api<SetupView>("POST", "/api/setup/dependencies", { locale: locale() });
-export const reopenSetup = (): Promise<SetupView> => api<SetupView>("POST", "/api/setup/reopen", {});
+export const reopenSetup = (step: StepId = "docker"): Promise<SetupView> => api<SetupView>("POST", "/api/setup/reopen", { step, locale: locale() });
 export const closeSetup = (): Promise<SetupView> => api<SetupView>("POST", "/api/setup/close", { locale: locale() });
 
 /** Bytes as "2,4 GB" in the language of the screen. */
