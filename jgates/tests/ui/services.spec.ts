@@ -65,6 +65,9 @@ const dockerCalls = (engine: string): string[][] => {
   return fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as string[]) : [];
 };
 
+/** The steps of the Stepper: files, roles, target, review. */
+const goStep = (page: Page, id: "files" | "roles" | "target" | "review") => page.locator(`button[data-step="${id}"]`).click();
+
 async function noSidewaysScroll(page: Page, where: string): Promise<void> {
   const extra = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(extra, `${where}: the page scrolls sideways`).toBeLessThanOrEqual(0);
@@ -83,6 +86,14 @@ for (const width of [1280, 375]) {
 
       // The compose file is found and the three services listed with a suggested role.
       await expect(page.getByRole("checkbox", { name: "docker-compose.yml" })).toBeChecked();
+
+      // The sections are the steps of the shared Stepper: files, roles, target, review; one is current at a time.
+      const steps = page.getByRole("navigation", { name: "Etapas da configuração dos serviços" });
+      await expect(steps.locator("ol.stepper > li button")).toHaveText(["Arquivos", "Papéis", "Alvo", "Revisão"]);
+      await expect(steps.locator('[aria-current="step"]')).toHaveAttribute("data-step", "files");
+      await page.getByTestId("svc-next").focus();
+      await page.keyboard.press("Enter");
+      await expect(steps.locator('[aria-current="step"]')).toHaveAttribute("data-step", "roles");
       const cards = page.getByTestId("svc-service");
       await expect(cards).toHaveCount(3);
       await expect(cards.filter({ hasText: "Sugestão: aplicação testada" })).toHaveAttribute("data-service", "api");
@@ -101,6 +112,7 @@ for (const width of [1280, 375]) {
       for (const name of ["db", "api", "worker"]) expect(await role(name).evaluate((el) => el.tagName)).toBe("SELECT");
       await role("worker").selectOption("unused");
       await expect(page.locator('[data-service="worker"]')).toContainText("(não será iniciado)");
+      await page.getByTestId("svc-next").click();
       await expect(page.getByTestId("svc-app-service")).toHaveValue("api");
       expect(await page.getByTestId("svc-app-port").evaluate((el) => el.tagName)).toBe("SELECT");
       await expect(page.getByTestId("svc-app-port").locator("option")).toHaveText(["8000", "9000"]);
@@ -123,6 +135,7 @@ for (const width of [1280, 375]) {
       expect(compose("down")[0]).toContain("--volumes");
 
       // Preview: the diff of jgates.yml; the host effects ask for one acknowledgement before saving.
+      await page.getByTestId("svc-next").click();
       await page.getByTestId("svc-preview").click();
       const panel = page.getByTestId("svc-preview-panel");
       await expect(panel).toBeVisible();
@@ -152,7 +165,9 @@ for (const width of [1280, 375]) {
       expect(api.roles).toEqual({ api: "application", db: "dependency", worker: "unused" });
       // The acknowledgement is kept for this selection: no second question for the same files.
       expect(api.acknowledged).toBe(true);
+      await goStep(page, "roles");
       await expect(role("worker")).toHaveValue("unused");
+      await goStep(page, "review");
       await page.getByTestId("svc-preview").click();
       await expect(page.getByTestId("svc-ack-panel")).toHaveCount(0);
       await expect(page.getByTestId("svc-preview-panel")).toContainText("Nada muda");
@@ -170,16 +185,21 @@ test("making another service the application moves the role, a missing port bloc
     server = await startServer(fixture);
     const base = await openApp(page, server);
     await page.goto(`${base}#/config/services`);
+    await goStep(page, "roles");
     await expect(page.getByTestId("svc-service")).toHaveCount(3);
 
     // Making a second service the application moves the role: only one service is under test.
     await page.getByTestId("svc-role-worker").selectOption("application");
     await expect(page.getByTestId("svc-role-api")).toHaveValue("dependency");
+    await goStep(page, "target");
     await expect(page.getByTestId("svc-app-service")).toHaveValue("worker");
     // The worker declares no port: a number field appears, and the preview waits for it.
     expect(await page.getByTestId("svc-app-port").evaluate((el) => el.tagName)).toBe("INPUT");
+    await goStep(page, "review");
     await expect(page.getByTestId("svc-preview")).toBeDisabled();
+    await goStep(page, "target");
     await page.getByTestId("svc-app-port").fill("8080");
+    await goStep(page, "review");
     await expect(page.getByTestId("svc-preview")).toBeEnabled();
 
     // The API refuses a stale revision and an unknown service with their codes.
@@ -212,14 +232,20 @@ test("no screen of the services flow takes free text where the values are known 
     server = await startServer(fixture);
     const base = await openApp(page, server);
     await page.goto(`${base}#/config/services`);
+    // The known sets are selects (role, service, port, timeout) or checkboxes (files, services, effects); every step is checked.
+    await expect(page.getByRole("checkbox", { name: "docker-compose.yml" })).toBeVisible();
+    expect(await expectNoKnownSetAsText(page, "body", "services files")).toBeGreaterThan(0);
+    await goStep(page, "roles");
     await expect(page.getByTestId("svc-service")).toHaveCount(3);
+    for (const testid of ["svc-role-db", "svc-role-api", "svc-role-worker"]) expect(await page.getByTestId(testid).evaluate((el) => el.tagName), testid).toBe("SELECT");
+    await expectNoKnownSetAsText(page, "body", "services roles");
+    await goStep(page, "target");
+    for (const testid of ["svc-app-service", "svc-app-port"]) expect(await page.getByTestId(testid).evaluate((el) => el.tagName), testid).toBe("SELECT");
+    expect(await expectNoKnownSetAsText(page, "body", "services target")).toBeGreaterThan(0);
+    await goStep(page, "review");
     await page.getByTestId("svc-customize").locator("summary").click();
-
-    // The known sets are selects (role, service, port, timeout) or checkboxes (files, services, effects).
-    for (const testid of ["svc-role-db", "svc-role-api", "svc-role-worker", "svc-app-service", "svc-app-port", "svc-timeout"]) {
-      expect(await page.getByTestId(testid).evaluate((el) => el.tagName), testid).toBe("SELECT");
-    }
-    expect(await expectNoKnownSetAsText(page, "body", "services")).toBeGreaterThan(0);
+    expect(await page.getByTestId("svc-timeout").evaluate((el) => el.tagName)).toBe("SELECT");
+    await expectNoKnownSetAsText(page, "body", "services review");
 
     // The declare-component dialog of the workspace (a language is chosen, never typed, unless "Outro…").
     await page.goto(`${base}#/workspace`);

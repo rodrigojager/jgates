@@ -14,3 +14,7 @@
 @media (max-width: 640px) {
   .tpl-row { flex-direction: column; }
 }
+.tpl-chips, .tpl-args { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.tpl-args { flex-direction: column; flex-wrap: nowrap; }
+.tpl-chip { align-items: center; gap: 6px; }
+.tpl-chip code { overflow-wrap: anywhere; }

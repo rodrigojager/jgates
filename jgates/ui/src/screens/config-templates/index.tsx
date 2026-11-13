@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
+import { Dialog, ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { Switch } from "../config-profiles/switch";
-import { CreateTemplate } from "./create";
+import { TemplateWizard } from "./create";
 import { TemplateDetail } from "./detail";
 import "./config-templates.css";
 
@@ -30,6 +30,7 @@ export interface TemplateRow {
   support: { level: string; uncovered: string[] } | null;
   extends: string[];
   problem: string | null;
+  unreferenced: boolean;
 }
 
 interface TemplatesView {
@@ -54,6 +55,8 @@ export default function ConfigTemplatesScreen() {
   const toast = useToast();
   const [revision, setRevision] = useState(0);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -83,6 +86,38 @@ export default function ConfigTemplatesScreen() {
     }
   };
 
+  const adopt = async (row: TemplateRow) => {
+    setBusy(row.id);
+    setError(null);
+    try {
+      const answer = await api<TemplatesView>("POST", `/api/config/templates/${encodeURIComponent(row.id)}/adopt`, { expectedRevision: v.revision });
+      toast(t("cft_adopted", { id: row.id }), "ok");
+      if (answer?.templates) view.prime(answer);
+      else refresh();
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const remove = async (id: string) => {
+    setBusy(id);
+    setError(null);
+    try {
+      const answer = await api<TemplatesView>("DELETE", `/api/config/templates/${encodeURIComponent(id)}?expectedRevision=${v.revision ?? ""}`);
+      toast(t("cft_deleted", { id }), "ok");
+      setDeleting(null);
+      if (answer?.templates) view.prime(answer);
+      else refresh();
+    } catch (e) {
+      setDeleting(null);
+      setError(e);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const list = (rows: TemplateRow[], title: string, testId: string) => (
     <section className="stack" aria-labelledby={`${testId}-title`}>
       <h2 id={`${testId}-title`}>{title}</h2>
@@ -100,6 +135,7 @@ export default function ConfigTemplatesScreen() {
                   <span data-testid="tpl-badge">
                     <Pill tone={badge.tone}>{badge.text}</Pill>
                   </span>
+                  {row.unreferenced ? <Pill tone="gold">{t("cft_unreferenced")}</Pill> : null}
                   {row.support ? <Pill>{t("cft_support", { level: tOr(`cft_support_${row.support.level}`, row.support.level) })}</Pill> : null}
                 </div>
                 {row.description ? <p className="small muted">{row.description}</p> : null}
@@ -109,12 +145,29 @@ export default function ConfigTemplatesScreen() {
                   </p>
                 ) : null}
                 {locked ? <p className="small muted tpl-reason">{locked}</p> : null}
+                {row.unreferenced ? <p className="small muted tpl-reason">{t("cft_unreferenced_help", { source: row.source })}</p> : null}
               </div>
               <div className="row tpl-actions">
                 <button type="button" className="btn" aria-label={t("cft_details_aria", { name: row.label })} onClick={() => setOpen(row.id)}>
                   {t("cft_details")}
                 </button>
-                <Switch checked={row.enabled} label={t("cft_toggle_aria", { name: row.label })} disabled={locked !== null || busy === row.id} pending={busy === row.id} onChange={(next) => toggle(row, next)} />
+                {row.origin === "project" ? (
+                  <button type="button" className="btn" disabled={governedReason !== null || busy === row.id} aria-label={t("cft_edit_aria", { name: row.label })} onClick={() => setEditing(row.id)}>
+                    {t("cft_edit")}
+                  </button>
+                ) : null}
+                {row.origin === "project" ? (
+                  <button type="button" className="btn" disabled={governedReason !== null || busy === row.id || (row.required && row.declared)} aria-label={t("cft_delete_aria", { name: row.label })} onClick={() => setDeleting(row.id)}>
+                    {t("cft_delete")}
+                  </button>
+                ) : null}
+                {row.unreferenced ? (
+                  <button type="button" className="btn primary" disabled={governedReason !== null || busy === row.id} aria-label={t("cft_adopt_aria", { name: row.label })} onClick={() => void adopt(row)}>
+                    {t("cft_adopt")}
+                  </button>
+                ) : (
+                  <Switch checked={row.enabled} label={t("cft_toggle_aria", { name: row.label })} disabled={locked !== null || busy === row.id} pending={busy === row.id} onChange={(next) => toggle(row, next)} />
+                )}
               </div>
             </li>
           );
@@ -176,16 +229,38 @@ export default function ConfigTemplatesScreen() {
         </ol>
       </section>
 
-      {creating ? (
-        <CreateTemplate
+      {creating || editing ? (
+        <TemplateWizard
           folder={v.folder}
-          onClose={() => setCreating(false)}
-          onCreated={(id) => {
+          editing={editing}
+          revision={v.revision}
+          onClose={() => {
             setCreating(false);
-            toast(t("cft_created", { id, folder: v.folder }), "ok");
+            setEditing(null);
+          }}
+          onDone={(id) => {
+            const wasEditing = editing !== null;
+            setCreating(false);
+            setEditing(null);
+            toast(wasEditing ? t("cft_edited", { id }) : t("cft_created", { id, folder: v.folder }), "ok");
             refresh();
           }}
         />
+      ) : null}
+      {deleting ? (
+        <Dialog title={t("cft_delete_title", { id: deleting })} onClose={() => setDeleting(null)}>
+          <div className="stack" data-testid="delete-template">
+            <p>{t("cft_delete_lead", { id: deleting })}</p>
+            <div className="row">
+              <button type="button" className="btn primary" disabled={busy === deleting} onClick={() => void remove(deleting)}>
+                {t("cft_delete_confirm")}
+              </button>
+              <button type="button" className="btn" onClick={() => setDeleting(null)}>
+                {t("cancel")}
+              </button>
+            </div>
+          </div>
+        </Dialog>
       ) : null}
       {open ? <TemplateDetail id={open} onClose={() => setOpen(null)} /> : null}
     </div>

@@ -13,6 +13,7 @@ import { type ResolveIssue } from "../../core/config/resolve/index.js";
 import { templateOps } from "../../core/config/resolve/layers.js";
 import { TemplateGraph } from "../../core/config/resolve/templates.js";
 import { builtinTemplateText } from "../../core/catalog/index.js";
+import { unifiedDiff } from "../../core/documents/diff.js";
 import type { Classification } from "../../core/discovery/types.js";
 import { getLocale } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
@@ -110,6 +111,34 @@ interface Row {
   support: { level: string; uncovered: string[] } | null;
   extends: string[];
   problem: string | null;
+  /** A file in .jgates/templates/ that jgates.yml does not reference ("Usar neste projeto"). */
+  unreferenced: boolean;
+}
+
+const normalizeSource = (source: unknown): string => (typeof source === "string" ? source.replace(/\\/g, "/").replace(/^\.\//, "") : "");
+
+/** The template files of the project (.jgates/templates/*.yml), with the identifier each one answers to. */
+function projectTemplateFiles(server: ServerContext): Array<{ id: string; source: string }> {
+  const dir = path.join(server.projectDir, TEMPLATES_DIR);
+  let names: string[];
+  try {
+    names = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isFile() && /\.ya?ml$/i.test(e.name)).map((e) => e.name).sort();
+  } catch {
+    return [];
+  }
+  const out: Array<{ id: string; source: string }> = [];
+  for (const name of names) {
+    const source = `${TEMPLATES_DIR}/${name}`;
+    let id = name.replace(/\.ya?ml$/i, "");
+    try {
+      const value = parseYamlText(fs.readFileSync(path.join(dir, name), "utf8"), source).value;
+      if (isRec(value) && typeof value.id === "string" && new RegExp(ID_PATTERN).test(value.id)) id = value.id;
+    } catch {
+      // An unreadable file is listed under its name; the row says so.
+    }
+    if (new RegExp(ID_PATTERN).test(id)) out.push({ id, source });
+  }
+  return out;
 }
 
 /** Approvable components a match selects (a template without a match selects none: it is applied by activation). */
@@ -153,12 +182,16 @@ function buildDescription(server: ServerContext): Rec {
   const states = new Map([...resolved.templates.active, ...resolved.templates.inactive].map((s) => [s.id, s]));
   const components = projectInventory(server.projectDir).classifications.filter((c) => c.approvable);
 
-  const entries: Array<{ id: string; entry: Rec; declared: boolean }> = [];
+  const entries: Array<{ id: string; entry: Rec; declared: boolean; unreferenced?: boolean }> = [];
   for (const raw of declaredList ?? []) if (isRec(raw) && typeof raw.id === "string") entries.push({ id: raw.id, entry: raw, declared: true });
   if (declaredList === null) for (const [id, s] of states) entries.push({ id, entry: { source: s.source }, declared: false });
   for (const item of listBuiltinTemplates()) if (!entries.some((e) => e.entry.source === item.ref || e.id === item.id)) entries.push({ id: item.id, entry: { source: item.ref, enabled: false }, declared: false });
+  for (const file of projectTemplateFiles(server)) {
+    if (entries.some((e) => normalizeSource(e.entry.source) === file.source || e.id === file.id)) continue;
+    entries.push({ id: file.id, entry: { source: file.source, enabled: false }, declared: false, unreferenced: true });
+  }
 
-  const rows: Row[] = entries.map(({ id, entry, declared }) => {
+  const rows: Row[] = entries.map(({ id, entry, declared, unreferenced }) => {
     const source = typeof entry.source === "string" ? entry.source : "";
     const node = loadSource(server, source);
     const value = node?.value ?? {};
@@ -184,6 +217,7 @@ function buildDescription(server: ServerContext): Rec {
       support,
       extends: strings(value.extends),
       problem: node === null ? "Arquivo do template não encontrado ou ilegível." : null,
+      unreferenced: unreferenced === true,
     };
   });
   rows.sort((a, b) => Number(b.required) - Number(a.required) || (a.origin === b.origin ? a.id.localeCompare(b.id) : a.origin === "project" ? -1 : 1));
@@ -218,7 +252,39 @@ function detail(server: ServerContext, id: string): Rec {
   });
   const loaded = loadSource(server, row.source);
   const yamlText = loaded ? (row.source.startsWith("builtin:") ? stringify(loaded.value, { lineWidth: 0 }) : fs.readFileSync(path.join(server.projectDir, row.source), "utf8")) : "";
-  return { schemaVersion: 1, status: "OK", template: row, chain, errors, yaml: { text: yamlText, file: loaded?.file ?? row.source, readOnly: row.origin === "builtin" } };
+  const model = row.origin === "project" && loaded ? editableModel(loaded.value, id) : null;
+  return { schemaVersion: 1, status: "OK", template: row, chain, errors, model, yaml: { text: yamlText, file: loaded?.file ?? row.source, readOnly: row.origin === "builtin" } };
+}
+
+/** The key of the generic-command check a project template file declares (the model of "Criar template"), or null. */
+function checkKey(value: Rec, id: string): string | null {
+  const config = isRec(value.config) ? value.config : null;
+  const tools = config && isRec(config.tools) ? config.tools : null;
+  if (!tools) return null;
+  const generic = Object.entries(tools).filter(([, tool]) => isRec(tool) && tool.adapter === "generic-command" && typeof tool.command === "string");
+  const own = generic.find(([key]) => key === `${id}-check`);
+  return (own ?? (generic.length === 1 ? generic[0] : undefined))?.[0] ?? null;
+}
+
+/** What the guided editor can edit: a file with one generic-command check. A hand-written shape is edited as YAML. */
+function editableModel(value: Rec, id: string): Rec | null {
+  const key = checkKey(value, id);
+  if (key === null) return null;
+  const tool = ((value.config as Rec).tools as Rec)[key] as Rec;
+  const inner = isRec(tool.config) ? tool.config : {};
+  const match = isRec(value.match) ? value.match : {};
+  const evidence = isRec(inner.evidence) ? inner.evidence : { kind: "exit-code" };
+  const effects = isRec(inner.effects) ? inner.effects : {};
+  return {
+    label: typeof value.label === "string" ? value.label : id,
+    languages: strings(match.languages),
+    frameworks: strings(match.frameworks),
+    command: [tool.command as string, ...strings(tool.args)],
+    capability: strings(tool.capabilities)[0] ?? "",
+    effects: Object.fromEntries(EFFECTS.map((k) => [k, typeof effects[k] === "boolean" ? effects[k] : k === "readsCode" || k === "executesProjectCode"])),
+    evidence: evidence.kind === "test-runner" && typeof evidence.runner === "string" ? { kind: "test-runner", runner: evidence.runner } : { kind: "exit-code" },
+    extraCapabilities: strings(tool.capabilities).length > 1,
+  };
 }
 
 const EFFECTS = ["readsCode", "writesOutputs", "mayChangeCode", "executesProjectCode", "usesNetwork"] as const;
@@ -261,41 +327,184 @@ export function templateModel(body: CreateBody): Rec {
   };
 }
 
-function create(server: ServerContext, body: CreateBody): Rec {
+const HEADER = (id: string): string => `# Template do projeto ${id}. Estende o base e declara uma verificação por comando genérico.\n# Os efeitos declarados valem para o plano: o comando é um vetor (executável e argumentos), nunca uma linha de shell.\n`;
+
+const matchOf = (languages: string[], frameworks: string[]): Rec => ({ ...(languages.length > 0 ? { languages } : {}), ...(frameworks.length > 0 ? { frameworks } : {}) });
+
+function rootOf(server: ServerContext): { text: string; hash: string; list: unknown[] | null } {
   const root = readRevision(path.join(server.projectDir, ROOT_FILE));
   if (!root.exists) throw new HttpError(422, "ROOT_MISSING", "Não há jgates.yml neste projeto.", "Crie a configuração antes (jgates init).");
   const value = parseYamlText(root.text, ROOT_FILE).value;
-  const list = isRec(value) && Array.isArray(value.templates) ? (value.templates as unknown[]) : null;
-  if ((list ?? []).some((e) => isRec(e) && e.id === body.id) || getBuiltinTemplate(body.id)) throw new HttpError(409, "TEMPLATE_EXISTS", `Já existe um template ${body.id}.`, "Escolha outro identificador.");
-  if (body.evidence?.kind === "test-runner" && !body.evidence.runner) throw new HttpError(400, "EVIDENCE_RUNNER_REQUIRED", "O contrato test-runner precisa do runner (go-test ou cargo-test).");
+  return { text: root.text, hash: root.hash as string, list: isRec(value) && Array.isArray(value.templates) ? (value.templates as unknown[]) : null };
+}
 
+/** The edit of jgates.yml that registers a project template (the implicit base comes along when the list did not exist). */
+function registerEdit(list: unknown[] | null, id: string, relative: string, languages: string[], frameworks: string[]): YamlEdit {
+  const hasMatch = languages.length + frameworks.length > 0;
+  const entry: Rec = { id, source: relative, activation: hasMatch ? "detected" : "manual", ...(hasMatch ? { match: matchOf(languages, frameworks) } : {}) };
+  const implicit: Rec[] = [{ id: "base", source: "builtin:base", activation: "always" }];
+  return list === null ? { op: "set", path: ["templates"], value: [...implicit, entry] } : { op: "set", path: ["templates", list.length], value: entry };
+}
+
+interface Change {
+  file: string;
+  before: string | null;
+  after: string;
+}
+
+interface Plan {
+  changes: Change[];
+  /** Applies the plan: writes the files, jgates.yml last; undoes the file when jgates.yml refuses. */
+  apply(expectedRevision: string): void;
+}
+
+function checkBody(body: CreateBody): void {
+  if (body.evidence?.kind === "test-runner" && !body.evidence.runner) throw new HttpError(400, "EVIDENCE_RUNNER_REQUIRED", "O contrato test-runner precisa do runner (go-test ou cargo-test).");
+}
+
+function planCreate(server: ServerContext, body: CreateBody): Plan {
+  const root = rootOf(server);
+  if ((root.list ?? []).some((e) => isRec(e) && e.id === body.id) || getBuiltinTemplate(body.id)) throw new HttpError(409, "TEMPLATE_EXISTS", `Já existe um template ${body.id}.`, "Escolha outro identificador.");
+  checkBody(body);
   const model = templateModel(body);
   const problems = validateDocument("template", model, `${TEMPLATES_DIR}/${body.id}.yml`);
   if (problems.length > 0) throw new HttpError(422, "TEMPLATE_INVALID", `O template ficaria inválido: ${problems[0]?.message}`, null, { path: problems[0]?.path });
 
   const relative = `${TEMPLATES_DIR}/${body.id}.yml`;
   const abs = path.join(server.projectDir, relative);
-  fs.mkdirSync(path.dirname(abs), { recursive: true });
-  const header = `# Template do projeto ${body.id}. Estende o base e declara uma verificação por comando genérico.\n# Os efeitos declarados valem para o plano: o comando é um vetor (executável e argumentos), nunca uma linha de shell.\n`;
-  try {
-    fs.writeFileSync(abs, header + stringify(model, { lineWidth: 0 }), { flag: "wx", mode: 0o644 });
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new HttpError(409, "TEMPLATE_FILE_EXISTS", `O arquivo ${relative} já existe.`, "Escolha outro identificador ou apague o arquivo.");
-    throw error;
-  }
-  const languages = body.languages ?? [];
-  const frameworks = body.frameworks ?? [];
-  const hasMatch = languages.length + frameworks.length > 0;
-  const entry: Rec = { id: body.id, source: relative, activation: hasMatch ? "detected" : "manual", ...(hasMatch ? { match: { ...(languages.length > 0 ? { languages } : {}), ...(frameworks.length > 0 ? { frameworks } : {}) } } : {}) };
-  const implicit: Rec[] = [{ id: "base", source: "builtin:base", activation: "always" }];
-  const edits: YamlEdit[] = list === null ? [{ op: "set", path: ["templates"], value: [...implicit, entry] }] : [{ op: "set", path: ["templates", list.length], value: entry }];
-  try {
-    patchConfigFile(server, ROOT_FILE, "root", edits, root.hash as string);
-  } catch (error) {
-    fs.rmSync(abs, { force: true });
-    throw error;
-  }
-  server.log(`project template created: ${relative}`);
+  if (fs.existsSync(abs)) throw new HttpError(409, "TEMPLATE_FILE_EXISTS", `O arquivo ${relative} já existe.`, "Escolha outro identificador ou use o arquivo que já existe.");
+  const text = HEADER(body.id) + stringify(model, { lineWidth: 0 });
+  const edit = registerEdit(root.list, body.id, relative, body.languages ?? [], body.frameworks ?? []);
+  const rootAfter = patchYamlText(root.text, [edit]).text;
+  return {
+    changes: [
+      { file: relative, before: null, after: text },
+      { file: ROOT_FILE, before: root.text, after: rootAfter },
+    ],
+    apply(expectedRevision) {
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      try {
+        fs.writeFileSync(abs, text, { flag: "wx", mode: 0o644 });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new HttpError(409, "TEMPLATE_FILE_EXISTS", `O arquivo ${relative} já existe.`, "Escolha outro identificador ou apague o arquivo.");
+        throw error;
+      }
+      try {
+        patchConfigFile(server, ROOT_FILE, "root", [edit], expectedRevision);
+      } catch (error) {
+        fs.rmSync(abs, { force: true });
+        throw error;
+      }
+    },
+  };
+}
+
+/** Edits a project template by patch: the comments and the keys the person added by hand stay. */
+function planEdit(server: ServerContext, id: string, body: CreateBody): Plan {
+  const view = describe(server) as { templates: Row[] };
+  const row = view.templates.find((r) => r.id === id);
+  if (!row) throw new HttpError(404, "TEMPLATE_NOT_FOUND", `Não há template com o identificador ${id}.`);
+  if (row.origin !== "project") throw new HttpError(409, "TEMPLATE_BUILTIN", `O template ${id} é do catálogo e não muda aqui.`, "Crie um template do projeto que o estenda.");
+  checkBody(body);
+  const abs = path.join(server.projectDir, row.source);
+  const current = readRevision(abs);
+  if (!current.exists) throw new HttpError(404, "FILE_MISSING", `O arquivo ${row.source} não existe.`);
+  const parsed = parseYamlText(current.text, row.source).value;
+  const key = isRec(parsed) ? checkKey(parsed, id) : null;
+  if (!isRec(parsed) || key === null) throw new HttpError(422, "TEMPLATE_NOT_EDITABLE", `O template ${id} não tem o formato do modelo (uma verificação por comando genérico).`, "Edite o arquivo na aba YAML.");
+  const [command, ...args] = body.command;
+  const effects = { readsCode: true, writesOutputs: false, mayChangeCode: false, executesProjectCode: true, usesNetwork: false, ...(body.effects ?? {}) };
+  const tool = ["config", "tools", key];
+  const hasMatch = (body.languages ?? []).length + (body.frameworks ?? []).length > 0;
+  const fileEdits: YamlEdit[] = [
+    { op: "set", path: ["label"], value: body.label && body.label.trim() !== "" ? body.label.trim() : id },
+    hasMatch ? { op: "set", path: ["match"], value: matchOf(body.languages ?? [], body.frameworks ?? []) } : { op: "delete", path: ["match"] },
+    { op: "set", path: [...tool, "command"], value: command },
+    { op: "set", path: [...tool, "args"], value: args },
+    { op: "set", path: [...tool, "capabilities"], value: [body.capability] },
+    { op: "set", path: [...tool, "config", "effects"], value: effects },
+    { op: "set", path: [...tool, "config", "evidence"], value: body.evidence ?? { kind: "exit-code" } },
+  ].filter((e) => !(e.op === "delete" && !("match" in parsed))) as YamlEdit[];
+  const after = patchYamlText(current.text, fileEdits).text;
+  const problems = validateDocument("template", parseYamlText(after, row.source).value, row.source);
+  if (problems.length > 0) throw new HttpError(422, "TEMPLATE_INVALID", `O template ficaria inválido: ${problems[0]?.message}`, null, { path: problems[0]?.path });
+
+  const root = rootOf(server);
+  const index = (root.list ?? []).findIndex((e) => isRec(e) && e.id === id);
+  const entryEdits: YamlEdit[] =
+    index < 0
+      ? []
+      : [
+          { op: "set", path: ["templates", index, "activation"], value: hasMatch ? "detected" : "manual" },
+          hasMatch ? { op: "set", path: ["templates", index, "match"], value: matchOf(body.languages ?? [], body.frameworks ?? []) } : { op: "delete", path: ["templates", index, "match"] },
+        ].filter((e) => !(e.op === "delete" && !(isRec((root.list as unknown[])[index]) && "match" in ((root.list as unknown[])[index] as Rec)))) as YamlEdit[];
+  const rootAfter = entryEdits.length > 0 ? patchYamlText(root.text, entryEdits).text : root.text;
+  return {
+    changes: [
+      { file: row.source, before: current.text, after },
+      ...(rootAfter !== root.text ? [{ file: ROOT_FILE, before: root.text, after: rootAfter }] : []),
+    ],
+    apply(expectedRevision) {
+      patchYamlFile(abs, fileEdits, { expectedHash: current.hash as string });
+      if (entryEdits.length === 0) return;
+      try {
+        patchConfigFile(server, ROOT_FILE, "root", entryEdits, expectedRevision);
+      } catch (error) {
+        fs.writeFileSync(abs, current.text);
+        throw error;
+      }
+    },
+  };
+}
+
+function previewOf(plan: Plan): Rec {
+  return {
+    schemaVersion: 1,
+    status: "OK",
+    changed: plan.changes.some((c) => c.before !== c.after),
+    files: plan.changes.map((c) => ({ file: c.file, created: c.before === null, diff: unifiedDiff(c.before ?? "", c.after, { oldLabel: c.before === null ? "/dev/null" : `a/${c.file}`, newLabel: `b/${c.file}` }) })),
+  };
+}
+
+function create(server: ServerContext, body: CreateBody): Rec {
+  const root = rootOf(server);
+  planCreate(server, body).apply(root.hash);
+  server.log(`project template created: ${TEMPLATES_DIR}/${body.id}.yml`);
+  return describeAfterWrite(server);
+}
+
+function edit(server: ServerContext, id: string, body: CreateBody, expectedRevision: string): Rec {
+  planEdit(server, id, body).apply(expectedRevision);
+  server.log(`project template edited: ${id}`);
+  return describeAfterWrite(server);
+}
+
+/** "Apagar": the entry leaves jgates.yml and the file of .jgates/templates/ goes; a template of the catalogue cannot go. */
+function remove(server: ServerContext, id: string, expectedRevision: string): Rec {
+  const view = describe(server) as { templates: Row[] };
+  const row = view.templates.find((r) => r.id === id);
+  if (!row) throw new HttpError(404, "TEMPLATE_NOT_FOUND", `Não há template com o identificador ${id}.`);
+  if (row.origin !== "project") throw new HttpError(409, "TEMPLATE_BUILTIN", `O template ${id} é do catálogo e não se apaga.`, "Desligue-o em vez de apagar.");
+  if (row.activation === "always" && row.declared) throw new HttpError(409, "TEMPLATE_REQUIRED", `O template ${id} é obrigatório (aplicação sempre): apagá-lo deixaria o plano sem ele.`, "Mude a aplicação no jgates.yml se for intencional.");
+  const source = normalizeSource(row.source);
+  if (!source.startsWith(`${TEMPLATES_DIR}/`) || source.includes("..")) throw new HttpError(409, "TEMPLATE_OUTSIDE", `O arquivo ${row.source} está fora de ${TEMPLATES_DIR} e não é apagado aqui.`, "Tire o template do jgates.yml na aba YAML.");
+  const root = rootOf(server);
+  const index = (root.list ?? []).findIndex((e) => isRec(e) && e.id === id);
+  if (index >= 0) patchConfigFile(server, ROOT_FILE, "root", [{ op: "delete", path: ["templates", index] }], expectedRevision);
+  fs.rmSync(path.join(server.projectDir, source), { force: true });
+  server.log(`project template deleted: ${source}`);
+  return describeAfterWrite(server);
+}
+
+/** "Usar neste projeto": registers a file of .jgates/templates/ that jgates.yml did not reference. */
+function adopt(server: ServerContext, id: string, expectedRevision: string): Rec {
+  const view = describe(server) as { templates: Row[] };
+  const row = view.templates.find((r) => r.id === id);
+  if (!row) throw new HttpError(404, "TEMPLATE_NOT_FOUND", `Não há template com o identificador ${id}.`);
+  if (!row.unreferenced) throw new HttpError(409, "TEMPLATE_REFERENCED", `O template ${id} já está no jgates.yml.`);
+  const root = rootOf(server);
+  patchConfigFile(server, ROOT_FILE, "root", [registerEdit(root.list, id, normalizeSource(row.source), [...row.match.languages], [...row.match.frameworks])], expectedRevision);
+  server.log(`project template adopted: ${row.source}`);
   return describeAfterWrite(server);
 }
 
@@ -324,6 +533,25 @@ function setEnabled(server: ServerContext, id: string, enabled: boolean, expecte
 
 const effectsSchema = { type: "object", additionalProperties: false, properties: Object.fromEntries(EFFECTS.map((k) => [k, { type: "boolean" }])) };
 
+function createBodySchema(required: string[], extra: Rec, withId = true): Rec {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required,
+    properties: {
+      ...(withId ? { id: { type: "string", pattern: ID_PATTERN } } : {}),
+      label: { type: "string", maxLength: 120 },
+      languages: { type: "array", maxItems: 20, items: { type: "string", minLength: 1, maxLength: 60 } },
+      frameworks: { type: "array", maxItems: 20, items: { type: "string", minLength: 1, maxLength: 60 } },
+      command: { type: "array", minItems: 1, maxItems: 64, items: { type: "string", minLength: 1, maxLength: 1024, pattern: "^[^\\u0000\\n\\r]+$" } },
+      capability: { type: "string", pattern: "^[a-z][a-z0-9-]*$", maxLength: 60 },
+      effects: effectsSchema,
+      evidence: { type: "object", additionalProperties: false, required: ["kind"], properties: { kind: { enum: ["exit-code", "test-runner"] }, runner: { enum: ["go-test", "cargo-test"] } } },
+      ...extra,
+    },
+  };
+}
+
 export const routes: RouteDefinition[] = [
   {
     method: "GET",
@@ -343,29 +571,51 @@ export const routes: RouteDefinition[] = [
   {
     method: "POST",
     path: "/api/config/templates",
-    body: {
-      type: "object",
-      additionalProperties: false,
-      required: ["id", "command", "capability"],
-      properties: {
-        id: { type: "string", pattern: ID_PATTERN },
-        label: { type: "string", maxLength: 120 },
-        languages: { type: "array", maxItems: 20, items: { type: "string", minLength: 1, maxLength: 60 } },
-        frameworks: { type: "array", maxItems: 20, items: { type: "string", minLength: 1, maxLength: 60 } },
-        command: { type: "array", minItems: 1, maxItems: 64, items: { type: "string", minLength: 1, maxLength: 1024, pattern: "^[^\\u0000\\n\\r]+$" } },
-        capability: { type: "string", pattern: "^[a-z][a-z0-9-]*$", maxLength: 60 },
-        effects: effectsSchema,
-        evidence: {
-          type: "object",
-          additionalProperties: false,
-          required: ["kind"],
-          properties: { kind: { enum: ["exit-code", "test-runner"] }, runner: { enum: ["go-test", "cargo-test"] } },
-        },
-      },
-    },
+    body: createBodySchema(["id", "command", "capability"], {}),
     handler({ body, server }) {
       assertWritable();
       return { status: 201, json: create(server, body as CreateBody) };
+    },
+  },
+  {
+    // What a save would write (the new file and the entry of jgates.yml, or the edit of both): nothing is written.
+    method: "POST",
+    path: "/api/config/template-preview",
+    body: createBodySchema(["id", "command", "capability"], { edit: { type: "boolean" } }),
+    handler({ body, server }) {
+      const b = body as CreateBody & { edit?: boolean };
+      return { status: 200, json: previewOf(b.edit === true ? planEdit(server, b.id, b) : planCreate(server, b)) };
+    },
+  },
+  {
+    method: "PUT",
+    path: "/api/config/templates/:id",
+    params: { type: "object", properties: { id: { type: "string", pattern: ID_PATTERN } } },
+    body: createBodySchema(["command", "capability", "expectedRevision"], { expectedRevision: { type: "string", pattern: HASH_PATTERN } }, false),
+    handler({ params, body, server }) {
+      assertWritable();
+      const b = body as CreateBody & { expectedRevision: string };
+      return { status: 200, json: edit(server, params.id as string, { ...b, id: params.id as string }, b.expectedRevision) };
+    },
+  },
+  {
+    method: "DELETE",
+    path: "/api/config/templates/:id",
+    params: { type: "object", properties: { id: { type: "string", pattern: ID_PATTERN } } },
+    query: { type: "object", required: ["expectedRevision"], additionalProperties: false, properties: { expectedRevision: { type: "string", pattern: HASH_PATTERN } } },
+    handler({ params, query, server }) {
+      assertWritable();
+      return { status: 200, json: remove(server, params.id as string, query.expectedRevision as string) };
+    },
+  },
+  {
+    method: "POST",
+    path: "/api/config/templates/:id/adopt",
+    params: { type: "object", properties: { id: { type: "string", pattern: ID_PATTERN } } },
+    body: { type: "object", additionalProperties: false, required: ["expectedRevision"], properties: { expectedRevision: { type: "string", pattern: HASH_PATTERN } } },
+    handler({ params, body, server }) {
+      assertWritable();
+      return { status: 200, json: adopt(server, params.id as string, (body as { expectedRevision: string }).expectedRevision) };
     },
   },
   {

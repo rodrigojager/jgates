@@ -26,7 +26,7 @@ async function withServer(page: Page, prepare: ((fixture: Fixture) => void) | nu
 
 const toolsFile = (fixture: Fixture) => path.join(fixture.dir, ".jgates", "tools.yml");
 
-test("Arquitetura without its file offers 'Criar regras de arquitetura' and lands on the new file", async ({ page }) => {
+test("Arquitetura without its file offers 'Criar regras de arquitetura', which opens the guided editor and creates the file", async ({ page }) => {
   await withServer(page, null, async ({ fixture, base }) => {
     const file = path.join(fixture.dir, ".jgates", "architecture.yml");
     expect(fs.existsSync(file)).toBe(false);
@@ -36,13 +36,22 @@ test("Arquitetura without its file offers 'Criar regras de arquitetura' and land
     await expect(create).toBeVisible();
     await expect(page.getByTestId("arch-missing")).not.toContainText("aba YAML");
     await create.click();
-    await expect(page).toHaveURL(/#\/config\/yaml/);
-    await expect(page.locator('button[data-file=".jgates/architecture.yml"]')).toHaveAttribute("aria-current", "true");
-    await expect(page.locator(".editor-host .cm-content")).toContainText("architecture:");
-    expect(fs.readFileSync(file, "utf8")).toContain("schemaVersion: 1");
-    // The screen now has its file.
-    await page.goto(`${base}#/config/architecture`);
-    await expect(page.getByRole("heading", { name: "Arquitetura", level: 1 })).toBeVisible();
+    // The guided editor opens (no dead end, no raw YAML); a project without layer-like folders starts from an empty list.
+    const editor = page.getByTestId("architecture-editor");
+    await expect(editor).toBeVisible();
+    await expect(editor).toContainText("Nenhuma pasta do projeto lembra uma camada conhecida");
+    expect(fs.existsSync(file)).toBe(false);
+    // A layer is named and its folder picked; the file is created after the review.
+    await editor.getByLabel("Nome de uma nova camada").fill("core");
+    await editor.getByRole("button", { name: "Adicionar camada" }).click();
+    await page.locator("#cfa-ed-paths-core").selectOption("demo");
+    await editor.getByRole("button", { name: "Adicionar pasta" }).click();
+    await page.getByTestId("arch-next").click();
+    await page.getByTestId("arch-next").click();
+    await page.getByTestId("arch-save").click();
+    await expect(editor).toHaveCount(0);
+    expect(fs.readFileSync(file, "utf8")).toContain("demo/**");
+    await expect(page.getByTestId("arch-map")).toContainText("core");
     await expect(page.getByRole("button", { name: "Criar regras de arquitetura" })).toHaveCount(0);
   });
 });

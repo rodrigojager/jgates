@@ -14,3 +14,8 @@
 @media (max-width: 640px) {
   .arch-switch { align-items: flex-start; text-align: left; }
 }
+.arch-edit-list, .arch-paths { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.arch-paths { gap: 6px; }
+.arch-path { align-items: center; gap: 8px; }
+.arch-path code { overflow-wrap: anywhere; }
+.arch-to { border: 0; margin: 0; padding: 0; }

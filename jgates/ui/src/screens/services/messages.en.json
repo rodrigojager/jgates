@@ -81,5 +81,11 @@
   "svc_err_REVISION_CONFLICT": "jgates.yml changed since it was opened. Reload the page and try again.",
   "svc_err_ACK_REQUIRED": "Confirm the effects of the services before saving.",
   "svc_err_SERVICES_NONE": "No service was chosen to start.",
-  "svc_err_CONFIG_INVALID": "The resulting configuration is not valid. Check the YAML."
+  "svc_err_CONFIG_INVALID": "The resulting configuration is not valid. Check the YAML.",
+  "svc_steps_label": "Services setup steps",
+  "svc_step_files": "Files",
+  "svc_step_roles": "Roles",
+  "svc_step_target": "Target",
+  "svc_step_review": "Review",
+  "svc_next": "Next"
 }

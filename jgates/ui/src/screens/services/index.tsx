@@ -4,6 +4,7 @@ import { useShell } from "../../app/shell-context";
 import { DiffView } from "../../components/DiffView";
 import { ErrorNotice, Loading, Pill, Spinner, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
+import { Stepper } from "../../components/Stepper";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import "./services.css";
@@ -16,6 +17,8 @@ export const screen: ScreenMeta = { id: "services", path: "/config/services", ar
 type Role = "dependency" | "application" | "unused";
 const ROLES: Role[] = ["dependency", "application", "unused"];
 const TIMEOUTS = [60, 120, 300, 600, 1200];
+const STEPS = ["files", "roles", "target", "review"] as const;
+type Step = (typeof STEPS)[number];
 
 interface HostEffect {
   service: string;
@@ -135,6 +138,7 @@ export default function ServicesScreen() {
   const [error, setError] = useState<unknown>(null);
   const [saved, setSaved] = useState(false);
   const [test, setTest] = useState<TestResult | null>(null);
+  const [step, setStep] = useState<Step>("files");
 
   const data = view.data;
   useEffect(() => {
@@ -257,6 +261,7 @@ export default function ServicesScreen() {
   const noConfig = !data.configFile;
   const readOnly = governed || noConfig;
   const needsPort = application !== null && port === null;
+  const stepIndex = STEPS.indexOf(step);
   const canPreview = !readOnly && busy === null && services.length > 0 && !needsPort;
 
   return (
@@ -278,6 +283,7 @@ export default function ServicesScreen() {
           <p className="small">{t("svc_noconfig")}</p>
         </div>
       ) : null}
+      <Stepper label={t("svc_steps_label")} current={step} onSelect={(id) => setStep(id as Step)} steps={STEPS.map((id, i) => ({ id, label: t(`svc_step_${id}`), disabled: busy !== null, done: i < stepIndex }))} />
       {error ? <Problem error={error} /> : null}
       {saved ? (
         <div className="notice ok" role="status" data-testid="svc-saved">
@@ -286,6 +292,7 @@ export default function ServicesScreen() {
         </div>
       ) : null}
 
+      {step === "files" ? (
       <section className="card pad stack" aria-labelledby="svc-files-title">
         <h2 id="svc-files-title">{t("svc_files_title")}</h2>
         <p className="small muted">{t("svc_files_help")}</p>
@@ -316,7 +323,9 @@ export default function ServicesScreen() {
           </div>
         ))}
       </section>
+      ) : null}
 
+      {step === "roles" ? (
       <section className="card pad stack" aria-labelledby="svc-services-title">
         <h2 id="svc-services-title">{t("svc_services_title")}</h2>
         {services.length === 0 ? <p>{t("svc_services_none")}</p> : null}
@@ -365,7 +374,9 @@ export default function ServicesScreen() {
           })}
         </ul>
       </section>
+      ) : null}
 
+      {step === "target" ? (
       <section className="card pad stack" aria-labelledby="svc-app-title">
         <h2 id="svc-app-title">{t("svc_app_title")}</h2>
         <p className="small muted">{t("svc_app_help")}</p>
@@ -448,7 +459,10 @@ export default function ServicesScreen() {
           ) : null}
         </div>
       </section>
+      ) : null}
 
+      {step === "review" ? (
+      <>
       <details className="card pad" data-testid="svc-customize">
         <summary>{t("svc_custom_title")}</summary>
         <div className="stack">
@@ -534,6 +548,19 @@ export default function ServicesScreen() {
           </div>
         </section>
       ) : null}
+      </>
+      ) : null}
+
+      <div className="row wrap svc-nav">
+        <button type="button" className="btn" data-testid="svc-back" disabled={stepIndex === 0 || busy !== null} onClick={() => setStep(STEPS[stepIndex - 1] as Step)}>
+          {t("back")}
+        </button>
+        {stepIndex < STEPS.length - 1 ? (
+          <button type="button" className="btn primary" data-testid="svc-next" disabled={busy !== null} onClick={() => setStep(STEPS[stepIndex + 1] as Step)}>
+            {t("svc_next")}
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

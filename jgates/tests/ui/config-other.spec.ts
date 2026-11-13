@@ -51,6 +51,27 @@ async function openTab(page: Page, server: UiServer, tab: string, heading: strin
   await expect(page.getByRole("heading", { name: heading, exact: true, level: 1 })).toBeVisible();
 }
 
+/** Drives the "Criar template" stepper: what it checks, where it applies, the command as an argument list, the review. */
+async function createTemplate(page: Page, t: { id: string; language: string; command: string[]; evidence?: string }): Promise<void> {
+  await page.getByRole("button", { name: "Criar template" }).click();
+  const wizard = page.getByTestId("template-wizard");
+  await wizard.getByLabel("Identificador do template").fill(t.id);
+  await page.locator("#cft-w-capability").selectOption("unit");
+  await page.getByTestId("tpl-next").click();
+  await page.locator("#cft-w-language").selectOption(t.language);
+  await page.getByTestId("pick-language").getByRole("button", { name: "Adicionar" }).click();
+  await page.getByTestId("tpl-next").click();
+  await wizard.getByLabel("Executável").fill(t.command[0] as string);
+  for (const [i, arg] of t.command.slice(1).entries()) {
+    await wizard.getByRole("button", { name: "Adicionar argumento" }).click();
+    await wizard.getByLabel(`Argumento ${i + 1}`, { exact: true }).fill(arg);
+  }
+  await expect(page.getByTestId("command-vector")).toContainText(JSON.stringify(t.command));
+  if (t.evidence) await wizard.getByLabel("Contrato de evidência").selectOption(t.evidence);
+  await page.getByTestId("tpl-next").click();
+  await page.getByTestId("tpl-save").click();
+}
+
 function plan(fixture: Fixture): Record<string, any> {
   const r = spawnSync(process.execPath, [MAIN, "plan", "--cwd", fixture.dir, "--json"], { env: fixture.env, encoding: "utf8", timeout: 120_000 });
   expect(r.stderr === "" || r.status !== null, r.stderr).toBeTruthy();
@@ -63,13 +84,7 @@ test("creating a template writes it into .jgates/templates/ from the model and t
     await expect(page.locator('[data-template="base"]')).toHaveAttribute("data-badge", "required");
 
     // A stack the project does not have: no component matches.
-    await page.getByRole("button", { name: "Criar template" }).click();
-    await page.getByLabel("Identificador do template").fill("go-service");
-    await page.getByLabel("Linguagens que ele casa").fill("go");
-    await page.getByLabel("Comando (executável e argumentos)").fill("go test ./...");
-    await expect(page.getByTestId("command-vector")).toContainText('["go","test","./..."]');
-    await page.getByLabel("Contrato de evidência").selectOption("go-test");
-    await page.getByRole("button", { name: "Criar", exact: true }).click();
+    await createTemplate(page, { id: "go-service", language: "go", command: ["go", "test", "./..."], evidence: "go-test" });
 
     const none = page.locator('[data-template="go-service"]');
     await expect(none).toBeVisible();
@@ -85,11 +100,7 @@ test("creating a template writes it into .jgates/templates/ from the model and t
     expect(read(path.join(fixture.dir, "jgates.yml"))).toContain("source: .jgates/templates/go-service.yml");
 
     // A stack the project has: its component matches, and the count shows.
-    await page.getByRole("button", { name: "Criar template" }).click();
-    await page.getByLabel("Identificador do template").fill("py-extra");
-    await page.getByLabel("Linguagens que ele casa").fill("python");
-    await page.getByLabel("Comando (executável e argumentos)").fill("python -m compileall demo");
-    await page.getByRole("button", { name: "Criar", exact: true }).click();
+    await createTemplate(page, { id: "py-extra", language: "python", command: ["python", "-m", "compileall", "demo"] });
     await expect(page.locator('[data-template="py-extra"]').getByTestId("tpl-badge")).toHaveText(/^1 componente$/);
 
     // The files are valid configuration and the project still resolves.

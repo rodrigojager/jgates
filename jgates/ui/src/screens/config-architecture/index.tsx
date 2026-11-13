@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { ErrorNotice, Loading, Pill, Spinner, Updating, useAsync } from "../../components/common";
+import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { OriginLine, type OriginRef, type SaveTarget } from "../../components/origin";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { Switch } from "../config-profiles/switch";
+import { ArchitectureEditor } from "./editor";
 import "./config-architecture.css";
 
 // Configuração > Arquitetura. The map drawn from .jgates/architecture.yml, the rules with toggle and "Bloqueia", the
@@ -110,6 +111,7 @@ export default function ConfigArchitectureScreen() {
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const [editing, setEditing] = useState(false);
   const view = useAsync<View>(() => api("GET", "/api/config/architecture"), `architecture:${revision}`);
 
   if (view.error) return <ErrorNotice error={view.error} onRetry={view.reload} />;
@@ -133,19 +135,6 @@ export default function ConfigArchitectureScreen() {
     }
   };
 
-  // Starts the file from its template and opens it in the YAML editor, where the layers and rules are written.
-  const createFile = async () => {
-    setBusy("create");
-    setError(null);
-    try {
-      await api("POST", "/api/config/yaml/create", { file: v.file });
-      window.location.hash = `#/config/yaml?file=${encodeURIComponent(v.file)}`;
-    } catch (e) {
-      setError(e);
-      setBusy(null);
-    }
-  };
-
   return (
     <div className="stack" aria-busy={view.reloading}>
       <div className="between wrap">
@@ -154,9 +143,16 @@ export default function ConfigArchitectureScreen() {
           <p>{t("cfa_lead")}</p>
           <Updating active={view.reloading} />
         </div>
-        <a className="btn" href="#/config/yaml" data-testid="edit-yaml">
-          {t("cfa_edit_yaml")}
-        </a>
+        <div className="row wrap">
+          {v.exists ? (
+            <button type="button" className="btn primary" data-testid="edit-guided" disabled={governedReason !== null || v.problems.length > 0} onClick={() => setEditing(true)}>
+              {t("cfa_edit_guided")}
+            </button>
+          ) : null}
+          <a className="btn" href="#/config/yaml" data-testid="edit-yaml">
+            {t("cfa_edit_yaml")}
+          </a>
+        </div>
       </div>
       {governedReason ? (
         <div className="notice warn" role="status" data-testid="governed-note">
@@ -172,8 +168,8 @@ export default function ConfigArchitectureScreen() {
           <div className="stack tight grow">
             <p>{t("cfa_missing", { file: v.file })}</p>
             <div>
-              <button type="button" className="btn primary" disabled={governedReason !== null || busy === "create"} onClick={createFile}>
-                {busy === "create" ? <Spinner /> : <Icon name="file" />}
+              <button type="button" className="btn primary" disabled={governedReason !== null} onClick={() => setEditing(true)}>
+                <Icon name="file" />
                 {t("cfa_create")}
               </button>
             </div>
@@ -286,6 +282,17 @@ export default function ConfigArchitectureScreen() {
           </details>
         ))}
       </section>
+      {editing ? (
+        <ArchitectureEditor
+          view={v}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            toast(t("cfa_ed_saved", { file: v.file }), "ok");
+            setRevision((n) => n + 1);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
