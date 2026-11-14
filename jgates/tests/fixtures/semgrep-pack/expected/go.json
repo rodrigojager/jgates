@@ -1,0 +1,17 @@
+{
+  "files": ["main.go"],
+  "ruleIds": [
+    "jgates.go.sql-string-building",
+    "jgates.go.os-command-injection",
+    "jgates.go.ssrf",
+    "jgates.go.path-traversal",
+    "jgates.go.unsafe-html-type",
+    "jgates.go.text-template-for-html",
+    "jgates.go.request-written-to-response",
+    "jgates.go.weak-hash",
+    "jgates.go.weak-cipher",
+    "jgates.go.tls-verification-disabled",
+    "jgates.go.jwt-signature-not-verified",
+    "jgates.go.unsafe-deserialization"
+  ]
+}

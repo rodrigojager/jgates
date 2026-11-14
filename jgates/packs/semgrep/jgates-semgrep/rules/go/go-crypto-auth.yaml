@@ -1,0 +1,55 @@
+rules:
+  - id: jgates.go.weak-hash
+    message: MD5 and SHA-1 are broken for security use. Use SHA-256 or a password hashing function.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+    pattern-either:
+      - pattern: md5.New()
+      - pattern: md5.Sum(...)
+      - pattern: sha1.New()
+      - pattern: sha1.Sum(...)
+
+  - id: jgates.go.weak-cipher
+    message: DES, 3DES and RC4 are weak ciphers. Use AES-GCM or ChaCha20-Poly1305.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+    pattern-either:
+      - pattern: des.NewCipher(...)
+      - pattern: des.NewTripleDESCipher(...)
+      - pattern: rc4.NewCipher(...)
+
+  - id: jgates.go.tls-verification-disabled
+    message: TLS certificate verification is turned off. Keep verification on and trust a private CA through a certificate pool.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-295"
+      author: JGates
+      subdimension: cryptography
+    pattern-either:
+      - pattern: 'tls.Config{..., InsecureSkipVerify: true, ...}'
+      - pattern: $C.InsecureSkipVerify = true
+
+  - id: jgates.go.jwt-signature-not-verified
+    message: A token is parsed without verifying its signature, or the none algorithm is allowed, so any caller can forge claims.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+    pattern-either:
+      - pattern: $P.ParseUnverified(...)
+      - pattern: jwt.UnsafeAllowNoneSignatureType

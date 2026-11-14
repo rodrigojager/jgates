@@ -1,0 +1,69 @@
+rules:
+  - id: jgates.go.sql-string-building
+    message: An SQL statement is built with string formatting or concatenation. Pass the values as bound parameters instead.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.$M(fmt.Sprintf(...), ...)
+              - pattern: $DB.$M(<... "..." + $X ...>, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Query|QueryRow|Exec|Prepare|Raw|Where|NamedQuery|MustExec)$
+          - pattern-not: $DB.$M(fmt.Sprintf("..."), ...)
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.$M($CTX, fmt.Sprintf(...), ...)
+              - pattern: $DB.$M($CTX, <... "..." + $X ...>, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(QueryContext|QueryRowContext|ExecContext|PrepareContext|NamedQueryContext|MustExecContext)$
+          - pattern-not: $DB.$M($CTX, fmt.Sprintf("..."), ...)
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.$M($DEST, fmt.Sprintf(...), ...)
+              - pattern: $DB.$M($DEST, <... "..." + $X ...>, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Get|Select)$
+          - pattern-not: $DB.$M($DEST, fmt.Sprintf("..."), ...)
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.$M($CTX, $DEST, fmt.Sprintf(...), ...)
+              - pattern: $DB.$M($CTX, $DEST, <... "..." + $X ...>, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(GetContext|SelectContext)$
+          - pattern-not: $DB.$M($CTX, $DEST, fmt.Sprintf("..."), ...)
+
+  - id: jgates.go.os-command-injection
+    message: A command is started through a shell or from a non-literal program name. Pass a fixed program with separate arguments and no shell.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: exec.Command($BIN, ...)
+              - pattern: exec.CommandContext($CTX, $BIN, ...)
+          - pattern-not: exec.Command("...", ...)
+          - pattern-not: exec.CommandContext($CTX, "...", ...)
+      - patterns:
+          - pattern-either:
+              - pattern: exec.Command($SH, $FLAG, $X, ...)
+              - pattern: exec.CommandContext($CTX, $SH, $FLAG, $X, ...)
+          - metavariable-regex:
+              metavariable: $SH
+              regex: ^"(sh|bash|zsh|/bin/sh|/bin/bash|cmd|cmd\.exe|powershell|powershell\.exe)"$
+          - pattern-not: exec.Command($SH, $FLAG, "...")
+          - pattern-not: exec.CommandContext($CTX, $SH, $FLAG, "...")

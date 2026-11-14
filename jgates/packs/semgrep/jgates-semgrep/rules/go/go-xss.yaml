@@ -1,0 +1,208 @@
+rules:
+  - id: jgates.go.unsafe-html-type
+    message: A non-literal value is typed as already-safe HTML, JavaScript, a URL or CSS, so the template will not escape it. Escape or sanitize it first.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    patterns:
+      - pattern: template.$T($X)
+      - metavariable-regex:
+          metavariable: $T
+          regex: ^(HTML|HTMLAttr|JS|JSStr|URL|CSS|Srcset)$
+      - pattern-not: template.$T("...")
+      - pattern-not: template.$T($S.Sanitize(...))
+      - pattern-not: template.$T(html.EscapeString(...))
+
+  - id: jgates.go.text-template-for-html
+    message: text/template does not escape HTML. Use html/template for any output sent to a browser.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - pattern: import "text/template"
+      - pattern: import $A "text/template"
+
+  - id: jgates.go.request-written-to-response
+    message: Request data is written to the response without HTML escaping. Escape it with html.EscapeString or render it with html/template.
+    severity: ERROR
+    languages: [go]
+    mode: taint
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.URL.Path
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.Header.Get(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.DefaultQuery(...)
+              - pattern: $R.PostForm(...)
+              - pattern: $R.DefaultPostForm(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.GetHeader(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.QueryParam(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.FormValue(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.Params(...)
+              - pattern: $R.FormValue(...)
+      - pattern: chi.URLParam($R, ...)
+    pattern-sanitizers:
+      - pattern: html.EscapeString(...)
+      - pattern: template.HTMLEscapeString(...)
+      - pattern: template.JSEscapeString(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $W http.ResponseWriter, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $W http.ResponseWriter, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $W http.ResponseWriter, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $W http.ResponseWriter, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $W http.ResponseWriter, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $W http.ResponseWriter, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $W.Write($P)
+              - pattern: io.WriteString($W, $P)
+              - pattern: fmt.Fprint($W, ..., $P, ...)
+              - pattern: fmt.Fprintf($W, $FMT, ..., $P, ...)
+              - pattern: fmt.Fprintln($W, ..., $P, ...)
+          - focus-metavariable: $P
