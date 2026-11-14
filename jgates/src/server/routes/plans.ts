@@ -22,6 +22,7 @@ import { reviewItemsOf, type EnvironmentFacts, type ReviewItems } from "../../co
 import { HttpError, refuse, refuseMsg, routeText } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { cachedEnvironmentState } from "./environment.js";
+import { waiverListing } from "./waivers.js";
 
 export const PLAN_HASH_PATTERN = "^sha256:[0-9a-f]{64}$";
 
@@ -230,7 +231,7 @@ export const routes: RouteDefinition[] = [
       server.plans.set(plan.planHash, plan);
       while (server.plans.size > 20) server.plans.delete(server.plans.keys().next().value as string);
       const items = await itemsOf(server, plan, b.preview === true);
-      return { status: 201, json: { schemaVersion: 1, status: plan.blocked ? "BLOCKED" : "OK", planHash: plan.planHash, approvable: plan.approvable, blocked: plan.blocked, plan, mascots: projectMascots({ plan }), review: { ...selectionReview(server.projectDir, b), estimate: estimateMs(server), ...items } } };
+      return { status: 201, json: { schemaVersion: 1, status: plan.blocked ? "BLOCKED" : "OK", planHash: plan.planHash, approvable: plan.approvable, blocked: plan.blocked, plan, mascots: projectMascots({ plan }), review: { ...selectionReview(server.projectDir, b), estimate: estimateMs(server), waivers: waiverListing(server), ...items } } };
     },
   },
   {
