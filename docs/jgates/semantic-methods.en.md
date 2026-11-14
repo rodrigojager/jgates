@@ -45,9 +45,11 @@ jgates tools distribution
 
 - A confirmed finding from a source-reading method carries the evidence basis `source-argument`: the model argued it from
   the code. It is never presented as reproduced.
-- No method executes project code. The one exception is `post-patch-validation`, which runs the reproducer and nearby
-  tests in isolated before and after fixtures under a sandbox that cannot write, use the network or start processes;
-  only that method may claim `reproduced` or `fixed`, and only when the run executed.
+- No method executes project code on the host. The one exception is `post-patch-validation`, which runs the reproducer
+  and nearby tests in isolated before and after fixtures, in containers of the tools image without network (a read-only
+  tree, no root, limits on memory, processes and time; `jgates regressions validate` runs a proposed test the same
+  way); only that method may claim `reproduced` or `fixed`, and only when the run executed. Without a usable container
+  engine the method is not applicable and nothing is claimed.
 - Repository text, scanner output and imported reports are untrusted data. File access goes through a host guard that
   refuses exclusions and paths outside the scope; every refusal is recorded and lowers the affected verdicts to
   `needs-validation`.

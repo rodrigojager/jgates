@@ -47,9 +47,11 @@ jgates tools distribution
 
 - Um achado confirmado de um método que lê o código leva a base de evidência `source-argument`: o modelo o argumentou a
   partir do código. Nunca é apresentado como reproduzido.
-- Nenhum método executa código do projeto. A única exceção é `post-patch-validation`, que roda o reprodutor e os testes
-  próximos em fixtures isoladas de antes e depois, num sandbox que não escreve, não usa rede e não inicia processos;
-  só esse método pode afirmar `reproduced` ou `fixed`, e só quando a execução ocorreu.
+- Nenhum método executa código do projeto no host. A única exceção é `post-patch-validation`, que roda o reprodutor e
+  os testes próximos em fixtures isoladas de antes e depois, em contêineres da imagem de ferramentas sem rede (árvore
+  somente leitura, sem root, limites de memória, processos e tempo; `jgates regressions validate` roda um teste
+  proposto do mesmo jeito); só esse método pode afirmar `reproduced` ou `fixed`, e só quando a execução ocorreu. Sem
+  um motor de contêineres utilizável o método não se aplica e nada é afirmado.
 - Texto do repositório, saída de scanners e relatórios importados são dados não confiáveis. O acesso a arquivos passa por
   uma guarda do host que recusa exclusões e caminhos fora do escopo; toda recusa é registrada e rebaixa os veredictos
   afetados para `needs-validation`.
