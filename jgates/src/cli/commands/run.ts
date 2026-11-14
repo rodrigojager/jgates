@@ -14,7 +14,7 @@ import { ADAPTER_ID, selectionFromOptions } from "../../adapters/quality-bridge/
 import { BuiltinError } from "../../builtin/index.js";
 import { ROOT_FILE } from "../../core/config/load/index.js";
 import { encodePointer, resolveConfig } from "../../core/config/resolve/index.js";
-import { combineWaivers, loadWaiverFile, parseWaiverFlag, WAIVERS_FILE, type Waiver } from "../../core/results/index.js";
+import { combineWaivers, findingLines, resultSummary, loadWaiverFile, parseWaiverFlag, waiverLines, WAIVERS_FILE, type Waiver } from "../../core/results/index.js";
 import { assessEnvironment, lineTerminal, NO_TERMINAL, isYes, offerInstall, type InstallExecutor, type InstallTerminal } from "../../core/install/index.js";
 import { buildPlan, readPlanFile, validatePlanAgainstWorkspace, type Plan, type PlanScopeKind } from "../../core/plan/index.js";
 import type { BridgeSelection } from "../../adapters/quality-bridge/requirements.js";
@@ -36,25 +36,9 @@ import {
 } from "../../core/sequence/index.js";
 
 function summarize(t: Translator, r: RunResult): string {
-  const notes = r.analyzed?.stale ? t("run_summary_stale") : r.analyzed?.dirty === true ? t("run_summary_dirty") : "";
-  return decisionSummary(t, r) + notes;
+  return resultSummary(r, t);
 }
 
-function decisionSummary(t: Translator, r: RunResult): string {
-  const missing = r.unsatisfied.length;
-  switch (r.decision) {
-    case "passed":
-      return r.reduced ? t("run_summary_passed_reduced", { count: r.disabled.filter((d) => d.origin === "run").length }) : t("run_summary_passed");
-    case "failed":
-      return r.complete
-        ? t("run_summary_failed", { count: r.blockingViolations })
-        : t("run_summary_failed_incomplete", { count: r.blockingViolations, missing });
-    case "incomplete":
-      return t("run_summary_incomplete", { count: missing });
-    default:
-      return t("run_summary_other", { decision: r.decision });
-  }
-}
 
 /** Flags that describe the plan (a plan received with --plan already carries them). */
 const PLAN_OPTIONS = ["profile", "scope", "path", "base", "head", "skip", "only", "template"] as const;
@@ -252,6 +236,7 @@ export const command: CommandModule = {
     { name: "semantic", type: "boolean", description: tr("run_option_semantic") },
     { name: "no-cache", type: "boolean", description: tr("run_option_no_cache") },
     { name: "waiver", type: "string", description: tr("run_option_waiver") },
+    { name: "no-waivers", type: "boolean", description: tr("run_option_no_waivers") },
     { name: "fail-fast", type: "boolean", description: tr("run_option_fail_fast") },
     { name: "events-jsonl", type: "string", description: tr("run_option_events_jsonl") },
     { name: "ci", type: "boolean", description: tr("run_option_ci") },
@@ -358,6 +343,9 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
       if (!("waiver" in parsed)) return usage("BAD_WAIVER", "run_bad_waiver", { spec, problem: parsed.problem });
       flagWaivers.push(parsed.waiver);
     }
+    // --no-waivers accepts none: it cannot be given together with a waiver of the call.
+    const noWaivers = ctx.options["no-waivers"] === true;
+    if (noWaivers && flagWaivers.length > 0) return usage("NO_WAIVERS_WITH_WAIVER", "run_no_waivers_with_waiver");
     const noCache = ctx.options["no-cache"] === true;
     // The semantic gate is an optional integration: only this flag asks for it, never a profile or a template.
     const semantic = semanticHook(ctx.options.semantic === true);
@@ -373,7 +361,7 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
     // A commit that cannot be written as a snapshot stops the run before anything starts (no run is left).
     const execute = async (options: RunOptions): Promise<RunResult | number> => {
       try {
-        return await withCancellation((signal) => executeRun({ ...options, ...(noCache ? { cache: false } : {}), ...(semantic ? { semantic } : {}), ...(waivers ? { waivers } : {}), ...runControls(signal, failFast, eventsFile, progress) }));
+        return await withCancellation((signal) => executeRun({ ...options, ...(noCache ? { cache: false } : {}), ...(semantic ? { semantic } : {}), ...(waivers ? { waivers } : {}), ...(noWaivers ? { noWaivers: true } : {}), ...runControls(signal, failFast, eventsFile, progress) }));
       } catch (error) {
         if (!(error instanceof SnapshotError)) throw error;
         const commit = options.plan?.scope.head ?? "-";
@@ -451,6 +439,7 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
         style,
         noCache,
         waivers,
+        noWaivers,
         summarize: (r) => summarize(t, r),
         legacySelection,
         request: {
@@ -567,9 +556,9 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
     if (ctx.json) writeJson(ctx, result);
     else {
       ctx.stdout(`${t("run_text_decision", { decision: paint(style, DECISION_COLOR[result.decision] ?? "yellow", result.decision), summary: result.summary ?? "" })}\n`);
-      // A waiver file that cannot be read applied nothing: said here, never silent.
-      const waiverProblem = result.waivers?.problem;
-      if (waiverProblem) ctx.stdout(`${paint(style, "yellow", t("run_text_waivers_problem", { file: waiverProblem.file, detail: waiverProblem.message }))}\n`);
+      // What the waivers did: the unreadable-file warning (never silent), what --no-waivers refused, the waivers that applied
+      // (rule, file and line, reason, date) and the ones that did not.
+      for (const line of waiverLines(result, { noWaivers }, t)) ctx.stdout(`${line.startsWith("Warning") || line.startsWith("Aviso") ? paint(style, "yellow", line) : line}\n`);
       const analyzed = result.analyzed;
       if (analyzed) {
         const ta = translator("analysis");
@@ -585,6 +574,7 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
         ctx.stdout(`${line}\n${analyzed.approval.message}\n${ta("analysis_text_identity", { identity: analyzed.identity })}\n`);
       }
       for (const s of result.stages) ctx.stdout(`${stageLine(style, s)}\n`);
+      for (const line of findingLines(result, t)) ctx.stdout(`${line}\n`);
       if (result.semantic) {
         const c = result.semantic.conclusion;
         const detail = c ? ` (${String(c.status)}, ${String(c.score)})` : result.semantic.reason ? ` (${result.semantic.reason})` : "";
@@ -668,6 +658,7 @@ interface CombinedInput {
   style: TerminalStyle;
   noCache: boolean;
   waivers: Waiver[] | undefined;
+  noWaivers: boolean;
   summarize: (r: RunResult) => string;
   legacySelection: BridgeSelection;
   request: SequenceRequest;
@@ -698,6 +689,7 @@ async function runCombined(ctx: CommandContext, input: CombinedInput): Promise<n
         ...(sequenceId !== undefined ? { sequenceId } : {}),
         plan: gatePlan,
         request: input.request,
+        ...(input.noWaivers ? { noWaivers: true } : {}),
         signal,
         ownsProcess: true,
         ...(onUpdate ? { onUpdate: (record) => onUpdate(record) } : {}),
@@ -710,6 +702,7 @@ async function runCombined(ctx: CommandContext, input: CombinedInput): Promise<n
               ...options,
               ...(input.noCache ? { cache: false } : {}),
               ...(input.waivers ? { waivers: input.waivers } : {}),
+              ...(input.noWaivers ? { noWaivers: true } : {}),
               ...runControls(runSignal, input.failFast, input.eventsFile, progress),
               onEvent: (event: RunEvent) => {
                 if (event.type === "run-started") onRunStarted(event.runId);
@@ -778,6 +771,8 @@ function reportSequence(ctx: CommandContext, outcome: SequenceOutcome, style: Te
   }
   const q = outcome.quality;
   if (q) ctx.stdout(`${t("run_text_gate_result", { gate: "quality", runId: q.runId, decision: paint(style, DECISION_COLOR[q.decision] ?? "yellow", q.decision), summary: q.summary ?? "" })}\n`);
+  // The same waiver lines as a Quality-only run (an unreadable waiver file included), then the findings to fix or waive.
+  if (q) for (const line of [...waiverLines(q, { noWaivers: ctx.options["no-waivers"] === true }, t), ...findingLines(q, t)]) ctx.stdout(`${line}\n`);
   const a = outcome.details.assessment;
   if (a) ctx.stdout(`${t("run_text_transition", { code: a.code, message: a.message })}\n`);
   const s = outcome.semantic;

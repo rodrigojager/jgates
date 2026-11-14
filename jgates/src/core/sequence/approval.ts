@@ -10,6 +10,7 @@ import { sourceMatch } from "../gates/source.js";
 import type { EvidenceFreshness, GateRunIdentity, SourceIdentity } from "../gates/types.js";
 import type { PlanScopeKind } from "../plan/types.js";
 import type { RunResult } from "../run/types.js";
+import { approvalWording, approvalWordingParams } from "../results/wording.js";
 import { translator } from "../../i18n/index.js";
 import type { QualityCoveragePolicy } from "./selection.js";
 
@@ -141,6 +142,13 @@ export function qualityScopeReport(evidence: QualityEvidence, semantic: Semantic
   };
 }
 
+/** The approval sentence; a Quality run that passed with waivers says "approved with N waivers" (the decision is the same). */
+function approvedMessage(runId: string, result: QualityEvidence["result"]): string {
+  const wording = result ? approvalWording(result) : null;
+  if (!wording || wording.kind !== "with-waivers") return t("sequence_reason_quality_approved", { runId });
+  return t("sequence_reason_quality_approved_waivers", { runId, ...approvalWordingParams(wording) });
+}
+
 const NOT_OK = new Set(["error", "timeout", "blocked", "cancelled", "pending", "running"]);
 
 /** Assesses the Quality prerequisite of a combined sequence. Pure: reads only what it is given. */
@@ -231,7 +239,7 @@ export function assessQualityPrerequisite(input: AssessInput): QualityAssessment
     approved,
     status,
     code: approved ? "QUALITY_APPROVED" : (first?.code ?? "QUALITY_NOT_PASSED"),
-    message: approved ? t("sequence_reason_quality_approved", { runId: quality.runId }) : (first?.message ?? ""),
+    message: approved ? approvedMessage(quality.runId, result) : (first?.message ?? ""),
     reasons,
     quality: {
       runId: quality.runId,

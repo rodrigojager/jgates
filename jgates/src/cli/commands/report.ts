@@ -6,11 +6,21 @@ import { translator } from "../../i18n/index.js";
 import { resolveHome } from "../../core/home/index.js";
 import { workspaceId } from "../../core/ids/index.js";
 import { listRuns } from "../../core/artifacts/index.js";
-import { toSarif } from "../../core/results/index.js";
+import { findingLines, resultSummary, toSarif, waiverLines } from "../../core/results/index.js";
 import { buildAgentContext } from "../../core/agent-context/index.js";
 import type { RunResult } from "../../core/run/types.js";
 
 const t = translator("report");
+
+/**
+ * The stored result as text: the decision (approved with waivers when it passed with waived findings, also for a result
+ * stored before the waivers block), what the waivers did, and a short fingerprint per finding for `jgates waivers add`.
+ */
+function textReport(doc: RunResult): string {
+  const run = translator("run");
+  const lines = [run("run_text_decision", { decision: doc.decision, summary: resultSummary(doc, run) }), ...waiverLines(doc, {}, run), ...findingLines(doc, run), run("run_text_run", { runId: doc.runId })];
+  return `${lines.join("\n")}\n`;
+}
 
 export const command: CommandModule = {
   name: "report",
@@ -25,9 +35,9 @@ export const command: CommandModule = {
     const runId = ctx.args[0];
     if (!runId) return reportError(ctx, ctx.json, "MISSING_RUN", t("report_missing_run"), t("report_missing_run_fix"), EXIT_USAGE);
     const format = typeof ctx.options.format === "string" ? ctx.options.format : "json";
-    if (format !== "json" && format !== "sarif") return reportError(ctx, ctx.json, "BAD_FORMAT", t("report_bad_format", { value: format }), t("report_bad_format_fix"), EXIT_USAGE);
+    if (format !== "json" && format !== "sarif" && format !== "text") return reportError(ctx, ctx.json, "BAD_FORMAT", t("report_bad_format", { value: format }), t("report_bad_format_fix"), EXIT_USAGE);
     const agentContext = ctx.options["agent-context"] === true;
-    if (agentContext && format === "sarif") return reportError(ctx, ctx.json, "BAD_FORMAT", t("report_agent_context_format"), t("report_agent_context_format_fix"), EXIT_USAGE);
+    if (agentContext && format !== "json") return reportError(ctx, ctx.json, "BAD_FORMAT", t("report_agent_context_format"), t("report_agent_context_format_fix"), EXIT_USAGE);
     const cwdOption = ctx.options.cwd;
     const dir = path.resolve(typeof cwdOption === "string" ? cwdOption : process.cwd());
     if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return reportError(ctx, ctx.json, "BAD_CWD", t("report_bad_cwd", { path: dir }), t("report_bad_cwd_fix"), EXIT_USAGE);
@@ -46,7 +56,15 @@ export const command: CommandModule = {
     // agent-context: the safe summary for a coding agent (same text as the UI button). json: the result.json itself, byte
     // for byte. sarif: the findings only.
     const context = agentContext ? buildAgentContext(doc) : null;
-    const text = context ? (ctx.json ? JSON.stringify({ schemaVersion: 1, status: "OK", tool: "jgates", version: ctx.version, runId, format: "agent-context", agentContext: context }) + "\n" : context.text) : format === "json" ? raw : JSON.stringify(toSarif(doc), null, 2) + "\n";
+    const text = context
+      ? ctx.json
+        ? JSON.stringify({ schemaVersion: 1, status: "OK", tool: "jgates", version: ctx.version, runId, format: "agent-context", agentContext: context }) + "\n"
+        : context.text
+      : format === "json"
+        ? raw
+        : format === "text"
+          ? textReport(doc)
+          : JSON.stringify(toSarif(doc), null, 2) + "\n";
     const out = ctx.options.out;
     if (typeof out === "string" && out !== "") {
       const file = path.resolve(out);

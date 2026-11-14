@@ -41,7 +41,7 @@ export const POLICY_DIR_ENV = "JGATES_POLICY_DIR";
 export const POLICY_SHA256_ENV = "JGATES_POLICY_SHA256";
 
 /** Options that would let the evaluated job choose its own rules; declared only to be refused with a clear code. */
-const REFUSED_OPTIONS = ["skip", "only", "waiver", "no-cache", "plan", "path", "template"] as const;
+const REFUSED_OPTIONS = ["skip", "only", "waiver", "no-waivers", "no-cache", "plan", "path", "template"] as const;
 
 const tr = translator("ci");
 
@@ -148,6 +148,7 @@ export const command: CommandModule = {
     { name: "skip", type: "string", description: tr("ci_option_refused") },
     { name: "only", type: "string", description: tr("ci_option_refused") },
     { name: "waiver", type: "string", description: tr("ci_option_refused") },
+    { name: "no-waivers", type: "boolean", description: tr("ci_option_refused") },
     { name: "no-cache", type: "boolean", description: tr("ci_option_refused") },
     { name: "plan", type: "string", description: tr("ci_option_refused") },
     { name: "path", type: "string", description: tr("ci_option_refused") },

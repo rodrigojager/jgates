@@ -100,6 +100,8 @@ export interface RunOptions {
   cache?: boolean;
   /** Waivers of this run; when absent the file .jgates/waivers.json of the workspace is read. */
   waivers?: Waiver[];
+  /** `jgates run --no-waivers`: no waiver applies (the project's file or any other); what would have applied is listed in waivers.refused. */
+  noWaivers?: boolean;
   /** Extra metrics (unit, numerator, denominator, component, scope, origin). */
   metrics?: RunResult["metrics"];
   /** The optional semantic review: only present when the run asked for it; runs after the decision. */
@@ -210,7 +212,8 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
   const projectFile = opts.policy ? null : loadWaiverFile(path.join(workspace.path, WAIVERS_FILE));
   const waivers: Waiver[] = (opts.waivers ?? projectFile?.waivers ?? []).map((w) => ({ ...w, source: w.source ?? (opts.policy ? "policy" : "project") }));
   const waiverProblem = projectFile?.problem;
-  const waiversProvenance = { sha256: waiversHash(waivers), count: waivers.length };
+  // With --no-waivers none is in force, so the provenance records an empty list (a run with and without waivers differ).
+  const waiversProvenance = opts.noWaivers ? { sha256: waiversHash([]), count: 0 } : { sha256: waiversHash(waivers), count: waivers.length };
   // The flagged lines are read from the analyzed tree (the workspace, or the snapshot of the commit) for the anchors.
   const lineOf = createLineReader(prep.path);
   const metricsOf = (findings: RunResult["findings"], adapterMetrics: RunResult["metrics"] = []) => [...findingMetrics(findings, selection.scope ?? "workspace"), ...adapterMetrics, ...(opts.metrics ?? [])];
@@ -236,7 +239,7 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     gitState: RunResult["workspaceGit"] | null = null,
   ): RunResult => {
     // Fingerprints and waivers first: a waiver lowers the blocking count of a completed stage and nothing else.
-    const finalized = finalizeFindings(output, waivers, now(), { lineOf, ...(waiverProblem ? { problem: waiverProblem } : {}) });
+    const finalized = finalizeFindings(output, waivers, now(), { lineOf, ...(waiverProblem ? { problem: waiverProblem } : {}), ...(opts.noWaivers ? { refuse: true } : {}) });
     let findings = finalized.findings;
     const base = partial ? null : loadBaseline();
     if (base) findings = markBaselineState(findings, base);
