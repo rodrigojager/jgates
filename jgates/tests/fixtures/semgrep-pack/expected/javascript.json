@@ -1,4 +1,4 @@
 {
-  "files": ["server.js"],
-  "ruleIds": ["jgates.js.path-traversal", "jgates.js.ssrf", "jgates.js.weak-hash"]
+  "files": ["server.js", "xss.js"],
+  "ruleIds": ["jgates.js.path-traversal", "jgates.js.ssrf", "jgates.js.weak-hash", "jgates.js.xss-response-write", "jgates.js.xss-dom-html-write"]
 }

@@ -1,4 +1,4 @@
 {
-  "files": ["server.ts"],
-  "ruleIds": ["jgates.js.os-command-injection", "jgates.js.jwt-signature-not-verified"]
+  "files": ["server.ts", "xss.ts"],
+  "ruleIds": ["jgates.js.os-command-injection", "jgates.js.jwt-signature-not-verified", "jgates.js.xss-response-write", "jgates.js.xss-dom-html-write"]
 }

@@ -1,0 +1,87 @@
+rules:
+  - id: jgates.js.xss-response-write
+    message: Request data is written into an HTTP response that the browser renders as HTML. Escape it first (for example with an escapeHtml helper) or send it as JSON.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+    pattern-sanitizers:
+      - pattern: escapeHtml(...)
+      - pattern: he.encode(...)
+      - pattern: encodeURIComponent(...)
+      - pattern: fs.readFileSync(...)
+      - pattern: fs.readFile(...)
+    pattern-sinks:
+      - pattern: $RES.send($X)
+        focus-metavariable: $X
+      - pattern: $RES.write($X)
+        focus-metavariable: $X
+      - pattern: $RES.end($X)
+        focus-metavariable: $X
+
+  - id: jgates.js.xss-dom-html-write
+    message: A non-literal value is written into the page as HTML. Use textContent, or sanitize the value with DOMPurify first.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    patterns:
+      - pattern-either:
+          - pattern: $E.innerHTML = $X
+          - pattern: $E.outerHTML = $X
+          - pattern: document.write($X)
+          - pattern: $E.insertAdjacentHTML($POS, $X)
+      - metavariable-pattern:
+          metavariable: $X
+          patterns:
+            - pattern: $V
+            - pattern-not: "..."
+            - pattern-not: DOMPurify.sanitize(...)
+            - pattern-not: escapeHtml(...)
+
+  - id: jgates.js.xss-react-dangerously-set-html
+    message: dangerouslySetInnerHTML receives a non-literal value. Render the value as text, or sanitize it with DOMPurify first.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    patterns:
+      - pattern-either:
+          - pattern: <$C ... dangerouslySetInnerHTML={{__html: $X}} ... />
+          - pattern: <$C ... dangerouslySetInnerHTML={{__html: $X}} ...>...</$C>
+          - pattern: React.createElement($C, {..., dangerouslySetInnerHTML: {__html: $X}, ...}, ...)
+      - metavariable-pattern:
+          metavariable: $X
+          patterns:
+            - pattern: $V
+            - pattern-not: "..."
+            - pattern-not: DOMPurify.sanitize(...)
+
+  - id: jgates.js.xss-template-autoescape-off
+    message: A template engine is set up with escaping switched off, so every value is written into the page as raw HTML. Keep autoescaping on.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - pattern: Handlebars.compile($T, {..., noEscape: true, ...})
+      - pattern: nunjucks.configure(..., {..., autoescape: false, ...})
+      - pattern: new nunjucks.Environment($L, {..., autoescape: false, ...})
+      - pattern: ejs.render($T, $D, {..., escape: $F, ...})

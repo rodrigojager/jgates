@@ -1,4 +1,4 @@
 {
-  "files": ["app.py"],
-  "ruleIds": ["jgates.python.sql-string-building", "jgates.python.os-command-injection", "jgates.python.weak-hash", "jgates.python.unsafe-deserialization"]
+  "files": ["app.py", "xss.py"],
+  "ruleIds": ["jgates.python.sql-string-building", "jgates.python.os-command-injection", "jgates.python.weak-hash", "jgates.python.unsafe-deserialization", "jgates.python.xss-response-write", "jgates.python.xss-mark-request-data-safe"]
 }
