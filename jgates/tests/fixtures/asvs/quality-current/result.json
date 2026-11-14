@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "runId": "run_20261114T100000Z_1a2b3c4d",
+  "gate": "quality",
+  "tool": "jgates",
+  "version": "2.0.0",
+  "startedAt": "2026-11-14T10:00:00.000Z",
+  "finishedAt": "2026-11-14T10:04:00.000Z",
+  "workspace": { "id": "ws-asvs-units", "path": "/work/sample", "name": "sample" },
+  "runDir": "/home/jgates/workspaces/ws-asvs-units/runs/run_20261114T100000Z_1a2b3c4d",
+  "decision": "failed",
+  "complete": true,
+  "reduced": false,
+  "exitCode": 1,
+  "requirements": [],
+  "stages": [
+    {
+      "id": "semgrep#sast",
+      "label": "Semgrep",
+      "kind": "step",
+      "adapter": "semgrep",
+      "state": "completed",
+      "interpreted": true,
+      "blockingViolations": 0,
+      "findings": 0,
+      "cache": { "status": "executed", "key": "k-semgrep" },
+      "scannedLanguages": { "javascript": 3, "typescript": 1, "python": 0 }
+    },
+    {
+      "id": "gitleaks#secrets",
+      "label": "Gitleaks",
+      "kind": "step",
+      "adapter": "gitleaks",
+      "state": "completed",
+      "interpreted": true,
+      "blockingViolations": 0,
+      "cache": { "status": "reused", "runId": "run_20261113T090000Z_0f0f0f0f", "at": "2026-11-13T09:02:00.000Z" }
+    },
+    {
+      "id": "trivy#iac",
+      "label": "Trivy",
+      "kind": "step",
+      "adapter": "trivy",
+      "state": "error",
+      "interpreted": false,
+      "reason": "trivy exited with code 2"
+    },
+    {
+      "id": "zap#dast",
+      "label": "ZAP",
+      "kind": "step",
+      "adapter": "zap",
+      "state": "timeout",
+      "reason": "timed out after 600 s"
+    },
+    {
+      "id": "schemathesis#api",
+      "label": "Schemathesis",
+      "kind": "step",
+      "adapter": "schemathesis",
+      "state": "blocked",
+      "reason": "the target service did not start"
+    },
+    {
+      "id": "jscpd#duplication",
+      "label": "jscpd",
+      "kind": "step",
+      "adapter": "jscpd",
+      "state": "completed",
+      "interpreted": false,
+      "reason": "the report could not be read"
+    }
+  ],
+  "findings": [],
+  "unsatisfied": [],
+  "warnings": [],
+  "blockingViolations": 0,
+  "disabled": [
+    { "id": "checkov#iac", "origin": "profile", "reason": "Switched off by capability:iac (profile Balanced)" },
+    { "id": "osv-scanner#deps", "origin": "profile", "reason": "Not selected (no decision)" },
+    { "id": "zizmor#workflows", "origin": "profile", "reason": "zizmor is not available here (only where available)" }
+  ],
+  "workspaceChanges": { "checked": true, "added": [], "modified": [], "removed": [] },
+  "artifacts": { "result": "result.json", "logs": [], "outputs": [], "plan": "plan.json" }
+}

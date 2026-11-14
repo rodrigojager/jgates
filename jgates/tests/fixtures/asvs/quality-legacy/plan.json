@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "kind": "jgates-plan",
+  "workspace": {
+    "path": "/work/sample",
+    "id": "ws-asvs-units"
+  },
+  "planHash": "sha256:plan-asvs-units",
+  "groups": {
+    "willRun": [
+      {
+        "id": "semgrep#sast",
+        "tool": "semgrep",
+        "adapter": "semgrep",
+        "subcheck": null,
+        "capabilities": [
+          "sast"
+        ],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "configFiles": [
+          {
+            "file": "jgates.yml",
+            "sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "file": "@pack",
+            "sha256": "@current"
+          }
+        ],
+        "state": {
+          "enabled": true,
+          "originLabel": "profile Balanced"
+        },
+        "reason": {
+          "code": "SELECTED",
+          "message": "Selected by capability:sast"
+        }
+      },
+      {
+        "id": "gitleaks#secrets",
+        "tool": "gitleaks",
+        "adapter": "gitleaks",
+        "subcheck": null,
+        "capabilities": [
+          "secrets"
+        ],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "configFiles": [],
+        "state": {
+          "enabled": true,
+          "originLabel": "profile Balanced"
+        },
+        "reason": {
+          "code": "SELECTED",
+          "message": "Selected by capability:secrets"
+        }
+      },
+      {
+        "id": "trivy#iac",
+        "tool": "trivy",
+        "adapter": "trivy",
+        "subcheck": null,
+        "capabilities": [
+          "iac"
+        ],
+        "languages": [],
+        "configFiles": [],
+        "state": {
+          "enabled": true,
+          "originLabel": "profile Balanced"
+        },
+        "reason": {
+          "code": "SELECTED",
+          "message": "Selected by capability:iac"
+        }
+      },
+      {
+        "id": "zap#dast",
+        "tool": "zap",
+        "adapter": "zap",
+        "subcheck": null,
+        "capabilities": [
+          "dast"
+        ],
+        "languages": [],
+        "configFiles": [],
+        "state": {
+          "enabled": true,
+          "originLabel": "project"
+        },
+        "reason": {
+          "code": "SELECTED",
+          "message": "Selected by capability:dast"
+        }
+      },
+      {
+        "id": "schemathesis#api",
+        "tool": "schemathesis",
+        "adapter": "schemathesis",
+        "subcheck": null,
+        "capabilities": [
+          "api"
+        ],
+        "languages": [],
+        "configFiles": [],
+        "state": {
+          "enabled": true,
+          "originLabel": "project"
+        },
+        "reason": {
+          "code": "SELECTED",
+          "message": "Selected by capability:api"
+        }
+      },
+      {
+        "id": "jscpd#duplication",
+        "tool": "jscpd",
+        "adapter": "jscpd",
+        "subcheck": null,
+        "capabilities": [
+          "duplication"
+        ],
+        "languages": [
+          "javascript",
+          "typescript"
+        ],
+        "configFiles": [],
+        "state": {
+          "enabled": true,
+          "originLabel": "profile Balanced"
+        },
+        "reason": {
+          "code": "SELECTED",
+          "message": "Selected by capability:duplication"
+        }
+      }
+    ],
+    "notApplicableOrDisabled": [
+      {
+        "id": "checkov#iac",
+        "tool": "checkov",
+        "adapter": "checkov",
+        "subcheck": null,
+        "capabilities": [
+          "iac"
+        ],
+        "languages": [],
+        "configFiles": [],
+        "state": {
+          "enabled": false,
+          "originLabel": "profile Balanced"
+        },
+        "reason": {
+          "code": "DISABLED",
+          "message": "Switched off by capability:iac"
+        }
+      },
+      {
+        "id": "osv-scanner#deps",
+        "tool": "osv-scanner",
+        "adapter": "osv-scanner",
+        "subcheck": null,
+        "capabilities": [
+          "deps"
+        ],
+        "languages": [],
+        "configFiles": [],
+        "state": {
+          "enabled": false,
+          "originLabel": "no decision"
+        },
+        "reason": {
+          "code": "NOT_SELECTED",
+          "message": "Not selected"
+        }
+      },
+      {
+        "id": "zizmor#workflows",
+        "tool": "zizmor",
+        "adapter": "zizmor",
+        "subcheck": null,
+        "capabilities": [
+          "workflows"
+        ],
+        "languages": [],
+        "configFiles": [],
+        "state": {
+          "enabled": false,
+          "originLabel": "profile Strict",
+          "when": "available"
+        },
+        "reason": {
+          "code": "NOT_AVAILABLE_HERE",
+          "message": "zizmor is not available here"
+        }
+      }
+    ],
+    "uncoveredRequirements": [],
+    "notApplicableRequirements": []
+  }
+}
