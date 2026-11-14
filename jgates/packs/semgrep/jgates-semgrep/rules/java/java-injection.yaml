@@ -1,0 +1,88 @@
+# Covers JDBC statements, JPA and Hibernate query creation, Spring JdbcTemplate, Runtime and ProcessBuilder, and the
+# JAXP and StAX XML factories created in a method body.
+rules:
+  - id: jgates.java.sql-string-building
+    message: A SQL statement is built from a string concatenation or a formatted string. Pass values as parameters instead.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - pattern: $S.executeQuery("..." + $X)
+      - pattern: $S.executeUpdate("..." + $X)
+      - pattern: $S.execute("..." + $X)
+      - pattern: $S.addBatch("..." + $X)
+      - pattern: $C.prepareStatement("..." + $X, ...)
+      - pattern: $S.executeQuery(String.format(...))
+      - pattern: $S.executeUpdate(String.format(...))
+      - pattern: $S.execute(String.format(...))
+      - pattern: $EM.createQuery("..." + $X, ...)
+      - pattern: $EM.createNativeQuery("..." + $X, ...)
+      - pattern: $EM.createQuery(String.format(...), ...)
+      - pattern: $EM.createNativeQuery(String.format(...), ...)
+      - pattern: $JT.query("..." + $X, ...)
+      - pattern: $JT.queryForObject("..." + $X, ...)
+      - pattern: $JT.queryForList("..." + $X, ...)
+      - pattern: $JT.update("..." + $X, ...)
+      - pattern: $JT.execute("..." + $X)
+      - pattern: $JT.query(String.format(...), ...)
+      - pattern: $JT.update(String.format(...), ...)
+
+  - id: jgates.java.os-command-injection
+    message: A command is started from a non-literal string. Pass the program and each argument as separate literal or validated items.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - patterns:
+          - pattern: Runtime.getRuntime().exec($CMD, ...)
+          - pattern-not: Runtime.getRuntime().exec("...", ...)
+      - patterns:
+          - pattern: new ProcessBuilder($CMD, ...)
+          - pattern-not: new ProcessBuilder("...", ...)
+      - patterns:
+          - pattern-either:
+              - pattern: new ProcessBuilder("sh", "-c", $X)
+              - pattern: new ProcessBuilder("bash", "-c", $X)
+              - pattern: new ProcessBuilder("cmd.exe", "/c", $X)
+          - pattern-not: new ProcessBuilder($A, $B, "...")
+
+  - id: jgates.java.xml-external-entity
+    message: An XML parser factory is created without turning DTDs off, so external entities are resolved. Set the disallow-doctype-decl feature to true.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: xxe
+      cwe: "CWE-611"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - patterns:
+          - pattern: DocumentBuilderFactory $F = DocumentBuilderFactory.newInstance();
+          - pattern-not-inside: |
+              DocumentBuilderFactory $F = DocumentBuilderFactory.newInstance();
+              ...
+              $F.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      - patterns:
+          - pattern: SAXParserFactory $F = SAXParserFactory.newInstance();
+          - pattern-not-inside: |
+              SAXParserFactory $F = SAXParserFactory.newInstance();
+              ...
+              $F.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      - patterns:
+          - pattern: XMLInputFactory $F = XMLInputFactory.newInstance();
+          - pattern-not-inside: |
+              XMLInputFactory $F = XMLInputFactory.newInstance();
+              ...
+              $F.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+          - pattern-not-inside: |
+              XMLInputFactory $F = XMLInputFactory.newInstance();
+              ...
+              $F.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);

@@ -1,0 +1,16 @@
+{
+  "files": ["App.java"],
+  "ruleIds": [
+    "jgates.java.sql-string-building",
+    "jgates.java.os-command-injection",
+    "jgates.java.ssrf",
+    "jgates.java.path-traversal",
+    "jgates.java.reflected-xss",
+    "jgates.java.unsafe-deserialization",
+    "jgates.java.xml-external-entity",
+    "jgates.java.weak-hash",
+    "jgates.java.weak-cipher",
+    "jgates.java.tls-verification-disabled",
+    "jgates.java.csrf-protection-disabled"
+  ]
+}
