@@ -4,12 +4,17 @@ import { buildObject } from './objects.js';
 import { createCapsule } from './indicators.js';
 import { mascotArm } from './sculpt.js';
 
-// Family assembly of one Semantic mascot, copied from the "thinking team" study (src/models.js) for the shipped
-// appearance only: satin vinyl (roughness .32, clearcoat .48), palette direction B and the clear brain capsule. The other
-// appearance modes, constructions and Fit's fitting sequence are not part of the product.
+// Family assembly of one Semantic mascot, from the "thinking team" study (src/models.js) for the shipped appearance
+// only: satin vinyl (roughness .32, clearcoat .48), palette direction B and the clear brain capsule. The other
+// appearance modes and constructions are not part of the product. The arms are rubber hoses with a plain mitt, in the
+// color of the body. As built, a model is its resting pose; the handles a state animation needs (actor.js) are left in
+// `root.userData.rig`.
 
-/** Builds the static model of one mascot from its catalog entry ({ shape, color, bodyColor | bodyHue }). */
-export function createModel(spec) {
+/**
+ * Builds the model of one mascot from its catalog entry ({ shape, color, bodyColor | bodyHue, variants? }). `variant`
+ * picks one of the entry's variants; the first is the default.
+ */
+export function createModel(spec, { variant = spec.variants?.[0] } = {}) {
   const root = group(); root.name = `semantic-mascot-${spec.shape}`;
   const body = group(root, [0, 1.40, 0]);
   const main = vinyl(spec.bodyColor ?? spec.color), dark = main.clone(); dark.color.multiplyScalar(.73);
@@ -24,19 +29,30 @@ export function createModel(spec) {
     }
   }
   const p = { main, dark, cream, pale, paper: vinyl('#fff5df', { roughness: .55, clearcoat: .12 }), ink: vinyl('#243d35') };
-  const rig = buildObject(body, p, spec.shape);
+  const rig = buildObject(body, p, spec.shape, variant);
   body.position.y = rig.bodyY ?? 1.40;
+  root.scale.setScalar(rig.scale ?? 1);
 
   const features = face(rig.faceHost, rig.eyes);
   features.group.scale.setScalar(rig.faceScale ?? 1);
-  const arms = (rig.noArms ? [] : [-1, 1]).map((side, i) => mascotArm(body, side, main, rig.anchors?.[i] ?? [side * rig.shoulder, -.10, 0], { direction: rig.handDirections?.[i] }));
-  arms.forEach((a, i) => { a.sleeve.name = `arm-${i}`; a.hand.name = `mitten-${i}`; a.reach(...rig.hands[i]); });
-  rig.pose?.(arms);
+  // The arms belong to the part that carries them (the body, or the piece that moves on it).
+  const armHost = rig.armHost ?? body;
+  const arms = (rig.noArms ? [] : [-1, 1]).map((side, i) => {
+    const arm = mascotArm(armHost, side, main, rig.anchors?.[i] ?? [side * rig.shoulder, -.10, 0], { girth: rig.armGirth, flare: rig.armFlare, body: rig.armBody });
+    arm.sleeve.name = `arm-${i}`; arm.hand.name = `hand-${i}`;
+    arm.rest = [...(rig.hang?.[i] ?? rig.hands[i])];
+    arm.rests(...arm.rest);
+    arm.reach(...rig.hands[i]);
+    return arm;
+  });
+  const feet = [], legs = [];
   for (const side of rig.noFeet ? [] : [-1, 1]) {
     const foot = boot(root, main, [side * rig.footX, .20, .09], .58); foot.name = `boot-${side}`;
     const top = rig.legTops?.[side < 0 ? 0 : 1] ?? [side * rig.footX, rig.bottom, 0];
     const leg = segment(root, main, .17); leg.set(V(side * rig.footX, .27, .03), V(top[0], body.position.y + top[1], top[2]));
+    feet.push(foot); legs.push({ segment: leg, top: V(...top), x: side * rig.footX });
   }
-  createCapsule({ ...rig, body }, p);
+  const capsule = createCapsule({ ...rig, body: rig.capsuleHost ?? body }, p);
+  root.userData.rig = { shape: spec.shape, variant, color: spec.color, body, baseY: body.position.y, face: features, arms, armHost, feet, legs, parts: rig.parts, brain: capsule.userData.brain };
   return root;
 }

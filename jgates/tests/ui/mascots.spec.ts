@@ -42,6 +42,8 @@ test("six transparent mascots follow real checks, replay and frozen historical e
     expect(await strip.locator(".quality-mascot").first().evaluate((el) => ({ background: getComputedStyle(el).backgroundColor, border: getComputedStyle(el).borderWidth, shadow: getComputedStyle(el).boxShadow }))).toEqual({ background: "rgba(0, 0, 0, 0)", border: "0px", shadow: "none" });
 
     await expect(strip.locator("canvas")).toHaveAttribute("data-statuses", /waiting,disabled,disabled,disabled,incomplete,disabled/);
+    // In a configuration "waiting" means enabled: no mascot is dimmed (only one waiting for its turn in a run is).
+    await expect(strip.locator("canvas")).toHaveAttribute("data-dimmed", "");
     await expect(strip.locator("canvas")).toHaveAttribute("data-animating", "false");
     await strip.screenshot({ path: testInfo.outputPath("configuration-desktop.png") });
     await page.evaluate(() => { window.scrollTo(0, 0); });

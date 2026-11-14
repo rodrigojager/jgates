@@ -18,14 +18,16 @@ export function resolveSemanticMascot(id) {
 /**
  * The model of each mascot: the study id, the object anatomy (objects.js) and the body color. `color` is the study's
  * phase color (Trace's tonal materials are derived from it and rotated to hue 332); the other five use their own body
- * color of palette direction B.
+ * color of palette direction B. `variants` lists two builds of a mascot that are being compared: the first is the one
+ * shown, and swapping the two names goes back to the other (Verdict holding a balance or weighing with its palms; Seal
+ * without or with arms).
  */
 export const SEMANTIC_MASCOT_MODELS = Object.freeze({
   atlas: Object.freeze({ study: '01A', shape: 'compass', color: '#65cabc', bodyColor: 'hsl(194,40%,44%)' }),
   trace: Object.freeze({ study: '02A', shape: 'lenscoil', color: '#f29875', bodyHue: 332 }),
-  verdict: Object.freeze({ study: '03B', shape: 'gavel', color: '#b4d982', bodyColor: 'hsl(350,42%,47%)' }),
+  verdict: Object.freeze({ study: '03B', shape: 'gavel', color: '#b4d982', bodyColor: 'hsl(350,42%,47%)', variants: Object.freeze(['scales', 'weigh']) }),
   fit: Object.freeze({ study: '04A', shape: 'shape-sorter', color: '#eac45c', bodyColor: 'hsl(31,46%,55%)' }),
-  seal: Object.freeze({ study: '05C', shape: 'stamp', color: '#b99add', bodyColor: 'hsl(67,28%,48%)' }),
+  seal: Object.freeze({ study: '05C', shape: 'stamp', color: '#b99add', bodyColor: 'hsl(67,28%,48%)', variants: Object.freeze(['armless', 'arms']) }),
   folio: Object.freeze({ study: '06A', shape: 'folio', color: '#87afe5', bodyColor: 'hsl(239,27%,51%)' }),
 });
 

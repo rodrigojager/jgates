@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { DOMAINS, assertStatus, fromJGatesStage, fromJGatesDecision } from './status.js';
 import { Spring, clamp, mix, smooth, smoother, pulse, mod, jugglePose, juggleHandPose, architecturePose, architectureOrder, inspectionAlert, droppedParcelPose, restartCascadePose, fallenParcelPose } from './motion.js';
-import { V, vinyl, box, ball, group, extrusion, deformable, arm, boot, architectureBoot, segment, face, shieldShape, braceShape, starShape, archShape, check, cross, disposeTree } from './geometry.js';
+import { V, vinyl, box, ball, group, extrusion, deformable, hoseArm, boot, architectureBoot, segment, face, shieldShape, braceShape, starShape, archShape, check, cross, disposeTree } from './geometry.js';
 
 function parcel(parent, mat, cream) {
   const g = group(parent);
@@ -51,6 +51,16 @@ function laserError(parent) {
   });
   word.userData.layers = layers; return word;
 }
+
+/** The solid each mascot's arms must go round: half width at the shoulders, front, bottom and top. */
+const ARM_BODY = Object.freeze({
+  quality: { half: .78, front: .49, bottom: -.83, top: .83 },
+  security: { half: y => .87 * Math.min(1, Math.max(0, (y + 1.03) / 1.13)) ** .6, front: .38, bottom: -1.0, top: 1.05 },
+  dependencies: { half: .70, front: .43, bottom: -.73, top: .67 },
+  tests: { half: .74, front: .47, bottom: -.88, top: 1.02 },
+  architecture: { half: .92, front: .50, bottom: -.72, top: 1.75 },
+  infrastructure: { half: .92, front: .41, bottom: -.78, top: .78 },
+});
 
 /** Every mascot has exactly two arms. All pieces are generated in code. */
 function construct(domain) {
@@ -129,7 +139,14 @@ function construct(domain) {
   }
   rig.face = face(domain === 'infrastructure' ? rig.pieces.slabs[2] : skin, faceOptions);
   const armParent = domain === 'infrastructure' ? rig.pieces.slabs[1] : skin;
-  rig.arms = [-1, 1].map(side => arm(armParent, side, mat, shoulder, domain === 'architecture' ? .98 : .48));
+  // Rubber-hose arms with a mitt, as on the Semantic mascots. The hand is put exactly where each pose asks (the poses
+  // were authored against the parcels, the blocks and the checklist), and the hose goes round the body to reach it.
+  rig.arms = [-1, 1].map(side => {
+    // These bodies are chunky: a thicker hose with a larger mitt, and long enough to hang in a full arc.
+    const a = hoseArm(armParent, side, mat, [side * shoulder, -.10, 0], { girth: 1.42, body: ARM_BODY[domain], push: false });
+    a.rests(side * 1.05, -.40, .275); a.length *= 1.38; // the two hoses are the same length
+    return a;
+  });
   const footX = domain === 'architecture' ? .68 : .43;
   rig.feet = [-1, 1].map(side => domain === 'architecture'
     ? architectureBoot(root, mat, [side * footX, .22, .08])
@@ -271,7 +288,7 @@ export class Mascot extends EventTarget {
     if (success) handTargets[1] = [.99, .46 + celebrate * .23, .25];
     if (technical) handTargets[1] = [.9, .15, .40];
     if (muted) { handTargets[0] = [-.93, -.51, .38]; handTargets[1] = [.93, -.51, .38]; }
-    const exactHands = [null, null], handRolls = [0, 0];
+    const exactHands = [null, null];
     let gazeX = 0, gazeY = 0;
     if (this.domain === 'quality') {
       const alert = inspectionAlert(this.actionTime - this.alertEpoch, 2.2);
@@ -373,7 +390,7 @@ export class Mascot extends EventTarget {
             if (wrist.incoming >= 0 && wrist.anticipation > 0) point.lerp(r.pieces.packages[wrist.incoming].position.clone().add(V(0, -.36, .015)), wrist.anticipation);
             exactHands[a] = { point, space: r.root };
           }
-          handRolls[a] = wrist.roll;
+         
         }
         const high = r.pieces.packages.reduce((a, b) => a.position.y > b.position.y ? a : b);
         gazeX = high.position.x * .045; gazeY = .035;
@@ -387,7 +404,7 @@ export class Mascot extends EventTarget {
           const firstHeld = r.pieces.packages[1].position.clone().add(V(0, -.36, .015));
           right.lerp(firstHeld, smoother(elapsed / 1.15));
           exactHands[1] = { point: right, space: r.root };
-          handRolls[0] = -.10; handRolls[1] = .08;
+         
           gazeX = -.055; gazeY = -.10 * (1 - smooth((elapsed - 2.4) / .8));
         }
         if (restart) {
@@ -399,7 +416,7 @@ export class Mascot extends EventTarget {
               if (wrist.outgoing >= 0 && wrist.release > 0) point.lerp(r.pieces.packages[wrist.outgoing].position.clone().add(V(0, -.36, .015)), wrist.release);
               if (wrist.incoming >= 0 && wrist.anticipation > 0) point.lerp(r.pieces.packages[wrist.incoming].position.clone().add(V(0, -.36, .015)), wrist.anticipation);
             }
-            exactHands[a] = { point, space: r.root }; handRolls[a] = wrist.roll;
+            exactHands[a] = { point, space: r.root };
           }
           gazeX = 0; gazeY = .035;
         }
@@ -457,7 +474,7 @@ export class Mascot extends EventTarget {
           // the stacked blocks. Use the actual smoothed transform, not a second
           // independently delayed target.
           exactHands[1] = { point: b.position.clone().add(V(b.userData.width * b.scale.x * .40, -.03, .57)), space: r.skin };
-          handRolls[1] = -.14;
+         
           gazeY = .04; gazeX = b.position.x * .035;
         } else {
           const active = poses.find(p => p.slot >= 0 && p.slot < 2.8);
@@ -500,7 +517,8 @@ export class Mascot extends EventTarget {
         if (!this.springs.has(key)) this.springs.set(key, new Spring(n, 230, 27));
         return this.springs.get(key).snap(n);
       });
-      a.reach(...coordinates, handRolls[i]);
+      // A hand that holds something is exactly where the thing is; a gesture keeps clear of the body.
+      a.reach(...coordinates, { free: !exact });
       const leg = r.legs[i], foot = r.feet[i];
       const top = r.root.worldToLocal(r.skin.localToWorld(leg.top.clone()));
       leg.set(top, V(foot.position.x, foot.position.y + .10, foot.position.z - .05));
@@ -521,10 +539,12 @@ export class Mascot extends EventTarget {
       f.brows[i].rotation.z = (i ? -1 : 1) * .37 * worried;
     });
     const gray = this.spring('gray', resting ? 1 : 0, dt, 95, 21);
-    if (gray > .0001) r.materials.forEach(({ material }) => {
+    // A mascot waiting for its turn (the gallery dims its picture) also loses part of its color.
+    const wash = Math.max(gray, (this.dim ?? 0) * .32);
+    if (wash > .0001) r.materials.forEach(({ material }) => {
       const isInk = material.color.getHSL({}).l < .08;
-      material.color.lerp(new THREE.Color(isInk ? '#46494f' : '#91959c'), gray);
-      if (material.emissive) material.emissive.multiplyScalar(1 - gray);
+      material.color.lerp(new THREE.Color(isInk ? '#46494f' : '#91959c'), wash);
+      if (material.emissive) material.emissive.multiplyScalar(1 - wash);
     });
     this.object.updateMatrixWorld(true);
     this.settledFrame = false;

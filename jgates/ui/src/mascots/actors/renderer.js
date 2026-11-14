@@ -21,6 +21,11 @@ export class MascotGallery {
     room.dispose(); pmrem.dispose();
     this.views = new Map(); this.reducedMotion = reducedMotion; this.paused = false; this.speed = 1; this.elapsed = 0;
     this.lastTime = 0; this.disposed = false; this.frames = 0; this.onError = onError;
+    // The pass that dims one viewport: a quad that draws nothing and scales what is already there (dst * its opacity).
+    this.fadeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 1, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation,
+      blendSrc: THREE.ZeroFactor, blendDst: THREE.SrcAlphaFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.SrcAlphaFactor, depthTest: false, depthWrite: false, toneMapped: false });
+    this.fadeScene = new THREE.Scene(); this.fadeCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const veil = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.fadeMaterial); veil.position.z = -.5; veil.frustumCulled = false; this.fadeScene.add(veil);
     this.lost = e => { e.preventDefault(); this.contextLost = true; onError(new Error('Graphics context lost. Recreate the scene to restore rendering.')); };
     this.canvas.addEventListener('webglcontextlost', this.lost);
     this.visible = true;
@@ -30,7 +35,7 @@ export class MascotGallery {
       const dt = this.lastTime ? Math.min((now - this.lastTime) / 1000, .05) : 0;
       this.lastTime = now;
       try { this.render(this.paused ? 0 : dt * this.speed); } catch (e) { onError(e); this.contextLost = true; }
-      const animating = !this.paused && !this.reducedMotion && [...this.views.values()].some(v => v.actor.status === 'processing' || v.actor.age < 4);
+      const animating = !this.paused && !this.reducedMotion && [...this.views.values()].some(v => v.actor.status === 'processing' || v.actor.age < 4 || v.dim !== v.dimTarget);
       this.canvas.dataset.animating = String(animating);
       if (animating) this.invalidate();
     };
@@ -66,9 +71,20 @@ export class MascotGallery {
     const shadowTexture = new THREE.CanvasTexture(c);
     const contact = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 1.9), new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, depthWrite: false }));
     contact.rotation.x = -Math.PI / 2; contact.position.y = .018; scene.add(contact);
-    const view = { domain, actor, scene, camera, element, shadowTexture, angle: 0 };
+    const view = { domain, actor, scene, camera, element, shadowTexture, angle: 0, dim: 0, dimTarget: 0 };
     this.views.set(domain, view);
     return actor;
+  }
+  /**
+   * Dims one mascot (waiting for its turn in a run): its picture fades and loses some color, and comes back when its turn
+   * arrives. The change is eased; `immediate` shows it at once (a state that is shown as it is, or reduced motion).
+   */
+  setDimmed(domain, dimmed, { immediate = false } = {}) {
+    const view = this.views.get(domain);
+    if (!view) return;
+    view.dimTarget = dimmed ? 1 : 0;
+    if (immediate || this.reducedMotion) view.dim = view.dimTarget;
+    this.invalidate();
   }
   /** Points an existing view at another element (the same mascot drawn where a new screen placed its viewport). */
   bind(domain, element) { const view = this.views.get(domain); if (view) view.element = element; return view?.actor; }
@@ -85,6 +101,10 @@ export class MascotGallery {
     this.elapsed += dt;
     for (const view of this.views.values()) {
       const bounds = view.element.getBoundingClientRect();
+      // Eased towards its target: fast at first, slowing as it arrives.
+      const gap = view.dimTarget - view.dim;
+      view.dim = this.reducedMotion || Math.abs(gap) < .004 ? view.dimTarget : view.dim + gap * (1 - Math.exp(-dt * 5));
+      view.actor.dim = view.dim;
       view.actor.update(dt);
       if (bounds.bottom < rect.top || bounds.top > rect.bottom || bounds.right < rect.left || bounds.left > rect.right || bounds.width < 1 || bounds.height < 1) continue;
       const left = bounds.left - rect.left, bottom = rect.bottom - bounds.bottom;
@@ -96,18 +116,25 @@ export class MascotGallery {
       this.renderer.setViewport(left, bottom, bounds.width, bounds.height);
       this.renderer.setScissor(Math.max(0, left), Math.max(0, bottom), Math.min(width, left + bounds.width) - Math.max(0, left), Math.min(height, bottom + bounds.height) - Math.max(0, bottom));
       this.renderer.clearDepth(); this.renderer.render(view.scene, view.camera);
+      if (view.dim > .002) {
+        // The same picture at 45% opacity: what was just drawn in this viewport, color and alpha, is scaled down.
+        this.fadeMaterial.opacity = 1 - .55 * view.dim;
+        this.renderer.render(this.fadeScene, this.fadeCamera);
+      }
     }
     this.frames++;
     this.canvas.dataset.frames = String(this.frames);
     this.canvas.dataset.statuses = [...this.views.values()].map(v => v.actor.status).join(',');
+    this.canvas.dataset.dimmed = [...this.views.values()].filter(v => v.dim > .5).map(v => v.domain).join(',');
   }
-  inspect() { return { frames: this.frames, contextLost: !!this.contextLost, paused: this.paused, reducedMotion: this.reducedMotion, views: [...this.views.values()].map(v => v.actor.inspect()), render: { calls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures } }; }
+  inspect() { return { frames: this.frames, contextLost: !!this.contextLost, paused: this.paused, reducedMotion: this.reducedMotion, views: [...this.views.values()].map(v => v.actor.inspect()), dimmed: Object.fromEntries([...this.views.values()].map(v => [v.domain, v.dim])), render: { calls: this.renderer.info.render.calls, triangles: this.renderer.info.render.triangles, geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures } }; }
   dispose() {
     if (this.disposed) return;
     cancelAnimationFrame(this.frameHandle);
     document.removeEventListener('visibilitychange', this.visibility);
     this.canvas.removeEventListener('webglcontextlost', this.lost);
     for (const v of this.views.values()) { v.actor.dispose(); disposeTree(v.scene); v.shadowTexture.dispose(); }
+    disposeTree(this.fadeScene);
     this.views.clear(); this.environment.dispose(); this.renderer.dispose(); this.renderer.forceContextLoss(); this.disposed = true;
   }
 }

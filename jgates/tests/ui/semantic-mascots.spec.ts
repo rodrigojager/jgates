@@ -3,10 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { createFixture, openApp, startServer, type Fixture, type UiServer } from "./support";
 
-// The six static 3D Semantic mascots (Atlas, Trace, Verdict, Fit, Seal, Folio) on the Semantic run and result screens.
+// The six animated 3D Semantic mascots (Atlas, Trace, Verdict, Fit, Seal, Folio) on the Semantic run and result screens.
 // The run is a fake one: the Semantic run routes are answered in the browser with a run covering the six phases, so each
-// mascot can be shown in each of the six states. Each mascot is its own painted canvas, drawn on demand from one shared
-// WebGL context (nothing repaints while nothing changes); with WebGL disabled each one is its pre-rendered image; label
+// mascot can be shown in each of the six states. Each mascot is its own painted canvas, drawn from one shared WebGL
+// context: a working mascot keeps moving, a mascot that changes state plays a reaction and then stays still, and nothing
+// repaints once nothing moves (never under reduced motion); with WebGL disabled each one is its pre-rendered image; label
 // and badge are the same either way, in pt-BR and en; old role ids of stored runs still render; no console error.
 // JGATES_SEMANTIC_MASCOT_SHOTS names a folder for the review screenshots (1280 and 375 px, light and dark).
 
@@ -194,12 +195,21 @@ test("run and result screens: six distinct 3D mascots, one WebGL context, painte
         await expectMascots(page, locale, Object.fromEntries(run.snapshot.mascots.map((m) => [m.mascot, m.state])), "webgl");
       }
       await expectSixDistinctPictures(page, "canvas.sem3d-model");
-      // One shared context for the six, and nothing repaints while nothing changes (no animation loop).
+      // One shared context for the six.
       expect(await page.evaluate(() => (window as unknown as { __glContexts: string[] }).__glContexts.filter((c) => c === "semantic-mascots-gl").length)).toBe(1);
       const painted = () => page.locator('[data-testid="semantic-mascots"] canvas.sem3d-model').evaluateAll((els) => els.map((e) => e.getAttribute("data-painted")));
+      const moving = () => page.locator('[data-testid="semantic-mascots"] li[data-mascot]').evaluateAll((els) => Object.fromEntries(els.map((e) => [e.getAttribute("data-state"), e.querySelector("canvas")?.getAttribute("data-animating")])));
+      // The mascot at work keeps moving; the others played the reaction of the state they entered and are still again.
+      await expect.poll(moving, { timeout: 90_000 }).toEqual({ cancelled: "false", waiting: "false", working: "true", done: "false", incomplete: "false", failed: "false" });
       const before = await painted();
       await page.waitForTimeout(1500);
-      expect(await painted()).toEqual(before);
+      const after = await painted();
+      const states = run.snapshot.mascots.map((m) => m.state);
+      states.forEach((state, i) => {
+        // Working is redrawn frame after frame, and the waiting one breathes beside it; a settled mascot is not drawn again.
+        if (state === "working") expect(Number(after[i]), "the working mascot moves").toBeGreaterThan(Number(before[i]));
+        else if (state !== "waiting") expect(after[i], state + " is still").toBe(before[i]);
+      });
 
       // The result screen of the same run, settled.
       run.lifecycle = "settled";
@@ -208,6 +218,13 @@ test("run and result screens: six distinct 3D mascots, one WebGL context, painte
       await expect(page.getByTestId("semantic-results")).toBeVisible();
       await expectMascots(page, locale, Object.fromEntries(run.snapshot.mascots.map((m) => [m.mascot, m.state])), "webgl");
       await expectSixDistinctPictures(page, "canvas.sem3d-model");
+      // A mascot that is first shown appears in its state as it is: no reaction is played and it is not drawn again.
+      // (The fake snapshot still has one mascot at work, which moves.)
+      expect(await moving()).toEqual({ done: "false", incomplete: "false", failed: "false", cancelled: "false", waiting: "false", working: "true" });
+      const shown = await painted();
+      await page.waitForTimeout(1000);
+      const later = await painted();
+      run.snapshot.mascots.forEach((m, i) => { if (m.state !== "working" && m.state !== "waiting") expect(later[i], m.state + " is still").toBe(shown[i]); });
 
       // A stored run with the four old role ids: each resolves to its phase mascot.
       run.snapshot = { ...rotated(0, ["scout", "tracker", "challenger", "fit", "verifier", "folio"]), running: false };
@@ -215,6 +232,30 @@ test("run and result screens: six distinct 3D mascots, one WebGL context, painte
       await expect(page.getByTestId("semantic-results")).toBeVisible();
       await expectMascots(page, locale, Object.fromEntries(rotated(0).mascots.map((m) => [m.mascot, m.state])), "webgl");
     }
+    expect(errors).toEqual([]);
+  });
+});
+
+test("with reduced motion no mascot moves: every state is a still pose, also right after a state change", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const run: FakeRun = { lifecycle: "running", snapshot: rotated(0) };
+  await fakeRun(page, run);
+  await withServer(page, async ({ base, errors }) => {
+    await preferences(page, base, { language: "pt-BR" });
+    await page.goto(base + "#/semantic/runs/" + RUN);
+    const canvases = page.locator('[data-testid="semantic-mascots"] canvas.sem3d-model');
+    const painted = () => canvases.evaluateAll((els) => els.map((e) => e.getAttribute("data-painted")));
+    for (const shift of [0, 1]) {
+      run.snapshot = rotated(shift);
+      await expectMascots(page, "pt-BR", Object.fromEntries(run.snapshot.mascots.map((m) => [m.mascot, m.state])), "webgl");
+      await expect(page.locator('[data-testid="semantic-mascots"] canvas.sem3d-model[data-animating="true"]')).toHaveCount(0);
+      await expect.poll(async () => (await canvases.evaluateAll((els) => els.map((e) => e.getAttribute("data-picture")))).map((p) => p?.split(":")[1])).toEqual(run.snapshot.mascots.map((m) => m.state));
+      const before = await painted();
+      await page.waitForTimeout(1200);
+      expect(await painted(), "nothing is drawn again").toEqual(before);
+    }
+    await expectSixDistinctPictures(page, "canvas.sem3d-model");
     expect(errors).toEqual([]);
   });
 });

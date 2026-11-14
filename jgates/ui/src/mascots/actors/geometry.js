@@ -59,52 +59,6 @@ export function segment(parent, mat, radius) {
     if (length > .00001) m.quaternion.setFromUnitVectors(up, dir.normalize());
   } };
 }
-/** One closed padded mitten, shaped by its silhouette, rather than overlapping
- * spheres. The thumb grows sideways below the broad joined fingertips. */
-export function mitten(parent, side, mat) {
-  const g = group(parent);
-  const outline = new THREE.Shape();
-  outline.moveTo(-.075, -.185);
-  outline.bezierCurveTo(-.12, -.16, -.16, -.12, -.17, -.055);
-  outline.bezierCurveTo(-.205, -.025, -.23, .025, -.21, .065);
-  outline.bezierCurveTo(-.19, .095, -.17, .095, -.15, .08);
-  outline.bezierCurveTo(-.15, .14, -.14, .195, -.075, .215);
-  outline.bezierCurveTo(-.005, .24, .10, .23, .145, .18);
-  outline.bezierCurveTo(.19, .13, .19, .015, .16, -.075);
-  outline.bezierCurveTo(.14, -.13, .115, -.17, .075, -.185);
-  outline.quadraticCurveTo(0, -.205, -.075, -.185);
-  const contour = outline.getSpacedPoints(80); contour.pop();
-  if (THREE.ShapeUtils.isClockWise(contour)) contour.reverse();
-  const around = contour.length, rings = 24, vertices = [0, .015, .172], indices = [];
-  for (let ring = 1; ring < rings; ring++) {
-    const angle = ring / rings * Math.PI, radius = Math.pow(Math.sin(angle), .85), depth = Math.cos(angle);
-    for (const p of contour) {
-      const x = p.x * radius, y = .015 + (p.y - .015) * radius;
-      // A shallow sculpted fold joins the thumb into the palm. It is part of
-      // the same surface, without an added bump or a separate finger cap.
-      const fold = .012 * Math.exp(-Math.pow((x + .135) / .065, 2) - Math.pow((y - .015) / .07, 2));
-      vertices.push(x, y, depth * (.172 - fold));
-    }
-  }
-  const back = vertices.length / 3; vertices.push(0, .015, -.172);
-  for (let j = 0; j < around; j++) {
-    const next = (j + 1) % around;
-    indices.push(0, 1 + j, 1 + next);
-    for (let ring = 0; ring < rings - 2; ring++) {
-      const a = 1 + ring * around + j, b = a + around;
-      const c = 1 + ring * around + next, d = c + around;
-      indices.push(a, b, c, b, d, c);
-    }
-    const last = 1 + (rings - 2) * around;
-    indices.push(last + j, back, last + next);
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  geo.setIndex(indices); geo.computeVertexNormals();
-  const glove = mesh(geo, mat, g); glove.name = 'continuous-mitten'; glove.scale.x = side;
-  return g;
-}
-
 /** Architecture uses the broad rounded cuffs from V2. Their flat upper face
  * encloses the column ends, instead of slicing through a domed shoe. */
 export function architectureBoot(parent, mat, pos) {
@@ -124,49 +78,120 @@ export function boot(parent, mat, pos, width = .57) {
   return mesh(geo, mat, parent, ...pos);
 }
 
-/** One smooth bendy arm, no exposed capsule ends or polygonal elbow. */
-export function arm(parent, side, mat, shoulderX = .72, clearance = .48) {
-  const sections = 24, sides = 14;
-  const positions = new Float32Array((sections + 1) * (sides + 1) * 3);
-  const normals = new Float32Array(positions.length), indices = [];
-  for (let i = 0; i < sections; i++) for (let j = 0; j < sides; j++) {
-    const a = i * (sides + 1) + j, b = a + sides + 1;
-    indices.push(a, a + 1, b, b, a + 1, b + 1);
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
-  geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3).setUsage(THREE.DynamicDrawUsage));
-  geo.setIndex(indices);
-  const sleeve = mesh(geo, mat, parent); sleeve.frustumCulled = false;
-  const hand = mitten(parent, side, mat);
-  const anchor = V(side * shoulderX, -.10, 0), end = V(), c1 = V(), c2 = V();
-  const curve = new THREE.CubicBezierCurve3(anchor, c1, c2, end);
-  const point = V(), tangent = V(), normal = V(), binormal = V(), reference = V(0, 0, 1);
-  return { side, parent, hand, anchor, sleeve, reach(x, y, z, roll = 0) {
-    end.set(x, y, z);
-    // Bend outside the silhouette. The forearm approaches carried objects from
-    // the front, clearing the architecture's lower, wider blocks.
-    const outside = Math.max(shoulderX + .40, Math.abs(x) + .22);
-    c1.set(side * outside, anchor.y - .12, Math.max(.12, z * .35));
-    c2.set(side * outside, y - .30, Math.max(z + .08, clearance));
-    for (let i = 0; i <= sections; i++) {
-      const u = i / sections;
-      curve.getPoint(u, point); curve.getTangent(u, tangent).normalize();
-      normal.crossVectors(tangent, reference).normalize();
-      if (normal.lengthSq() < .01) normal.set(1, 0, 0);
-      binormal.crossVectors(tangent, normal).normalize();
-      const radius = .137 + Math.sin(u * Math.PI) * .014;
-      for (let j = 0; j <= sides; j++) {
-        const angle = j / sides * Math.PI * 2, cos = Math.cos(angle), sin = Math.sin(angle);
-        const offset = (i * (sides + 1) + j) * 3;
-        const nx = normal.x * cos + binormal.x * sin, ny = normal.y * cos + binormal.y * sin, nz = normal.z * cos + binormal.z * sin;
-        positions[offset] = point.x + nx * radius; positions[offset + 1] = point.y + ny * radius; positions[offset + 2] = point.z + nz * radius;
-        normals[offset] = nx; normals[offset + 1] = ny; normals[offset + 2] = nz;
-      }
+/**
+ * The hand of a rubber-hose arm: a mitt with no thumb, flat, a little wider at the fingertips than at the wrist, with
+ * three faint lines at the tips for the fingers. The lines are on both faces, so the hand reads the same whichever
+ * way it is turned, and they are always at the end that points away from the arm: towards what the hand holds.
+ */
+function hoseHand(parent, mat) {
+  const hand = group(parent), width = .158, length = .180, depth = .100;
+  const geo = new THREE.SphereGeometry(1, 28, 20), p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setXYZ(i, p.getX(i) * width * (1 + .17 * y), y * length, p.getZ(i) * depth); }
+  geo.computeVertexNormals();
+  const palm = mesh(geo, mat, hand, 0, .05, 0); palm.name = 'rubber-hose-mitt';
+  const crease = mat.clone(); crease.color.multiplyScalar(.80);
+  for (const face of [1, -1]) for (const x of [-.058, 0, .058]) {
+    const points = [];
+    for (let k = 0; k <= 5; k++) {
+      // From the tip a third of the way down, lying on the surface of the mitt.
+      const y = .97 - k * .11, wide = width * (1 + .17 * y), across = x * (1 + .17 * y) / wide;
+      points.push([across * wide, .05 + y * length, face * (depth * Math.sqrt(Math.max(.0004, 1 - across * across - y * y)) + .002)]);
     }
-    geo.attributes.position.needsUpdate = geo.attributes.normal.needsUpdate = true;
-    hand.position.copy(end); hand.rotation.z = roll;
-  } };
+    tube(hand, points, .0065, crease);
+  }
+  return hand;
+}
+
+/**
+ * A rubber-hose arm, as in the cartoons the family comes from: one hose of even thickness that never shows an elbow.
+ * It leaves the shoulder and reaches the hand in a single smooth arc; the arc is the slack of the hose (the nearer the
+ * hand is to the shoulder, the more it bows) and it bows away from the body and downwards, or round the front of the
+ * body when the hand crosses it. The mitt continues the end of the hose, whatever the pose. `lift` (0 to 1) makes the
+ * arc bow upwards instead, for a hand that comes down on something; `straight` (0 to 1) pulls the hose taut. `body`
+ * is the solid the hose and the mitt must stay out of: its half width (a number, or a function of the height for a
+ * round body), how far forward its front is, and its bottom and top. `flare` widens the hose where it leaves a body
+ * thinner than itself, so that it grows out of the body instead of being stuck on it. `push: false` leaves the
+ * mitt exactly where it is asked to be (for poses authored against the things the hand holds); `free` says the same
+ * for one reach.
+ */
+export function hoseArm(parent, side, mat, anchorAt, { girth = 1, flare = 0, push = true, body = { half: .72, front: .40, bottom: -.8, top: .8 } } = {}) {
+  const anchor = new THREE.Vector3(...anchorAt), hand = hoseHand(parent, mat);
+  // A thick hose gets a mitt to match: the end of the hose must fit inside it.
+  const grip = girth < 1 ? .80 + .20 * girth : 1 + .75 * (girth - 1);
+  hand.scale.setScalar(grip);
+  const sections = 28, sides = 14;
+  const positions = new Float32Array((sections + 1) * (sides + 1) * 3), normals = new Float32Array(positions.length), indices = [];
+  for (let i = 0; i < sections; i++) for (let j = 0; j < sides; j++) { const a = i * (sides + 1) + j, b = a + sides + 1; indices.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('normal', new THREE.BufferAttribute(normals, 3).setUsage(THREE.DynamicDrawUsage));
+  g.setIndex(indices);
+  const sleeve = mesh(g, mat, parent); sleeve.frustumCulled = false;
+  const wrist = new THREE.Vector3(), c1 = new THREE.Vector3(), c2 = new THREE.Vector3(), at = new THREE.Vector3(), fingers = new THREE.Vector3();
+  const chord = new THREE.Vector3(), bow = new THREE.Vector3();
+  const curve = new THREE.CubicBezierCurve3(anchor, c1, c2, wrist);
+  const point = new THREE.Vector3(), tangent = new THREE.Vector3(), normal = new THREE.Vector3(), binormal = new THREE.Vector3(), reference = new THREE.Vector3(0, 0, 1);
+  const palm = new THREE.Vector3(), across = new THREE.Vector3(), basis = new THREE.Matrix4();
+  const arm = { side, parent, anchor, hand, sleeve, wrist, curve, length: .70,
+    /** The length of the hose: a little more than the reach of the resting pose, so that it hangs with a slight bow. */
+    rests(x, y, z) { arm.length = Math.hypot(x - anchor.x, y - anchor.y, z - anchor.z) * 1.08 + .03; },
+    reach(x, y, z, { lift = 0, straight = 0, free = push } = {}) {
+      // A mitt asked to be inside the body stays on its surface instead: on the way from one side of a corner to the
+      // other it slides round the corner.
+      const wide = typeof body.half === 'function' ? body.half(y) : body.half, margin = .10 + .035 * girth;
+      if (free && y > body.bottom - margin && y < body.top + margin && Math.abs(x) < wide + margin && z < body.front + margin) {
+        // Pushed out along the ray from a point well behind the body, so that neighbouring positions stay neighbours
+        // (the nearest face would jump at the corner); less and less towards the top and the bottom of the body.
+        const behind = -1, grow = Math.min(Math.abs(x) > 1e-6 ? (wide + margin) / Math.abs(x) : Infinity, (body.front + margin - behind) / (z - behind));
+        const full = THREE.MathUtils.smoothstep(y, body.bottom - margin, body.bottom) * (1 - THREE.MathUtils.smoothstep(y, body.top, body.top + margin));
+        x = THREE.MathUtils.lerp(x, x * grow, full); z = THREE.MathUtils.lerp(z, behind + (z - behind) * grow, full);
+      }
+      // (For a body whose width changes with the height, the widest part the hose passes by.)
+      const half = typeof body.half === 'function' ? Math.max(body.half(anchor.y), body.half(y), body.half((anchor.y + y) / 2)) : body.half;
+      at.set(x, y, z); chord.copy(at).sub(anchor);
+      const distance = chord.length(), inward = THREE.MathUtils.clamp((Math.abs(anchor.x) - side * x) / (Math.abs(anchor.x) + .5), 0, 1);
+      // The slack of the hose is its bow; even a taut hose keeps a trace of it, so it never looks like a rod.
+      const slack = (Math.sqrt(Math.max(0, arm.length * arm.length - distance * distance)) * .46 + .035) * (1 - straight);
+      bow.set(side * (1 - .75 * inward), THREE.MathUtils.lerp(-.8, .9, lift), .12 + 1.15 * inward);
+      if (distance > 1e-4) bow.addScaledVector(chord, -bow.dot(chord) / (distance * distance));
+      if (bow.lengthSq() < 1e-4) bow.set(side, 0, 0);
+      bow.normalize().multiplyScalar(slack * 1.2);
+      c1.copy(anchor).addScaledVector(chord, 1 / 3).add(bow); c2.copy(anchor).addScaledVector(chord, 2 / 3).add(bow);
+      // Out of the body before anything else: the hose leaves the shoulder sideways, past the surface.
+      c1.x = side * Math.max(side * c1.x, half + .06 + .092 * girth);
+      // A hand in front of the body: the hose goes round the corner, first outside and then across the front.
+      // (How much depends on how far forward the hand is, and hardly on how far to the side: a hand that moves in
+      // front of the body, as in juggling, keeps one route instead of swinging between two.)
+      const wrap = THREE.MathUtils.smoothstep(z, body.front * .5, body.front + .2) * (1 - THREE.MathUtils.smoothstep(side * x, half + .25, half + .65)) * (1 - straight);
+      if (wrap > 0) {
+        c1.lerp(point.set(side * (half + .21 + .092 * girth), THREE.MathUtils.lerp(anchor.y, y, .3) + bow.y * .5, body.front * .85), wrap);
+        c2.lerp(point.set(side * (half + .01 + .092 * girth), THREE.MathUtils.lerp(anchor.y, y, .8) + bow.y * .8, Math.max(z - .05, body.front + .30)), wrap);
+      }
+      // The mitt continues the end of the hose, flat towards the front.
+      fingers.copy(at).sub(c2).normalize();
+      palm.set(0, 0, 1).addScaledVector(fingers, -fingers.z);
+      if (palm.lengthSq() < .02) palm.set(0, 1, 0).addScaledVector(fingers, -fingers.y);
+      palm.normalize(); across.crossVectors(fingers, palm);
+      hand.position.copy(at); hand.quaternion.setFromRotationMatrix(basis.makeBasis(across, fingers, palm));
+      wrist.copy(at).addScaledVector(fingers, -.02 * grip);
+      const even = .092 * girth;
+      for (let i = 0; i <= sections; i++) {
+        // (It narrows into the wrist, so that its open end is inside the mitt and never shows.)
+        const u = i / sections, radius = even * (1 + flare * (1 - THREE.MathUtils.smoothstep(u, 0, .24))) * (1 - .32 * THREE.MathUtils.smoothstep(u, .74, 1));
+        curve.getPoint(u, point); curve.getTangent(u, tangent).normalize();
+        normal.crossVectors(tangent, reference).normalize();
+        if (normal.lengthSq() < .01) normal.set(1, 0, 0);
+        binormal.crossVectors(tangent, normal).normalize();
+        for (let j = 0; j <= sides; j++) {
+          const a = j / sides * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a), offset = (i * (sides + 1) + j) * 3;
+          const nx = normal.x * ca + binormal.x * sa, ny = normal.y * ca + binormal.y * sa, nz = normal.z * ca + binormal.z * sa;
+          positions[offset] = point.x + nx * radius; positions[offset + 1] = point.y + ny * radius; positions[offset + 2] = point.z + nz * radius;
+          normals[offset] = nx; normals[offset + 1] = ny; normals[offset + 2] = nz;
+        }
+      }
+      g.attributes.position.needsUpdate = g.attributes.normal.needsUpdate = true;
+    } };
+  return arm;
 }
 
 export function shieldShape(scale = 1) {

@@ -148,10 +148,10 @@ export function QualityMascotStrip({ snapshot, onSelect, loading = false }: { sn
     for (const d of snapshot.domains) {
       const key = `${identity}:${d.domain}`;
       const previous = observed.get(key);
-      gallery.current.get(d.domain)?.setStatus(d.status, {
-        hasFindings: d.hasFindings || d.hasWarnings, progress: null,
-        settled: firstApply.current && (snapshot.settled || previous === d.status),
-      });
+      const settled = firstApply.current && (snapshot.settled || previous === d.status);
+      gallery.current.get(d.domain)?.setStatus(d.status, { hasFindings: d.hasFindings || d.hasWarnings, progress: null, settled });
+      // Waiting for its turn in a run: dimmed, like the Semantic mascots. (In a configuration "waiting" means enabled.)
+      gallery.current.setDimmed(d.domain, snapshot.context === "run" && d.status === "waiting", { immediate: settled });
       observed.set(key, d.status);
     }
     firstApply.current = false;

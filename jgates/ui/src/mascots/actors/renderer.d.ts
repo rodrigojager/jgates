@@ -12,6 +12,8 @@ export class MascotGallery {
   readonly canvas: HTMLCanvasElement;
   readonly disposed: boolean;
   readonly contextLost?: boolean;
+  /** Dims a mascot that waits for its turn in a run (eased; `immediate` shows it at once). */
+  setDimmed(domain: MascotDomain, dimmed: boolean, options?: { immediate?: boolean }): void;
   invalidate(): void;
   setReducedMotion(value: boolean): void;
   dispose(): void;

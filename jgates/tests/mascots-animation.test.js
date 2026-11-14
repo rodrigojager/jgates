@@ -218,3 +218,14 @@ test('reduced motion is static; easing springs settle across frame rates', () =>
     const p = jugglePose(t, i); assert.ok([p.x, p.y, p.z].every(Number.isFinite)); assert.ok(p.y >= 1.16 && p.y < 3.1);
   }
 });
+
+test('a mascot waiting for its turn loses part of its color and gets it back, without becoming a disabled gray', () => {
+  const a = new Mascot('security');
+  const colors = () => a.rig.materials.map(({ material }) => material.color.getHex());
+  a.update(1 / 60); const plain = colors();
+  a.dim = 1; a.update(1 / 60);
+  assert.notDeepEqual(colors(), plain);
+  assert.equal(a.inspect().gray, 0, 'the disabled gray is another thing');
+  a.dim = 0; a.update(1 / 60);
+  assert.deepEqual(colors(), plain);
+});

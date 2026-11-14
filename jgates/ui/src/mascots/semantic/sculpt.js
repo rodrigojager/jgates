@@ -70,65 +70,8 @@ export function sorterHousing(parent, mat, holes) {
   return housing;
 }
 
-/** New-family hand: a padded palm and integrated thumb with a narrow wrist. */
-function mascotHand(parent, side, mat) {
-  const hand = group(parent), s = new THREE.Shape();
-  s.moveTo(-.065, -.18); s.quadraticCurveTo(0, -.195, .065, -.18);
-  s.bezierCurveTo(.095, -.13, .15, -.07, .15, .055);
-  s.bezierCurveTo(.15, .18, .085, .23, -.025, .23);
-  s.bezierCurveTo(-.13, .23, -.16, .15, -.15, .065);
-  s.bezierCurveTo(-.205, .09, -.25, .045, -.225, -.015);
-  s.bezierCurveTo(-.21, -.065, -.15, -.07, -.115, -.09);
-  s.quadraticCurveTo(-.085, -.12, -.065, -.18); s.closePath();
-  const outline = s.getSpacedPoints(80); outline.pop(); if (THREE.ShapeUtils.isClockWise(outline)) outline.reverse();
-  const around = outline.length, rings = 24, vertices = [0, .018, .145], indices = [];
-  for (let ring = 1; ring < rings; ring++) {
-    const angle = ring / rings * Math.PI, spread = Math.pow(Math.sin(angle), .85);
-    for (const point of outline) vertices.push(point.x * spread, .018 + (point.y - .018) * spread, Math.cos(angle) * .145);
-  }
-  const back = vertices.length / 3; vertices.push(0, .018, -.145);
-  for (let j = 0; j < around; j++) {
-    const next = (j + 1) % around; indices.push(0, 1 + j, 1 + next);
-    for (let ring = 0; ring < rings - 2; ring++) { const a = 1 + ring * around + j, b = a + around, c = 1 + ring * around + next, d = c + around; indices.push(a, b, c, b, d, c); }
-    const last = 1 + (rings - 2) * around; indices.push(last + j, back, last + next);
-  }
-  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3)); geo.setIndex(indices); geo.computeVertexNormals();
-  const palm = mesh(geo, mat, hand); palm.scale.x = side; palm.name = 'new-family-palm';
-  return hand;
-}
-
-/** Wrist, terminal forearm tangent and finger axis share the same direction. */
-export function mascotArm(parent, side, mat, anchorAt, { direction = [side * .20, -1, 0] } = {}) {
-  const anchor = new THREE.Vector3(...anchorAt), hand = mascotHand(parent, side, mat), wrist = new THREE.Vector3();
-  const fingerDirection = new THREE.Vector3(...direction).normalize();
-  const sections = 32, sides = 16;
-  const g = new THREE.BufferGeometry(), indices = [];
-  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array((sections + 1) * (sides + 1) * 3), 3));
-  for (let i = 0; i < sections; i++) for (let j = 0; j < sides; j++) { const a = i * (sides + 1) + j, b = a + sides + 1; indices.push(a, a + 1, b, b, a + 1, b + 1); }
-  g.setIndex(indices);
-  const sleeve = mesh(g, mat, parent); sleeve.frustumCulled = false;
-  return { side, anchor, hand, sleeve, wrist, reach(x, y, z, nextDirection) {
-    if (nextDirection) fingerDirection.set(...nextDirection).normalize();
-    const right = fingerDirection.clone().cross(new THREE.Vector3(0, 0, 1)).normalize();
-    const normal = right.clone().cross(fingerDirection).normalize();
-    hand.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, fingerDirection, normal)); hand.position.set(x, y, z);
-    wrist.copy(hand.position).addScaledVector(fingerDirection, -.135);
-    const c1 = anchor.clone().add(new THREE.Vector3(side * .28, -.08, .035));
-    const straightStart = wrist.clone().addScaledVector(fingerDirection, -.12);
-    const c2 = straightStart.clone().addScaledVector(fingerDirection, -.20);
-    const curve = new THREE.CurvePath(); curve.add(new THREE.CubicBezierCurve3(anchor, c1, c2, straightStart)); curve.add(new THREE.LineCurve3(straightStart, wrist));
-    const frames = curve.computeFrenetFrames(sections, false), positions = sleeve.geometry.attributes.position;
-    for (let i = 0; i <= sections; i++) {
-      const t = i / sections, point = curve.getPointAt(t);
-      const radius = THREE.MathUtils.lerp(.122, .088, THREE.MathUtils.smoothstep(t, .50, 1));
-      for (let j = 0; j <= sides; j++) {
-        const a = j / sides * Math.PI * 2, vertex = point.clone().addScaledVector(frames.normals[i], Math.cos(a) * radius).addScaledVector(frames.binormals[i], Math.sin(a) * radius);
-        positions.setXYZ(i * (sides + 1) + j, vertex.x, vertex.y, vertex.z);
-      }
-    }
-    positions.needsUpdate = true; sleeve.geometry.computeVertexNormals();
-  } };
-}
+// The arm of the family (a rubber hose and its mitt) is the Quality mascots' too: it lives with the shared geometry.
+export { hoseArm as mascotArm } from '../actors/geometry.js';
 
 /** Solid octagonal routes look like printed tracks rather than soft molecular links. */
 export function circuitPath(parent, points, mat, width = .018) {
@@ -142,7 +85,12 @@ export function circuitPath(parent, points, mat, width = .018) {
     segments.push(bar);
   }
   if (!segments.length) return;
-  const geometry = mergeGeometries(segments); segments.forEach(g => g.dispose());
+  const geometry = mergeGeometries(segments);
+  // How far along the route each vertex is (0 to 1): what lets a current travel along the track.
+  const size = segments[0].attributes.position.count, along = new Float32Array(geometry.attributes.position.count);
+  for (let i = 0; i < along.length; i++) along[i] = (Math.floor(i / size) + .5) / segments.length;
+  geometry.setAttribute('aAlong', new THREE.BufferAttribute(along, 1));
+  segments.forEach(g => g.dispose());
   return mesh(geometry, mat, parent);
 }
 

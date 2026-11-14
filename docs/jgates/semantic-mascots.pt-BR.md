@@ -1,7 +1,7 @@
 # Mascotes do Semantic
 
 O gate Semantic tem seis mascotes próprios, um por fase do método de auditoria de segurança da Cloudflare. São modelos 3D
-estáticos da mesma família dos seis mascotes do Quality (vinil acetinado, os olhos, braços e botas da família) com uma
+animados da mesma família dos seis mascotes do Quality (vinil acetinado, os olhos, braços e botas da família) com uma
 cápsula transparente com um cérebro no alto; os mascotes do Quality nunca mostram trabalho de IA e estes nunca mostram um
 domínio do Quality.
 
@@ -51,10 +51,37 @@ Aguardando, trabalhando, concluído, incompleto, falhou e cancelado. Um selo no 
 
 ## Desenho, acessibilidade e temas
 
-Os modelos nunca se mexem. Cada um é uma pose estática em três quartos com a iluminação do estudo, desenhada sob demanda
-por um único contexto WebGL compartilhado na tela (canvas) do próprio mascote (sem laço de animação; um tamanho já visto é
-redesenhado a partir de uma cópia). "Aguardando" deixa o modelo esmaecido e "trabalhando" faz o selo pulsar, o que para com
-`prefers-reduced-motion`. Onde não há WebGL, cada mascote mostra a sua imagem pré-renderizada
+Cada mascote é uma vista em três quartos com a iluminação do estudo, desenhada por um único contexto WebGL compartilhado
+na tela (canvas) do próprio mascote. Um mascote que aparece pela primeira vez mostra o seu estado como ele é; quando o
+estado muda, ele faz a reação do novo estado por alguns segundos e depois fica numa pose que depende só do estado. Só
+"trabalhando" continua em movimento (e o Atlas depois de uma falha, cuja agulha nunca para), e quadros são desenhados só
+enquanto algo se move (um mascote parado é redesenhado a partir de uma cópia). O movimento segue o dos mascotes do
+Quality: fases com aceleração e desaceleração e molas amortecidas, um pequeno salto e olhos em arco no sucesso, um recuo
+e sobrancelhas preocupadas na falha, uma inclinação e um olho meio fechado na dúvida. Os braços são mangueiras
+(rubber hose), como nos desenhos de onde a família vem: uma mangueira de espessura uniforme que chega à mão num único
+arco e nunca mostra cotovelo, terminando numa luva simples na cor do corpo. Em repouso pendem ao lado do corpo; uma mão
+à frente do corpo é alcançada contornando o corpo, nunca através dele.
+
+| Mascote | Trabalhando | Concluído | Incompleto | Falhou |
+|---|---|---|---|---|
+| Atlas | procura o norte: a agulha (metade vermelha para o norte, metade clara para o sul, sobre a rosa fixa) oscila para um lado e para o outro, no máximo 20 graus, cada vez com um ângulo e uma duração e um pequeno tremor ao parar | a agulha volta ao norte | a agulha hesita e para fora do norte | a agulha gira sem parar como uma bússola assombrada, ora disparando, ora quase parando |
+| Trace | caça: a lente serpenteia num rastro, dá o bote num achado e o chocalho vibra | um aceno, um brilho na lente, uma sacudida do chocalho | a cabeça pende de lado: perdeu o rastro | recua e deixa a cabeça cair |
+| Verdict | segura uma balança: o candidato (um cubo) a faz tombar, a evidência (outro cubo) a traz de volta, e ela para nivelada | salta, desce como um martelo de juiz até a face inteira da cabeça ficar chapada na base, e fica apoiado nela | um prato continua embaixo, só com o candidato | a balança sacode e fica pendurada para um lado, vazia |
+| Fit | pega uma massa sem forma (cada uma virada de um jeito), modela em três batidas no formato de um encaixe e a assenta; três registros, depois o próximo lote | todo encaixe tem o seu registro | um registro encaixado e outro pela metade | o registro quadrado emperra no encaixe triangular |
+| Seal | carimba uma marca de aprovado depois da outra ao longo do recibo | três marcas em fila | paira sobre um recibo com uma marca | a marca que deixa é um X vermelho |
+| Folio | escreve as duas linhas do relatório com um lápis da sua cor e levanta as barras do gráfico | o relatório inteiro, as barras comemoram | um relatório que para na metade | o gráfico desaba |
+
+Enquanto o mascote trabalha, correntes correm pelas trilhas do cérebro na cápsula, cada trilha na sua velocidade e
+algumas no sentido contrário, num relógio que todos os mascotes compartilham; o cérebro fica aceso depois de concluir, e
+dá três faíscas lentas e apaga numa falha. Um mascote aguardando fica esmaecido e só respira enquanto outro trabalha; um
+cancelado se acomoda e descansa. "Trabalhando" também faz o selo pulsar. Com `prefers-reduced-motion` nada se move: cada
+estado mostra a sua pose parada (em "trabalhando", um momento da ação).
+
+Dois mascotes têm uma segunda versão guardada para comparação (`variants` em
+`jgates/ui/src/mascots/semantic/catalog.js`; o primeiro nome é o que aparece): o Verdict pesando com as palmas e
+saltando para bater na base em vez de segurar uma balança, e o Seal com braços em vez de sem.
+
+Onde não há WebGL, cada mascote mostra a sua imagem pré-renderizada, parada
 (`jgates/ui/src/mascots/semantic/fallback/`, gerada a partir dos mesmos modelos por
 `node jgates/scripts/render-semantic-mascots.mjs`) com o mesmo rótulo e o mesmo selo. As imagens têm fundo transparente,
 então os temas claro e escuro usam o mesmo desenho.
