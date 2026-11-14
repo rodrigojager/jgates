@@ -6,6 +6,7 @@ import { Icon } from "../../components/icons";
 import { fetchEnvironmentState, type EnvironmentState } from "../../api/environment";
 import { getLocale, t } from "../../i18n";
 import { JobButton, PullProgress, useSectionJob } from "../environment/sections";
+import { PendingPreparations, type PendingPreparation } from "./not-running";
 
 type Network = "none" | "bridge";
 
@@ -67,8 +68,8 @@ export function preparationSteps(plan: any, env: EnvironmentState | null): PrepS
   return out;
 }
 
-export function PreparationGroup({ steps }: { steps: PrepStep[] }) {
-  if (steps.length === 0) return null;
+export function PreparationGroup({ steps, pending = [], onChanged }: { steps: PrepStep[]; pending?: PendingPreparation[]; onChanged?: () => void }) {
+  if (steps.length === 0 && pending.length === 0) return null;
   return (
     <section className="card flat stack" aria-labelledby="vrev-prep" data-testid="preparation">
       <h2 id="vrev-prep">{t("vrev_prep_title")}</h2>
@@ -90,6 +91,7 @@ export function PreparationGroup({ steps }: { steps: PrepStep[] }) {
           </li>
         ))}
       </ol>
+      {pending.length > 0 ? <PendingPreparations items={pending} onChanged={onChanged ?? (() => undefined)} /> : null}
     </section>
   );
 }

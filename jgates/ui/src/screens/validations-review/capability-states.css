@@ -17,4 +17,6 @@
 .capst-when { display: inline-flex; align-items: center; gap: 6px; }
 .capst-prepare { min-width: 0; }
 .capst-prepare-box { align-items: flex-start; }
+.gtc-sub { margin: 0 0 4px 26px; min-width: 0; }
+.gtc-default { border-top: 1px solid var(--line); padding-top: 10px; }
 .capst-commands { margin: 0; padding: 6px 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }

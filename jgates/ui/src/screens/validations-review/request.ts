@@ -2,7 +2,12 @@
 // query string in this application, so the request travels in memory (and in sessionStorage, to survive a reload).
 import { quoteArg } from "../../app/shell-quote";
 
-export type TargetKind = "changed" | "full" | "paths" | "commit" | "compare";
+/**
+ * What is validated: the whole workspace, what the last commit changed, what the branch changed against its base, a
+ * comparison of two references, a pull request (its branch against the one it merges into), or a folder. "commit"
+ * (the project at one commit) is no longer offered; a request saved by an older screen is read as a comparison.
+ */
+export type TargetKind = "full" | "last-commit" | "changed" | "compare" | "pr" | "paths" | "commit";
 
 /** Which gate(s) the user chose: Quality (deterministic), Semantic (AI review) or both, one run each. */
 export type GateChoice = "quality" | "semantic" | "both";
@@ -55,6 +60,12 @@ export function planBody(request: ValidationRequest): Record<string, unknown> {
   switch (request.target) {
     case "changed":
       body.scope = "changed";
+      if (request.base.trim() !== "") body.base = request.base.trim();
+      break;
+    case "last-commit":
+      body.scope = "changed";
+      body.base = "HEAD~1";
+      body.head = "HEAD";
       break;
     case "full":
       body.scope = "full";
@@ -68,6 +79,7 @@ export function planBody(request: ValidationRequest): Record<string, unknown> {
       if (request.head.trim() !== "") body.head = request.head.trim();
       break;
     case "compare":
+    case "pr":
       body.scope = "changed";
       if (request.base.trim() !== "") body.base = request.base.trim();
       if (request.head.trim() !== "") body.head = request.head.trim();

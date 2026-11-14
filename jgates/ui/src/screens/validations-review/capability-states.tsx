@@ -192,7 +192,7 @@ export interface StateContext {
 }
 
 /** Adds a built-in template to jgates.yml (or turns its entry on) through the templates route, with the revision read. */
-async function activateTemplate(template: string): Promise<string> {
+export async function activateTemplate(template: string): Promise<string> {
   const view = await api<any>("GET", "/api/config/templates");
   const bare = template.replace(/^builtin:/, "");
   const row = ((view.templates ?? []) as any[]).find((r) => r.source === template) ?? ((view.templates ?? []) as any[]).find((r) => r.id === bare);
@@ -201,7 +201,7 @@ async function activateTemplate(template: string): Promise<string> {
   return String(row.label ?? row.id);
 }
 
-async function enableInProfile(profile: string, changes: Array<{ selector: string; enabled: boolean; when?: "available" | null }>): Promise<void> {
+export async function enableInProfile(profile: string, changes: Array<{ selector: string; enabled: boolean; when?: "available" | null }>): Promise<void> {
   await api("PUT", "/api/config/selection", { profile, changes });
 }
 
@@ -467,7 +467,8 @@ export function NaAction({ state, ctx }: { state: CapState; ctx: StateContext })
       </a>
     );
     hint = t("capst_services_hint");
-  } else if (action.kind === "add-extension-tool") {
+  } else if (action.kind === "add-extension-tool" && na.reasonCode === "NO_TOOL") {
+    // Only where JGates has no tool at all: a check that has tools, none for this project's languages, cannot apply.
     const text = String(action.label || t("capst_extension_add"));
     control = (
       <a className="btn capst-btn" href="#/tools?custom=1" {...named(text)} data-testid="extension-action">

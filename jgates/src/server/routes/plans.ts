@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { BuiltinError } from "../../builtin/index.js";
 import { listRuns } from "../../core/artifacts/index.js";
-import { patchYamlFile, patchYamlText, readRevision } from "../../core/codecs/yaml/index.js";
+import { patchYamlFile, patchYamlText, readRevision, type YamlEdit } from "../../core/codecs/yaml/index.js";
 import { loadProjectConfig, validateDocument } from "../../core/config/load/index.js";
 import { parseYamlText } from "../../core/config/load/yaml.js";
 import { encodePointer, resolveConfig, type CallOverride } from "../../core/config/resolve/index.js";
@@ -14,8 +14,14 @@ import { buildPlan, readLastPlan, saveLastPlan, PLAN_SCOPES, type Plan, type Pla
 import { createProfile, listProfiles, ProfileError, PROFILES_FILE } from "../../core/profiles/index.js";
 import { createCoreCatalog } from "../../core/catalog/index.js";
 import { parseSkipList, resolveSelection, skipOverrides, type SelectionResult } from "../../core/selection/index.js";
+import { readSemanticState } from "../../adapters/semantic-gate/index.js";
+import { ROOT_FILE } from "../../core/config/load/index.js";
+import { translator } from "../../i18n/index.js";
+import { assertWritable, patchConfigFile } from "./templates.js";
+import { reviewItemsOf, type EnvironmentFacts, type ReviewItems } from "../../core/plan/review-items.js";
 import { HttpError, refuse } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
+import { cachedEnvironmentState } from "./environment.js";
 
 export const PLAN_HASH_PATTERN = "^sha256:[0-9a-f]{64}$";
 
@@ -123,6 +129,24 @@ export function selectionReview(projectDir: string, b: PlanBody): { ties: Review
   }
 }
 
+/**
+ * The checks that will not run, as items with their reason and actions, and the preparations still pending. The
+ * preparations read the environment from the cached engine facts (never a blocking call); a preview (the plans of the
+ * "Personalizar" panel and of the mascots) leaves them out, and a failure to read them leaves the list empty.
+ */
+async function itemsOf(server: ServerContext, plan: Plan, preview: boolean): Promise<ReviewItems> {
+  const labels = new Map(createCoreCatalog().toDocument().capabilities.map((c) => [c.id, c.label]));
+  let facts: EnvironmentFacts | null = null;
+  if (!preview) {
+    try {
+      facts = (await cachedEnvironmentState(server)) as EnvironmentFacts & Record<string, unknown>;
+    } catch {
+      facts = null;
+    }
+  }
+  return reviewItemsOf(plan, facts, labels);
+}
+
 /** Median duration of the last finished runs of the workspace; null without history (the review shows no estimate then). */
 export function estimateMs(server: ServerContext): { ms: number; runs: number } | null {
   const durations: number[] = [];
@@ -205,7 +229,8 @@ export const routes: RouteDefinition[] = [
       if (b.preview !== true) saveLastPlan(plan, server.home);
       server.plans.set(plan.planHash, plan);
       while (server.plans.size > 20) server.plans.delete(server.plans.keys().next().value as string);
-      return { status: 201, json: { schemaVersion: 1, status: plan.blocked ? "BLOCKED" : "OK", planHash: plan.planHash, approvable: plan.approvable, blocked: plan.blocked, plan, mascots: projectMascots({ plan }), review: { ...selectionReview(server.projectDir, b), estimate: estimateMs(server) } } };
+      const items = await itemsOf(server, plan, b.preview === true);
+      return { status: 201, json: { schemaVersion: 1, status: plan.blocked ? "BLOCKED" : "OK", planHash: plan.planHash, approvable: plan.approvable, blocked: plan.blocked, plan, mascots: projectMascots({ plan }), review: { ...selectionReview(server.projectDir, b), estimate: estimateMs(server), ...items } } };
     },
   },
   {
@@ -225,11 +250,37 @@ export const routes: RouteDefinition[] = [
       const rules = (policy?.value?.rules ?? {}) as Record<string, { enabled?: boolean; severity?: string; locked?: boolean; threshold?: number }>;
       const evidence = Array.isArray(policy?.value?.requiredEvidence) ? (policy?.value?.requiredEvidence as unknown[]).length : 0;
       const exceptions = Array.isArray(policy?.value?.exceptions) ? (policy?.value?.exceptions as unknown[]).length : 0;
+      const t = translator("plan-review");
+      const semantic = readSemanticState(server.projectDir);
+      const resolved = (() => {
+        try {
+          return resolveConfig(server.projectDir);
+        } catch {
+          return null;
+        }
+      })();
+      const saved = (key: string): unknown => (resolved && resolved.ok ? resolved.fields[encodePointer(["selection", key])]?.value : undefined);
+      const savedGates = Array.isArray(saved("gates")) ? (saved("gates") as unknown[]).filter((g) => g === "quality" || g === "semantic") : [];
       return {
         status: 200,
         json: {
           schemaVersion: 1,
           status: "OK",
+          // The gates: Semantic needs a provider; while it has none it is offered disabled, with the reason and the way out.
+          gates: {
+            semantic: {
+              configured: semantic.state === "configured",
+              state: semantic.state,
+              reason: semantic.state === "configured" ? null : { code: semantic.state === "off" ? "SEMANTIC_NOT_CONFIGURED" : "SEMANTIC_SETTINGS_INVALID", message: t(semantic.state === "off" ? "plan_review_semantic_off" : "plan_review_semantic_invalid", { problems: semantic.problems.join("; ") }) },
+              action: semantic.state === "configured" ? null : { type: "configure", route: "semantic/setup?step=provider", label: t("plan_review_semantic_action") },
+            },
+          },
+          // What the project saved as its default choice (jgates.yml > selection), or null where it saved nothing.
+          saved: {
+            gates: savedGates.length > 0 ? savedGates : null,
+            scope: saved("scope") === "changed" || saved("scope") === "full" || saved("scope") === "paths" ? saved("scope") : null,
+            paths: Array.isArray(saved("paths")) ? (saved("paths") as unknown[]).filter((p): p is string => typeof p === "string") : [],
+          },
           default: list.default,
           profiles: list.profiles.map((p) => ({ id: p.id, ref: p.ref, origin: p.origin, label: p.label, description: p.description, extends: p.extends, isDefault: p.isDefault, checks: p.checks })),
           criteria: {
@@ -240,6 +291,44 @@ export const routes: RouteDefinition[] = [
           },
         },
       };
+    },
+  },
+  {
+    // "Usar como padrão do projeto": the chosen gate and target saved in jgates.yml > selection (gates, scope, paths).
+    // An explicit click only. A target that names commits (last commit, comparison, pull request) is not a default.
+    method: "PUT",
+    path: "/api/validations/selection",
+    body: {
+      type: "object",
+      properties: {
+        gates: { type: "array", minItems: 1, maxItems: 2, uniqueItems: true, items: { enum: ["quality", "semantic"] } },
+        scope: { enum: ["changed", "full", "paths"] },
+        paths: { type: "array", items: { type: "string", minLength: 1, maxLength: 500, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, maxItems: 200 },
+      },
+      required: ["gates", "scope"],
+      additionalProperties: false,
+    },
+    handler({ body, server }) {
+      assertWritable();
+      const b = body as { gates: string[]; scope: PlanScopeKind; paths?: string[] };
+      const paths = b.scope === "paths" ? (b.paths ?? []) : [];
+      const tp = translator("plan");
+      if (b.scope === "paths" && paths.length === 0) throw new HttpError(422, "PATHS_REQUIRED", tp("plan_paths_required"), tp("plan_paths_required_fix"));
+      const gates = b.gates.includes("quality") ? (b.gates.includes("semantic") ? ["quality", "semantic"] : ["quality"]) : ["semantic"];
+      const file = path.join(server.projectDir, ROOT_FILE);
+      const rev = readRevision(file);
+      if (!rev.exists) throw new HttpError(404, "FILE_MISSING", `O arquivo ${ROOT_FILE} não existe.`, null, { file: ROOT_FILE });
+      const current = parseYamlText(rev.text.charCodeAt(0) === 0xfeff ? rev.text.slice(1) : rev.text, ROOT_FILE).value as { selection?: { paths?: unknown } } | undefined;
+      const edits: YamlEdit[] = [
+        { op: "set", path: ["selection", "gates"], value: gates },
+        { op: "set", path: ["selection", "scope"], value: b.scope },
+      ];
+      // The folders replace the old ones; a scope that is not "paths" leaves none behind (and a key that is not there is nothing to delete).
+      if (paths.length > 0) edits.push({ op: "set", path: ["selection", "paths"], value: paths });
+      else if (current?.selection?.paths !== undefined) edits.push({ op: "delete", path: ["selection", "paths"] });
+      patchConfigFile(server, ROOT_FILE, "root", edits, rev.hash);
+      server.log(`validation selection saved: ${gates.join("+")} ${b.scope}`);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", saved: { gates, scope: b.scope, paths } } };
     },
   },
   {

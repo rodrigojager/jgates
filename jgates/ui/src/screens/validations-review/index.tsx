@@ -13,6 +13,7 @@ import type { ScreenMeta } from "../../registry";
 import { PendingDrafts } from "../tool-area/editbar/pending";
 import { TOOLS_DOWNLOAD, blockersOf, unavailableItems, type Blocker } from "./blockers";
 import { CapabilityStates, capabilityStates } from "./capability-states";
+import { networkLine } from "./network";
 import { equivalentCommand, planBody, readRequest, sequenceBody, writeRequest } from "./request";
 
 export const screen: ScreenMeta = { id: "validations-review", path: "/validations/review", area: "validations", navLabel: "vrev_nav", navPath: "/validations/review", order: 32, icon: "plan" };
@@ -162,14 +163,6 @@ export default function ReviewScreen() {
   const otherWarnings: any[] = plan ? (plan.warnings as any[]).filter((w) => w.code !== "TOOL_UNAVAILABLE") : [];
   const canStart = Boolean(plan) && blockers.length === 0 && !built.loading && (!both || (gatePlan?.ready === true && !sequencePlan.loading));
   const command = equivalentCommand(both ? { ...body, gates: ["quality", "semantic"], ...(request.manualAdvance ? { manualAdvance: true } : {}) } : body, info?.workspace.path ?? ".");
-  const runner = plan
-    ? (() => {
-        const items = [...plan.groups.willRun] as any[];
-        const containers = items.some((i) => i.command?.container);
-        const local = items.some((i) => !i.command?.container);
-        return containers && local ? t("vrev_runner_both") : containers ? t("vrev_runner_container") : t("vrev_runner_local");
-      })()
-    : "";
   const languages = plan ? [...new Set<string>((plan.components as any[]).map((c) => c.language).filter(Boolean))] : [];
   const capGroups = plan ? capabilityStates(plan, review.catalog ?? null) : [];
   const projectProfile = plan?.profile && !String(plan.profile.chain?.[0]?.file ?? "builtin:").startsWith("builtin:") ? String(plan.profile.id) : null;
@@ -301,10 +294,8 @@ export default function ReviewScreen() {
                 <dd>{languages.length > 0 ? languages.join(", ") : "-"}</dd>
                 <dt>{t("vrev_concurrency")}</dt>
                 <dd>{concurrency === 1 || concurrency === null || concurrency === undefined ? t("vrev_concurrency_one") : t("vrev_concurrency_many", { n: concurrency })}</dd>
-                <dt>{t("vrev_runner")}</dt>
-                <dd>{runner}</dd>
                 <dt>{t("vrev_network")}</dt>
-                <dd>{plan.network.required ? t(plan.network.items.length === 1 ? "vrev_network_needed_one" : "vrev_network_needed", { policy: tOr(`vrev_network_policy_${plan.network.policy}`, plan.network.policy), count: plan.network.items.length }) : t("vrev_network_none")}</dd>
+                <dd data-testid="review-network">{networkLine(plan, [...prepSteps.map((s) => ({ name: t(`vrev_prep_name_${s.id}`), network: s.network, done: s.done })), ...((review.preparations ?? []) as Array<{ id: string; label: string; network: "none" | "bridge" }>).filter((p) => p.id !== "dependencies").map((p) => ({ name: p.label, network: p.network }))])}</dd>
                 <dt>{t("vrev_estimate")}</dt>
                 <dd>{review.estimate ? t("vrev_estimate_value", { time: formatDuration(review.estimate.ms), runs: review.estimate.runs }) : t("vrev_estimate_none")}</dd>
                 <dt>{t("plan_hash")}</dt>
@@ -371,7 +362,7 @@ export default function ReviewScreen() {
             </section>
           ) : null}
 
-          <PreparationGroup steps={prepSteps} />
+          <PreparationGroup steps={prepSteps} pending={review.preparations ?? []} onChanged={() => setVersion((n) => n + 1)} />
 
           {capGroups.length > 0 ? <CapabilityStates groups={capGroups} ctx={capContext} title={t("vrev_caps_title")} lead={t("vrev_caps_lead")} headingId="vrev-caps" /> : null}
 

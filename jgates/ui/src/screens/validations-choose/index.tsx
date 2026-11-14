@@ -1,5 +1,5 @@
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
@@ -8,13 +8,11 @@ import { navigate } from "../../app/route";
 import { useShell } from "../../app/shell-context";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
-import { readRequest, writeRequest, type GateChoice, type TargetKind, type ValidationRequest } from "../validations-review/request";
+import { EMPTY_REQUEST, readRequest, writeRequest, type ValidationRequest } from "../validations-review/request";
 import { CapabilityRow, capabilityStates, countStates, summaryText, type StateContext } from "../validations-review/capability-states";
+import { GateTargetChoice, savedRequest, targetProblem, type ChooseSelection } from "../validations-review/gate-target";
 
 export const screen: ScreenMeta = { id: "validations-choose", path: "/validations/choose", area: "validations", navLabel: "vch_nav", navPath: "/validations/choose", order: 31, icon: "sliders" };
-
-const TARGETS: TargetKind[] = ["changed", "full", "paths", "commit", "compare"];
-const GATES: GateChoice[] = ["quality", "semantic", "both"];
 
 const capLabel = (cap: string): string => tOr(`vrev_cap_${cap.replace(/[^a-z0-9]+/gi, "_")}`, cap);
 const catLabel = (cat: string | null): string => (cat ? tOr(`vrev_cat_${cat}`, cat) : t("vrev_cat_none"));
@@ -189,13 +187,20 @@ export default function ChooseScreen() {
   useEffect(() => {
     if (choose && request.profile === null && choose.default) setRequest((r) => ({ ...r, profile: choose.default }));
   }, [choose, request.profile]);
+  // Nothing was chosen yet in this session: the project's saved default (gate and target) is the starting point.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!choose || seeded.current) return;
+    seeded.current = true;
+    if (JSON.stringify({ ...readRequest(), profile: null }) === JSON.stringify({ ...EMPTY_REQUEST, profile: null })) setRequest((r) => ({ ...r, ...savedRequest(choose.saved) }));
+  }, [choose]);
 
   const mascotPreview = useAsync(() => selected ? api("POST", "/api/plans", { profile: selected.ref, scope: "full", skip: request.skip, preview: true }) : Promise.resolve(null), `mascot-preview:${selected?.ref}:${request.skip.join(",")}:${version}`);
 
   const set = (patch: Partial<ValidationRequest>) => setRequest((r) => ({ ...r, ...patch }));
   const git = info?.git ?? null;
-  // A folder target without a folder cannot be reviewed; it is refused here, in the words of this screen.
-  const pathMissing = request.gates !== "semantic" && request.target === "paths" && request.path.trim() === "";
+  // A folder target without a folder (or a pull request without its two branches) cannot be reviewed; it is refused here.
+  const pathMissing = targetProblem(request) !== null;
 
   function review() {
     writeRequest(request);
@@ -230,70 +235,7 @@ export default function ChooseScreen() {
         ) : null}
       </section>
 
-      <section className="card flat stack" aria-labelledby="vch-gates" data-testid="gate-choice">
-        <h2 id="vch-gates">{t("vch_gates_title")}</h2>
-        <p className="muted small">{t("vch_gates_lead")}</p>
-        <div role="radiogroup" aria-labelledby="vch-gates" className="stack" style={{ gap: 8 }}>
-          {GATES.map((gates) => (
-            <label key={gates} className="row" style={{ gap: 8, alignItems: "flex-start" }}>
-              <input type="radio" name="vch-gates" value={gates} checked={request.gates === gates} onChange={() => set({ gates })} />
-              <span>
-                <strong>{t(`vch_gates_${gates}`)}</strong>
-                <span className="muted small"> · {t(`vch_gates_${gates}_hint`)}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-        {request.gates === "both" ? (
-          <label className="row" style={{ gap: 8, alignItems: "flex-start" }}>
-            <input type="checkbox" checked={request.manualAdvance} onChange={(e) => set({ manualAdvance: e.target.checked })} />
-            <span>
-              {t("vch_gates_manual")}
-              <span className="muted small"> · {t("vch_gates_manual_hint")}</span>
-            </span>
-          </label>
-        ) : null}
-      </section>
-
-      <section className="card flat stack" aria-labelledby="vch-target">
-        <h2 id="vch-target">{t("vch_target_title")}</h2>
-        <div role="radiogroup" aria-labelledby="vch-target" className="stack" style={{ gap: 8 }}>
-          {TARGETS.map((target) => (
-            <label key={target} className="row" style={{ gap: 8, alignItems: "flex-start" }}>
-              <input type="radio" name="vch-target" value={target} checked={request.target === target} onChange={() => set({ target })} />
-              <span>
-                <strong>{t(`vch_target_${target}`)}</strong>
-                <span className="muted small"> · {t(`vch_target_${target}_hint`)}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-        {request.target === "paths" ? (
-          <label className="stack" style={{ gap: 4 }}>
-            <span>{t("vch_field_path")}</span>
-            <input value={request.path} onChange={(e) => set({ path: e.target.value })} placeholder="src" aria-invalid={pathMissing || undefined} aria-describedby={pathMissing ? "vch-path-problem" : undefined} />
-          </label>
-        ) : null}
-        {request.target === "commit" ? (
-          <label className="stack" style={{ gap: 4 }}>
-            <span>{t("vch_field_commit")}</span>
-            <input value={request.head} onChange={(e) => set({ head: e.target.value })} placeholder="HEAD~1" />
-          </label>
-        ) : null}
-        {request.target === "compare" ? (
-          <div className="stack" style={{ gap: 8 }}>
-            <label className="stack" style={{ gap: 4 }}>
-              <span>{t("vch_field_base")}</span>
-              <input value={request.base} onChange={(e) => set({ base: e.target.value })} placeholder="main" />
-            </label>
-            <label className="stack" style={{ gap: 4 }}>
-              <span>{t("vch_field_head")}</span>
-              <input value={request.head} onChange={(e) => set({ head: e.target.value })} placeholder="HEAD" />
-            </label>
-            <p className="muted small">{t("vch_compare_note")}</p>
-          </div>
-        ) : null}
-      </section>
+      <GateTargetChoice request={request} set={set} data={choose as ChooseSelection | null} git={git} idPrefix="vch" onSaved={() => setVersion((n) => n + 1)} />
 
       <section className="stack" aria-labelledby="vch-profiles">
         <h2 id="vch-profiles">{t("vch_profiles_title")}</h2>
@@ -353,15 +295,10 @@ export default function ChooseScreen() {
       {selected ? <Customize key={selected.ref} profile={selected} skip={request.skip} onSkip={(skip) => set({ skip })} onSaved={(id) => { setVersion((n) => n + 1); set({ skip: [], ...(id ? { profile: id } : {}) }); }} /> : null}
 
       <div className="row wrap">
-        <button type="button" className="btn primary" onClick={review} disabled={!selected || pathMissing} aria-describedby={pathMissing ? "vch-path-problem" : undefined}>
+        <button type="button" className="btn primary" onClick={review} disabled={!selected || pathMissing} aria-describedby={targetProblem(request) === "path" ? "vch-path-problem" : undefined}>
           <Icon name="plan" />
           {t(request.gates === "semantic" ? "vch_review_semantic" : "vch_review")}
         </button>
-        {pathMissing ? (
-          <span className="small field-problem" id="vch-path-problem" role="status" data-testid="path-problem">
-            {t("vch_path_required")}
-          </span>
-        ) : null}
         {request.skip.length > 0 ? <span className="muted small">{t(request.skip.length === 1 ? "vch_skip_count_one" : "vch_skip_count", { count: request.skip.length })}</span> : null}
       </div>
     </div>

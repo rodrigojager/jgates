@@ -9,10 +9,11 @@ import { ErrorNotice, Loading } from "../../components/common";
 import { Stepper } from "../../components/Stepper";
 import { t } from "../../i18n";
 import { STEPS, closeSetup, fetchSetup, gotoStep, type SetupView, type StepId } from "./api";
-import { DependenciesStep, ReviewStep } from "./step-finish";
+import { DependenciesStep } from "./step-finish";
 import { DockerStep, ToolsStep } from "./step-machine";
 import { ProfileStep } from "./step-profile";
 import { ProjectStep } from "./step-project";
+import { ReviewStep } from "./step-review";
 import "./wizard.css";
 
 export interface StepProps {
@@ -22,8 +23,8 @@ export interface StepProps {
   apply: (next: SetupView) => void;
   busy: boolean;
   back: (() => void) | null;
-  /** The setup ended (first run started, or the person finished without one). */
-  finished: (runId: string | null) => void;
+  /** The setup ended (first run started, or the person finished without one, or went on to another screen with `destination`). */
+  finished: (runId: string | null, destination?: string) => void;
 }
 
 /** The first step before `step` that is neither done nor skipped: finishing it is what unlocks `step`. */
@@ -71,9 +72,10 @@ export default function Wizard({ onClosed }: { onClosed?: () => void }) {
   }, []);
 
   const finished = useCallback(
-    (runId: string | null) => {
+    (runId: string | null, destination?: string) => {
       void reload();
       if (runId) navigate(`/runs/${runId}`);
+      else if (destination) navigate(destination);
       else if (onClosed) onClosed();
       else navigate("/overview");
     },

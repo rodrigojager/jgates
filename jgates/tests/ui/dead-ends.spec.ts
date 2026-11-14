@@ -91,7 +91,8 @@ test("Escolher with target Diretório and an empty path cannot continue and says
     const why = page.getByTestId("path-problem");
     await expect(why).toContainText("Informe o diretório");
     await expect(page.locator("body")).not.toContainText("--path");
-    await page.getByLabel(/^Diretório \(relativo/).fill("demo");
+    // The folder is chosen from the folders of the project (a picker), not typed.
+    await page.getByLabel(/^Diretório \(relativo/).selectOption("demo");
     await expect(why).toHaveCount(0);
     await expect(next).toBeEnabled();
   });
