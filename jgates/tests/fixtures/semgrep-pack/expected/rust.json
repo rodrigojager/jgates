@@ -1,0 +1,16 @@
+{
+  "files": ["src/main.rs"],
+  "ruleIds": [
+    "jgates.rust.sql-string-building",
+    "jgates.rust.os-command-injection",
+    "jgates.rust.os-command-non-literal-program",
+    "jgates.rust.ssrf",
+    "jgates.rust.path-traversal",
+    "jgates.rust.xss",
+    "jgates.rust.pre-escaped-non-literal",
+    "jgates.rust.unsafe-deserialization",
+    "jgates.rust.weak-hash",
+    "jgates.rust.weak-cipher",
+    "jgates.rust.tls-verification-disabled"
+  ]
+}

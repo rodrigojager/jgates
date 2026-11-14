@@ -1,0 +1,76 @@
+# Rust injection rules. The SQL rule follows a string built with format! or concatenation to sqlx, diesel, rusqlite and
+# postgres calls inside one function. The command rules read the std::process::Command and tokio::process::Command
+# builders when they are imported as Command.
+rules:
+  - id: jgates.rust.sql-string-building
+    message: An SQL statement is built with format! or concatenation. Pass the values as bound parameters instead.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - pattern: format!($FMT, $ARG, ...)
+      - patterns:
+          - pattern: String::from("...") + $X
+          - pattern-not: String::from("...") + "..."
+      - patterns:
+          - pattern: '"...".to_string() + $X'
+          - pattern-not: '"...".to_string() + "..."'
+    pattern-sinks:
+      - pattern: sqlx::query($Q)
+        focus-metavariable: $Q
+      - pattern: sqlx::query_as($Q)
+        focus-metavariable: $Q
+      - pattern: sqlx::query_scalar($Q)
+        focus-metavariable: $Q
+      - pattern: diesel::sql_query($Q)
+        focus-metavariable: $Q
+      - pattern: sql_query($Q)
+        focus-metavariable: $Q
+      - patterns:
+          - pattern: $C.$M($Q, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(execute|execute_batch|prepare|prepare_cached|query|query_row|query_one|query_opt|query_map|batch_execute)$'
+          - focus-metavariable: $Q
+
+  - id: jgates.rust.os-command-injection
+    message: A shell is started with a command string that is not a literal. Run the program directly with an argument list instead.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+    patterns:
+      - pattern-either:
+          - pattern: Command::new($SH).arg($FLAG).arg($CMD)
+          - pattern: Command::new($SH).args([$FLAG, $CMD])
+          - pattern: Command::new($SH).args(&[$FLAG, $CMD])
+      - metavariable-regex:
+          metavariable: $SH
+          regex: '^"(.*/)?(sh|bash|zsh|dash|ash|cmd|cmd\.exe|powershell|pwsh)"$'
+      - metavariable-regex:
+          metavariable: $FLAG
+          regex: '^"(-c|-lc|/c|/C)"$'
+      - pattern-not: Command::new($SH).arg($FLAG).arg("...")
+      - pattern-not: Command::new($SH).args([$FLAG, "..."])
+      - pattern-not: Command::new($SH).args(&[$FLAG, "..."])
+
+  - id: jgates.rust.os-command-non-literal-program
+    message: The program to run is not a literal. Run a fixed program name, or map the input to one from an allow-list.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+    patterns:
+      - pattern: Command::new($P)
+      - pattern-not: Command::new("...")

@@ -1,0 +1,80 @@
+# Rust XSS rules. The taint rule keeps source and sink in one handler; its sources are axum and actix-web extractors
+# (Query, Path, Form, Json, with or without web::), shared by rocket for Form and Json.
+rules:
+  - id: jgates.rust.xss
+    message: Request data is written into an HTML response without escaping. Escape it with an HTML escaping function first.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: html_escape::encode_text(...)
+      - pattern: html_escape::encode_safe(...)
+      - pattern: html_escape::encode_double_quoted_attribute(...)
+      - pattern: askama_escape::escape(...)
+      - pattern: ammonia::clean(...)
+      - pattern: escape_html(...)
+    pattern-sinks:
+      - pattern: Html($X)
+        focus-metavariable: $X
+      - pattern: RawHtml($X)
+        focus-metavariable: $X
+      - patterns:
+          - pattern: HttpResponse::Ok().content_type($CT).body($X)
+          - metavariable-regex:
+              metavariable: $CT
+              regex: 'text/html|TEXT_HTML'
+          - focus-metavariable: $X
+      - pattern: HttpResponse::Ok().insert_header(ContentType::html()).body($X)
+        focus-metavariable: $X
+
+  - id: jgates.rust.pre-escaped-non-literal
+    message: PreEscaped marks markup as already safe. Passing a value that is not a literal bypasses escaping; escape it first or build the markup with the template macro.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    patterns:
+      - pattern-either:
+          - pattern: PreEscaped($X)
+          - pattern: maud::PreEscaped($X)
+      - pattern-not: PreEscaped("...")
+      - pattern-not: maud::PreEscaped("...")
+      - pattern-not: PreEscaped(html_escape::encode_text(...))
+      - pattern-not: PreEscaped(html_escape::encode_safe(...))
+      - pattern-not: PreEscaped(ammonia::clean(...))

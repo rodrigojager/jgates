@@ -1,0 +1,68 @@
+# Rust cryptography rules for the RustCrypto hash and cipher crates (md5, sha1, des, rc4, blowfish), the openssl crate,
+# reqwest, native-tls and rustls, when the types are imported by their short names.
+rules:
+  - id: jgates.rust.weak-hash
+    message: MD2, MD4, MD5 and SHA-1 are broken for security use. Use SHA-256 or stronger, and an Argon2 or bcrypt crate for passwords.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+    pattern-either:
+      - pattern: md5::compute(...)
+      - pattern: Md5::new()
+      - pattern: Md5::digest(...)
+      - pattern: Md4::new()
+      - pattern: Md4::digest(...)
+      - pattern: Md2::new()
+      - pattern: Md2::digest(...)
+      - pattern: Sha1::new()
+      - pattern: Sha1::digest(...)
+      - pattern: MessageDigest::md5()
+      - pattern: MessageDigest::sha1()
+
+  - id: jgates.rust.weak-cipher
+    message: DES, 3DES, RC4, Blowfish and ECB mode are weak. Use AES-GCM or ChaCha20-Poly1305.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+    pattern-either:
+      - pattern: Des::new(...)
+      - pattern: Des::new_from_slice(...)
+      - pattern: TdesEde2::new(...)
+      - pattern: TdesEde2::new_from_slice(...)
+      - pattern: TdesEde3::new(...)
+      - pattern: TdesEde3::new_from_slice(...)
+      - pattern: Rc4::new(...)
+      - pattern: Blowfish::new(...)
+      - pattern: Blowfish::new_from_slice(...)
+      - pattern: Cipher::des_cbc()
+      - pattern: Cipher::des_ede3()
+      - pattern: Cipher::des_ede3_cbc()
+      - pattern: Cipher::rc4()
+      - pattern: Cipher::bf_cbc()
+      - pattern: Cipher::aes_128_ecb()
+      - pattern: Cipher::aes_192_ecb()
+      - pattern: Cipher::aes_256_ecb()
+
+  - id: jgates.rust.tls-verification-disabled
+    message: Certificate or host name verification is turned off. Keep verification on and trust a private CA explicitly if one is needed.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-295"
+      author: JGates
+      subdimension: cryptography
+    pattern-either:
+      - pattern: $B.danger_accept_invalid_certs(true)
+      - pattern: $B.danger_accept_invalid_hostnames(true)
+      - pattern: $B.set_verify(SslVerifyMode::NONE)
+      - pattern: $B.set_verify(openssl::ssl::SslVerifyMode::NONE)
+      - pattern: $C.dangerous().set_certificate_verifier($V)

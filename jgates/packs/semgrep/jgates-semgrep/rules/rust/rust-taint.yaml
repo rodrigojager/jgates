@@ -1,0 +1,117 @@
+# Rust taint rules. The open-source engine follows data inside one function, so each source and sink pair sits in one handler.
+# Sources: parameters of an async handler typed as axum or actix-web extractors (Query, Path, Form, Json, with or without web::),
+# which rocket shares for Form and Json. Rocket handlers that take plain strings are not covered.
+rules:
+  - id: jgates.rust.ssrf
+    message: A request URL comes from the incoming request. Validate the host against an allow-list before fetching.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: validate_url(...)
+      - pattern: allowed_url(...)
+    pattern-sinks:
+      - pattern: reqwest::get($U)
+        focus-metavariable: $U
+      - pattern: reqwest::blocking::get($U)
+        focus-metavariable: $U
+      - patterns:
+          - pattern-either:
+              - pattern: $C.$M($U).send()
+              - pattern: $C.$M($U).$N(...).send()
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(get|post|put|patch|delete|head)$'
+          - focus-metavariable: $U
+      - pattern: Request::builder().uri($U)
+        focus-metavariable: $U
+
+  - id: jgates.rust.path-traversal
+    message: A file path comes from the incoming request. Reduce it to a file name with a sanitizer and check it stays under the intended folder.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: Path::new(...).file_name()
+      - pattern: sanitize_filename::sanitize(...)
+    pattern-sinks:
+      - pattern: std::fs::$F($P, ...)
+        focus-metavariable: $P
+      - pattern: fs::$F($P, ...)
+        focus-metavariable: $P
+      - pattern: tokio::fs::$F($P, ...)
+        focus-metavariable: $P
+      - pattern: File::open($P)
+        focus-metavariable: $P
+      - pattern: NamedFile::open($P)
+        focus-metavariable: $P
+      - pattern: NamedFile::open_async($P)
+        focus-metavariable: $P
+      - pattern: Path::new($B).join($P)
+        focus-metavariable: $P
