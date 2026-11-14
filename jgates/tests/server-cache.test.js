@@ -13,6 +13,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 //     are counted), build no plan and ask the engine nothing;
 //   - a file edited by hand, a folder discovery reads that gains a component, and a write of the server each show at the
 //     next request (the write answers with the updated view itself);
+//   - GET /api/overview takes the discovery from the cache and hands it to its plan, so two overviews walk the tree once;
 //   - GET /api/setup/profiles computes the three starter profiles with one discovery, and keeps them;
 //   - PUT /api/config/templates/:id/enabled builds its view once.
 
@@ -181,6 +182,26 @@ test("the profile view: one walk for two requests, no plan and no engine; a file
   assert.deepEqual(list.json, created.json.profiles);
   assert.equal(spawns, before.spawns, "no process was started by the views and the writes");
   assert.equal(engineCalls(), before.engine);
+});
+
+test("GET /api/overview reads the discovery from the project cache: the plan reuses it, and a second overview walks nothing", async () => {
+  const dir = project();
+  const server = context(dir);
+  const route = await routesOf("overview");
+  const pkg = path.join(dir, "pkg", "deep");
+
+  const walks = listed(pkg);
+  const inventories = computed("inventory");
+  const first = await call(route("GET", "/api/overview"), server);
+  assert.equal(first.status, 200, JSON.stringify(first.json));
+  assert.ok(first.json.plan.planHash, JSON.stringify(first.json.plan));
+  assert.equal(first.json.discovery.languages.includes("python"), true, JSON.stringify(first.json.discovery));
+  assert.equal(listed(pkg) - walks, 1, "the overview and its plan walk the tree once");
+  const second = await call(route("GET", "/api/overview"), server);
+  assert.equal(second.status, 200, JSON.stringify(second.json));
+  assert.equal(second.json.plan.planHash, first.json.plan.planHash);
+  assert.equal(listed(pkg) - walks, 1, "the second overview does not walk the tree again");
+  assert.equal(computed("inventory") - inventories, 1, "one discovery for both");
 });
 
 test("GET /api/setup/profiles counts the three starter profiles with one discovery and keeps them; a template switch builds its view once", async () => {

@@ -894,7 +894,8 @@ async function gateVersions({ image, outDir }) {
   return result;
 }
 
-const TRIVY_COMMON = ["--skip-dirs", "/proc,/sys,/dev,/out,/cache,/gate", "--no-progress", "--quiet"];
+// Trivy stops a scan after 5 minutes by default; the full license walk of the 6 GB image can take longer on a busy machine.
+const TRIVY_COMMON = ["--skip-dirs", "/proc,/sys,/dev,/out,/cache,/gate", "--no-progress", "--quiet", "--timeout", "30m"];
 
 function trivyRun({ image, outDir, args, memory }) {
   const cache = path.join(outDir, "trivy-cache");

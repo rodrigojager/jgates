@@ -8,14 +8,13 @@ import { DoctorAvatar } from "../../components/DoctorAvatar";
 import { ErrorNotice, Loading, Pill, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import "../../components/prerequisites.css";
-import { t } from "../../i18n";
+import { getLocale, t } from "../../i18n";
 import type { DoctorState } from "../../mascots/doctor/index.js";
 import { advance, fetchDocker, fetchSetup, fetchTools, formatBytes, saveRuntime, startDownloads, testRuntime, type DockerCheck, type Requirement, type RuntimeId, type RuntimeTest, type SecurityDatabase, type ToolsInfo } from "./api";
 import { EquivalentCommand, ReasonNotice, StepNav, useJob } from "./parts";
 import type { StepProps } from "./Wizard";
 
 const POLL_MS = 3000;
-const MIB = 1024 * 1024;
 
 /** The doctor's state for the machine check: checking until the first answer, error when it cannot answer at all. */
 export function doctorStateOf(check: DockerCheck | null, error: unknown): DoctorState {
@@ -27,11 +26,20 @@ export function doctorStateOf(check: DockerCheck | null, error: unknown): Doctor
 
 const REQUIREMENT_TONE: Record<Requirement["state"], "green" | "gold" | "red" | undefined> = { ok: "green", warn: "gold", error: "red", unknown: undefined };
 
-/** The measured value beside a requirement: "7,8 GB", "4", "27.0.1". */
+/**
+ * The measured value beside a requirement: "7,8 GB", "4", "27.0.1". Memory and disk are counted the way the requirement's
+ * own sentence and its recommendation count them (1 GB = 1024 MB, as the engine reports them), so the value and the
+ * sentence under it say the same number.
+ */
 function measured(r: Requirement): string {
   if (r.value === null) return t("wizard_unknown");
-  if (r.unit === "mb" && typeof r.value === "number") return formatBytes(r.value * MIB);
+  if (r.unit === "mb" && typeof r.value === "number") return r.value >= 1024 ? `${formatNumber(Math.round((r.value / 1024) * 10) / 10)} GB` : `${formatNumber(r.value)} MB`;
   return String(r.value);
+}
+
+/** One decimal at most, with the separator of the interface's language. */
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 1 }).format(value);
 }
 
 function Requirements({ list }: { list: Requirement[] }) {

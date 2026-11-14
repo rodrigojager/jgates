@@ -4,12 +4,12 @@ JGates validates a repository before an approval: it discovers the components, b
 
 Every check runs inside a container of one complete JGates tools image. Your project is copied into a Docker volume and is never modified; its dependencies are installed into volumes of their own. So the only thing you install on your machine is JGates and a container engine.
 
-This page goes from zero to the first validation. The other pages in this folder: [templates and profiles](templates-and-profiles.en.md), [editor](editor.en.md), [adapters](adapters.en.md) (with the [compatibility matrix](compatibility.en.md)), [services](services.en.md), [your own tools](extension.en.md), [storage and cleanup](storage.en.md) and [common problems](troubleshooting.en.md).
+This page goes from zero to the first validation. The other pages in this folder: [the local interface](local-ui.en.md), [templates and profiles](templates-and-profiles.en.md), [editor](editor.en.md), [adapters](adapters.en.md) (with the [compatibility matrix](compatibility.en.md)), [services](services.en.md), [your own tools](extension.en.md), [storage and cleanup](storage.en.md) and [common problems](troubleshooting.en.md).
 
 ## What you need
 
 - Node 22 or newer and Git, to run JGates itself.
-- A Docker-compatible container engine, running on a `linux/amd64` system. Docker Desktop, Rancher Desktop, Podman Desktop, or Docker Engine on Linux all work. Docker Desktop has license terms of its own that depend on who uses it and how; read them on Docker's site, or choose one of the alternatives. To use another executable than `docker`, set `JGATES_CONTAINER_RUNTIME`.
+- A Docker-compatible container engine, running on a `linux/amd64` system. Docker Desktop, Rancher Desktop, Podman Desktop, or Docker Engine on Linux all work. Docker Desktop has license terms of its own that depend on who uses it and how; read them on Docker's site, or choose one of the alternatives. To use another executable than `docker`, choose it in the Docker step of the guided setup (Docker, Podman or another executable; saved in the preferences) or set `JGATES_CONTAINER_RUNTIME`, which wins over the saved choice.
 - Memory for the engine: 4 GB or more is recommended (a step asks for 4 GB and 2 CPUs by default), and room on the disk for the tools image: about 2 GB to download and around 6 GB unpacked.
 - Nothing else. No scanner, linter, test runner or language runtime of the project is installed on your machine: they all come in the tools image.
 
@@ -76,14 +76,14 @@ A recipe that installs Docker is shown with the system's command (`apt-get` on D
 
 In the interface (`jgates ui`), a project that has not finished setting up opens the **Guided setup** (`#/setup`) by itself. It has six steps and each one shows the equivalent command:
 
-1. **Docker**: checks the engine and, when it is missing or stopped, shows the commands to install or start it (nothing runs without you) and the alternatives to Docker Desktop. It checks again every 3 seconds while the page is open.
-2. **Tools**: downloads the JGates tools image, with progress, speed and time left. The download goes on in the background, so you can move to the next steps; if the server restarts, download again and what already arrived is reused. The step also shows the disk space needed and the age of the security data.
-3. **Project**: shows what discovery found (components, language, framework, package manager, language version, lockfile) and asks only about what is ambiguous. It also offers the compose [services](services.en.md) of the project.
-4. **Profile**: Minimal, Balanced or Strict. Strict turns on everything that has a tool for this project; what does not apply shows with its reason and never blocks. You can preview the file before saving, and adjust each capability later in Configuration, without editing YAML.
-5. **Dependencies**: prepares the project's dependencies in volumes (the first time takes a few minutes), or waits for the tools to finish downloading.
-6. **Review**: lists the plan (how many checks will run, which use the network) and starts the first validation, now or as soon as the preparation ends.
+1. **Docker**: the doctor mascot examines the machine and shows what JGates needs with the measured values (engine, memory, free disk, CPUs; below the recommended is only a warning), and the choice of the engine executable (Docker, Podman or another executable, tested and saved in the preferences). When the engine is missing or stopped, it shows the commands to install or start it (nothing runs without you). It checks again every 3 seconds while the page is open.
+2. **Tools**: lists what will be downloaded (the tools image with its version, size and the tools it carries, and the four security databases) and downloads it, with progress, speed and time left. The download goes on in the background, so you can move to the next steps; if the server restarts, download again and what already arrived is reused.
+3. **Project**: describes in words each component discovery found (language, framework, package manager, language version, lockfile, with the evidence) and asks only about what is ambiguous; **Declare component** works inside the wizard. It also offers the compose [services](services.en.md) of the project.
+4. **Profile**: Essential, Balanced or Strict, with the profile editor inside the step: turn capabilities and tools on and off and create a new profile without leaving the wizard, in a draft that becomes a file only when you confirm. Strict turns on everything that has a tool for this project; what does not apply shows with its reason and never blocks.
+5. **Dependencies**: shows, per unit, the manager, the lockfile, what is installed, the volume and the network, and prepares the dependencies in volumes (the first time takes a few minutes).
+6. **Review**: the gate and the target, the plan by category, each check that will not run with its reason and action, and what is still to prepare; it starts the first validation, now or as soon as the preparation ends.
 
-**Redo the guided setup** (on the Workspace screen or at `#/setup`) opens it again with your current values. Everything the wizard does has a command: `jgates setup`, `jgates init`, `jgates deps prepare` and `jgates run`.
+**Open the wizard** (on the Workspace screen) opens it again with your current values. Everything the wizard does has a command: `jgates setup`, `jgates init`, `jgates deps prepare` and `jgates run`. Each step, the configuration screens, the YAML editor and the result are described in [the local interface](local-ui.en.md).
 
 ## Discover and configure
 
@@ -205,7 +205,7 @@ jgates ui --no-open
 
 `ui` starts a local server on this computer only (`127.0.0.1`). It does not print the session secret: the entry link, single-use and valid for 10 minutes, is in a file in the data folder (the `launcher` field of the `--json` output). Open that file in the browser. Without `--no-open`, JGates opens the browser itself.
 
-Main screens: Overview (`#/overview`), Workspace (`#/workspace`), Tools (`#/tools`), Configuration (`#/config`), with Services (`#/config/services`), Environment (`#/environment`), Semantic (AI) (the review setup at `#/semantic/setup` and the Providers and keys screen at `#/semantic/providers`), Preferences (`#/preferences`), with Storage (`#/preferences/storage`), and Help (`#/help`). Everything the interface does has an equivalent command.
+Main screens: Overview (`#/overview`), Workspace (`#/workspace`), Tools (`#/tools`), Configuration (`#/config`), with Services (`#/config/services`), Environment (`#/environment`), Semantic (AI) (the review setup at `#/semantic/setup` and the Providers and keys screen at `#/semantic/providers`), Preferences (`#/preferences`), with Storage (`#/preferences/storage`), and Help (`#/help`). Everything the interface does has an equivalent command. The configuration forms, the YAML editor and how to read a result are in [the local interface](local-ui.en.md).
 
 The workspace button at the top of the sidebar switches to another project: pick one of the known workspaces, type a folder path, or use **Browse...** to walk the folders of this machine (the drives on Windows) and open one. A folder already set up for JGates or Git is marked in the list. A project without configuration opens on the guided setup.
 

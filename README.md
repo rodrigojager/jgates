@@ -74,7 +74,7 @@ The quickest path is the interface. In the project folder:
 jgates ui
 ```
 
-On first access it opens the guided setup: it checks Docker, downloads the JGates tools (in the background, while you go on), shows what it detected in the project, creates `jgates.yml` with the profile you choose (`strict` requires tests and coverage and turns on every other check "where a tool exists": where none does, the check shows as "does not apply here", with the reason and the fix, and never blocks), prepares the dependencies and starts the first validation. The bar at the top lists what the validation still needs (Docker stopped, a folder Git does not trust, tools not downloaded), each with the button that fixes it. Then **New validation**: choose the target, review the plan and run. The run screen shows each step, its time and a heartbeat while it works; the result lists the findings with file and line.
+On first access it opens the guided setup: it checks Docker and the machine (memory, disk, CPUs) and lets you pick the engine executable (Docker, Podman or another), lists and downloads the JGates tools (in the background, while you go on), describes what it detected in the project, creates `jgates.yml` with the profile you choose and adjust right there (`strict` requires tests and coverage and turns on every other check "where a tool exists": where none does, the check shows as "does not apply here", with the reason and the fix, and never blocks), prepares the dependencies and starts the first validation. The bar at the top lists what the validation still needs (Docker stopped, a folder Git does not trust, tools not downloaded), each with the button that fixes it. Then **New validation**: choose the gate and the target, review the plan (each check that will not run comes with its reason and action) and run. The run screen shows each phase and step, its time and a heartbeat while it works; the result shows one card per check (passed, failed, not applicable...) and one per finding with tool, rule, file and line. Every configuration file has a guided screen that writes one key at a time and keeps your comments, and a YAML editor with live validation; see [the local interface](docs/jgates/local-ui.en.md).
 
 The same from the terminal:
 
@@ -147,6 +147,7 @@ JGates reads and runs tools over code that may not be trusted, and it has a loca
 ### Documentation
 
 - [Getting started](docs/jgates/getting-started.en.md)
+- [The local interface](docs/jgates/local-ui.en.md)
 - [CI](docs/jgates/ci.en.md)
 - [Templates and profiles](docs/jgates/templates-and-profiles.en.md)
 - [Editor](docs/jgates/editor.en.md)
@@ -246,7 +247,7 @@ O caminho mais rápido é a interface. Na pasta do projeto:
 jgates ui
 ```
 
-No primeiro acesso ela abre a configuração guiada: confere o Docker, baixa as ferramentas do JGates (em segundo plano, enquanto você segue), mostra o que foi detectado no projeto, cria o `jgates.yml` com o perfil que você escolher (o `strict` exige testes e cobertura e liga todas as outras verificações "onde houver ferramenta": onde não há, a verificação aparece como "não se aplica aqui", com o motivo e a correção, e nunca bloqueia), prepara as dependências e inicia a primeira validação. A barra no topo lista o que a validação ainda precisa (Docker parado, pasta em que o Git não confia, ferramentas não baixadas), cada item com o botão que resolve. Depois, **Nova validação**: escolha o alvo, revise o plano e execute. A tela de acompanhamento mostra cada etapa, o tempo e um batimento enquanto ela trabalha; o resultado lista os achados com arquivo e linha.
+No primeiro acesso ela abre a configuração guiada: confere o Docker e a máquina (memória, disco, CPUs) e deixa escolher o executável do motor (Docker, Podman ou outro), lista e baixa as ferramentas do JGates (em segundo plano, enquanto você segue), descreve o que foi detectado no projeto, cria o `jgates.yml` com o perfil que você escolher e ajustar ali mesmo (o `strict` exige testes e cobertura e liga todas as outras verificações "onde houver ferramenta": onde não há, a verificação aparece como "não se aplica aqui", com o motivo e a correção, e nunca bloqueia), prepara as dependências e inicia a primeira validação. A barra no topo lista o que a validação ainda precisa (Docker parado, pasta em que o Git não confia, ferramentas não baixadas), cada item com o botão que resolve. Depois, **Nova validação**: escolha o gate e o alvo, revise o plano (cada verificação que não vai rodar vem com o motivo e a ação) e execute. A tela de acompanhamento mostra cada fase e etapa, o tempo e um batimento enquanto ela trabalha; o resultado mostra um cartão por verificação (passou, falhou, não se aplica...) e um por achado, com ferramenta, regra, arquivo e linha. Cada arquivo de configuração tem uma tela guiada que grava uma chave por vez e mantém os seus comentários, e um editor de YAML com validação enquanto você digita; veja [a interface local](docs/jgates/local-ui.pt-BR.md).
 
 O mesmo pelo terminal:
 
@@ -319,6 +320,7 @@ O JGates lê e executa ferramentas sobre código que pode não ser confiável, e
 ### Documentação
 
 - [Primeiros passos](docs/jgates/getting-started.pt-BR.md)
+- [A interface local](docs/jgates/local-ui.pt-BR.md)
 - [CI](docs/jgates/ci.pt-BR.md)
 - [Templates e perfis](docs/jgates/templates-and-profiles.pt-BR.md)
 - [Editor](docs/jgates/editor.pt-BR.md)

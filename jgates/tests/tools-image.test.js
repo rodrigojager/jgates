@@ -76,8 +76,9 @@ test("inside the tools image (in-image mode) the plan does not look at the engin
 test("with the image absent the plan has the single blocker IMAGE_MISSING, with text and action in both languages", () => {
   const w = setup({ fake: { FAKE_DOCKER_LABELS: "none" } });
   const expected = {
-    en: { label: "Download now", text: /^The JGates tools have not been downloaded yet \(\d+(\.\d)? MB\)\.$/ },
-    "pt-BR": { label: "Baixar agora", text: /^As ferramentas do JGates ainda não foram baixadas \(\d+(,\d)? MB\)\.$/ },
+    // The size is the pin's: MB for the first minimal image, GB for the full one.
+    en: { label: "Download now", text: /^The JGates tools have not been downloaded yet \(\d+(\.\d)? (MB|GB)\)\.$/ },
+    "pt-BR": { label: "Baixar agora", text: /^As ferramentas do JGates ainda não foram baixadas \(\d+(,\d)? (MB|GB)\)\.$/ },
   };
   for (const locale of ["en", "pt-BR"]) {
     const plan = w.plan({ JGATES_TOOLS_IMAGE: "jgates-tools:dev", JGATES_LOCALE: locale });

@@ -24,6 +24,23 @@ const DIMENSIONS = ["functional-correctness", "tests", "maintainability", "archi
 
 export const importDist = (...parts) => import(pathToFileURL(path.join(DIST, ...parts)).href);
 
+/** Folders Windows still held at a case's cleanup: removed once more when the test process exits (best effort). */
+const leftovers = new Set();
+function removeAtExit(dir) {
+  if (leftovers.size === 0) {
+    process.once("exit", () => {
+      for (const d of leftovers) {
+        try {
+          fs.rmSync(d, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+        } catch {
+          // Still held: it stays in the temporary folder.
+        }
+      }
+    });
+  }
+  leftovers.add(dir);
+}
+
 const yamlList = (values) => `[${values.map((v) => JSON.stringify(v)).join(", ")}]`;
 
 /** The scripted reviewer: reads the subjects, plans and examines every dimension with them, reports no candidate. */
@@ -163,8 +180,17 @@ export function setupSequenceProject(options = {}) {
       if (v === undefined) delete process.env[k];
       else process.env[k] = v;
     }
-    // A child the API started can still be exiting (Windows refuses to remove the folder it runs in): retry briefly.
-    for (const d of [dir, home, aux]) fs.rmSync(d, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+    // A child the API started can still be exiting (Windows refuses to remove the folder it runs in): retry briefly, and
+    // if Windows still holds the folder, remove it when this process exits instead of failing a case whose assertions
+    // all passed (V2-18 failed only here, with EPERM, under load).
+    for (const d of [dir, home, aux]) {
+      try {
+        fs.rmSync(d, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      } catch (error) {
+        if (!["EPERM", "EBUSY", "ENOTEMPTY"].includes(error?.code)) throw error;
+        removeAtExit(d);
+      }
+    }
   };
   /** A fake server context for the route handlers (the same workspace, data folder and environment as the CLI). */
   const server = async (version) => {

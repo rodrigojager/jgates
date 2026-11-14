@@ -5,7 +5,7 @@ import { projectMascots } from "../../core/mascots/index.js";
 import fs from "node:fs";
 import path from "node:path";
 import { listRuns } from "../../core/artifacts/index.js";
-import { discoverWorkspace } from "../../core/discovery/index.js";
+import { projectInventory } from "../../core/cache/project.js";
 import { withEngineFacts } from "../../core/engine/facts.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { buildPlan, type Plan } from "../../core/plan/index.js";
@@ -123,11 +123,12 @@ export const routes: RouteDefinition[] = [
     path: "/api/overview",
     timeoutMs: 120_000,
     async handler({ server }) {
-      const { inventory } = discoverWorkspace(server.projectDir);
+      // The discovery comes from the project cache (ADR-0010): the plan below reuses it instead of walking the tree again.
+      const inventory = projectInventory(server.projectDir);
       const approvable = inventory.classifications.filter((c) => c.approvable);
       const ambiguous = inventory.classifications.filter((c) => c.classificationStatus === "ambiguous");
       // The engine facts of the plan (engine, tools image, data timestamps) come from the cache, never a blocking call.
-      const built = await withEngineFacts(() => buildPlan(server.projectDir, { version: server.version, home: server.home, compare: false }), { prime: { version: server.version } });
+      const built = await withEngineFacts(() => buildPlan(server.projectDir, { version: server.version, home: server.home, compare: false, inventory }), { prime: { version: server.version } });
       const plan = built.ok ? built.plan : null;
       const categories = plan ? categoriesOf(plan) : [];
       const lastRun = readLastRun(server);

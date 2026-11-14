@@ -4,12 +4,12 @@ O JGates valida um repositório antes de uma aprovação: descobre os componente
 
 Toda verificação roda dentro de um contêiner de uma imagem de ferramentas completa do JGates. O seu projeto é copiado para um volume do Docker e nunca é modificado; as dependências dele são instaladas em volumes próprios. Por isso a única coisa que você instala na sua máquina é o JGates e um motor de contêineres.
 
-Esta página vai do zero até a primeira validação. As outras páginas desta pasta: [templates e perfis](templates-and-profiles.pt-BR.md), [editor](editor.pt-BR.md), [adaptadores](adapters.pt-BR.md) (com a [matriz de compatibilidade](compatibility.pt-BR.md)), [serviços](services.pt-BR.md), [suas próprias ferramentas](extension.pt-BR.md), [armazenamento e limpeza](storage.pt-BR.md) e [problemas comuns](troubleshooting.pt-BR.md).
+Esta página vai do zero até a primeira validação. As outras páginas desta pasta: [a interface local](local-ui.pt-BR.md), [templates e perfis](templates-and-profiles.pt-BR.md), [editor](editor.pt-BR.md), [adaptadores](adapters.pt-BR.md) (com a [matriz de compatibilidade](compatibility.pt-BR.md)), [serviços](services.pt-BR.md), [suas próprias ferramentas](extension.pt-BR.md), [armazenamento e limpeza](storage.pt-BR.md) e [problemas comuns](troubleshooting.pt-BR.md).
 
 ## O que você precisa
 
 - Node 22 ou mais novo e Git, para rodar o próprio JGates.
-- Um motor de contêineres compatível com o Docker, rodando num sistema `linux/amd64`. Docker Desktop, Rancher Desktop, Podman Desktop ou o Docker Engine no Linux funcionam. O Docker Desktop tem termos de licença próprios, que dependem de quem o usa e de como; leia-os no site da Docker, ou escolha uma das alternativas. Para usar outro executável que não seja `docker`, defina `JGATES_CONTAINER_RUNTIME`.
+- Um motor de contêineres compatível com o Docker, rodando num sistema `linux/amd64`. Docker Desktop, Rancher Desktop, Podman Desktop ou o Docker Engine no Linux funcionam. O Docker Desktop tem termos de licença próprios, que dependem de quem o usa e de como; leia-os no site da Docker, ou escolha uma das alternativas. Para usar outro executável que não seja `docker`, escolha-o no passo Docker da configuração guiada (Docker, Podman ou outro executável; fica gravado nas preferências) ou defina `JGATES_CONTAINER_RUNTIME`, que vale acima da escolha gravada.
 - Memória para o motor: 4 GB ou mais é o recomendado (um passo pede 4 GB e 2 CPUs por padrão), e espaço em disco para a imagem de ferramentas: cerca de 2 GB para baixar e uns 6 GB descompactada.
 - Mais nada. Nenhum scanner, linter, executor de testes ou runtime de linguagem do projeto é instalado na sua máquina: tudo vem na imagem de ferramentas.
 
@@ -76,14 +76,14 @@ Uma receita que instala o Docker é mostrada com o comando do sistema (`apt-get`
 
 Na interface (`jgates ui`), um projeto que ainda não terminou de ser configurado abre a **Configuração guiada** (`#/setup`) sozinha. Ela tem seis passos e cada um mostra o comando equivalente:
 
-1. **Docker**: confere o motor e, quando ele falta ou está parado, mostra os comandos para instalar ou iniciar (nada roda sem você) e as alternativas ao Docker Desktop. Confere de novo a cada 3 segundos enquanto a página está aberta.
-2. **Ferramentas**: baixa a imagem de ferramentas do JGates, com progresso, velocidade e tempo restante. O download continua em segundo plano, então você pode seguir para os próximos passos; se o servidor reiniciar, baixe de novo e o que já chegou é reaproveitado. O passo também mostra o espaço em disco necessário e a idade dos dados de segurança.
-3. **Projeto**: mostra o que a descoberta achou (componentes, linguagem, framework, gerenciador de pacotes, versão da linguagem, lockfile) e pergunta só sobre o que é ambíguo. Também oferece os [serviços](services.pt-BR.md) do compose do projeto.
-4. **Perfil**: Mínimo, Equilibrado ou Rigoroso. O Rigoroso liga tudo o que tem ferramenta para este projeto; o que não se aplica aparece com o motivo e nunca bloqueia. Você pode ver o arquivo antes de salvar e ajustar cada capacidade depois em Configuração, sem editar YAML.
-5. **Dependências**: prepara as dependências do projeto em volumes (a primeira vez leva alguns minutos), ou espera as ferramentas terminarem de baixar.
-6. **Revisão**: lista o plano (quantas verificações vão rodar, quais usam a rede) e inicia a primeira validação, agora ou assim que a preparação terminar.
+1. **Docker**: o mascote médico examina a máquina e mostra o que o JGates precisa com os valores medidos (motor, memória, disco livre, CPUs; abaixo do recomendado é só um aviso), e a escolha do executável do motor (Docker, Podman ou outro executável, testado e gravado nas preferências). Quando o motor falta ou está parado, mostra os comandos para instalar ou iniciar (nada roda sem você). Confere de novo a cada 3 segundos enquanto a página está aberta.
+2. **Ferramentas**: lista o que vai ser baixado (a imagem de ferramentas com versão, tamanho e as ferramentas que traz, e os quatro bancos de dados de segurança) e baixa, com progresso, velocidade e tempo restante. O download continua em segundo plano, então você pode seguir para os próximos passos; se o servidor reiniciar, baixe de novo e o que já chegou é reaproveitado.
+3. **Projeto**: descreve em palavras cada componente que a descoberta achou (linguagem, framework, gerenciador de pacotes, versão da linguagem, lockfile, com as evidências) e pergunta só sobre o que é ambíguo; **Declarar componente** funciona dentro do assistente. Também oferece os [serviços](services.pt-BR.md) do compose do projeto.
+4. **Perfil**: Essencial, Equilibrado ou Rigoroso, com o editor de perfil dentro do passo: ligue e desligue capacidades e ferramentas e crie um perfil novo sem sair do assistente, num rascunho que só vira arquivo quando você confirma. O Rigoroso liga tudo o que tem ferramenta para este projeto; o que não se aplica aparece com o motivo e nunca bloqueia.
+5. **Dependências**: mostra, por unidade, o gerenciador, o lockfile, o que é instalado, o volume e a rede, e prepara as dependências em volumes (a primeira vez leva alguns minutos).
+6. **Revisão**: o gate e o alvo, o plano por categoria, cada verificação que não vai rodar com o motivo e a ação, e o que ainda falta preparar; inicia a primeira validação, agora ou assim que a preparação terminar.
 
-**Refazer a configuração guiada** (na tela Workspace ou em `#/setup`) abre o assistente de novo com os seus valores atuais. Tudo o que o assistente faz tem um comando: `jgates setup`, `jgates init`, `jgates deps prepare` e `jgates run`.
+**Abrir o assistente** (na tela Workspace) abre o assistente de novo com os seus valores atuais. Tudo o que o assistente faz tem um comando: `jgates setup`, `jgates init`, `jgates deps prepare` e `jgates run`. Cada passo, as telas de configuração, o editor de YAML e o resultado estão descritos em [a interface local](local-ui.pt-BR.md).
 
 ## Descobrir e configurar
 
@@ -205,7 +205,7 @@ jgates ui --no-open
 
 O `ui` inicia um servidor local só neste computador (`127.0.0.1`). Ele não imprime o segredo da sessão: o link de entrada, de uso único e válido por 10 minutos, está num arquivo da pasta de dados (o campo `launcher` da saída `--json`). Abra esse arquivo no navegador. Sem `--no-open`, o JGates abre o navegador sozinho.
 
-Telas principais: Visão geral (`#/overview`), Workspace (`#/workspace`), Ferramentas (`#/tools`), Configuração (`#/config`), com Serviços (`#/config/services`), Ambiente (`#/environment`), Semantic (IA) (a configuração da revisão em `#/semantic/setup` e a tela Providers e chaves em `#/semantic/providers`), Preferências (`#/preferences`), com Armazenamento (`#/preferences/storage`), e Ajuda (`#/help`). Tudo o que a interface faz tem um comando equivalente.
+Telas principais: Visão geral (`#/overview`), Workspace (`#/workspace`), Ferramentas (`#/tools`), Configuração (`#/config`), com Serviços (`#/config/services`), Ambiente (`#/environment`), Semantic (IA) (a configuração da revisão em `#/semantic/setup` e a tela Providers e chaves em `#/semantic/providers`), Preferências (`#/preferences`), com Armazenamento (`#/preferences/storage`), e Ajuda (`#/help`). Tudo o que a interface faz tem um comando equivalente. Os formulários de configuração, o editor de YAML e a leitura do resultado estão em [a interface local](local-ui.pt-BR.md).
 
 O botão do workspace no topo da barra lateral troca para outro projeto: escolha um dos workspaces conhecidos, digite o caminho de uma pasta ou use **Procurar...** para percorrer as pastas desta máquina (os drives no Windows) e abrir uma. Uma pasta que já tem configuração do JGates ou do Git aparece marcada na lista. Um projeto sem configuração abre na configuração guiada.
 

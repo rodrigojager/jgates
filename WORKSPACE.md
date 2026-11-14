@@ -38,6 +38,8 @@ One row per folder (and relevant subfolder) of this repository. Keep it portable
 - `docs/jgates/semantic-methods.pt-BR.md`
 - `docs/jgates/getting-started.en.md`
 - `docs/jgates/getting-started.pt-BR.md`
+- `docs/jgates/local-ui.en.md`
+- `docs/jgates/local-ui.pt-BR.md`
 - `docs/jgates/limitations.en.md`
 - `docs/jgates/limitations.pt-BR.md`
 - `docs/jgates/security.en.md`
