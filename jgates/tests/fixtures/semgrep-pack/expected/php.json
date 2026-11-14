@@ -1,0 +1,19 @@
+{
+  "files": [
+    "app.php"
+  ],
+  "ruleIds": [
+    "jgates.php.sql-string-building",
+    "jgates.php.os-command-injection",
+    "jgates.php.dynamic-code-execution",
+    "jgates.php.preg-replace-eval",
+    "jgates.php.file-inclusion",
+    "jgates.php.path-traversal",
+    "jgates.php.ssrf",
+    "jgates.php.request-xss",
+    "jgates.php.weak-hash",
+    "jgates.php.weak-cipher",
+    "jgates.php.tls-verification-disabled",
+    "jgates.php.unsafe-deserialization"
+  ]
+}

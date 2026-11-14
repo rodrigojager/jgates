@@ -1,0 +1,55 @@
+# Original JGates rules. Password hashes are recognized by password/passwd/pwd in the argument.
+rules:
+  - id: jgates.php.weak-hash
+    message: A password is hashed with MD5 or SHA-1. Use password_hash and password_verify for passwords.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-328"
+      author: JGates
+      subdimension: cryptography
+    patterns:
+      - pattern-either:
+          - pattern: md5($PASSWORD, ...)
+          - pattern: sha1($PASSWORD, ...)
+      - metavariable-regex:
+          metavariable: $PASSWORD
+          regex: (?i).*(password|passwd|pwd).*
+
+  - id: jgates.php.weak-cipher
+    message: ECB encryption reveals repeated plaintext blocks. Use authenticated encryption with a fresh nonce.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+    patterns:
+      - pattern: openssl_encrypt($DATA, $CIPHER, ...)
+      - metavariable-regex:
+          metavariable: $CIPHER
+          regex: (?i).*ecb.*
+
+  - id: jgates.php.tls-verification-disabled
+    message: cURL certificate or hostname verification is disabled. Keep peer verification enabled and hostname verification set to 2.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-295"
+      author: JGates
+      subdimension: cryptography
+    pattern-either:
+      - pattern: curl_setopt($HANDLE, CURLOPT_SSL_VERIFYPEER, false)
+      - pattern: curl_setopt($HANDLE, CURLOPT_SSL_VERIFYPEER, 0)
+      - pattern: curl_setopt($HANDLE, CURLOPT_SSL_VERIFYHOST, false)
+      - pattern: curl_setopt($HANDLE, CURLOPT_SSL_VERIFYHOST, 0)
+      - pattern: curl_setopt($HANDLE, CURLOPT_SSL_VERIFYHOST, 1)
+      - pattern: curl_setopt_array($HANDLE, [..., CURLOPT_SSL_VERIFYPEER => false, ...])
+      - pattern: curl_setopt_array($HANDLE, [..., CURLOPT_SSL_VERIFYPEER => 0, ...])
+      - pattern: curl_setopt_array($HANDLE, [..., CURLOPT_SSL_VERIFYHOST => false, ...])
+      - pattern: curl_setopt_array($HANDLE, [..., CURLOPT_SSL_VERIFYHOST => 0, ...])
+      - pattern: curl_setopt_array($HANDLE, [..., CURLOPT_SSL_VERIFYHOST => 1, ...])
+

@@ -1,0 +1,162 @@
+# Original JGates rules. Intra-procedural request sources: PHP superglobals,
+# Laravel request() and $request/$req input/query/post/cookie/file methods,
+# Symfony $request/$req get() and query/request/cookies/files/headers bags.
+# Object sources intentionally require the conventional request/req variable name.
+# Only request-controlled $_SERVER keys are sources, not server configuration.
+# file_get_contents accepts both local paths and remote URLs; both rules may flag it.
+rules:
+  - id: jgates.php.file-inclusion
+    message: Request data selects a PHP file to include. Map a fixed identifier to an application-owned file.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-98"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sinks:
+      - pattern: "include $PATH;"
+        focus-metavariable: $PATH
+      - pattern: "include_once $PATH;"
+        focus-metavariable: $PATH
+      - pattern: "require $PATH;"
+        focus-metavariable: $PATH
+      - pattern: "require_once $PATH;"
+        focus-metavariable: $PATH
+
+  - id: jgates.php.path-traversal
+    message: Request data reaches a file path. Resolve an allow-listed file under an application-owned directory before opening it.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sinks:
+      - pattern: "fopen($PATH, ...)"
+        focus-metavariable: $PATH
+      - pattern: "file_get_contents($PATH, ...)"
+        focus-metavariable: $PATH
+      - pattern: "readfile($PATH, ...)"
+        focus-metavariable: $PATH
+
+  - id: jgates.php.ssrf
+    message: Request data reaches a URL-capable fetch. Allow-list the scheme, host and resolved destination before fetching.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sinks:
+      - pattern: "curl_init($URL)"
+        focus-metavariable: $URL
+      - pattern: "curl_setopt($HANDLE, CURLOPT_URL, $URL)"
+        focus-metavariable: $URL
+      - pattern: "file_get_contents($URL, ...)"
+        focus-metavariable: $URL
+      - patterns:
+          - pattern: curl_setopt_array($HANDLE, [..., CURLOPT_URL => $URL, ...])
+          - focus-metavariable: $URL
+
