@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "jgates-asvs-map",
+  "kind": "mapping",
+  "distribution": "shipped",
+  "source": {
+    "url": "https://github.com/rodrigojager/jgates",
+    "revision": "jgates-authored-1"
+  },
+  "spdx": "MIT",
+  "notices": ["LICENSE", "NOTICE.md"],
+  "modifications": "Original JGates work. The mapping refers to OWASP ASVS requirements by id only and contains none of their text.",
+  "review": "approved"
+}

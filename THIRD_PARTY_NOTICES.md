@@ -167,6 +167,19 @@ whose record does not state its modifications and obligations. The Semantic meth
 `variant-analysis` and `insecure-defaults` (`jgates/src/core/semantic-modules/`) read this material as data at run time;
 the `cross-component` method and the root-cause correlation are original JGates work.
 
+## OWASP ASVS requirement text (CC BY-SA 4.0)
+
+`jgates/vendor/owasp-asvs` carries the official requirements of the OWASP Application Security Verification Standard
+5.0.0 from [OWASP/ASVS](https://github.com/OWASP/ASVS), release `v5.0.0_release`, commit
+`5cf9b032440be53ce345ab3c130fda46ba1ce7a2`, copyright © 2008-2025 The OWASP Foundation, under the Creative Commons
+Attribution-ShareAlike 4.0 International license (CC-BY-SA-4.0). The release file is shipped unchanged, byte for byte
+(SHA-256 `8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311`), in English; it is not translated or
+adapted. The license applies to that folder only: JGates' code, screens and the mapping pack
+(`jgates/packs/asvs/jgates-asvs-map`, original MIT work that refers to requirements by id and never quotes them) keep
+their own license. Its `LICENSE` (the full license text), `NOTICE.md` (attribution, source, file hash, the statement
+that nothing was changed) and `jgates-pack.json` travel with it. Wherever JGates shows or exports the requirement text
+it prints the attribution line "Requirement text: OWASP ASVS 5.0.0, © The OWASP Foundation, CC BY-SA 4.0".
+
 ## Tools shipped in the tools image (jgates-tools)
 
 Every tool listed in /etc/jgates/image.json of the image, with its license and the place its source is published.

@@ -1,0 +1,90 @@
+{
+  "version": "5.0.0",
+  "chapter": "V17",
+  "entries": [
+    {
+      "requirement": "V17.1.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.1.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.3",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.4",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.5",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.6",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.7",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.8",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.3.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.3.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    }
+  ]
+}

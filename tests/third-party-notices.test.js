@@ -53,7 +53,8 @@ test('every vendored pack and the shipped Semgrep pack are in THIRD_PARTY_NOTICE
   assert.match(notices, /CC BY-SA 4\.0|CC-BY-SA-4\.0/);
   assert.match(notices, /jgates\/packs\/semgrep\/jgates-semgrep/);
   assert.match(notices, /registry rules are never bundled/);
-  for (const dir of ['jgates/vendor/cloudflare-security-audit', 'jgates/vendor/trailofbits-skills', 'jgates/packs/semgrep/jgates-semgrep']) {
+  assert.match(notices, /5cf9b032440be53ce345ab3c130fda46ba1ce7a2/);
+  for (const dir of ['jgates/vendor/cloudflare-security-audit', 'jgates/vendor/trailofbits-skills', 'jgates/packs/semgrep/jgates-semgrep', 'jgates/vendor/owasp-asvs', 'jgates/packs/asvs/jgates-asvs-map']) {
     assert.ok(notices.includes('`' + dir + '`'), `${dir} is listed`);
     for (const f of ['LICENSE', 'NOTICE.md', 'jgates-pack.json']) assert.ok(fs.existsSync(path.join(root, dir, f)), `${dir}/${f} exists`);
   }

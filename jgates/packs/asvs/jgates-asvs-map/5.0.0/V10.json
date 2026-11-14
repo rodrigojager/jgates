@@ -1,0 +1,258 @@
+{
+  "version": "5.0.0",
+  "chapter": "V10",
+  "entries": [
+    {
+      "requirement": "V10.1.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.1.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.2.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.2.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.2.3",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.3.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.3.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.3.3",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.3.4",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.3.5",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.3",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.4",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.5",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.6",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.7",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.8",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.9",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.10",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.11",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.12",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.13",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.14",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.15",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.4.16",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.5.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.5.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.5.3",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.5.4",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.5.5",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.6.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.6.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.7.1",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.7.2",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V10.7.3",
+      "status": "unmapped",
+      "evidence": null,
+      "subdimensions": [],
+      "checks": []
+    }
+  ]
+}

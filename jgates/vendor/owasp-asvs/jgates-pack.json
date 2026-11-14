@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "owasp-asvs",
+  "kind": "dataset",
+  "distribution": "shipped",
+  "source": {
+    "url": "https://github.com/OWASP/ASVS",
+    "revision": "5cf9b032440be53ce345ab3c130fda46ba1ce7a2"
+  },
+  "artifact": {
+    "sha256": "sha256:872fd579f4fe40ba3c4dc8b94f8d429fa5c0eec25eefafc8ca921a7605d17873"
+  },
+  "spdx": "CC-BY-SA-4.0",
+  "notices": ["LICENSE", "NOTICE.md"],
+  "modifications": "None: the file is the upstream release file, unchanged.",
+  "obligations": {
+    "attribution": "NOTICE.md names The OWASP Foundation, the source URL, the release tag v5.0.0_release, the pinned commit, the file and its SHA-256 and the CC BY-SA 4.0 license, and states that nothing was changed; LICENSE carries the full license text and travels with the folder; every screen or export of the requirement text carries the attribution line.",
+    "shareAlike": "The file is unchanged, so there is no adaptation to license; no additional terms or technological measures restrict it. The license applies to this folder only; the JGates modules read the file as data and keep their own license."
+  },
+  "release": {
+    "version": "5.0.0",
+    "tag": "v5.0.0_release",
+    "file": "5.0.0/OWASP_Application_Security_Verification_Standard_5.0.0_en.flat.json",
+    "fileSha256": "8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311",
+    "bytes": 162870
+  },
+  "review": "approved"
+}
