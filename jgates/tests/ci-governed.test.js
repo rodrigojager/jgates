@@ -374,3 +374,54 @@ test("ci engine: with neverPassReduced a reduced run that would pass ends incomp
     fs.rmSync(workspace, { recursive: true, force: true });
   }
 });
+
+test("ci: a waiver written by `jgates waivers add` in the project changes nothing in the result of jgates ci, and --waiver stays refused", () => {
+  const p = setup();
+  try {
+    const before = p.ci();
+    const a = one(before);
+    const target = a.findings.find((f) => f.ruleId === "budget.file-lines" && f.fingerprint);
+    assert.ok(target, JSON.stringify(a.findings));
+
+    // The entry is written by the command from the stored result of the ci run: it is the project's file, not the policy.
+    const short = target.fingerprint.replace(/^jgf1:/, "").slice(0, 12);
+    const added = p.cliWith({}, "waivers", "add", "--cwd", p.dir, "--finding", short, "--until", "2999-12-31", "--reason", "accepted for now", "--yes", "--json");
+    assert.equal(added.code, 0, added.out + added.err);
+    const entries = JSON.parse(fs.readFileSync(path.join(p.dir, ".jgates", "waivers.json"), "utf8")).waivers;
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].rule, "budget.file-lines");
+
+    // jgates ci reads only the policy's waivers: same decision, same exit code, same findings, none waived.
+    const after = p.ci();
+    const b = one(after);
+    assert.equal(after.code, before.code);
+    assert.equal(b.decision, a.decision);
+    assert.equal(b.exitCode, a.exitCode);
+    const shape = (r) => r.findings.map((f) => [f.fingerprint, f.waived === true, f.blocking === true]);
+    assert.deepEqual(shape(b), shape(a));
+    assert.ok(b.findings.every((f) => f.waived !== true));
+    assert.equal(b.waivers?.count ?? 0, a.waivers?.count ?? 0);
+
+    // And the option that would add one is still refused, with or without the entry.
+    const refused = p.ci("--waiver", "rule=budget.file-lines;reason=self approved");
+    assert.equal(refused.code, 3, refused.out + refused.err);
+    assert.equal(one(refused).code, "CI_OPTION_REFUSED");
+  } finally {
+    p.cleanup();
+  }
+});
+
+test("help lists the waivers command in both languages", () => {
+  const home = tmp("jgates-help-home-");
+  try {
+    const help = (locale) => spawnSync(process.execPath, [MAIN, "help"], { encoding: "utf8", env: { ...process.env, JGATES_HOME: home, JGATES_LOCALE: locale, NO_COLOR: "1" }, timeout: 60_000 });
+    const en = help("en");
+    assert.equal(en.status, 0, en.stderr);
+    assert.match(en.stdout, /waivers\s+Waivers of the project/);
+    const pt = help("pt-BR");
+    assert.equal(pt.status, 0, pt.stderr);
+    assert.match(pt.stdout, /waivers\s+Dispensas do projeto/);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
