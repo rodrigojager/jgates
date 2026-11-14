@@ -2,7 +2,9 @@
 // validation, supply-chain assessment), the method selection of `jgates semantic` and the generated regressions
 // (jgates/tests/semantic-complementary-b.test.js, tests/v2/v2-20-generated-regression.mjs). In-process scripts answer
 // from what each context read through the host tools; CLI runs use JSON tool scripts of the mock provider
-// (SEMANTIC_GATE_MOCK_TOOL_SCRIPT). No test spends model tokens.
+// (SEMANTIC_GATE_MOCK_TOOL_SCRIPT). No test spends model tokens. The tests the methods execute run in containers: the
+// replaying engine (replay-engine.cjs, recorded/semantic-tests.json) answers for them, and withoutHostTests makes any
+// host process that would run a test fail.
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -275,3 +277,107 @@ export function semanticRuns(home) {
 }
 
 export const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
+
+// ---- the container engine of the Semantic test runner -----------------------------------------------------------------
+
+/** The engine that replays recorded test containers (recorded/semantic-tests.json) and hands every other call to the fake engine. */
+export const REPLAY_ENGINE = path.join(here, "replay-engine.cjs");
+/** The tools image id the fake engine reports. */
+export const TOOLS_IMAGE_ID = `sha256:${"7a".repeat(32)}`;
+
+/**
+ * The variables of the container mode (not inside the tools image) with the replaying engine, its call log and its
+ * state in the workspace's temporary root. Assign them to ws.env (in-process runs) or pass them to one CLI call.
+ */
+export function containerEnv(ws, { engine = REPLAY_ENGINE } = {}) {
+  const state = path.join(ws.root, "engine-state");
+  fs.mkdirSync(state, { recursive: true });
+  return { JGATES_IMAGE_JSON: "", JGATES_CONTAINER_RUNTIME: engine, FAKE_DOCKER_STATE: state, FAKE_DOCKER_LOG: path.join(ws.root, "engine.log"), FAKE_DOCKER_IMAGE_ID: TOOLS_IMAGE_ID };
+}
+
+/** Every engine call recorded so far (argument lists). */
+export function engineCalls(ws) {
+  const file = path.join(ws.root, "engine.log");
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+}
+
+/** The test containers started so far, parsed: name, labels, mounts, network, user, flags, image and command. */
+export function testContainers(ws) {
+  return engineCalls(ws)
+    .filter((args) => args[0] === "run" && args.some((a, i) => args[i - 1] === "--label" && a.startsWith("org.jgates.test-runner=")))
+    .map((args) => {
+      const values = (flag) => args.flatMap((a, i) => (args[i - 1] === flag ? [a] : []));
+      const labels = Object.fromEntries(values("--label").map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
+      const mounts = values("--mount").map((m) => Object.fromEntries(m.split(",").map((p) => (p.includes("=") ? [p.slice(0, p.indexOf("=")), p.slice(p.indexOf("=") + 1)] : [p, true]))));
+      const imageAt = args.findIndex((a) => a.startsWith("sha256:"));
+      return {
+        args,
+        name: values("--name")[0],
+        labels,
+        mounts,
+        network: values("--network")[0],
+        user: values("--user")[0],
+        memory: values("--memory")[0],
+        cpus: values("--cpus")[0],
+        pids: values("--pids-limit")[0],
+        readOnlyRoot: args.includes("--read-only"),
+        capDrop: values("--cap-drop"),
+        image: imageAt >= 0 ? args[imageAt] : null,
+        command: imageAt >= 0 ? args.slice(imageAt + 1) : [],
+      };
+    });
+}
+
+/** What the replaying engine replayed for each test container (file, recording id, dependency volume mounted). */
+export function replayedTests(ws) {
+  const file = path.join(ws.root, "engine-state", "semantic-tests.jsonl");
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
+}
+
+/** Records a prepared Node dependency volume for the workspace, as `jgates deps prepare` does in the data folder. */
+export async function prepareDependencies(ws, volume = "jgates-deps-test-app") {
+  const { workspaceId } = await load("core/ids/index.js");
+  const { depsStateFile } = await load("core/deps/index.js");
+  const file = depsStateFile(ws.home, workspaceId(ws.dir));
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify({ schemaVersion: 1, units: { app: { volume, key: "0".repeat(64), manager: "npm", installRoot: ".", installedAt: "2026-11-14T00:00:00.000Z" } }, failures: {} }, null, 2));
+  return volume;
+}
+
+/**
+ * Makes every host process that would run a test fail while `run` executes: node started with a test reporter, the
+ * permission model or a test file, unless it is the container engine client itself (a .cjs engine run by node). The
+ * attempts are returned; the child_process exports (CommonJS and ES module bindings) are restored afterwards.
+ */
+export async function withoutHostTests(engine, run) {
+  const { createRequire, syncBuiltinESMExports } = await import("node:module");
+  const cp = createRequire(import.meta.url)("node:child_process");
+  const attempts = [];
+  const names = ["spawn", "spawnSync", "execFile", "execFileSync", "fork", "exec", "execSync"];
+  const saved = Object.fromEntries(names.map((n) => [n, cp[n]]));
+  const isTest = (command, args) => {
+    const list = Array.isArray(args) ? args.map(String) : [];
+    if (list[0] && path.resolve(list[0]) === path.resolve(engine)) return false;
+    const text = [String(command), ...list].join(" ");
+    const node = String(command) === process.execPath || /(^|[\\/])node(\.exe)?$/i.test(String(command));
+    return (node && list.some((a) => a.startsWith("--test") || a.startsWith("--permission") || /\.test\.(mjs|cjs|js)$/.test(a))) || /\bnode\b.*--test-reporter/.test(text);
+  };
+  for (const n of names) {
+    cp[n] = function guarded(command, args, ...rest) {
+      // fork(module, args) starts node with the module as its first argument.
+      const asNode = n === "fork" ? [process.execPath, [command, ...(Array.isArray(args) ? args : [])]] : [command, args];
+      if (isTest(asNode[0], asNode[1])) {
+        attempts.push({ via: n, command: String(command), args: Array.isArray(args) ? args.map(String) : [] });
+        throw new Error(`a test was about to run as a host process (${n} ${String(command)})`);
+      }
+      return saved[n].call(this, command, args, ...rest);
+    };
+  }
+  syncBuiltinESMExports();
+  try {
+    return { value: await run(), attempts };
+  } finally {
+    Object.assign(cp, saved);
+    syncBuiltinESMExports();
+  }
+}

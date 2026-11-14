@@ -24,6 +24,13 @@ export type ArtifactContract =
       /** The JSON shape shown to the model. */
       shape: string;
       validate(value: Record<string, unknown>, context: ArtifactCheckContext): ArtifactCheck;
+      /**
+       * Host work that follows a valid artifact and decides what it contributes (post-patch validation runs the
+       * reproducer in containers here): it receives the accepted check and returns the check the executor applies.
+       * Asynchronous, so the run's process keeps serving its timers and cancellation while it works; nothing a model
+       * says is involved. A failure makes the artifact invalid.
+       */
+      settle?(check: ArtifactCheck, context: ArtifactCheckContext, signal: AbortSignal): Promise<ArtifactCheck>;
     };
 
 export interface ArtifactCheckContext {
@@ -207,6 +214,13 @@ export interface InvestigationModule {
    * confirmed root cause, configuration files...). Absent: the module always applies.
    */
   applicability?(input: ModuleApplicabilityInput): ModuleApplicability;
+  /**
+   * What the run itself needs from the machine (a container engine and the tools image for a method that executes
+   * tests), asked by the executor after an applicable answer and before any context starts: null when it is there,
+   * otherwise the method is not applicable with that code. Asynchronous and only asked by a run, never by a plan
+   * preview (a request handler of the local server never waits for the engine, ADR-0010).
+   */
+  prerequisites?(input: ModuleApplicabilityInput & { inputs: Readonly<Record<string, unknown>>; signal: AbortSignal }): Promise<{ code: string; missing: string; reason: string } | null>;
   /** Extra brief text for one context (null: nothing to add). */
   brief?(input: ModuleBriefInput): string | null;
   /** Host-side reporting after every stage: structured records, readable report, agent context. */

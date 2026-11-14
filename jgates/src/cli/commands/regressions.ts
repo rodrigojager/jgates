@@ -1,7 +1,7 @@
 // `jgates regressions list|show|validate|incorporate`: the explicit step that turns a test a Semantic method proposed
 // (a property test, a validated reproducer) into a deterministic Quality regression of the project. Listing, showing and
-// validating write nothing in the project (validate runs the test in the sandbox against an isolated copy of the
-// working tree); only `incorporate <run>/<id> --approve` writes, after a fresh validation, and a later Quality run
+// validating write nothing in the project (validate runs the test in a container of the tools image against an
+// isolated copy of the working tree, never as a host process); only `incorporate <run>/<id> --approve` writes, after a fresh validation, and a later Quality run
 // executes the regression with no model call. Without --approve nothing is executed or written.
 import fs from "node:fs";
 import path from "node:path";
@@ -27,11 +27,15 @@ function isDirectory(p: string): boolean {
 }
 
 /** The validation without the full output (shown separately in text mode). */
-const validationView = (v: ValidationRecord) => ({ executedAt: v.executedAt, sandbox: v.sandbox, fixtureFiles: v.fixtureFiles, usable: v.usable, detectsDefect: v.detectsDefect, run: v.run });
+const validationView = (v: ValidationRecord) => ({ executedAt: v.executedAt, runtime: v.runtime, fixtureFiles: v.fixtureFiles, usable: v.usable, detectsDefect: v.detectsDefect, run: v.run });
 
 function validationText(ctx: CommandContext, v: ValidationRecord): void {
   const r = v.run;
-  ctx.stdout(`${t(r.executed ? "regressions_text_validation" : "regressions_text_not_executed", { outcome: r.outcome, pass: r.tests?.pass ?? 0, total: r.tests?.total ?? 0, reason: r.reason ?? "-" })}\n`);
+  const c = r.container;
+  const where = c?.mode === "container" ? t("regressions_text_where_container", { image: c.image.replace(/^sha256:/, "").slice(0, 12), user: c.user }) : c?.mode === "in-image" ? t("regressions_text_where_in_image") : "";
+  ctx.stdout(`${t(r.executed ? "regressions_text_validation" : "regressions_text_not_executed", { outcome: r.outcome, pass: r.tests?.pass ?? 0, total: r.tests?.total ?? 0, reason: r.reason ?? "-", where })}\n`);
+  if (v.runtime.code) ctx.stdout(`${t("regressions_text_runtime_missing", { code: v.runtime.code })}\n`);
+  if (r.dependenciesMissing) ctx.stdout(`${t("regressions_text_dependencies_not_prepared")}\n`);
   if (r.executed) ctx.stdout(`${t(v.detectsDefect ? "regressions_text_detects" : "regressions_text_passes_now")}\n`);
   if (r.output) ctx.stdout(`${r.output.split("\n").slice(0, 40).map((l) => `  | ${l}`).join("\n")}\n`);
 }
@@ -90,7 +94,7 @@ export const command: CommandModule = {
 
     if (sub === "incorporate") {
       // The approval comes first: without it nothing is looked up, executed or written.
-      const result = incorporateProposal({ workspacePath, home, workspaceId: wsId, ref, approve: ctx.options.approve === true });
+      const result = await incorporateProposal({ workspacePath, home, workspaceId: wsId, ref, approve: ctx.options.approve === true });
       if (!result.ok) {
         const params = { ref, detail: result.detail };
         if (!ctx.json && result.validation) validationText(ctx, result.validation);
@@ -119,8 +123,8 @@ export const command: CommandModule = {
       return 0;
     }
 
-    // validate: the sandbox against an isolated copy of the working tree; nothing is written in the project.
-    const validation = validateProposal(workspacePath, listed, { workDir: path.join(home, "workspaces", wsId, "regressions", "work") });
+    // validate: a container of the tools image against an isolated copy of the working tree; nothing is written in the project.
+    const validation = await validateProposal(workspacePath, listed, { workDir: path.join(home, "workspaces", wsId, "regressions", "work"), home });
     if (ctx.json) writeJson(ctx, { ...base, ref, validation: validationView(validation) });
     else validationText(ctx, validation);
     return validation.usable ? 0 : 1;

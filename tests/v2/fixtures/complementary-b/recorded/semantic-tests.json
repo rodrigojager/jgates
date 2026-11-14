@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "source": "Written by hand (task T10) in the shape of node --test-reporter=tap runs inside the tools image; the real-engine recording test replaces them with what the image printed.",
+  "matching": "The first run whose file is the container's test file, whose dependencies flag (when set) says whether a dependency volume is mounted, and whose when-conditions (a tree file that contains / lacks a text) all hold.",
+  "runs": [
+    {
+      "id": "reproducer-syntax-error",
+      "file": ".jgates/regressions/paginate-pages.test.mjs",
+      "when": [
+        {
+          "path": ".jgates/regressions/paginate-pages.test.mjs",
+          "contains": "this is not javascript"
+        }
+      ],
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "file:///workspace/.jgates/regressions/paginate-pages.test.mjs:2\nthis is not javascript\n     ^^\n\nSyntaxError: Unexpected identifier 'is'\n    at compileSourceTextModule (node:internal/modules/esm/utils:340:16)\n    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:146:18)\n\nNode.js v22.11.0\n"
+    },
+    {
+      "id": "needs-package-without-dependencies",
+      "file": ".jgates/regressions/paginate-pages.test.mjs",
+      "dependencies": false,
+      "when": [
+        {
+          "path": ".jgates/regressions/paginate-pages.test.mjs",
+          "contains": "from \"left-pad\""
+        }
+      ],
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "node:internal/modules/esm/resolve:854\n  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n        ^\n\nError [ERR_MODULE_NOT_FOUND]: Cannot find package 'left-pad' imported from /workspace/.jgates/regressions/paginate-pages.test.mjs\n    at packageResolve (node:internal/modules/esm/resolve:854:9)\n    at moduleResolve (node:internal/modules/esm/resolve:927:18) {\n  code: 'ERR_MODULE_NOT_FOUND'\n}\n\nNode.js v22.11.0\n"
+    },
+    {
+      "id": "needs-package-with-dependencies",
+      "file": ".jgates/regressions/paginate-pages.test.mjs",
+      "dependencies": true,
+      "when": [
+        {
+          "path": ".jgates/regressions/paginate-pages.test.mjs",
+          "contains": "from \"left-pad\""
+        }
+      ],
+      "exitCode": 0,
+      "stdout": "TAP version 13\n# Subtest: left-pad pads to the requested width\nok 1 - left-pad pads to the requested width\n  ---\n  duration_ms: 0.9\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 38.4\n",
+      "stderr": ""
+    },
+    {
+      "id": "paginate-bound-too-large",
+      "file": ".jgates/regressions/paginate-pages.test.mjs",
+      "when": [
+        {
+          "path": "src/paginate.js",
+          "contains": "start + size + "
+        }
+      ],
+      "exitCode": 1,
+      "stdout": "TAP version 13\n# Subtest: every page holds at most size items and the pages cover the list exactly once\nnot ok 1 - every page holds at most size items and the pages cover the list exactly once\n  ---\n  duration_ms: 1.7\n  type: 'test'\n  location: '/workspace/.jgates/regressions/paginate-pages.test.mjs:14:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    page 1 of size 1 has 2 items\n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: true\n  actual: false\n  operator: '=='\n  stack: |-\n    TestContext.<anonymous> (file:///workspace/.jgates/regressions/paginate-pages.test.mjs:14:5)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 41.2\n",
+      "stderr": ""
+    },
+    {
+      "id": "paginate-bound-correct",
+      "file": ".jgates/regressions/paginate-pages.test.mjs",
+      "when": [
+        {
+          "path": "src/paginate.js",
+          "contains": "start + size;"
+        }
+      ],
+      "exitCode": 0,
+      "stdout": "TAP version 13\n# Subtest: every page holds at most size items and the pages cover the list exactly once\nok 1 - every page holds at most size items and the pages cover the list exactly once\n  ---\n  duration_ms: 0.9\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 38.4\n",
+      "stderr": ""
+    },
+    {
+      "id": "format-label-item",
+      "file": "test/format.test.mjs",
+      "when": [
+        {
+          "path": "src/format.js",
+          "contains": "`Item ${n}`"
+        }
+      ],
+      "exitCode": 0,
+      "stdout": "TAP version 13\n# Subtest: labels name the item\nok 1 - labels name the item\n  ---\n  duration_ms: 0.6\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 38.4\n",
+      "stderr": ""
+    },
+    {
+      "id": "format-label-hash",
+      "file": "test/format.test.mjs",
+      "when": [
+        {
+          "path": "src/format.js",
+          "contains": "`#${n}`"
+        }
+      ],
+      "exitCode": 1,
+      "stdout": "TAP version 13\n# Subtest: labels name the item\nnot ok 1 - labels name the item\n  ---\n  duration_ms: 1.7\n  type: 'test'\n  location: '/workspace/test/format.test.mjs:9:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\\n\\n'#3' !== 'Item 3'\n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 'Item 3'\n  actual: '#3'\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///workspace/test/format.test.mjs:9:5)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 41.2\n",
+      "stderr": ""
+    }
+  ]
+}

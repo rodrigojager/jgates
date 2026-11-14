@@ -17,7 +17,7 @@ import { publicResolution, userPreferencesBlocked, type ProviderResolution } fro
 import { vaultBlocked } from "../secrets/index.js";
 import { normalizeScopePath, toRepositoryPath, type ScopeRunPreparation, type SemanticRigor } from "../semantic-scope/index.js";
 import type { ResultSemantic } from "../run/types.js";
-import { artifactShape, parseArtifactText, validateArtifact, type ExplorationArtifact, type VerdictArtifact } from "./artifacts.js";
+import { artifactShape, parseArtifactText, settleArtifact, validateArtifact, type ExplorationArtifact, type VerdictArtifact } from "./artifacts.js";
 import { agentCliBackend, providerToolBackend, type AgentCliGate, type CallTurn, type ContextRunResult, type InvestigationBackend, type TranscriptEntry } from "./backends.js";
 import { BudgetMeter, budgetLimits, DEFAULT_TURNS, reserveFor, type UsageSnapshot } from "./budget.js";
 import { HostTools, LIMITING_REFUSALS, type CandidateInput, type ContextState } from "./host-tools.js";
@@ -355,10 +355,20 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
   // The module's applicability check: a method whose required input is missing never starts a context.
   if (module.applicability) {
     let answer: ModuleApplicability;
+    const applicabilityInput = { scope: prep, rigor: options.rigor, runDir: options.runDir, workspacePath: options.workspacePath, env, readableFiles: () => tools.readableFiles(), readable: (p: string) => tools.readable(p), readFile: hostRead };
     try {
-      answer = module.applicability({ scope: prep, rigor: options.rigor, runDir: options.runDir, workspacePath: options.workspacePath, env, readableFiles: () => tools.readableFiles(), readable: (p) => tools.readable(p), readFile: hostRead });
+      answer = module.applicability(applicabilityInput);
     } catch (error) {
       answer = { applicable: false, code: "APPLICABILITY_CHECK_FAILED", missing: "applicability", reason: `the applicability check failed: ${error instanceof Error ? error.message : String(error)}` };
+    }
+    // What the run needs from the machine (an engine, the tools image), asked only when the method's inputs are there.
+    if (answer.applicable && module.prerequisites) {
+      try {
+        const missing = await module.prerequisites({ ...applicabilityInput, inputs: answer.inputs ?? {}, signal: options.signal });
+        if (missing) answer = { applicable: false, ...missing };
+      } catch (error) {
+        answer = { applicable: false, code: "APPLICABILITY_CHECK_FAILED", missing: "prerequisites", reason: `the prerequisites check failed: ${error instanceof Error ? error.message : String(error)}` };
+      }
     }
     if (answer.applicable) {
       applied = answer.inputs ?? {};
@@ -532,7 +542,9 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       if (!("value" in parsed)) {
         ctxRec.artifact = { valid: false, code: parsed.code, problems: [parsed.problem] };
       } else {
-        const check = validateArtifact(spec.artifact, parsed.value, { seen: ctx.seen, candidate, readable: (p) => tools.readable(p), lines: (p) => tools.lines(p), accepted, agentId: ctxRec.agentId, run: runFacts });
+        const checkContext = { seen: ctx.seen, candidate, readable: (p: string) => tools.readable(p), lines: (p: string) => tools.lines(p), accepted, agentId: ctxRec.agentId, run: runFacts };
+        // The module's host work on a valid artifact (executing a reproducer) happens before its claims are applied.
+        const check = await settleArtifact(spec.artifact, validateArtifact(spec.artifact, parsed.value, checkContext), checkContext, options.signal);
         ctxRec.artifact = { valid: check.ok, ...(check.ok ? {} : { code: "invalid-field" }), problems: check.problems.map(brief) };
         if (check.ok && check.value) {
           if (spec.contexts === "once") accepted[spec.id] = check.value;

@@ -29,7 +29,7 @@
   "regressions_refused_config_unreadable": "O jgates.yml não pode ser lido ou sua entrada templates não é uma lista; nada foi escrito.",
   "regressions_refused_config_unreadable_fix": "Corrija o jgates.yml (jgates config validate) e tente de novo.",
   "regressions_refused_validation_not_executed": "A validação nova de {ref} não conseguiu executar o teste ({detail}); nada foi escrito.",
-  "regressions_refused_validation_not_executed_fix": "Use um Node.js com o modelo de permissões (25 ou mais recente) e tente de novo.",
+  "regressions_refused_validation_not_executed_fix": "Os testes rodam em contêineres da imagem de ferramentas do JGates: inicie o motor de contêineres e obtenha a imagem (jgates setup), depois tente de novo.",
   "regressions_refused_validation_unusable": "A validação nova de {ref} não chegou a um veredito ({detail}); nada foi escrito.",
   "regressions_refused_validation_unusable_fix": "Veja a saída acima; um teste que não carrega ou não declara teste nunca é incorporado.",
   "regressions_text_none": "Nenhuma proposta de regressão nas execuções Semantic deste workspace.",
@@ -40,10 +40,14 @@
   "regressions_text_method_executed": "O método a executou ele mesmo (veja a execução da proposta).",
   "regressions_text_method_not_executed": "O método não a executou: valide-a antes de incorporar.",
   "regressions_text_tampered": "mudou desde o registro",
-  "regressions_text_validation": "Validação isolada: {outcome} ({pass}/{total} passaram).",
+  "regressions_text_validation": "Validação{where}: {outcome} ({pass}/{total} passaram).",
   "regressions_text_not_executed": "Não executado: {reason}",
   "regressions_text_detects": "Falha no código atual: mostra o defeito agora.",
   "regressions_text_passes_now": "Passa no código atual: protege contra a volta do defeito.",
   "regressions_text_incorporated": "{ref} incorporada como a verificação Quality {tool}. Escrito:",
-  "regressions_text_next": "Uma execução Quality (jgates run) agora a executa sem chamar nenhum modelo."
+  "regressions_text_next": "Uma execução Quality (jgates run) agora a executa sem chamar nenhum modelo.",
+  "regressions_text_where_container": " em um contêiner da imagem de ferramentas ({image}, sem rede, árvore somente leitura, usuário {user})",
+  "regressions_text_where_in_image": " dentro da imagem de ferramentas",
+  "regressions_text_runtime_missing": "O teste não foi executado: {code}. Testes nunca rodam como processos do host.",
+  "regressions_text_dependencies_not_prepared": "As dependências do workspace não estão preparadas, então um teste que precisa de um pacote não consegue carregá-lo: rode jgates deps prepare (ou use a ação de preparar dependências) e valide de novo."
 }

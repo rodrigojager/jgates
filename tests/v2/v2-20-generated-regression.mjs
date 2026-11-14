@@ -1,13 +1,14 @@
 // V2-20: a generated regression is incorporated. Property reasoning (run from the CLI with the scripted mock provider)
 // proposes a property test for a violated pagination bound; the proposal stays out of the project, its Quality plan and
 // JGates' shipped packs until the explicit `jgates regressions incorporate <run>/<id> --approve` (which first validates
-// it in the sandbox). Later Quality runs execute it as a deterministic check with no provider call: it fails on the bad
-// fixture and passes once the code is corrected.
+// it in a container of the tools image: here the fake engine replays the recorded container run). Later Quality runs
+// execute it as a deterministic check with no provider call: it fails on the bad fixture and passes once the code is
+// corrected.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { PAGINATE_BAD, PAGINATE_GOOD, PROPERTY_TEST, PROPERTY_TEST_NAME, ROOT, cliFor, propertyScript, readJson, semanticRuns, setupWorkspace, treeHash } from "./fixtures/complementary-b/helpers.mjs";
+import { PAGINATE_BAD, PAGINATE_GOOD, PROPERTY_TEST, PROPERTY_TEST_NAME, ROOT, TOOLS_IMAGE_ID, cliFor, containerEnv, propertyScript, readJson, replayedTests, semanticRuns, setupWorkspace, testContainers, treeHash } from "./fixtures/complementary-b/helpers.mjs";
 
 const SHIPPED = [path.join(ROOT, "jgates", "packs"), path.join(ROOT, "jgates", "src", "builtin", "templates")];
 
@@ -47,17 +48,26 @@ test("V2-20: a property test proposed by a Semantic method becomes a Quality reg
     assert.equal(refused.doc.error.code, "APPROVAL_REQUIRED");
     assert.equal(treeHash(ws.dir), projectBefore);
 
-    // 4. With it: a fresh sandboxed validation (it fails on the bad source: it shows the defect), then the files.
-    const incorporated = cli(["regressions", "incorporate", proposal.ref, "--approve", "--cwd", ws.dir, "--json"]);
+    // 4. With it: a fresh validation in a container of the tools image (it fails on the bad source: it shows the
+    // defect), then the files. The test never runs on the host: the engine replays the recorded container run.
+    const incorporated = cli(["regressions", "incorporate", proposal.ref, "--approve", "--cwd", ws.dir, "--json"], { env: containerEnv(ws) });
     assert.equal(incorporated.code, 0, incorporated.out + incorporated.err);
     const reg = incorporated.doc.incorporated;
     assert.equal(incorporated.doc.validation.run.outcome, "failed");
     assert.equal(incorporated.doc.validation.detectsDefect, true);
+    assert.equal(incorporated.doc.validation.runtime.mode, "container");
+    assert.equal(incorporated.doc.validation.run.container.image, TOOLS_IMAGE_ID);
+    assert.deepEqual(replayedTests(ws).map((r) => r.recording), ["paginate-bound-too-large"]);
+    const [container] = testContainers(ws);
+    assert.equal(container.network, "none");
+    assert.deepEqual(container.command, ["node", "--test-reporter=tap", `.jgates/regressions/${PROPERTY_TEST_NAME}`]);
+    assert.ok(container.mounts.every((m) => !String(m.src).startsWith(ws.dir)), "the project folder is never mounted");
     assert.deepEqual(incorporated.doc.files.sort(), [".jgates/regressions/evidence.schema.json", ".jgates/regressions/manifest.json", `.jgates/regressions/${PROPERTY_TEST_NAME}`, ".jgates/regressions/run.mjs", ".jgates/templates/jgates-regressions.yml", "jgates.yml"].sort());
     assert.equal(fs.readFileSync(path.join(ws.dir, ".jgates", "regressions", PROPERTY_TEST_NAME), "utf8"), PROPERTY_TEST);
     const manifest = readJson(path.join(ws.dir, ".jgates", "regressions", "manifest.json"));
     assert.deepEqual(manifest.regressions[0].origin, { runId: sem.doc.runId, method: "property-reasoning", stage: "invariants", candidate: "C1", candidateStatus: "confirmed", invariant: "I1", proposal: "P1" });
     assert.equal(manifest.regressions[0].approval.explicit, true);
+    assert.equal(manifest.regressions[0].validation.container.network, "none");
     const planAfter = cli(["plan", "--cwd", ws.dir, "--json"]);
     const item = items(planAfter.doc).find((i) => i.tool === reg.tool);
     assert.ok(item, JSON.stringify(items(planAfter.doc).map((i) => i.id)));

@@ -1,7 +1,8 @@
 // Incorporation of a regression proposal into the project, the only way a model-proposed test becomes a Quality check.
 // It needs the explicit approval (`jgates regressions incorporate <run>/<id> --approve`) and a fresh validation: the test
-// runs in the sandbox against an isolated copy of the current working tree and must reach a verdict (pass or fail; a
-// test that cannot load is refused). Then, and only then, it writes into the project:
+// runs in a container of the tools image (runner.ts) against an isolated copy of the current working tree, built in the
+// data folder, and must reach a verdict (pass or fail; a test that cannot load is refused). Then, and only then, it
+// writes into the project:
 //
 //   .jgates/regressions/<file>                 the test, byte for byte as validated (its sha256 is recorded)
 //   .jgates/regressions/manifest.json          every incorporated regression with its provenance and validation
@@ -15,10 +16,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseDocument, stringify } from "yaml";
-import { contentHash } from "../ids/index.js";
+import { resolveHome } from "../home/index.js";
+import { contentHash, workspaceId } from "../ids/index.js";
 import { removeFixture, workspaceFiles, writeFixture } from "./fixture.js";
 import { REGRESSIONS_DIR, findProposal, sha256, type ListedProposal, type RegressionProposal } from "./proposals.js";
-import { runSandboxedTest, sandboxSupport, type SandboxRun, type SandboxSupport } from "./sandbox.js";
+import { dependencyMountPoints, notRunTest, recipeFor, runTestFile, testEnvironment, type TestRun } from "./runner.js";
 
 export const MANIFEST_FILE = `${REGRESSIONS_DIR}/manifest.json`;
 export const RUNNER_FILE = `${REGRESSIONS_DIR}/run.mjs`;
@@ -28,13 +30,26 @@ export const TEMPLATE_FILE = `.jgates/templates/${TEMPLATE_ID}.yml`;
 export const ROOT_CONFIG = "jgates.yml";
 export const REGRESSION_CAPABILITY = "unit";
 
+/** Where the validation ran: a container of the tools image, natively inside the image, or nowhere (with the reason code). */
+export interface ValidationRuntime {
+  ok: boolean;
+  mode: "container" | "in-image" | null;
+  /** The tools image id (container mode). */
+  image: string | null;
+  /** The reason code when it could not run (ENGINE_NOT_INSTALLED, ENGINE_STOPPED, IMAGE_MISSING...). */
+  code: string | null;
+  reason: string | null;
+  /** Whether the workspace's dependency volume was mounted (false: not prepared). */
+  dependencies: boolean;
+}
+
 export interface ValidationRecord {
   executedAt: string;
-  sandbox: SandboxSupport;
+  runtime: ValidationRuntime;
   /** Files of the working tree copied into the isolated fixture. */
   fixtureFiles: number;
-  run: SandboxRun;
-  /** The test reached a verdict (passed or failed) in the sandbox. */
+  run: TestRun;
+  /** The test reached a verdict (passed or failed) in its container. */
   usable: boolean;
   /** It failed on the current source (it shows the defect now), or the method observed it fail before a patch. */
   detectsDefect: boolean;
@@ -51,7 +66,7 @@ export interface IncorporatedRegression {
   origin: RegressionProposal["origin"] & { proposal: string };
   /** What the proposing method observed itself (null: it never executed the test). */
   proposalExecution: Record<string, unknown> | null;
-  validation: Omit<ValidationRecord, "run"> & { outcome: SandboxRun["outcome"]; tests: SandboxRun["tests"]; exitCode: number | null };
+  validation: Omit<ValidationRecord, "run"> & { outcome: TestRun["outcome"]; tests: TestRun["tests"]; exitCode: number | null; container: TestRun["container"] };
   incorporatedAt: string;
   approval: { explicit: true; command: string };
 }
@@ -77,31 +92,33 @@ export function readManifest(workspacePath: string): RegressionManifest {
 /** The Quality check name of a proposal (stable: the same proposal always maps to the same check). */
 export const regressionTool = (ref: string): string => `regression-${contentHash({ ref }).replace(/^sha256:/, "").slice(0, 10)}`;
 
-/** Runs a proposal's test in the sandbox against an isolated copy of the current working tree (writes nothing in it). */
-export function validateProposal(workspacePath: string, listed: ListedProposal, options: { workDir: string; env?: NodeJS.ProcessEnv; now?: () => Date }): ValidationRecord {
+/**
+ * Runs a proposal's test in a container of the tools image against an isolated copy of the current working tree, built
+ * under `workDir` in the data folder (the project is never mounted and nothing is written in it).
+ */
+export async function validateProposal(workspacePath: string, listed: ListedProposal, options: { workDir: string; env?: NodeJS.ProcessEnv; home?: string; now?: () => Date; signal?: AbortSignal }): Promise<ValidationRecord> {
   const env = options.env ?? process.env;
   const executedAt = (options.now ?? (() => new Date()))().toISOString();
-  const support = sandboxSupport(env);
-  const notRun = (reason: string, files = 0): ValidationRecord => ({
-    executedAt,
-    sandbox: support,
-    fixtureFiles: files,
-    run: { executed: false, outcome: "not-run", exitCode: null, timedOut: false, durationMs: 0, tests: null, file: `${REGRESSIONS_DIR}/${listed.proposal.file}`, output: "", reason, permissions: { read: [], write: false, network: false, childProcess: false } },
-    usable: false,
-    detectsDefect: false,
-  });
-  if (!support.ok) return notRun(support.reason ?? "no sandbox");
-  const tree = workspaceFiles(workspacePath, env);
-  if ("problem" in tree) return notRun(tree.problem);
   const rel = `${REGRESSIONS_DIR}/${listed.proposal.file}`;
+  const notRun = (runtime: ValidationRuntime, reason: string, files = 0): ValidationRecord => ({ executedAt, runtime, fixtureFiles: files, run: notRunTest(rel, reason), usable: false, detectsDefect: false });
+  const recipe = recipeFor(rel, listed.proposal.runner);
+  const nowhere = (code: string | null, reason: string): ValidationRuntime => ({ ok: false, mode: null, image: null, code, reason, dependencies: false });
+  if (!recipe) return notRun(nowhere(null, `no test runner runs ${rel}`), `no test runner runs ${rel} (runner ${String(listed.proposal.runner)})`);
+  const prepared = await testEnvironment({ env, home: options.home ?? resolveHome({ env }), workspace: workspaceId(workspacePath), run: listed.runId });
+  if (!prepared.ok) return notRun(nowhere(prepared.code, prepared.reason), prepared.reason);
+  const { environment } = prepared;
+  const mountPoints = dependencyMountPoints(environment, recipe);
+  const runtime: ValidationRuntime = { ok: true, mode: environment.runtime.mode, image: environment.runtime.mode === "container" ? environment.runtime.image : null, code: null, reason: null, dependencies: mountPoints.length > 0 };
+  const tree = workspaceFiles(workspacePath, env);
+  if ("problem" in tree) return notRun(runtime, tree.problem);
   const files = [...tree.files.filter((f) => f.path !== rel), { path: rel, content: listed.proposal.content }];
   const dir = path.join(options.workDir, `validate-${process.pid}-${Date.now().toString(36)}`);
   try {
-    const fixture = writeFixture(dir, files, { nodeModules: path.join(workspacePath, "node_modules") });
-    const run = runSandboxedTest(fixture.dir, rel, { env, ...(fixture.dependencies ? { read: [fixture.dependencies] } : {}) });
+    const fixture = writeFixture(dir, files, { mountPoints });
+    const run = await runTestFile(environment, fixture, rel, { recipe, ...(options.signal ? { signal: options.signal } : {}) });
     const before = (listed.proposal.execution as { before?: { outcome?: unknown } } | null)?.before?.outcome;
     const usable = run.executed && (run.outcome === "passed" || run.outcome === "failed");
-    return { executedAt, sandbox: support, fixtureFiles: fixture.files, run, usable, detectsDefect: usable && (run.outcome === "failed" || before === "failed") };
+    return { executedAt, runtime, fixtureFiles: fixture.files, run, usable, detectsDefect: usable && (run.outcome === "failed" || before === "failed") };
   } finally {
     removeFixture(dir);
   }
@@ -240,8 +257,8 @@ export interface IncorporateOptions {
   now?: () => Date;
 }
 
-/** Incorporates one proposal after the explicit approval and a fresh, usable validation. */
-export function incorporateProposal(options: IncorporateOptions): IncorporateResult {
+/** Incorporates one proposal after the explicit approval and a fresh, usable validation (in a container). */
+export async function incorporateProposal(options: IncorporateOptions): Promise<IncorporateResult> {
   const { workspacePath } = options;
   const now = options.now ?? (() => new Date());
   if (!options.approve) return { ok: false, code: "APPROVAL_REQUIRED", detail: options.ref };
@@ -255,7 +272,7 @@ export function incorporateProposal(options: IncorporateOptions): IncorporateRes
   if (fs.existsSync(abs(workspacePath, testRel))) return { ok: false, code: "FILE_EXISTS", detail: testRel };
   if (!fs.existsSync(abs(workspacePath, ROOT_CONFIG))) return { ok: false, code: "NO_PROJECT_CONFIG", detail: ROOT_CONFIG };
   const workDir = path.join(options.home, "workspaces", options.workspaceId, "regressions", "work");
-  const validation = validateProposal(workspacePath, listed, { workDir, ...(options.env ? { env: options.env } : {}), now });
+  const validation = await validateProposal(workspacePath, listed, { workDir, home: options.home, ...(options.env ? { env: options.env } : {}), now });
   if (!validation.run.executed) return { ok: false, code: "VALIDATION_NOT_EXECUTED", detail: validation.run.reason ?? "-", validation };
   if (!validation.usable) return { ok: false, code: "VALIDATION_UNUSABLE", detail: validation.run.reason ?? validation.run.outcome, validation };
 
@@ -269,7 +286,7 @@ export function incorporateProposal(options: IncorporateOptions): IncorporateRes
     rationale: listed.proposal.rationale,
     origin: { ...listed.proposal.origin, proposal: listed.proposal.id },
     proposalExecution: listed.proposal.execution,
-    validation: { ...rest, outcome: run.outcome, tests: run.tests, exitCode: run.exitCode },
+    validation: { ...rest, outcome: run.outcome, tests: run.tests, exitCode: run.exitCode, container: run.container },
     incorporatedAt: now().toISOString(),
     approval: { explicit: true, command: `jgates regressions incorporate ${listed.ref} --approve` },
   };

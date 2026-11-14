@@ -2,7 +2,7 @@
 // as reviewable material of its run, in evidence/regressions/proposals.json. A proposal is never part of the project:
 // nothing here writes outside the run folder, no Quality plan reads it, and it becomes a Quality regression only through
 // the explicit incorporation command (incorporate.ts) after a fresh validation. Its content is model output: untrusted
-// until a person approves it, and executed only in the sandbox (sandbox.ts).
+// until a person approves it, and executed only in a container of the tools image (runner.ts), never on the host.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
