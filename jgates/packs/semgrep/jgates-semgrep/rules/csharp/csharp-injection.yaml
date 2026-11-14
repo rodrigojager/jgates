@@ -1,0 +1,50 @@
+# Covers ADO.NET (SqlCommand, CommandText), Dapper extension methods and the Entity Framework Core raw SQL methods.
+rules:
+  - id: jgates.csharp.sql-string-building
+    message: A SQL statement is built from a string concatenation or interpolation. Pass values as parameters instead.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - pattern: new SqlCommand("..." + $X, ...)
+      - pattern: new SqlCommand($"...{$X}...", ...)
+      - pattern: $C.CommandText = "..." + $X;
+      - pattern: $C.CommandText = $"...{$X}...";
+      - pattern: $C.Query("..." + $X, ...)
+      - pattern: $C.Query($"...{$X}...", ...)
+      - pattern: $C.Query<$T>("..." + $X, ...)
+      - pattern: $C.Query<$T>($"...{$X}...", ...)
+      - pattern: $C.QueryAsync<$T>("..." + $X, ...)
+      - pattern: $C.QueryAsync<$T>($"...{$X}...", ...)
+      - pattern: $C.Execute("..." + $X, ...)
+      - pattern: $C.Execute($"...{$X}...", ...)
+      - pattern: $C.ExecuteAsync("..." + $X, ...)
+      - pattern: $C.ExecuteAsync($"...{$X}...", ...)
+      - pattern: $C.FromSqlRaw("..." + $X, ...)
+      - pattern: $C.FromSqlRaw($"...{$X}...", ...)
+      - pattern: $C.ExecuteSqlRaw("..." + $X, ...)
+      - pattern: $C.ExecuteSqlRaw($"...{$X}...", ...)
+
+  - id: jgates.csharp.os-command-injection
+    message: A process is started from a value that is not a literal. Start a fixed program and pass arguments as separate items.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+    patterns:
+      - pattern-either:
+          - pattern: Process.Start($F, ...)
+          - pattern: new ProcessStartInfo($F, ...)
+          - pattern: $P.FileName = $F;
+          - pattern: $P.Arguments = "..." + $A;
+          - pattern: $P.Arguments = $"...{$A}...";
+      - pattern-not: Process.Start("...", ...)
+      - pattern-not: new ProcessStartInfo("...", ...)
+      - pattern-not: $P.FileName = "...";

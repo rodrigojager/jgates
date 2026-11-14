@@ -1,0 +1,126 @@
+# Sources named by these rules: string parameters of ASP.NET Core controller actions and of minimal API handlers
+# (MapGet, MapPost), and members of HttpRequest (Query, Form, Headers, Cookies, RouteValues, QueryString).
+# The analysis stays inside one method.
+rules:
+  - id: jgates.csharp.ssrf
+    message: A request URL comes from the incoming request. Validate the host against an allow-list before fetching.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+    pattern-sanitizers:
+      - pattern: ValidateUrl(...)
+    pattern-sinks:
+      - pattern: $C.GetAsync($U, ...)
+        focus-metavariable: $U
+      - pattern: $C.GetStringAsync($U, ...)
+        focus-metavariable: $U
+      - pattern: $C.GetStreamAsync($U, ...)
+        focus-metavariable: $U
+      - pattern: $C.GetByteArrayAsync($U, ...)
+        focus-metavariable: $U
+      - pattern: $C.PostAsync($U, ...)
+        focus-metavariable: $U
+      - pattern: $C.PutAsync($U, ...)
+        focus-metavariable: $U
+      - pattern: $C.DeleteAsync($U, ...)
+        focus-metavariable: $U
+      - pattern: WebRequest.Create($U)
+        focus-metavariable: $U
+      - pattern: WebRequest.CreateHttp($U)
+        focus-metavariable: $U
+      - pattern: $W.DownloadString($U, ...)
+        focus-metavariable: $U
+      - pattern: $W.DownloadData($U, ...)
+        focus-metavariable: $U
+
+  - id: jgates.csharp.path-traversal
+    message: A file path comes from the incoming request. Reduce it with Path.GetFileName and check it stays under the intended folder.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+    pattern-sanitizers:
+      - pattern: Path.GetFileName(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: File.$M($PATH, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(ReadAllText|ReadAllBytes|ReadAllLines|ReadLines|WriteAllText|WriteAllBytes|WriteAllLines|AppendAllText|Delete|Open|OpenRead|OpenWrite|OpenText|Create|Copy|Move)$
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: System.IO.File.$M($PATH, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(ReadAllText|ReadAllBytes|ReadAllLines|ReadLines|WriteAllText|WriteAllBytes|WriteAllLines|AppendAllText|Delete|Open|OpenRead|OpenWrite|OpenText|Create|Copy|Move)$
+          - focus-metavariable: $PATH
+      - pattern: new FileStream($PATH, ...)
+        focus-metavariable: $PATH
+      - pattern: new StreamReader($PATH, ...)
+        focus-metavariable: $PATH
+      - pattern: new StreamWriter($PATH, ...)
+        focus-metavariable: $PATH
+      - pattern: Directory.Delete($PATH, ...)
+        focus-metavariable: $PATH
+      - pattern: Path.Combine($BASE, $PATH, ...)
+        focus-metavariable: $PATH
+      - pattern: PhysicalFile($PATH, ...)
+        focus-metavariable: $PATH

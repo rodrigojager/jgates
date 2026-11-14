@@ -1,0 +1,31 @@
+rules:
+  - id: jgates.csharp.unsafe-deserialization
+    message: This deserializer can build arbitrary types from its input. Use a data-only format with a fixed type.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: deserialization
+      cwe: "CWE-502"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - pattern: new BinaryFormatter(...)
+      - pattern: new NetDataContractSerializer(...)
+      - pattern: new SoapFormatter(...)
+      - pattern: new LosFormatter(...)
+      - pattern: new ObjectStateFormatter(...)
+      - pattern-regex: TypeNameHandling\s*=\s*TypeNameHandling\.(?!None\b)\w+
+
+  - id: jgates.csharp.xml-external-entity
+    message: XML parsing is set to process DTDs or to resolve external resources. Prohibit DTDs and leave the resolver unset.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: xxe
+      cwe: "CWE-611"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - pattern-regex: DtdProcessing\s*=\s*DtdProcessing\.Parse\b
+      - pattern-regex: XmlResolver\s*=\s*new\s+XmlUrlResolver\s*\(
+      - pattern-regex: ProhibitDtd\s*=\s*false\b

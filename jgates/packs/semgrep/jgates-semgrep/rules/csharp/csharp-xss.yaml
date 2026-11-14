@@ -1,0 +1,71 @@
+# Sources named by the taint rule: string parameters of ASP.NET Core controller actions and of minimal API handlers
+# (MapGet, MapPost), and members of HttpRequest (Query, Form, Headers, Cookies, RouteValues). Razor files are not covered.
+rules:
+  - id: jgates.csharp.reflected-xss
+    message: Data from the incoming request is written to the HTTP response as markup. Encode it with HtmlEncoder first.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+    pattern-sanitizers:
+      - pattern: HtmlEncoder.Default.Encode(...)
+      - pattern: HttpUtility.HtmlEncode(...)
+      - pattern: WebUtility.HtmlEncode(...)
+    pattern-sinks:
+      - pattern: Response.Write($X)
+        focus-metavariable: $X
+      - pattern: $R.Response.Write($X)
+        focus-metavariable: $X
+      - pattern: Response.WriteAsync($X, ...)
+        focus-metavariable: $X
+      - pattern: $R.Response.WriteAsync($X, ...)
+        focus-metavariable: $X
+      - pattern: Html.Raw($X)
+        focus-metavariable: $X
+      - pattern: new HtmlString($X)
+        focus-metavariable: $X
+      - pattern: Content($X, "text/html", ...)
+        focus-metavariable: $X
+
+  - id: jgates.csharp.raw-html-non-literal
+    message: Markup is assembled from a concatenation or interpolation and then marked as safe. Encode each value before it is joined.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+    pattern-either:
+      - pattern: Html.Raw("..." + $X)
+      - pattern: Html.Raw($"...{$X}...")
+      - pattern: new HtmlString("..." + $X)
+      - pattern: new HtmlString($"...{$X}...")
