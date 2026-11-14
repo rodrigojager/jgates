@@ -12,7 +12,7 @@ import { EVENTS_FILE, EventLog, type RunEvent } from "../events/index.js";
 import { createRunDir, resolveHome, touchWorkspace } from "../home/index.js";
 import { newRunId } from "../ids/index.js";
 import { listRuns } from "../artifacts/index.js";
-import { compareWithBaseline, findingMetrics, finalizeFindings, loadWaiverFile, markBaselineState, WAIVERS_FILE, type Waiver } from "../results/index.js";
+import { compareWithBaseline, createLineReader, findingMetrics, finalizeFindings, loadWaiverFile, markBaselineState, WAIVERS_FILE, waiversHash, type Waiver } from "../results/index.js";
 import { engineRuntime, type EngineMount } from "../engine/index.js";
 import { cancelRunInEngine, createStepLauncher, executeSteps, mergeOutputs, type EngineCancelResult, type RunPhase, type RunStep } from "../runner/index.js";
 import { toolsImageGateEnabled } from "../tools-image/index.js";
@@ -204,7 +204,15 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
   const gitBefore = takeGitStatus(workspace.path, env);
   const attribution = new ChangeAttribution(before, workspace.path);
 
-  const waivers = opts.waivers ?? loadWaiverFile(path.join(workspace.path, WAIVERS_FILE)).waivers;
+  // The waivers in force and their source. A governed run has only the policy's (the project's file is never read); a
+  // local run has the project's file, then every --waiver (the caller's list, in that order). A file that cannot be read
+  // contributes no waiver and is reported in waivers.problem, so the findings stay active and it is never silent.
+  const projectFile = opts.policy ? null : loadWaiverFile(path.join(workspace.path, WAIVERS_FILE));
+  const waivers: Waiver[] = (opts.waivers ?? projectFile?.waivers ?? []).map((w) => ({ ...w, source: w.source ?? (opts.policy ? "policy" : "project") }));
+  const waiverProblem = projectFile?.problem;
+  const waiversProvenance = { sha256: waiversHash(waivers), count: waivers.length };
+  // The flagged lines are read from the analyzed tree (the workspace, or the snapshot of the commit) for the anchors.
+  const lineOf = createLineReader(prep.path);
   const metricsOf = (findings: RunResult["findings"], adapterMetrics: RunResult["metrics"] = []) => [...findingMetrics(findings, selection.scope ?? "workspace"), ...adapterMetrics, ...(opts.metrics ?? [])];
   // The run marked as baseline (never this one), when it finished.
   const loadBaseline = (): RunResult | null => {
@@ -228,7 +236,7 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     gitState: RunResult["workspaceGit"] | null = null,
   ): RunResult => {
     // Fingerprints and waivers first: a waiver lowers the blocking count of a completed stage and nothing else.
-    const finalized = finalizeFindings(output, waivers, now());
+    const finalized = finalizeFindings(output, waivers, now(), { lineOf, ...(waiverProblem ? { problem: waiverProblem } : {}) });
     let findings = finalized.findings;
     const base = partial ? null : loadBaseline();
     if (base) findings = markBaselineState(findings, base);
@@ -266,6 +274,7 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
       version: opts.version,
       // generatedAt of the provenance: when this copy of the result was written.
       now: now(),
+      waivers: waiversProvenance,
     });
     const result: RunResult = {
       schemaVersion: 1,
@@ -284,6 +293,7 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
       requirements: output.requirements,
       stages: finalized.stages,
       findings,
+      waivers: finalized.waivers,
       ...(metricsOf(findings, output.metrics).length > 0 ? { metrics: metricsOf(findings, output.metrics) } : {}),
       ...(output.architecture?.length ? { architecture: output.architecture } : {}),
       unsatisfied: outcome.unsatisfied,
@@ -457,6 +467,8 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
         checkpoint(done);
       },
     });
+    // The lines of every flagged file are read now, before verifyInputs removes the snapshot of a commit.
+    lineOf.prime(executed.reports.flatMap((r) => r.output.findings));
     if (signal?.aborted) {
       onEngineAbort();
       await engineCancel;

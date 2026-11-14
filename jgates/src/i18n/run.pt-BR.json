@@ -21,6 +21,7 @@
   "run_summary_failed_incomplete": "reprovado: {count, plural, one {# violação bloqueante} other {# violações bloqueantes}}; {missing, plural, one {# requisito obrigatório sem evidência} other {# requisitos obrigatórios sem evidência}}",
   "run_summary_other": "{decision}",
   "run_text_decision": "Decisão: {decision} ({summary})",
+  "run_text_waivers_problem": "Aviso: o arquivo de dispensas {file} não pôde ser lido ({detail}). Nenhuma dispensa dele foi aplicada: os achados continuam ativos.",
   "run_text_run": "Run: {runId}",
   "run_text_folder": "Pasta do run: {path}",
   "run_text_workspace_changes": "A validação deixou {count, plural, one {# arquivo} other {# arquivos}} no workspace.",

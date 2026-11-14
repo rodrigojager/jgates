@@ -14,7 +14,7 @@ import { ADAPTER_ID, selectionFromOptions } from "../../adapters/quality-bridge/
 import { BuiltinError } from "../../builtin/index.js";
 import { ROOT_FILE } from "../../core/config/load/index.js";
 import { encodePointer, resolveConfig } from "../../core/config/resolve/index.js";
-import { loadWaiverFile, parseWaiverFlag, WAIVERS_FILE, type Waiver } from "../../core/results/index.js";
+import { combineWaivers, loadWaiverFile, parseWaiverFlag, WAIVERS_FILE, type Waiver } from "../../core/results/index.js";
 import { assessEnvironment, lineTerminal, NO_TERMINAL, isYes, offerInstall, type InstallExecutor, type InstallTerminal } from "../../core/install/index.js";
 import { buildPlan, readPlanFile, validatePlanAgainstWorkspace, type Plan, type PlanScopeKind } from "../../core/plan/index.js";
 import type { BridgeSelection } from "../../adapters/quality-bridge/requirements.js";
@@ -362,7 +362,8 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
     // The semantic gate is an optional integration: only this flag asks for it, never a profile or a template.
     const semantic = semanticHook(ctx.options.semantic === true);
     const waiverFile = loadWaiverFile(path.join(workspacePath, WAIVERS_FILE));
-    const waivers = flagWaivers.length > 0 ? [...waiverFile.waivers, ...flagWaivers] : undefined;
+    // The project's file first, then every --waiver: the first match wins. A file that cannot be read is reported by the run.
+    const waivers = flagWaivers.length > 0 ? combineWaivers(waiverFile.waivers, flagWaivers) : undefined;
 
     const planFile = str(ctx, "plan");
     const planFlags = PLAN_OPTIONS.filter((name) => ctx.options[name] !== undefined);
@@ -566,6 +567,9 @@ async function runOnce(ctx: CommandContext, holder: { result: RunResult | null }
     if (ctx.json) writeJson(ctx, result);
     else {
       ctx.stdout(`${t("run_text_decision", { decision: paint(style, DECISION_COLOR[result.decision] ?? "yellow", result.decision), summary: result.summary ?? "" })}\n`);
+      // A waiver file that cannot be read applied nothing: said here, never silent.
+      const waiverProblem = result.waivers?.problem;
+      if (waiverProblem) ctx.stdout(`${paint(style, "yellow", t("run_text_waivers_problem", { file: waiverProblem.file, detail: waiverProblem.message }))}\n`);
       const analyzed = result.analyzed;
       if (analyzed) {
         const ta = translator("analysis");

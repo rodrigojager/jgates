@@ -4,6 +4,7 @@ import type { RunStep } from "../runner/executor.js";
 import type { Provenance, SemanticPromptsProvenance } from "../provenance/index.js";
 import type { AnalyzedState } from "./analysis.js";
 import type { GateKind } from "../gates/types.js";
+import type { ResultWaivers } from "../results/waivers.js";
 
 /** A step that can be served from the cache of results: it says what its result depends on. */
 export type CacheableStep = RunStep & { cacheSubject?: CacheSubject };
@@ -106,6 +107,16 @@ export interface ResultFinding {
   remediation?: string;
   docsUrl?: string;
   waiverId?: string;
+  /** Where the waiver that waived the finding came from: the project's file, --waiver or the CI policy. */
+  waiverSource?: "project" | "flag" | "policy";
+  /** End date of that waiver, when it has one (YYYY-MM-DD). */
+  waiverExpires?: string;
+  /**
+   * jga1 anchor (waivers only): tool, rule, path, the flagged line's text with white space collapsed and the position
+   * among the findings on equal lines, hashed. Absent without a line, for a file that cannot be read, and for the secrets
+   * and personal-data categories. Never in the SARIF export.
+   */
+  anchor?: string;
   /** Against the baseline run: new or kept. */
   baselineState?: "new" | "unchanged";
 }
@@ -364,6 +375,8 @@ export interface RunResult {
   /** Coverage of the architecture graph (complete, partial or empty) with the dependencies left unresolved. */
   architecture?: ArchitectureCoverageRecord[];
   baseline?: BaselineComparison;
+  /** What the waivers did in this run: applied, unmatched, stale, expired, refused, and a waiver file that could not be read. */
+  waivers?: ResultWaivers;
   /** Optional semantic review, apart from the decision; present only when the run asked for it. */
   semantic?: ResultSemantic;
   /** Independent Semantic runs only (gate semantic): the review behind the decision, its source and attached evidence. */

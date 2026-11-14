@@ -8,7 +8,7 @@ import path from "node:path";
 import { buildAgentContext, scrub } from "../../core/agent-context/index.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { listRuns } from "../../core/artifacts/index.js";
-import { toSarif } from "../../core/results/index.js";
+import { compareWithPrevious, toSarif } from "../../core/results/index.js";
 import { RESULT_FILE } from "../../core/run/index.js";
 import type { RunResult } from "../../core/run/types.js";
 import { openInBrowser } from "../browser.js";
@@ -57,11 +57,9 @@ function previousOf(server: ServerContext, result: RunResult): Record<string, un
     other = null;
   }
   if (!other) return null;
-  const now = result.analyzed?.hashes ?? null;
-  const then = other.analyzed?.hashes ?? null;
-  const comparable = now !== null && then !== null;
-  const changed = comparable ? (Object.keys(now) as Array<keyof typeof now>).filter((k) => k !== "plan" && now[k] !== then[k]) : [];
-  return { runId: before.runId, startedAt: before.startedAt, decision: before.decision, comparable, changed, policyChanged: changed.includes("policy") };
+  // The hashes of the analysis and the waivers in force (core/results/previous.ts).
+  const { comparable, changed, policyChanged, waiversChanged } = compareWithPrevious(result, other);
+  return { runId: before.runId, startedAt: before.startedAt, decision: before.decision, comparable, changed, policyChanged, waiversChanged };
 }
 
 export const routes: RouteDefinition[] = [

@@ -142,6 +142,17 @@ export interface Provenance {
   container?: ContainerInputs;
   /** The prompts of the semantic review, when the run had one ($.semantic.prompts). */
   semanticPrompts?: SemanticPromptsProvenance;
+  /**
+   * The waivers in force for the run (the project's file and --waiver, or the policy's): the sha256 of the entries and
+   * their sources in order, and how many. Not part of the identity (a waiver never changes what was analyzed); the
+   * comparison with the previous validation reads it to say when the waivers differ.
+   */
+  waivers?: WaiversProvenance;
+}
+
+export interface WaiversProvenance {
+  sha256: string;
+  count: number;
 }
 
 export interface ProvenanceInput {
@@ -153,6 +164,7 @@ export interface ProvenanceInput {
   snapshot: string;
   hashes: AnalysisHashes | null;
   container?: ContainerInputs | null;
+  waivers?: WaiversProvenance | null;
 }
 
 export function buildProvenance(input: ProvenanceInput): Provenance {
@@ -169,5 +181,6 @@ export function buildProvenance(input: ProvenanceInput): Provenance {
     identity: input.identity,
     snapshot: input.snapshot,
     hashes: input.hashes,
+    ...(input.waivers ? { waivers: input.waivers } : {}),
   };
 }

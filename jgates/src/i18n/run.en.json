@@ -21,6 +21,7 @@
   "run_summary_failed_incomplete": "failed: {count, plural, one {# blocking violation} other {# blocking violations}}; {missing, plural, one {# required requirement without evidence} other {# required requirements without evidence}}",
   "run_summary_other": "{decision}",
   "run_text_decision": "Decision: {decision} ({summary})",
+  "run_text_waivers_problem": "Warning: the waiver file {file} could not be read ({detail}). No waiver of it was applied: its findings stay active.",
   "run_text_run": "Run: {runId}",
   "run_text_folder": "Run folder: {path}",
   "run_text_workspace_changes": "The validation left {count, plural, one {# file} other {# files}} in the workspace.",
