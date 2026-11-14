@@ -36,6 +36,7 @@ import {
 } from "../selection/index.js";
 import { externalAdapter, type ExternalAdapter, type ExternalPlan } from "./adapters.js";
 import { entityStates } from "../../adapters/builtin-pii/settings.js";
+import { profileLabelText } from "../profiles/index.js";
 import { invalidToolConfigs } from "./config-validity.js";
 import { governExternalPlan } from "../governed/plan.js";
 import { diffPlans } from "./diff.js";
@@ -1067,7 +1068,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       adapters: { ...(bridgePairs.length > 0 ? { [ADAPTER_ID]: qualityBridgeManifest.adapterVersion } : {}), ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.id, e.adapter.manifest.adapterVersion])) },
       tools: { ...(bridgePairs.length > 0 ? { [qualityBridgeManifest.toolName]: runtime.toolVersion } : {}), ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.toolName, e.plan.toolVersion])) },
     },
-    profile: effective.profile ? { id: effective.profile.id, label: effective.profile.label, chain: effective.profile.chain.map((c) => ({ ...c })) } : null,
+    profile: effective.profile ? { id: effective.profile.id, label: profileLabelText(effective.profile.id, effective.profile.label), chain: effective.profile.chain.map((c) => ({ ...c })) } : null,
     // The references as full commit ids (the request keeps them as typed): a plan of HEAD~1 stays the plan of that commit.
     scope: { requested: request.scope, effective: effectiveScope, paths: request.paths, base: refs.base, head: refs.head, note: scopeNote },
     selection: { request, overrides: overridesOut, reduced },

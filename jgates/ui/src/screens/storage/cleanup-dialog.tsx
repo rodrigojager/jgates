@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatSize } from "../../components/format";
 import { api } from "../../api";
 import { Dialog, ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
@@ -43,16 +44,7 @@ interface Preview {
 }
 
 /** "2,4 GB": decimal units with the comma of the language. */
-export function sizeText(n: number): string {
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let value = n;
-  let i = 0;
-  while (value >= 1000 && i < units.length - 1) {
-    value /= 1000;
-    i++;
-  }
-  return `${value.toLocaleString(formatLocale(), { maximumFractionDigits: i === 0 ? 0 : 1 })} ${units[i]}`;
-}
+export const sizeText = formatSize;
 
 /**
  * Shows the exact list (and the sizes) of what a clean or an uninstall would remove, from a dry run, and removes only

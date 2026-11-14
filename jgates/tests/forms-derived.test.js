@@ -192,7 +192,7 @@ test("the profiles file: unknown keys of a profile are custom, a check selector 
   const entry = form.groups.find((g) => same(g.path, ["profiles", "mine"]));
   assert.deepEqual(entry.label, { text: "Mine", secondary: "mine" });
   const check = form.groups.find((g) => same(g.path, ["profiles", "mine", "checks", "capability:sast"]));
-  assert.deepEqual(check.label, { text: "SAST", secondary: "capability:sast" });
+  assert.deepEqual(check.label, { text: "Static security analysis (SAST)", secondary: "capability:sast" });
   const when = fieldAt(form, ["profiles", "mine", "checks", "capability:sast", "when"]);
   assert.equal(when.state, "set");
   assert.equal(when.widget, "radio");

@@ -1,5 +1,6 @@
 // Overview: one read-only answer with everything the first screen shows (discovery counts, profile, last run, next
 // steps and the categories of the resolved profile), so the screen needs no more than one request.
+import { localizeStage } from "../../core/results/localize.js";
 import { projectMascots } from "../../core/mascots/index.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -62,6 +63,7 @@ function readLastRun(server: ServerContext): Record<string, unknown> | null {
   const finished = Date.parse(result.finishedAt ?? "");
   const stages = (Array.isArray(result.stages) ? result.stages : [])
     .filter((s: any) => s.kind !== "composite")
+    .map((raw: any) => localizeStage(raw))
     .map((s: any) => ({
       id: String(s.id),
       label: typeof s.label === "string" && s.label !== "" ? s.label : String(s.id),

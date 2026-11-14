@@ -69,7 +69,7 @@
   "wizard_profile_standard_text": "Everyday quality, security and tests, without the slowest checks.",
   "wizard_profile_strict": "Strict",
   "wizard_profile_strict_text": "Everything that has a tool for this project; what does not apply shows with its reason, without blocking.",
-  "wizard_profile_runs": "What runs here: {count, plural, =0 {no plan step} one {# plan step} other {# plan steps}}",
+  "wizard_profile_runs": "What runs here: {count, plural, =0 {no check} one {# check} other {# checks}}",
   "wizard_category_quality": "Quality",
   "wizard_category_security": "Security",
   "wizard_category_tests": "Tests",

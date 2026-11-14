@@ -1,5 +1,5 @@
 {
-  "doctor_description": "Diagnostica o motor de containers, a imagem de ferramentas do JGates e as versões das ferramentas dela contra o lockfile, classifica o que falta (essencial, opcional ou não usada) e, num terminal ou com --fix, oferece preparar: instalar ou iniciar o Docker, baixar a imagem de ferramentas, preparar dados. Nunca instala uma ferramenta na sua máquina.",
+  "doctor_description": "Diagnostica o motor de contêineres, a imagem de ferramentas do JGates e as versões das ferramentas dela contra o lockfile, classifica o que falta (essencial, opcional ou não usada) e, num terminal ou com --fix, oferece preparar: instalar ou iniciar o Docker, baixar a imagem de ferramentas, preparar dados. Nunca instala uma ferramenta na sua máquina.",
   "doctor_option_cwd": "Pasta do workspace (padrão: a pasta atual).",
   "doctor_unexpected_argument": "Argumento inesperado: {name}",
   "doctor_unexpected_argument_fix": "Use: jgates doctor [--cwd <pasta>] [--fix [--yes] [--include-optional]] [--ci] [--no-interactive] [--json]",

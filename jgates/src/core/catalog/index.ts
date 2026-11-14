@@ -291,6 +291,13 @@ function localized(kind: "category" | "capability", entry: CatalogEntry): Catalo
   };
 }
 
+/** The name of a built-in adapter in the current language (adapter_<id>_name in the catalog area), or the manifest's. */
+export function localizedAdapterName(id: string, fallback: string): string {
+  const key = `adapter_${id}_name`;
+  const value = translator("catalog")(key);
+  return value === key ? fallback : value;
+}
+
 /** The label of an adapter's subcheck in the current language (built-in subchecks), or the one in its manifest. */
 export function subcheckLabel(adapterId: string, sub: { id: string; label: string }): string {
   const key = `subcheck_${adapterId}_${sub.id}_label`;

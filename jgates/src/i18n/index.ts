@@ -2,7 +2,23 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { localizeTechnical } from "./technical.js";
+
 export type Params = Record<string, string | number>;
+
+/** Parameters that carry the English parse problem of an adapter; in Portuguese the known ones are translated (technical.ts). */
+const TECHNICAL_PARAMS = new Set(["problem", "detail", "reason", "cause"]);
+function localizeParams(params: Params | undefined): Params | undefined {
+  if (!params) return params;
+  let out: Params | undefined;
+  for (const name of TECHNICAL_PARAMS) {
+    const value = params[name];
+    if (typeof value !== "string") continue;
+    const text = localizeTechnical(value);
+    if (text !== value) (out ??= { ...params })[name] = text;
+  }
+  return out ?? params;
+}
 export type Translator = (key: string, params?: Params) => string;
 
 export const DEFAULT_LOCALE = "pt-BR";
@@ -146,7 +162,8 @@ export function format(template: string, params: Params = {}): string {
  */
 export function translator(area: string, locale?: string, dir: string = messagesDir()): Translator {
   return (key, params) => {
-    const template = loadCatalog(area, locale ?? getLocale(), dir)[key];
-    return template === undefined ? key : format(template, params);
+    const language = locale ?? getLocale();
+    const template = loadCatalog(area, language, dir)[key];
+    return template === undefined ? key : format(template, language === "pt-BR" ? localizeParams(params) : params);
   };
 }

@@ -78,7 +78,7 @@ test("Execução has controls for every key, presets plus Outro valor, and one s
     const days = page.getByLabel("Idade máxima dos dados de vulnerabilidades", { exact: true });
     expect(await days.locator("option").allTextContents()).toEqual(["1 dia", "3 dias", "7 dias", "14 dias", "30 dias", "Outro valor…"]);
     await expect(days).toHaveValue("7");
-    const timeout = page.getByLabel("Limite de tempo de cada etapa");
+    const timeout = page.getByLabel("Limite de tempo de cada verificação");
     expect(await timeout.locator("option").allTextContents()).toEqual(["Sem limite", "30 segundos", "60 segundos", "120 segundos", "300 segundos", "600 segundos", "1800 segundos", "3600 segundos", "Outro valor…"]);
     await noSingleOptionSelect(page, "Execução");
 
@@ -97,7 +97,7 @@ test("Execução has controls for every key, presets plus Outro valor, and one s
     await page.getByRole("radio", { name: "Fixar por digest" }).check();
     await page.getByRole("switch", { name: "Aceitar o que o próprio projeto relata" }).click();
     await timeout.selectOption({ label: "Outro valor…" });
-    await page.getByLabel("Outro valor de Limite de tempo de cada etapa").fill("90");
+    await page.getByLabel("Outro valor de Limite de tempo de cada verificação").fill("90");
     await expect(review).toHaveText("Revisar e salvar 6 alterações");
     expect(read(root)).toBe(before);
     // The free-text check: the only typed box is the number of Outro valor.

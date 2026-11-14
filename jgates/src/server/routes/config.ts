@@ -8,10 +8,10 @@
 // from GET /api/config/profile/plan, which the screen asks next and which may wait on the engine.
 import { buildPlan, type Plan, type PlanItem } from "../../core/plan/index.js";
 import { findNativeMinimum } from "../../adapters/pytest/coverage.js";
-import { projectMascots } from "../../core/mascots/index.js";
+import { categoryRank, projectMascots } from "../../core/mascots/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { cachedProject, invalidateProjectCache, fileDiagnostics, onlyFileProblems, projectInventory, projectResolveReadable } from "../../core/cache/project.js";
-import { createCoreCatalog, subcheckLabel } from "../../core/catalog/index.js";
+import { localizedAdapterName, createCoreCatalog, subcheckLabel } from "../../core/catalog/index.js";
 import { encodePointer, type ResolvedField, type ResolveResult } from "../../core/config/resolve/index.js";
 import { withEngineFacts } from "../../core/engine/facts.js";
 import { listProfiles, setPolicyRules, setProfileChecks, type PolicyChange } from "../../core/profiles/index.js";
@@ -91,7 +91,7 @@ const origin = (f: ResolvedField | undefined) => (f ? { layer: f.layer, source: 
 function toolLabels(): Map<string, string> {
   const labels = new Map<string, string>();
   for (const manifest of builtinManifests()) {
-    labels.set(manifest.id, manifest.displayName);
+    labels.set(manifest.id, localizedAdapterName(manifest.id, manifest.displayName));
     for (const sub of manifest.subchecks ?? []) labels.set(`${manifest.id}.${sub.id}`, subcheckLabel(manifest.id, sub));
   }
   return labels;
@@ -194,7 +194,7 @@ function buildView(source: ConfigSource, ref: string) {
       .filter((c) => c.category === category)
       .map((c) => known.get(c.id) ?? { id: c.id, category, label: c.id.replace(/^x-custom:/, ""), description: t("cfgp_custom_capability_description", { id: c.id.replace(/^x-custom:/, "") }) });
 
-  const categories = catalog.categories.map((category) => {
+  const categories = [...catalog.categories].sort((a, b) => categoryRank(a.id) - categoryRank(b.id)).map((category) => {
     const capabilities = capabilitiesOf(category.id).map((capability) => {
         const capSelector = `capability:${capability.id}`;
         const capItem = byKey.get(capSelector);

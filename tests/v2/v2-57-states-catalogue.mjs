@@ -25,7 +25,7 @@ const FAKE = path.join(root, "jgates", "tests", "docker", "fake-docker.cjs");
 const CLI_VERSION = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 const PINNED = `registry.example.test/jgates/jgates-tools@sha256:${"ab".repeat(32)}`;
 const LOCALES = ["en", "pt-BR"];
-const NONE_ALLOWED = new Set(["ENGINE_STOPPED", "IMAGE_PULLING", "HOST_EXECUTION_REFUSED"]);
+const NONE_ALLOWED = new Set(["ENGINE_STOPPED", "IMAGE_PULLING", "HOST_EXECUTION_REFUSED", "MUTATION_TESTS_FAILING"]);
 
 const made = [];
 const tmp = (prefix) => {

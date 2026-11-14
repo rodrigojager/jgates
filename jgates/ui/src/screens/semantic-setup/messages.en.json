@@ -42,7 +42,7 @@
   "semsetup_est_to_examine": "Files to examine",
   "semsetup_est_to_examine_value": "{examine} to examine of {subjects} subjects ({files} files in the repository)",
   "semsetup_est_context": "Supporting context",
-  "semsetup_est_context_value": "{files} files, about {kb} KB",
+  "semsetup_est_context_value": "{files, plural, one {# file} other {# files}}, about {kb} KB",
   "semsetup_est_calls": "Model calls at most",
   "semsetup_est_reserve": "Validation reserve",
   "semsetup_est_reserve_value": "{calls} calls ({percent}%) kept for validation before hunting",

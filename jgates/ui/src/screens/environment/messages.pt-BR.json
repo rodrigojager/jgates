@@ -12,7 +12,7 @@
   "env_needs_engine": "Abra o Docker antes.",
   "env_needs_image": "Baixe as ferramentas antes.",
   "env_job_failed": "Não deu certo. Veja o motivo acima e tente de novo.",
-  "env_sec_engine": "Motor de containers",
+  "env_sec_engine": "Motor de contêineres",
   "env_sec_image": "Ferramentas do JGates",
   "env_sec_data": "Dados de segurança",
   "env_sec_dependencies": "Dependências",

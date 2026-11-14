@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatSize } from "../../components/format";
 import { formatLocale } from "../../i18n/locale";
 import { api } from "../../api";
 import { Dialog, ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
@@ -41,17 +42,7 @@ interface StorageData {
   images: { available: boolean; items: Array<{ name: string; size: string }> };
 }
 
-function bytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  const units = ["KiB", "MiB", "GiB", "TiB"];
-  let value = n / 1024;
-  let i = 0;
-  while (value >= 1024 && i < units.length - 1) {
-    value /= 1024;
-    i++;
-  }
-  return `${value.toLocaleString(formatLocale(), { maximumFractionDigits: 1 })} ${units[i]}`;
-}
+const bytes = formatSize;
 
 function RelinkDialog({ workspace, onClose, onDone }: { workspace: WorkspaceRow; onClose: () => void; onDone: () => void }) {
   const toast = useToast();

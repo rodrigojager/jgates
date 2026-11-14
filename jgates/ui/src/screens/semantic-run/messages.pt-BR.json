@@ -49,5 +49,20 @@
   "semrun_event_step-started": "Etapa iniciada",
   "semrun_event_step-finished": "Etapa terminada",
   "semrun_event_stage": "Fase",
-  "semrun_event_cancel-requested": "Cancelamento pedido"
+  "semrun_event_cancel-requested": "Cancelamento pedido",
+  "semrun_stage_reconnaissance": "Reconhecimento",
+  "semrun_stage_coverage_planning": "Plano de cobertura",
+  "semrun_stage_semantic_context": "Contexto semântico",
+  "semrun_stage_context": "Contexto",
+  "semrun_stage_hunting": "Caça a problemas",
+  "semrun_stage_hunt": "Caça a problemas",
+  "semrun_stage_coverage_critic": "Revisão da cobertura",
+  "semrun_stage_semantic_review": "Revisão semântica",
+  "semrun_stage_review": "Revisão",
+  "semrun_stage_refutation": "Refutação",
+  "semrun_stage_validate": "Validação",
+  "semrun_stage_validation": "Validação",
+  "semrun_stage_structured_output": "Saída estruturada",
+  "semrun_stage_output": "Saída",
+  "semrun_stage_records": "Registros"
 }

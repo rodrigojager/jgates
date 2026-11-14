@@ -20,7 +20,7 @@ import {
 import { compareStrings, defaultReadDir, walkProject } from "../../core/discovery/walk.js";
 import { listBuiltinTemplates } from "../../builtin/index.js";
 import { readGitContext } from "../git.js";
-import { HttpError } from "../http.js";
+import { HttpError, refuseMsg } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 
 const SEED = "schemaVersion: 1\n";
@@ -341,7 +341,7 @@ export const routes: RouteDefinition[] = [
       const abs = path.join(server.projectDir, WORKSPACE_FILE);
       const current = readRevision(abs);
       const conflict = () =>
-        new HttpError(409, "REVISION_CONFLICT", "O .jgates/workspace.yml mudou desde que foi lido.", "Recarregue a tela para ver a versão atual antes de salvar de novo.", {
+        refuseMsg(409, "REVISION_CONFLICT", "route_revision_conflict", { file: ".jgates/workspace.yml" }, {
           currentRevision: current.hash,
         });
       if (b.expectedRevision !== current.hash) throw conflict();
@@ -360,7 +360,7 @@ export const routes: RouteDefinition[] = [
         if (key === "components" && value.length > 0 && Array.isArray(currentValue?.components)) edits.push(...componentEdits(currentValue.components as unknown[], value as Rec[]));
         else edits.push(value.length === 0 ? { op: "delete", path: [key] } : { op: "set", path: [key], value });
       }
-      if (edits.length === 0) throw new HttpError(400, "NOTHING_TO_SAVE", "Nenhuma alteração para gravar.", null);
+      if (edits.length === 0) throw refuseMsg(400, "NOTHING_TO_SAVE", "route_workspace_nothing_to_save");
 
       try {
         // The result must still be a valid workspace.yml before anything is written.
@@ -370,7 +370,7 @@ export const routes: RouteDefinition[] = [
         const problems = problemsOf(next.text).filter((p) => !known.has(problemKey(p)));
         if (problems.length > 0) {
           const first = problems[0] as { message: string; path: string };
-          throw new HttpError(422, "WORKSPACE_INVALID", `O workspace.yml ficaria inválido: ${first.message}`, null, { path: first.path });
+          throw refuseMsg(422, "WORKSPACE_INVALID", "route_workspace_invalid", { message: first.message }, { path: first.path });
         }
         patchYamlFile(abs, edits, { expectedHash: current.hash, createWith: SEED });
       } catch (error) {

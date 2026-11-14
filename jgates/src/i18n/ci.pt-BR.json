@@ -61,9 +61,9 @@
   "ci_snapshot_failed_fix": "Confira se o commit existe no checkout (um clone raso pode não ter --base) e se o git está no PATH.",
   "ci_cancel_requested": "Cancelamento pedido: encerrando os processos da etapa em andamento e gravando o resultado parcial.",
   "ci_summary_passed": "aprovado",
-  "ci_summary_failed": "reprovado: {count} violações bloqueantes",
+  "ci_summary_failed": "reprovado: {count, plural, one {# violação bloqueante} other {# violações bloqueantes}}",
   "ci_summary_incomplete": "incompleto: {count} requisitos obrigatórios sem evidência",
-  "ci_summary_failed_incomplete": "reprovado: {count} violações bloqueantes; {missing} requisitos obrigatórios sem evidência",
+  "ci_summary_failed_incomplete": "reprovado: {count, plural, one {# violação bloqueante} other {# violações bloqueantes}}; {missing, plural, one {# requisito obrigatório sem evidência} other {# requisitos obrigatórios sem evidência}}",
   "ci_summary_reduced": "incompleto: a seleção ficou reduzida e o CI governado não aprova uma seleção reduzida",
   "ci_summary_other": "{decision}",
   "ci_text_decision": "Decisão: {decision} ({summary})",
@@ -88,7 +88,7 @@
   "ci_error_extension_image_unpinned": "A política só aceita imagens de extensão fixadas por digest (execution.extensionImage: pinned), e este commit usa uma que não está: {detail}.",
   "ci_error_extension_image_unpinned_fix": "Publique a imagem de extensão e informe-a como <registro>/<nome>@sha256:<digest> na configuração de imagem da ferramenta.",
   "ci_error_tools_image_digest_mismatch": "A política fixa a imagem de ferramentas (execution.extensionImage: pinned), e este job roda outra: {detail}.",
-  "ci_error_tools_image_digest_mismatch_fix": "Use o container jgates-tools@{expected} no job de CI, ou peça ao dono da política que atualize a fixação.",
+  "ci_error_tools_image_digest_mismatch_fix": "Use o contêiner jgates-tools@{expected} no job de CI, ou peça ao dono da política que atualize a fixação.",
   "ci_error_tools_image_digest_unknown": "A política fixa a imagem de ferramentas (execution.extensionImage: pinned), e o digest da imagem deste job não é conhecido: {detail}.",
-  "ci_error_tools_image_digest_unknown_fix": "Defina JGATES_TOOLS_IMAGE_DIGEST com o digest do container do job (o sha256 depois do @ da referência)."
+  "ci_error_tools_image_digest_unknown_fix": "Defina JGATES_TOOLS_IMAGE_DIGEST com o digest do contêiner do job (o sha256 depois do @ da referência)."
 }

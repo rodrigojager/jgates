@@ -1,4 +1,5 @@
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
+import { formatDateTime } from "../../components/format";
 import type { MascotSnapshot } from "../../../../src/core/mascots/index";
 import { useMemo, useState } from "react";
 import { formatLocale } from "../../i18n/locale";
@@ -30,11 +31,7 @@ export function formatDuration(ms: number | undefined): string {
   return s < 60 ? `${s.toFixed(1).replace(".", ",")} s` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`;
 }
 
-function formatDate(iso: string | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(formatLocale());
-}
+const formatDate = (iso: string | undefined): string => formatDateTime(iso);
 
 /** Value of a metric with its unit; a metric that was not measured is never shown as zero. */
 export function metricText(m: any): string {
@@ -765,13 +762,13 @@ export function ResultView({ result, previous, crashed = false, compact = false,
           {result.selection?.profile ? (
             <>
               <dt>{t("vres_profile")}</dt>
-              <dd>{result.selection.profile}</dd>
+              <dd>{tOr(`vres_profile_${result.selection.profile.replace(/^builtin:/, "")}`, result.selection.profile.replace(/^builtin:/, ""))}</dd>
             </>
           ) : null}
           {result.selection?.scope ? (
             <>
               <dt>{t("vres_scope")}</dt>
-              <dd>{result.selection.scope}</dd>
+              <dd>{tOr(`scope_${result.selection.scope}`, result.selection.scope)}</dd>
             </>
           ) : null}
           {git?.branch ? (

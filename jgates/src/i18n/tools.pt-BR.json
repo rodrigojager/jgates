@@ -75,7 +75,7 @@
   "tools_option_units": "Com tools matrix: acrescenta à matriz a aplicabilidade por unidade do projeto (--cwd).",
   "tools_option_packs": "Com tools distribution: uma pasta de distribuição a verificar (cada subpasta é um pacote com jgates-pack.json); várias separadas por vírgula.",
   "tools_distribution_ok": "Verificação de distribuição aprovada: {adapters} adaptadores, {packs} pacotes.",
-  "tools_distribution_failed": "Verificação de distribuição reprovada com {count} problemas.",
+  "tools_distribution_failed": "Verificação de distribuição reprovada com {count, plural, one {# problema} other {# problemas}}.",
   "tools_distribution_fix": "Registre a proveniência (jgates-pack.json com fonte, revisão, SPDX, avisos e revisão) e retire o material restrito antes de distribuir.",
   "tools_matrix_unit": "{unit} ({root}, {language}): validado {validated}; lacunas {gaps}"
 }

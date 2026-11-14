@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { formatRunWhen } from "../../components/format";
 import { fetchEnvironmentState, useRecheckOnFocus, type EnvironmentReason, type EnvironmentState } from "../../api/environment";
 import { PrerequisitesBar } from "../../components/PrerequisitesBar";
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
@@ -66,8 +67,7 @@ function duration(ms: number | null | undefined): string {
 }
 
 function runWhen(runId: string): string {
-  const m = /^run_(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/.exec(runId);
-  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]} UTC` : runId;
+  return formatRunWhen(runId);
 }
 
 const stateLabel = (state: string): string => tOr(`overview_stage_state_${state}`, state);
@@ -138,7 +138,7 @@ function LastRunCard({ run, image }: { run: LastRun | null; image: { id?: string
               <code>{image?.id === run.toolsImage && image.version ? image.version : run.toolsImage.replace("sha256:", "").slice(0, 12)}</code>
             </span>
           ) : null}
-          {run.dataAgeDays !== null && run.dataAgeDays !== undefined ? <span data-testid="run-data-age">{t("overview_run_data_age", { days: run.dataAgeDays })}</span> : null}
+          {typeof run.dataAgeDays === "number" && run.dataAgeDays > 0 ? <span data-testid="run-data-age">{t("overview_run_data_age", { days: run.dataAgeDays })}</span> : null}
         </div>
         <a className="ov-link" href={run.running ? `#/runs/${encodeURIComponent(run.runId)}` : `#/validations/result/${encodeURIComponent(run.runId)}`}>
           {run.running ? t("overview_follow_run") : t("overview_view_result")} <Icon name="chevron" />

@@ -12,7 +12,7 @@
   "history_result_all": "Todas",
   "history_result_pending": "Com pendências",
   "history_result_passed": "Aprovadas",
-  "history_count": "{count} validações",
+  "history_count": "{count, plural, one {# validação} other {# validações}}",
   "history_compare": "Comparar as duas escolhidas",
   "history_pick_second": "Escolha mais uma validação para comparar.",
   "history_pick": "Escolher a validação {runId} para comparar",
@@ -33,10 +33,10 @@
   "history_partial": "Parcial",
   "history_baseline": "Baseline",
   "history_preserved": "Preservado",
-  "history_baseline_make": "Marcar {runId} como baseline",
-  "history_baseline_remove": "Tirar a baseline de {runId}",
-  "history_preserve_make": "Preservar {runId} da retenção",
-  "history_preserve_remove": "Deixar de preservar {runId}",
+  "history_baseline_make": "Marcar como baseline",
+  "history_baseline_remove": "Tirar a baseline",
+  "history_preserve_make": "Preservar da retenção",
+  "history_preserve_remove": "Deixar de preservar",
   "history_baseline_set": "O run {runId} é a baseline deste workspace.",
   "history_baseline_cleared": "O run {runId} deixou de ser a baseline.",
   "history_preserve_set": "O run {runId} fica fora da limpeza por retenção.",
@@ -63,5 +63,6 @@
   "history_context_title": "Aprovação tem contexto.",
   "history_context_body": "Uma mudança no código ou na configuração exige nova validação. Nenhum resultado antigo aprova um commit novo.",
   "history_new_run": "Nova validação",
-  "history_running": "Em andamento"
+  "history_running": "Em andamento",
+  "history_action_for": "{action}: {runId}"
 }

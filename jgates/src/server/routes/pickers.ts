@@ -13,7 +13,8 @@ import { parse } from "yaml";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { builtinProfileBody, listBuiltinProfiles, listBuiltinTemplates } from "../../builtin/index.js";
 import { cachedProject, projectInventory, projectResolve } from "../../core/cache/project.js";
-import { builtinTemplateText, createCoreCatalog } from "../../core/catalog/index.js";
+import { localizedAdapterName, builtinTemplateText, createCoreCatalog } from "../../core/catalog/index.js";
+import { starterProfileText } from "../../core/profiles/index.js";
 import { discoverCompose, listComposeFiles, type ComposeService } from "../../core/discovery/compose.js";
 import { buildVocabulary } from "../../core/discovery/vocabulary.js";
 import { defaultReadDir, walkProject } from "../../core/discovery/walk.js";
@@ -21,7 +22,7 @@ import { derived } from "../../core/forms/index.js";
 import { readServicesConfig } from "../../core/services/index.js";
 import { resolveGit, runGitAsync } from "../../core/snapshot/git.js";
 import { resolveToolBindings } from "../../core/tools/index.js";
-import { HttpError } from "../http.js";
+import { HttpError, refuseMsg } from "../http.js";
 import type { RouteDefinition } from "../types.js";
 
 export interface PickerItem {
@@ -290,8 +291,8 @@ function profiles(dir: string) {
   const own = isObject(doc) && isObject(doc.profiles) ? doc.profiles : {};
   for (const [id, body] of Object.entries(own)) items.push({ value: id, label: isObject(body) && typeof body.label === "string" ? body.label : id, secondary: id, group: "project" });
   for (const item of listBuiltinProfiles()) {
-    const label = builtinProfileBody(item).label;
-    items.push({ value: item.ref, label: typeof label === "string" ? label : item.id, secondary: item.ref, group: "builtin" });
+    const label = starterProfileText(item.id, builtinProfileBody(item)).label;
+    items.push({ value: item.ref, label: label ?? item.id, secondary: item.ref, group: "builtin" });
   }
   return capped(items);
 }
@@ -313,7 +314,8 @@ function templates(dir: string) {
 }
 
 function adapterLabel(id: string): string {
-  return builtinManifests().find((m) => m.id === id)?.displayName ?? id;
+  const manifest = builtinManifests().find((m) => m.id === id);
+  return manifest ? localizedAdapterName(manifest.id, manifest.displayName) : id;
 }
 
 function toolInstances(dir: string): PickerItem[] {
@@ -334,7 +336,7 @@ function toolInstances(dir: string): PickerItem[] {
 }
 
 function adapters() {
-  return capped(builtinManifests().map((m) => ({ value: m.id, label: m.displayName ?? m.id, secondary: m.id })).sort(byLabel));
+  return capped(builtinManifests().map((m) => ({ value: m.id, label: localizedAdapterName(m.id, m.displayName ?? m.id), secondary: m.id })).sort(byLabel));
 }
 
 function checkSelectors(dir: string) {
@@ -405,7 +407,7 @@ export async function pickerList(dir: string, source: derived.ValueSourceName, p
       body = architectureLayers(dir);
       break;
     default:
-      throw new HttpError(404, "PICKER_UNKNOWN", `No picker for ${String(source)}.`, null, { source });
+      throw refuseMsg(404, "PICKER_UNKNOWN", "route_picker_unknown", { source: String(source) }, { source });
   }
   return { schemaVersion: 1, status: "OK", source, ...body };
 }

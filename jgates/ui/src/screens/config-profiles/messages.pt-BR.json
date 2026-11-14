@@ -19,7 +19,7 @@
   "cfgp_extends": "herda de",
   "cfgp_estimate_label": "Tempo estimado",
   "cfgp_estimate_none": "não estimado",
-  "cfgp_estimate_value": "cerca de {time} (mediana de {runs} validações)",
+  "cfgp_estimate_value": "cerca de {time} (mediana de {runs, plural, one {# validação} other {# validações}})",
   "cfgp_changes_summary": "O que muda em relação a {parent} ({count})",
   "cfgp_changes_none": "Este perfil não muda nada em relação ao pai.",
   "cfgp_arrow": "para",

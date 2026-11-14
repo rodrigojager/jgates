@@ -3,6 +3,12 @@ import type { RunEvent } from "../events/index.js";
 import type { ResultStage, RunResult } from "../run/types.js";
 
 export const MASCOT_DOMAINS = ["quality", "security", "dependencies", "tests", "architecture", "infrastructure"] as const;
+/** The categories in one order everywhere: the quality mascot strip's, then the project's own checks. */
+export const CATEGORY_ORDER: readonly string[] = [...MASCOT_DOMAINS, "custom"];
+export function categoryRank(id: string): number {
+  const at = CATEGORY_ORDER.indexOf(id);
+  return at < 0 ? CATEGORY_ORDER.length : at;
+}
 export type MascotDomain = (typeof MASCOT_DOMAINS)[number];
 export type MascotStatus = "waiting" | "processing" | "passed" | "failed" | "incomplete" | "blocked" | "error" | "timeout" | "cancelled" | "finished" | "disabled" | "not_applicable" | "invalid";
 /**

@@ -26,6 +26,17 @@ export function refuse(status: number, code: string, params: Record<string, stri
   return new HttpError(status, code, t(key, params), fix === `${key}_fix` ? null : fix, details, headers);
 }
 
+/** HttpError with a named catalog message (`key` and `<key>_fix`), for routes with several messages under one code. */
+export function refuseMsg(status: number, code: string, key: string, params: Record<string, string | number> = {}, details: Record<string, unknown> = {}): HttpError {
+  const fix = t(`${key}_fix`, params);
+  return new HttpError(status, code, t(key, params), fix === `${key}_fix` ? null : fix, details);
+}
+
+/** A message of the "server" catalog in the language of the process. */
+export function routeText(key: string, params: Record<string, string | number> = {}): string {
+  return t(key, params);
+}
+
 function baseHeaders(res: ServerResponse, extra: Record<string, string | string[]> = {}): void {
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
   for (const [k, v] of Object.entries(extra)) res.setHeader(k, v);

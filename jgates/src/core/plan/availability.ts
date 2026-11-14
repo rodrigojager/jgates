@@ -7,7 +7,7 @@ import path from "node:path";
 import { translator, type Translator } from "../../i18n/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
 import { listBuiltinTemplates } from "../../builtin/index.js";
-import type { AdapterManifest } from "../catalog/index.js";
+import { localizedAdapterName, type AdapterManifest } from "../catalog/index.js";
 import type { NotApplicableAction, NotApplicableAdapter, NotApplicableReason } from "./types.js";
 
 /** Adapters that never cover a capability by themselves (the generic command declares its own, per instance). */
@@ -202,7 +202,7 @@ export function explainMissing(input: ExplainInput, t: Translator): Explanation 
     const docs = m.distribution?.setup ?? m.distribution?.acquisition ?? [];
     return {
       id: m.id,
-      label: m.displayName,
+      label: localizedAdapterName(m.id, m.displayName),
       languages: m.languages ? [...m.languages] : null,
       applicable: applicable(m, input.capability, input.languages),
       prerequisites: prerequisitesOf(m, input.capability, input.languages),

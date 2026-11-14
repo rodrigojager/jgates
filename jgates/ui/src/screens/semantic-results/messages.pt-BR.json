@@ -38,7 +38,7 @@
   "semres_scope_completion": "Conclusão do escopo",
   "semres_scope_completion_detail": "{covered} de {subjects} assuntos do escopo declarado",
   "semres_repository_coverage": "Cobertura do repositório",
-  "semres_repository_coverage_detail": "{covered} de {files} arquivos do repositório",
+  "semres_repository_coverage_detail": "{covered} de {files, plural, one {# arquivo} other {# arquivos}} do repositório",
   "semres_claim_scope_only": "As conclusões valem só para o escopo declarado e examinado, não para o repositório inteiro.",
   "semres_investigation_coverage": "A investigação leu {examined} de {subjects} assuntos e registrou {gaps} lacunas.",
   "semres_findings_title": "Achados",

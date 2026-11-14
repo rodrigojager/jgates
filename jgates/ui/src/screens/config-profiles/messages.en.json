@@ -19,7 +19,7 @@
   "cfgp_extends": "extends",
   "cfgp_estimate_label": "Estimated time",
   "cfgp_estimate_none": "not estimated",
-  "cfgp_estimate_value": "about {time} (median of {runs} validations)",
+  "cfgp_estimate_value": "about {time} (median of {runs, plural, one {# validation} other {# validations}})",
   "cfgp_changes_summary": "What changes compared to {parent} ({count})",
   "cfgp_changes_none": "This profile changes nothing compared to its parent.",
   "cfgp_arrow": "to",

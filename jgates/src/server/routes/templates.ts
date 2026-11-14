@@ -16,7 +16,7 @@ import { builtinTemplateText } from "../../core/catalog/index.js";
 import { unifiedDiff } from "../../core/documents/diff.js";
 import type { Classification } from "../../core/discovery/types.js";
 import { getLocale } from "../../i18n/index.js";
-import { HttpError } from "../http.js";
+import { HttpError, refuseMsg, routeText } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { modeOf } from "./workspaces.js";
 
@@ -33,11 +33,11 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is
 export function assertWritable(): void {
   const { mode, governed } = modeOf();
   if (mode !== "governed") return;
-  throw new HttpError(403, "GOVERNED_LOCKED", `Modo governado: a configuração é fixada pela política ${governed?.policy ?? "governada"} e não pode ser alterada aqui.`, "Mude a política governada fora do checkout; o modo local continua editável.");
+  throw refuseMsg(403, "GOVERNED_LOCKED", "route_governed_locked", { policy: governed?.policy ?? "governed" });
 }
 
 export function conflict(currentRevision: string | null, file: string): HttpError {
-  return new HttpError(409, "REVISION_CONFLICT", `O ${file} mudou desde que foi lido.`, "Recarregue a tela para ver a versão atual antes de salvar de novo.", { currentRevision });
+  return refuseMsg(409, "REVISION_CONFLICT", "route_revision_conflict", { file }, { currentRevision });
 }
 
 /**
@@ -47,7 +47,7 @@ export function conflict(currentRevision: string | null, file: string): HttpErro
 export function patchConfigFile(server: ServerContext, file: string, kind: "root" | "architecture", edits: YamlEdit[], expectedRevision: string | null): { revision: string | null } {
   const abs = path.join(server.projectDir, file);
   const current = readRevision(abs);
-  if (!current.exists) throw new HttpError(404, "FILE_MISSING", `O arquivo ${file} não existe.`, null, { file });
+  if (!current.exists) throw refuseMsg(404, "FILE_MISSING", "route_file_missing", { file }, { file });
   if (expectedRevision !== undefined && expectedRevision !== current.hash) throw conflict(current.hash, file);
   try {
     const next = patchYamlText(current.text, edits);
@@ -60,7 +60,7 @@ export function patchConfigFile(server: ServerContext, file: string, kind: "root
     const fresh = problems(next.text).filter((p) => !before.has(p));
     if (fresh.length > 0) {
       const [pathPart, message] = (fresh[0] as string).split("|");
-      throw new HttpError(422, "CONFIG_INVALID", `O ${file} ficaria inválido: ${message}`, null, { file, path: pathPart });
+      throw refuseMsg(422, "CONFIG_INVALID", "route_invalid_after", { file, message: message ?? "" }, { file, path: pathPart });
     }
     patchYamlFile(abs, edits, { expectedHash: current.hash as string });
   } catch (error) {
@@ -216,7 +216,7 @@ function buildDescription(server: ServerContext): Rec {
       components: activation === "always" ? components.map((c) => c.id) : matching(match, components).length > 0 ? matching(match, components) : byEvidence(state, match, components),
       support,
       extends: strings(value.extends),
-      problem: node === null ? "Arquivo do template não encontrado ou ilegível." : null,
+      problem: node === null ? routeText("route_template_unreadable") : null,
       unreferenced: unreferenced === true,
     };
   });
@@ -232,7 +232,7 @@ function buildDescription(server: ServerContext): Rec {
 function detail(server: ServerContext, id: string): Rec {
   const list = describe(server) as { templates: Row[] };
   const row = list.templates.find((r) => r.id === id);
-  if (!row) throw new HttpError(404, "TEMPLATE_NOT_FOUND", `Não há template com o identificador ${id}.`);
+  if (!row) throw refuseMsg(404, "TEMPLATE_NOT_FOUND", "route_template_not_found", { id });
   const errors: string[] = [];
   const graph = new TemplateGraph(server.projectDir, { error: (i) => errors.push(i.message), warning: () => undefined });
   const identity = graph.resolve(row.source, { file: ROOT_FILE, path: `templates.${id}.source` });
@@ -330,13 +330,13 @@ export function templateModel(body: CreateBody): Rec {
   };
 }
 
-const HEADER = (id: string): string => `# Template do projeto ${id}. Estende o base e declara uma verificação por comando genérico.\n# Os efeitos declarados valem para o plano: o comando é um vetor (executável e argumentos), nunca uma linha de shell.\n`;
+const HEADER = (id: string): string => routeText("route_template_header", { id });
 
 const matchOf = (languages: string[], frameworks: string[]): Rec => ({ ...(languages.length > 0 ? { languages } : {}), ...(frameworks.length > 0 ? { frameworks } : {}) });
 
 function rootOf(server: ServerContext): { text: string; hash: string; list: unknown[] | null } {
   const root = readRevision(path.join(server.projectDir, ROOT_FILE));
-  if (!root.exists) throw new HttpError(422, "ROOT_MISSING", "Não há jgates.yml neste projeto.", "Crie a configuração antes (jgates init).");
+  if (!root.exists) throw refuseMsg(422, "ROOT_MISSING", "route_root_missing");
   const value = parseYamlText(root.text, ROOT_FILE).value;
   return { text: root.text, hash: root.hash as string, list: isRec(value) && Array.isArray(value.templates) ? (value.templates as unknown[]) : null };
 }
@@ -362,20 +362,20 @@ interface Plan {
 }
 
 function checkBody(body: CreateBody): void {
-  if (body.evidence?.kind === "test-runner" && !body.evidence.runner) throw new HttpError(400, "EVIDENCE_RUNNER_REQUIRED", "O contrato test-runner precisa do runner (go-test ou cargo-test).");
+  if (body.evidence?.kind === "test-runner" && !body.evidence.runner) throw refuseMsg(400, "EVIDENCE_RUNNER_REQUIRED", "route_evidence_runner_required");
 }
 
 function planCreate(server: ServerContext, body: CreateBody): Plan {
   const root = rootOf(server);
-  if ((root.list ?? []).some((e) => isRec(e) && e.id === body.id) || getBuiltinTemplate(body.id)) throw new HttpError(409, "TEMPLATE_EXISTS", `Já existe um template ${body.id}.`, "Escolha outro identificador.");
+  if ((root.list ?? []).some((e) => isRec(e) && e.id === body.id) || getBuiltinTemplate(body.id)) throw refuseMsg(409, "TEMPLATE_EXISTS", "route_template_exists", { id: body.id });
   checkBody(body);
   const model = templateModel(body);
   const problems = validateDocument("template", model, `${TEMPLATES_DIR}/${body.id}.yml`);
-  if (problems.length > 0) throw new HttpError(422, "TEMPLATE_INVALID", `O template ficaria inválido: ${problems[0]?.message}`, null, { path: problems[0]?.path });
+  if (problems.length > 0) throw refuseMsg(422, "TEMPLATE_INVALID", "route_template_invalid", { message: problems[0]?.message ?? "" }, { path: problems[0]?.path });
 
   const relative = `${TEMPLATES_DIR}/${body.id}.yml`;
   const abs = path.join(server.projectDir, relative);
-  if (fs.existsSync(abs)) throw new HttpError(409, "TEMPLATE_FILE_EXISTS", `O arquivo ${relative} já existe.`, "Escolha outro identificador ou use o arquivo que já existe.");
+  if (fs.existsSync(abs)) throw refuseMsg(409, "TEMPLATE_FILE_EXISTS", "route_template_file_exists", { file: relative });
   const text = HEADER(body.id) + stringify(model, { lineWidth: 0 });
   const edit = registerEdit(root.list, body.id, relative, body.languages ?? [], body.frameworks ?? []);
   const rootAfter = patchYamlText(root.text, [edit]).text;
@@ -389,7 +389,7 @@ function planCreate(server: ServerContext, body: CreateBody): Plan {
       try {
         fs.writeFileSync(abs, text, { flag: "wx", mode: 0o644 });
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "EEXIST") throw new HttpError(409, "TEMPLATE_FILE_EXISTS", `O arquivo ${relative} já existe.`, "Escolha outro identificador ou apague o arquivo.");
+        if ((error as NodeJS.ErrnoException).code === "EEXIST") throw refuseMsg(409, "TEMPLATE_FILE_EXISTS", "route_template_file_exists_race", { file: relative });
         throw error;
       }
       try {
@@ -406,15 +406,15 @@ function planCreate(server: ServerContext, body: CreateBody): Plan {
 function planEdit(server: ServerContext, id: string, body: CreateBody): Plan {
   const view = describe(server) as { templates: Row[] };
   const row = view.templates.find((r) => r.id === id);
-  if (!row) throw new HttpError(404, "TEMPLATE_NOT_FOUND", `Não há template com o identificador ${id}.`);
-  if (row.origin !== "project") throw new HttpError(409, "TEMPLATE_BUILTIN", `O template ${id} é do catálogo e não muda aqui.`, "Crie um template do projeto que o estenda.");
+  if (!row) throw refuseMsg(404, "TEMPLATE_NOT_FOUND", "route_template_not_found", { id });
+  if (row.origin !== "project") throw refuseMsg(409, "TEMPLATE_BUILTIN", "route_template_builtin_edit", { id });
   checkBody(body);
   const abs = path.join(server.projectDir, row.source);
   const current = readRevision(abs);
-  if (!current.exists) throw new HttpError(404, "FILE_MISSING", `O arquivo ${row.source} não existe.`);
+  if (!current.exists) throw refuseMsg(404, "FILE_MISSING", "route_file_missing", { file: row.source });
   const parsed = parseYamlText(current.text, row.source).value;
   const key = isRec(parsed) ? checkKey(parsed, id) : null;
-  if (!isRec(parsed) || key === null) throw new HttpError(422, "TEMPLATE_NOT_EDITABLE", `O template ${id} não tem o formato do modelo (uma verificação por comando genérico).`, "Edite o arquivo na aba YAML.");
+  if (!isRec(parsed) || key === null) throw refuseMsg(422, "TEMPLATE_NOT_EDITABLE", "route_template_not_editable", { id });
   const [command, ...args] = body.command;
   const effects = { readsCode: true, writesOutputs: false, mayChangeCode: false, executesProjectCode: true, usesNetwork: false, ...(body.effects ?? {}) };
   const tool = ["config", "tools", key];
@@ -430,7 +430,7 @@ function planEdit(server: ServerContext, id: string, body: CreateBody): Plan {
   ].filter((e) => !(e.op === "delete" && !("match" in parsed))) as YamlEdit[];
   const after = patchYamlText(current.text, fileEdits).text;
   const problems = validateDocument("template", parseYamlText(after, row.source).value, row.source);
-  if (problems.length > 0) throw new HttpError(422, "TEMPLATE_INVALID", `O template ficaria inválido: ${problems[0]?.message}`, null, { path: problems[0]?.path });
+  if (problems.length > 0) throw refuseMsg(422, "TEMPLATE_INVALID", "route_template_invalid", { message: problems[0]?.message ?? "" }, { path: problems[0]?.path });
 
   const root = rootOf(server);
   const index = (root.list ?? []).findIndex((e) => isRec(e) && e.id === id);
@@ -486,11 +486,11 @@ function edit(server: ServerContext, id: string, body: CreateBody, expectedRevis
 function remove(server: ServerContext, id: string, expectedRevision: string): Rec {
   const view = describe(server) as { templates: Row[] };
   const row = view.templates.find((r) => r.id === id);
-  if (!row) throw new HttpError(404, "TEMPLATE_NOT_FOUND", `Não há template com o identificador ${id}.`);
-  if (row.origin !== "project") throw new HttpError(409, "TEMPLATE_BUILTIN", `O template ${id} é do catálogo e não se apaga.`, "Desligue-o em vez de apagar.");
-  if (row.activation === "always" && row.declared) throw new HttpError(409, "TEMPLATE_REQUIRED", `O template ${id} é obrigatório (aplicação sempre): apagá-lo deixaria o plano sem ele.`, "Mude a aplicação no jgates.yml se for intencional.");
+  if (!row) throw refuseMsg(404, "TEMPLATE_NOT_FOUND", "route_template_not_found", { id });
+  if (row.origin !== "project") throw refuseMsg(409, "TEMPLATE_BUILTIN", "route_template_builtin_delete", { id });
+  if (row.activation === "always" && row.declared) throw refuseMsg(409, "TEMPLATE_REQUIRED", "route_template_required_delete", { id });
   const source = normalizeSource(row.source);
-  if (!source.startsWith(`${TEMPLATES_DIR}/`) || source.includes("..")) throw new HttpError(409, "TEMPLATE_OUTSIDE", `O arquivo ${row.source} está fora de ${TEMPLATES_DIR} e não é apagado aqui.`, "Tire o template do jgates.yml na aba YAML.");
+  if (!source.startsWith(`${TEMPLATES_DIR}/`) || source.includes("..")) throw refuseMsg(409, "TEMPLATE_OUTSIDE", "route_template_outside", { file: row.source, dir: TEMPLATES_DIR });
   const root = rootOf(server);
   const index = (root.list ?? []).findIndex((e) => isRec(e) && e.id === id);
   if (index >= 0) patchConfigFile(server, ROOT_FILE, "root", [{ op: "delete", path: ["templates", index] }], expectedRevision);
@@ -503,8 +503,8 @@ function remove(server: ServerContext, id: string, expectedRevision: string): Re
 function adopt(server: ServerContext, id: string, expectedRevision: string): Rec {
   const view = describe(server) as { templates: Row[] };
   const row = view.templates.find((r) => r.id === id);
-  if (!row) throw new HttpError(404, "TEMPLATE_NOT_FOUND", `Não há template com o identificador ${id}.`);
-  if (!row.unreferenced) throw new HttpError(409, "TEMPLATE_REFERENCED", `O template ${id} já está no jgates.yml.`);
+  if (!row) throw refuseMsg(404, "TEMPLATE_NOT_FOUND", "route_template_not_found", { id });
+  if (!row.unreferenced) throw refuseMsg(409, "TEMPLATE_REFERENCED", "route_template_referenced", { id });
   const root = rootOf(server);
   patchConfigFile(server, ROOT_FILE, "root", [registerEdit(root.list, id, normalizeSource(row.source), [...row.match.languages], [...row.match.frameworks])], expectedRevision);
   server.log(`project template adopted: ${row.source}`);
@@ -513,12 +513,12 @@ function adopt(server: ServerContext, id: string, expectedRevision: string): Rec
 
 function setEnabled(server: ServerContext, id: string, enabled: boolean, expectedRevision: string | null): Rec {
   const root = readRevision(path.join(server.projectDir, ROOT_FILE));
-  if (!root.exists) throw new HttpError(422, "ROOT_MISSING", "Não há jgates.yml neste projeto.");
+  if (!root.exists) throw refuseMsg(422, "ROOT_MISSING", "route_root_missing");
   // The view the person saw (from the cache when it is current): the only view built before the write.
   const view = describe(server) as { templates: Row[] };
   const row = view.templates.find((r) => r.id === id);
-  if (!row) throw new HttpError(404, "TEMPLATE_NOT_FOUND", `Não há template com o identificador ${id}.`);
-  if (!enabled && row.activation === "always") throw new HttpError(409, "TEMPLATE_REQUIRED", `O template ${id} é obrigatório (aplicação sempre): desligá-lo deixaria o plano sem a base.`, "Mude a aplicação no jgates.yml se for intencional.");
+  if (!row) throw refuseMsg(404, "TEMPLATE_NOT_FOUND", "route_template_not_found", { id });
+  if (!enabled && row.activation === "always") throw refuseMsg(409, "TEMPLATE_REQUIRED", "route_template_required_off", { id });
   const value = parseYamlText(root.text, ROOT_FILE).value;
   const list = isRec(value) && Array.isArray(value.templates) ? (value.templates as unknown[]) : null;
   const index = (list ?? []).findIndex((e) => isRec(e) && e.id === id);

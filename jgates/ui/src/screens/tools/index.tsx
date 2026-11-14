@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { categoryRank, sortCategories } from "../../components/categories";
 import { api } from "../../api";
 import { currentQuery } from "../../app/route";
 import { useShell } from "../../app/shell-context";
@@ -263,7 +264,7 @@ export default function ToolsScreen() {
     for (const i of instances) if (i.component) ids.add(i.component);
     return [...ids].sort();
   }, [discovery.data, instances]);
-  const categories = useMemo(() => [...new Set(adapters.flatMap((a) => a.categories))].sort(), [adapters]);
+  const categories = useMemo(() => sortCategories([...new Set(adapters.flatMap((a) => a.categories))]), [adapters]);
 
   // Only the first load replaces the screen: a reload after a change keeps the buttons (and the focus) where they are.
   if ((tools.loading && !tools.data) || (catalog.loading && !catalog.data)) return <Loading />;
@@ -293,7 +294,7 @@ export default function ToolsScreen() {
     const text = [e.tool, e.adapter ?? "", entry?.displayName ?? "", ...e.capabilities, ...e.languages, ...(e.category ? [e.category] : [])];
     return matches(text, query) && (category === "" || (e.category ?? "") === category || (entry?.categories.includes(category) ?? false)) && (component === "" || e.components.includes(component));
   });
-  const effectiveGroups = [...new Set(effectiveTools.map((e) => e.category ?? ""))].sort((a, b) => categoryLabel(a).localeCompare(categoryLabel(b))).map((c) => ({ category: c, items: effectiveTools.filter((e) => (e.category ?? "") === c) }));
+  const effectiveGroups = [...new Set(effectiveTools.map((e) => e.category ?? ""))].sort((a, b) => categoryRank(a) - categoryRank(b) || categoryLabel(a).localeCompare(categoryLabel(b))).map((c) => ({ category: c, items: effectiveTools.filter((e) => (e.category ?? "") === c) }));
 
   const refresh = () => {
     tools.reload();

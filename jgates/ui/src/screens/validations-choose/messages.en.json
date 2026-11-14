@@ -68,6 +68,6 @@
   "vch_gates_both_hint": "Semantic starts only after a complete, current and non-reduced Quality approval",
   "vch_gates_manual": "Pause after the Quality approval",
   "vch_gates_manual_hint": "Semantic waits until you advance it from the sequence overview",
-  "vch_skip_count": "{count} checks turned off for this run only",
+  "vch_skip_count": "{count, plural, one {# check turned off} other {# checks turned off}} for this run only",
   "vch_skip_count_one": "1 check turned off for this run only"
 }

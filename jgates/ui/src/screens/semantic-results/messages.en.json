@@ -38,7 +38,7 @@
   "semres_scope_completion": "Scope completion",
   "semres_scope_completion_detail": "{covered} of {subjects} subjects of the declared scope",
   "semres_repository_coverage": "Repository coverage",
-  "semres_repository_coverage_detail": "{covered} of {files} files of the repository",
+  "semres_repository_coverage_detail": "{covered} of {files, plural, one {# file} other {# files}} of the repository",
   "semres_claim_scope_only": "The conclusions hold only for the declared and examined scope, not for the whole repository.",
   "semres_investigation_coverage": "The investigation read {examined} of {subjects} subjects and recorded {gaps} gaps.",
   "semres_findings_title": "Findings",

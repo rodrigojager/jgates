@@ -19,7 +19,7 @@ import { ROOT_FILE } from "../../core/config/load/index.js";
 import { translator } from "../../i18n/index.js";
 import { assertWritable, patchConfigFile } from "./templates.js";
 import { reviewItemsOf, type EnvironmentFacts, type ReviewItems } from "../../core/plan/review-items.js";
-import { HttpError, refuse } from "../http.js";
+import { HttpError, refuse, refuseMsg, routeText } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { cachedEnvironmentState } from "./environment.js";
 
@@ -317,7 +317,7 @@ export const routes: RouteDefinition[] = [
       const gates = b.gates.includes("quality") ? (b.gates.includes("semantic") ? ["quality", "semantic"] : ["quality"]) : ["semantic"];
       const file = path.join(server.projectDir, ROOT_FILE);
       const rev = readRevision(file);
-      if (!rev.exists) throw new HttpError(404, "FILE_MISSING", `O arquivo ${ROOT_FILE} não existe.`, null, { file: ROOT_FILE });
+      if (!rev.exists) throw refuseMsg(404, "FILE_MISSING", "route_file_missing", { file: ROOT_FILE }, { file: ROOT_FILE });
       const current = parseYamlText(rev.text.charCodeAt(0) === 0xfeff ? rev.text.slice(1) : rev.text, ROOT_FILE).value as { selection?: { paths?: unknown } } | undefined;
       const edits: YamlEdit[] = [
         { op: "set", path: ["selection", "gates"], value: gates },
@@ -356,7 +356,7 @@ export const routes: RouteDefinition[] = [
         }
         const list = listProfiles(server.projectDir);
         const current = list.profiles.find((p) => p.origin === "project" && p.id === b.id);
-        if (!current) throw new ProfileError("PROFILE_NOT_FOUND", `O perfil ${b.id} não é um perfil do projeto (os perfis iniciais não são alterados).`, "Use Salvar como perfil para criar um perfil novo a partir dele.");
+        if (!current) throw new ProfileError("PROFILE_NOT_FOUND", routeText("route_profile_not_project", { id: String(b.id) }), routeText("route_profile_not_project_fix"));
         const selectors = parseSkipList(b.skip);
         const edits = selectors.map((selector) => ({ op: "set" as const, path: ["profiles", b.id, "checks", selector, "enabled"], value: false }));
         const file = current.file ?? PROFILES_FILE;
@@ -365,7 +365,7 @@ export const routes: RouteDefinition[] = [
         const preview = patchYamlText(rev.text, edits);
         const parsed = parseYamlText(preview.text.charCodeAt(0) === 0xfeff ? preview.text.slice(1) : preview.text, file);
         const diagnostics = [...parsed.diagnostics, ...(parsed.diagnostics.length === 0 ? validateDocument("profiles", parsed.value, file, { doc: parsed.doc, lineCounter: parsed.lineCounter }) : [])];
-        if (diagnostics.length > 0) throw new ProfileError("PATCH_FAILED", `O ${file} ficaria inválido: ${diagnostics[0]?.message ?? ""}`, null);
+        if (diagnostics.length > 0) throw new ProfileError("PATCH_FAILED", routeText("route_invalid_after", { file, message: diagnostics[0]?.message ?? "" }), null);
         const written = patchYamlFile(abs, edits, { expectedHash: rev.hash });
         return { status: 200, json: { schemaVersion: 1, status: "OK", id: b.id, file, changed: written.changed, checks: Object.fromEntries(selectors.map((s) => [s, { enabled: false }])) } };
       } catch (error) {

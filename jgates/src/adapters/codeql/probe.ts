@@ -30,7 +30,7 @@ export function probeCodeql(env: NodeJS.ProcessEnv): CodeqlProbe {
   // step container mounts it read-only at /codeql. Nothing is ever looked up on the host's PATH.
   if (stepMode(env) !== "in-image") {
     const read = codeqlStatusForPlan(env);
-    if (read.state !== "ok" || !read.status) return { executable: null, version: null, problem: "not_found", detail: `the ${CODEQL_VOLUME} volume is not prepared (${read.state})` };
+    if (read.state !== "ok" || !read.status) return { executable: null, version: null, problem: "not_found", detail: `the ${CODEQL_VOLUME} volume is not prepared` };
     return read.status.version
       ? { executable: CODEQL_EXECUTABLE, version: read.status.version, problem: null, detail: "" }
       : { executable: CODEQL_EXECUTABLE, version: null, problem: "no_answer", detail: CODEQL_EXECUTABLE };

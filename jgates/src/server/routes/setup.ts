@@ -26,7 +26,7 @@ import { refreshPath } from "../../core/env-refresh/index.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { DEFAULT_PROFILE, PROFILES_FILE, STARTER_PROFILES, existingConfigFiles, planInit, writeInit } from "../../core/init/index.js";
 import { workspaceId } from "../../core/ids/index.js";
-import { MASCOT_DOMAINS, projectMascots } from "../../core/mascots/index.js";
+import { CATEGORY_ORDER, categoryRank, projectMascots } from "../../core/mascots/index.js";
 import { createProfile, listProfiles, setDefaultProfile, setProfileChecks } from "../../core/profiles/index.js";
 import { collectStatus, diskRequirement, engineContextOf, engineReason, type LifecycleReason } from "../../core/lifecycle/index.js";
 import { buildPlan, type Plan } from "../../core/plan/index.js";
@@ -824,11 +824,7 @@ type ProfileCount = {
 };
 
 /** The categories in one order everywhere: the quality mascot strip's, then the project's own checks. */
-export const CATEGORY_ORDER: readonly string[] = [...MASCOT_DOMAINS, "custom"];
-const categoryRank = (id: string): number => {
-  const at = CATEGORY_ORDER.indexOf(id);
-  return at < 0 ? CATEGORY_ORDER.length : at;
-};
+export { CATEGORY_ORDER };
 const byCategory = <T extends { id: string }>(list: readonly T[]): T[] => [...list].sort((a, b) => categoryRank(a.id) - categoryRank(b.id));
 
 interface DraftPlans {

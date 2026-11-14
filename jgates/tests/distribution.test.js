@@ -155,7 +155,7 @@ test("tools distribution prints the problems in text mode and exits 1, in the ch
   try {
     const r = spawnSync(process.execPath, [MAIN, "tools", "distribution", "--packs", p.root, "--locale", "en"], { encoding: "utf8" });
     assert.equal(r.status, 1, r.stderr);
-    assert.match(r.stdout, /Distribution check failed with 1 problems/);
+    assert.match(r.stdout, /Distribution check failed with 1 problem./);
     assert.match(r.stdout, /RESTRICTED_MATERIAL {2}sample-rules: rules\/b\.yml carries restricted material/);
     const ok = spawnSync(process.execPath, [MAIN, "tools", "distribution"], { encoding: "utf8", env: { ...process.env, JGATES_LOCALE: "en" } });
     assert.equal(ok.status, 0, ok.stdout + ok.stderr);

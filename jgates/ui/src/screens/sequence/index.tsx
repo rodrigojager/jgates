@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatTime } from "../../components/format";
 import { ApiError, api } from "../../api";
 import { ErrorNotice, Loading, Pill } from "../../components/common";
 import { Icon } from "../../components/icons";
@@ -245,7 +246,7 @@ export default function SequenceScreen({ params }: { params: Record<string, stri
           <ol style={{ margin: 0, paddingLeft: 18 }}>
             {timeline.map((e, i) => (
               <li key={`${e.at}-${i}`} data-event={e.event}>
-                <span className="muted small">{new Date(e.at).toLocaleTimeString()}</span> · {tOr(`seq_event_${e.event.replace(/-/g, "_")}`, e.event)}
+                <span className="muted small">{formatTime(e.at)}</span> · {tOr(`seq_event_${e.event.replace(/-/g, "_")}`, e.event)}
                 {e.code ? <code className="small"> {e.code}</code> : null}
               </li>
             ))}

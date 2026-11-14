@@ -25,7 +25,7 @@
   "prepare_download_too_large": "The rule set from {url} is too large ({detail} bytes).",
   "prepare_download_insecure_url": "Only https (or http on localhost) is accepted to download rules: {url}",
   "prepare_download_fix": "Check the network and run the preparation again. Meanwhile, runs continue with the last prepared copy, if any.",
-  "prepare_fix_docker_required": "Install Docker (or point JGATES_CONTAINER_RUNTIME to the container runtime) and run the preparation again.",
+  "prepare_fix_docker_required": "Install Docker (or point JGATES_CONTAINER_RUNTIME to the container engine) and run the preparation again.",
   "prepare_fix_docker_stopped": "Start Docker (jgates doctor --fix offers the system's command).",
   "prepare_recipe_docker_unknown_system": "JGates does not know the install command of this system; follow {docs}.",
   "prepare_recipe_needs_confirmation": "a system command, it runs only after a yes on the terminal: {command}",

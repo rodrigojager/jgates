@@ -40,7 +40,7 @@
   "help_faq_architecture_q": "O JGates descobre sozinho a arquitetura correta?",
   "help_faq_architecture_a": "Ele identifica arquivos, linguagens e dependências. A arquitetura desejada é declarada por você, em .jgates/architecture.yml: camadas, limites e contratos que precisam ser preservados.",
   "help_faq_cache_q": "Por que um resultado veio reutilizado?",
-  "help_faq_cache_a": "Se nada que a etapa lê mudou, o resultado de um run anterior é reaproveitado, e o resultado diz de qual run veio. Use --no-cache para rodar tudo de novo.",
+  "help_faq_cache_a": "Se nada que a verificação lê mudou, o resultado de um run anterior é reaproveitado, e o resultado diz de qual run veio. Use --no-cache para rodar tudo de novo.",
   "help_faq_waiver_q": "O que uma dispensa (waiver) faz?",
   "help_faq_waiver_a": "Tira um achado do bloqueio, com motivo e validade. Ela nunca transforma uma ferramenta que falhou em aprovada: se a etapa deu erro, o run continua sem aprovação.",
   "help_faq_governed_q": "O que muda no modo governado?",

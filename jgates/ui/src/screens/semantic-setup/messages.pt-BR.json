@@ -42,7 +42,7 @@
   "semsetup_est_to_examine": "Arquivos a examinar",
   "semsetup_est_to_examine_value": "{examine} a examinar de {subjects} assuntos ({files} arquivos no repositório)",
   "semsetup_est_context": "Contexto de apoio",
-  "semsetup_est_context_value": "{files} arquivos, cerca de {kb} KB",
+  "semsetup_est_context_value": "{files, plural, one {# arquivo} other {# arquivos}}, cerca de {kb} KB",
   "semsetup_est_calls": "Chamadas ao modelo no máximo",
   "semsetup_est_reserve": "Reserva de validação",
   "semsetup_est_reserve_value": "{calls} chamadas ({percent}%) guardadas para validação antes da caça",

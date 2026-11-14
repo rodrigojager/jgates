@@ -304,6 +304,10 @@ export function ProfileCards({
     }
   };
 
+  const parentName = (ref: string): string => {
+    const parent = cards.find((c) => c.ref === ref || c.id === ref || c.ref === `builtin:${ref}`);
+    return parent ? nameOf(parent) : ref.replace(/^builtin:/, "");
+  };
   const standardRef = cards.find((c) => c.id === "standard")?.ref ?? cards[0]?.ref ?? "builtin:standard";
 
   return (
@@ -333,16 +337,18 @@ export function ProfileCards({
               {card.extends ? (
                 <>
                   {" "}
-                  {t("cfgp_extends")} <code data-testid="extends">{card.extends}</code>
+                  {t("cfgp_extends")} <span data-testid="extends">{parentName(card.extends)}</span>
                 </>
               ) : null}
             </p>
             {card.description ? <p className="small">{card.description}</p> : null}
-            <p className="small muted">
-              {t("cfgp_estimate_label")}: <Estimate estimate={card.estimate} />
-            </p>
+            {card.estimate.state === "estimated" ? (
+              <p className="small muted">
+                {t("cfgp_estimate_label")}: <Estimate estimate={card.estimate} />
+              </p>
+            ) : null}
             <details className="profile-changes">
-              <summary>{t("cfgp_changes_summary", { count: card.changes.length, parent: card.extends ?? "-" })}</summary>
+              <summary>{t("cfgp_changes_summary", { count: card.changes.length, parent: card.extends ? parentName(card.extends) : "-" })}</summary>
               {card.changes.length === 0 ? (
                 <p className="small muted">{t("cfgp_changes_none")}</p>
               ) : (

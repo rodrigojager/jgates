@@ -11,7 +11,7 @@ export interface SemanticMascotSnapshot {
   mascots: Array<{ mascot: string; state: string; stages: Array<{ id: string; state: string }>; progress: { completed: number; total: number } | null }>;
 }
 
-const stageLabel = (id: string): string => {
+export const stageLabel = (id: string): string => {
   const base = id.slice(id.lastIndexOf("/") + 1);
   return tOr(`semrun_stage_${base.replace(/[^a-z0-9]+/gi, "_")}`, base);
 };

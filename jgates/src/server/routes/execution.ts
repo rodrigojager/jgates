@@ -7,7 +7,7 @@ import { unifiedDiff } from "../../core/documents/diff.js";
 import { ROOT_FILE, parseYamlText } from "../../core/config/load/index.js";
 import { encodePointer } from "../../core/config/resolve/index.js";
 import { fileDiagnostics, invalidateProjectCache, projectResolveReadable } from "../../core/cache/project.js";
-import { HttpError } from "../http.js";
+import { HttpError, refuseMsg } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { assertWritable, patchConfigFile } from "./templates.js";
 import { modeOf } from "./workspaces.js";
@@ -137,7 +137,7 @@ export const routes: RouteDefinition[] = [
     handler({ body, server }) {
       const b = body as { changes: Rec };
       const root = readRevision(path.join(server.projectDir, ROOT_FILE));
-      if (!root.exists) throw new HttpError(422, "ROOT_MISSING", "Não há jgates.yml neste projeto.", "Crie a configuração antes (jgates init).");
+      if (!root.exists) throw refuseMsg(422, "ROOT_MISSING", "route_root_missing");
       const edits = editsOf(root.text, b.changes);
       const after = edits.length === 0 ? root.text : patchYamlText(root.text, edits).text;
       return { status: 200, json: { schemaVersion: 1, status: "OK", file: ROOT_FILE, revision: root.hash, changed: after !== root.text, diff: unifiedDiff(root.text, after, { oldLabel: `a/${ROOT_FILE}`, newLabel: `b/${ROOT_FILE}` }) } };
@@ -160,7 +160,7 @@ export const routes: RouteDefinition[] = [
       assertWritable();
       const b = body as { expectedRevision: string; changes: Rec };
       const root = readRevision(path.join(server.projectDir, ROOT_FILE));
-      if (!root.exists) throw new HttpError(422, "ROOT_MISSING", "Não há jgates.yml neste projeto.", "Crie a configuração antes (jgates init).");
+      if (!root.exists) throw refuseMsg(422, "ROOT_MISSING", "route_root_missing");
       const edits = editsOf(root.text, b.changes);
       if (edits.length === 0) return { status: 200, json: describe(server) };
       patchConfigFile(server, ROOT_FILE, "root", edits, b.expectedRevision);

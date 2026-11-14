@@ -48,8 +48,8 @@ test("creating a profile from standard writes it into profiles.yml by patch and 
 
     const card = page.locator('[data-profile="rapido"]');
     await expect(card).toBeVisible();
-    await expect(card.getByTestId("extends")).toHaveText("standard");
-    await expect(card.getByTestId("estimate")).toHaveText("não estimado");
+    await expect(card.getByTestId("extends")).toHaveText("Equilibrado");
+    await expect(card.getByTestId("estimate")).toHaveCount(0);
 
     const after = read(PROFILES(fixture));
     // A patch: the text that was there is still there, untouched, and the new profile follows it.

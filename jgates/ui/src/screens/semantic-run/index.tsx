@@ -6,7 +6,7 @@ import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { SemanticResultsView, type SemanticReport } from "../semantic-results/ResultsView";
-import { SemanticMascotStrip, type SemanticMascotSnapshot } from "./SemanticMascotStrip";
+import { SemanticMascotStrip, stageLabel, type SemanticMascotSnapshot } from "./SemanticMascotStrip";
 
 export const screen: ScreenMeta = { id: "semantic-run", path: "/semantic/runs/:id", area: "semantic", order: 53 };
 
@@ -30,7 +30,8 @@ const RETRY_MS = 3000;
 
 function eventText(e: RunEvent): string {
   const d = e.data;
-  const stage = String(d.stageId ?? d.stage ?? d.step ?? "");
+  const rawStage = String(d.stageId ?? d.stage ?? d.step ?? "");
+  const stage = rawStage ? stageLabel(rawStage) : "";
   const state = typeof d.state === "string" ? tOr(`semrun_mascot_state_${d.state}`, d.state) : "";
   const base = tOr(`semrun_event_${e.type}`, e.type);
   return [base, stage, state].filter(Boolean).join(" · ");
@@ -184,7 +185,7 @@ export default function SemanticRunScreen({ params }: { params: Record<string, s
           {stages.length > 0 ? (
             <div className="stack" style={{ gap: 4 }}>
               <span className="small muted" data-testid="semantic-run-progress">
-                {current ? t("semrun_current", { stage: current.id.slice(current.id.lastIndexOf("/") + 1) }) : t("semrun_phases_done", { done: closed, total: stages.length })}
+                {current ? t("semrun_current", { stage: stageLabel(current.id) }) : t("semrun_phases_done", { done: closed, total: stages.length })}
               </span>
               <progress max={stages.length} value={closed} aria-label={t("semrun_progress_label")} aria-valuetext={t("semrun_phases_done", { done: closed, total: stages.length })} />
             </div>

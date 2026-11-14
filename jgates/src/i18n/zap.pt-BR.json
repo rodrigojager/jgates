@@ -35,7 +35,7 @@
   "zap_setting_image": "A instância {tool} indica uma imagem; o ZAP roda na imagem de ferramentas do JGates e nenhuma outra pode ser usada. Remova a configuração image.",
   "zap_setting_risk": "O blockingRisk da instância {tool} é {value}; use um de: {allowed}.",
   "zap_setting_minutes": "O spiderMinutes da instância {tool} é {value}; use um inteiro de 1 a 60.",
-  "zap_fix": "O ZAP roda na imagem de ferramentas do JGates: inicie o motor de contêiner e baixe as ferramentas desta versão do JGates (jgates setup), depois rode o doctor de novo.",
+  "zap_fix": "O ZAP roda na imagem de ferramentas do JGates: inicie o motor de contêineres e baixe as ferramentas desta versão do JGates (jgates setup), depois rode o doctor de novo.",
   "zap_form_title": "Opções do ZAP",
   "zap_form_section_scan": "Varredura",
   "zap_form_section_advanced": "Avançado",

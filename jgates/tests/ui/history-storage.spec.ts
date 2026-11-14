@@ -147,23 +147,23 @@ test("marking a run as baseline or preserved takes it out of the list `jgates gc
     expect(gcRuns(fixture).sort()).toEqual([before, after].sort());
     await open(page, server, "#/validations");
 
-    await page.getByRole("button", { name: `Marcar ${before} como baseline` }).click();
+    await page.getByRole("button", { name: `Marcar como baseline: ${before}` }).click();
     await expect(row(page, before)).toContainText("Baseline");
     expect(gcRuns(fixture)).toEqual([after]);
     expect(cli(fixture, "baseline", "show", "--cwd", fixture.dir, "--json").doc.baseline).toBe(before);
 
     // Baseline is one per workspace: marking the other one moves it.
-    await page.getByRole("button", { name: `Marcar ${after} como baseline` }).click();
+    await page.getByRole("button", { name: `Marcar como baseline: ${after}` }).click();
     await expect(row(page, after)).toContainText("Baseline");
     await expect(row(page, before)).not.toContainText("Baseline");
     expect(gcRuns(fixture)).toEqual([before]);
 
-    await page.getByRole("button", { name: `Preservar ${before} da retenção` }).click();
+    await page.getByRole("button", { name: `Preservar da retenção: ${before}` }).click();
     await expect(row(page, before)).toContainText("Preservado");
     expect(gcRuns(fixture)).toEqual([]);
     expect(cli(fixture, "history", "--cwd", fixture.dir, "--json").doc.runs.find((r: any) => r.runId === before).preserved).toBe(true);
 
-    await page.getByRole("button", { name: `Deixar de preservar ${before}` }).click();
+    await page.getByRole("button", { name: `Deixar de preservar: ${before}` }).click();
     await expect(row(page, before)).not.toContainText("Preservado");
     expect(gcRuns(fixture)).toEqual([before]);
   });
@@ -222,7 +222,7 @@ test("storage shows a workspace whose path is gone; relink and delete work, dele
     // Cancel keeps everything; the preview names what would go.
     await missing.getByRole("button", { name: /Apagar artefatos/ }).click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog.getByTestId("delete-preview")).toContainText("1 runs");
+    await expect(dialog.getByTestId("delete-preview")).toContainText("1 run");
     await expectNoAxeViolations(page);
     await dialog.getByRole("button", { name: "Cancelar" }).click();
     expect(fs.existsSync(ghost.folder)).toBe(true);

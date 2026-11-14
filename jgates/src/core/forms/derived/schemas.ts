@@ -8,9 +8,12 @@
 // description names no adapter is a setting of every instance (enabled, component, timeoutSeconds...). Reading the
 // owners from the schema keeps it the only source: a key added there shows up in the form of its adapters, and a key
 // whose description names nobody still gets a field in every form instead of none.
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { builtinManifests } from "../../../adapters/manifests.js";
+import { localizedAdapterName } from "../../catalog/index.js";
+import { translator } from "../../../i18n/index.js";
 import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE, configSchemaDir } from "../../config/load/index.js";
 import type { JsonSchema } from "../types.js";
 
@@ -96,7 +99,8 @@ export function adapterIds(): string[] {
 
 /** The display name of an adapter in the catalogue, or null when it is not a built-in one. */
 export function adapterDisplayName(adapter: string): string | null {
-  return builtinManifests().find((m) => m.id === adapter)?.displayName ?? null;
+  const manifest = builtinManifests().find((m) => m.id === adapter);
+  return manifest ? localizedAdapterName(manifest.id, manifest.displayName) : null;
 }
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -112,6 +116,18 @@ export function settingOwners(description: unknown, ids: readonly string[] = ada
   const head = description.slice(0, colon);
   const owners = ids.filter((id) => new RegExp(`(^|[^a-z0-9-])${escape(id)}($|[^a-z0-9-])`).test(head));
   return owners.length > 0 ? owners : null;
+}
+
+/**
+ * The help text of a schema description in the language of the screen. The schemas are written in English; the
+ * catalog "schema-help" holds each description under the hash of its English text (a changed description loses its
+ * translation until the catalog follows, and V2-73 fails on the gap), and the English text is the fallback.
+ */
+export function schemaHelp(description: unknown): string | null {
+  if (typeof description !== "string") return null;
+  const key = `h_${crypto.createHash("sha1").update(description).digest("hex").slice(0, 12)}`;
+  const text = translator("schema-help")(key);
+  return text === key ? description : text;
 }
 
 /** The schema of one tool instance (tools.<id>) as tools.schema.json declares it, with its $defs. */

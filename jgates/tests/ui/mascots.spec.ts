@@ -61,11 +61,11 @@ test("six transparent mascots follow real checks, replay and frozen historical e
     await expect(quality).toHaveAttribute("data-status", "processing");
     await expect(quality).toContainText("Problema encontrado");
     await expect(quality).toContainText("1 de 2");
-    const progress = page.getByRole("progressbar", { name: "Andamento por etapa", exact: true });
+    const progress = page.getByRole("progressbar", { name: "Andamento por verificação", exact: true });
     await expect(progress).toHaveAttribute("value", "1");
     await expect(progress).toHaveAttribute("max", "2");
     await expect(page.locator(".run-summary-spinner")).toBeVisible();
-    await expect(page.getByTestId("run-progress")).toContainText("Etapa 2 de 2");
+    await expect(page.getByTestId("run-progress")).toContainText("Verificação 2 de 2");
     await strip.screenshot({ path: testInfo.outputPath("running-findings.png") });
     await page.evaluate(() => { window.scrollTo(0, 0); });
     await page.screenshot({ path: testInfo.outputPath("running-full.png"), fullPage: true });

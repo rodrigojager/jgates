@@ -8,7 +8,7 @@
   "cft_none_project": "Nenhum template do projeto ainda. Crie um para uma stack que o catálogo não cobre.",
   "cft_badge_required": "Obrigatório",
   "cft_badge_one": "{count} componente",
-  "cft_badge_many": "{count} componentes",
+  "cft_badge_many": "{count, plural, one {# componente} other {# componentes}}",
   "cft_badge_none": "Sem correspondência",
   "cft_badge_manual": "Só quando pedido",
   "cft_badge_off": "Desligado",

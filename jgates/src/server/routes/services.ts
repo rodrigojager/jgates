@@ -15,7 +15,7 @@ import { workspaceDir } from "../../core/home/index.js";
 import { HEALTH_POLL, readServicesConfig, servicesOverride, servicesProjectName, DEFAULT_SERVICES_TIMEOUT_SECONDS, type ServicesConfig } from "../../core/services/index.js";
 import { resolveToolBindings } from "../../core/tools/index.js";
 import { toolsImageTarget } from "../../core/tools-image/index.js";
-import { HttpError } from "../http.js";
+import { HttpError, refuseMsg } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 
 export type ServiceRole = "dependency" | "application" | "unused";
@@ -38,7 +38,7 @@ interface SectionInput {
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === "object" && !Array.isArray(v);
-const fail = (status: number, code: string, message: string, details: Record<string, unknown> = {}): HttpError => new HttpError(status, code, message, null, details);
+const fail = (status: number, code: string, key: string, details: Record<string, unknown> = {}, params: Record<string, string> = {}): HttpError => refuseMsg(status, code, `route_${key}`, params, details);
 
 const rootAbs = (server: ServerContext): string => path.join(server.projectDir, ROOT_FILE);
 const ackFile = (server: ServerContext): string => path.join(workspaceDir(server.home, server.workspace.id), "services-ack.json");
@@ -111,12 +111,12 @@ function startedOf(discovery: ComposeDiscovery, input: SectionInput): string[] {
 
 function checkInput(discovery: ComposeDiscovery, input: SectionInput): { application: string | null } {
   const names = new Set(discovery.services.map((s) => s.name));
-  for (const name of Object.keys(input.roles)) if (!names.has(name)) throw fail(422, "SERVICE_UNKNOWN", `The compose files have no service ${name}.`, { service: name });
+  for (const name of Object.keys(input.roles)) if (!names.has(name)) throw fail(422, "SERVICE_UNKNOWN", "service_unknown", { service: name }, { name });
   const applications = Object.entries(input.roles).filter(([, r]) => r === "application").map(([n]) => n);
-  if (applications.length > 1) throw fail(422, "APPLICATION_MANY", "Only one service can be the application under test.", { services: applications });
+  if (applications.length > 1) throw fail(422, "APPLICATION_MANY", "application_many", { services: applications });
   const application = applications[0] ?? null;
-  if (application && !input.target) throw fail(422, "TARGET_PORT_REQUIRED", "Choose the port of the application under test.", { service: application });
-  for (const w of input.writableBinds) if (!names.has(w)) throw fail(422, "SERVICE_UNKNOWN", `The compose files have no service ${w}.`, { service: w });
+  if (application && !input.target) throw fail(422, "TARGET_PORT_REQUIRED", "target_port_required", { service: application });
+  for (const w of input.writableBinds) if (!names.has(w)) throw fail(422, "SERVICE_UNKNOWN", "service_unknown", { service: w }, { name: w });
   return { application };
 }
 
@@ -200,9 +200,9 @@ interface Preview {
 
 function buildPreview(server: ServerContext, input: SectionInput): Preview {
   const root = readRevision(rootAbs(server));
-  if (!root.exists) throw fail(409, "CONFIG_MISSING", "There is no jgates.yml yet: finish the guided setup first.");
+  if (!root.exists) throw fail(409, "CONFIG_MISSING", "config_missing");
   const discovery = discoverCompose(server.projectDir, input.compose);
-  if (discovery.services.length === 0) throw fail(422, "COMPOSE_EMPTY", "The chosen compose files have no services.", { problems: discovery.problems });
+  if (discovery.services.length === 0) throw fail(422, "COMPOSE_EMPTY", "compose_empty", { problems: discovery.problems });
   const { application } = checkInput(discovery, input);
   const section = sectionOf(input, discovery, application);
   const parsedRoot = parseYamlText(root.text.charCodeAt(0) === 0xfeff ? root.text.slice(1) : root.text, ROOT_FILE).value;
@@ -400,7 +400,7 @@ export const routes: RouteDefinition[] = [
       if (readRevision(rootAbs(server)).hash !== b.revision) throw fail(409, "REVISION_CONFLICT", "jgates.yml changed since it was read.");
       const p = buildPreview(server, input);
       if (!p.confirmed) {
-        if (b.acknowledged !== true) throw fail(409, "ACK_REQUIRED", "The host effects of the services have to be acknowledged first.", { effects: p.effects });
+        if (b.acknowledged !== true) throw fail(409, "ACK_REQUIRED", "ack_required", { effects: p.effects });
         fs.mkdirSync(path.dirname(ackFile(server)), { recursive: true });
         fs.writeFileSync(ackFile(server), `${JSON.stringify({ schemaVersion: 1, hash: p.hash })}\n`, { mode: 0o600 });
       }
@@ -424,10 +424,10 @@ export const routes: RouteDefinition[] = [
       const input = inputOf(body);
       checkFiles(server, input.compose);
       const discovery = discoverCompose(server.projectDir, input.compose);
-      if (discovery.services.length === 0) throw fail(422, "COMPOSE_EMPTY", "The chosen compose files have no services.", { problems: discovery.problems });
+      if (discovery.services.length === 0) throw fail(422, "COMPOSE_EMPTY", "compose_empty", { problems: discovery.problems });
       const { application } = checkInput(discovery, input);
       const started = startedOf(discovery, input);
-      if (started.length === 0) throw fail(422, "SERVICES_NONE", "No service is selected to start.");
+      if (started.length === 0) throw fail(422, "SERVICES_NONE", "services_none");
       const env = process.env;
       const engine: EngineContext = { runtime: engineRuntime(env), runnerOptions: { parentEnv: env } };
       const project = servicesProjectName(server.workspace.id, "test");

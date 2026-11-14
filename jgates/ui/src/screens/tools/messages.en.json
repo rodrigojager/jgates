@@ -235,5 +235,7 @@
   "ctl_err_TOOLS_FILE_INVALID": "The file .jgates/tools.yml could not be read: {detail}",
   "ctl_err_TIMEOUT_INVALID": "The maximum time has to be a positive number.",
   "ctl_unsupported_offer": "JGates has no checks for {language} yet. Add an own tool for it?",
-  "ctl_unsupported_action": "Add an own tool"
+  "ctl_unsupported_action": "Add an own tool",
+  "tools_category_infrastructure": "Infrastructure",
+  "tools_category_custom": "Your own checks"
 }

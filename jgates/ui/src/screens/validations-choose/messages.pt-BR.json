@@ -68,6 +68,6 @@
   "vch_gates_both_hint": "Semantic só começa após uma aprovação de Quality completa, atual e não reduzida",
   "vch_gates_manual": "Pausar após a aprovação de Quality",
   "vch_gates_manual_hint": "Semantic espera até você avançar pela visão geral da sequência",
-  "vch_skip_count": "{count} verificações desligadas só para esta execução",
+  "vch_skip_count": "{count, plural, one {# verificação desligada} other {# verificações desligadas}} só para esta execução",
   "vch_skip_count_one": "1 verificação desligada só para esta execução"
 }

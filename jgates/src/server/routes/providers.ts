@@ -259,7 +259,7 @@ export function providersView(server: ServerContext): Record<string, unknown> {
 
 function entryOrMissing(name: string): ProviderEntry {
   const entry = providersGuard(() => providerEntry(name));
-  if (!entry) throw new HttpError(404, "UNKNOWN_PROVIDER", `name: ${t("server_prov_unknown_provider")}`, t("server_prov_fix"), { errors: [{ field: "name", code: "UNKNOWN_PROVIDER", message: t("server_prov_unknown_provider") }] });
+  if (!entry) throw new HttpError(404, "UNKNOWN_PROVIDER", ["name", t("server_prov_unknown_provider")].join(": "), t("server_prov_fix"), { errors: [{ field: "name", code: "UNKNOWN_PROVIDER", message: t("server_prov_unknown_provider") }] });
   return entry;
 }
 

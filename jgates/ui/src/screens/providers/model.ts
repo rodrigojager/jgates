@@ -1,5 +1,6 @@
 // What GET /api/providers and GET /api/secrets send: values with their origin and the state of each key, never a
 // key value (the server never has one to send).
+import { formatDateTime } from "../../components/format";
 import { formatLocale } from "../../i18n/locale";
 
 export type Origin = "project" | "user" | "default" | "unset";
@@ -84,9 +85,7 @@ export const secretPath = (name: string, suffix = ""): string => `/api/secrets/$
 export const providerPath = (name: string, suffix = ""): string => `/api/providers/${encodeURIComponent(name)}${suffix}`;
 
 export function formatDate(iso: string | null): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(formatLocale(), { dateStyle: "short", timeStyle: "short" });
+  return iso ? formatDateTime(iso) : null;
 }
 
 /** true for plain http to a host that is not loopback: the key would travel in clear text (the server asks for a confirmation). */

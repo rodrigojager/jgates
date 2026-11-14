@@ -8,7 +8,8 @@ import { isMap, isScalar, isSeq, stringify, type Document, type LineCounter } fr
 import { builtinManifests } from "../../../adapters/manifests.js";
 import { builtinProfileBody, getBuiltinProfile, getBuiltinTemplate } from "../../../builtin/index.js";
 import { translator } from "../../../i18n/index.js";
-import { builtinTemplateText, createCoreCatalog } from "../../catalog/index.js";
+import { localizedAdapterName, builtinTemplateText, createCoreCatalog } from "../../catalog/index.js";
+import { starterProfileText } from "../../profiles/index.js";
 import { readRevision } from "../../codecs/yaml/index.js";
 import { parseYamlText, validateDocument, type ConfigDiagnostic } from "../../config/load/index.js";
 import { encodePointer, type ResolveResult } from "../../config/resolve/index.js";
@@ -26,6 +27,7 @@ import {
   instanceSchema,
   loadConfigSchema,
   schemaEntryOfKind,
+  schemaHelp,
   settingOwners,
   type ConfigKind,
   type SchemaEntry,
@@ -86,7 +88,8 @@ class Labels {
   }
 
   adapter(id: string): string | null {
-    return this.manifests.find((m) => m.id === id)?.displayName ?? null;
+    const manifest = this.manifests.find((m) => m.id === id);
+    return manifest ? localizedAdapterName(manifest.id, manifest.displayName) : null;
   }
 
   adapterCapabilities(id: string): string[] {
@@ -114,8 +117,7 @@ class Labels {
   profile(ref: string): string | null {
     const item = getBuiltinProfile(ref);
     if (!item) return null;
-    const label = builtinProfileBody(item).label;
-    return typeof label === "string" ? label : null;
+    return starterProfileText(item.id, builtinProfileBody(item)).label;
   }
 
   options(values: readonly unknown[], label: (v: string) => string | null): DerivedOption[] {
@@ -397,7 +399,7 @@ class Builder {
           role: last === "map" ? "entry" : last === "item" ? "item" : "container",
           present,
           label,
-          help: typeof d.schema.description === "string" ? d.schema.description : null,
+          help: schemaHelp(d.schema.description),
           link: this.link(path),
           ...(d.keyPattern ? { keyPattern: d.keyPattern } : {}),
         });
@@ -469,7 +471,7 @@ class Builder {
       widget,
       schema: d.schema,
       label: { text: keyWords(key), secondary: key },
-      help: typeof d.schema.description === "string" ? d.schema.description : null,
+      help: schemaHelp(d.schema.description),
       state: present ? (diagnostics.length > 0 ? "invalid" : "set") : "inherited",
       value: present ? value : (inherited?.value ?? null),
       origin: present ? this.fileOrigin(path) : (inherited as { origin: DerivedOrigin }).origin,

@@ -1,4 +1,5 @@
 import { Pill } from "../../components/common";
+import { formatDateTime } from "../../components/format";
 import { Icon } from "../../components/icons";
 import { formatLocale, t, tOr } from "../../i18n";
 
@@ -42,9 +43,7 @@ export const DECISION_TONE: Record<string, "green" | "gold" | "red" | "blue"> = 
 const CONFIRMATION_TONE: Record<string, "green" | "gold" | "red" | "blue"> = { confirmed: "red", "needs-validation": "gold", rejected: "blue" };
 
 export function formatWhen(iso: string | null): string {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(formatLocale(), { dateStyle: "short", timeStyle: "short" });
+  return iso ? formatDateTime(iso) : "-";
 }
 
 const percent =(value: number | null): string => (value === null ? "-" : `${Math.round(value * 100)}%`);

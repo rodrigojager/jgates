@@ -10,7 +10,7 @@ import { hashBytes, readRevision } from "../../core/codecs/yaml/index.js";
 import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE, loadProjectConfig, parseYamlText, validateDocument, type ConfigDiagnostic } from "../../core/config/load/index.js";
 import { ensureWorkspaceDirs } from "../../core/home/index.js";
 import { isMap, isNode, isPair, isSeq } from "yaml";
-import { HttpError } from "../http.js";
+import { HttpError, refuseMsg, routeText } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { assertWritable, conflict } from "./templates.js";
 import { modeOf } from "./workspaces.js";
@@ -41,7 +41,7 @@ function locate(server: ServerContext, file: string): string {
   const abs = path.join(server.projectDir, file);
   try {
     const real = fs.realpathSync(abs);
-    if (!isInside(fs.realpathSync(server.projectDir), real)) throw new HttpError(403, "FILE_OUTSIDE_PROJECT", `O arquivo ${file} aponta para fora do projeto.`);
+    if (!isInside(fs.realpathSync(server.projectDir), real)) throw refuseMsg(403, "FILE_OUTSIDE_PROJECT", "route_file_outside_project", { file });
     return real;
   } catch (error) {
     if (error instanceof HttpError) throw error;
@@ -112,7 +112,7 @@ function check(server: ServerContext, file: string, text: string): CheckResult {
   const kind = kindOf(file);
   const out: ConfigDiagnostic[] = [];
   if (Buffer.byteLength(text, "utf8") > MAX_BYTES) {
-    out.push({ kind: "syntax", code: "TOO_LARGE", file, path: "", pathSegments: [], message: "O arquivo passa do limite de 1 MiB." });
+    out.push({ kind: "syntax", code: "TOO_LARGE", file, path: "", pathSegments: [], message: routeText("route_file_too_large") });
   } else if (kind === "template") {
     const parsed = parseYamlText(text, file);
     out.push(...parsed.diagnostics);
@@ -224,7 +224,7 @@ export function lineOfPath(text: string, file: string, keyPath: string): { line:
 function view(server: ServerContext, file: string, keyPath?: string): Rec {
   const abs = locate(server, file);
   const rev = readRevision(abs);
-  if (!rev.exists) throw new HttpError(404, "FILE_MISSING", `O arquivo ${file} não existe.`, null, { file });
+  if (!rev.exists) throw refuseMsg(404, "FILE_MISSING", "route_file_missing", { file }, { file });
   const draft = readDraft(server, file);
   const differs = draft !== null && draft.text !== rev.text;
   const mode = modeOf();
@@ -266,15 +266,15 @@ export const routes: RouteDefinition[] = [
       assertWritable();
       const file = (body as { file: string }).file;
       const abs = locate(server, file);
-      if (readRevision(abs).exists) throw new HttpError(409, "FILE_EXISTS", `O arquivo ${file} já existe.`, "Abra o arquivo na aba YAML para editá-lo.", { file });
+      if (readRevision(abs).exists) throw refuseMsg(409, "FILE_EXISTS", "route_file_exists", { file }, { file });
       const text = CREATABLE[file] as string;
       const result = check(server, file, text);
-      if (result.diagnostics.some((d) => d.inThisFile)) throw new HttpError(422, "CONFIG_INVALID", `O modelo de ${file} não passou na checagem.`, null, { diagnostics: result.diagnostics });
+      if (result.diagnostics.some((d) => d.inThisFile)) throw refuseMsg(422, "CONFIG_INVALID", "route_model_check_failed", { file }, { diagnostics: result.diagnostics });
       fs.mkdirSync(path.dirname(abs), { recursive: true });
       const bytes = Buffer.from(text, "utf8");
       writeBytesAtomic(abs, bytes, {
         verify: () => {
-          if (readRevision(abs).exists) throw new HttpError(409, "FILE_EXISTS", `O arquivo ${file} já existe.`, null, { file });
+          if (readRevision(abs).exists) throw refuseMsg(409, "FILE_EXISTS", "route_file_exists_plain", { file }, { file });
         },
       });
       server.log(`config file created: ${file} (${hashBytes(bytes).slice(0, 12)})`);
@@ -371,13 +371,13 @@ export const routes: RouteDefinition[] = [
       const b = body as { file: string; text: string; expectedRevision: string; allowInvalid?: boolean };
       const abs = locate(server, b.file);
       const current = readRevision(abs);
-      if (!current.exists) throw new HttpError(404, "FILE_MISSING", `O arquivo ${b.file} não existe.`, null, { file: b.file });
+      if (!current.exists) throw refuseMsg(404, "FILE_MISSING", "route_file_missing", { file: b.file }, { file: b.file });
       if (current.hash !== b.expectedRevision) throw conflict(current.hash, b.file);
       const result = check(server, b.file, b.text);
       const mine = result.diagnostics.filter((d) => d.inThisFile);
       if (mine.length > 0 && b.allowInvalid !== true) {
         const first = mine[0] as ConfigDiagnostic;
-        throw new HttpError(422, "CONFIG_INVALID", `O ${b.file} não foi salvo: ${first.path ? `${first.path}: ` : ""}${first.message}`, "Corrija o texto (o rascunho continua guardado) ou salve assim mesmo, sabendo que o plano deixará de ser aprovável.", { diagnostics: result.diagnostics });
+        throw refuseMsg(422, "CONFIG_INVALID", "route_yaml_not_saved", { file: b.file, detail: `${first.path ? `${first.path}: ` : ""}${first.message}` }, { diagnostics: result.diagnostics });
       }
       const bytes = Buffer.from(b.text, "utf8");
       if (current.text === b.text) return { status: 200, json: { schemaVersion: 1, status: "OK", saved: false, ...view(server, b.file) } };

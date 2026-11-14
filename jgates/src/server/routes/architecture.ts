@@ -14,7 +14,7 @@ import { writeBytesAtomic } from "../../core/documents/atomic.js";
 import { cachedProject } from "../../core/cache/project.js";
 import { onlyFileProblems, resolveReadable } from "../../core/config/resolve/index.js";
 import { resolveSelection } from "../../core/selection/index.js";
-import { HttpError } from "../http.js";
+import { HttpError, refuseMsg } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { assertWritable, patchConfigFile } from "./templates.js";
 import { modeOf } from "./workspaces.js";
@@ -246,7 +246,7 @@ function planArchitecture(server: ServerContext, body: EditBody): ArchPlan {
   const rev = readRevision(abs);
   const before = rev.exists ? rev.text : EMPTY_FILE;
   const parsed = parseYamlText(before, ARCHITECTURE_FILE);
-  if (parsed.diagnostics.length > 0 || !isRec(parsed.value)) throw new HttpError(422, "CONFIG_INVALID", `O ${ARCHITECTURE_FILE} tem um erro de sintaxe e não pode ser editado por aqui.`, "Corrija o arquivo na aba YAML.");
+  if (parsed.diagnostics.length > 0 || !isRec(parsed.value)) throw refuseMsg(422, "CONFIG_INVALID", "route_architecture_syntax", { file: ARCHITECTURE_FILE });
   const arch = isRec(parsed.value.architecture) ? parsed.value.architecture : null;
   const listOf = (key: "layers" | "rules"): Rec[] => (arch && Array.isArray(arch[key]) ? (arch[key] as unknown[]).filter(isRec) : []);
   const rawLen = (key: "layers" | "rules"): number => (arch && Array.isArray(arch[key]) ? (arch[key] as unknown[]).length : 0);
@@ -289,9 +289,9 @@ function planArchitecture(server: ServerContext, body: EditBody): ArchPlan {
   const after = edits.length === 0 ? before : patchYamlText(before, edits).text;
   const value = parseYamlText(after, ARCHITECTURE_FILE).value;
   const schema = validateDocument("architecture", value, ARCHITECTURE_FILE);
-  if (schema.length > 0) throw new HttpError(422, "CONFIG_INVALID", `O ${ARCHITECTURE_FILE} ficaria inválido: ${schema[0]?.message}`, null, { path: schema[0]?.path });
+  if (schema.length > 0) throw refuseMsg(422, "CONFIG_INVALID", "route_invalid_after", { file: ARCHITECTURE_FILE, message: schema[0]?.message ?? "" }, { path: schema[0]?.path });
   const refs = architectureReferenceProblems(value)[0];
-  if (refs) throw new HttpError(422, refs.code === "REF_LAYER_UNKNOWN" ? "LAYER_UNKNOWN" : "DUPLICATE_ID", refs.code === "REF_LAYER_UNKNOWN" ? `A camada ${refs.params.id} não existe no ${ARCHITECTURE_FILE}.` : `O identificador ${refs.params.id} aparece duas vezes no ${ARCHITECTURE_FILE}.`, null, { path: refs.segments.join(".") });
+  if (refs) throw refuseMsg(422, refs.code === "REF_LAYER_UNKNOWN" ? "LAYER_UNKNOWN" : "DUPLICATE_ID", refs.code === "REF_LAYER_UNKNOWN" ? "route_layer_unknown" : "route_duplicate_id", { id: String(refs.params.id), file: ARCHITECTURE_FILE }, { path: refs.segments.join(".") });
   return { exists: rev.exists, before, after, edits, revision: rev.hash };
 }
 
@@ -342,7 +342,7 @@ export const routes: RouteDefinition[] = [
         fs.mkdirSync(path.dirname(abs), { recursive: true });
         writeBytesAtomic(abs, Buffer.from(plan.after, "utf8"), {
           verify: () => {
-            if (readRevision(abs).exists) throw new HttpError(409, "FILE_EXISTS", `O arquivo ${ARCHITECTURE_FILE} já existe.`, "Recarregue a tela.");
+            if (readRevision(abs).exists) throw refuseMsg(409, "FILE_EXISTS", "route_architecture_exists", { file: ARCHITECTURE_FILE });
           },
         });
       }
@@ -372,7 +372,7 @@ export const routes: RouteDefinition[] = [
       const b = body as { enabled: boolean; expectedRevision: string };
       const read = readArchitecture(server.projectDir);
       const index = (read.declaration?.contract.rules ?? []).findIndex((r) => r.id === params.id);
-      if (!read.declaration || index < 0) throw new HttpError(404, "RULE_NOT_FOUND", `Não há regra ${params.id} no ${ARCHITECTURE_FILE}.`);
+      if (!read.declaration || index < 0) throw refuseMsg(404, "RULE_NOT_FOUND", "route_rule_not_found", { id: String(params.id), file: ARCHITECTURE_FILE });
       patchConfigFile(server, ARCHITECTURE_FILE, "architecture", [{ op: "set", path: ["architecture", "rules", index, "enabled"], value: b.enabled }], b.expectedRevision);
       server.log(`architecture rule ${params.id} enabled=${b.enabled}`);
       return { status: 200, json: describe(server) };

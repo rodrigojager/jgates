@@ -3,6 +3,7 @@
 import { externalAdapter } from "../plan/adapters.js";
 import { resolveReadable } from "../config/resolve/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
+import { localizedAdapterName } from "../catalog/index.js";
 import { resolveToolBindings } from "./index.js";
 
 const DEFAULT_TIMEOUT_SECONDS = 30 * 60;
@@ -69,7 +70,7 @@ export function renderExecution(dir: string, instanceId: string, env: NodeJS.Pro
   const base = {
     instance: bound.id,
     adapter: bound.adapter,
-    displayName: manifest?.displayName ?? bound.adapter,
+    displayName: manifest ? localizedAdapterName(manifest.id, manifest.displayName) : bound.adapter,
     effects: manifest?.effects ?? {},
     context: { granularity: manifest?.granularity ?? [], minimumContext: manifest?.minimumContext ?? [], componentRoot: bound.componentRoot },
     limitations: manifest?.limitations ?? [],

@@ -4,7 +4,7 @@
   "prepare_incompatible": "Versão incompatível: {tool} {version} está fora da faixa {range} aceita pelo adaptador {what}. O JGates não troca a versão sozinho.",
   "prepare_fix_incompatible": "Instale uma versão de {tool} dentro da faixa {range} e rode o doctor de novo. Não há downgrade automático.",
   "prepare_fix_git": "Instale o Git e ponha no PATH.",
-  "prepare_fix_docker": "Instale o Docker só se for usar etapas em container.",
+  "prepare_fix_docker": "Instale o Docker só se for usar etapas em contêiner.",
   "prepare_adapter_unknown": "O adaptador {adapter} não está entre os incorporados; nada a conferir.",
   "prepare_not_checked": "{tool}: o adaptador ainda não tem verificação de ambiente.",
   "prepare_when_available_missing": "{tool}: o plano não o encontrou nesta máquina.",
@@ -25,7 +25,7 @@
   "prepare_download_too_large": "O conjunto de regras de {url} é grande demais ({detail} bytes).",
   "prepare_download_insecure_url": "Só https (ou http em localhost) é aceito para baixar regras: {url}",
   "prepare_download_fix": "Confira a rede e rode a preparação de novo. Enquanto isso, os runs seguem com a última cópia preparada, se houver.",
-  "prepare_fix_docker_required": "Instale o Docker (ou aponte JGATES_CONTAINER_RUNTIME para o runtime de container) e rode a preparação de novo.",
+  "prepare_fix_docker_required": "Instale o Docker (ou aponte JGATES_CONTAINER_RUNTIME para o motor de contêineres) e rode a preparação de novo.",
   "prepare_fix_docker_stopped": "Inicie o Docker (jgates doctor --fix oferece o comando do sistema).",
   "prepare_recipe_docker_unknown_system": "o JGates não conhece o comando de instalação deste sistema; siga {docs}.",
   "prepare_recipe_needs_confirmation": "comando do sistema, roda só depois de um sim no terminal: {command}",
@@ -51,6 +51,6 @@
   "prepare_offer_confirm_all": "Instalar tudo isso agora? [s/N] ",
   "prepare_offer_cancelled": "Cancelado: nada foi instalado.",
   "prepare_engine_in_image": "Não é necessário: o JGates roda dentro da imagem de ferramentas, onde as verificações rodam nativamente.",
-  "prepare_image_needs_engine": "A imagem de ferramentas {image} é verificada quando o motor de containers responder.",
+  "prepare_image_needs_engine": "A imagem de ferramentas {image} é verificada quando o motor de contêineres responder.",
   "prepare_recipe_image_unpublished": "A imagem de ferramentas {image} deste JGates ainda não foi publicada: gere-a com npm run image:build (a imagem de desenvolvimento jgates-tools:dev) ou defina JGATES_TOOLS_IMAGE."
 }

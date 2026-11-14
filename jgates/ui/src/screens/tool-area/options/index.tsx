@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { formatDateTime } from "../../../components/format";
 import { yamlHref } from "../../../forms/derived/api";
 import { formatLocale } from "../../../i18n/locale";
 import { ApiError, api } from "../../../api";
@@ -262,7 +263,7 @@ function NativeOptions({ instance, active, openFile, onKind }: ToolTabProps & { 
           <div className="notice warn" role="status" data-testid="options-draft">
             <Icon name="alert" />
             <div className="stack tight grow">
-              <p>{t("options_draft", { when: new Date(draft.updatedAt).toLocaleString(formatLocale()) })}</p>
+              <p>{t("options_draft", { when: formatDateTime(draft.updatedAt) })}</p>
               <div>
                 <button type="button" className="btn" onClick={() => openFile({ binding: view.binding })}>
                   <Icon name="file" />

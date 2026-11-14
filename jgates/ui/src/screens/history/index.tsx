@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatDateTime } from "../../components/format";
 import { formatLocale } from "../../i18n/locale";
 import { api } from "../../api";
 import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
@@ -43,9 +44,7 @@ const RESULT_FILTERS: ResultFilter[] = ["all", "pending", "passed"];
 const TONE: Record<string, "green" | "gold" | "red" | "blue"> = { passed: "green", failed: "red", incomplete: "gold", invalid: "red", cancelled: "gold" };
 
 export function formatWhen(iso: string | null): string {
-  if (!iso) return "-";
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(formatLocale(), { dateStyle: "short", timeStyle: "short" });
+  return iso ? formatDateTime(iso) : "-";
 }
 
 function formatDuration(ms: number | null): string {
@@ -210,11 +209,11 @@ export default function HistoryScreen() {
                   <td className="muted" data-label={t("history_col_duration")}>{formatDuration(r.durationMs)}</td>
                   <td data-label={t("history_col_actions")}>
                     <div className="history-actions">
-                      <button type="button" className="btn" disabled={busy === r.runId || r.unfinished} aria-pressed={r.baseline} onClick={() => mark(r, { baseline: !r.baseline }, r.baseline ? "history_baseline_cleared" : "history_baseline_set")}>
-                        {r.baseline ? t("history_baseline_remove", { runId: r.runId }) : t("history_baseline_make", { runId: r.runId })}
+                      <button type="button" className="btn" disabled={busy === r.runId || r.unfinished} aria-pressed={r.baseline} aria-label={t("history_action_for", { action: t(r.baseline ? "history_baseline_remove" : "history_baseline_make"), runId: r.runId })} onClick={() => mark(r, { baseline: !r.baseline }, r.baseline ? "history_baseline_cleared" : "history_baseline_set")}>
+                        {r.baseline ? t("history_baseline_remove") : t("history_baseline_make")}
                       </button>
-                      <button type="button" className="btn" disabled={busy === r.runId} aria-pressed={r.preserved} onClick={() => mark(r, { preserved: !r.preserved }, r.preserved ? "history_preserve_cleared" : "history_preserve_set")}>
-                        {r.preserved ? t("history_preserve_remove", { runId: r.runId }) : t("history_preserve_make", { runId: r.runId })}
+                      <button type="button" className="btn" disabled={busy === r.runId} aria-pressed={r.preserved} aria-label={t("history_action_for", { action: t(r.preserved ? "history_preserve_remove" : "history_preserve_make"), runId: r.runId })} onClick={() => mark(r, { preserved: !r.preserved }, r.preserved ? "history_preserve_cleared" : "history_preserve_set")}>
+                        {r.preserved ? t("history_preserve_remove") : t("history_preserve_make")}
                       </button>
                     </div>
                   </td>

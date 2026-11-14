@@ -1,5 +1,5 @@
 import path from "node:path";
-import { translator } from "../../i18n/index.js";
+import { loadCatalog, translator } from "../../i18n/index.js";
 import { builtinProfileBody, getBuiltinProfile, listBuiltinProfiles } from "../../builtin/index.js";
 import { CONFIG_DIR, loadProjectConfig, ROOT_FILE, suggestName, validateDocument, type ConfigLoadResult } from "../config/load/index.js";
 import { DEFAULT_PROFILE, onlyFileProblems, resolveReadable } from "../config/resolve/index.js";
@@ -118,6 +118,29 @@ export function starterProfileText(id: string, body: Record<string, unknown>): {
   };
 }
 
+/**
+ * The text of a project profile in the active language. A profile written by `init` carries the starter's label and
+ * description in the language the file was created in; while the text is still one of the starter's (in either
+ * language) it is shown in the language of the screen, and a text the person wrote is kept as it is.
+ */
+export function projectProfileText(id: string, body: Record<string, unknown>): { label: string | null; description: string | null } {
+  const own = { label: typeof body.label === "string" ? body.label : null, description: typeof body.description === "string" ? body.description : null };
+  if (body.extends !== `builtin:${id}`) return own;
+  const known = (part: "label" | "description"): Set<string> => new Set((["pt-BR", "en"] as const).map((locale) => loadCatalog("profiles", locale)[`builtin_profile_${id}_${part}`]).filter((v): v is string => typeof v === "string"));
+  const starter = starterProfileText(id, {});
+  return {
+    label: own.label === null || known("label").has(own.label) ? starter.label ?? own.label : own.label,
+    description: own.description === null || known("description").has(own.description) ? starter.description ?? own.description : own.description,
+  };
+}
+
+/** The label of a profile by id: a starter's own text is shown in the language of the screen, any other label as written. */
+export function profileLabelText(id: string, label: string | null): string | null {
+  const bare = id.replace(/^builtin:/, "");
+  const starter = (["pt-BR", "en"] as const).map((locale) => loadCatalog("profiles", locale)[`builtin_profile_${bare}_label`]).filter((v): v is string => typeof v === "string");
+  return starter.length > 0 && (label === null || starter.includes(label)) ? starterProfileText(bare, {}).label ?? label : label;
+}
+
 /** Lists the project profiles, then the starter profiles, with the default and the revisions of the files. */
 export function listProfiles(dir: string): ProfileList {
   const load = loadValid(path.resolve(dir));
@@ -129,7 +152,7 @@ export function listProfiles(dir: string): ProfileList {
     ref,
     ...(origin === "builtin"
       ? starterProfileText(ref.replace(/^builtin:/, ""), body)
-      : { label: typeof body.label === "string" ? body.label : null, description: typeof body.description === "string" ? body.description : null }),
+      : projectProfileText(ref, body)),
     extends: typeof body.extends === "string" ? body.extends : null,
     checks: asRecord(body.checks) as ProfileInfo["checks"],
     gates: Array.isArray(body.gates) ? normalizeGates(body.gates) : null,

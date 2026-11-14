@@ -35,7 +35,7 @@
   "security_timeout": "{tool} exceeded the limit of {seconds} s and was ended.",
   "security_cancelled": "{tool} was cancelled.",
   "security_exit_error": "{tool} ended with code {code}: {detail}",
-  "security_runtime_failed": "The container runtime failed to run {tool} (code {code}): {detail}",
+  "security_runtime_failed": "The container engine failed to run {tool} (code {code}): {detail}",
   "security_report_missing": "{tool} did not leave the JSON report ({detail}).",
   "security_report_too_large": "The {tool} report has {bytes} bytes, above the read limit (JGATES_MAX_LOG_BYTES): treated as truncated.",
   "security_invalid_report": "The {tool} report could not be interpreted: {detail}",

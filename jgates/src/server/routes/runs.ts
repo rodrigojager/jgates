@@ -1,4 +1,5 @@
 // Runs: start the run of a reviewed plan (by hash, never a command), read it, follow its events and cancel it.
+import { localizeResult } from "../../core/results/localize.js";
 import fs from "node:fs";
 import path from "node:path";
 import { readEvents, type RunEvent as StepEvent } from "../../core/events/index.js";
@@ -82,7 +83,7 @@ export const routes: RouteDefinition[] = [
       if (id.startsWith("job_")) return { status: 200, json: { schemaVersion: 1, status: "OK", run: jobView(jobOf(server, id)) } };
       const result = readStoredRun(server, id);
       if (!result) throw refuse(404, "RUN_NOT_FOUND");
-      return { status: 200, json: { schemaVersion: 1, status: "OK", result } };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", result: localizeResult(result as { stages?: unknown }) } };
     },
   },
   {

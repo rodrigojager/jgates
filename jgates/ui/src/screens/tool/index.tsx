@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { formatDateTime } from "../../components/format";
 import { formatLocale } from "../../i18n/locale";
 import { ApiError, api, documentPath, entryQuery } from "../../api";
 import { useShell } from "../../app/shell-context";
@@ -431,7 +432,7 @@ function FilesTab({ instance, target, onChanged }: { instance: any; target: (Fil
                 <dd>{doc.format}</dd>
                 <dt>{t("doc_revision")}</dt>
                 <dd>
-                  <code data-testid="revision">{doc.revision ?? "-"}</code>
+                  <code data-testid="revision" title={doc.revision ?? undefined}>{doc.revision ? doc.revision.replace(/^sha256:/, "").slice(0, 12) : "-"}</code>
                 </dd>
                 {doc.sharedWith.length > 0 ? (
                   <>
@@ -504,7 +505,7 @@ function FilesTab({ instance, target, onChanged }: { instance: any; target: (Fil
                   <div className="notice" role="status" data-testid="draft-restored">
                     <Icon name="alert" />
                     <div className="stack tight">
-                      <p>{eb("restored", { when: new Date(restored.updatedAt).toLocaleString(formatLocale()) })}</p>
+                      <p>{eb("restored", { when: formatDateTime(restored.updatedAt) })}</p>
                       {restored.stale ? <p className="small">{eb("restored_stale")}</p> : null}
                     </div>
                   </div>

@@ -25,7 +25,7 @@ import { resolveSelection } from "../../core/selection/index.js";
 import { withEngineFacts } from "../../core/engine/facts.js";
 import { buildPlan } from "../../core/plan/index.js";
 import { workspaceDir } from "../../core/home/index.js";
-import { HttpError, refuse } from "../http.js";
+import { HttpError, refuse, refuseMsg } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 
 /** The own tools whose test ran and could read the report (per workspace, in the data folder: never in the project). */
@@ -524,7 +524,7 @@ export const routes: RouteDefinition[] = [
       const instance = r.instances.find((i) => i.id === params.instance);
       if (!instance) throw refuse(404, "INSTANCE_NOT_FOUND", { name: params.instance as string });
       const binding = instance.bindings.find((b) => b.id === params.binding);
-      if (!binding || binding.kind !== "file") throw new HttpError(404, "BINDING_NOT_FOUND", `The instance ${instance.id} has no file binding ${params.binding as string}.`, null);
+      if (!binding || binding.kind !== "file") throw refuseMsg(404, "BINDING_NOT_FOUND", "route_binding_not_found", { instance: instance.id, binding: params.binding as string });
       return { status: 200, json: { schemaVersion: 1, status: "OK", template: templateFor(instance.adapter, binding.declared) } };
     },
   },

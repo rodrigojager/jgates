@@ -40,7 +40,7 @@
   "help_faq_architecture_q": "Does JGates discover the right architecture by itself?",
   "help_faq_architecture_a": "It identifies files, languages and dependencies. The desired architecture is declared by you, in .jgates/architecture.yml: layers, limits and contracts that must be preserved.",
   "help_faq_cache_q": "Why did a result come back reused?",
-  "help_faq_cache_a": "If nothing the stage reads has changed, the result of an earlier run is reused, and the result says which run it came from. Use --no-cache to run everything again.",
+  "help_faq_cache_a": "If nothing the check reads has changed, the result of an earlier run is reused, and the result says which run it came from. Use --no-cache to run everything again.",
   "help_faq_waiver_q": "What does a waiver do?",
   "help_faq_waiver_a": "It takes a finding out of blocking, with a reason and an expiry. It never turns a tool that failed into approved: if the stage errored, the run stays unapproved.",
   "help_faq_governed_q": "What changes in governed mode?",

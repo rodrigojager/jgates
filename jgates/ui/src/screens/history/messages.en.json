@@ -12,7 +12,7 @@
   "history_result_all": "All",
   "history_result_pending": "With pending items",
   "history_result_passed": "Approved",
-  "history_count": "{count} validations",
+  "history_count": "{count, plural, one {# validation} other {# validations}}",
   "history_compare": "Compare the two chosen",
   "history_pick_second": "Choose one more validation to compare.",
   "history_pick": "Choose the validation {runId} to compare",
@@ -33,10 +33,10 @@
   "history_partial": "Partial",
   "history_baseline": "Baseline",
   "history_preserved": "Preserved",
-  "history_baseline_make": "Mark {runId} as the baseline",
-  "history_baseline_remove": "Remove the baseline from {runId}",
-  "history_preserve_make": "Preserve {runId} from retention",
-  "history_preserve_remove": "Stop preserving {runId}",
+  "history_baseline_make": "Mark as the baseline",
+  "history_baseline_remove": "Remove the baseline",
+  "history_preserve_make": "Preserve from retention",
+  "history_preserve_remove": "Stop preserving",
   "history_baseline_set": "The run {runId} is the baseline of this workspace.",
   "history_baseline_cleared": "The run {runId} is no longer the baseline.",
   "history_preserve_set": "The run {runId} is kept out of retention cleanup.",
@@ -63,5 +63,6 @@
   "history_context_title": "Approval has context.",
   "history_context_body": "A change in the code or in the configuration requires a new validation. No old result approves a new commit.",
   "history_new_run": "New validation",
-  "history_running": "Running"
+  "history_running": "Running",
+  "history_action_for": "{action}: {runId}"
 }

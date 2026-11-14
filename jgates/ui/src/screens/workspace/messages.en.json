@@ -20,7 +20,7 @@
   "ws_summary_languages_one": "1 language",
   "ws_summary_languages": "{count} languages",
   "ws_summary_components_one": "1 component",
-  "ws_summary_components": "{count} components",
+  "ws_summary_components": "{count, plural, one {# component} other {# components}}",
   "ws_mode_auto": "Detect",
   "ws_mode_explicit": "Declare",
   "ws_mode_report-only": "Report only",

@@ -2,6 +2,7 @@
 // (languages, categories, runners, support level on this machine). Availability of the tool itself (is it installed?)
 // is per instance and comes from the adapter's own probe, in availability().
 import { builtinManifests } from "../../adapters/manifests.js";
+import { localizedAdapterName } from "../catalog/index.js";
 import { externalAdapter } from "../plan/adapters.js";
 import { resolveReadable } from "../config/resolve/index.js";
 import { instanceAdapters } from "./instances.js";
@@ -30,9 +31,10 @@ export function toolCatalog(): CatalogEntry[] {
   const manifests = builtinManifests();
   const creatable = new Set(instanceAdapters());
   return manifests
+    .filter((m) => m.id !== "quality-bridge")
     .map((m) => ({
       adapter: m.id,
-      displayName: m.displayName,
+      displayName: localizedAdapterName(m.id, m.displayName),
       toolName: m.toolName,
       languages: m.languages ?? [],
       categories: m.categories,

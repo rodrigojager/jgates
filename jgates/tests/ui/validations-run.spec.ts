@@ -98,7 +98,7 @@ test("cancel from the UI stops the step processes, says that no approval was iss
       await expect.poll(() => fs.existsSync(pidFile), { timeout: 60_000 }).toBe(true);
       const pid = Number(fs.readFileSync(pidFile, "utf8"));
       expect(alive(pid)).toBe(true);
-      await expect(page.getByTestId("run-progress")).toContainText(/Etapa \d+ de \d+/);
+      await expect(page.getByTestId("run-progress")).toContainText(/Verificação \d+ de \d+/);
 
       // A reload in the middle of the run resumes the events by cursor: each sequence appears once.
       await page.reload();
@@ -288,7 +288,7 @@ test("step logs: closed until opened, one block per tool with both streams, the 
     await page.getByRole("button", { name: "Ver log de pytest" }).click();
     await expect(pytestLog).toBeVisible();
     await expect(pytestLog.getByTestId("log-block").first()).toHaveAttribute("data-failed", "true");
-    await expect(pytestLog).toContainText("Esta etapa falhou");
+    await expect(pytestLog).toContainText("Esta verificação falhou");
     await expect(pytestLog.locator('[data-stream="stderr"] pre')).toHaveText("DeprecationWarning: something old\n");
 
     // Ruff: one block named after the tool; its error stream had only the JGates header, so it reads "(sem saída)".
@@ -362,7 +362,7 @@ test("step logs: closed until opened, one block per tool with both streams, the 
     await page.reload();
     await page.getByRole("button", { name: "Show log of pytest" }).click();
     const enLog = page.getByRole("region", { name: "Log of pytest" });
-    await expect(enLog.getByTestId("log-note")).toHaveText(/error output; that is normal\. Whether the step failed is told by its state/);
+    await expect(enLog.getByTestId("log-note")).toHaveText(/error output; that is normal\. Whether the check failed is told by its state/);
     await page.getByRole("button", { name: "Show log of Ruff" }).click();
     const enRuff = page.getByRole("region", { name: "Log of Ruff" });
     await expect(enRuff.locator('[data-stream="stderr"]').getByTestId("log-none")).toHaveText("(no output)");
