@@ -72,7 +72,7 @@ function FieldRow({ field, pending, readOnly, onPending, openAt }: { field: Fiel
         {field.help}
       </p>
       <div className="field-body">
-        <Widget field={field} id={id} value={shown.inherited ? undefined : shown.value} disabled={readOnly || shown.inherited} onChange={(value) => onPending(field, { op: "set", value })} />
+        <Widget field={field} id={id} value={shown.inherited ? undefined : shown.value} disabled={readOnly || shown.inherited} reason={readOnly ? ft("read_only") : ft("inherited_reason")} onChange={(value) => onPending(field, { op: "set", value })} />
         <label className="row choice inherit">
           <input
             type="checkbox"

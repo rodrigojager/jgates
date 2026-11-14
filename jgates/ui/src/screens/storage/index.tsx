@@ -249,7 +249,7 @@ export default function StorageScreen() {
         )}
         <p className="small muted">{t("storage_shared_note")}</p>
         <div className="row wrap">
-          <button type="button" className="btn primary" disabled={!engineUp} onClick={() => setCleanup({ mode: "clean", title: t("storage_cleanup_title_all") })} data-testid="clean-unused">
+          <button type="button" className="btn primary" disabled={!engineUp} title={!engineUp ? t("storage_engine_off") : undefined} onClick={() => setCleanup({ mode: "clean", title: t("storage_cleanup_title_all") })} data-testid="clean-unused">
             {t("storage_clean_unused")}
           </button>
           <button type="button" className="btn danger" onClick={() => setCleanup({ mode: "uninstall", title: t("storage_uninstall_title") })} data-testid="uninstall-open">
@@ -261,7 +261,7 @@ export default function StorageScreen() {
       <section className="stack" aria-labelledby="storage-workspaces">
         <h2 id="storage-workspaces">{t("storage_workspaces")}</h2>
         <div className="card flat table-wrap">
-          <table aria-label={t("storage_workspaces")}>
+          <table className="stack-table" aria-label={t("storage_workspaces")}>
             <thead>
               <tr>
                 <th scope="col">{t("storage_col_workspace")}</th>
@@ -281,13 +281,13 @@ export default function StorageScreen() {
                       <code>{w.path}</code>
                     </div>
                   </th>
-                  <td>
+                  <td data-label={t("storage_col_state")}>
                     {w.exists ? <Pill tone="green">{w.current ? t("storage_state_current") : t("storage_state_ok")}</Pill> : <Pill tone="red">{t("storage_state_missing")}</Pill>}
                   </td>
-                  <td>{w.marked > 0 ? t("storage_runs_marked", { runs: w.runs, marked: w.marked }) : w.runs}</td>
-                  <td>{bytes(w.bytes)}</td>
-                  <td>{w.engine && w.engine.bytes > 0 ? sizeText(w.engine.bytes) : <span className="muted">-</span>}</td>
-                  <td>
+                  <td data-label={t("storage_col_runs")}>{w.marked > 0 ? t("storage_runs_marked", { runs: w.runs, marked: w.marked }) : w.runs}</td>
+                  <td data-label={t("storage_col_size")}>{bytes(w.bytes)}</td>
+                  <td data-label={t("storage_col_engine")}>{w.engine && w.engine.bytes > 0 ? sizeText(w.engine.bytes) : <span className="muted">-</span>}</td>
+                  <td data-label={t("storage_col_actions")}>
                     {(w.engine?.bytes ?? 0) > 0 || (!w.exists && !w.current) ? (
                       <div className="storage-actions">
                         {(w.engine?.bytes ?? 0) > 0 ? (

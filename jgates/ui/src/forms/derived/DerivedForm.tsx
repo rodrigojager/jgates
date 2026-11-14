@@ -78,6 +78,7 @@ function FieldRow({ field, ctx, level }: { field: DerivedField; ctx: RenderConte
   const pending = edit !== undefined && !editIsNoop(field, edit);
   const writable = !ctx.readOnly && form.file.editable && form.available;
   const disabled = !writable || field.widget === "readonly";
+  const reason = ctx.readOnly ? ft("df_reason_readonly") : !form.file.editable ? ft("df_reason_file") : !form.available ? ft("df_reason_unavailable") : ft("df_reason_fixed");
   const failure = editor.failures.get(field.id);
   const children = ctx.fields.filter((f) => f.group === field.id);
   const inherited = field.state === "inherited";
@@ -102,18 +103,21 @@ function FieldRow({ field, ctx, level }: { field: DerivedField; ctx: RenderConte
       <p className="small muted df-help" id={helpId}>
         {field.state === "custom" ? ft("df_custom_help") : (field.help ?? "")}
       </p>
-      <FieldControl
-        field={field}
-        id={id}
-        labelId={labelId}
-        helpId={helpId}
-        title={title}
-        edit={edit}
-        disabled={disabled}
-        busy={editor.busy.has(field.id)}
-        onEdit={(next) => editor.setEdit(field, editIsNoop(field, next) ? null : next)}
-        onSwitch={(value) => void editor.saveNow(field, title, setRequest(form, field, { value }))}
-      />
+      {/* The reason a control is disabled belongs to it (the mark of unavailable) and does not change the layout. */}
+      <div className="df-control" style={{ display: "contents" }} {...(disabled ? { "data-control-unavailable": reason } : {})}>
+        <FieldControl
+          field={field}
+          id={id}
+          labelId={labelId}
+          helpId={helpId}
+          title={title}
+          edit={edit}
+          disabled={disabled}
+          busy={editor.busy.has(field.id)}
+          onEdit={(next) => editor.setEdit(field, editIsNoop(field, next) ? null : next)}
+          onSwitch={(value) => void editor.saveNow(field, title, setRequest(form, field, { value }))}
+        />
+      </div>
       {field.diagnostics.length > 0 ? (
         <div className="notice warn df-diagnostics" role="note">
           <Icon name="alert" />

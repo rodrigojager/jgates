@@ -148,7 +148,7 @@ export default function HistoryScreen() {
         <span className="small muted grow" role="status">
           {t("history_count", { count: rows.length })}
         </span>
-        <button type="button" className="btn" disabled={picked.length !== 2} onClick={compare}>
+        <button type="button" className="btn" disabled={picked.length !== 2} title={picked.length !== 2 ? t("history_pick_two") : undefined} onClick={compare}>
           <Icon name="copy" />
           {t("history_compare")}
         </button>

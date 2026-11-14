@@ -275,7 +275,7 @@ export default function ReviewScreen() {
         </section>
       ) : null}
 
-      <QualityMascotStrip snapshot={response?.mascots} />
+      <QualityMascotStrip snapshot={response?.mascots} loading={built.loading} />
       {plan ? (
         <>
           <div className="card flat stack">
@@ -403,16 +403,23 @@ export default function ReviewScreen() {
               <p>{t("plan_will_run_empty")}</p>
             ) : (
               groupByCategory(plan.groups.willRun).map(([category, items]) => (
-                <div key={category ?? "none"} className="stack" style={{ gap: 8 }}>
-                  <h3>{catLabel(category)}</h3>
+                <details key={category ?? "none"} className="capst-group" data-category-group={category ?? "none"}>
+                  <summary>
+                    <strong>{catLabel(category)}</strong>
+                    <span className="small muted"> · {t("vrev_group_items", { count: items.length })}</span>
+                  </summary>
                   <ItemList items={items} label={catLabel(category)} />
-                </div>
+                </details>
               ))
             )}
           </section>
 
           <section className="card flat stack" aria-labelledby="outside" data-testid="group-outside">
-            <h2 id="outside">{t("vrev_outside_title")}</h2>
+            <details>
+            <summary>
+              <h2 id="outside" style={{ display: "inline" }}>{t("vrev_outside_title")}</h2>{" "}
+              <span className="small muted">{t("vrev_outside_count", { count: plan.groups.notApplicableOrDisabled.length + (plan.groups.notApplicableRequirements ?? []).length + plan.groups.uncoveredRequirements.length })}</span>
+            </summary>
             <div className="stack" style={{ gap: 8 }} data-testid="group-not-applicable">
               <h3 id="not-applicable">
                 {t("plan_not_applicable")} ({plan.groups.notApplicableOrDisabled.length})
@@ -457,6 +464,7 @@ export default function ReviewScreen() {
                 </ul>
               )}
             </div>
+            </details>
           </section>
 
           <section className="card flat stack" aria-labelledby="vrev-terminal">

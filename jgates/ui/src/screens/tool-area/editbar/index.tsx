@@ -40,15 +40,15 @@ export function EditBar({ dirty, busy, working = null, editable, draftState, has
         </span>
       </div>
       <div className="row wrap">
-        <button type="button" className="btn" disabled={busy || !editable} onClick={onValidate}>
+        <button type="button" className="btn" disabled={busy || !editable} title={!editable ? t("reason_not_editable") : undefined} onClick={onValidate}>
           {working === "validate" ? <Spinner /> : <Icon name="check" />}
           {working === "validate" ? eb("validate_checking") : eb("validate")}
         </button>
-        <button type="button" className="btn" disabled={busy || !editable || !dirty} onClick={onDiff}>
+        <button type="button" className="btn" disabled={busy || !editable || !dirty} title={!editable ? t("reason_not_editable") : !dirty ? t("nothing_changed") : undefined} onClick={onDiff}>
           {working === "diff" ? <Spinner /> : <Icon name="file" />}
           {eb("view_diff")}
         </button>
-        <button type="button" className="btn primary" disabled={!editable || !dirty || busy} onClick={onSave}>
+        <button type="button" className="btn primary" disabled={!editable || !dirty || busy} title={!editable ? t("reason_not_editable") : !dirty ? t("nothing_changed") : undefined} onClick={onSave}>
           {working === "save" ? <Spinner /> : <Icon name="check" />}
           {t("doc_review")}
         </button>

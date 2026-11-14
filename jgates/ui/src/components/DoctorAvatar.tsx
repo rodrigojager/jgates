@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DoctorState } from "../mascots/doctor/index.js";
 import { Icon, type IconName } from "./icons";
+import "./prerequisites.css";
 
 // The Doctor of the prerequisites bar: the Three.js mascot (mascots/doctor), loaded on demand and mounted into its
 // own slot. Only `data-state` drives it (the mascot observes the attribute), so a state change animates instead of

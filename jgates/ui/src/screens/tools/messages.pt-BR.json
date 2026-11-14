@@ -237,5 +237,7 @@
   "ctl_unsupported_offer": "O JGates ainda não tem verificações para {language}. Adicionar uma ferramenta própria para ele?",
   "ctl_unsupported_action": "Adicionar ferramenta própria",
   "tools_category_infrastructure": "Infraestrutura",
-  "tools_category_custom": "Verificações próprias"
+  "tools_category_custom": "Verificações próprias",
+  "tools_group_count": "{count, plural, one {# ferramenta} other {# ferramentas}}",
+  "tools_group_hint": "Os grupos começam fechados: abra um para ver as ferramentas."
 }

@@ -180,7 +180,11 @@ function buildDescription(server: ServerContext): Rec {
   const declaredList = isRec(parsedRoot?.value) && Array.isArray((parsedRoot?.value as Rec).templates) ? ((parsedRoot?.value as Rec).templates as unknown[]) : null;
   const resolved = projectResolve(server.projectDir);
   const states = new Map([...resolved.templates.active, ...resolved.templates.inactive].map((s) => [s.id, s]));
-  const components = projectInventory(server.projectDir).classifications.filter((c) => c.approvable);
+  const inventory = projectInventory(server.projectDir);
+  const components = inventory.classifications.filter((c) => c.approvable);
+  // javascript and typescript are one toolchain for the templates that serve them.
+  const languageKey = (l: string) => (/^(javascript|js|ts)$/i.test(l) ? "typescript" : l.toLowerCase());
+  const projectLanguages = [...new Set([...inventory.languages, ...inventory.classifications.map((c) => c.language ?? "")].filter(Boolean).map(languageKey))].sort();
 
   const entries: Array<{ id: string; entry: Rec; declared: boolean; unreferenced?: boolean }> = [];
   for (const raw of declaredList ?? []) if (isRec(raw) && typeof raw.id === "string") entries.push({ id: raw.id, entry: raw, declared: true });
@@ -225,7 +229,7 @@ function buildDescription(server: ServerContext): Rec {
   const conflicts = resolved.errors.filter((e: ResolveIssue) => /TEMPLATE|EXTENDS|CONFLICT/.test(e.code)).map((e) => ({ code: e.code, message: e.message, fix: e.fix ?? null, file: e.file ?? null }));
   const layersOrder = resolved.layers.map((l) => ({ layer: l.layer, source: l.source ?? null }));
   const mode = modeOf();
-  return { schemaVersion: 1, status: "OK", mode: mode.mode, governed: mode.governed, revision: root.hash, file: ROOT_FILE, templates: rows, conflicts, order: layersOrder, folder: TEMPLATES_DIR };
+  return { schemaVersion: 1, status: "OK", mode: mode.mode, governed: mode.governed, revision: root.hash, file: ROOT_FILE, projectLanguages, templates: rows, conflicts, order: layersOrder, folder: TEMPLATES_DIR };
 }
 
 /** The detail of one template: application, inheritance chain, the fields each template sets over its parents, YAML. */

@@ -5,6 +5,7 @@ import { currentQuery } from "../../app/route";
 import { useShell } from "../../app/shell-context";
 import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
+import { ProjectMascotStrip } from "../../components/ProjectMascotStrip";
 import { adapterName, t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { ConfigDiagnostics, type ConfigDiagnostic } from "../config-profiles/diagnostics";
@@ -103,6 +104,9 @@ export function OriginRow({ kind, version, untested, spdx }: { kind: "shipped" |
 }
 
 const AVAILABILITY_TONE: Record<string, "green" | "gold"> = { available: "green", unavailable: "gold" };
+
+/** javascript and typescript are one toolchain for the tools that serve them. */
+const languageKey = (l: string): string => (/^(javascript|js|ts)$/i.test(l) ? "typescript" : l.toLowerCase());
 
 function matches(haystack: string[], query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -296,6 +300,41 @@ export default function ToolsScreen() {
   });
   const effectiveGroups = [...new Set(effectiveTools.map((e) => e.category ?? ""))].sort((a, b) => categoryRank(a) - categoryRank(b) || categoryLabel(a).localeCompare(categoryLabel(b))).map((c) => ({ category: c, items: effectiveTools.filter((e) => (e.category ?? "") === c) }));
 
+  // A search or a category filter is looking for something: the groups open. Otherwise they are closed and counted.
+  const filtering = searching || category !== "";
+  const catalogGroupId = (a: CatalogEntry): string => (a.languages[0] ? languageKey(a.languages[0]) : "");
+  const languageLabel = (id: string) => (id === "" ? t("lang_any") : tOr(`lang_${id}`, id));
+  const catalogGroups = [...new Set(visibleCatalog.map(catalogGroupId))].map((id) => ({ id, items: visibleCatalog.filter((a) => catalogGroupId(a) === id) }));
+  const catalogCard = (a: CatalogEntry) => (
+      <li key={a.adapter} className="card flat stack" data-testid="catalog-card" data-adapter={a.adapter}>
+        <div className="between wrap">
+          <h3>{adapterName(a.adapter, a.displayName)}</h3>
+          <div className="row wrap">
+            <Pill tone={SUPPORT_TONE[a.supportLevel] ?? "blue"}>{tOr(`support_${a.supportLevel}`, a.supportLevel)}</Pill>
+            {a.platformSupported ? null : <Pill tone="red">{t("tools_card_platform")}</Pill>}
+            {a.executesProjectCode ? (
+              <Pill tone="gold">
+                <Icon name="alert" />
+                {t("tools_card_runs_code")}
+              </Pill>
+            ) : null}
+          </div>
+        </div>
+        <p className="small">{a.languages.length > 0 ? t("tools_card_languages", { languages: a.languages.join(", ") }) : t("tools_card_languages_none")}</p>
+        <p className="small">{a.categories.map((c) => tOr(`tools_category_${c}`, c)).join(", ")}</p>
+        {/* Where it comes from, said once: the distribution carries the state, version, licence and source. */}
+        {matrixOf.get(a.adapter)?.distribution ? <DistributionInfo info={matrixOf.get(a.adapter)} version={origins.data?.image.tools[a.toolName] ?? null} /> : <CatalogOrigin entry={a} info={matrixOf.get(a.adapter)} origins={origins.data} />}
+        {a.instantiable ? (
+          <div>
+            <button type="button" className="btn" disabled={governed} aria-label={t("tools_card_use", { tool: adapterName(a.adapter, a.displayName) })} onClick={() => setDialog({ kind: "create", adapter: a.adapter })}>
+              <Icon name="tools" />
+              {t("tools_card_create")}
+            </button>
+          </div>
+        ) : null}
+      </li>
+  );
+
   const refresh = () => {
     tools.reload();
     origins.reload();
@@ -350,6 +389,9 @@ export default function ToolsScreen() {
           </div>
         </div>
       ) : null}
+
+      {/* The six categories are also the filter: a click on one lists the tools of its category. */}
+      <ProjectMascotStrip onSelect={(domain) => setCategory((c) => (c === domain || !categories.includes(domain) ? "" : domain))} />
 
       <div className="card flat row wrap" role="search">
         <label className="stack tight grow">
@@ -535,38 +577,18 @@ export default function ToolsScreen() {
           </label>
         </fieldset>
         <p className="small muted">{projectLanguages.length > 0 ? t("tools_scope_note", { languages: projectLanguages.join(", ") }) : t("tools_scope_note_none")}</p>
+        {!filtering ? <p className="small muted">{t("tools_group_hint")}</p> : null}
         {visibleCatalog.length === 0 ? <p>{t("tools_no_match")}</p> : null}
-        <ul className="tool-cards stack" style={{ listStyle: "none", padding: 0 }}>
-          {visibleCatalog.map((a) => (
-            <li key={a.adapter} className="card flat stack" data-testid="catalog-card" data-adapter={a.adapter}>
-              <div className="between wrap">
-                <h3>{adapterName(a.adapter, a.displayName)}</h3>
-                <div className="row wrap">
-                  <Pill tone={SUPPORT_TONE[a.supportLevel] ?? "blue"}>{tOr(`support_${a.supportLevel}`, a.supportLevel)}</Pill>
-                  {a.platformSupported ? null : <Pill tone="red">{t("tools_card_platform")}</Pill>}
-                  {a.executesProjectCode ? (
-                    <Pill tone="gold">
-                      <Icon name="alert" />
-                      {t("tools_card_runs_code")}
-                    </Pill>
-                  ) : null}
-                </div>
-              </div>
-              <p className="small">{a.languages.length > 0 ? t("tools_card_languages", { languages: a.languages.join(", ") }) : t("tools_card_languages_none")}</p>
-              <p className="small">{a.categories.map((c) => tOr(`tools_category_${c}`, c)).join(", ")}</p>
-              {/* Where it comes from, said once: the distribution carries the state, version, licence and source. */}
-              {matrixOf.get(a.adapter)?.distribution ? <DistributionInfo info={matrixOf.get(a.adapter)} version={origins.data?.image.tools[a.toolName] ?? null} /> : <CatalogOrigin entry={a} info={matrixOf.get(a.adapter)} origins={origins.data} />}
-              {a.instantiable ? (
-                <div>
-                  <button type="button" className="btn" disabled={governed} aria-label={t("tools_card_use", { tool: adapterName(a.adapter, a.displayName) })} onClick={() => setDialog({ kind: "create", adapter: a.adapter })}>
-                    <Icon name="tools" />
-                    {t("tools_card_create")}
-                  </button>
-                </div>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        {catalogGroups.map((g) => (
+          <details key={g.id || "any"} className="card pad tools-group" data-group={g.id || "any"} data-testid="catalog-group" open={filtering}>
+            <summary>
+              <strong>{languageLabel(g.id)}</strong> <span className="small muted">{t("tools_group_count", { count: g.items.length })}</span>
+            </summary>
+            <ul className="tool-cards stack" style={{ listStyle: "none", padding: 0 }}>
+              {g.items.map(catalogCard)}
+            </ul>
+          </details>
+        ))}
         {hiddenByScope > 0 ? (
           <p className="small muted" data-testid="tools-scope-hidden">
             {t("tools_scope_hidden", { count: hiddenByScope })}

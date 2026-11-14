@@ -261,10 +261,10 @@ function ListControl({ field, id, labelId, helpId, title, edit, disabled, onEdit
           {items.map((item, i) => (
             <li key={`${item}-${i}`} className="chip">
               <code>{item}</code>
-              <button type="button" className="chip-btn" disabled={disabled || i === 0} aria-label={ft("df_list_up", { item })} onClick={() => move(i, i - 1)}>
+              <button type="button" className="chip-btn" disabled={disabled || i === 0} title={i === 0 && !disabled ? ft("df_list_is_first") : undefined} aria-label={ft("df_list_up", { item })} onClick={() => move(i, i - 1)}>
                 {ft("df_list_up_short")}
               </button>
-              <button type="button" className="chip-btn" disabled={disabled || i === items.length - 1} aria-label={ft("df_list_down", { item })} onClick={() => move(i, i + 1)}>
+              <button type="button" className="chip-btn" disabled={disabled || i === items.length - 1} title={i === items.length - 1 && !disabled ? ft("df_list_is_last") : undefined} aria-label={ft("df_list_down", { item })} onClick={() => move(i, i + 1)}>
                 {ft("df_list_down_short")}
               </button>
               <button type="button" className="chip-btn" disabled={disabled} aria-label={ft("df_list_remove", { item })} onClick={() => onEdit({ value: items.filter((_, j) => j !== i) })}>
@@ -298,7 +298,7 @@ function ListControl({ field, id, labelId, helpId, title, edit, disabled, onEdit
             }}
           />
         )}
-        <button type="button" className="btn" disabled={disabled || draft.trim() === ""} aria-label={ft("df_list_add_to", { field: title })} onClick={add}>
+        <button type="button" className="btn" disabled={disabled || draft.trim() === ""} title={draft.trim() === "" && !disabled ? ft("df_list_add_empty") : undefined} aria-label={ft("df_list_add_to", { field: title })} onClick={add}>
           {ft("df_list_add")}
         </button>
       </div>

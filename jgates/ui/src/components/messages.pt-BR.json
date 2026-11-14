@@ -167,5 +167,15 @@
   "pulse_connection_lost": "sem contato com o servidor do JGates",
   "nav_semantic": "Revisão semântica",
   "nav_section_semantic": "Semântica (IA)",
-  "provider_fix_link": "Escolher o provedor"
+  "provider_fix_link": "Escolher o provedor",
+  "nothing_changed": "Nada foi alterado ainda.",
+  "reason_not_editable": "Este arquivo não pode ser editado aqui.",
+  "reason_governed": "Modo governado: a política fixa este arquivo, então ele não muda aqui.",
+  "reason_fix_errors": "Corrija os problemas apontados acima antes de salvar.",
+  "lang_any": "Qualquer linguagem",
+  "lang_python": "Python",
+  "lang_typescript": "TypeScript e JavaScript",
+  "lang_csharp": ".NET (C#)",
+  "lang_go": "Go",
+  "lang_rust": "Rust"
 }

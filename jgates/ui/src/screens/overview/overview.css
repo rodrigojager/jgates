@@ -42,6 +42,9 @@
 @media (max-width: 720px) { .ov-hero { flex-direction: column; align-items: flex-start; } .ov-hero > svg { display: none; } }
 .ov-hero .eyebrow, .ov-hero p { color: var(--ink); }
 
+.ov-doctor { align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.ov-doctor .prq-avatar { margin: -4px 0; }
+@media (max-width: 520px) { .ov-doctor { flex-wrap: wrap; } .ov-doctor .prq-avatar { width: 72px; height: 72px; } }
 .ov-readiness { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .ov-readiness a { text-decoration: none; }
 .ov-ready-state { margin-left: 4px; font-weight: 400; }

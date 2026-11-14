@@ -291,7 +291,7 @@ export default function ChooseScreen() {
         </section>
       ) : null}
 
-      <QualityMascotStrip snapshot={(mascotPreview.data as any)?.mascots} />
+      <QualityMascotStrip snapshot={(mascotPreview.data as any)?.mascots} loading={mascotPreview.loading} />
       {selected ? <Customize key={selected.ref} profile={selected} skip={request.skip} onSkip={(skip) => set({ skip })} onSaved={(id) => { setVersion((n) => n + 1); set({ skip: [], ...(id ? { profile: id } : {}) }); }} /> : null}
 
       <div className="row wrap">

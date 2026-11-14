@@ -209,7 +209,7 @@ const READY_LINGER_MS = 4_000;
  * `showReady` keeps an all-clear line when nothing is missing; `inEnvironment` is the bar inside the Environment screen,
  * which has its own "check again" and is where "see in Environment" leads.
  */
-export function PrerequisitesBar({ showReady = false, inEnvironment = false, onChanged }: { showReady?: boolean; inEnvironment?: boolean; onChanged?: () => void }) {
+export function PrerequisitesBar({ showReady = false, inEnvironment = false, onChanged, onVisibleChange }: { showReady?: boolean; inEnvironment?: boolean; onChanged?: () => void; onVisibleChange?: (visible: boolean) => void }) {
   const loaded = useAsync(() => api<Report>("GET", "/api/prerequisites"), "prerequisites");
   // Back to the tab (or the window): check again, so a Docker installed or started meanwhile is seen without a restart.
   useRecheckOnFocus(() => {
@@ -258,6 +258,13 @@ export function PrerequisitesBar({ showReady = false, inEnvironment = false, onC
     const id = setTimeout(() => setCelebrated(true), READY_LINGER_MS);
     return () => clearTimeout(id);
   }, [fixedAll, showReady]);
+
+  // Whether the bar shows at all (it leaves once nothing is missing): the screen that hosts it keeps one Doctor on view.
+  const hidden = report !== null && report.items.length === 0 && !(report.ready === false && (report.notReady?.length ?? 0) > 0) && !showReady && (!fixedAll || celebrated);
+  useEffect(() => {
+    onVisibleChange?.(!hidden);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hidden]);
 
   const done = (r: FixResponse) => {
     setConfirm(null);

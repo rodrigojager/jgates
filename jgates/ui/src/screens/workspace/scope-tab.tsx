@@ -265,6 +265,7 @@ export function ScopeTab({ settings, refreshKey, onChanged }: { settings: Settin
             type="button"
             className="btn"
             disabled={!dirty || busy}
+            title={!dirty ? t("nothing_changed") : undefined}
             onClick={() => {
               setInclude(settings.include.join("\n"));
               setExclude(settings.exclude.join("\n"));

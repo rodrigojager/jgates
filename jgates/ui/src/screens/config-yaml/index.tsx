@@ -262,7 +262,7 @@ function Opened({ list, entry, target, onChanged }: { list: FileList; entry: Fil
           <button type="button" className="btn" disabled={busy} onClick={recheck}>
             {t("cfy_check")}
           </button>
-          <button type="button" className="btn primary" disabled={busy || !dirty || governed || checking || blocked} onClick={() => void save(false)}>
+          <button type="button" className="btn primary" disabled={busy || !dirty || governed || checking || blocked} title={governed ? t("reason_governed") : blocked ? t("reason_fix_errors") : !dirty ? t("nothing_changed") : undefined} onClick={() => void save(false)}>
             {t("cfy_save")}
           </button>
           {blocked && dirty && !governed ? (
@@ -270,7 +270,7 @@ function Opened({ list, entry, target, onChanged }: { list: FileList; entry: Fil
               {t("cfy_save_anyway")}
             </button>
           ) : null}
-          <button type="button" className="btn" disabled={busy || (!dirty && !recovered)} onClick={discard}>
+          <button type="button" className="btn" disabled={busy || (!dirty && !recovered)} title={!dirty && !recovered ? t("nothing_changed") : undefined} onClick={discard}>
             {t("cfy_discard")}
           </button>
           <button type="button" className="btn" onClick={exportFile}>

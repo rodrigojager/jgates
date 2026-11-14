@@ -278,7 +278,7 @@ export function SemanticCard() {
       ) : (
         <div className="row wrap">
           {d.provider === null ? (
-            <a className="btn primary" href={PROVIDER_STEP_HREF} data-testid="semantic-choose-provider">
+            <a className="btn" href={PROVIDER_STEP_HREF} data-testid="semantic-choose-provider">
               <Icon name="play" />
               {t("semantic_choose_provider")}
             </a>

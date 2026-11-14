@@ -131,7 +131,7 @@ export default function ConfigProfilesScreen() {
 
       <ProfileCards cards={cards} starters={starters} selected={current} followsDefault={selected === null} onSelect={(ref) => { setSelected(ref); setScrollRequest((r) => ({ ref, n: (r?.n ?? 0) + 1 })); }} onChanged={applyAnswer} />
 
-      <QualityMascotStrip snapshot={planPart?.profile === current ? planPart.mascots : null} />
+      <QualityMascotStrip snapshot={planPart?.profile === current ? planPart.mascots : null} loading={availability.loading} />
       <ProfileEditor
         profile={current}
         id={v.profile.id as string}

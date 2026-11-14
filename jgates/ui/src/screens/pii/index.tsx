@@ -111,7 +111,7 @@ export default function PiiScreen() {
       <section className="stack" aria-labelledby="pii-entities">
         <h2 id="pii-entities">{tp("pii_entities_title")}</h2>
         <div className="card flat table-wrap">
-          <table aria-label={tp("pii_entities_label")}>
+          <table className="stack-table" aria-label={tp("pii_entities_label")}>
             <thead>
               <tr>
                 <th scope="col">{tp("pii_col_entity")}</th>
@@ -125,7 +125,7 @@ export default function PiiScreen() {
                 e.supported ? (
                   <tr key={e.id} data-entity={e.id}>
                     <th scope="row">{name(e.id)}</th>
-                    <td>
+                    <td data-label={tp("pii_col_run")}>
                       <input
                         type="checkbox"
                         checked={e.enabled}
@@ -134,7 +134,7 @@ export default function PiiScreen() {
                         onChange={(ev) => void save([{ op: "set", path: ["entities", e.id, "enabled"], value: ev.target.checked }])}
                       />
                     </td>
-                    <td>
+                    <td data-label={tp("pii_col_severity")}>
                       <select
                         value={e.severity}
                         disabled={busy}
@@ -148,7 +148,7 @@ export default function PiiScreen() {
                         ))}
                       </select>
                     </td>
-                    <td>
+                    <td data-label={tp("pii_col_state")}>
                       <div className="row">
                         <Pill tone={e.enabled ? "green" : "gold"}>{e.enabled ? tp("pii_state_on") : tp("pii_state_off")}</Pill>
                         <span className="small muted">{e.source ? tp("pii_state_by", { source: e.source.file ?? e.source.source }) : tp("pii_state_default")}</span>

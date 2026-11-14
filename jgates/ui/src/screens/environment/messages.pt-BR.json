@@ -130,5 +130,6 @@
   "env_codeql_version": "Versão",
   "env_codeql_prepared_at": "Preparado em",
   "env_codeql_why": "O CodeQL é fornecido por você: o JGates não o inclui. Depois de aceitar os termos, ele é baixado da versão oficial, conferido e guardado em um volume do Docker.",
-  "env_recipe_hint": "Copie e rode no seu terminal. O JGates não executa isto por você."
+  "env_recipe_hint": "Copie e rode no seu terminal. O JGates não executa isto por você.",
+  "env_codeql_accept_first": "Aceite os termos do CodeQL antes."
 }

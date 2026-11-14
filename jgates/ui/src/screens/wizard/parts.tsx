@@ -71,10 +71,12 @@ export interface StepNavProps {
   skipLabel?: string;
   busy?: boolean;
   extra?: ReactNode;
+  /** The step has another primary action (the download) while this is false: Continuar steps back. */
+  nextPrimary?: boolean;
 }
 
 /** Voltar, Pular por agora (only where skipping leaves a working path) and the primary action of the step. */
-export function StepNav({ onBack, onNext, nextLabel, nextDisabled, onSkip, skipLabel, busy, extra }: StepNavProps) {
+export function StepNav({ onBack, onNext, nextLabel, nextDisabled, onSkip, skipLabel, busy, extra, nextPrimary = true }: StepNavProps) {
   return (
     <div className="wizard-nav" data-testid="wizard-nav">
       {onBack ? (
@@ -89,7 +91,7 @@ export function StepNav({ onBack, onNext, nextLabel, nextDisabled, onSkip, skipL
           {skipLabel ?? t("wizard_skip")}
         </button>
       ) : null}
-      <button type="button" className="btn primary" onClick={onNext} disabled={busy || nextDisabled}>
+      <button type="button" className={`btn${nextPrimary ? " primary" : ""}`} onClick={onNext} disabled={busy || nextDisabled}>
         {busy ? <Spinner /> : <Icon name="chevron" />}
         {nextLabel ?? t("wizard_next")}
       </button>

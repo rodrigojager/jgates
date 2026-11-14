@@ -309,10 +309,10 @@ function NativeOptions({ instance, active, openFile, onKind }: ToolTabProps & { 
           <div className="edit-bar" role="region" aria-label={ft("review")}>
             <span className="small">{dirty ? ft(intents.length === 1 ? "pending_count_one" : "pending_count", { count: intents.length }) : ft("pending_none")}</span>
             <div className="row wrap">
-              <button type="button" className="btn" disabled={!dirty || busy} onClick={() => setPending(new Map())}>
+              <button type="button" className="btn" disabled={!dirty || busy} title={!dirty ? ft("nothing_to_save") : undefined} onClick={() => setPending(new Map())}>
                 {ft("discard")}
               </button>
-              <button type="button" className="btn primary" disabled={!dirty || busy || readOnly} onClick={startReview}>
+              <button type="button" className="btn primary" disabled={!dirty || busy || readOnly} title={readOnly ? ft("read_only") : !dirty ? ft("nothing_to_save") : undefined} onClick={startReview}>
                 <Icon name="check" />
                 {ft("review")}
               </button>

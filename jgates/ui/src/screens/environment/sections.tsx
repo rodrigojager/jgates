@@ -159,11 +159,11 @@ export function useSectionJob(kind: JobKindName, onEnd: () => void, extra: Recor
 }
 
 /** The button that starts a job, with its progress line while it runs and its outcome after. */
-export function JobButton({ job, label, running, disabled, primary = true, children }: { job: SectionJob; label: string; running: string; disabled?: boolean; primary?: boolean; children?: ReactNode }) {
+export function JobButton({ job, label, running, disabled, reason, primary = true, children }: { job: SectionJob; label: string; running: string; disabled?: boolean; reason?: string; primary?: boolean; children?: ReactNode }) {
   const busy = job.state === "starting" || job.state === "running";
   return (
     <>
-      <button type="button" className={`btn${primary ? " primary" : ""}`} onClick={job.start} disabled={busy || disabled}>
+      <button type="button" className={`btn${primary ? " primary" : ""}`} onClick={job.start} disabled={busy || disabled} title={!busy && disabled ? reason : undefined}>
         {busy ? <Spinner /> : <Icon name="refresh" />}
         {busy ? running : label}
       </button>

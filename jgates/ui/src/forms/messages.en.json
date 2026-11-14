@@ -217,5 +217,19 @@
   "key_tokenSecret": "Name of the token secret",
   "key_url": "Address (URL)",
   "key_install": "Install",
-  "key_discovery": "Detection"
+  "key_discovery": "Detection",
+  "inherited_reason": "The value is inherited: untick \"Use inherited value\" to edit it here.",
+  "list_is_first": "Already first in the list.",
+  "list_is_last": "Already last in the list.",
+  "list_add_empty": "Type the item first.",
+  "map_add_empty": "Type the pattern first.",
+  "map_add_taken": "That pattern is already in the list.",
+  "df_reason_readonly": "Read-only: JGates only shows this file here.",
+  "df_reason_file": "JGates cannot edit this file.",
+  "df_reason_unavailable": "This form is not available right now.",
+  "df_reason_fixed": "Fixed value: it is set by the tool.",
+  "df_list_is_first": "Already first in the list.",
+  "df_list_is_last": "Already last in the list.",
+  "df_list_add_empty": "Type or choose the item first.",
+  "nothing_to_save": "Nothing has changed yet."
 }

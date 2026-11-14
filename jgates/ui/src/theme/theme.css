@@ -258,6 +258,7 @@ tr.link-row:hover { background: var(--mint); }
 
 dialog { border: 1px solid var(--line); border-radius: 12px; padding: 0; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
 dialog::backdrop { background: var(--scrim); }
+.dialog-content { display: contents; }
 .dialog-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 34px); overflow: auto; }
 .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .pane { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -296,6 +297,39 @@ dialog::backdrop { background: var(--scrim); }
   th, td { padding: 10px 8px; }
 }
 
+/* At phone width a table with `stack-table` becomes one stacked card per row: each cell names itself (data-label) above its
+   value, so no column is cut and nothing scrolls inside the table (PLAN-consistency.md X18). */
+@media (max-width: 640px) {
+  .stack-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .stack-table, .stack-table tbody, .stack-table tr, .stack-table th, .stack-table td { display: block; width: 100%; }
+  .stack-table tr { border: 1px solid var(--line); border-radius: var(--radius); margin: 0 0 10px; padding: 6px 4px; background: var(--surface); }
+  .stack-table th, .stack-table td { border-bottom: 0; padding: 6px 10px; overflow-wrap: anywhere; }
+  .stack-table td:empty { display: none; }
+  .stack-table td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .stack-table .st-pick { padding-bottom: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* One look and working access (PLAN-consistency.md X11, X12, X17). */
+/* The content area takes the focus after a navigation so the reading starts there; the ring stays on controls. */
+main.main[tabindex]:focus, main.main[tabindex]:focus-visible { outline: none; }
+/* One set of controls: whatever a screen leaves without a class takes the design system's select, input, progress and
+   fieldset (the classes of a screen still win: these rules have no specificity). */
+:where(select, textarea, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=hidden])) { border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; min-height: 32px; min-width: 0; }
+:where(textarea) { min-height: 64px; }
+:where(select:disabled, textarea:disabled, input:disabled) { background-color: var(--bg); color: var(--muted); }
+:where(fieldset) { margin: 0; padding: 0; border: 0; min-width: 0; }
+:where(legend) { padding: 0; }
+:where(input[type=checkbox], input[type=radio]) { width: 24px; height: 24px; margin: 0; accent-color: var(--accent); flex: none; }
+progress { appearance: none; -webkit-appearance: none; display: block; width: 100%; height: 8px; border: 0; border-radius: 999px; background: var(--line); overflow: hidden; accent-color: var(--accent); }
+progress::-webkit-progress-bar { background: var(--line); border-radius: 999px; }
+progress::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
+progress::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
+/* Links and disclosure rows are targets of at least 24 px (WCAG 2.2 target size). */
+:where(main, dialog, .sidebar, .page-footer) :where(a[href]) { display: inline-flex; align-items: center; min-height: 24px; }
+:where(summary) { min-height: 24px; padding-block: 2px; cursor: pointer; }
+/* A dialog without a field puts the focus on its title: a heading, not a control, so it carries no ring. */
+dialog h2[tabindex]:focus, dialog h2[tabindex]:focus-visible { outline: none; }

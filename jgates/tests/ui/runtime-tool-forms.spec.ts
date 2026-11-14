@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { parse } from "yaml";
-import { createFixture, startServer, type Fixture, type UiServer } from "./support";
+import { createFixture, openGroups, startServer, type Fixture, type UiServer } from "./support";
 
 // Runtime checks (ZAP, Schemathesis, oasdiff) from the strict review: "Adicionar <tool>" creates the instance and lands
 // on its guided options form with the missing setting focused and highlighted; the form checks the value before saving
@@ -50,6 +50,7 @@ async function review(page: Page) {
   await expect(page.getByRole("heading", { name: "Revisar a validação", level: 1 })).toBeVisible();
   await expect(page.getByText("Montando o plano...")).toHaveCount(0, { timeout: 60_000 });
   await expect(page.getByTestId("capability-states")).toBeVisible();
+  await openGroups(page);
 }
 
 /** "Adicionar <tool>" from the review, then "Criar instância" in the dialog it opens. */

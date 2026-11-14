@@ -297,11 +297,16 @@ export function ToolsStep({ view, act, apply, busy, back }: StepProps) {
   const endEvent = [...(pull?.events ?? [])].reverse().find((e) => e.type === "end") as { reasons?: Array<{ code: string; message: string; action: { kind: "command" | "link" | "route" | "none"; label: string } }> } | undefined;
 
   if (!info && !error) return <Loading />;
+  const doctor: DoctorState = failed && !imageReady ? "error" : imageReady ? "ok" : downloading ? "checking" : "needs-you";
   const freeBytes = info?.disk.freeBytes ?? null;
   const pendingBytes = info?.totals.pendingDiskBytes ?? 0;
   return (
     <div className="stack" data-testid="wizard-step-tools">
-      <p className="wizard-lead">{t("wizard_tools_lead")}</p>
+      {/* The doctor stays with the machine: here he says whether the tools are on it. */}
+      <div className="row wizard-doctor" data-testid="wizard-tools-doctor" data-state={doctor}>
+        <DoctorAvatar state={doctor} />
+        <p className="wizard-lead grow">{t("wizard_tools_lead")}</p>
+      </div>
       {error ? <ErrorNotice error={error} onRetry={load} /> : null}
       {info ? (
         <>
@@ -412,7 +417,7 @@ export function ToolsStep({ view, act, apply, busy, back }: StepProps) {
       ) : null}
       <EquivalentCommand command="jgates setup" />
       {/* "Continuar enquanto baixa" only while a download really runs (D29). */}
-      <StepNav onBack={back} busy={busy} onNext={() => void act(() => advance("tools"))} nextLabel={downloading || dataRunning ? t("wizard_tools_next_background") : t("wizard_next")} />
+      <StepNav onBack={back} busy={busy} nextPrimary={imageReady || downloading} onNext={() => void act(() => advance("tools"))} nextLabel={downloading || dataRunning ? t("wizard_tools_next_background") : t("wizard_next")} />
     </div>
   );
 }

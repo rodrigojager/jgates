@@ -4,6 +4,7 @@
 // (in the profile file, in a starter profile, or only for this run). Nothing of the catalog is left out silently.
 import { useState, type ReactNode } from "react";
 import { api } from "../../api";
+import { currentQuery } from "../../app/route";
 import { ErrorNotice, Pill, Spinner } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
@@ -642,6 +643,11 @@ export function CapabilityRow({ state, ctx }: { state: CapState; ctx: StateConte
 /** Every capability, grouped by category, with a summary line; the categories open and close. */
 export function CapabilityStates({ groups, ctx, title, lead, headingId }: { groups: Array<{ id: string; label: string; items: CapState[] }>; ctx: StateContext | null; title: string; lead?: string; headingId: string }) {
   const counts = countStates(groups);
+  // The groups are counted and closed; one that holds a blocked check (something the person has to act on) starts open, and
+  // so does the one a link points at. Switched-off and not applicable checks keep their action one click away.
+  const query = currentQuery();
+  const wantCategory = query.get("category");
+  const wantCapability = query.get("capability");
   return (
     <section className="card flat stack capst" aria-labelledby={headingId} data-testid="capability-states">
       <div>
@@ -654,7 +660,7 @@ export function CapabilityStates({ groups, ctx, title, lead, headingId }: { grou
       {groups.map((g) => {
         const c = countStates([g]);
         return (
-          <details key={g.id} className="capst-group" data-category={g.id} open>
+          <details key={g.id} className="capst-group" data-category={g.id} open={g.id === wantCategory || (wantCapability !== null && g.items.some((s) => s.id === wantCapability)) || g.items.some((s) => s.kind === "blocked")}>
             <summary>
               <strong>{g.label}</strong>
               <span className="small muted"> · {t("capst_group_summary", { run: c.run, total: g.items.length })}</span>

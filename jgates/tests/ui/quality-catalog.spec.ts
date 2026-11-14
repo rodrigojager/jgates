@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { createGateFixture, openApp, pageGet, startGateServer, type GateFixture, type UiServer } from "./support";
+import { createGateFixture, openApp, openGroups, pageGet, startGateServer, type GateFixture, type UiServer } from "./support";
 
 // The Quality side of V2 in the browser: the standard catalog offers the new integrations in the tools screen, the
 // customer-supplied ones declare their setup (the matrix behind the screens), the six Quality mascot domains show their
@@ -35,6 +35,7 @@ test("a fresh standard installation lists the new integrations in the catalog, w
     await expect(page.getByRole("heading", { name: "Ferramentas", level: 1 })).toBeVisible();
     // The whole catalogue is under "Todas"; "Deste projeto" (the default) keeps the project's languages first.
     await page.getByTestId("tools-scope").getByRole("radio", { name: "Todas" }).check();
+    await openGroups(page);
     for (const adapter of NEW_INTEGRATIONS) await expect(page.locator(`[data-testid="catalog-card"][data-adapter="${adapter}"]`), adapter).toBeVisible();
 
     // The filter narrows the catalog and an unknown term says so.
@@ -70,6 +71,7 @@ test("customer-supplied tools declare their setup: state, prerequisites and dist
     const entry = catalog.adapters.find((a: any) => a.adapter === "codeql");
     expect(entry.supportLevel).toBe("editable-file");
     expect(entry.limitations.join(" ")).toMatch(/customer-supplied: JGates never bundles CodeQL/);
+    await openGroups(page);
     await expect(page.locator('[data-testid="catalog-card"][data-adapter="codeql"]')).toContainText("Arquivo editável");
 
     // The card shows the distribution state and, for a customer-supplied tool, the official acquisition and setup links.
@@ -129,6 +131,7 @@ test("the create dialog closes with Escape and returns the focus, and the tools 
     await expect(open).toBeFocused();
 
     // A catalog card's own action opens the dialog for that adapter, and Escape closes it again.
+    await openGroups(page);
     const card = page.locator('[data-testid="catalog-card"][data-adapter="zizmor"]');
     await card.getByRole("button", { name: /Criar instância|Usar/ }).focus();
     await page.keyboard.press("Enter");
@@ -151,6 +154,7 @@ test("the create dialog closes with Escape and returns the focus, and the tools 
     await page.reload();
     await expect(page.getByRole("heading", { name: "Ferramentas", level: 1 })).toBeVisible();
     // Measure after the distribution blocks (with their long setup links) have rendered.
+    await openGroups(page);
     await expect(page.locator('[data-testid="catalog-card"][data-adapter="codeql"] [data-testid="catalog-setup-guidance"]')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });

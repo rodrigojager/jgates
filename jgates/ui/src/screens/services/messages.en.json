@@ -90,5 +90,7 @@
   "svc_next": "Next",
   "svc_profiles_title": "Compose profiles",
   "svc_profiles_help": "The services of a compose profile start only when it is checked here (services.profiles).",
-  "svc_profiles_not_found": "(no compose file declares this profile)"
+  "svc_profiles_not_found": "(no compose file declares this profile)",
+  "svc_files_add_empty": "Type the file path first.",
+  "svc_back_first": "This is the first step."
 }

@@ -64,5 +64,6 @@
   "history_context_body": "A change in the code or in the configuration requires a new validation. No old result approves a new commit.",
   "history_new_run": "New validation",
   "history_running": "Running",
-  "history_action_for": "{action}: {runId}"
+  "history_action_for": "{action}: {runId}",
+  "history_pick_two": "Tick two validations to compare them."
 }

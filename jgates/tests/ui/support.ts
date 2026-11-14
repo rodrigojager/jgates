@@ -315,3 +315,40 @@ export async function openApp(page: import("@playwright/test").Page, server: UiS
 export async function pageGet<T = any>(page: import("@playwright/test").Page, route: string): Promise<T> {
   return page.evaluate(async (r) => (await fetch(r, { headers: { accept: "application/json" } })).json(), route) as Promise<T>;
 }
+
+// ---- Wizard fixture ----------------------------------------------------------------------------------------------------
+const FAKE = path.join(REPO, "jgates", "tests", "docker", "fake-docker.cjs");
+const CLI_VERSION = JSON.parse(fs.readFileSync(path.join(REPO, "package.json"), "utf8")).version as string;
+const PINNED = `registry.example.test/jgates/jgates-tools@sha256:${"ab".repeat(32)}`;
+
+/** A project without jgates.yml, served with the fake engine (not in-image): the image exists once it was pulled. */
+export function wizardFixture(language: "pt-BR" | "en"): Fixture {
+  const fixture = createFixture();
+  fs.rmSync(path.join(fixture.dir, "jgates.yml"));
+  fs.rmSync(path.join(fixture.dir, ".jgates"), { recursive: true, force: true });
+  const engine = fs.mkdtempSync(path.join(fixture.home, "engine-"));
+  const runtime = path.join(engine, "docker.cjs");
+  fs.writeFileSync(
+    runtime,
+    [
+      `const fs = require("node:fs");`,
+      `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(path.join(engine, "calls.jsonl"))};`,
+      `process.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};`,
+      `const present = fs.existsSync(${JSON.stringify(path.join(engine, "pull-attempts"))});`,
+      `process.env.FAKE_DOCKER_LABELS = present ? ${JSON.stringify(JSON.stringify({ "org.jgates.version": CLI_VERSION }))} : "none";`,
+      `require(${JSON.stringify(FAKE)});`,
+      ``,
+    ].join("\n"),
+  );
+  fixture.env.JGATES_IMAGE_JSON = "";
+  fixture.env.JGATES_CONTAINER_RUNTIME = runtime;
+  fixture.env.JGATES_TOOLS_IMAGE = PINNED;
+  fixture.env.JGATES_NO_CACHE = "1";
+  fs.writeFileSync(path.join(fixture.home, "preferences.json"), `${JSON.stringify({ schemaVersion: 1, theme: "system", language }, null, 2)}\n`, { mode: 0o600 });
+  return fixture;
+}
+
+/** Opens every collapsed group of a long list (the tools catalogue, the templates, the review): their cards are inside. */
+export async function openGroups(page: import("@playwright/test").Page): Promise<void> {
+  await page.evaluate(() => document.querySelectorAll("main details:not(.capst-more)").forEach((d) => ((d as HTMLDetailsElement).open = true)));
+}

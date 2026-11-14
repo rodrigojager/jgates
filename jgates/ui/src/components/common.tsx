@@ -109,11 +109,47 @@ export function Pill({ tone, children }: { tone?: "green" | "gold" | "red" | "bl
  */
 export function Dialog({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // A dialog that brings its own Cancelar (or Fechar) has one way to cancel: the header's button steps aside.
+  const [ownCancel, setOwnCancel] = useState(false);
   useEffect(() => {
     const dialog = ref.current;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (dialog && !dialog.open) dialog.showModal();
+    let observer: MutationObserver | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    if (dialog) {
+      const content = () => dialog.querySelector<HTMLElement>(".dialog-content");
+      const names = new Set([t("cancel"), t("close")].map((s) => s.trim().toLowerCase()));
+      // The first field; a dialog with none (a confirmation) puts the focus on its title, never on a button that acts.
+      const FIELD = 'input:not([type=hidden]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [contenteditable=true]';
+      const visible = (el: HTMLElement) => el.offsetParent !== null || getComputedStyle(el).position === "fixed";
+      let touched = false;
+      const sync = () => {
+        const root = content();
+        if (!root) return;
+        setOwnCancel([...root.querySelectorAll<HTMLElement>("button")].some((b) => names.has((b.textContent ?? "").trim().toLowerCase())));
+        if (touched) return;
+        const field = [...root.querySelectorAll<HTMLElement>(FIELD)].find(visible);
+        const target = field ?? dialog.querySelector<HTMLElement>("#dialog-title");
+        const active = document.activeElement;
+        // Only the places the platform leaves it (the dialog itself, the header's button, nothing) are taken over.
+        const idle = !active || active === document.body || active === dialog || active === dialog.querySelector(".dialog-head button") || active === dialog.querySelector("#dialog-title");
+        if (target && idle) target.focus();
+      };
+      const touch = () => {
+        touched = true;
+      };
+      dialog.addEventListener("keydown", touch);
+      dialog.addEventListener("pointerdown", touch);
+      sync();
+      // Content that arrives after the first paint (a form that loads its data) gets the focus too, for a moment.
+      observer = new MutationObserver(sync);
+      observer.observe(dialog, { childList: true, subtree: true });
+      timer = setTimeout(() => observer?.disconnect(), 2500);
+    }
     return () => {
+      observer?.disconnect();
+      if (timer) clearTimeout(timer);
       if (dialog?.open) dialog.close();
       if (opener?.isConnected) opener.focus();
     };
@@ -121,13 +157,17 @@ export function Dialog({ title, onClose, children, wide }: { title: string; onCl
   return (
     <dialog ref={ref} aria-labelledby="dialog-title" className={wide ? "wide" : ""} onClose={onClose} onCancel={onClose}>
       <div className="dialog-body">
-        <div className="between">
-          <h2 id="dialog-title">{title}</h2>
-          <button type="button" className="btn" onClick={onClose}>
-            {t("close")}
-          </button>
+        <div className="between dialog-head">
+          <h2 id="dialog-title" tabIndex={-1}>
+            {title}
+          </h2>
+          {ownCancel ? null : (
+            <button type="button" className="btn" onClick={onClose}>
+              {t("close")}
+            </button>
+          )}
         </div>
-        {children}
+        <div className="dialog-content">{children}</div>
       </div>
     </dialog>
   );

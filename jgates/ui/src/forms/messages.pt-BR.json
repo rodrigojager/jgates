@@ -217,5 +217,19 @@
   "key_tokenSecret": "Nome do segredo do token",
   "key_url": "Endereço (URL)",
   "key_install": "Instalação",
-  "key_discovery": "Detecção"
+  "key_discovery": "Detecção",
+  "inherited_reason": "O valor é herdado: desmarque \"Usar valor herdado\" para editá-lo aqui.",
+  "list_is_first": "Já é o primeiro da lista.",
+  "list_is_last": "Já é o último da lista.",
+  "list_add_empty": "Escreva o item antes.",
+  "map_add_empty": "Escreva o padrão antes.",
+  "map_add_taken": "Esse padrão já está na lista.",
+  "df_reason_readonly": "Somente leitura: o JGates só mostra este arquivo aqui.",
+  "df_reason_file": "O JGates não pode editar este arquivo.",
+  "df_reason_unavailable": "Este formulário não está disponível agora.",
+  "df_reason_fixed": "Valor fixo: é definido pela ferramenta.",
+  "df_list_is_first": "Já é o primeiro da lista.",
+  "df_list_is_last": "Já é o último da lista.",
+  "df_list_add_empty": "Escreva ou escolha o item antes.",
+  "nothing_to_save": "Nada foi alterado ainda."
 }

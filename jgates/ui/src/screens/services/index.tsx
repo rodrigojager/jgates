@@ -324,7 +324,7 @@ export default function ServicesScreen() {
             <span className="small">{t("svc_files_add_label")}</span>
             <input className="input" type="text" data-free-text="path" value={extra} placeholder="docker/compose.test.yaml" autoComplete="off" spellCheck={false} disabled={readOnly} onChange={(e) => setExtra(e.target.value)} />
           </label>
-          <button type="button" className="btn" disabled={readOnly || busy !== null || extra.trim() === ""} onClick={addFile}>
+          <button type="button" className="btn" disabled={readOnly || busy !== null || extra.trim() === ""} title={extra.trim() === "" && !readOnly ? t("svc_files_add_empty") : undefined} onClick={addFile}>
             {t("svc_files_add")}
           </button>
         </div>
@@ -585,7 +585,7 @@ export default function ServicesScreen() {
       ) : null}
 
       <div className="row wrap svc-nav">
-        <button type="button" className="btn" data-testid="svc-back" disabled={stepIndex === 0 || busy !== null} onClick={() => setStep(STEPS[stepIndex - 1] as Step)}>
+        <button type="button" className="btn" data-testid="svc-back" disabled={stepIndex === 0 || busy !== null} title={stepIndex === 0 ? t("svc_back_first") : undefined} onClick={() => setStep(STEPS[stepIndex - 1] as Step)}>
           {t("back")}
         </button>
         {stepIndex < STEPS.length - 1 ? (

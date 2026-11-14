@@ -222,7 +222,7 @@ export function ProfileStep({ view, act, busy, back }: StepProps) {
         <h2 id="wizard-profile-mascots">
           {t("wizard_profile_mascots", { name: cards.find((c) => c.ref === choice || c.id === choice)?.label ?? choice })}
         </h2>
-        <QualityMascotStrip snapshot={info.mascots} />
+        <QualityMascotStrip snapshot={info.mascots} loading={counting} />
       </section>
       {info.error ? (
         <div className="notice warn" role="status">

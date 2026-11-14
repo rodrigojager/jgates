@@ -373,7 +373,7 @@ export function ProfileCards({
               <button type="button" className="btn" aria-label={t("cfgp_rename_aria", { name: nameOf(card) })} onClick={() => setDialog({ kind: "rename", card })}>
                 {t("cfgp_rename")}
               </button>
-              <button type="button" className="btn" disabled={card.isDefault || defaulting !== null} aria-label={t("cfgp_make_default_aria", { name: nameOf(card) })} onClick={() => makeDefault(card)} {...busyProps(defaulting === card.id)}>
+              <button type="button" className="btn" disabled={card.isDefault || defaulting !== null} title={card.isDefault ? t("cfgp_is_default") : undefined} aria-label={t("cfgp_make_default_aria", { name: nameOf(card) })} onClick={() => makeDefault(card)} {...busyProps(defaulting === card.id)}>
                 {defaulting === card.id ? <Spinner /> : null}
                 {t("cfgp_make_default")}
               </button>

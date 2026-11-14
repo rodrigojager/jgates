@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import os from "node:os";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { IN_IMAGE, MAIN, PYTEST_SECTION, PYTHON, createFixture, sha256, startServer, tomlSection, type Fixture, type UiServer } from "./support";
+import { IN_IMAGE, MAIN, PYTEST_SECTION, PYTHON, createFixture, openGroups, sha256, startServer, tomlSection, type Fixture, type UiServer } from "./support";
 
 // The vertical slice through the browser: editing the Ruff configuration in the UI changes what the next run finds.
 
@@ -377,6 +377,7 @@ test("the whole trail through the UI: failed with the two findings, fix, Aprovad
     // Templates: the three declared by the project are listed.
     await page.goto(`${base(page)}#/config/templates`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await openGroups(page);
     await expect(page.getByText("python-pytest").first()).toBeVisible();
 
     // Edit a tool in the UI: a comment in the pyproject that pytest reads; the review gets the new input.

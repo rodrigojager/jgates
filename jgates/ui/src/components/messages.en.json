@@ -167,5 +167,15 @@
   "pulse_connection_lost": "no contact with the JGates server",
   "nav_semantic": "Semantic review",
   "nav_section_semantic": "Semantic (AI)",
-  "provider_fix_link": "Choose the provider"
+  "provider_fix_link": "Choose the provider",
+  "nothing_changed": "Nothing has changed yet.",
+  "reason_not_editable": "This file cannot be edited here.",
+  "reason_governed": "Governed mode: the policy fixes this file, so it cannot change here.",
+  "reason_fix_errors": "Fix the problems listed above before saving.",
+  "lang_any": "Any language",
+  "lang_python": "Python",
+  "lang_typescript": "TypeScript and JavaScript",
+  "lang_csharp": ".NET (C#)",
+  "lang_go": "Go",
+  "lang_rust": "Rust"
 }

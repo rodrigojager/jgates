@@ -90,5 +90,7 @@
   "svc_next": "Avançar",
   "svc_profiles_title": "Perfis do compose",
   "svc_profiles_help": "Os serviços de um perfil do compose só sobem quando ele está marcado aqui (services.profiles).",
-  "svc_profiles_not_found": "(nenhum arquivo de compose declara este perfil)"
+  "svc_profiles_not_found": "(nenhum arquivo de compose declara este perfil)",
+  "svc_files_add_empty": "Escreva o caminho do arquivo antes.",
+  "svc_back_first": "Este é o primeiro passo."
 }

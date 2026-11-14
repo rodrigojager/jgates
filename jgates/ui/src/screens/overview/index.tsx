@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatRunWhen } from "../../components/format";
 import { fetchEnvironmentState, useRecheckOnFocus, type EnvironmentReason, type EnvironmentState } from "../../api/environment";
+import { DoctorAvatar } from "../../components/DoctorAvatar";
 import { PrerequisitesBar } from "../../components/PrerequisitesBar";
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
 import { api } from "../../api";
@@ -222,9 +223,9 @@ function readinessStep(items: ReadinessItem[]): Step | null {
   };
 }
 
-function Readiness({ items }: { items: ReadinessItem[] }) {
+function Readiness({ items, doctor }: { items: ReadinessItem[]; doctor: boolean }) {
   if (items.length === 0) return null;
-  return (
+  const list = (
     <ul className="ov-readiness" aria-label={t("overview_ready_label")} data-testid="readiness">
       {items.map((i) => (
         <li key={i.id} data-readiness={i.id} data-ready={i.ok === null ? "unknown" : String(i.ok)}>
@@ -238,6 +239,14 @@ function Readiness({ items }: { items: ReadinessItem[] }) {
         </li>
       ))}
     </ul>
+  );
+  // The doctor speaks for the environment here when the prerequisites bar (which has him) is not on view.
+  if (!doctor) return list;
+  return (
+    <div className="ov-doctor row" data-testid="overview-doctor">
+      <DoctorAvatar state={items.some((i) => i.ok === false) ? "needs-you" : "ok"} />
+      {list}
+    </div>
   );
 }
 
@@ -349,6 +358,8 @@ export default function OverviewScreen() {
   const first = data !== null && data.lastRun === null;
   // The environment, read apart so the overview does not wait for the engine; it is read again when the person comes back.
   const [env, setEnv] = useState<EnvironmentState | null>(null);
+  // The prerequisites bar carries the Doctor while it is on view; once it leaves, the readiness card carries him.
+  const [prerequisitesShown, setPrerequisitesShown] = useState(true);
   const loadEnv = useCallback(() => {
     fetchEnvironmentState(getLocale()).then(setEnv, () => undefined);
   }, []);
@@ -381,8 +392,8 @@ export default function OverviewScreen() {
         </a>
       </div>
 
-      <PrerequisitesBar onChanged={() => { loaded.reload(); loadEnv(); }} />
-      <Readiness items={readiness} />
+      <PrerequisitesBar onChanged={() => { loaded.reload(); loadEnv(); }} onVisibleChange={setPrerequisitesShown} />
+      <Readiness items={readiness} doctor={!prerequisitesShown} />
 
       {loaded.loading && !data ? <Loading /> : null}
       {loaded.error ? <ErrorNotice error={loaded.error} onRetry={loaded.reload} /> : null}

@@ -237,5 +237,7 @@
   "ctl_unsupported_offer": "JGates has no checks for {language} yet. Add an own tool for it?",
   "ctl_unsupported_action": "Add an own tool",
   "tools_category_infrastructure": "Infrastructure",
-  "tools_category_custom": "Your own checks"
+  "tools_category_custom": "Your own checks",
+  "tools_group_count": "{count, plural, one {# tool} other {# tools}}",
+  "tools_group_hint": "Groups are closed: open one to see its tools."
 }

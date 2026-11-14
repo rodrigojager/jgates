@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../../api";
 import { Dialog, ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
+import { ProjectMascotStrip } from "../../components/ProjectMascotStrip";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
@@ -38,10 +39,15 @@ interface TemplatesView {
   governed: { policy: string } | null;
   revision: string | null;
   templates: TemplateRow[];
+  /** The languages of the project's components (javascript counts as typescript). */
+  projectLanguages?: string[];
   conflicts: Array<{ code: string; message: string; fix: string | null; file: string | null }>;
   order: Array<{ layer: string; source: string | null }>;
   folder: string;
 }
+
+/** javascript and typescript are one toolchain for the templates that serve them. */
+const languageKey = (l: string): string => (/^(javascript|js|ts)$/i.test(l) ? "typescript" : l.toLowerCase());
 
 export function badgeFor(row: TemplateRow): { tone: "green" | "gold" | "blue" | undefined; text: string; key: string } {
   if (!row.enabled) return { tone: undefined, text: t("cft_badge_off"), key: "off" };
@@ -59,6 +65,7 @@ export default function ConfigTemplatesScreen() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [scope, setScope] = useState<"project" | "all">("project");
   const [error, setError] = useState<unknown>(null);
   const view = useAsync<TemplatesView>(() => api("GET", "/api/config/templates"), `templates:${revision}`);
   const refresh = () => setRevision((n) => n + 1);
@@ -118,61 +125,114 @@ export default function ConfigTemplatesScreen() {
     }
   };
 
+  const renderRow = (row: TemplateRow) => {
+      const badge = badgeFor(row);
+      const locked = governedReason ?? (row.required ? t("cft_required_reason") : null);
+      return (
+        <li key={row.id} className="card pad tpl-row" data-template={row.id} data-badge={badge.key}>
+          <div className="tpl-main">
+            <div className="row wrap">
+              <h3>{row.label}</h3>
+              <code className="small">{row.id}</code>
+              <span data-testid="tpl-badge">
+                <Pill tone={badge.tone}>{badge.text}</Pill>
+              </span>
+              {row.unreferenced ? <Pill tone="gold">{t("cft_unreferenced")}</Pill> : null}
+              {row.support ? <Pill>{t("cft_support", { level: tOr(`cft_support_${row.support.level}`, row.support.level) })}</Pill> : null}
+            </div>
+            {row.description ? <p className="small muted">{row.description}</p> : null}
+            {row.problem ? (
+              <p className="small" role="alert">
+                <Icon name="alert" /> {row.problem}
+              </p>
+            ) : null}
+            {locked ? <p className="small muted tpl-reason">{locked}</p> : null}
+            {row.unreferenced ? <p className="small muted tpl-reason">{t("cft_unreferenced_help", { source: row.source })}</p> : null}
+          </div>
+          <div className="row tpl-actions">
+            <button type="button" className="btn" aria-label={t("cft_details_aria", { name: row.label })} onClick={() => setOpen(row.id)}>
+              {t("cft_details")}
+            </button>
+            {row.origin === "project" ? (
+              <button type="button" className="btn" disabled={governedReason !== null || busy === row.id} aria-label={t("cft_edit_aria", { name: row.label })} onClick={() => setEditing(row.id)}>
+                {t("cft_edit")}
+              </button>
+            ) : null}
+            {row.origin === "project" ? (
+              <button type="button" className="btn" disabled={governedReason !== null || busy === row.id || (row.required && row.declared)} aria-label={t("cft_delete_aria", { name: row.label })} onClick={() => setDeleting(row.id)}>
+                {t("cft_delete")}
+              </button>
+            ) : null}
+            {row.unreferenced ? (
+              <button type="button" className="btn primary" disabled={governedReason !== null || busy === row.id} aria-label={t("cft_adopt_aria", { name: row.label })} onClick={() => void adopt(row)}>
+                {t("cft_adopt")}
+              </button>
+            ) : (
+              <Switch checked={row.enabled} label={t("cft_toggle_aria", { name: row.label })} disabled={locked !== null || busy === row.id} reason={locked} pending={busy === row.id} onChange={(next) => toggle(row, next)} />
+            )}
+          </div>
+        </li>
+      );
+  };
+
   const list = (rows: TemplateRow[], title: string, testId: string) => (
     <section className="stack" aria-labelledby={`${testId}-title`}>
       <h2 id={`${testId}-title`}>{title}</h2>
       {rows.length === 0 ? <p className="small muted">{t("cft_none_project")}</p> : null}
       <ul className="tpl-list" data-testid={testId}>
-        {rows.map((row) => {
-          const badge = badgeFor(row);
-          const locked = governedReason ?? (row.required ? t("cft_required_reason") : null);
-          return (
-            <li key={row.id} className="card pad tpl-row" data-template={row.id} data-badge={badge.key}>
-              <div className="tpl-main">
-                <div className="row wrap">
-                  <h3>{row.label}</h3>
-                  <code className="small">{row.id}</code>
-                  <span data-testid="tpl-badge">
-                    <Pill tone={badge.tone}>{badge.text}</Pill>
-                  </span>
-                  {row.unreferenced ? <Pill tone="gold">{t("cft_unreferenced")}</Pill> : null}
-                  {row.support ? <Pill>{t("cft_support", { level: tOr(`cft_support_${row.support.level}`, row.support.level) })}</Pill> : null}
-                </div>
-                {row.description ? <p className="small muted">{row.description}</p> : null}
-                {row.problem ? (
-                  <p className="small" role="alert">
-                    <Icon name="alert" /> {row.problem}
-                  </p>
-                ) : null}
-                {locked ? <p className="small muted tpl-reason">{locked}</p> : null}
-                {row.unreferenced ? <p className="small muted tpl-reason">{t("cft_unreferenced_help", { source: row.source })}</p> : null}
-              </div>
-              <div className="row tpl-actions">
-                <button type="button" className="btn" aria-label={t("cft_details_aria", { name: row.label })} onClick={() => setOpen(row.id)}>
-                  {t("cft_details")}
-                </button>
-                {row.origin === "project" ? (
-                  <button type="button" className="btn" disabled={governedReason !== null || busy === row.id} aria-label={t("cft_edit_aria", { name: row.label })} onClick={() => setEditing(row.id)}>
-                    {t("cft_edit")}
-                  </button>
-                ) : null}
-                {row.origin === "project" ? (
-                  <button type="button" className="btn" disabled={governedReason !== null || busy === row.id || (row.required && row.declared)} aria-label={t("cft_delete_aria", { name: row.label })} onClick={() => setDeleting(row.id)}>
-                    {t("cft_delete")}
-                  </button>
-                ) : null}
-                {row.unreferenced ? (
-                  <button type="button" className="btn primary" disabled={governedReason !== null || busy === row.id} aria-label={t("cft_adopt_aria", { name: row.label })} onClick={() => void adopt(row)}>
-                    {t("cft_adopt")}
-                  </button>
-                ) : (
-                  <Switch checked={row.enabled} label={t("cft_toggle_aria", { name: row.label })} disabled={locked !== null || busy === row.id} pending={busy === row.id} onChange={(next) => toggle(row, next)} />
-                )}
-              </div>
-            </li>
-          );
-        })}
+        {rows.map(renderRow)}
       </ul>
+    </section>
+  );
+
+  // The catalog: what applies to every project stays in view; the rest is grouped by language, collapsed and counted, and
+  // by default only the languages of this project are listed (PLAN-consistency.md section 4).
+  const mine = new Set(v.projectLanguages ?? []);
+  const required = catalog.filter((r) => r.required);
+  const optional = catalog.filter((r) => !r.required);
+  const groupOf = (r: TemplateRow): string => (r.match.languages[0] ? languageKey(r.match.languages[0]) : "");
+  const relevant = (r: TemplateRow) => groupOf(r) === "" || mine.has(groupOf(r)) || r.components.length > 0;
+  const shown = scope === "all" ? optional : optional.filter(relevant);
+  const groupIds = [...new Set(shown.map(groupOf))].sort((x, y) => (x === "" ? -1 : y === "" ? 1 : Number(mine.has(y)) - Number(mine.has(x)) || x.localeCompare(y)));
+  const hiddenCount = optional.length - shown.length;
+  const languageLabel = (id: string) => (id === "" ? t("lang_any") : tOr(`lang_${id}`, id));
+  const catalogSection = (
+    <section className="stack" aria-labelledby="catalog-templates-title">
+      <h2 id="catalog-templates-title">{t("cft_catalog_title")}</h2>
+      {required.length > 0 ? (
+        <ul className="tpl-list" data-testid="catalog-templates">
+          {required.map(renderRow)}
+        </ul>
+      ) : null}
+      <fieldset className="row wrap" data-testid="templates-scope">
+        <legend className="small">{t("cft_scope_legend")}</legend>
+        <label className="row">
+          <input type="radio" name="templates-scope" value="project" checked={scope === "project"} onChange={() => setScope("project")} />
+          <span>{t("cft_scope_project")}</span>
+        </label>
+        <label className="row">
+          <input type="radio" name="templates-scope" value="all" checked={scope === "all"} onChange={() => setScope("all")} />
+          <span>{t("cft_scope_all")}</span>
+        </label>
+      </fieldset>
+      <p className="small muted">{mine.size > 0 ? t("cft_scope_note", { languages: [...mine].map(languageLabel).join(", ") }) : t("cft_scope_note_none")}</p>
+      {groupIds.map((id) => {
+        const rows = shown.filter((r) => groupOf(r) === id);
+        const active = rows.filter((r) => r.enabled).length;
+        return (
+          <details key={id || "any"} className="card pad tpl-group" data-group={id || "any"} data-testid="template-group">
+            <summary>
+              <strong>{languageLabel(id)}</strong> <span className="small muted">{t("cft_group_count", { count: rows.length, active })}</span>
+            </summary>
+            <ul className="tpl-list">{rows.map(renderRow)}</ul>
+          </details>
+        );
+      })}
+      {hiddenCount > 0 ? (
+        <p className="small muted" data-testid="templates-scope-hidden">
+          {t("cft_scope_hidden", { count: hiddenCount })}
+        </p>
+      ) : null}
     </section>
   );
 
@@ -214,7 +274,8 @@ export default function ConfigTemplatesScreen() {
       ) : null}
 
       {list(project, t("cft_project_title"), "project-templates")}
-      {list(catalog, t("cft_catalog_title"), "catalog-templates")}
+      <ProjectMascotStrip />
+      {catalogSection}
 
       <section className="card pad stack" aria-labelledby="cft-order-title">
         <h2 id="cft-order-title">{t("cft_order_title")}</h2>

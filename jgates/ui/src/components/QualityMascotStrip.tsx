@@ -31,7 +31,11 @@ function newCanvas(): HTMLCanvasElement {
 }
 const statusIcons: Record<string, IconName> = { waiting: "info", processing: "refresh", passed: "check", failed: "alert", incomplete: "info", blocked: "lock", error: "x", timeout: "alert", cancelled: "stop", finished: "check", disabled: "power", not_applicable: "info", invalid: "settings" };
 
-export function QualityMascotStrip({ snapshot, onSelect }: { snapshot: MascotSnapshot | null | undefined; onSelect?: (domain: MascotDomain, ids: string[]) => void }) {
+/**
+ * The strip of the six categories. While its data is on the way (`loading`) it holds the room it will take, so what is
+ * below it does not jump when it arrives; with no data and nothing loading it is simply not there.
+ */
+export function QualityMascotStrip({ snapshot, onSelect, loading = false }: { snapshot: MascotSnapshot | null | undefined; onSelect?: (domain: MascotDomain, ids: string[]) => void; loading?: boolean }) {
   const root = useRef<HTMLElement>(null);
   const slot = useRef<HTMLDivElement>(null);
   const gallery = useRef<MascotGallery | null>(null);
@@ -155,7 +159,7 @@ export function QualityMascotStrip({ snapshot, onSelect }: { snapshot: MascotSna
     gallery.current.invalidate();
   }, [snapshot, ready, identity]);
 
-  if (!snapshot) return null;
+  if (!snapshot) return loading ? <section className="quality-mascots reserved" aria-busy="true" aria-label={t("mascot_configuration")} data-testid="quality-mascots-reserved" /> : null;
   const announcement = snapshot.domains.map((d) => `${t(`mascot_domain_${d.domain}`)}: ${t(snapshot.context === "configuration" && d.status === "waiting" ? "mascot_enabled" : `mascot_status_${d.status}`)}${d.hasFindings ? `. ${t("mascot_partial_findings")}` : d.hasWarnings ? `. ${t("mascot_warnings")}` : ""}`).join(". ");
   return (
     <section ref={root} className="quality-mascots" aria-label={t(snapshot.context === "run" ? "mascot_run" : "mascot_configuration")} data-testid="quality-mascots" data-context={snapshot.context}>

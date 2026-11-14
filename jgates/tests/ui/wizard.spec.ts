@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import fs from "node:fs";
 import path from "node:path";
-import { REPO, createFixture, pageGet, startServer, type Fixture } from "./support";
+import { REPO, createFixture, pageGet, startServer, wizardFixture, type Fixture } from "./support";
 
 // The first-run wizard walked with the keyboard only (Tab to reach a control, Enter or the arrow keys to use it), on a
 // fresh project with the fake container engine: in Portuguese at desktop width, and in English at 375 px, where no step
@@ -14,10 +14,6 @@ import { REPO, createFixture, pageGet, startServer, type Fixture } from "./suppo
 // step 4 embeds the profile editor (ADR-0008): switches, the quality mascot strip following them and "Criar perfil a
 // partir deste", all on a draft until "Salvar e continuar" (D10); step 5 says per unit what is installed, where it goes
 // and the network it uses, and takes its state from the job's result (D27).
-
-const FAKE = path.join(REPO, "jgates", "tests", "docker", "fake-docker.cjs");
-const CLI_VERSION = JSON.parse(fs.readFileSync(path.join(REPO, "package.json"), "utf8")).version as string;
-const PINNED = `registry.example.test/jgates/jgates-tools@sha256:${"ab".repeat(32)}`;
 
 interface Texts {
   steps: string[];
@@ -135,33 +131,6 @@ const EN: Texts = {
   network: "Only while installing",
   installed: "Dependencies installed",
 };
-
-/** A project without jgates.yml, served with the fake engine (not in-image): the image exists once it was pulled. */
-function wizardFixture(language: "pt-BR" | "en"): Fixture {
-  const fixture = createFixture();
-  fs.rmSync(path.join(fixture.dir, "jgates.yml"));
-  fs.rmSync(path.join(fixture.dir, ".jgates"), { recursive: true, force: true });
-  const engine = fs.mkdtempSync(path.join(fixture.home, "engine-"));
-  const runtime = path.join(engine, "docker.cjs");
-  fs.writeFileSync(
-    runtime,
-    [
-      `const fs = require("node:fs");`,
-      `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(path.join(engine, "calls.jsonl"))};`,
-      `process.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};`,
-      `const present = fs.existsSync(${JSON.stringify(path.join(engine, "pull-attempts"))});`,
-      `process.env.FAKE_DOCKER_LABELS = present ? ${JSON.stringify(JSON.stringify({ "org.jgates.version": CLI_VERSION }))} : "none";`,
-      `require(${JSON.stringify(FAKE)});`,
-      ``,
-    ].join("\n"),
-  );
-  fixture.env.JGATES_IMAGE_JSON = "";
-  fixture.env.JGATES_CONTAINER_RUNTIME = runtime;
-  fixture.env.JGATES_TOOLS_IMAGE = PINNED;
-  fixture.env.JGATES_NO_CACHE = "1";
-  fs.writeFileSync(path.join(fixture.home, "preferences.json"), `${JSON.stringify({ schemaVersion: 1, theme: "system", language }, null, 2)}\n`, { mode: 0o600 });
-  return fixture;
-}
 
 /** Presses Tab until the control has the focus (the keyboard path reaches it), never clicking. */
 async function tabTo(page: Page, target: Locator, max = 80): Promise<void> {

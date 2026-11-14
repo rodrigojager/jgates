@@ -3,6 +3,7 @@ import { ApiError, api } from "../../api";
 import { Dialog, Spinner, useAsync } from "../../components/common";
 import { DiffView } from "../../components/DiffView";
 import { Icon } from "../../components/icons";
+import { ProjectMascotStrip } from "../../components/ProjectMascotStrip";
 import { Stepper } from "../../components/Stepper";
 import { t, tOr } from "../../i18n";
 
@@ -507,6 +508,8 @@ export function CustomToolDialog({ components, existing, preselect, edit, onClos
         {step === "verify" ? (
           <div className="stack">
             <p className="small">{t("ctl_verify_lead")}</p>
+            {/* The six categories the new tool will count in: the project's quality strip. */}
+            <ProjectMascotStrip />
             {grouped.map((g) => (
               <fieldset key={g.id} className="stack tight">
                 <legend className="small">{g.label}</legend>

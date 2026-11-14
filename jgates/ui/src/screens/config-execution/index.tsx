@@ -310,10 +310,10 @@ export default function ConfigExecutionScreen() {
 
       {!locked ? (
         <div className="row wrap cfe-actions" role="group" aria-label={t("cfe_actions")}>
-          <button type="button" className="btn primary" disabled={draft.size === 0 || review !== null} onClick={() => void openReview()}>
+          <button type="button" className="btn primary" disabled={draft.size === 0 || review !== null} title={draft.size === 0 ? t("nothing_changed") : undefined} onClick={() => void openReview()}>
             {t("cfe_review", { count: draft.size })}
           </button>
-          <button type="button" className="btn" disabled={draft.size === 0} onClick={() => setDraft(new Map())}>
+          <button type="button" className="btn" disabled={draft.size === 0} title={draft.size === 0 ? t("nothing_changed") : undefined} onClick={() => setDraft(new Map())}>
             {t("cfe_discard")}
           </button>
         </div>

@@ -315,5 +315,7 @@
   "gtn_pending_label": "Preparações a fazer",
   "gtn_network_bridge": "usa a rede",
   "gtn_network_none": "sem rede",
-  "gtn_affects": "Verificações que esperam por isso: {checks}."
+  "gtn_affects": "Verificações que esperam por isso: {checks}.",
+  "vrev_outside_count": "{count, plural, one {# item} other {# itens}}",
+  "vrev_group_items": "{count, plural, one {# verificação} other {# verificações}}"
 }

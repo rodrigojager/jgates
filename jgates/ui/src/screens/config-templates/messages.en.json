@@ -118,5 +118,12 @@
   "cft_d_entry": "How the project uses this template",
   "cft_d_entry_lead": "The template's entry in jgates.yml: when it applies, to which languages and with which priority.",
   "cft_d_keys": "Settings of the template",
-  "cft_d_keys_lead": "Every key of {file}, including those written by hand, saved one at a time."
+  "cft_d_keys_lead": "Every key of {file}, including those written by hand, saved one at a time.",
+  "cft_scope_legend": "Show in the catalog",
+  "cft_scope_project": "This project",
+  "cft_scope_all": "All",
+  "cft_scope_note": "Languages of the project: {languages}. Groups are closed: open one to see its templates.",
+  "cft_scope_note_none": "Groups are closed: open one to see its templates.",
+  "cft_scope_hidden": "{count, plural, one {# more template for other languages is in \"All\".} other {# more templates for other languages are in \"All\".}}",
+  "cft_group_count": "{count, plural, one {# template} other {# templates}}, {active} in use"
 }

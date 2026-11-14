@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { MAIN, createFixture, sha256, startServer, type Fixture, type UiServer } from "./support";
+import { MAIN, createFixture, openGroups, sha256, startServer, type Fixture, type UiServer } from "./support";
 
 // Validações, Escolher (target, profile cards, "Personalizar esta validação") and Revisar (the three groups, every
 // blocker of the list with how to resolve it and Executar disabled, ties, TOOL_UNAVAILABLE per instance, the equivalent command).
@@ -81,6 +81,8 @@ async function review(page: Page, request: Record<string, unknown>) {
   await page.reload();
   await expect(page.getByRole("heading", { name: "Revisar a validação", level: 1 })).toBeVisible();
   await expect(page.getByText("Montando o plano...")).toHaveCount(0, { timeout: 60_000 });
+  // The groups of the review start closed (counted); the specs read what is inside them.
+  await openGroups(page);
 }
 
 const REQ = { profile: "minimal", target: "full", path: "", head: "", base: "", skip: [] as string[] };
@@ -148,6 +150,7 @@ test("the group 'requisitos sem cobertura' is shown even when everything that ru
     await expect(group).toContainText("Requisitos sem cobertura (0)");
     await expect(group).toContainText("Nenhum requisito ficou sem cobertura.");
     await expect(page.getByTestId("group-will-run")).toContainText("Vai executar");
+    await openGroups(page);
     await expect(page.getByTestId("group-not-applicable")).toBeVisible();
   });
 });

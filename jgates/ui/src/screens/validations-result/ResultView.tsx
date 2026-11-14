@@ -694,7 +694,7 @@ function Actions({ runId }: { runId: string }) {
     <section className="stack" aria-labelledby="vres-actions">
       <h3 id="vres-actions">{t("vres_actions")}</h3>
       <div className="row wrap">
-        <button type="button" className="btn primary" onClick={copyAgent}>
+        <button type="button" className="btn" onClick={copyAgent}>
           <Icon name="copy" />
           {t("vres_copy_agent")}
         </button>

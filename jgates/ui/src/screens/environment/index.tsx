@@ -60,7 +60,7 @@ function Fact({ name, children }: { name: string; children: ReactNode }) {
   );
 }
 
-function Engine({ s, disk, load, checking }: { s: Sections["engine"]; disk: number | null; load: () => void; checking: boolean }) {
+function Engine({ s, disk, load, checking, main }: { s: Sections["engine"]; disk: number | null; load: () => void; checking: boolean; main: string | null }) {
   const reason = firstActionable(s.reasons);
   const ready = s.state === "ready";
   const summary = ready
@@ -73,7 +73,7 @@ function Engine({ s, disk, load, checking }: { s: Sections["engine"]; disk: numb
       summary={summary}
       action={
         reason ? (
-          <ReasonAction reason={reason} />
+          <ReasonAction reason={reason} primary={main === "engine"} />
         ) : (s.reasons[0] as { recipe?: unknown } | undefined)?.recipe ? (
           <>
             <RecipeCommands reason={s.reasons[0] as EnvironmentReason} />
@@ -97,7 +97,7 @@ function Engine({ s, disk, load, checking }: { s: Sections["engine"]; disk: numb
   );
 }
 
-function Image({ s, engineReady, mode, load, checking }: { s: Sections["image"]; engineReady: boolean; mode: string; load: () => void; checking: boolean }) {
+function Image({ s, engineReady, mode, load, checking, main }: { s: Sections["image"]; engineReady: boolean; mode: string; load: () => void; checking: boolean; main: string | null }) {
   const job = useSectionJob("pull", load);
   const [filter, setFilter] = useState("");
   const tools: Array<{ name: string; version: string }> = s.tools ?? [];
@@ -111,7 +111,7 @@ function Image({ s, engineReady, mode, load, checking }: { s: Sections["image"];
       : (s.reasons[0]?.message ?? t(`env_image_${s.state}`));
   const needsJob = !inImage && (s.state === "missing" || s.state === "version-mismatch");
   const action = needsJob ? (
-    <JobButton job={job} label={label} running={t("env_image_pulling")} disabled={!engineReady}>
+    <JobButton job={job} label={label} running={t("env_image_pulling")} disabled={!engineReady} reason={t("env_needs_engine")} primary={main === "image"}>
       {job.state === "running" || job.state === "starting" ? <PullProgress events={job.events} /> : null}
       {!engineReady ? <span className="small muted">{t("env_needs_engine")}</span> : null}
     </JobButton>
@@ -152,7 +152,7 @@ function Image({ s, engineReady, mode, load, checking }: { s: Sections["image"];
   );
 }
 
-function Data({ s, imageReady, load }: { s: Sections["data"]; imageReady: boolean; load: () => void }) {
+function Data({ s, imageReady, load, main }: { s: Sections["data"]; imageReady: boolean; load: () => void; main: string | null }) {
   const job = useSectionJob("data", load);
   const databases: Array<{ id: string; state: string; ageDays: number | null; fetchedAt: string | null }> = s.databases ?? [];
   const summary = s.state === "fresh" ? t("env_data_fresh", { days: Number(s.maxAgeDays ?? 7) }) : (s.reasons[0]?.message ?? t(`env_data_${s.state}`));
@@ -162,7 +162,7 @@ function Data({ s, imageReady, load }: { s: Sections["data"]; imageReady: boolea
       state={s.state}
       summary={summary}
       action={
-        <JobButton job={job} label={t("env_data_update")} running={t("env_data_updating")} disabled={!imageReady} primary={s.state !== "fresh"}>
+        <JobButton job={job} label={t("env_data_update")} running={t("env_data_updating")} disabled={!imageReady} reason={t("env_needs_image")} primary={main === "data"}>
           {!imageReady ? <span className="small muted">{t("env_needs_image")}</span> : null}
           {job.state === "done" ? <span className="small" role="status">{t("env_data_updated")}</span> : null}
           {job.state === "failed" ? <span className="small" role="alert">{t("env_job_failed")}</span> : null}
@@ -196,14 +196,14 @@ function Data({ s, imageReady, load }: { s: Sections["data"]; imageReady: boolea
   );
 }
 
-function Dependencies({ s, imageReady, load, checking }: { s: Sections["dependencies"]; imageReady: boolean; load: () => void; checking: boolean }) {
+function Dependencies({ s, imageReady, load, checking, main }: { s: Sections["dependencies"]; imageReady: boolean; load: () => void; checking: boolean; main: string | null }) {
   const job = useSectionJob("dependencies", load);
   const units: Array<{ unit: string; components: string[]; state: string }> = s.units ?? [];
   const volumes: Array<{ name: string; sizeBytes: number }> = s.volumes ?? [];
   const pending = s.state === "failed" || s.state === "not-ready";
   const summary = s.state === "none" ? t("env_deps_none") : s.state === "ready" ? t("env_deps_ready", { count: units.length }) : (s.reasons[0]?.message ?? t("env_deps_not_ready"));
   const action = pending ? (
-    <JobButton job={job} label={t("env_deps_prepare")} running={t("env_deps_preparing")} disabled={!imageReady}>
+    <JobButton job={job} label={t("env_deps_prepare")} running={t("env_deps_preparing")} disabled={!imageReady} reason={t("env_needs_image")} primary={main === "dependencies"}>
       {!imageReady ? <span className="small muted">{t("env_needs_image")}</span> : null}
       {job.state === "failed" ? <span className="small" role="alert">{t("env_job_failed")}</span> : null}
     </JobButton>
@@ -241,9 +241,9 @@ function Extension({ s }: { s: Sections["extension"] }) {
       summary={s.state === "present" ? t("env_extension_present", { count: images.length }) : t("env_extension_none")}
       action={
         outdated ? (
-          <ReasonAction reason={outdated} />
+          <ReasonAction reason={outdated} primary={false} />
         ) : (
-          <a className={`btn${s.state === "none" ? " primary" : ""}`} href="#/tools">
+          <a className="btn" href="#/tools">
             {s.state === "none" ? t("env_extension_add") : t("env_extension_manage")}
           </a>
         )
@@ -274,7 +274,7 @@ function Services({ s }: { s: Sections["services"] }) {
       state={s.configured ? s.state : "none"}
       summary={s.configured ? t("env_services_configured", { count: compose.length }) : t("env_services_none")}
       action={
-        <a className="btn primary" href="#/config/services" data-testid="env-services-configure">
+        <a className="btn" href="#/config/services" data-testid="env-services-configure">
           {t("env_services_configure")}
         </a>
       }
@@ -309,7 +309,7 @@ function Codeql({ s, imageReady, load }: { s: Sections["codeql"]; imageReady: bo
         <span>{t("env_codeql_accept")}</span>
       </label>
       <div className="row wrap">
-        <JobButton job={job} label={t("env_codeql_prepare")} running={t("env_codeql_preparing")} disabled={!accepted || !imageReady}>
+        <JobButton job={job} label={t("env_codeql_prepare")} running={t("env_codeql_preparing")} disabled={!accepted || !imageReady} reason={!imageReady ? t("env_needs_image") : t("env_codeql_accept_first")} primary={false}>
           {!imageReady ? <span className="small muted">{t("env_needs_image")}</span> : null}
           {job.state === "failed" ? <span className="small" role="alert">{t("env_job_failed")}</span> : null}
         </JobButton>
@@ -346,9 +346,10 @@ export default function EnvironmentScreen() {
   const imageReady = state?.mode === "in-image" || sections?.image.state === "ready";
   // The server's one definition of ready (`ready`, `notReady`), the same the overview and the API use.
   const notReady = state?.notReady?.length ?? 0;
+  // One primary action on the screen: the first thing that is not ready; on a ready Ambiente every action is optional.
+  const main: string | null = state?.notReady?.[0] ?? null;
   return (
     <div className="stack">
-      <WorkspaceTabs selected="environment" />
       <div className="between wrap env-head" data-testid="env-head">
         <div className="row env-head-title">
           {/* The doctor speaks for the environment: his state follows the one definition of ready. */}
@@ -363,6 +364,7 @@ export default function EnvironmentScreen() {
           {t("env_recheck")}
         </button>
       </div>
+      <WorkspaceTabs selected="environment" />
       {error ? <ErrorNotice error={error} onRetry={load} /> : null}
       {sections ? (
         <>
@@ -373,10 +375,10 @@ export default function EnvironmentScreen() {
               <p className="small">{t("env_three_states")}</p>
             </div>
           </div>
-          <Engine s={sections.engine} disk={(state as State).disk?.freeMb ?? null} load={load} checking={checking} />
-          <Image s={sections.image} engineReady={engineReady} mode={state?.mode ?? "container"} load={load} checking={checking} />
-          <Data s={sections.data} imageReady={imageReady} load={load} />
-          <Dependencies s={sections.dependencies} imageReady={imageReady} load={load} checking={checking} />
+          <Engine s={sections.engine} disk={(state as State).disk?.freeMb ?? null} load={load} checking={checking} main={main} />
+          <Image s={sections.image} engineReady={engineReady} mode={state?.mode ?? "container"} load={load} checking={checking} main={main} />
+          <Data s={sections.data} imageReady={imageReady} load={load} main={main} />
+          <Dependencies s={sections.dependencies} imageReady={imageReady} load={load} checking={checking} main={main} />
           <Extension s={sections.extension} />
           <Services s={sections.services} />
           <Codeql s={sections.codeql} imageReady={imageReady} load={load} />

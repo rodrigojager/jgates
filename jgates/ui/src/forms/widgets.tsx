@@ -9,12 +9,14 @@ export interface WidgetProps {
   id: string;
   value: unknown;
   disabled: boolean;
+  /** Why the control is disabled (its tooltip and description). */
+  reason?: string;
   onChange: (value: unknown) => void;
 }
 
 const asList = (value: unknown): string[] => (Array.isArray(value) ? value.map(String) : []);
 
-function NumberWidget({ field, id, value, disabled, onChange }: WidgetProps) {
+function NumberWidget({ field, id, value, disabled, reason, onChange }: WidgetProps) {
   const [text, setText] = useState(value === undefined ? "" : String(value));
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
@@ -33,6 +35,7 @@ function NumberWidget({ field, id, value, disabled, onChange }: WidgetProps) {
           className="input number"
           value={text}
           disabled={disabled}
+          title={disabled ? reason : undefined}
           {...(min !== null ? { min } : {})}
           {...(max !== null ? { max } : {})}
           placeholder={field.example ?? ""}
@@ -58,14 +61,14 @@ function NumberWidget({ field, id, value, disabled, onChange }: WidgetProps) {
   );
 }
 
-function TextWidget({ field, id, value, disabled, onChange }: WidgetProps) {
-  return <input id={id} type="text" className="input" value={typeof value === "string" ? value : ""} disabled={disabled} placeholder={field.example ?? ""} spellCheck={false} onChange={(e) => onChange(e.target.value)} />;
+function TextWidget({ field, id, value, disabled, reason, onChange }: WidgetProps) {
+  return <input id={id} type="text" className="input" value={typeof value === "string" ? value : ""} disabled={disabled} title={disabled ? reason : undefined} placeholder={field.example ?? ""} spellCheck={false} onChange={(e) => onChange(e.target.value)} />;
 }
 
-function SelectWidget({ field, id, value, disabled, onChange }: WidgetProps) {
+function SelectWidget({ field, id, value, disabled, reason, onChange }: WidgetProps) {
   const options: string[] = Array.isArray(field.schema.enum) ? field.schema.enum.map(String) : [];
   return (
-    <select id={id} className="input" value={typeof value === "string" ? value : ""} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+    <select id={id} className="input" value={typeof value === "string" ? value : ""} disabled={disabled} title={disabled ? reason : undefined} onChange={(e) => onChange(e.target.value)}>
       {typeof value !== "string" ? <option value="">{ft("select_choose")}</option> : null}
       {options.map((o) => (
         <option key={o} value={o}>
@@ -76,13 +79,13 @@ function SelectWidget({ field, id, value, disabled, onChange }: WidgetProps) {
   );
 }
 
-function RadioWidget({ field, id, value, disabled, onChange }: WidgetProps) {
+function RadioWidget({ field, id, value, disabled, reason, onChange }: WidgetProps) {
   const options: string[] = Array.isArray(field.schema.enum) ? field.schema.enum.map(String) : [];
   return (
     <div className="row wrap" role="radiogroup" id={id} aria-labelledby={`${id}-label`}>
       {options.map((o) => (
         <label key={o} className="row choice">
-          <input type="radio" name={id} value={o} checked={value === o} disabled={disabled} onChange={() => onChange(o)} />
+          <input type="radio" name={id} value={o} checked={value === o} disabled={disabled} title={disabled ? reason : undefined} onChange={() => onChange(o)} />
           <code>{o}</code>
         </label>
       ))}
@@ -90,16 +93,16 @@ function RadioWidget({ field, id, value, disabled, onChange }: WidgetProps) {
   );
 }
 
-function BooleanWidget({ id, value, disabled, onChange }: WidgetProps) {
+function BooleanWidget({ id, value, disabled, reason, onChange }: WidgetProps) {
   return (
     <label className="row choice">
-      <input id={id} type="checkbox" checked={value === true} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <input id={id} type="checkbox" checked={value === true} disabled={disabled} title={disabled ? reason : undefined} onChange={(e) => onChange(e.target.checked)} />
       {ft("bool_true")}
     </label>
   );
 }
 
-function ListWidget({ field, id, value, disabled, onChange }: WidgetProps) {
+function ListWidget({ field, id, value, disabled, reason, onChange }: WidgetProps) {
   const items = asList(value);
   const [draft, setDraft] = useState("");
   const add = () => {
@@ -124,15 +127,15 @@ function ListWidget({ field, id, value, disabled, onChange }: WidgetProps) {
               <code>{item}</code>
               {field.ordered ? (
                 <>
-                  <button type="button" className="chip-btn" disabled={disabled || i === 0} aria-label={ft("list_up", { item })} onClick={() => move(i, i - 1)}>
+                  <button type="button" className="chip-btn" disabled={disabled || i === 0} title={disabled ? reason : i === 0 ? ft("list_is_first") : undefined} aria-label={ft("list_up", { item })} onClick={() => move(i, i - 1)}>
                     {ft("list_up_short")}
                   </button>
-                  <button type="button" className="chip-btn" disabled={disabled || i === items.length - 1} aria-label={ft("list_down", { item })} onClick={() => move(i, i + 1)}>
+                  <button type="button" className="chip-btn" disabled={disabled || i === items.length - 1} title={disabled ? reason : i === items.length - 1 ? ft("list_is_last") : undefined} aria-label={ft("list_down", { item })} onClick={() => move(i, i + 1)}>
                     {ft("list_down_short")}
                   </button>
                 </>
               ) : null}
-              <button type="button" className="chip-btn" disabled={disabled} aria-label={ft("list_remove", { item })} onClick={() => onChange(items.filter((_, j) => j !== i))}>
+              <button type="button" className="chip-btn" disabled={disabled} title={disabled ? reason : undefined} aria-label={ft("list_remove", { item })} onClick={() => onChange(items.filter((_, j) => j !== i))}>
                 {ft("list_remove_short")}
               </button>
             </li>
@@ -146,6 +149,7 @@ function ListWidget({ field, id, value, disabled, onChange }: WidgetProps) {
           className="input"
           value={draft}
           disabled={disabled}
+          title={disabled ? reason : undefined}
           placeholder={field.example ?? ""}
           aria-label={ft("list_new_item", { field: field.label })}
           spellCheck={false}
@@ -157,7 +161,7 @@ function ListWidget({ field, id, value, disabled, onChange }: WidgetProps) {
             }
           }}
         />
-        <button type="button" className="btn" disabled={disabled || draft.trim() === ""} onClick={add}>
+        <button type="button" className="btn" disabled={disabled || draft.trim() === ""} title={disabled ? reason : draft.trim() === "" ? ft("list_add_empty") : undefined} onClick={add}>
           {ft("list_add")}
         </button>
       </div>
@@ -165,7 +169,7 @@ function ListWidget({ field, id, value, disabled, onChange }: WidgetProps) {
   );
 }
 
-function MapWidget({ field, id, value, disabled, onChange }: WidgetProps) {
+function MapWidget({ field, id, value, disabled, reason, onChange }: WidgetProps) {
   const entries = value && typeof value === "object" && !Array.isArray(value) ? Object.entries(value as Record<string, unknown>) : [];
   const [key, setKey] = useState("");
   const split = (text: string) => text.split(",").map((s) => s.trim()).filter(Boolean);
@@ -181,6 +185,7 @@ function MapWidget({ field, id, value, disabled, onChange }: WidgetProps) {
             className="input grow"
             defaultValue={asList(v).join(", ")}
             disabled={disabled}
+            title={disabled ? reason : undefined}
             aria-label={`${ft("map_values")}: ${k}`}
             spellCheck={false}
             onBlur={(e) => {
@@ -188,17 +193,18 @@ function MapWidget({ field, id, value, disabled, onChange }: WidgetProps) {
               if (JSON.stringify(next) !== JSON.stringify(asList(v))) put(k, next);
             }}
           />
-          <button type="button" className="btn" disabled={disabled} aria-label={ft("map_remove", { key: k })} onClick={() => onChange(Object.fromEntries(entries.filter(([e]) => e !== k)))}>
+          <button type="button" className="btn" disabled={disabled} title={disabled ? reason : undefined} aria-label={ft("map_remove", { key: k })} onClick={() => onChange(Object.fromEntries(entries.filter(([e]) => e !== k)))}>
             {ft("list_remove_short")}
           </button>
         </div>
       ))}
       <div className="row">
-        <input id={id} type="text" className="input" value={key} disabled={disabled} placeholder={field.example ?? ""} aria-label={ft("map_key")} spellCheck={false} onChange={(e) => setKey(e.target.value)} />
+        <input id={id} type="text" className="input" value={key} disabled={disabled} title={disabled ? reason : undefined} placeholder={field.example ?? ""} aria-label={ft("map_key")} spellCheck={false} onChange={(e) => setKey(e.target.value)} />
         <button
           type="button"
           className="btn"
           disabled={disabled || key.trim() === "" || entries.some(([k]) => k === key.trim())}
+          title={disabled ? reason : key.trim() === "" ? ft("map_add_empty") : entries.some(([k]) => k === key.trim()) ? ft("map_add_taken") : undefined}
           onClick={() => {
             put(key.trim(), []);
             setKey("");

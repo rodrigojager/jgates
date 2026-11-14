@@ -315,5 +315,7 @@
   "gtn_pending_label": "Preparations to do",
   "gtn_network_bridge": "uses the network",
   "gtn_network_none": "no network",
-  "gtn_affects": "Checks waiting for it: {checks}."
+  "gtn_affects": "Checks waiting for it: {checks}.",
+  "vrev_outside_count": "{count, plural, one {# item} other {# items}}",
+  "vrev_group_items": "{count, plural, one {# check} other {# checks}}"
 }

@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { expectNoKnownSetAsText } from "./free-text";
-import { createFixture, openApp, pageGet, startServer, type Fixture, type UiServer } from "./support";
+import { createFixture, openApp, openGroups, pageGet, startServer, type Fixture, type UiServer } from "./support";
 
 // Ferramentas shows what runs: on a Python project whose tools.yml has no instance (only templates bring tools) the screen
 // lists the effective tools by category and, apart, "suas instâncias"; the catalogue is "Deste projeto" by default with a
@@ -68,6 +68,7 @@ test("the screen lists the effective tools by category and, apart, your instance
     const scope = page.getByTestId("tools-scope");
     await expect(scope.getByRole("radio", { name: "Deste projeto" })).toBeChecked();
     const cards = page.getByTestId("catalog-card");
+    await openGroups(page);
     await expect(cards.first()).toBeVisible();
     await expect(page.locator('[data-testid="catalog-card"][data-adapter="ruff"]')).toHaveCount(1);
     await expect(page.locator('[data-testid="catalog-card"][data-adapter="dotnet-test"]')).toHaveCount(0);
@@ -75,6 +76,7 @@ test("the screen lists the effective tools by category and, apart, your instance
     expect(shown.indexOf("ruff"), "Ruff is before every tool that is not for this project").toBeGreaterThanOrEqual(0);
     await expect(page.getByTestId("tools-scope-hidden")).toBeVisible();
     await scope.getByRole("radio", { name: "Todas" }).check();
+    await openGroups(page);
     await expect(page.locator('[data-testid="catalog-card"][data-adapter="dotnet-test"]')).toHaveCount(1);
     expect(await cards.count()).toBeGreaterThan(shown.length);
     // The facts are said once: a card has one origin block, with the licence in it.

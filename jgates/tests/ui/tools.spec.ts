@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "vite";
 import { parse as parseYaml } from "yaml";
-import { createFixture, startServer, type Fixture, type UiServer } from "./support";
+import { createFixture, openGroups, startServer, type Fixture, type UiServer } from "./support";
 
 // Tools: catalog and instances, the tool area (tab order, missing file, package file, effective configuration,
 // rendered command), the choice kept for a draft, and the Editor component against a parent that renders an older text.
@@ -70,6 +70,7 @@ test("a second ESLint instance for another component is written to tools.yml and
     await page.getByLabel("Buscar ferramenta ou linguagem").fill("eslint");
     await expect(page.getByTestId("catalog-card")).toHaveCount(1);
     await page.getByLabel("Buscar ferramenta ou linguagem").fill("");
+    await openGroups(page);
     await expect(page.getByTestId("catalog-card").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Adicionar ferramenta", exact: true }).click();
@@ -111,6 +112,7 @@ test("a second ESLint instance for another component is written to tools.yml and
 test("a creation that does not create the file: the instance is listed with the file missing, nothing is written", async ({ page }) => {
   const fixture = createToolsFixture(ESLINT_WEB, { "web/eslint.config.js": ESLINT_CONFIG });
   await withServer(page, fixture, async ({ base }) => {
+    await openGroups(page);
     await page.getByRole("button", { name: "Criar instância de ESLint" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Componente").selectOption("ui");
