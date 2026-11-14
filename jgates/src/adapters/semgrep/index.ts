@@ -20,11 +20,13 @@ import { createOutputPaths, redirectionEnv } from "../../core/run/redirection.js
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { semgrepManifest } from "./manifest.js";
 import { parseSemgrepOutput } from "./normalize.js";
+import { listPackRuleFiles } from "./pack-index.js";
 import { probeSemgrep, scannerPath } from "./probe.js";
 
 export { semgrepManifest } from "./manifest.js";
 export { parseSemgrepOutput } from "./normalize.js";
 export { findSemgrep, probeSemgrep, scannerPath } from "./probe.js";
+export { PACK_LANGUAGE_PREFIX, buildPackIndex, listPackRuleFiles, packRuleIndex, type PackIndex, type PackRule } from "./pack-index.js";
 
 /** Ids of the rule packs that ship with JGates (tools.<id>.rulePack), mapped to their pack folder under packs/semgrep. */
 export const BUNDLED_RULE_PACKS: Readonly<Record<string, string>> = { jgates: "jgates-semgrep" };
@@ -98,7 +100,7 @@ function planSemgrep(input: ExternalPlanInput): ExternalPlan {
   // A bundled pack chosen in the settings (UI/CLI) runs next to the customer's own rules; it is the package's, never the project's.
   const packId = selectedPack(input);
   const packDir = packId ? bundledPackRulesDir(packId) : null;
-  const packRules = packDir && fs.existsSync(packDir) ? fs.readdirSync(packDir).filter((n) => n.endsWith(".yaml")).sort() : [];
+  const packRules = packDir ? listPackRuleFiles(packDir) : [];
   const packProblem = packId && packRules.length === 0 ? t("semgrep_pack_unknown", { tool: input.tool, pack: packId }) : null;
   const usePack = packId !== null && packProblem === null;
   const rulesProblem = packProblem ?? ((usePrepared || usePack) && nothingLocal ? null : unusableReason(source, input.tool));

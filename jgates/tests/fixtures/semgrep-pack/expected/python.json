@@ -1,0 +1,4 @@
+{
+  "files": ["app.py"],
+  "ruleIds": ["jgates.python.sql-string-building", "jgates.python.os-command-injection", "jgates.python.weak-hash", "jgates.python.unsafe-deserialization"]
+}

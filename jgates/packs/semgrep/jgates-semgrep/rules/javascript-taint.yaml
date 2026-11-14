@@ -8,6 +8,7 @@ rules:
       category: ssrf
       cwe: "CWE-918"
       author: JGates
+      subdimension: injection
     pattern-sources:
       - pattern: req.query
       - pattern: req.body
@@ -35,6 +36,7 @@ rules:
       category: path-traversal
       cwe: "CWE-22"
       author: JGates
+      subdimension: injection
     pattern-sources:
       - pattern: req.query
       - pattern: req.body

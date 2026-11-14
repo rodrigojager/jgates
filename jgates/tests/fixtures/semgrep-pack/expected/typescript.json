@@ -1,0 +1,4 @@
+{
+  "files": ["server.ts"],
+  "ruleIds": ["jgates.js.os-command-injection", "jgates.js.jwt-signature-not-verified"]
+}

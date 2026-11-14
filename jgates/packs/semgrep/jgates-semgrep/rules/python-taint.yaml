@@ -8,6 +8,7 @@ rules:
       category: ssrf
       cwe: "CWE-918"
       author: JGates
+      subdimension: injection
     pattern-sources:
       - pattern: request.args.get(...)
       - pattern: request.args[...]
@@ -34,6 +35,7 @@ rules:
       category: path-traversal
       cwe: "CWE-22"
       author: JGates
+      subdimension: injection
     pattern-sources:
       - pattern: request.args.get(...)
       - pattern: request.args[...]

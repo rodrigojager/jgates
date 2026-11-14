@@ -7,6 +7,7 @@ rules:
       category: injection
       cwe: "CWE-89"
       author: JGates
+      subdimension: injection
     pattern-either:
       - pattern: $DB.query(`...${...}...`, ...)
       - pattern: $DB.query(<... "..." + $X ...>, ...)
@@ -20,6 +21,7 @@ rules:
       category: injection
       cwe: "CWE-78"
       author: JGates
+      subdimension: injection
     patterns:
       - pattern-either:
           - pattern: child_process.exec($CMD, ...)
@@ -39,6 +41,7 @@ rules:
       category: injection
       cwe: "CWE-95"
       author: JGates
+      subdimension: injection
     patterns:
       - pattern-either:
           - pattern: eval($X)

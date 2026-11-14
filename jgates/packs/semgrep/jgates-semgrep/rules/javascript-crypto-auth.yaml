@@ -7,6 +7,7 @@ rules:
       category: weak-crypto
       cwe: "CWE-327"
       author: JGates
+      subdimension: cryptography
     pattern-either:
       - pattern: crypto.createHash("md5", ...)
       - pattern: crypto.createHash("sha1", ...)
@@ -19,6 +20,7 @@ rules:
       category: weak-crypto
       cwe: "CWE-327"
       author: JGates
+      subdimension: cryptography
     pattern-either:
       - patterns:
           - pattern: crypto.createCipheriv($ALG, ...)
@@ -35,6 +37,7 @@ rules:
       category: weak-crypto
       cwe: "CWE-295"
       author: JGates
+      subdimension: cryptography
     pattern-either:
       - pattern: "{..., rejectUnauthorized: false, ...}"
 
@@ -46,6 +49,7 @@ rules:
       category: authorization
       cwe: "CWE-347"
       author: JGates
+      subdimension: authorization
     pattern-either:
       - pattern: jwt.decode(...)
       - pattern: 'jwt.verify($T, $K, {..., algorithms: [..., "none", ...], ...})'
@@ -58,6 +62,7 @@ rules:
       category: authorization
       cwe: "CWE-942"
       author: JGates
+      subdimension: authorization
     pattern-either:
       - pattern: 'cors({..., origin: "*", ..., credentials: true, ...})'
       - pattern: 'cors({..., credentials: true, ..., origin: "*", ...})'

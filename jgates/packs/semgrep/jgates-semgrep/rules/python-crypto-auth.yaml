@@ -7,6 +7,7 @@ rules:
       category: weak-crypto
       cwe: "CWE-327"
       author: JGates
+      subdimension: cryptography
     pattern-either:
       - pattern: hashlib.md5(...)
       - pattern: hashlib.sha1(...)
@@ -21,6 +22,7 @@ rules:
       category: weak-crypto
       cwe: "CWE-327"
       author: JGates
+      subdimension: cryptography
     pattern-either:
       - pattern: DES.new(...)
       - pattern: DES3.new(...)
@@ -34,6 +36,7 @@ rules:
       category: weak-crypto
       cwe: "CWE-295"
       author: JGates
+      subdimension: cryptography
     pattern-either:
       - pattern: requests.$M(..., verify=False, ...)
       - pattern: ssl._create_unverified_context(...)
@@ -46,6 +49,7 @@ rules:
       category: authorization
       cwe: "CWE-347"
       author: JGates
+      subdimension: authorization
     pattern-either:
       - pattern: 'jwt.decode(..., options={"verify_signature": False, ...}, ...)'
       - pattern: jwt.decode(..., verify=False, ...)
@@ -58,6 +62,7 @@ rules:
       category: authorization
       cwe: "CWE-352"
       author: JGates
+      subdimension: authorization
     pattern: |
       @csrf_exempt
       def $F(...):
@@ -71,6 +76,7 @@ rules:
       category: authorization
       cwe: "CWE-639"
       author: JGates
+      subdimension: authorization
     pattern-either:
       - pattern: |
           if request.args.get("is_admin"):

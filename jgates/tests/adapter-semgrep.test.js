@@ -329,12 +329,19 @@ test("the rules routes list the files with their validation and rename through t
 
 // ---- Bundled JGates rule pack -------------------------------------------------------------------------------------
 // The pack's rule tests and its vulnerable/clean fixtures run on a real Semgrep: a local one (JGATES_SEMGREP, the
-// repository .venv, PATH) or the quality sidecar image through Docker. With neither, the tests fail and say so.
+// repository .venv, PATH) or the JGates tools image through Docker. With neither, the tests fail and say so.
+// The twins live in fixtures/semgrep-pack/{vulnerable,clean}/<language>/ and the rule ids the vulnerable twin must flag
+// in fixtures/semgrep-pack/expected/<language>.json: a new language is a new folder and a new file, no test code.
 
 const PACK_ROOT = path.resolve(here, "..", "packs", "semgrep");
 const PACK_RULES = path.join(PACK_ROOT, "jgates-semgrep", "rules");
 const PACK_FIXTURES = path.join(here, "fixtures", "semgrep-pack");
-const SIDECAR_IMAGE = process.env.JGATES_SEMGREP_IMAGE || "jgates/quality-sidecar:latest";
+const TOOLS_IMAGE = process.env.JGATES_SEMGREP_IMAGE || "jgates-tools:dev";
+const SECURITY_SUBDIMENSIONS = ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence"];
+const PACK_CATEGORIES = ["injection", "ssrf", "path-traversal", "deserialization", "weak-crypto", "authorization", "xss", "xxe"];
+// Metadata keys (and links) typical of registry rules: a rule of this pack never carries one.
+const FORBIDDEN_METADATA = ["source-rule-url", "shortlink", "license", "technology", "references", "source", "impact", "likelihood", "confidence", "vulnerability_class", "owasp", "cwe2021-top25", "cwe2022-top25", "subcategory"];
+const twinLanguages = () => fs.readdirSync(path.join(PACK_FIXTURES, "expected")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort();
 
 function localSemgrep() {
   const candidates = [process.env.JGATES_SEMGREP, path.join(VENV_BIN, process.platform === "win32" ? "semgrep.exe" : "semgrep")].filter(Boolean);
@@ -358,22 +365,22 @@ function engine() {
     };
     return { kind: "local", run };
   }
-  const docker = spawnSync("docker", ["image", "inspect", SIDECAR_IMAGE], { encoding: "utf8" });
+  const docker = spawnSync("docker", ["image", "inspect", TOOLS_IMAGE], { encoding: "utf8" });
   if (docker.status === 0) {
     return {
       kind: "docker",
       run: (args, mounts = {}) => {
         const volumes = Object.entries(mounts).flatMap(([host, inside]) => ["-v", `${host}:${inside.path}${inside.writable ? "" : ":ro"}`]);
-        return spawnSync("docker", ["run", "--rm", "--label", "jproject.project=jgates", ...volumes, "--entrypoint", "semgrep", SIDECAR_IMAGE, ...args], { encoding: "utf8", timeout: 240_000 });
+        return spawnSync("docker", ["run", "--rm", "--label", "jproject.project=jgates", ...volumes, "--entrypoint", "semgrep", TOOLS_IMAGE, ...args], { encoding: "utf8", timeout: 240_000 });
       },
     };
   }
-  throw new assert.AssertionError({ message: `no Semgrep engine available: install semgrep (JGATES_SEMGREP, .venv or PATH) or build the Docker image ${SIDECAR_IMAGE}; the pack tests cannot pass without one` });
+  throw new assert.AssertionError({ message: `no Semgrep engine available: install semgrep (JGATES_SEMGREP, .venv or PATH) or use the tools image ${TOOLS_IMAGE}; the pack tests cannot pass without one` });
 }
 
-const packWorkspace = (variant) => {
+const packWorkspace = (variant, language) => {
   const dir = tmp("jgates-pack-ws-");
-  fs.cpSync(path.join(PACK_FIXTURES, variant), dir, { recursive: true });
+  fs.cpSync(path.join(PACK_FIXTURES, variant, language), dir, { recursive: true });
   return dir;
 };
 const PACK_TOOLS = "schemaVersion: 1\ntools:\n  semgrep:\n    adapter: semgrep\n    capabilities: [sast]\n    rulePack: jgates\n";
@@ -384,9 +391,9 @@ function packCli(dir, home) {
 }
 
 /** Plans through the CLI, runs the planned semgrep arguments on the engine and normalizes the output with the adapter. */
-function scanWithPack(variant) {
+function scanWithPack(variant, language) {
   const eng = engine();
-  const dir = packWorkspace(variant);
+  const dir = packWorkspace(variant, language);
   const out = tmp("jgates-pack-out-");
   const home = tmp("jgates-pack-home-");
   try {
@@ -430,40 +437,59 @@ test("the rule tests of the bundled pack pass on a real Semgrep (ruleid/ok annot
   const text = `${run.stdout}\n${run.stderr}`;
   assert.equal(run.status, 0, text);
   assert.match(text, /All tests passed/, text);
-  const files = fs.readdirSync(PACK_RULES);
-  const yamls = files.filter((f) => f.endsWith(".yaml"));
-  assert.ok(yamls.length >= 8, "the pack covers injection, SSRF, path traversal, crypto, deserialization and authorization for Python and JavaScript");
-  for (const y of yamls) {
-    const stem = y.replace(/\.yaml$/, "");
-    assert.ok(files.some((f) => f.startsWith(`${stem}.`) && !f.endsWith(".yaml")), `${y} has a test file`);
+});
+
+test("every rule of the bundled pack has its language prefix, its metadata and an annotated fixture, and no registry key", () => {
+  const index = semgrepAdapter.buildPackIndex(PACK_RULES);
+  assert.deepEqual(index.problems, []);
+  assert.ok(index.rules.length >= 24, "the pack keeps its 24 JavaScript and Python rules");
+  const prefixes = semgrepAdapter.PACK_LANGUAGE_PREFIX;
+  const seen = new Set();
+  for (const rule of index.rules) {
+    assert.ok(!seen.has(rule.id), `${rule.id} is defined once`);
+    seen.add(rule.id);
+    assert.ok(prefixes[rule.language], `${rule.file}: ${rule.language} is a language of the pack`);
+    assert.ok(rule.id.startsWith(`jgates.${prefixes[rule.language]}.`), `${rule.id} carries the prefix of ${rule.language}`);
+    assert.ok(PACK_CATEGORIES.includes(rule.category), `${rule.id}: category ${rule.category}`);
+    assert.match(rule.cwe, /^CWE-\d+$/, `${rule.id}: CWE`);
+    assert.ok(SECURITY_SUBDIMENSIONS.includes(rule.subdimension), `${rule.id}: subdimension ${rule.subdimension}`);
+    assert.equal(rule.author, "JGates", `${rule.id}: author`);
+    for (const key of FORBIDDEN_METADATA) assert.ok(!rule.metadataKeys.includes(key), `${rule.id}: metadata key ${key} is typical of registry rules`);
+    assert.ok(rule.fixture, `${rule.file} has a fixture beside it`);
+    const fixture = fs.readFileSync(path.join(PACK_RULES, rule.fixture), "utf8");
+    const id = rule.id.replace(/[.]/g, "\\.");
+    assert.match(fixture, new RegExp(`ruleid:\\s*${id}(?![\\w.-])`), `${rule.id} has a ruleid: case`);
+    assert.match(fixture, new RegExp(`\\bok:\\s*${id}(?![\\w.-])`), `${rule.id} has an ok: case`);
+  }
+  for (const file of semgrepAdapter.listPackRuleFiles(PACK_RULES)) {
+    const text = fs.readFileSync(path.join(PACK_RULES, file), "utf8");
+    assert.doesNotMatch(text, /semgrep\.dev/i, `${file} links to the registry`);
   }
 });
 
-test("the bundled pack flags the vulnerable fixture and its clean twin none, with normalized findings [proves: semgrep#sast]", () => {
-  const bad = scanWithPack("vulnerable");
-  const ids = new Set(bad.findings.map((f) => f.ruleId));
-  for (const id of [
-    "jgates.python.sql-string-building",
-    "jgates.python.os-command-injection",
-    "jgates.python.weak-hash",
-    "jgates.python.unsafe-deserialization",
-    "jgates.js.path-traversal",
-    "jgates.js.ssrf",
-    "jgates.js.weak-hash",
-    "jgates.js.os-command-injection",
-    "jgates.js.jwt-signature-not-verified",
-  ]) assert.ok(ids.has(id), `${id} missing in ${[...ids].join(", ")}`);
-  for (const f of bad.findings) {
-    assert.equal(f.tool, "semgrep");
-    assert.ok(f.location.path && f.location.line > 0, JSON.stringify(f));
+test("the bundled pack flags the vulnerable fixture of every language as expected and its clean twin none, with normalized findings [proves: semgrep#sast]", () => {
+  const known = new Set(semgrepAdapter.buildPackIndex(PACK_RULES).rules.map((r) => r.id));
+  const languages = twinLanguages();
+  assert.ok(languages.length >= 3, "javascript, typescript and python are twinned");
+  for (const language of languages) {
+    const expected = JSON.parse(fs.readFileSync(path.join(PACK_FIXTURES, "expected", `${language}.json`), "utf8"));
+    assert.ok(Array.isArray(expected.ruleIds) && expected.ruleIds.length > 0, `expected/${language}.json lists rule ids`);
+    for (const id of expected.ruleIds) assert.ok(known.has(id), `${language}: ${id} is a rule of the pack`);
+    const bad = scanWithPack("vulnerable", language);
+    const ids = new Set(bad.findings.map((f) => f.ruleId));
+    for (const id of expected.ruleIds) assert.ok(ids.has(id), `${language}: ${id} missing in ${[...ids].join(", ")}`);
+    for (const f of bad.findings) {
+      assert.equal(f.tool, "semgrep");
+      assert.ok(f.location.path && f.location.line > 0, JSON.stringify(f));
+    }
+    assert.deepEqual([...new Set(bad.findings.map((f) => f.location.path))].sort(), [...expected.files].sort(), language);
+    const clean = scanWithPack("clean", language);
+    assert.deepEqual(clean.findings.map((f) => f.ruleId), [], `${language} clean twin`);
   }
-  assert.deepEqual([...new Set(bad.findings.map((f) => f.location.path))].sort(), ["app.py", "server.js", "server.ts"]);
-  const clean = scanWithPack("clean");
-  assert.deepEqual(clean.findings.map((f) => f.ruleId), []);
 });
 
 test("the pack runs next to the customer's own rules, and an unknown pack id is refused", () => {
-  const dir = packWorkspace("clean");
+  const dir = packWorkspace("clean", "python");
   const home = tmp("jgates-pack-home-");
   try {
     const cli = packCli(dir, home);

@@ -1,0 +1,4 @@
+{
+  "files": ["server.js"],
+  "ruleIds": ["jgates.js.path-traversal", "jgates.js.ssrf", "jgates.js.weak-hash"]
+}

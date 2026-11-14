@@ -7,6 +7,7 @@ rules:
       category: injection
       cwe: "CWE-89"
       author: JGates
+      subdimension: injection
     pattern-either:
       - pattern: $C.execute(f"...{...}...", ...)
       - pattern: $C.execute("..." % ..., ...)
@@ -21,6 +22,7 @@ rules:
       category: injection
       cwe: "CWE-78"
       author: JGates
+      subdimension: injection
     patterns:
       - pattern-either:
           - pattern: subprocess.$F($CMD, ..., shell=True, ...)
@@ -38,6 +40,7 @@ rules:
       category: injection
       cwe: "CWE-95"
       author: JGates
+      subdimension: injection
     patterns:
       - pattern-either:
           - pattern: eval($X)

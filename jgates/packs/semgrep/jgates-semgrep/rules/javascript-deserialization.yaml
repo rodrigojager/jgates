@@ -7,6 +7,7 @@ rules:
       category: deserialization
       cwe: "CWE-502"
       author: JGates
+      subdimension: injection
     pattern-either:
       - pattern: require("node-serialize").unserialize(...)
       - patterns:
