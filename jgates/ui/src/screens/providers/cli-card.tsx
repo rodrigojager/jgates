@@ -5,7 +5,8 @@ import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import { ModelPicker, type ModelValue } from "../semantic-setup/model-picker";
-import { cliReadiness, providerLabel, useCliStatus, type CliProvider, type Readiness } from "../semantic-setup/provider-model";
+import { DetectBar } from "../semantic-setup/detect-bar";
+import { cliReadiness,providerLabel, useCliStatus, type CliProvider, type Readiness } from "../semantic-setup/provider-model";
 import { fieldErrors, originText, RemoveConnectionDialog, typeLabel } from "./card";
 import { providerPath, type ProviderEntry } from "./model";
 // The cards share the look of the provider step (command rows, model picker).
@@ -344,6 +345,7 @@ export function CliProviders({ entries, writable, revision, onChanged }: { entri
     <>
       {status.error ? <ErrorNotice error={status.error} onRetry={() => void status.recheck()} /> : null}
       {loginError ? <ErrorNotice error={loginError} /> : null}
+      <DetectBar data={status.data} busy={entries.some((e) => status.checking.has(e.name)) || (!status.data && !status.error)} onDetect={() => void status.recheck()} testId="pk-cli-detect" />
       <div className="pk-grid" data-testid="pk-cli-cards">
         {entries.map((e) => (
           <CliCard

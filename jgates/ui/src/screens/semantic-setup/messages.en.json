@@ -106,6 +106,8 @@
   "semprov_login_opened": "A terminal running {command} was opened. Finish the login there and come back to this window: it is checked again by itself.",
   "semprov_login_copy": "A terminal could not be opened. Run this command, finish the login and come back to this window:",
   "semprov_login_done": "Login confirmed in {name}.",
+  "semprov_detect_again": "Detect again",
+  "semprov_detected_at": "Detected at {time}",
   "semprov_recheck": "Check again",
   "semprov_recheck_aria": "Check {name} again",
   "semprov_copy": "Copy",

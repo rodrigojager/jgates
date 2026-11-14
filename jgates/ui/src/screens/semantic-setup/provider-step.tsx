@@ -6,7 +6,8 @@ import { useToast } from "../../components/Toast";
 import { t } from "../../i18n";
 import { KeyControl } from "../providers/key";
 import { providerPath, type ModelsAnswer, type ProviderEntry, type ProvidersData, type SecretsData, type SecretView } from "../providers/model";
-import { ModelPicker, type ModelValue } from "./model-picker";
+import { DetectBar } from "./detect-bar";
+import { ModelPicker,type ModelValue } from "./model-picker";
 import "./setup.css";
 import { apiReadiness, CLI_IDS, cliReadiness, isCli, projectModel, providerChoice, providerLabel, savable, useCliStatus, type CliProvider, type Readiness, type SemanticInfo } from "./provider-model";
 
@@ -408,6 +409,7 @@ export function ProviderPicker({ semantic, onSaved, onReload, onCancel, saveLabe
           {t("semprov_cli_title")} <Pill tone="green">{t("semprov_recommended")}</Pill>
         </h3>
         <p className="small muted">{t("semprov_cli_lead")}</p>
+        <DetectBar data={cli.data} busy={CLI_IDS.some((id) => cli.checking.has(id)) || (!cli.data && !cli.error)} onDetect={() => void cli.recheck()} testId="semprov-detect" />
         <div role="radiogroup" aria-labelledby={`${titleId}-cli`} className="semprov-grid" data-testid="semprov-cli">
           {CLI_IDS.map((id) => (
             <CliCard

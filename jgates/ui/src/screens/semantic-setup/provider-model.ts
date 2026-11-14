@@ -30,6 +30,8 @@ export interface CliProvider {
   models: CliModels | null;
   loginCommand: { command: string; args: string[]; display: string };
   install: string;
+  /** ISO time this CLI was detected. */
+  checkedAt?: string;
 }
 
 export interface CliStatus {
@@ -126,8 +128,8 @@ export function apiReadiness(entry: ProviderEntry, secret: SecretView | undefine
 export const savable = (r: Readiness): boolean => r === "ready" || r === "unknown" || r === "local";
 
 /**
- * The CLI status: first without the model listings (fast, for the cards), then with them (opencode alone can take a
- * few seconds). `recheck(id)` asks again for one CLI (after its login, or "Verificar de novo"), ignoring the cache.
+ * The CLI status, asked once per mount from the server's detection cache. `recheck(id)` asks again for one CLI (after
+ * its login, or "Verificar de novo") and `recheck()` for all of them ("Detectar de novo"), both ignoring the cache.
  */
 export function useCliStatus(): { data: CliStatus | null; error: unknown; modelsLoading: boolean; checking: Set<string>; recheck: (id?: string) => Promise<void> } {
   const [data, setData] = useState<CliStatus | null>(null);
@@ -155,9 +157,8 @@ export function useCliStatus(): { data: CliStatus | null; error: unknown; models
     alive.current = true;
     (async () => {
       try {
-        const fast = await api<CliStatus>("GET", "/api/providers/cli-status?models=0");
-        if (!alive.current) return;
-        merge(fast, true);
+        // One request per mount: the server answers from its detection cache (no CLI starts when it is warm) and
+        // detects once, with the model listings, when it is cold.
         const full = await api<CliStatus>("GET", "/api/providers/cli-status?models=1");
         if (!alive.current) return;
         merge(full, false);

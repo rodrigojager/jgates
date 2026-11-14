@@ -37,7 +37,6 @@ export type LoginReason =
 
 export const STATUS_TIMEOUT_MS = 8_000;
 export const MODELS_TIMEOUT_MS = 20_000;
-const MODELS_CACHE_MS = 60_000;
 const MAX_OUTPUT = 4 * 1024 * 1024;
 const MAX_MODELS = 1000;
 const SAFE_ARG = /^[A-Za-z0-9._:=-]+$/;
@@ -154,6 +153,8 @@ export interface CliProviderStatus {
   models: CliModels | null;
   loginCommand: CliCommandLine;
   install: string;
+  /** ISO time this CLI was detected (a cached answer keeps the time of its detection). */
+  checkedAt: string;
 }
 
 export interface CliStatusReport {
@@ -504,25 +505,38 @@ export interface CliStatusOptions {
   /** false: no model listing (faster; `models` is null). */
   models?: boolean;
   only?: readonly CliProviderId[];
-  /** false: ignore the cache of model listings. */
-  cache?: boolean;
 }
 
-const modelsCache = new Map<string, { at: number; list: string[] | null; problem: CliModels["problem"] }>();
+// ---- the detection cache (in memory, per server process, never written to disk) ----------------------------------------------
+//
+// One entry per CLI holds the whole detection (path, version, login, models, `checkedAt`). Nothing expires by time: an
+// entry is replaced by a refresh, dropped when the login terminal opens, and never created from a detection that failed
+// to answer (a timeout or a command error), so the next request tries again.
+interface DetectionEntry {
+  status: CliProviderStatus;
+}
+
+const detectionCache = new Map<CliProviderId, DetectionEntry>();
+/** Detections in flight, so two requests at once start the CLIs once. */
+const detectionInflight = new Map<CliProviderId, Promise<CliProviderStatus>>();
 
 export function clearCliStatusCache(): void {
-  modelsCache.clear();
+  detectionCache.clear();
+  detectionInflight.clear();
+}
+
+/** Drops one CLI's cached detection (its login terminal was opened: the next check asks the CLI again). */
+export function dropCliStatusEntry(id: CliProviderId): void {
+  detectionCache.delete(id);
+  detectionInflight.delete(id);
 }
 
 export function commandLineOf(spec: CliSpec): CliCommandLine {
   return { command: spec.command, args: [...spec.loginArgs], display: [spec.command, ...spec.loginArgs].join(" ") };
 }
 
-async function listedModels(spec: CliSpec, file: string, run: CliRunner, env: NodeJS.ProcessEnv, platform: NodeJS.Platform, timeoutMs: number, useCache: boolean): Promise<{ list: string[] | null; problem: CliModels["problem"] }> {
+async function listedModels(spec: CliSpec, file: string, run: CliRunner, env: NodeJS.ProcessEnv, platform: NodeJS.Platform, timeoutMs: number): Promise<{ list: string[] | null; problem: CliModels["problem"] }> {
   if (!spec.modelsArgs) return { list: null, problem: null };
-  const key = `${spec.id}|${file}`;
-  const cached = modelsCache.get(key);
-  if (useCache && cached && Date.now() - cached.at < MODELS_CACHE_MS) return { list: cached.list, problem: cached.problem };
   const r = await run(file, spec.modelsArgs, { env, timeoutMs, platform });
   let list: string[] | null = null;
   let problem: CliModels["problem"] = null;
@@ -535,21 +549,26 @@ async function listedModels(spec: CliSpec, file: string, run: CliRunner, env: No
       list = null;
     }
   }
-  // A failure is not cached: the next check tries again.
-  if (problem === null) modelsCache.set(key, { at: Date.now(), list, problem });
   return { list, problem };
 }
 
-async function statusOf(spec: CliSpec, options: Required<Pick<CliStatusOptions, "timeoutMs" | "modelsTimeoutMs" | "models" | "cache">> & { env: NodeJS.ProcessEnv; platform: NodeJS.Platform; runner: CliRunner }): Promise<CliProviderStatus> {
+/** A detection of one CLI and whether every command of it answered (a timeout or a command error makes it uncacheable). */
+interface Detected {
+  status: CliProviderStatus;
+  answered: boolean;
+}
+
+async function statusOf(spec: CliSpec, options: Required<Pick<CliStatusOptions, "timeoutMs" | "modelsTimeoutMs" | "models">> & { env: NodeJS.ProcessEnv; platform: NodeJS.Platform; runner: CliRunner }): Promise<Detected> {
   const { env, platform, runner } = options;
   const file = resolveCliExecutable(spec.command, env, platform);
   const base = { id: spec.id, name: spec.name, command: spec.command, loginCommand: commandLineOf(spec), install: spec.install };
   if (!file) {
-    return { ...base, installed: false, path: null, version: null, login: { state: "unknown", reason: "NOT_INSTALLED", method: null, checkedWith: null }, models: null };
+    const status: CliProviderStatus = { ...base, installed: false, path: null, version: null, login: { state: "unknown", reason: "NOT_INSTALLED", method: null, checkedWith: null }, models: null, checkedAt: new Date().toISOString() };
+    return { status, answered: true };
   }
   const versionRun = runner(file, ["--version"], { env, timeoutMs: options.timeoutMs, platform });
   const statusRun = spec.statusArgs ? runner(file, spec.statusArgs, { env, timeoutMs: options.timeoutMs, platform }) : null;
-  const modelsRun = options.models ? listedModels(spec, file, runner, env, platform, options.modelsTimeoutMs, options.cache) : null;
+  const modelsRun = options.models ? listedModels(spec, file, runner, env, platform, options.modelsTimeoutMs) : null;
   const [versionResult, statusResult, modelsResult] = await Promise.all([versionRun, statusRun, modelsRun]);
 
   let login: CliLogin;
@@ -579,29 +598,72 @@ async function statusOf(spec: CliSpec, options: Required<Pick<CliStatusOptions, 
     };
   }
   const version = versionResult.timedOut || versionResult.error !== null ? null : parseVersion(`${versionResult.stdout}\n${versionResult.stderr}`);
-  return { ...base, installed: true, path: file, version, login, models };
+  const answered =
+    !versionResult.timedOut &&
+    versionResult.error === null &&
+    (statusResult === null || spec.id === "gemini-cli" || (!statusResult.timedOut && statusResult.error === null)) &&
+    (models === null || models.problem === null);
+  return { status: { ...base, installed: true, path: file, version, login, models, checkedAt: new Date().toISOString() }, answered };
 }
 
-/** The state of every agent CLI (or of `only`), checked in parallel, each command bounded in time. */
+function detectOne(id: CliProviderId, options: CliStatusOptions, models: boolean): Promise<Detected> {
+  return statusOf(SPECS[id], {
+    env: options.env ?? process.env,
+    platform: options.platform ?? process.platform,
+    runner: options.runner ?? defaultRunner,
+    timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS,
+    modelsTimeoutMs: options.modelsTimeoutMs ?? MODELS_TIMEOUT_MS,
+    models,
+  });
+}
+
+function idsOf(options: CliStatusOptions): CliProviderId[] {
+  return options.only && options.only.length > 0 ? CLI_PROVIDER_IDS.filter((id) => options.only?.includes(id)) : [...CLI_PROVIDER_IDS];
+}
+
+/** The state of every agent CLI (or of `only`), detected live now (no cache: `jgates providers` uses it), each command bounded in time. */
 export async function cliProvidersStatus(options: CliStatusOptions = {}): Promise<CliStatusReport> {
-  const env = options.env ?? process.env;
-  const platform = options.platform ?? process.platform;
-  const timeoutMs = options.timeoutMs ?? STATUS_TIMEOUT_MS;
-  const ids = options.only && options.only.length > 0 ? CLI_PROVIDER_IDS.filter((id) => options.only?.includes(id)) : [...CLI_PROVIDER_IDS];
+  const providers = (await Promise.all(idsOf(options).map((id) => detectOne(id, options, options.models !== false)))).map((d) => d.status);
+  return { checkedAt: new Date().toISOString(), timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS, providers };
+}
+
+/**
+ * The same answer for the local server: from the detection cache, starting no process for a CLI that has an entry.
+ * `refresh` detects again (all of `only`, or all four) and replaces their entries. A CLI without an entry is detected
+ * once (concurrent requests share the detection) and cached unless a command timed out or failed. `models: false`
+ * answers with the models left out; a CLI without an entry is then detected without the listing and not cached.
+ * The report's `checkedAt` is the latest `checkedAt` of the entries it carries.
+ */
+export async function cachedCliProvidersStatus(options: CliStatusOptions & { refresh?: boolean } = {}): Promise<CliStatusReport> {
+  const withModels = options.models !== false;
+  const refresh = options.refresh === true;
   const providers = await Promise.all(
-    ids.map((id) =>
-      statusOf(SPECS[id], {
-        env,
-        platform,
-        runner: options.runner ?? defaultRunner,
-        timeoutMs,
-        modelsTimeoutMs: options.modelsTimeoutMs ?? MODELS_TIMEOUT_MS,
-        models: options.models !== false,
-        cache: options.cache !== false,
-      }),
-    ),
+    idsOf(options).map(async (id): Promise<CliProviderStatus> => {
+      if (!refresh) {
+        const cached = detectionCache.get(id);
+        if (cached) return withModels ? cached.status : { ...cached.status, models: null };
+      }
+      if (!withModels && !refresh) return (await detectOne(id, options, false)).status;
+      let running = refresh ? undefined : detectionInflight.get(id);
+      if (!running) {
+        const started: Promise<CliProviderStatus> = detectOne(id, options, true)
+          .then((d) => {
+            // Only the detection still in flight for this CLI may fill the entry (a login drop or a newer refresh wins).
+            if (d.answered && detectionInflight.get(id) === started) detectionCache.set(id, { status: d.status });
+            return d.status;
+          })
+          .finally(() => {
+            if (detectionInflight.get(id) === started) detectionInflight.delete(id);
+          });
+        detectionInflight.set(id, started);
+        running = started;
+      }
+      const status = await running;
+      return withModels ? status : { ...status, models: null };
+    }),
   );
-  return { checkedAt: new Date().toISOString(), timeoutMs, providers };
+  const latest = providers.reduce((a, p) => (p.checkedAt > a ? p.checkedAt : a), "");
+  return { checkedAt: latest || new Date().toISOString(), timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS, providers };
 }
 
 // ---- the login terminal ------------------------------------------------------------------------------------------------------

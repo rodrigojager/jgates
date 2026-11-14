@@ -30,8 +30,9 @@ import {
 } from "../../core/providers/index.js";
 import {
   CLI_PROVIDER_IDS,
-  cliProvidersStatus,
+  cachedCliProvidersStatus,
   cliSpec,
+  dropCliStatusEntry,
   isCliProviderId,
   MODELS_TIMEOUT_MS as CLI_MODELS_TIMEOUT_MS,
   openLoginTerminal,
@@ -319,7 +320,9 @@ export const routes: RouteDefinition[] = [
   {
     // The agent CLIs (claude-code, codex-cli, opencode, gemini-cli): installed (path, version), logged in (the CLI's own
     // status command, bounded in time; no credential is read) and the models each offers. Reads only: every mode.
-    // ?models=0 skips the model listings; ?refresh=1 ignores their cache; ?only=<id> checks one CLI.
+    // Answers from the in-memory detection cache (no process is started for a CLI that has an entry; each CLI carries
+    // its `checkedAt`). ?models=0 leaves the model listings out; ?refresh=1 detects again and replaces the entries;
+    // ?only=<id> limits the answer (and the refresh) to one CLI.
     method: "GET",
     path: "/api/providers/cli-status",
     query: {
@@ -330,7 +333,7 @@ export const routes: RouteDefinition[] = [
     timeoutMs: CLI_STATUS_TIMEOUT_MS,
     async handler({ query }) {
       const only = typeof query.only === "string" && isCliProviderId(query.only) ? [query.only] : undefined;
-      const report = await cliProvidersStatus({ models: query.models !== "0", cache: query.refresh !== "1", ...(only ? { only } : {}) });
+      const report = await cachedCliProvidersStatus({ models: query.models !== "0", refresh: query.refresh === "1", ...(only ? { only } : {}) });
       return { status: 200, json: { schemaVersion: 1, status: "OK", ...report } };
     },
   },
@@ -351,6 +354,8 @@ export const routes: RouteDefinition[] = [
       if (!resolveCliExecutable(spec.command)) {
         throw new HttpError(409, "CLI_NOT_INSTALLED", t("server_cli_not_installed", { name: spec.name, command: spec.command }), t("server_cli_not_installed_fix", { install: spec.install }), { install: spec.install });
       }
+      // The person is about to change this CLI's login: its cached detection is stale from now on.
+      dropCliStatusEntry(name);
       const outcome = await openLoginTerminal(name);
       server.log(`login terminal ${outcome.opened ? "opened" : "not opened"}: ${name}`);
       return { status: 200, json: { schemaVersion: 1, status: "OK", ...outcome } };

@@ -20,3 +20,4 @@
 @media (max-width: 700px) {
   .pk-grid { grid-template-columns: minmax(0, 1fr); }
 }
+.detect-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 8px; }
