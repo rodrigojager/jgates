@@ -271,3 +271,24 @@ test("status in Portuguese names the problems and what to do; plurals have no pa
     for (const [key, text] of Object.entries(catalog)) assert.ok(!/\(s\)|\(es\)|\(ns\)/.test(text), `${locale} ${key}`);
   }
 });
+
+test("status lists the disk with the sizes in one column, whatever the length of a volume name", async () => {
+  const { renderStatus } = await load("core", "lifecycle", "render.js");
+  const long = "jgates-ws_4e543958e27c96cc-deps-root-892d41504098";
+  const report = {
+    schemaVersion: 1, mode: "container", ready: true,
+    engine: { state: "ready", runtime: "docker", serverVersion: "29.0.0", os: "linux", arch: "x86_64", memoryMb: 16000, cpus: 8 },
+    image: { reference: "jgates-tools:dev", source: "pin", state: "ready", id: "x", version: VERSION, expectedVersion: VERSION, pinDigest: "", published: false },
+    extension: { images: [] },
+    data: { state: "fresh", read: "ok", maxAgeDays: 7, databases: [] },
+    workspace: null,
+    disk: { freeMb: 20000, managedBytes: 3_000_000_000, volumes: [{ name: "jgates-data", sizeBytes: 2_100_000_000 }, { name: long, sizeBytes: 49_100_000 }], images: [{ name: "jgates-tools:dev", sizeBytes: 6_000_000_000 }] },
+    reasons: [], warnings: [],
+  };
+  const lines = renderStatus(report, "en").split("\n").filter((l) => /^ {2}jgates-/.test(l));
+  assert.equal(lines.length, 3);
+  // Every line is "  <name><spaces><size>": the name ends with at least two spaces, and every size starts in the same column.
+  const starts = lines.map((l) => /^ {2}(\S+) {2,}(\S.*)$/.exec(l)).map((m, i) => (assert.ok(m, lines[i]), lines[i].indexOf(m[2], 2 + m[1].length)));
+  assert.equal(new Set(starts).size, 1, lines.join("\n"));
+  assert.equal(starts[0], 2 + long.length + 2);
+});

@@ -47,8 +47,10 @@ export function renderStatus(report: StatusReport, locale?: string): string {
       free: report.disk.freeMb === null ? "-" : formatMegabytes(report.disk.freeMb, locale),
     }),
   );
-  for (const v of report.disk.volumes) lines.push(`  ${v.name.padEnd(28)}${formatBytes(v.sizeBytes, locale)}`);
-  for (const i of report.disk.images) lines.push(`  ${i.name.padEnd(28)}${formatBytes(i.sizeBytes, locale)}`);
+  // The name column is as wide as the longest name (a workspace volume's name is over 40 characters), never under 28.
+  const diskItems = [...report.disk.volumes, ...report.disk.images];
+  const nameWidth = Math.max(28, ...diskItems.map((d) => d.name.length + 2));
+  for (const d of diskItems) lines.push(`  ${d.name.padEnd(nameWidth)}${formatBytes(d.sizeBytes, locale)}`);
   if (report.reasons.length > 0) {
     lines.push(t("lifecycle_status_problems"));
     for (const r of report.reasons) lines.push(...reasonLines(r, t));

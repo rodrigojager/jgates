@@ -304,7 +304,7 @@ export function ToolsStep({ view, act, apply, busy, back }: StepProps) {
   const dataRunning = data?.state === "running";
   const endEvent = [...(pull?.events ?? [])].reverse().find((e) => e.type === "end") as { reasons?: Array<{ code: string; message: string; action: { kind: "command" | "link" | "route" | "none"; label: string } }> } | undefined;
 
-  if (!info && !error) return <Loading />;
+  if (!info && !error) return <Loading label={t("wizard_loading_tools")} />;
   const doctor: DoctorState = failed && !imageReady ? "error" : imageReady ? "ok" : downloading ? "checking" : "needs-you";
   const freeBytes = info?.disk.freeBytes ?? null;
   const pendingBytes = info?.totals.pendingDiskBytes ?? 0;

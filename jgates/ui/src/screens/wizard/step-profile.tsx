@@ -119,7 +119,7 @@ export function ProfileStep({ view, act, busy, back }: StepProps) {
     );
   };
 
-  if (!info) return error ? <ErrorNotice error={error} onRetry={() => void loadCounts()} /> : <Loading />;
+  if (!info) return error ? <ErrorNotice error={error} onRetry={() => void loadCounts()} /> : <Loading label={t("wizard_loading_profile")} />;
 
   const choice = selected ?? info.selected ?? info.recommended;
   const shownEditor = editor && editor.profile.ref === choice ? editor : null;
@@ -248,7 +248,7 @@ export function ProfileStep({ view, act, busy, back }: StepProps) {
           />
         </div>
       ) : (
-        <Loading />
+        <Loading label={t("wizard_loading_profile_editor")} />
       )}
       <div className="row wrap">
         {/* Never disabled while it loads: a disabled button loses the focus, and the dialog gives the focus back to it. */}

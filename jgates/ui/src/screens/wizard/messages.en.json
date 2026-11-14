@@ -221,5 +221,10 @@
   "wizard_deps_network_registry": "Only while installing, to download the packages from {registry}. The checks do not use this network.",
   "wizard_deps_network_private": "Only while installing, to download the packages from the private registry {registry}. The checks do not use this network.",
   "wizard_deps_network_unknown": "Only while installing, to download the packages from the manager's registry.",
-  "wizard_deps_all_ready": "Every dependency is ready for the checks."
+  "wizard_deps_all_ready": "Every dependency is ready for the checks.",
+  "wizard_loading_tools": "Checking the tools image and the disk space...",
+  "wizard_loading_project": "Reading the project: languages, managers and components...",
+  "wizard_loading_profile": "Working out what each profile will check in this project...",
+  "wizard_loading_profile_editor": "Opening the profile options...",
+  "wizard_loading_dependencies": "Checking the dependencies of the project..."
 }

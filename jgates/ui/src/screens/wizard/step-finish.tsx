@@ -84,7 +84,7 @@ export function DependenciesStep({ view, act, apply, busy, back }: StepProps) {
     if (depsState === "done" || depsState === "failed") load();
   }, [depsState, load]);
 
-  if (!info) return error ? <ErrorNotice error={error} onRetry={load} /> : <Loading />;
+  if (!info) return error ? <ErrorNotice error={error} onRetry={load} /> : <Loading label={t("wizard_loading_dependencies")} />;
   const outcomes = new Map((deps?.events ?? []).filter((e) => e.type === "dependencies-unit").map((e) => [(e as unknown as UnitEvent).unit.unit, (e as unknown as UnitEvent).unit]));
   const queued = view.setup.dependencies === "queued";
   const running = deps?.state === "running";

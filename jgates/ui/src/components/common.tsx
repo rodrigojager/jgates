@@ -90,10 +90,11 @@ export function Spinner() {
   return <span className="spinner" aria-hidden="true" />;
 }
 
-export function Loading() {
+/** The line shown while a screen or a part of it loads; label names what is being computed when the wait can be long. */
+export function Loading({ label }: { label?: string } = {}) {
   return (
     <p className="spinner-text" role="status">
-      {t("loading")}
+      {label ?? t("loading")}
     </p>
   );
 }

@@ -77,7 +77,7 @@ export function ProjectStep({ view, act, busy, back }: StepProps) {
   }, []);
   useEffect(load, [load]);
 
-  if (!info) return error ? <ErrorNotice error={error} onRetry={load} /> : <Loading />;
+  if (!info) return error ? <ErrorNotice error={error} onRetry={load} /> : <Loading label={t("wizard_loading_project")} />;
 
   const set = (id: string, patch: Partial<Edit>) => setEdits((all) => ({ ...all, [id]: { ...(all[id] as Edit), ...patch } }));
   // A new language takes its own frameworks and managers: the ones of the old language would be a wrong pair (D26).

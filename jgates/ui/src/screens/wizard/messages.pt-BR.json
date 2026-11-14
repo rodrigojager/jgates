@@ -221,5 +221,10 @@
   "wizard_deps_network_registry": "Só durante a instalação, para baixar os pacotes de {registry}. As verificações não usam essa rede.",
   "wizard_deps_network_private": "Só durante a instalação, para baixar os pacotes do registro privado {registry}. As verificações não usam essa rede.",
   "wizard_deps_network_unknown": "Só durante a instalação, para baixar os pacotes do registro do gerenciador.",
-  "wizard_deps_all_ready": "Todas as dependências estão prontas para as verificações."
+  "wizard_deps_all_ready": "Todas as dependências estão prontas para as verificações.",
+  "wizard_loading_tools": "Conferindo a imagem de ferramentas e o espaço em disco...",
+  "wizard_loading_project": "Lendo o projeto: linguagens, gerenciadores e componentes...",
+  "wizard_loading_profile": "Calculando o que cada perfil vai verificar neste projeto...",
+  "wizard_loading_profile_editor": "Abrindo as opções do perfil...",
+  "wizard_loading_dependencies": "Conferindo as dependências do projeto..."
 }
