@@ -4,7 +4,7 @@
   "entries": [
     {
       "requirement": "V4.1.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "hardening"
@@ -22,7 +22,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The ZAP alert reports a response with a missing or empty content type on the pages it reached; the correct type and charset of every response is a fact of the running system."
+      "why": "The ZAP alert reports a response with a missing or empty content type on the pages it reached; the correct type and charset of every response is a fact of the running system.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V4.1.2",
@@ -34,7 +38,7 @@
     },
     {
       "requirement": "V4.1.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "authorization"
@@ -146,7 +150,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag a client address or an absolute URL built from headers an intermediary should supply but a client can also send; the audit block covers who may supply them."
+      "why": "The rules flag a client address or an absolute URL built from headers an intermediary should supply but a client can also send; the audit block covers who may supply them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V4.1.4",
@@ -248,7 +256,7 @@
     },
     {
       "requirement": "V4.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -258,7 +266,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.csharp.graphql-without-depth-limit",
           "covers": "A GraphQL server created without a depth, amount or cost limit; an informational finding, in C#, for the libraries named in the header of its rule file.",
-          "misses": "Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "misses": "Any request-options change counts as a limit, whether or not it bounds depth or cost. Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
@@ -272,21 +280,21 @@
           "unit": "semgrep-rule",
           "id": "jgates.java.graphql-without-depth-limit",
           "covers": "A GraphQL server created without a depth, amount or cost limit; an informational finding, in Java, for the libraries named in the header of its rule file.",
-          "misses": "Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "misses": "Any instrumentation call on the Spring GraphQL source silences the rule, whether or not it bounds depth or cost. Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.graphql-without-depth-limit",
           "covers": "A GraphQL server created without a depth, amount or cost limit; an informational finding, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
-          "misses": "Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "misses": "Any plugins or validation-rules option silences the rule, whether or not it bounds depth or cost. Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.graphql-without-depth-limit",
           "covers": "A GraphQL server created without a depth, amount or cost limit; an informational finding, in Python, for the libraries named in the header of its rule file.",
-          "misses": "Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "misses": "Any validation-rules argument of the Ariadne server silences the rule, whether or not it bounds depth or cost. Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
@@ -302,11 +310,15 @@
           "graphql"
         ]
       },
-      "why": "The rules flag a GraphQL server built without any depth, amount or cost limit, which is the sign of a missing limit; only projects with GraphQL are concerned."
+      "why": "The rules flag a GraphQL server built without any depth, amount or cost limit, which is the sign of a missing limit; only projects with GraphQL are concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V4.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -316,35 +328,35 @@
           "unit": "semgrep-rule",
           "id": "jgates.config.graphql-introspection-enabled",
           "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in configuration files, for the libraries named in the header of its rule file.",
-          "misses": "Whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only the files and formats the rule's path list names are read.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only the files and formats the rule's path list names are read.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.graphql-introspection-enabled",
           "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in C#, for the libraries named in the header of its rule file.",
-          "misses": "Whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.graphql-introspection-enabled",
           "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in Go, for the libraries named in the header of its rule file.",
-          "misses": "Whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.graphql-introspection-enabled",
           "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
-          "misses": "Whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.graphql-introspection-enabled",
           "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in Python, for the libraries named in the header of its rule file.",
-          "misses": "Whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         }
       ],
@@ -353,11 +365,15 @@
           "graphql"
         ]
       },
-      "why": "The rules and the configuration rule flag introspection left on; only projects with GraphQL are concerned."
+      "why": "The rules and the configuration rule flag introspection left on; only projects with GraphQL are concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V4.4.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -418,11 +434,15 @@
           "websocket"
         ]
       },
-      "why": "The rules flag plain ws:// addresses that are not the local machine; only projects that use WebSocket are concerned."
+      "why": "The rules flag plain ws:// addresses that are not the local machine; only projects that use WebSocket are concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V4.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -476,23 +496,20 @@
           "websocket"
         ]
       },
-      "why": "The rules flag handshakes that accept every origin, and the audit class examines the Origin check, which the requirement asks for; only projects that use WebSocket are concerned."
+      "why": "The rules flag handshakes that accept every origin, and the audit class examines the Origin check, which the requirement asks for; only projects that use WebSocket are concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V4.4.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
-        {
-          "unit": "semantic-ledger",
-          "id": "CLIENT-SIDE.md#Cross-site WebSocket request use",
-          "covers": "A model looks at whether the upgrade relies on ambient cookies or a channel-specific token.",
-          "misses": "It examines the handshake's cross-site trust, not the lifetime, binding or revocation of a dedicated token; code it does not read is missed.",
-          "depth": "partial"
-        },
         {
           "unit": "semantic-requirement",
           "id": "asvs-review",
@@ -506,23 +523,20 @@
           "websocket"
         ]
       },
-      "why": "A model can read how a connection is tokenized and compare it with the session rules; no pattern can decide that."
+      "why": "A model can read how a connection is tokenized and compare it with the session rules; no pattern can decide that.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V4.4.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
-        {
-          "unit": "semantic-ledger",
-          "id": "CLIENT-SIDE.md#Cross-site WebSocket request use",
-          "covers": "A model looks at whether the upgrade relies on ambient cookies or a channel-specific token.",
-          "misses": "It does not trace where the token is issued or validated through the authenticated session; code it does not read is missed.",
-          "depth": "partial"
-        },
         {
           "unit": "semantic-requirement",
           "id": "asvs-review",
@@ -536,7 +550,11 @@
           "websocket"
         ]
       },
-      "why": "A model can follow how a socket token is issued after the authenticated page session; no pattern can decide that."
+      "why": "A model can follow how a socket token is issued after the authenticated page session; no pattern can decide that.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     }
   ]
 }
