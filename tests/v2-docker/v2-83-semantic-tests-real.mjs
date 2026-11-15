@@ -35,10 +35,13 @@ const tmp = (prefix) => {
 const workspace = `v2-83-${crypto.randomBytes(4).toString("hex")}`;
 const workspaceFilter = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
 
-test.after(() => {
+// The cleanup is a hook of the test itself, not of the file: under the harness, a root `after` hook registered once the
+// root has nothing pending (the case run alone with --test-name-pattern, after filtered cases) runs at once, before the
+// test made anything.
+function cleanup() {
   for (const dir of made) fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
   for (const id of docker(["ps", "-aq", ...workspaceFilter]).out.split(/\s+/).filter(Boolean)) docker(["rm", "-f", id]);
-});
+}
 
 /** Hash of the whole tree: relative paths, sizes, mtimes and contents, in a stable order. */
 function treeHash(dir) {
@@ -114,7 +117,8 @@ const WRITE_REPRODUCER = [
 
 const REPRODUCER_PATH = ".jgates/regressions/paginate-pages.test.mjs";
 
-test("V2-83 (real engine): the reproducer fails before the patch and passes after it inside the container, the sandbox holds, and nothing is left behind", async () => {
+test("V2-83 (real engine): the reproducer fails before the patch and passes after it inside the container, the sandbox holds, and nothing is left behind", async (t) => {
+  t.after(cleanup);
   assert.equal(docker(["version", "--format", "{{.Server.Version}}"]).code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);
   const runner = await load("core", "regressions", "runner.js");

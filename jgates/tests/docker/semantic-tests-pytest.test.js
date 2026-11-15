@@ -15,9 +15,13 @@ import { docker, dockerAvailable } from "./dev-docker.mjs";
 // from the inside), failed (the failing test is named), error (a file that does not load) and not run (the time limit).
 // The project folder is byte for byte the same afterwards and no container of the run is left.
 //
-// With JGATES_SEMANTIC_RUNNER_RECORD=<file> the suite also writes what the image printed for each file as the
-// recordings tests/fixtures/semantic-test-runner/recorded/semantic-test-runner.json holds (the default suite replays
-// them: tests/semantic-test-runner.test.js).
+// With JGATES_SEMANTIC_RUNNER_RECORD=<file> the suite also writes what the image printed for each file into <file>, in
+// the shape of tests/fixtures/semantic-test-runner/recorded/semantic-test-runner.json (the default suite replays it:
+// tests/semantic-test-runner.test.js, through tests/fixtures/semantic-test-runner/replay-engine.cjs). Each recording is a
+// raw run of the recipe's command in the container the runner starts (stdout and stderr apart, unmasked), on a
+// read-only tree that holds what the workspace copy holds plus the test file, with the dependency volume mounted where
+// the recording says so. Runs of <file> (or of the default recordings when <file> does not exist yet) whose id is not
+// recorded here (the one that never finishes) are kept as they are.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, "..", "..");
@@ -29,6 +33,7 @@ const load = (...parts) => import(pathToFileURL(path.join(dist, ...parts)).href)
 const engine = await load("core", "engine", "index.js");
 const { workspaceId } = await load("core", "ids", "index.js");
 const regressions = await load("core", "regressions", "index.js");
+const { stepUser } = await load("core", "runner", "container.js");
 const IMAGE = engine.DEV_TOOLS_IMAGE;
 
 const made = [];
@@ -90,10 +95,63 @@ function copyListing(volume) {
   return listed.out;
 }
 
+const DEFAULT_RECORDINGS = path.join(FIXTURES, "recorded", "semantic-test-runner.json");
+const FORMAT_SOURCE = "export const label = (n) => `Item ${n}`;\n";
+const FORMAT_TEST = [
+  'import test from "node:test";',
+  'import assert from "node:assert/strict";',
+  'import { label } from "../src/format.js";',
+  "",
+  'test("labels name the item", () => {',
+  '  assert.strictEqual(label(3), "Item 3");',
+  "});",
+  "",
+].join("\n");
 const recorded = [];
-function record(id, file, content, run) {
+
+/**
+ * The raw run of a recipe's command in the same container the runner starts (for the recording: stdout and stderr apart,
+ * unmasked): the tree is the workspace copy's files plus `extra`, mounted read-only at /workspace, with the prepared
+ * dependency volumes on their mount points when `dependencies` is true.
+ */
+async function rawRun(environment, { runner, file, files, dependencies }) {
+  const recipe = regressions.TEST_RECIPES[runner];
+  const deps = dependencies ? regressions.dependencyMounts(environment, recipe) : [];
+  if (dependencies) assert.ok(deps.length > 0, `a prepared dependency volume for ${runner}`);
+  const dir = path.join(tmp("jgates-semantic-runner-raw-"), "tree");
+  const fixture = regressions.writeFixture(dir, files, { mountPoints: deps.map((d) => d.mountPoint) });
+  try {
+    return await engine.runInEngine(
+      {
+        image: environment.runtime.image,
+        command: recipe.command(file),
+        name: `jgates-test-${crypto.randomBytes(6).toString("hex")}`,
+        labels: engine.engineLabels({ kind: "step", version: environment.labels.version, workspace: environment.labels.workspace, run: environment.labels.run, extra: { [regressions.LABEL_TEST_RUNNER]: recipe.id } }),
+        mounts: [{ type: "bind", source: fixture.dir, target: "/workspace", readonly: true }, ...deps.map((d) => ({ type: "volume", source: d.volume, target: `/workspace/${d.mountPoint}`, readonly: true }))],
+        network: "none",
+        user: stepUser(),
+        env: { ...recipe.env },
+        workdir: "/workspace",
+        resources: { ...regressions.TEST_LIMITS },
+        timeoutMs: regressions.TEST_TIMEOUT_MS,
+      },
+      environment.runtime.engine,
+    );
+  } finally {
+    regressions.removeFixture(dir);
+  }
+}
+
+/**
+ * Records one run in the replay shape: `when` and `dependencies` are the conditions that select it on a tree; `checked`
+ * (when given) is the runner's own run of the same file, whose exit code the raw run must repeat.
+ */
+async function record(environment, copyFiles, { id, runner, file, content, dependencies, mount = dependencies === true, when, checked }) {
   if (!RECORD) return;
-  recorded.push({ id, file, content, exitCode: run.exitCode, timedOut: run.timedOut, stdout: run.rawStdout ?? run.output });
+  const raw = await rawRun(environment, { runner, file, files: [...copyFiles.filter((f) => f.path !== file), { path: file, content }], dependencies: mount });
+  assert.equal(raw.timedOut, false, `${id}: the recorded run finished`);
+  if (checked) assert.equal(raw.exitCode, checked.exitCode, `${id}: the recorded run ended as the checked one did\n${raw.stdout}\n${raw.stderr}`);
+  recorded.push({ id, runner, file, ...(dependencies === undefined ? {} : { dependencies }), ...(when ? { when } : {}), exitCode: raw.exitCode, stdout: raw.stdout, stderr: raw.stderr });
 }
 
 test("a pytest file placed in the workspace copy runs in a container without network and reads as passed, failed, error and not run; nothing is left behind", { timeout: 1_800_000 }, async () => {
@@ -125,6 +183,9 @@ test("a pytest file placed in the workspace copy runs in a container without net
   assert.ok(environment.dependencies.length >= 1, "the workspace's dependency volume is prepared");
   const stageDir = path.join(home, "stage");
   const run = (file, content, options = {}) => regressions.runTestFileInWorkspaceCopy(environment, { workspace, file, content, stageDir }, options);
+  const copySource = regressions.workspaceFiles(project, env);
+  assert.ok("files" in copySource, JSON.stringify(copySource));
+  const copyFiles = copySource.files;
 
   // passed: the file placed in a folder the copy does not have; it proves the limits from the inside.
   const passes = placed("test_passes.py");
@@ -140,7 +201,10 @@ test("a pytest file placed in the workspace copy runs in a container without net
   assert.equal(ok.placed, true);
   assert.equal(ok.removed, true);
   assert.equal(copyListing(volume), listingBefore, "the placed file and the folders its placement created are gone");
-  record("passes", ".jgates/regressions/test_passes.py", passes, ok);
+  const passesWhen = [{ path: ".jgates/regressions/test_passes.py", contains: "import six" }];
+  await record(environment, copyFiles, { id: "pytest-passes", runner: "pytest", file: ".jgates/regressions/test_passes.py", content: passes, dependencies: true, when: passesWhen, checked: ok });
+  // The same file without the dependency volume (what a workspace whose dependencies are not prepared runs).
+  await record(environment, copyFiles, { id: "pytest-passes-without-dependencies", runner: "pytest", file: ".jgates/regressions/test_passes.py", content: passes, dependencies: false, when: passesWhen });
 
   // failed: the failing test is named.
   const fails = placed("test_fails.py");
@@ -151,7 +215,7 @@ test("a pytest file placed in the workspace copy runs in a container without net
   assert.match(bad.reason, /test_total_ignores_the_discount/);
   assert.doesNotMatch(bad.reason, /test_total_of_one_item/);
   assert.equal(copyListing(volume), listingBefore);
-  record("fails", "tests/test_fails.py", fails, bad);
+  await record(environment, copyFiles, { id: "pytest-fails", runner: "pytest", file: "tests/test_fails.py", content: fails, when: [{ path: "tests/test_fails.py", contains: "test_total_ignores_the_discount" }], checked: bad });
 
   // error: a file that does not load is not a verdict on any test.
   const broken = placed("test_broken.py.txt");
@@ -160,7 +224,15 @@ test("a pytest file placed in the workspace copy runs in a container without net
   assert.equal(err.executed, true);
   assert.notEqual(err.outcome, "failed");
   assert.equal(copyListing(volume), listingBefore);
-  record("broken", "tests/test_broken.py", broken, err);
+  await record(environment, copyFiles, { id: "pytest-does-not-load", runner: "pytest", file: "tests/test_broken.py", content: broken, when: [{ path: "tests/test_broken.py", contains: "def test_never_collected(:" }], checked: err });
+  // A file with no test, and the node:test recipe on the trees the default suite replays (a fixture and the copy). The
+  // copy's node:test files import node: modules only, and this Python project has no node_modules volume: they run
+  // without one, and their recordings keep the condition the default suite's copy has (a node_modules volume).
+  await record(environment, copyFiles, { id: "pytest-no-test", runner: "pytest", file: "tests/test_empty.py", content: "def helper():\n    return 1\n" });
+  await record(environment, [{ path: "src/format.js", content: FORMAT_SOURCE }], { id: "node-test-passes-fixture", runner: "node:test", file: "test/format.test.mjs", content: FORMAT_TEST });
+  const inCopy = (value) => `import test from "node:test";\nimport assert from "node:assert/strict";\ntest("labels name the item", () => assert.equal(${value}, 3));\n`;
+  await record(environment, copyFiles, { id: "node-test-fails-in-copy", runner: "node:test", file: ".jgates/regressions/label.test.mjs", content: inCopy("4"), dependencies: true, mount: false, when: [{ path: ".jgates/regressions/label.test.mjs", contains: "equal(4, 3)" }] });
+  await record(environment, copyFiles, { id: "node-test-passes-in-copy", runner: "node:test", file: ".jgates/regressions/label.test.mjs", content: inCopy("3"), dependencies: true, mount: false, when: [{ path: ".jgates/regressions/label.test.mjs", contains: "equal(3, 3)" }] });
 
   // not run: the time limit stops it; nothing was observed, and the container is gone.
   const slow = placed("test_slow.py");
@@ -188,7 +260,18 @@ test("a pytest file placed in the workspace copy runs in a container without net
   assert.equal(treeHash(project), before, "the project folder is byte for byte the same");
 
   if (RECORD) {
+    const base = fs.existsSync(RECORD) ? RECORD : DEFAULT_RECORDINGS;
+    const existing = JSON.parse(fs.readFileSync(base, "utf8"));
+    const byId = new Map(recorded.map((r) => [r.id, r]));
+    // Every run keeps its place (the first matching run wins); a recording of an id the file does not have goes last.
+    const runs = [...existing.runs.map((r) => byId.get(r.id) ?? r), ...recorded.filter((r) => !existing.runs.some((e) => e.id === r.id))];
+    const doc = {
+      schemaVersion: 1,
+      source: "Recorded from raw runs of the recipes' commands inside the tools image by jgates/tests/docker/semantic-tests-pytest.test.js (JGATES_SEMANTIC_RUNNER_RECORD=<file>); the node:test runs in the copy ran without a node_modules volume (their files import node: modules only); the run that never finishes stays as written by hand.",
+      matching: existing.matching,
+      runs,
+    };
     fs.mkdirSync(path.dirname(RECORD), { recursive: true });
-    fs.writeFileSync(RECORD, JSON.stringify({ schemaVersion: 1, source: "Recorded from jgates-tools:dev by tests/docker/semantic-tests-pytest.test.js", runs: recorded }, null, 1) + "\n");
+    fs.writeFileSync(RECORD, JSON.stringify(doc, null, 2) + "\n");
   }
 });

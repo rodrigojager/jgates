@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "source": "Written by hand (task T12) in the shape of what pytest -q and node --test-reporter=tap print inside the tools image; the real-engine test (tests/docker/semantic-tests-pytest.test.js) records what the image printed and replaces them.",
+  "source": "Recorded from raw runs of the recipes' commands inside the tools image by jgates/tests/docker/semantic-tests-pytest.test.js (JGATES_SEMANTIC_RUNNER_RECORD=<file>); the node:test runs in the copy ran without a node_modules volume (their files import node: modules only); the run that never finishes stays as written by hand.",
   "matching": "The first run whose runner is the container's recipe, whose file is the test file, whose dependencies flag (when set) says whether a dependency volume is mounted, and whose when-conditions (a tree file that contains / lacks a text) all hold.",
   "runs": [
     {
@@ -8,9 +8,14 @@
       "runner": "pytest",
       "file": ".jgates/regressions/test_passes.py",
       "dependencies": true,
-      "when": [{ "path": ".jgates/regressions/test_passes.py", "contains": "import six" }],
+      "when": [
+        {
+          "path": ".jgates/regressions/test_passes.py",
+          "contains": "import six"
+        }
+      ],
       "exitCode": 0,
-      "stdout": "....                                                                     [100%]\n4 passed in 0.05s\n",
+      "stdout": "....                                                                     [100%]\n4 passed in 0.65s\n",
       "stderr": ""
     },
     {
@@ -18,27 +23,42 @@
       "runner": "pytest",
       "file": ".jgates/regressions/test_passes.py",
       "dependencies": false,
-      "when": [{ "path": ".jgates/regressions/test_passes.py", "contains": "import six" }],
+      "when": [
+        {
+          "path": ".jgates/regressions/test_passes.py",
+          "contains": "import six"
+        }
+      ],
       "exitCode": 2,
-      "stdout": "\n==================================== ERRORS ====================================\n_______________ ERROR collecting .jgates/regressions/test_passes.py ________________\nImportError while importing test module '/workspace/.jgates/regressions/test_passes.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n.jgates/regressions/test_passes.py:4: in <module>\n    import six\nE   ModuleNotFoundError: No module named 'six'\n=========================== short test summary info ============================\nERROR .jgates/regressions/test_passes.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.06s\n",
+      "stdout": "\n==================================== ERRORS ====================================\n_____________ ERROR collecting .jgates/regressions/test_passes.py ______________\nImportError while importing test module '/workspace/.jgates/regressions/test_passes.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/usr/local/lib/python3.15/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n.jgates/regressions/test_passes.py:4: in <module>\n    import six\nE   ModuleNotFoundError: No module named 'six'\n=========================== short test summary info ============================\nERROR .jgates/regressions/test_passes.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.77s\n",
       "stderr": ""
     },
     {
       "id": "pytest-fails",
       "runner": "pytest",
       "file": "tests/test_fails.py",
-      "when": [{ "path": "tests/test_fails.py", "contains": "test_total_ignores_the_discount" }],
+      "when": [
+        {
+          "path": "tests/test_fails.py",
+          "contains": "test_total_ignores_the_discount"
+        }
+      ],
       "exitCode": 1,
-      "stdout": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n_______________________ test_total_ignores_the_discount ________________________\n\n    def test_total_ignores_the_discount():\n>       assert total([{\"price\": 10, \"quantity\": 3}], discount=10) == 30.0\nE       assert 27.0 == 30.0\nE        +  where 27.0 = total([{'price': 10, 'quantity': 3}], discount=10)\n\ntests/test_fails.py:6: AssertionError\n=========================== short test summary info ============================\nFAILED tests/test_fails.py::test_total_ignores_the_discount - assert 27.0 == 30.0\n1 failed, 1 passed in 0.04s\n",
+      "stdout": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n_______________________ test_total_ignores_the_discount ________________________\ntests/test_fails.py:6: in test_total_ignores_the_discount\n    assert total([{\"price\": 10, \"quantity\": 3}], discount=10) == 30.0\nE   AssertionError: assert 27.0 == 30.0\nE    +  where 27.0 = total([{'price': 10, 'quantity': 3}], discount=10)\n=========================== short test summary info ============================\nFAILED tests/test_fails.py::test_total_ignores_the_discount - AssertionError:...\n1 failed, 1 passed in 0.63s\n",
       "stderr": ""
     },
     {
       "id": "pytest-does-not-load",
       "runner": "pytest",
       "file": "tests/test_broken.py",
-      "when": [{ "path": "tests/test_broken.py", "contains": "def test_never_collected(:" }],
+      "when": [
+        {
+          "path": "tests/test_broken.py",
+          "contains": "def test_never_collected(:"
+        }
+      ],
       "exitCode": 2,
-      "stdout": "\n==================================== ERRORS ====================================\n_____________________ ERROR collecting tests/test_broken.py ______________________\nE     File \"/workspace/tests/test_broken.py\", line 4\nE       def test_never_collected(:\nE                                ^\nE   SyntaxError: invalid syntax\n=========================== short test summary info ============================\nERROR tests/test_broken.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.05s\n",
+      "stdout": "\n==================================== ERRORS ====================================\n____________________ ERROR collecting tests/test_broken.py _____________________\n/opt/tools/python/pytest/lib/python3.15/site-packages/_pytest/python.py:528: in importtestmodule\n    mod = import_path(\n/opt/tools/python/pytest/lib/python3.15/site-packages/_pytest/pathlib.py:640: in import_path\n    importlib.import_module(module_name)\n/usr/local/lib/python3.15/importlib/__init__.py:88: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n<frozen importlib._bootstrap>:1389: in _gcd_import\n    ???\n<frozen importlib._bootstrap>:1353: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:1249: in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:857: in _load_unlocked\n    ???\n/opt/tools/python/pytest/lib/python3.15/site-packages/_pytest/assertion/rewrite.py:176: in exec_module\n    source_hash, co = _rewrite_test(fn, self.config)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/opt/tools/python/pytest/lib/python3.15/site-packages/_pytest/assertion/rewrite.py:339: in _rewrite_test\n    tree = ast.parse(source, filename=strfn)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n/usr/local/lib/python3.15/ast.py:46: in parse\n    return compile(source, filename, mode, flags,\nE     File \"/workspace/tests/test_broken.py\", line 4\nE       def test_never_collected(:\nE                                ^\nE   SyntaxError: invalid syntax\n=========================== short test summary info ============================\nERROR tests/test_broken.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.70s\n",
       "stderr": ""
     },
     {
@@ -46,7 +66,7 @@
       "runner": "pytest",
       "file": "tests/test_empty.py",
       "exitCode": 5,
-      "stdout": "\nno tests ran in 0.01s\n",
+      "stdout": "\nno tests ran in 0.60s\n",
       "stderr": ""
     },
     {
@@ -60,7 +80,7 @@
       "runner": "node:test",
       "file": "test/format.test.mjs",
       "exitCode": 0,
-      "stdout": "TAP version 13\n# Subtest: labels name the item\nok 1 - labels name the item\n  ---\n  duration_ms: 0.8\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 41.2\n",
+      "stdout": "TAP version 13\n# Subtest: labels name the item\nok 1 - labels name the item\n  ---\n  duration_ms: 0.73086\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 12.859705\n",
       "stderr": ""
     },
     {
@@ -68,9 +88,14 @@
       "runner": "node:test",
       "file": ".jgates/regressions/label.test.mjs",
       "dependencies": true,
-      "when": [{ "path": ".jgates/regressions/label.test.mjs", "contains": "equal(4, 3)" }],
+      "when": [
+        {
+          "path": ".jgates/regressions/label.test.mjs",
+          "contains": "equal(4, 3)"
+        }
+      ],
       "exitCode": 1,
-      "stdout": "TAP version 13\n# Subtest: labels name the item\nnot ok 1 - labels name the item\n  ---\n  duration_ms: 1.1\n  type: 'test'\n  failureType: 'testCodeFailure'\n  error: 'Expected values to be strictly equal'\n  code: 'ERR_ASSERTION'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 40.7\n",
+      "stdout": "TAP version 13\n# Subtest: labels name the item\nnot ok 1 - labels name the item\n  ---\n  duration_ms: 1.348427\n  type: 'test'\n  location: '/workspace/.jgates/regressions/label.test.mjs:3:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    Expected values to be strictly equal:\n    \n    4 !== 3\n    \n  code: 'ERR_ASSERTION'\n  name: 'AssertionError'\n  expected: 3\n  actual: 4\n  operator: 'strictEqual'\n  stack: |-\n    TestContext.<anonymous> (file:///workspace/.jgates/regressions/label.test.mjs:3:43)\n    Test.runInAsyncScope (node:async_hooks:226:14)\n    Test.run (node:internal/test_runner/test:1402:25)\n    Test.start (node:internal/test_runner/test:1262:17)\n    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 0\n# fail 1\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 11.86077\n",
       "stderr": ""
     },
     {
@@ -78,9 +103,14 @@
       "runner": "node:test",
       "file": ".jgates/regressions/label.test.mjs",
       "dependencies": true,
-      "when": [{ "path": ".jgates/regressions/label.test.mjs", "contains": "equal(3, 3)" }],
+      "when": [
+        {
+          "path": ".jgates/regressions/label.test.mjs",
+          "contains": "equal(3, 3)"
+        }
+      ],
       "exitCode": 0,
-      "stdout": "TAP version 13\n# Subtest: labels name the item\nok 1 - labels name the item\n  ---\n  duration_ms: 0.7\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 39.9\n",
+      "stdout": "TAP version 13\n# Subtest: labels name the item\nok 1 - labels name the item\n  ---\n  duration_ms: 0.783359\n  type: 'test'\n  ...\n1..1\n# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 11.651602\n",
       "stderr": ""
     }
   ]

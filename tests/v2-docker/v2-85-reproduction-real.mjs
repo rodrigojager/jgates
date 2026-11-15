@@ -34,13 +34,16 @@ const tempEntries = () => new Set(fs.readdirSync(os.tmpdir()).filter((n) => /^jg
 
 const made = [];
 let workspaceFilter = null;
-test.after(() => {
+// The cleanup is a hook of the test itself, not of the file: under the harness, a root `after` hook registered once the
+// root has nothing pending (the case run alone with --test-name-pattern, after filtered cases) runs at once, before the
+// test made anything.
+function cleanup() {
   if (workspaceFilter) {
     for (const id of lines(docker(["ps", "-aq", ...workspaceFilter]).out)) docker(["rm", "-f", id]);
     for (const name of lines(docker(["volume", "ls", "-q", ...workspaceFilter]).out)) docker(["volume", "rm", "-f", name]);
   }
   for (const dir of made) fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-});
+}
 
 /** The relative path and content of every file of a folder. */
 function filesOf(dir) {
@@ -71,7 +74,8 @@ function script() {
   };
 }
 
-test("V2-85 (real engine): a real defect of a Python fixture is reproduced under pytest in a container, a reproducer that passes leaves its finding needs-validation, and nothing is left behind", async () => {
+test("V2-85 (real engine): a real defect of a Python fixture is reproduced under pytest in a container, a reproducer that passes leaves its finding needs-validation, and nothing is left behind", async (t) => {
+  t.after(cleanup);
   assert.equal(docker(["version", "--format", "{{.Server.Version}}"]).code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);
   const { workspaceId } = await load("core/ids/index.js");
