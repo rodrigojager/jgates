@@ -1,0 +1,378 @@
+# Crypto parameters for JavaScript and TypeScript.
+# Libraries covered: Node.js crypto, jsonwebtoken, jose, bcrypt/bcryptjs, argon2, crypto-js, node-forge, node-rsa,
+# elliptic, uuid. The name lists (secrets, tokens, passwords) are the same in every JGates rule file.
+rules:
+  - id: jgates.js.weak-key-size
+    message: An RSA or DSA key under 2048 bits, or an elliptic curve under 224 bits, can be broken. Use RSA of at least 3072 bits or P-256 and above.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: 'crypto.generateKeyPairSync("rsa", {..., modulusLength: $N, ...})'
+              - pattern: 'crypto.generateKeyPairSync("dsa", {..., modulusLength: $N, ...})'
+              - pattern: 'crypto.generateKeyPair("rsa", {..., modulusLength: $N, ...}, ...)'
+              - pattern: 'crypto.generateKeyPair("dsa", {..., modulusLength: $N, ...}, ...)'
+              - pattern: forge.pki.rsa.generateKeyPair($N, ...)
+              - pattern: 'forge.pki.rsa.generateKeyPair({..., bits: $N, ...}, ...)'
+              - pattern: 'new NodeRSA({..., b: $N, ...})'
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+      - patterns:
+          - pattern-either:
+              - pattern: 'crypto.generateKeyPairSync("ec", {..., namedCurve: $C, ...})'
+              - pattern: 'crypto.generateKeyPair("ec", {..., namedCurve: $C, ...}, ...)'
+              - pattern: crypto.createECDH($C)
+              - pattern: new elliptic.ec($C)
+          - metavariable-regex:
+              metavariable: $C
+              regex: ^["'](secp(112|128|160|192)\w*|prime192v1|sect(113|131|163|193)\w*)["']$
+
+  - id: jgates.js.rsa-key-below-3072
+    message: An RSA key of 2048 to 3071 bits is accepted today but falls short of 3072 bits. Generate RSA keys of at least 3072 bits, or use an elliptic curve such as P-256.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3"]
+    patterns:
+      - pattern-either:
+          - pattern: 'crypto.generateKeyPairSync("rsa", {..., modulusLength: $N, ...})'
+          - pattern: 'crypto.generateKeyPair("rsa", {..., modulusLength: $N, ...}, ...)'
+          - pattern: forge.pki.rsa.generateKeyPair($N, ...)
+          - pattern: 'forge.pki.rsa.generateKeyPair({..., bits: $N, ...}, ...)'
+          - pattern: 'new NodeRSA({..., b: $N, ...})'
+      - metavariable-comparison:
+          metavariable: $N
+          comparison: $N >= 2048 and $N < 3072
+
+  - id: jgates.js.static-iv-or-nonce
+    message: The IV or nonce given to the cipher is a constant, so equal messages give equal ciphertexts and, with GCM or CTR, the key stream repeats. Generate a fresh one per message with crypto.randomBytes.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-329"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.4"]
+    pattern-either:
+      - pattern: crypto.createCipheriv($A, $K, "...", ...)
+      - pattern: crypto.createCipheriv($A, $K, Buffer.alloc(...), ...)
+      - pattern: crypto.createCipheriv($A, $K, Buffer.from("...", ...), ...)
+      - pattern: crypto.createCipheriv($A, $K, Buffer.from([...]), ...)
+      - pattern: crypto.createCipheriv($A, $K, new Uint8Array(...), ...)
+      - pattern: 'CryptoJS.AES.encrypt($M, $K, {..., iv: "...", ...})'
+      - pattern: 'CryptoJS.AES.encrypt($M, $K, {..., iv: CryptoJS.enc.$E.parse("..."), ...})'
+
+  - id: jgates.js.cipher-mode-without-authentication
+    message: CBC, CTR, CFB and OFB give confidentiality but no integrity, and a MAC may be missing after them. Prefer an authenticated mode such as aes-256-gcm or chacha20-poly1305.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.3"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: crypto.createCipheriv($A, ...)
+              - pattern: crypto.createDecipheriv($A, ...)
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i)^["'][a-z0-9-]*(cbc|ctr|cfb|ofb)
+      - pattern: CryptoJS.mode.CBC
+      - pattern: CryptoJS.mode.CTR
+      - pattern: CryptoJS.mode.CFB
+      - pattern: CryptoJS.mode.OFB
+
+  - id: jgates.js.weak-cipher-mode
+    message: ECB leaks the structure of the data, and RSA encryption with PKCS#1 v1.5 padding is open to padding-oracle attacks. Use an authenticated mode such as aes-256-gcm, and OAEP for RSA.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: crypto.createCipheriv($A, ...)
+              - pattern: crypto.createDecipheriv($A, ...)
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i)^["'][a-z0-9-]*ecb
+      - pattern: CryptoJS.mode.ECB
+      - pattern: 'crypto.publicEncrypt({..., padding: $C.RSA_PKCS1_PADDING, ...}, ...)'
+      - pattern: 'crypto.privateDecrypt({..., padding: $C.RSA_PKCS1_PADDING, ...}, ...)'
+      - pattern: $K.encrypt($D, "RSAES-PKCS1-V1_5")
+      - pattern: $K.decrypt($D, "RSAES-PKCS1-V1_5")
+      - pattern: '{..., encryptionScheme: "pkcs1", ...}'
+
+  - id: jgates.js.weak-kdf-parameters
+    message: The work factor of this password hashing or key derivation call is a literal below the safe floor, so stolen hashes fall to guessing quickly. Use PBKDF2 with at least 100000 iterations, bcrypt cost 10 or more, scrypt N of at least 16384, or Argon2 with 19 MiB of memory and two passes.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V11.4.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: crypto.pbkdf2Sync($P, $S, $I, ...)
+              - pattern: crypto.pbkdf2($P, $S, $I, ...)
+              - pattern: 'CryptoJS.PBKDF2($P, $S, {..., iterations: $I, ...})'
+          - metavariable-comparison:
+              metavariable: $I
+              comparison: $I < 100000
+      - patterns:
+          - pattern-either:
+              - pattern: bcrypt.hash($P, $C, ...)
+              - pattern: bcrypt.hashSync($P, $C, ...)
+              - pattern: bcrypt.genSalt($C, ...)
+              - pattern: bcrypt.genSaltSync($C, ...)
+              - pattern: bcryptjs.hash($P, $C, ...)
+              - pattern: bcryptjs.hashSync($P, $C, ...)
+              - pattern: bcryptjs.genSalt($C, ...)
+              - pattern: bcryptjs.genSaltSync($C, ...)
+          - metavariable-comparison:
+              metavariable: $C
+              comparison: $C < 10
+      - patterns:
+          - pattern-either:
+              - pattern: 'crypto.scryptSync($P, $S, $L, {..., N: $N, ...})'
+              - pattern: 'crypto.scryptSync($P, $S, $L, {..., cost: $N, ...})'
+              - pattern: 'crypto.scrypt($P, $S, $L, {..., N: $N, ...}, ...)'
+              - pattern: 'crypto.scrypt($P, $S, $L, {..., cost: $N, ...}, ...)'
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 16384
+      - patterns:
+          - pattern: 'argon2.hash($P, {..., memoryCost: $M, ...})'
+          - metavariable-comparison:
+              metavariable: $M
+              comparison: $M < 19456
+      - patterns:
+          - pattern: 'argon2.hash($P, {..., timeCost: $T, ...})'
+          - metavariable-comparison:
+              metavariable: $T
+              comparison: $T < 2
+
+  - id: jgates.js.password-hash-with-fast-hash
+    message: A password is hashed with a fast general-purpose hash, which can be guessed at billions of tries per second. Store passwords with argon2, bcrypt, scrypt or PBKDF2.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V6.5.2"]
+    patterns:
+      - pattern-either:
+          - pattern: crypto.createHash(...).update($PW, ...)
+          - patterns:
+              - pattern: CryptoJS.$F($PW)
+              - metavariable-regex:
+                  metavariable: $F
+                  regex: ^(MD5|SHA1|SHA224|SHA256|SHA384|SHA512|SHA3|RIPEMD160)$
+          - pattern: md5($PW)
+          - pattern: sha1($PW)
+          - pattern: sha256($PW)
+          - pattern: sha512($PW)
+      - metavariable-regex:
+          metavariable: $PW
+          regex: (?is).*(password|passwd|pwd|passphrase|senha)
+
+  - id: jgates.js.timing-unsafe-comparison
+    message: A MAC, digest or signature is compared with the ordinary equality, whose time depends on how many leading bytes match. Compare with crypto.timingSafeEqual on buffers of equal length.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-208"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $A === $B
+              - pattern: $A !== $B
+              - pattern: $A == $B
+              - pattern: $A != $B
+          - metavariable-regex:
+              metavariable: $A
+              regex: '(?s)(?!.*\.length$)(.*((?i:hmac|signature|digest)|(^|[^A-Za-z])(mac|sig|MAC|SIG)([^a-z]|$)|[a-z](Mac|Sig)([^a-z]|$))).*'
+          - metavariable-regex:
+              metavariable: $B
+              regex: '(?s)(?!(null|undefined|true|false|-?[0-9]+|""|''|.*\.length)$).*'
+      - patterns:
+          - pattern-either:
+              - pattern: $A === $B
+              - pattern: $A !== $B
+              - pattern: $A == $B
+              - pattern: $A != $B
+          - metavariable-regex:
+              metavariable: $B
+              regex: '(?s)(?!.*\.length$)(.*((?i:hmac|signature|digest)|(^|[^A-Za-z])(mac|sig|MAC|SIG)([^a-z]|$)|[a-z](Mac|Sig)([^a-z]|$))).*'
+          - metavariable-regex:
+              metavariable: $A
+              regex: '(?s)(?!(null|undefined|true|false|-?[0-9]+|""|''|.*\.length)$).*'
+
+  - id: jgates.js.weak-signature-hash
+    message: A signature or MAC is made or verified with MD5 or SHA-1, both of which are broken for this use. Use SHA-256 or stronger.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-328"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: crypto.createHmac($A, ...)
+              - pattern: crypto.createSign($A, ...)
+              - pattern: crypto.createVerify($A, ...)
+              - pattern: crypto.sign($A, ...)
+              - pattern: crypto.verify($A, ...)
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i)^["'](rsa-)?(md5|sha-?1)(withrsa|-2)?["']$
+      - pattern: CryptoJS.HmacMD5(...)
+      - pattern: CryptoJS.HmacSHA1(...)
+
+  - id: jgates.js.weak-dh-parameters
+    message: Diffie-Hellman parameters under 2048 bits, or a small named group such as modp1, modp2 or modp5, can be broken. Use a group of at least 2048 bits such as modp14, or an elliptic curve.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.6.2"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: crypto.createDiffieHellman($N, ...)
+              - pattern: 'crypto.generateKeyPairSync("dh", {..., primeLength: $N, ...})'
+              - pattern: 'crypto.generateKeyPair("dh", {..., primeLength: $N, ...}, ...)'
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+      - patterns:
+          - pattern-either:
+              - pattern: crypto.getDiffieHellman($G)
+              - pattern: crypto.createDiffieHellmanGroup($G)
+          - metavariable-regex:
+              metavariable: $G
+              regex: ^["'](modp1|modp2|modp5)["']$
+
+  - id: jgates.js.hardcoded-encryption-key
+    message: A literal is used as the key of a cipher, a MAC or a token signature, so anyone with the source can decrypt or forge. Load the key from a secret store or the environment.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-321"
+      author: JGates
+      subdimension: secrets
+      asvs_requirements: ["V13.3.1"]
+    pattern-either:
+      - pattern: crypto.createCipheriv($A, "...", ...)
+      - pattern: crypto.createDecipheriv($A, "...", ...)
+      - pattern: crypto.createCipheriv($A, Buffer.from("...", ...), ...)
+      - pattern: crypto.createDecipheriv($A, Buffer.from("...", ...), ...)
+      - pattern: crypto.createHmac($A, "...", ...)
+      - pattern: crypto.createHmac($A, Buffer.from("...", ...), ...)
+      - pattern: crypto.createSecretKey("...", ...)
+      - pattern: jwt.sign($P, "...", ...)
+      - pattern: jwt.verify($T, "...", ...)
+      - pattern: CryptoJS.AES.encrypt($M, "...", ...)
+      - pattern: CryptoJS.AES.decrypt($M, "...", ...)
+      - patterns:
+          - pattern: CryptoJS.$F($M, "...")
+          - metavariable-regex:
+              metavariable: $F
+              regex: ^Hmac(MD5|SHA\d+)$
+      - pattern: $X.sign(new TextEncoder().encode("..."))
+      - pattern: jwtVerify($T, new TextEncoder().encode("..."), ...)
+
+  - id: jgates.js.insecure-random-for-secret
+    mode: taint
+    message: The non-cryptographic Math.random generator feeds a value that must be unguessable, so an attacker can predict it. Use crypto.randomBytes, crypto.randomInt or crypto.randomUUID.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-338"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1", "V7.2.3", "V6.5.3", "V6.4.1"]
+    pattern-sources:
+      - pattern: Math.random()
+      - pattern: _.random(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $V = $E
+              - pattern: const $V = $E
+              - pattern: let $V = $E
+              - pattern: var $V = $E
+              - pattern: $O.$V = $E
+              - pattern: '{..., $V: $E, ...}'
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?is).*(token|secret|passw(or)?d|passphrase|senha|otp|nonce|salt|csrf|session_?id|api_?key|private_?key|secret_?key|encryption_?key|(reset|verification|activation|confirm|auth|sms|invite|recovery)_?code|^code$)
+          - focus-metavariable: $E
+
+  - id: jgates.js.uuid-as-secret-token
+    mode: taint
+    message: A UUID is used as a secret or token, but a UUID is an identifier and a time-based one (v1) is predictable. Use crypto.randomBytes(32) for secrets, and random bytes of at least 128 bits for tokens.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-330"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1"]
+    pattern-sources:
+      - pattern: uuidv1()
+      - pattern: uuidv4()
+      - pattern: uuid.v1()
+      - pattern: uuid.v4()
+      - pattern: crypto.randomUUID()
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $V = $E
+              - pattern: const $V = $E
+              - pattern: let $V = $E
+              - pattern: var $V = $E
+              - pattern: $O.$V = $E
+              - pattern: '{..., $V: $E, ...}'
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?is).*(token|secret|passw(or)?d|passphrase|senha|otp|nonce|salt|csrf|api_?key|private_?key|secret_?key|encryption_?key|(reset|verification|activation|confirm|auth|sms|invite|recovery)_?code)
+          - focus-metavariable: $E

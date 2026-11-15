@@ -1,0 +1,18 @@
+{
+  "files": ["crypto-params.js"],
+  "ruleIds": [
+    "jgates.js.weak-key-size",
+    "jgates.js.rsa-key-below-3072",
+    "jgates.js.static-iv-or-nonce",
+    "jgates.js.cipher-mode-without-authentication",
+    "jgates.js.weak-cipher-mode",
+    "jgates.js.weak-kdf-parameters",
+    "jgates.js.password-hash-with-fast-hash",
+    "jgates.js.timing-unsafe-comparison",
+    "jgates.js.weak-signature-hash",
+    "jgates.js.weak-dh-parameters",
+    "jgates.js.hardcoded-encryption-key",
+    "jgates.js.insecure-random-for-secret",
+    "jgates.js.uuid-as-secret-token"
+  ]
+}
