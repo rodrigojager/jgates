@@ -78,35 +78,338 @@
     },
     {
       "requirement": "V3.3.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check reads cookie attributes or cookie-name prefixes; the audit class on cookies treats missing flags as hardening notes only."
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.cookie-without-secure",
+          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in configuration files, for the libraries named in the header of its rule file.",
+          "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only the files and formats the rule's path list names are read.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cookie-without-secure",
+          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in C#, for the libraries named in the header of its rule file.",
+          "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Names built at run time, cookies named by a library default, and the Secure attribute itself, which the Secure rule examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cookie-without-secure",
+          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in Go, for the libraries named in the header of its rule file.",
+          "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Names built at run time, cookies named by a library default, and the Secure attribute itself, which the Secure rule examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cookie-without-secure",
+          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in Java, for the libraries named in the header of its rule file.",
+          "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Names built at run time, cookies named by a library default, and the Secure attribute itself, which the Secure rule examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cookie-without-secure",
+          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Names built at run time, cookies named by a library default, and the Secure attribute itself, which the Secure rule examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cookie-without-secure",
+          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Names built at run time, cookies named by a library default, and the Secure attribute itself, which the Secure rule examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cookie-without-secure",
+          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in Python, for the libraries named in the header of its rule file.",
+          "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Names built at run time, cookies named by a library default, and the Secure attribute itself, which the Secure rule examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cookie-without-secure",
+          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "Names built at run time, cookies named by a library default, and the Secure attribute itself, which the Secure rule examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10011"
+          ],
+          "covers": "The passive alert for a cookie set without the Secure flag, on the responses the scan reached.",
+          "misses": "Only cookies set by the pages the scan reached, and the cookie-name prefix, which the alert does not examine.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules look at the Secure attribute and the name prefix of cookies written in code or configuration; the ZAP passive alert looks at the same attribute on cookies a reached page sets."
     },
     {
       "requirement": "V3.3.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check looks at the SameSite value chosen for each cookie."
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cookie-without-samesite",
+          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cookie-without-samesite",
+          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cookie-without-samesite",
+          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cookie-without-samesite",
+          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cookie-without-samesite",
+          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cookie-without-samesite",
+          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cookie-without-samesite",
+          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10054-1",
+            "10054-2",
+            "10054-3"
+          ],
+          "covers": "The passive alerts for a cookie without SameSite, with None, or with an invalid value, on the responses the scan reached.",
+          "misses": "Whether the value fits each cookie's purpose, which only a person can judge, and cookies the scan did not see set.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules look at the SameSite value of cookies written in code; the ZAP alerts report cookies seen without it or with None."
     },
     {
       "requirement": "V3.3.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check looks at cookie-name prefixes."
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in C#, for the libraries named in the header of its rule file.",
+          "misses": "A __Secure- name passes this rule although the prefix this requirement asks for is __Host-; the intent to share a cookie with other hosts, which only a person knows, and names built at run time. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in Go, for the libraries named in the header of its rule file.",
+          "misses": "A __Secure- name passes this rule although the prefix this requirement asks for is __Host-; the intent to share a cookie with other hosts, which only a person knows, and names built at run time. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in Java, for the libraries named in the header of its rule file.",
+          "misses": "A __Secure- name passes this rule although the prefix this requirement asks for is __Host-; the intent to share a cookie with other hosts, which only a person knows, and names built at run time. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "A __Secure- name passes this rule although the prefix this requirement asks for is __Host-; the intent to share a cookie with other hosts, which only a person knows, and names built at run time. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "A __Secure- name passes this rule although the prefix this requirement asks for is __Host-; the intent to share a cookie with other hosts, which only a person knows, and names built at run time. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in Python, for the libraries named in the header of its rule file.",
+          "misses": "A __Secure- name passes this rule although the prefix this requirement asks for is __Host-; the intent to share a cookie with other hosts, which only a person knows, and names built at run time. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cookie-name-without-prefix",
+          "covers": "Cookie names given as a literal that start with neither __Host- nor __Secure-; an informational finding, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "A __Secure- name passes this rule although the prefix this requirement asks for is __Host-; the intent to share a cookie with other hosts, which only a person knows, and names built at run time. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rule reads the names of cookies written in literal form and flags those without a protective prefix, which is the part of the requirement code can show."
     },
     {
       "requirement": "V3.3.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check reads the HttpOnly attribute of cookies or how a session value reaches the client."
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.cookie-without-httponly",
+          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in configuration files, for the libraries named in the header of its rule file.",
+          "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only the files and formats the rule's path list names are read.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cookie-without-httponly",
+          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cookie-without-httponly",
+          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cookie-without-httponly",
+          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cookie-without-httponly",
+          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cookie-without-httponly",
+          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cookie-without-httponly",
+          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cookie-without-httponly",
+          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10010"
+          ],
+          "covers": "The passive alert for a cookie set without the HttpOnly flag, on the responses the scan reached.",
+          "misses": "Whether the cookie is meant for page scripts, and cookies the scan did not see set.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules look at the HttpOnly attribute of cookies written in code or configuration; the ZAP alert reports it on cookies a reached page sets."
     },
     {
       "requirement": "V3.3.5",
@@ -118,15 +421,85 @@
     },
     {
       "requirement": "V3.4.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
-      "subdimensions": [],
-      "checks": [],
-      "why": "The header must be present on every response of the deployed system; no JGates check inspects live responses for it."
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.security-headers-disabled",
+          "covers": "Configuration in configuration files (the libraries named in the header of its rule file) that switches off or weakens the transport-security header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only the files and formats the rule's path list names are read.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.security-headers-disabled",
+          "covers": "Configuration in C# (the libraries named in the header of its rule file) that switches off or weakens the transport-security header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.security-headers-disabled",
+          "covers": "Configuration in Go (the libraries named in the header of its rule file) that switches off or weakens the transport-security header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.security-headers-disabled",
+          "covers": "Configuration in Java (the libraries named in the header of its rule file) that switches off or weakens the transport-security header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.security-headers-disabled",
+          "covers": "Configuration in JavaScript and TypeScript (the libraries named in the header of its rule file) that switches off or weakens the transport-security header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.security-headers-disabled",
+          "covers": "Configuration in PHP (the libraries named in the header of its rule file) that switches off or weakens the transport-security header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.security-headers-disabled",
+          "covers": "Configuration in Python (the libraries named in the header of its rule file) that switches off or weakens the transport-security header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.security-headers-disabled",
+          "covers": "Configuration in Rust (the libraries named in the header of its rule file) that switches off or weakens the transport-security header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10035-1",
+            "10035-2"
+          ],
+          "covers": "The passive alerts for a missing or disabled transport-security header on the responses the scan reached.",
+          "misses": "The part only a deployed system shows: whether every response carries the header, and the age and subdomain scope it declares are not judged against the requirement; plain-HTTP responses are out of this alert's view.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The configuration rules flag a weakened or removed transport-security header; the ZAP alert reports the header missing or disabled on the responses it reached; the deployed headers are the final fact."
     },
     {
       "requirement": "V3.4.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -140,6 +513,139 @@
           "depth": "partial"
         },
         {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cors-any-origin-with-credentials",
+          "covers": "A wildcard allowed origin together with credentials in the CORS configuration, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Reflected or weakly matched origins, CORS written by hand on responses, a wildcard on responses that carry user-bound data without credentials, and a proxy that adds or strips the header. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cors-origin-reflected",
+          "covers": "The request's Origin header copied into the allow-origin response header without a comparison to a list, in C#, for the libraries named in the header of its rule file.",
+          "misses": "A comparison the rule does not recognize still leaves a finding, and a weak comparison (a suffix or substring test) is not seen. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cors-origin-reflected-allow-all",
+          "covers": "An origin check or origin pattern that accepts every origin, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Checks that accept many origins through a loose pattern the rule does not model, and settings read from a variable. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cors-any-origin-with-credentials",
+          "covers": "A wildcard allowed origin together with credentials in the CORS configuration, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Reflected or weakly matched origins, CORS written by hand on responses, a wildcard on responses that carry user-bound data without credentials, and a proxy that adds or strips the header. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cors-origin-reflected",
+          "covers": "The request's Origin header copied into the allow-origin response header without a comparison to a list, in Go, for the libraries named in the header of its rule file.",
+          "misses": "A comparison the rule does not recognize still leaves a finding, and a weak comparison (a suffix or substring test) is not seen. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cors-origin-reflected-allow-all",
+          "covers": "An origin check or origin pattern that accepts every origin, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Checks that accept many origins through a loose pattern the rule does not model, and settings read from a variable. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cors-any-origin-with-credentials",
+          "covers": "A wildcard allowed origin together with credentials in the CORS configuration, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Reflected or weakly matched origins, CORS written by hand on responses, a wildcard on responses that carry user-bound data without credentials, and a proxy that adds or strips the header. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cors-origin-reflected",
+          "covers": "The request's Origin header copied into the allow-origin response header without a comparison to a list, in Java, for the libraries named in the header of its rule file.",
+          "misses": "A comparison the rule does not recognize still leaves a finding, and a weak comparison (a suffix or substring test) is not seen. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cors-origin-reflected",
+          "covers": "The request's Origin header copied into the allow-origin response header without a comparison to a list, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "A comparison the rule does not recognize still leaves a finding, and a weak comparison (a suffix or substring test) is not seen. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cors-origin-reflected-cors-package",
+          "covers": "The cors package configured to reflect every origin or to accept all of them in its origin callback, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Hand-written middleware, other CORS libraries and an origin callback that delegates to another function. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cors-any-origin-with-credentials",
+          "covers": "A wildcard allowed origin together with credentials in the CORS configuration, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Reflected or weakly matched origins, CORS written by hand on responses, a wildcard on responses that carry user-bound data without credentials, and a proxy that adds or strips the header. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cors-origin-reflected",
+          "covers": "The request's Origin header copied into the allow-origin response header without a comparison to a list, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "A comparison the rule does not recognize still leaves a finding, and a weak comparison (a suffix or substring test) is not seen. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cors-origin-reflected-allow-all",
+          "covers": "An origin check or origin pattern that accepts every origin, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Checks that accept many origins through a loose pattern the rule does not model, and settings read from a variable. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cors-any-origin-with-credentials",
+          "covers": "A wildcard allowed origin together with credentials in the CORS configuration, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Reflected or weakly matched origins, CORS written by hand on responses, a wildcard on responses that carry user-bound data without credentials, and a proxy that adds or strips the header. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cors-origin-reflected",
+          "covers": "The request's Origin header copied into the allow-origin response header without a comparison to a list, in Python, for the libraries named in the header of its rule file.",
+          "misses": "A comparison the rule does not recognize still leaves a finding, and a weak comparison (a suffix or substring test) is not seen. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cors-origin-reflected-any-regex",
+          "covers": "An origin check or regular expression that accepts every origin, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Loose but not universal patterns and settings assembled at run time. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cors-any-origin-with-credentials",
+          "covers": "A wildcard allowed origin together with credentials in the CORS configuration, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "Reflected or weakly matched origins, CORS written by hand on responses, a wildcard on responses that carry user-bound data without credentials, and a proxy that adds or strips the header. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cors-origin-reflected",
+          "covers": "The request's Origin header copied into the allow-origin response header without a comparison to a list, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "A comparison the rule does not recognize still leaves a finding, and a weak comparison (a suffix or substring test) is not seen. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cors-origin-reflected-allow-all",
+          "covers": "An origin check or origin pattern that accepts every origin, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "Checks that accept many origins through a loose pattern the rule does not model, and settings read from a variable. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
           "unit": "semantic-ledger",
           "id": "CLIENT-SIDE.md#Credentialed CORS trust",
           "covers": "A model checks whether the server reflects or loosely matches the Origin value while allowing credentials and returning sensitive data.",
@@ -147,27 +653,224 @@
           "depth": "partial"
         }
       ],
-      "why": "The rule catches the worst wildcard setup and the audit block catches origin values accepted without a proper allowlist, which are the two ways the requirement is violated in code.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The rules catch a wildcard origin with credentials and an Origin value copied into the allow-origin header; the audit block catches origin values accepted without a proper allowlist."
     },
     {
       "requirement": "V3.4.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
-      "subdimensions": [],
-      "checks": [],
-      "why": "The policy header is set by the running application or its proxy; no JGates check reads response headers."
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.security-headers-disabled",
+          "covers": "Configuration in configuration files (the libraries named in the header of its rule file) that switches off or weakens the content security policy header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only the files and formats the rule's path list names are read.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.security-headers-disabled",
+          "covers": "Configuration in C# (the libraries named in the header of its rule file) that switches off or weakens the content security policy header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.csp-unsafe-directive",
+          "covers": "A Content-Security-Policy value that allows inline or eval script or any script source, in C#, for the libraries named in the header of its rule file.",
+          "misses": "A policy that is absent, directives other than the script sources (object, base URI, framing), policies assembled at run time or added by a proxy, and whether every response carries it. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.security-headers-disabled",
+          "covers": "Configuration in Go (the libraries named in the header of its rule file) that switches off or weakens the content security policy header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.csp-unsafe-directive",
+          "covers": "A Content-Security-Policy value that allows inline or eval script or any script source, in Go, for the libraries named in the header of its rule file.",
+          "misses": "A policy that is absent, directives other than the script sources (object, base URI, framing), policies assembled at run time or added by a proxy, and whether every response carries it. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.html.csp-unsafe-directive",
+          "covers": "A Content-Security-Policy value that allows inline or eval script or any script source, in HTML files, for the libraries named in the header of its rule file.",
+          "misses": "A policy that is absent, directives other than the script sources (object, base URI, framing), policies assembled at run time or added by a proxy, and whether every response carries it. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.security-headers-disabled",
+          "covers": "Configuration in Java (the libraries named in the header of its rule file) that switches off or weakens the content security policy header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.csp-unsafe-directive",
+          "covers": "A Content-Security-Policy value that allows inline or eval script or any script source, in Java, for the libraries named in the header of its rule file.",
+          "misses": "A policy that is absent, directives other than the script sources (object, base URI, framing), policies assembled at run time or added by a proxy, and whether every response carries it. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.security-headers-disabled",
+          "covers": "Configuration in JavaScript and TypeScript (the libraries named in the header of its rule file) that switches off or weakens the content security policy header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.csp-unsafe-directive",
+          "covers": "A Content-Security-Policy value that allows inline or eval script or any script source, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "A policy that is absent, directives other than the script sources (object, base URI, framing), policies assembled at run time or added by a proxy, and whether every response carries it. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.security-headers-disabled",
+          "covers": "Configuration in PHP (the libraries named in the header of its rule file) that switches off or weakens the content security policy header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.csp-unsafe-directive",
+          "covers": "A Content-Security-Policy value that allows inline or eval script or any script source, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "A policy that is absent, directives other than the script sources (object, base URI, framing), policies assembled at run time or added by a proxy, and whether every response carries it. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.security-headers-disabled",
+          "covers": "Configuration in Python (the libraries named in the header of its rule file) that switches off or weakens the content security policy header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.csp-unsafe-directive",
+          "covers": "A Content-Security-Policy value that allows inline or eval script or any script source, in Python, for the libraries named in the header of its rule file.",
+          "misses": "A policy that is absent, directives other than the script sources (object, base URI, framing), policies assembled at run time or added by a proxy, and whether every response carries it. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.csp-unsafe-directive-talisman",
+          "covers": "A Flask-Talisman policy argument that allows inline or eval script or any script source, in Python, for the libraries named in the header of its rule file.",
+          "misses": "A policy that is absent, other directives, and policies assembled at run time. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.security-headers-disabled",
+          "covers": "Configuration in Rust (the libraries named in the header of its rule file) that switches off or weakens the content security policy header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.csp-unsafe-directive",
+          "covers": "A Content-Security-Policy value that allows inline or eval script or any script source, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "A policy that is absent, directives other than the script sources (object, base URI, framing), policies assembled at run time or added by a proxy, and whether every response carries it. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10038-1"
+          ],
+          "covers": "The passive alert for a response without a content security policy header, on the responses the scan reached.",
+          "misses": "The part only a deployed system shows: whether each response carries it, and whether its directives are strong; this alert does not judge a present policy.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag a policy weakened to allow inline or eval script, or a header middleware switched off; the ZAP alert reports a missing policy on reached responses; the policy a deployed system sends is the final fact."
     },
     {
       "requirement": "V3.4.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
-      "subdimensions": [],
-      "checks": [],
-      "why": "Needs the real response headers of a deployed system; no JGates check inspects them."
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.security-headers-disabled",
+          "covers": "Configuration in configuration files (the libraries named in the header of its rule file) that switches off or weakens the content-type sniffing protection header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only the files and formats the rule's path list names are read.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.security-headers-disabled",
+          "covers": "Configuration in C# (the libraries named in the header of its rule file) that switches off or weakens the content-type sniffing protection header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.security-headers-disabled",
+          "covers": "Configuration in Go (the libraries named in the header of its rule file) that switches off or weakens the content-type sniffing protection header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.security-headers-disabled",
+          "covers": "Configuration in Java (the libraries named in the header of its rule file) that switches off or weakens the content-type sniffing protection header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.security-headers-disabled",
+          "covers": "Configuration in JavaScript and TypeScript (the libraries named in the header of its rule file) that switches off or weakens the content-type sniffing protection header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.security-headers-disabled",
+          "covers": "Configuration in PHP (the libraries named in the header of its rule file) that switches off or weakens the content-type sniffing protection header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.security-headers-disabled",
+          "covers": "Configuration in Python (the libraries named in the header of its rule file) that switches off or weakens the content-type sniffing protection header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.security-headers-disabled",
+          "covers": "Configuration in Rust (the libraries named in the header of its rule file) that switches off or weakens the content-type sniffing protection header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10021"
+          ],
+          "covers": "The passive alert for a response without the content-type sniffing protection header, on the responses the scan reached.",
+          "misses": "The part only a deployed system shows: whether every response carries it, including those the scan never requested.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The configuration rules flag a switched-off sniffing protection; the ZAP alert reports the header missing on reached responses; the deployed headers are the final fact."
     },
     {
       "requirement": "V3.4.5",
@@ -175,15 +878,84 @@
       "evidence": "deployment",
       "subdimensions": [],
       "checks": [],
-      "why": "A referrer policy lives in response headers or page markup of a deployed system; no JGates check inspects either."
+      "why": "No JGates rule reads a referrer policy, and the one ZAP alert for it is not among the passive alerts the adapter's scan runs, so the tool candidate was refused; a referrer policy lives in response headers or page markup of a deployed system."
     },
     {
       "requirement": "V3.4.6",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
-      "subdimensions": [],
-      "checks": [],
-      "why": "The directive must be on every response of the running system; the clickjacking audit class treats missing headers on read-only content as a hardening note, so it does not examine this."
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.security-headers-disabled",
+          "covers": "Configuration in configuration files (the libraries named in the header of its rule file) that switches off or weakens the framing protection of the policy or the framing header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only the files and formats the rule's path list names are read.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.security-headers-disabled",
+          "covers": "Configuration in C# (the libraries named in the header of its rule file) that switches off or weakens the framing protection of the policy or the framing header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.security-headers-disabled",
+          "covers": "Configuration in Go (the libraries named in the header of its rule file) that switches off or weakens the framing protection of the policy or the framing header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.security-headers-disabled",
+          "covers": "Configuration in Java (the libraries named in the header of its rule file) that switches off or weakens the framing protection of the policy or the framing header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.security-headers-disabled",
+          "covers": "Configuration in JavaScript and TypeScript (the libraries named in the header of its rule file) that switches off or weakens the framing protection of the policy or the framing header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.security-headers-disabled",
+          "covers": "Configuration in PHP (the libraries named in the header of its rule file) that switches off or weakens the framing protection of the policy or the framing header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.security-headers-disabled",
+          "covers": "Configuration in Python (the libraries named in the header of its rule file) that switches off or weakens the framing protection of the policy or the framing header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.security-headers-disabled",
+          "covers": "Configuration in Rust (the libraries named in the header of its rule file) that switches off or weakens the framing protection of the policy or the framing header, or the whole header middleware.",
+          "misses": "A header that is never set is not seen; headers added or stripped by a proxy or CDN, the exact value the header carries, and whether every response has it are only visible on the deployed system. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10020-1"
+          ],
+          "covers": "The passive alert for a response with no framing protection header or policy directive, on the responses the scan reached.",
+          "misses": "The part only a deployed system shows: whether every response carries it, and whether allowed embedders are limited as intended.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The configuration rules flag a switched-off or weakened framing protection; the ZAP alert reports it missing on reached responses; the deployed headers are the final fact."
     },
     {
       "requirement": "V3.4.7",
@@ -195,15 +967,28 @@
     },
     {
       "requirement": "V3.4.8",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
-      "subdimensions": [],
-      "checks": [],
-      "why": "Needs the headers of live document responses; no JGates check reads them."
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "90004-3"
+          ],
+          "covers": "The passive alert for a response whose cross-origin opener policy header is missing or invalid, on the responses the scan reached.",
+          "misses": "The part only a deployed system shows: whether every document response carries one of the accepted values, and any response the scan did not request; the alert does not tell which valid value it saw.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The ZAP alert reports a missing or invalid opener-policy header on reached responses, which is the part a scan of the running target can show."
     },
     {
       "requirement": "V3.5.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -224,6 +1009,41 @@
           "depth": "partial"
         },
         {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.csrf-protection-disabled",
+          "covers": "Request-forgery protection switched off or told to skip every request, in configuration files, for the libraries named in the header of its rule file.",
+          "misses": "Applications where the protection was never added, token-authenticated endpoints where disabling is intended, and defenses that rely on origin or same-site checks the rule does not see. Only the files and formats the rule's path list names are read.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.csrf-protection-disabled",
+          "covers": "Request-forgery protection switched off or told to skip every request, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Applications where the protection was never added, token-authenticated endpoints where disabling is intended, and defenses that rely on origin or same-site checks the rule does not see. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.csrf-protection-disabled",
+          "covers": "Request-forgery protection switched off or told to skip every request, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Applications where the protection was never added, token-authenticated endpoints where disabling is intended, and defenses that rely on origin or same-site checks the rule does not see. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.csrf-protection-disabled",
+          "covers": "Request-forgery protection switched off or told to skip every request, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Applications where the protection was never added, token-authenticated endpoints where disabling is intended, and defenses that rely on origin or same-site checks the rule does not see. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.csrf-protection-disabled",
+          "covers": "Request-forgery protection switched off or told to skip every request, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Applications where the protection was never added, token-authenticated endpoints where disabling is intended, and defenses that rely on origin or same-site checks the rule does not see. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
           "unit": "semantic-ledger",
           "id": "WEB-PROTOCOL-AND-AUTH.md#Ordinary CSRF",
           "covers": "A model inventories cookie-authenticated mutations and checks whether each has a token, same-site binding or strict origin validation.",
@@ -231,27 +1051,57 @@
           "depth": "partial"
         }
       ],
-      "why": "Each check examines whether state-changing requests from another site are validated, which is the control the requirement asks for when preflight is not relied on.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "Each rule examines whether state-changing requests from another site are checked, by looking for the protection being switched off or skipped, which is the control the requirement asks for when preflight is not relied on."
     },
     {
       "requirement": "V3.5.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check tests whether sensitive functionality can be called with a request that avoids a preflight."
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Ordinary CSRF",
+          "covers": "A model inventories cookie-authenticated mutations, including JSON-like, multipart and method-override routes, which are the shapes that can skip a preflight.",
+          "misses": "It looks for the missing cross-site defense, not for whether the endpoint relies on preflight; endpoints it does not enumerate are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source against the requirement, looking at whether sensitive operations can be reached by requests that avoid a preflight.",
+          "misses": "Whatever the model did not read, how the running system behaves, and any file or library outside the reviewed scope.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A model can read the handlers of sensitive operations and check whether a request that avoids a preflight reaches them; no pattern can decide that."
     },
     {
       "requirement": "V3.5.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check maps sensitive operations to the HTTP method used to reach them."
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Ordinary CSRF",
+          "covers": "A model inventories state-changing routes and the methods they accept, including method-override and legacy routes.",
+          "misses": "It does not judge the method of every sensitive operation by name; endpoints it does not enumerate are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source against the requirement, mapping sensitive operations to the methods that reach them.",
+          "misses": "Whatever the model did not read, how the running system behaves, and any file or library outside the reviewed scope.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A model can map sensitive operations to the HTTP method that reaches them; no pattern can decide which operations are sensitive."
     },
     {
       "requirement": "V3.5.4",
@@ -263,7 +1113,7 @@
     },
     {
       "requirement": "V3.5.5",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -277,27 +1127,111 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit class examines the origin check of message handlers, which is the core of the requirement.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "applies": {
+        "technology": [
+          "browser-dom"
+        ]
+      },
+      "why": "The audit class examines the origin check of message handlers, which is the core of the requirement; only pages that use the browser messaging interface are concerned."
     },
     {
       "requirement": "V3.5.6",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check looks for JSONP endpoints."
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.jsonp-enabled",
+          "covers": "A response wrapped in a caller-chosen callback name (JSONP), or the framework JSONP switch, in C#, for the libraries named in the header of its rule file.",
+          "misses": "JSONP built in another function, endpoints behind a proxy that rewrites responses, and whether the data is sensitive. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jsonp-enabled",
+          "covers": "A response wrapped in a caller-chosen callback name (JSONP), or the framework JSONP switch, in Go, for the libraries named in the header of its rule file.",
+          "misses": "JSONP built in another function, endpoints behind a proxy that rewrites responses, and whether the data is sensitive. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jsonp-enabled",
+          "covers": "A response wrapped in a caller-chosen callback name (JSONP), or the framework JSONP switch, in Java, for the libraries named in the header of its rule file.",
+          "misses": "JSONP built in another function, endpoints behind a proxy that rewrites responses, and whether the data is sensitive. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jsonp-enabled-callback",
+          "covers": "A callback name taken from the request and wrapped around the response body, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Callback names that cross a function or file, and frameworks the rule does not list. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jsonp-enabled",
+          "covers": "A response wrapped in a caller-chosen callback name (JSONP), or the framework JSONP switch, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "JSONP built in another function, endpoints behind a proxy that rewrites responses, and whether the data is sensitive. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jsonp-enabled-express",
+          "covers": "The Express JSONP response call, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Hand-made JSONP and other frameworks. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jsonp-enabled",
+          "covers": "A response wrapped in a caller-chosen callback name (JSONP), or the framework JSONP switch, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "JSONP built in another function, endpoints behind a proxy that rewrites responses, and whether the data is sensitive. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jsonp-enabled-callback",
+          "covers": "A callback name taken from the request and wrapped around the response body, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Callback names that cross a function or file, and frameworks the rule does not list. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jsonp-enabled",
+          "covers": "A response wrapped in a caller-chosen callback name (JSONP), or the framework JSONP switch, in Python, for the libraries named in the header of its rule file.",
+          "misses": "JSONP built in another function, endpoints behind a proxy that rewrites responses, and whether the data is sensitive. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.jsonp-enabled",
+          "covers": "A response wrapped in a caller-chosen callback name (JSONP), or the framework JSONP switch, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "JSONP built in another function, endpoints behind a proxy that rewrites responses, and whether the data is sensitive. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules look for responses wrapped in a callback name chosen by the request, which is how the feature is enabled in each language."
     },
     {
       "requirement": "V3.5.7",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check looks for authorization-bound data placed in script responses."
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source against the requirement, looking for authorization-bound data placed in script responses.",
+          "misses": "Whatever the model did not read, how the running system behaves, and any file or library outside the reviewed scope.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A model can read script endpoints and the data they embed for user-bound values; no pattern can tell user-bound data from public data."
     },
     {
       "requirement": "V3.5.8",
@@ -309,28 +1243,122 @@
     },
     {
       "requirement": "V3.6.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check reads page markup for externally hosted assets or integrity attributes; the supply-chain method concerns dependencies and releases, not this."
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.html.external-script-without-integrity",
+          "covers": "Script or stylesheet elements loaded from another host without an integrity attribute, in HTML files, for the libraries named in the header of its rule file.",
+          "misses": "Resources injected by script, resources named by a variable, whether the resource is static and versioned (the rule does not judge), and fonts or other assets; an informational finding. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.external-script-without-integrity",
+          "covers": "Script or stylesheet elements loaded from another host without an integrity attribute, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Resources injected by script, resources named by a variable, whether the resource is static and versioned (the rule does not judge), and fonts or other assets; an informational finding. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "90003"
+          ],
+          "covers": "The passive alert for an externally loaded script or stylesheet with no integrity attribute, on the pages the scan reached.",
+          "misses": "Only pages the scan reached, and whether the resource is static and versioned.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag external script and stylesheet elements without an integrity attribute; the ZAP alert reports the same on reached pages."
     },
     {
       "requirement": "V3.7.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check identifies obsolete browser plugin technologies."
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.html.deprecated-plugin-content",
+          "covers": "Markup that embeds applet, Flash, ActiveX or Silverlight content, in HTML files, for the libraries named in the header of its rule file.",
+          "misses": "Plugin content loaded by script, other unsupported technologies, and what the application's build still pulls in. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.deprecated-plugin-content",
+          "covers": "Markup that embeds applet, Flash, ActiveX or Silverlight content, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Plugin content loaded by script, other unsupported technologies, and what the application's build still pulls in. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag markup that embeds plugin technologies, which is the visible sign of an unsupported client-side technology."
     },
     {
       "requirement": "V3.7.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
-        "authorization"
+        "authorization",
+        "injection"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.open-redirect",
+          "covers": "A redirect whose target comes from the incoming request, without a fixed or local destination, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Whether a validation the rule does not recognize really compares against an allowlist of hosts, redirects built across functions, and navigation done in browser code, which a separate check examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.open-redirect",
+          "covers": "A redirect whose target comes from the incoming request, without a fixed or local destination, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Whether a validation the rule does not recognize really compares against an allowlist of hosts, redirects built across functions, and navigation done in browser code, which a separate check examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.open-redirect",
+          "covers": "A redirect whose target comes from the incoming request, without a fixed or local destination, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Whether a validation the rule does not recognize really compares against an allowlist of hosts, redirects built across functions, and navigation done in browser code, which a separate check examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.open-redirect",
+          "covers": "A redirect whose target comes from the incoming request, without a fixed or local destination, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Whether a validation the rule does not recognize really compares against an allowlist of hosts, redirects built across functions, and navigation done in browser code, which a separate check examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.open-redirect",
+          "covers": "A redirect whose target comes from the incoming request, without a fixed or local destination, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Whether a validation the rule does not recognize really compares against an allowlist of hosts, redirects built across functions, and navigation done in browser code, which a separate check examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.open-redirect",
+          "covers": "A redirect whose target comes from the incoming request, without a fixed or local destination, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Whether a validation the rule does not recognize really compares against an allowlist of hosts, redirects built across functions, and navigation done in browser code, which a separate check examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.open-redirect",
+          "covers": "A redirect whose target comes from the incoming request, without a fixed or local destination, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "Whether a validation the rule does not recognize really compares against an allowlist of hosts, redirects built across functions, and navigation done in browser code, which a separate check examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
         {
           "unit": "semantic-ledger",
           "id": "CLIENT-SIDE.md#Client-side navigation confusion",
@@ -339,19 +1367,25 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit class looks for redirects steered by input without a destination policy, which is half of what the requirement concerns (the browser side).",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The rules flag server-side redirects steered by the request, and the audit block covers navigation done in browser code, which together are the two halves of the requirement."
     },
     {
       "requirement": "V3.7.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": [],
-      "why": "No check looks for an interstitial before leaving the application."
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source against the requirement, looking for a warning step before users leave the application.",
+          "misses": "Whatever the model did not read, how the running system behaves, and any file or library outside the reviewed scope.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A model can read the code that sends users to outside addresses and look for a warning step; no pattern can tell a warning step from an ordinary page."
     },
     {
       "requirement": "V3.7.4",
