@@ -1,0 +1,13 @@
+{
+  "files": ["encoding.go"],
+  "ruleIds": [
+    "jgates.go.regex-from-request",
+    "jgates.go.format-string-from-request",
+    "jgates.go.csv-formula-injection",
+    "jgates.go.memcache-key-from-request",
+    "jgates.go.double-decoding",
+    "jgates.go.url-parameter-unencoded",
+    "jgates.go.json-built-by-concatenation",
+    "jgates.go.markdown-raw-html-enabled"
+  ]
+}
