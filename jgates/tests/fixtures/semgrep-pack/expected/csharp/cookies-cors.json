@@ -1,0 +1,4 @@
+{
+  "files": ["CookiesCors.cs"],
+  "ruleIds": ["jgates.csharp.cookie-without-secure", "jgates.csharp.cookie-without-httponly", "jgates.csharp.cookie-without-samesite", "jgates.csharp.cookie-name-without-prefix", "jgates.csharp.cors-any-origin-with-credentials", "jgates.csharp.cors-origin-reflected", "jgates.csharp.cors-origin-reflected-allow-all", "jgates.csharp.csrf-protection-disabled", "jgates.csharp.jsonp-enabled", "jgates.csharp.sensitive-query-parameter"]
+}

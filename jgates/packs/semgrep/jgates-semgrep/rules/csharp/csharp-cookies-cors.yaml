@@ -1,0 +1,249 @@
+# Cookies, CORS, request forgery and sensitive data in URLs for C#.
+# Libraries covered: ASP.NET Core (Response.Cookies.Append, CookieOptions, CookieBuilder of the cookie
+# authentication and session options, CookiePolicyOptions, the CORS policy builder, Request.Headers and
+# Response.Headers, MVC filters and Razor Pages conventions for antiforgery, QueryHelpers) and System.Web
+# (HttpCookie, UriBuilder). The analysis stays inside one method.
+rules:
+  - id: jgates.csharp.cookie-without-secure
+    message: A cookie is written without the Secure attribute, so a browser may send it over plain HTTP. Set Secure to true (or CookieSecurePolicy.Always) on the cookie.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: new CookieOptions(...)
+              - pattern: new CookieOptions { ... }
+          - pattern-not: new CookieOptions { ..., Secure = $X, ... }
+          - pattern-not-inside: |
+              $T $F(...) {
+                ...
+                $O.Secure = $V;
+                ...
+              }
+      - pattern: new CookieOptions { ..., Secure = false, ... }
+      - pattern: $O.Secure = false;
+      - pattern: $R.Cookies.Append($N, $V)
+      - pattern-regex: \bSecurePolicy\s*=\s*CookieSecurePolicy\.None\b
+      - pattern-regex: \bSecure\s*=\s*CookieSecurePolicy\.None\b
+
+  - id: jgates.csharp.cookie-without-httponly
+    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Set HttpOnly to true on cookies the browser code does not need.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: new CookieOptions(...)
+              - pattern: new CookieOptions { ... }
+          - pattern-not: new CookieOptions { ..., HttpOnly = $X, ... }
+          - pattern-not-inside: |
+              $T $F(...) {
+                ...
+                $O.HttpOnly = $V;
+                ...
+              }
+      - pattern: new CookieOptions { ..., HttpOnly = false, ... }
+      - pattern: $O.HttpOnly = false;
+      - pattern: $R.Cookies.Append($N, $V)
+      - pattern-regex: \bHttpOnly\s*=\s*HttpOnlyPolicy\.None\b
+
+  - id: jgates.csharp.cookie-without-samesite
+    message: A cookie is written with SameSite set to None or Unspecified, or without SameSite where the framework sends none, so it travels on cross-site requests. Set SameSite to Lax or Strict.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.2"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: new CookieOptions(...)
+              - pattern: new CookieOptions { ... }
+          - pattern-not: new CookieOptions { ..., SameSite = $X, ... }
+          - pattern-not-inside: |
+              $T $F(...) {
+                ...
+                $O.SameSite = $V;
+                ...
+              }
+      - pattern: new CookieOptions { ..., SameSite = SameSiteMode.None, ... }
+      - pattern: new CookieOptions { ..., SameSite = SameSiteMode.Unspecified, ... }
+      - pattern: $O.SameSite = SameSiteMode.None;
+      - pattern: $O.SameSite = SameSiteMode.Unspecified;
+      - pattern: $R.Cookies.Append($N, $V)
+      - pattern-regex: \bMinimumSameSitePolicy\s*=\s*SameSiteMode\.None\b
+
+  - id: jgates.csharp.cookie-name-without-prefix
+    message: A cookie name starts with neither __Host- nor __Secure-, so the browser does not enforce the attributes the name promises. Use the __Host- prefix for session cookies.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.3", "V3.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $R.Cookies.Append($N, ...)
+          - pattern: new HttpCookie($N, ...)
+          - pattern: new HttpCookie($N)
+          - pattern: $O.Cookie.Name = $N;
+      - metavariable-regex:
+          metavariable: $N
+          regex: '^@?"(?!__Host-|__Secure-)'
+
+  - id: jgates.csharp.cors-any-origin-with-credentials
+    message: CORS allows every origin together with credentials, so any site can read authenticated responses. List the trusted origins with WithOrigins instead of a wildcard.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: authorization
+      cwe: "CWE-942"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - pattern-regex: \bAllowAnyOrigin\(\)[^;]*\.AllowCredentials\(\)
+      - pattern-regex: \bAllowCredentials\(\)[^;]*\.AllowAnyOrigin\(\)
+      - pattern-regex: \bWithOrigins\(\s*"\*"\s*\)[^;]*\.AllowCredentials\(\)
+      - patterns:
+          - pattern-either:
+              - pattern: $R.Headers["Access-Control-Allow-Origin"] = "*";
+              - pattern: $R.Headers.Append("Access-Control-Allow-Origin", "*");
+              - pattern: $R.Headers.Add("Access-Control-Allow-Origin", "*");
+          - pattern-inside: |
+              $T $F(...) {
+                ...
+                $X.Headers["Access-Control-Allow-Credentials"] = "true";
+                ...
+              }
+
+  - id: jgates.csharp.cors-origin-reflected
+    mode: taint
+    message: The request's Origin header is copied into the allow-origin response header, so every site is trusted. Compare the origin with an allow-list and answer only for a listed one.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-sources:
+      - pattern: Request.Headers["Origin"]
+      - pattern: Request.Headers[HeaderNames.Origin]
+      - pattern: $C.Request.Headers["Origin"]
+      - pattern: $C.Request.Headers[HeaderNames.Origin]
+      - pattern: Request.Headers.Origin
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $R.Headers["Access-Control-Allow-Origin"] = $X;
+              - pattern: $R.Headers.Append("Access-Control-Allow-Origin", $X)
+              - pattern: $R.Headers.Add("Access-Control-Allow-Origin", $X)
+          - focus-metavariable: $X
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $O
+          - pattern-inside: |
+              if ($COND) {
+                ...
+              }
+
+  - id: jgates.csharp.cors-origin-reflected-allow-all
+    message: An origin check accepts every origin, so the allow-list is a no-op. Compare the origin with the trusted origins and reject the rest.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - pattern-regex: \bSetIsOriginAllowed\(\s*(\w+|\(\s*\w*\s*\))\s*=>\s*true\s*\)
+
+  - id: jgates.csharp.csrf-protection-disabled
+    message: Request-forgery protection is switched off for every request, so state-changing calls accept forged cross-site requests. Keep the antiforgery filter on and skip only a narrow, named endpoint.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.1"]
+    pattern-either:
+      - pattern: $O.Filters.Add(new IgnoreAntiforgeryTokenAttribute(...))
+      - pattern: $O.Filters.Add(typeof(IgnoreAntiforgeryTokenAttribute))
+      - pattern: $O.Conventions.ConfigureFilter(new IgnoreAntiforgeryTokenAttribute(...))
+      - pattern: $A.MapGroup(...).DisableAntiforgery()
+
+  - id: jgates.csharp.jsonp-enabled
+    mode: taint
+    message: A callback name from the request is wrapped around the response body (JSONP), which lets any page run the endpoint as a script and read its data. Return plain JSON and use CORS for cross-origin reads.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern-sources:
+      - patterns:
+          - pattern: Request.Query[$K]
+          - metavariable-regex:
+              metavariable: $K
+              regex: '^"(callback|jsonp|jsonpcallback)"$'
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+          - metavariable-regex:
+              metavariable: $P
+              regex: '^(callback|jsonp|jsonpCallback)$'
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: Content($X, ...)
+              - pattern: $R.WriteAsync($X, ...)
+              - pattern: $R.WriteAsync($X)
+          - focus-metavariable: $X
+
+  - id: jgates.csharp.sensitive-query-parameter
+    message: A URL carries a password, secret or API key in its query string, where logs, history and referrers keep it. Send it in a header or the request body.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V14.2.1"]
+    pattern-either:
+      - pattern-regex: (?i)"[^"\n]*[?&](password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)=
+      - pattern-regex: (?i)\bQuery\s*=\s*\$?@?"(password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)=
+      - patterns:
+          - pattern: QueryHelpers.AddQueryString($U, $K, ...)
+          - metavariable-regex:
+              metavariable: $K
+              regex: '(?i)^"(password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)"$'
