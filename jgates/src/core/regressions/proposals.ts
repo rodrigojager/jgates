@@ -1,4 +1,5 @@
-// Regression proposals: tests a Semantic method proposes (a property test of an invariant, the reproducer of a patch)
+// Regression proposals: tests a Semantic method proposes (a property test of an invariant, the reproducer of a patch or
+// of a needs-validation finding; node:test files, and pytest files for a reproducer of a Python finding)
 // as reviewable material of its run, in evidence/regressions/proposals.json. A proposal is never part of the project:
 // nothing here writes outside the run folder, no Quality plan reads it, and it becomes a Quality regression only through
 // the explicit incorporation command (incorporate.ts) after a fresh validation. Its content is model output: untrusted
@@ -12,15 +13,27 @@ export const PROPOSALS_FILE = "evidence/regressions/proposals.json";
 /** Where a proposed test lives (workspace-relative folder): in a fixture, and in the project once incorporated. */
 export const REGRESSIONS_DIR = ".jgates/regressions";
 export const PROPOSAL_RUNNER = "node-test";
+/** The runners a proposal may name: node:test (the default) and pytest (a reproducer of a Python finding). */
+export const PROPOSAL_RUNNERS = ["node-test", "pytest"] as const;
+export type ProposalRunner = (typeof PROPOSAL_RUNNERS)[number];
 /** A proposed test file name: lowercase, ending in .test.mjs (an ES module run by node:test). */
 export const PROPOSAL_FILE_PATTERN = /^[a-z0-9][a-z0-9._-]{0,80}\.test\.mjs$/;
+/** A proposed pytest file name: test_<name>.py, lowercase. */
+export const PYTEST_PROPOSAL_PATTERN = /^test_[a-z0-9_]{1,80}\.py$/;
 const MAX_CONTENT = 20_000;
+
+/** The runner of a proposed file name, or null when no proposal runner takes it. */
+export function proposalRunnerOf(file: string): ProposalRunner | null {
+  if (PROPOSAL_FILE_PATTERN.test(file)) return "node-test";
+  if (PYTEST_PROPOSAL_PATTERN.test(file)) return "pytest";
+  return null;
+}
 
 export interface RegressionProposal {
   /** P1, P2... within the run. */
   id: string;
   kind: "test";
-  runner: typeof PROPOSAL_RUNNER;
+  runner: ProposalRunner;
   /** File name under .jgates/regressions/ (imports of project files are relative to that folder). */
   file: string;
   content: string;
@@ -59,10 +72,11 @@ export function proposalsFile(runDir: string, method: string, proposals: Array<O
   const out: RegressionProposal[] = [];
   for (const p of proposals) {
     // Two proposals never share a file name: a repeated one gets a numeric suffix.
+    const runner = proposalRunnerOf(p.file) ?? PROPOSAL_RUNNER;
     let file = p.file;
-    for (let n = 2; used.has(file); n++) file = p.file.replace(/\.test\.mjs$/, `-${n}.test.mjs`);
+    for (let n = 2; used.has(file); n++) file = runner === "pytest" ? p.file.replace(/\.py$/, `_${n}.py`) : p.file.replace(/\.test\.mjs$/, `-${n}.test.mjs`);
     used.add(file);
-    out.push({ ...p, id: `P${out.length + 1}`, kind: "test", runner: PROPOSAL_RUNNER, file, sha256: sha256(p.content), origin: { runId, method, ...p.origin }, status: "proposed" });
+    out.push({ ...p, id: `P${out.length + 1}`, kind: "test", runner, file, sha256: sha256(p.content), origin: { runId, method, ...p.origin }, status: "proposed" });
   }
   const doc = { schemaVersion: 1, kind: "semantic-regression-proposals", runId, method, note: "Proposals only: none is part of the project until `jgates regressions incorporate <run>/<id> --approve`.", proposals: out };
   return { path: PROPOSALS_FILE, content: `${JSON.stringify(doc, null, 2)}\n`, proposals: out };
@@ -73,7 +87,13 @@ export function readRunProposals(runDir: string): RegressionProposal[] {
   try {
     const doc = JSON.parse(fs.readFileSync(path.join(runDir, ...PROPOSALS_FILE.split("/")), "utf8")) as { proposals?: unknown };
     if (!Array.isArray(doc.proposals)) return [];
-    return doc.proposals.filter((p): p is RegressionProposal => !!p && typeof p === "object" && typeof (p as RegressionProposal).id === "string" && typeof (p as RegressionProposal).content === "string" && PROPOSAL_FILE_PATTERN.test(String((p as RegressionProposal).file)));
+    // A proposal's file name must be one its runner takes (an older document without a runner is node:test).
+    return doc.proposals.filter((p): p is RegressionProposal => {
+      if (!p || typeof p !== "object") return false;
+      const r = p as RegressionProposal;
+      const runner = proposalRunnerOf(String(r.file));
+      return typeof r.id === "string" && typeof r.content === "string" && runner !== null && (r.runner === undefined || r.runner === runner);
+    });
   } catch {
     return [];
   }

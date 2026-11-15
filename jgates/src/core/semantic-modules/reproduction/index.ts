@@ -19,8 +19,8 @@
 //                              failure the defect the finding describes, a defect of the reproducer, or the environment
 //   output        evidence/confirm-by-reproduction/execution.json (every execution: the facts of its container and the
 //                 masked output) and evidence/confirm-by-reproduction/reproduction.json (per finding: reproduced, with the
-//                 evidence basis "execution", or reproduction attempted with the reason); a node:test reproducer that
-//                 reproduced becomes a regression proposal (evidence/regressions/proposals.json). The earlier run is never
+//                 evidence basis "execution", or reproduction attempted with the reason); a reproducer (node:test or
+//                 pytest) that reproduced becomes a regression proposal (evidence/regressions/proposals.json). The earlier run is never
 //                 rewritten
 //   claims        reproduced only when the reproducer executed, failed and the assessment attributes the failure to the
 //                 defect. Anything else leaves the finding needs-validation with "reproduction attempted" and why: a
@@ -35,7 +35,7 @@
 //                 The security audit argues from source only; this module adds the observed behavior.
 import path from "node:path";
 import { translator } from "../../../i18n/index.js";
-import { proposalsFile } from "../../regressions/proposals.js";
+import { proposalRunnerOf, proposalsFile } from "../../regressions/proposals.js";
 import { DEPENDENCIES_NOT_PREPARED, testRuntime } from "../../regressions/runner.js";
 import { resolveHome } from "../../home/index.js";
 import { workspaceId } from "../../ids/index.js";
@@ -269,8 +269,9 @@ function finalize(input: ModuleFinalizeInput): ModuleFinalizeOutput {
     }
     const byId = new Map(input.candidates.map((c) => [(c.details as { seed?: { id?: string } } | undefined)?.seed?.id ?? "", c]));
     const outcomes: FindingOutcome[] = inputs.seeds.map((seed) => ({ ...outcomeOf(input, seed, byId.get(seed.id)), proposal: null }));
-    // A node:test reproducer that reproduced becomes a regression proposal (the existing flow; never applied by itself).
-    const proposable = outcomes.filter((o) => o.outcome === "reproduced" && o.reproducer?.runner === "node:test" && contents.has(o.reproducer.sha256));
+    // A reproducer that reproduced becomes a regression proposal (the existing flow; never applied by itself): node:test
+    // and pytest files alike.
+    const proposable = outcomes.filter((o) => o.outcome === "reproduced" && !!o.reproducer && proposalRunnerOf(path.posix.basename(o.reproducer.path)) !== null && contents.has(o.reproducer.sha256));
     const proposals = proposable.length
       ? proposalsFile(
           input.runDir,
@@ -286,7 +287,7 @@ function finalize(input: ModuleFinalizeInput): ModuleFinalizeOutput {
         )
       : null;
     proposable.forEach((o, i) => (o.proposal = proposals?.proposals[i]?.id ?? null));
-    const notProposed = outcomes.filter((o) => o.outcome === "reproduced" && o.reproducer?.runner !== "node:test");
+    const notProposed = outcomes.filter((o) => o.outcome === "reproduced" && !proposable.includes(o));
     const doc = {
       schemaVersion: 1,
       kind: "semantic-reproduction",
@@ -306,7 +307,7 @@ function finalize(input: ModuleFinalizeInput): ModuleFinalizeOutput {
       gaps: [
         ...inputs.skipped.map((s) => ({ code: s.code, path: s.path, reason: `${s.candidateId} not reproduced: ${s.reason}` })),
         ...outcomes.filter((o) => o.outcome === "attempted").map((o) => ({ code: "REPRODUCTION_ATTEMPTED", path: o.finding.path, reason: `${o.finding.candidateId} (${o.reason}): ${o.detail}` })),
-        ...notProposed.map((o) => ({ code: "REGRESSION_PROPOSAL_NOT_SUPPORTED", path: o.finding.path, reason: `the reproducer of ${o.finding.candidateId} is a ${o.reproducer?.runner ?? "-"} file; regression proposals take node:test files only` })),
+        ...notProposed.map((o) => ({ code: "REGRESSION_PROPOSAL_NOT_SUPPORTED", path: o.finding.path, reason: `the reproducer of ${o.finding.candidateId} (${o.reproducer?.path ?? "-"}) could not become a regression proposal: its file name or content is not available as a node:test or pytest proposal` })),
       ],
       report: { seedRun: inputs.seedRun.runId, findings: outcomes.length, reproduced: doc.counts.reproduced, attempted: doc.counts.attempted, skipped: doc.counts.skipped, executed: doc.counts.executed, proposals: doc.proposals.length },
     };

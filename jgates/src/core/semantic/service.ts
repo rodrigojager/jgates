@@ -28,8 +28,8 @@ import { listDescendants, treeStopper } from "../runner/tree.js";
 import { runSemanticReview, type SemanticDeps, type SemanticProgress } from "../../adapters/semantic-gate/index.js";
 import { translator } from "../../i18n/index.js";
 import { finishScopeRun, prepareScopeRun, type ScopeRunPreparation } from "../semantic-scope/index.js";
-import { investigationModuleFor, runInvestigation, type InvestigationDeps, type InvestigationEventType, type InvestigationModule } from "../semantic-executor/index.js";
-import { buildSemanticPlan, resolveQualityRun, type SemanticPlan } from "./plan.js";
+import { runInvestigation, type InvestigationDeps, type InvestigationEventType, type InvestigationModule } from "../semantic-executor/index.js";
+import { buildSemanticPlan, moduleForPlan, resolveQualityRun, type SemanticPlan } from "./plan.js";
 import { attachQuality, type AttachedQuality } from "./quality.js";
 import { renameWithRetry } from "../fs-retry/index.js";
 import {
@@ -502,7 +502,8 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
 
   // A tool-enabled investigation when the caller asks for one or a module is registered for the plan's method; it
   // needs the resolved scope (its guard decides every read).
-  const module = opts.investigation?.module ?? investigationModuleFor(plan.methods.map((m) => m.id));
+  // confirm-by-reproduction gets the earlier run (and findings) its plan names.
+  const module = opts.investigation?.module ?? moduleForPlan(plan);
   const investigate: SemanticReviewer | null = module
     ? async (ctx) => {
         if (!ctx.scope) {

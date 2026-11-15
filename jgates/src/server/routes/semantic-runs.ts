@@ -17,7 +17,10 @@ import {
   findSemanticRun,
   listSemanticRuns,
   readSemanticRun,
+  reproductionOf,
   requestSemanticCancel,
+  withReproduction,
+  FINDING_ID_PATTERN,
 } from "../../core/semantic/index.js";
 import { semanticChoiceArgs, type ScopeRequest, type SemanticPurpose, type SemanticRigor } from "../../core/semantic-scope/index.js";
 import { getLocale, translator } from "../../i18n/index.js";
@@ -92,7 +95,8 @@ export const routes: RouteDefinition[] = [
     query: { type: "object", properties: { limit: { type: "string", pattern: "^[1-9][0-9]{0,3}$" } }, additionalProperties: false },
     handler({ query, server }) {
       const limit = Number(query.limit ?? "50");
-      const runs = listSemanticRuns(server.home, server.workspace.id).slice(0, limit).map(publicRun);
+      // Each run with the reproduction state of its findings (read from the reproduction runs that name it).
+      const runs = withReproduction(server.home, server.workspace.id, listSemanticRuns(server.home, server.workspace.id).slice(0, limit)).map(publicRun);
       return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", runs } };
     },
   },
@@ -100,10 +104,20 @@ export const routes: RouteDefinition[] = [
     method: "POST",
     path: "/api/semantic/runs",
     // The same choices as `jgates semantic run`: the Quality evidence, the purpose, rigor and budget, and the scope.
-    body: { type: "object", properties: { quality: { type: "string", pattern: QUALITY_REF }, ...choiceProperties }, additionalProperties: false },
+    // reproduction: the earlier run (and one finding) confirm-by-reproduction starts from, as --from and --finding.
+    body: {
+      type: "object",
+      properties: {
+        quality: { type: "string", pattern: QUALITY_REF },
+        ...choiceProperties,
+        reproduction: { type: "object", properties: { from: { type: "string", pattern: SEMANTIC_RUN_ID_PATTERN }, finding: { type: "string", pattern: FINDING_ID_PATTERN } }, additionalProperties: false },
+      },
+      additionalProperties: false,
+    },
     handler({ body, server }) {
-      const choices = (body ?? {}) as { quality?: string; purpose?: SemanticPurpose; methods?: string[]; rigor?: SemanticRigor; budget?: { maxCalls?: number; maxTokens?: number }; scope?: ScopeRequest };
+      const choices = (body ?? {}) as { quality?: string; purpose?: SemanticPurpose; methods?: string[]; rigor?: SemanticRigor; budget?: { maxCalls?: number; maxTokens?: number }; scope?: ScopeRequest; reproduction?: { from?: string; finding?: string } };
       const { quality } = choices;
+      const asked = choices.reproduction && (choices.reproduction.from || choices.reproduction.finding) ? choices.reproduction : null;
       // A policy folder being edited is not a project: there is nothing to review.
       if (server.policyMode) throw fail(409, "SEMANTIC_POLICY_MODE");
       const active = [...childrenOf(server).keys()][0];
@@ -116,6 +130,7 @@ export const routes: RouteDefinition[] = [
         ...(choices.rigor ? { rigor: choices.rigor } : {}),
         ...(choices.budget ? { budget: choices.budget } : {}),
         ...(choices.methods ? { methods: choices.methods } : {}),
+        ...(asked ? { reproduction: { from: asked.from ?? null, findings: asked.finding ? [asked.finding] : [] } } : {}),
         scope: choices.scope ?? null,
       });
       if (!plan.ready) throw fail(422, "SEMANTIC_NOT_READY", { detail: plan.blockers.map((b) => b.message).join(" ") }, { blockers: plan.blockers, plan });
@@ -136,6 +151,8 @@ export const routes: RouteDefinition[] = [
         ...semanticChoiceArgs(choices),
         // Several methods: the child runs them in order, one Semantic run each; runId names the first one.
         ...(plan.methodSelection === "explicit" ? [`--method=${plan.methods.map((m) => m.id).join(",")}`] : []),
+        ...(asked?.from ? ["--from", asked.from] : []),
+        ...(asked?.finding ? ["--finding", asked.finding] : []),
       ];
       const child = spawn(process.execPath, args, {
         cwd: server.workspace.path,
@@ -176,7 +193,7 @@ export const routes: RouteDefinition[] = [
         if (childrenOf(server).has(id)) return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", run: { runId: id, lifecycle: "running", live: true, result: null } } };
         throw fail(404, "RUN_NOT_FOUND", { runId: id });
       }
-      return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", run: publicRun(view) } };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", run: { ...publicRun(view), reproduction: reproductionOf(server.home, server.workspace.id, view) } } };
     },
   },
   {

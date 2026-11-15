@@ -146,13 +146,17 @@ test("a reproducer that fails for the defect reproduces its finding; one that pa
     }
     for (const args of R.engineCalls(ws).filter((a) => a[0] === "run")) assert.ok(args.some((a, i) => args[i - 1] === "--network" && a === "none"), "no container has a network");
 
-    // Nothing is left in the copy, the project and the earlier run are unchanged, and a pytest reproducer is not proposed.
+    // Nothing is left in the copy, the project and the earlier run are unchanged, and the pytest reproducer that
+    // reproduced is a regression proposal (only that one).
     assert.deepEqual(listing(copy).filter((p) => /test_(discount_bound|reserve_limit|token_expiry)/.test(p)), []);
     assert.ok(listing(copy).includes("src/pricing.py"), "the copy was synchronized with the project");
     assert.equal(R.treeHash(ws.dir), before, "the project folder is byte for byte the same");
     assert.deepEqual(fs.readFileSync(seed.file), seedBefore, "the earlier run is never rewritten");
-    assert.deepEqual(regressions.readRunProposals(result.runDir), []);
-    assert.ok(outcome.investigation.coverage.gaps.some((g) => g.code === "REGRESSION_PROPOSAL_NOT_SUPPORTED"));
+    const proposed = regressions.readRunProposals(result.runDir);
+    assert.deepEqual(proposed.map((p) => [p.id, p.runner, p.file, p.origin.candidate]), [["P1", "pytest", "test_discount_bound.py", c.C1.id]]);
+    assert.match(proposed[0].content, /case: discount-bound/);
+    assert.deepEqual(doc.proposals, ["P1"]);
+    assert.ok(!outcome.investigation.coverage.gaps.some((g) => g.code === "REGRESSION_PROPOSAL_NOT_SUPPORTED"));
 
     // How the outcomes read, in both languages.
     assert.equal(reproduction.reproductionText({ outcome: "reproduced", reason: null }, "en"), "Reproduced: confirmed by execution");

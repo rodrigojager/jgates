@@ -20,9 +20,15 @@ import {
   readSemanticRun,
   requestSemanticCancel,
   semanticMethodCatalog,
+  FINDING_ID_PATTERN,
+  reproductionOf,
+  withReproduction,
+  type ReproductionSelection,
+  type RunReproduction,
   type SemanticPlan,
   type SemanticPlanRequest,
 } from "../../core/semantic/index.js";
+import { REPRODUCTION_METHOD } from "../../core/semantic-modules/reproduction/index.js";
 import type { RunResult } from "../../core/run/types.js";
 import { CONTEXT_POLICIES, SEMANTIC_PURPOSES, SEMANTIC_RIGORS, type ScopeRequest, type SemanticPurpose, type SemanticRigor } from "../../core/semantic-scope/index.js";
 
@@ -133,6 +139,35 @@ async function withCancellation<T>(work: (signal: AbortSignal) => Promise<T>): P
   }
 }
 
+/** What a confirm-by-reproduction run will do, before it starts: findings to try, the call budget, the container. */
+function reproductionPlanText(ctx: CommandContext, plan: SemanticPlan): void {
+  const r = plan.reproduction;
+  if (!r) return;
+  ctx.stdout(`${t("semantic_text_reproduction_plan", { runId: r.seedRun ?? r.from ?? "-", cost: t("semantic_reproduction_cost", { count: r.findingsToTry, calls: r.budget.maxCalls }) })}\n`);
+  for (const s of r.skipped) ctx.stdout(`${t("semantic_text_reproduction_skipped", { candidateId: s.candidateId, code: s.code })}\n`);
+  ctx.stdout(`  ${t("semantic_reproduction_never_rejects")}\n`);
+}
+
+/** How a finding's reproduction state reads (none, attempted with the reason, confirmed by execution). */
+function reproductionStateText(f: RunReproduction["findings"][number]): string {
+  if (f.state === "confirmed") return t("semantic_reproduction_state_confirmed", { runId: f.reproductionRunId ?? "-" });
+  if (f.state === "none") return t("semantic_reproduction_state_none");
+  // A known attempt reason reads in the user's language; a reason code of the run (a skipped finding) keeps its detail.
+  const key = `semantic_reproduction_reason_${f.reason ?? "NOT_RUN"}`;
+  const translated = t(key);
+  const reason = translated !== key ? translated : `${f.reason ?? "-"}${f.detail ? `: ${f.detail}` : ""}`;
+  return t("semantic_reproduction_state_attempted", { runId: f.reproductionRunId ?? "-", reason });
+}
+
+function reproductionLines(ctx: CommandContext, runId: string, r: RunReproduction): void {
+  if (r.reproduces) ctx.stdout(`${t("semantic_text_reproduction_of", { runId: r.reproduces })}\n`);
+  if (r.findings.length === 0) return;
+  ctx.stdout(`${t("semantic_text_reproduction_header", { runId })}\n`);
+  for (const f of r.findings) ctx.stdout(`${t("semantic_text_reproduction_line", { candidateId: f.candidateId, state: reproductionStateText(f), title: f.title })}\n`);
+}
+
+const FINDING_ID = new RegExp(FINDING_ID_PATTERN);
+
 function planText(ctx: CommandContext, plan: SemanticPlan): void {
   ctx.stdout(`${t("semantic_text_plan_header", { path: plan.workspace.path })}\n`);
   ctx.stdout(`  ${t("semantic_text_methods", { methods: plan.methods.map((m) => m.id).join(", ") })}\n`);
@@ -154,6 +189,7 @@ function planText(ctx: CommandContext, plan: SemanticPlan): void {
   for (const e of r.impact.recommendedExpansion.slice(0, 20)) ctx.stdout(`    +     ${ts("scope_text_recommended", { path: e.path })}\n`);
   for (const b of plan.blockers) ctx.stdout(`  -- ${b.code}: ${b.message}\n`);
   for (const w of r.warnings) ctx.stdout(`  !  ${w.message}\n`);
+  reproductionPlanText(ctx, plan);
   ctx.stdout(`${plan.ready ? t("semantic_text_ready") : t("semantic_text_not_ready")}\n`);
 }
 
@@ -185,6 +221,8 @@ export const command: CommandModule = {
     { name: "budget-calls", type: "string", description: ts("scope_option_budget_calls") },
     { name: "budget-tokens", type: "string", description: ts("scope_option_budget_tokens") },
     { name: "method", type: "string", description: t("semantic_option_method") },
+    { name: "from", type: "string", description: t("semantic_option_from") },
+    { name: "finding", type: "string", description: t("semantic_option_finding") },
   ],
   async run(ctx) {
     const usage = (code: string, key: string, params: Record<string, string> = {}): number => reportError(ctx, ctx.json, code, t(key, params), t(`${key}_fix`, params), EXIT_USAGE);
@@ -202,6 +240,17 @@ export const command: CommandModule = {
     const methodsFlag = methodFlags(ctx);
     if (!methodsFlag.ok) return usage("BAD_METHOD", "semantic_bad_method", { value: methodsFlag.value });
     const methods = methodsFlag.value;
+    // The earlier run (and one finding) confirm-by-reproduction starts from: only with that method, never on its own.
+    const from = str(ctx, "from");
+    const finding = str(ctx, "finding");
+    let reproduction: ReproductionSelection | null = null;
+    if ((sub === "run" || sub === "plan") && (from !== undefined || finding !== undefined)) {
+      if (!methods.includes(REPRODUCTION_METHOD)) return usage("REPRODUCTION_WITHOUT_METHOD", "semantic_reproduction_option_without_method");
+      if (finding !== undefined && from === undefined) return usage("FINDING_WITHOUT_FROM", "semantic_reproduction_finding_without_from");
+      if (from !== undefined && !isSemanticRunId(from)) return usage("BAD_FROM", "semantic_reproduction_bad_from", { value: from.slice(0, 90) });
+      if (finding !== undefined && !FINDING_ID.test(finding)) return usage("BAD_FINDING", "semantic_reproduction_bad_finding", { value: finding.slice(0, 40) });
+      reproduction = { from: from ?? null, findings: finding !== undefined ? [finding] : [] };
+    }
 
     if (sub === "methods") {
       if (ctx.args[1] !== undefined) return usage("UNEXPECTED_ARGUMENT", "semantic_unexpected_argument", { name: ctx.args[1] });
@@ -220,7 +269,7 @@ export const command: CommandModule = {
 
     if (sub === "plan") {
       if (ctx.args[1] !== undefined) return usage("UNEXPECTED_ARGUMENT", "semantic_unexpected_argument", { name: ctx.args[1] });
-      const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value, methods });
+      const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value, methods, reproduction });
       if (ctx.json) writeJson(ctx, { ...base, plan });
       else planText(ctx, plan);
       return 0;
@@ -231,15 +280,20 @@ export const command: CommandModule = {
       const rawLimit = str(ctx, "limit");
       const limit = rawLimit !== undefined ? Number(rawLimit) : 20;
       if (!Number.isInteger(limit) || limit < 1) return usage("BAD_LIMIT", "semantic_bad_limit", { value: String(rawLimit) });
-      const runs = listSemanticRuns(home, wsId)
-        .slice(0, limit)
-        .map(({ time: _time, ...run }) => run);
+      // Each run with the reproduction state of its findings, read from the reproduction runs that name it.
+      const runs = withReproduction(home, wsId, listSemanticRuns(home, wsId).slice(0, limit)).map(({ time: _time, ...run }) => run);
       if (ctx.json) {
         writeJson(ctx, { ...base, runs });
         return 0;
       }
       if (runs.length === 0) ctx.stdout(`${t("semantic_history_empty")}\n`);
-      for (const r of runs) ctx.stdout(`${r.runId}  ${r.startedAt ?? "-"}  ${r.decision ?? "-"}  [${t(`semantic_lifecycle_${r.lifecycle}`)}]\n`);
+      for (const r of runs) {
+        const { counts, reproduces } = r.reproduction;
+        const tried = counts.confirmed + counts.attempted > 0 ? `  (${t("semantic_history_reproduction", { confirmed: counts.confirmed, attempted: counts.attempted })})` : "";
+        ctx.stdout(`${r.runId}  ${r.startedAt ?? "-"}  ${r.decision ?? "-"}  [${t(`semantic_lifecycle_${r.lifecycle}`)}]${tried}\n`);
+        if (reproduces) ctx.stdout(`${t("semantic_text_reproduction_of", { runId: reproduces })}\n`);
+        for (const f of r.reproduction.findings.filter((x) => x.state !== "none")) ctx.stdout(`${t("semantic_text_reproduction_line", { candidateId: f.candidateId, state: reproductionStateText(f), title: f.title })}\n`);
+      }
       return 0;
     }
 
@@ -250,13 +304,16 @@ export const command: CommandModule = {
       if (sub === "status") {
         const view = readSemanticRun(home, wsId, runId);
         if (!view) return usage("RUN_NOT_FOUND", "semantic_run_not_found", { runId });
+        // The stored run is never rewritten: the reproduction state of its findings is read beside it.
+        const reproductionView = reproductionOf(home, wsId, view);
         if (ctx.json) {
           const { time: _time, ...run } = view;
-          writeJson(ctx, { ...base, run });
+          writeJson(ctx, { ...base, run: { ...run, reproduction: reproductionView } });
         } else {
           ctx.stdout(`${runId}  ${t(`semantic_lifecycle_${view.lifecycle}`)}  ${view.decision ?? "-"}\n`);
           for (const s of view.result?.stages ?? []) ctx.stdout(`  ${s.state.padEnd(10)} ${s.id}${s.reason ? `  (${s.reason})` : ""}\n`);
           if (view.result?.summary) ctx.stdout(`${view.result.summary}\n`);
+          reproductionLines(ctx, runId, reproductionView);
         }
         return 0;
       }
@@ -275,7 +332,7 @@ export const command: CommandModule = {
     if (eventsFile !== undefined && !isDirectory(path.dirname(eventsFile))) return usage("BAD_EVENTS_PATH", "semantic_bad_events_path", { path: eventsFile });
     const runId = str(ctx, "run-id");
     if (runId !== undefined && !isSemanticRunId(runId)) return usage("BAD_RUN_ID", "semantic_bad_run_id", { runId });
-    const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value, methods });
+    const plan = buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value, methods, reproduction });
     if (!plan.ready) {
       const code = plan.blockers[0]?.code ?? "SEMANTIC_NOT_READY";
       return reportError(ctx, ctx.json, code, plan.blockers.map((b) => b.message).join(" "), t("semantic_not_ready_fix"), EXIT_USAGE);
@@ -285,12 +342,16 @@ export const command: CommandModule = {
     const plans =
       plan.methods.length <= 1
         ? [plan]
-        : plan.methods.map((m) => buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value, methods: [m.id] }));
+        : plan.methods.map((m) => buildSemanticPlan({ workspacePath, home, quality: str(ctx, "quality") ?? null, ...scoped.value, methods: [m.id], ...(m.id === REPRODUCTION_METHOD ? { reproduction } : {}) }));
     const notReady = plans.find((p) => !p.ready);
     if (notReady) {
       const code = notReady.blockers[0]?.code ?? "SEMANTIC_NOT_READY";
       return reportError(ctx, ctx.json, code, notReady.blockers.map((b) => b.message).join(" "), t("semantic_not_ready_fix"), EXIT_USAGE);
     }
+    // Before a reproduction starts: how many findings it tries, the model calls it may spend, and that the project's
+    // tests run in a container without network (with --json the same numbers are in the document, under reproduction).
+    const reproductionPlan = plans.find((p) => p.reproduction)?.reproduction ?? null;
+    if (!ctx.json) for (const p of plans) reproductionPlanText(ctx, p);
     const progress = ctx.json
       ? undefined
       : (event: RunEvent): void => {
@@ -339,14 +400,14 @@ export const command: CommandModule = {
     };
     if (plans.length === 1) {
       const result = results[0] as RunResult;
-      if (ctx.json) writeJson(ctx, result);
+      if (ctx.json) writeJson(ctx, reproductionPlan ? { ...result, reproduction: reproductionPlan } : result);
       else printed(result);
       return result.exitCode;
     }
     // Several methods: every run's result, and the worst exit code (a run that did not pass is never hidden).
     const exitCode = results.reduce((worst, r) => Math.max(worst, r.exitCode), 0);
     const notStarted = plans.slice(results.length).map((p) => p.methods[0]?.id ?? "-");
-    if (ctx.json) writeJson(ctx, { ...base, methods: plans.map((p) => p.methods[0]?.id), runs: results, notStarted, ...(stopped ? { stopped } : {}), exitCode });
+    if (ctx.json) writeJson(ctx, { ...base, methods: plans.map((p) => p.methods[0]?.id), runs: results, notStarted, ...(stopped ? { stopped } : {}), ...(reproductionPlan ? { reproduction: reproductionPlan } : {}), exitCode });
     else {
       for (const r of results) printed(r);
       if (notStarted.length > 0) ctx.stdout(`${t("semantic_text_sequence_stopped", { reason: `${stopped ?? "-"} (${notStarted.join(", ")})` })}\n`);
