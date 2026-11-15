@@ -1,0 +1,14 @@
+{
+  "files": ["src/tokens-transport.rs"],
+  "ruleIds": [
+    "jgates.rust.cleartext-http-url",
+    "jgates.rust.jwt-algorithm-not-restricted",
+    "jgates.rust.jwt-audience-not-validated",
+    "jgates.rust.jwt-expiry-not-validated",
+    "jgates.rust.jwt-key-from-token-header",
+    "jgates.rust.jwt-signature-not-verified",
+    "jgates.rust.oauth-request-without-state",
+    "jgates.rust.tls-old-protocol-version",
+    "jgates.rust.tls-weak-cipher-suite"
+  ]
+}
