@@ -1,0 +1,14 @@
+{
+  "files": ["encoding.py"],
+  "ruleIds": [
+    "jgates.python.regex-from-request",
+    "jgates.python.redos-nested-quantifier",
+    "jgates.python.format-string-from-request",
+    "jgates.python.csv-formula-injection",
+    "jgates.python.memcache-key-from-request",
+    "jgates.python.double-decoding",
+    "jgates.python.url-parameter-unencoded",
+    "jgates.python.json-built-by-concatenation",
+    "jgates.python.markdown-raw-html-enabled"
+  ]
+}
