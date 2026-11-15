@@ -1,0 +1,250 @@
+# Group cookies-cors, Python. Covers cookies written through the response objects of Flask, Werkzeug, Django and
+# Starlette/FastAPI (set_cookie), the Flask and Django cookie settings, flask-cors, django-cors-headers and the
+# Starlette CORS middleware, and URLs built with requests or urllib. Taint sources of the origin and JSONP rules:
+# request.headers / request.META (Flask, Django) and request.args / request.GET (callback names).
+rules:
+  - id: jgates.python.cookie-without-secure
+    message: A cookie is written without the Secure attribute, so the browser also sends it over plain HTTP. Pass secure=True to set_cookie, or set the framework's cookie setting to True.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+    pattern-either:
+      - pattern: $R.set_cookie(..., secure=False, ...)
+      - patterns:
+          - pattern: $R.set_cookie(...)
+          - pattern-not: $R.set_cookie(..., secure=$ANY, ...)
+          - pattern-not: $R.set_cookie(..., **$K)
+          - pattern-not: $R.set_cookie($A1, $A2, $A3, $A4, $A5, $A6, $A7, ...)
+      - pattern: $C.SESSION_COOKIE_SECURE = False
+      - pattern: $C.CSRF_COOKIE_SECURE = False
+      - pattern: SESSION_COOKIE_SECURE = False
+      - pattern: CSRF_COOKIE_SECURE = False
+      - pattern: $C["SESSION_COOKIE_SECURE"] = False
+      - pattern: $C.update(..., SESSION_COOKIE_SECURE=False, ...)
+
+  - id: jgates.python.cookie-without-httponly
+    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Pass httponly=True to set_cookie, or set the framework's cookie setting to True.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+    pattern-either:
+      - pattern: $R.set_cookie(..., httponly=False, ...)
+      - patterns:
+          - pattern: $R.set_cookie(...)
+          - pattern-not: $R.set_cookie(..., httponly=$ANY, ...)
+          - pattern-not: $R.set_cookie(..., **$K)
+          - pattern-not: $R.set_cookie($A1, $A2, $A3, $A4, $A5, $A6, $A7, $A8, ...)
+      - pattern: $C.SESSION_COOKIE_HTTPONLY = False
+      - pattern: SESSION_COOKIE_HTTPONLY = False
+      - pattern: CSRF_COOKIE_HTTPONLY = False
+      - pattern: $C["SESSION_COOKIE_HTTPONLY"] = False
+      - pattern: $C.update(..., SESSION_COOKIE_HTTPONLY=False, ...)
+
+  - id: jgates.python.cookie-without-samesite
+    message: A cookie is written with SameSite set to None, or without it where the API sends none, so the browser attaches it to cross-site requests. Pass samesite="Lax" or "Strict".
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.2"]
+    pattern-either:
+      - pattern: $R.set_cookie(..., samesite=None, ...)
+      - pattern: $R.set_cookie(..., samesite="None", ...)
+      - patterns:
+          - pattern: $R.set_cookie(...)
+          - pattern-not: $R.set_cookie(..., samesite=$ANY, ...)
+          - pattern-not: $R.set_cookie(..., **$K)
+          - pattern-not: $R.set_cookie($A1, $A2, $A3, $A4, $A5, $A6, $A7, $A8, $A9, ...)
+      - pattern: $C.SESSION_COOKIE_SAMESITE = None
+      - pattern: SESSION_COOKIE_SAMESITE = None
+      - pattern: SESSION_COOKIE_SAMESITE = "None"
+      - pattern: CSRF_COOKIE_SAMESITE = None
+      - pattern: $C["SESSION_COOKIE_SAMESITE"] = None
+
+  - id: jgates.python.cookie-name-without-prefix
+    message: A cookie is written with a name that starts with neither __Host- nor __Secure-, so the browser does not enforce the Secure and path rules of the prefixes. Use a __Host- name for a cookie that carries a session.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.3", "V3.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $R.set_cookie("$N", ...)
+          - pattern: $R.set_cookie(..., key="$N", ...)
+      - metavariable-regex:
+          metavariable: $N
+          regex: ^(?!["']?(__Host-|__Secure-))
+
+  - id: jgates.python.cors-any-origin-with-credentials
+    message: CORS is configured to accept every origin together with credentials, so any site can make authenticated requests and read the answers. List the trusted origins instead of "*".
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-942"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - patterns:
+          - pattern: CORS($APP, ..., supports_credentials=True, ...)
+          - pattern-not: CORS($APP, ..., origins=[...], ...)
+          - pattern-not: CORS($APP, ..., resources=$R, ...)
+          - pattern-not: CORS($APP, ..., origins="$O", ...)
+      - pattern: CORS($APP, ..., supports_credentials=True, origins="*", ...)
+      - pattern: CORS($APP, ..., supports_credentials=True, origins=["*"], ...)
+      - patterns:
+          - pattern: cross_origin(..., supports_credentials=True, ...)
+          - pattern-not: cross_origin(..., origins=$O, ...)
+      - pattern: $APP.add_middleware($M, ..., allow_origins=["*"], ..., allow_credentials=True, ...)
+      - pattern: $APP.add_middleware($M, ..., allow_credentials=True, ..., allow_origins=["*"], ...)
+      - patterns:
+          - pattern-either:
+              - pattern: CORS_ALLOW_ALL_ORIGINS = True
+              - pattern: CORS_ORIGIN_ALLOW_ALL = True
+          - pattern-inside: |
+              ...
+              CORS_ALLOW_CREDENTIALS = True
+              ...
+      - patterns:
+          - pattern-either:
+              - pattern: CORS_ALLOW_ALL_ORIGINS = True
+              - pattern: CORS_ORIGIN_ALLOW_ALL = True
+          - pattern-inside: |
+              CORS_ALLOW_CREDENTIALS = True
+              ...
+
+  - id: jgates.python.cors-origin-reflected
+    message: The Origin header of the request is copied into the allow-origin response header, so every site is trusted. Compare the origin with an allow-list and answer only for a listed one.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-sources:
+      - pattern: request.headers.get("Origin", ...)
+      - pattern: request.headers["Origin"]
+      - pattern: request.META.get("HTTP_ORIGIN", ...)
+      - pattern: request.META["HTTP_ORIGIN"]
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $H["Access-Control-Allow-Origin"] = $X
+              - pattern: $H.add("Access-Control-Allow-Origin", $X)
+              - pattern: $H.set("Access-Control-Allow-Origin", $X)
+              - pattern: $H.setdefault("Access-Control-Allow-Origin", $X)
+          - focus-metavariable: $X
+          - pattern-not-inside: |
+              if $O in $L:
+                ...
+          - pattern-not-inside: |
+              if $O == $V:
+                ...
+          - pattern-not-inside: |
+              if $O in $L and ...:
+                ...
+
+  - id: jgates.python.cors-origin-reflected-any-regex
+    message: The origin check accepts every origin, so CORS trusts every site. List the trusted origins, or a regular expression that anchors a fixed domain.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - pattern: CORS_ALLOWED_ORIGIN_REGEXES = [..., r".*", ...]
+      - pattern: CORS_ALLOWED_ORIGIN_REGEXES = [..., ".*", ...]
+      - pattern: CORS_ORIGIN_REGEX_WHITELIST = [..., r".*", ...]
+      - pattern: CORS_ORIGIN_REGEX_WHITELIST = [..., ".*", ...]
+      - pattern: $APP.add_middleware($M, ..., allow_origin_regex=".*", ...)
+      - pattern: $APP.add_middleware($M, ..., allow_origin_regex=r".*", ...)
+      - pattern: CORS($APP, ..., origins=".*", ...)
+      - pattern: CORS($APP, ..., origins=r".*", ...)
+      - pattern: CORS($APP, ..., origins=[..., ".*", ...], ...)
+      - pattern: CORS($APP, ..., origins=[..., r".*", ...], ...)
+
+  - id: jgates.python.jsonp-enabled
+    message: A response wraps its body in a callback name taken from the request (JSONP), so any site can read it with a script tag. Return plain JSON and use CORS with an allow-list.
+    severity: WARNING
+    languages: [python]
+    mode: taint
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern-sources:
+      - pattern: request.args.get("callback")
+      - pattern: request.args.get("jsonp")
+      - pattern: request.args["callback"]
+      - pattern: request.GET.get("callback")
+      - pattern: request.GET.get("jsonp")
+      - pattern: request.GET["callback"]
+    pattern-sinks:
+      - patterns:
+          - pattern: HttpResponse($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: make_response($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Response($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: JsonResponse($X, ...)
+          - focus-metavariable: $X
+
+  - id: jgates.python.sensitive-query-parameter
+    message: A URL carries a password, secret or API key in its query string, where it ends up in logs, history and referrer headers. Send it in a header or the request body.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V14.2.1"]
+    pattern-either:
+      - patterns:
+          - pattern: "$Q"
+          - metavariable-regex:
+              metavariable: $Q
+              regex: (?i)^["']?https?://\S*[?&](password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)=
+      - patterns:
+          - pattern: f"$Q"
+          - metavariable-regex:
+              metavariable: $Q
+              regex: (?i)^["']?https?://\S*[?&](password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)=
+      - patterns:
+          - pattern-either:
+              - pattern: 'requests.$M(..., params={..., "$S": $V, ...}, ...)'
+              - pattern: 'urlencode({..., "$S": $V, ...})'
+              - pattern: 'urllib.parse.urlencode({..., "$S": $V, ...})'
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^["']?(password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)["']?$
