@@ -11,10 +11,19 @@
     },
     {
       "requirement": "V16.2.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the logging setup and of the log calls for the metadata each entry carries (time, place, actor, event).",
+          "misses": "What the log lines look like at run time, formatting added by the logging platform, and code the model did not read.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Whether an entry carries enough metadata for an investigation depends on the logger's format and on each call site, a judgment no pattern makes."
     },
     {
       "requirement": "V16.2.2",
@@ -39,7 +48,7 @@
     },
     {
       "requirement": "V16.2.5",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "secrets",
@@ -59,41 +68,194 @@
           "covers": "Private content or credentials emitted into logs and traces readable by a broader audience.",
           "misses": "Whether the application has a per-class logging policy to enforce.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.sensitive-data-logged",
+          "covers": "A value or object key named like a password, token, secret or authorization header given to a console, winston, pino or bunyan style logging call.",
+          "misses": "Sensitive values under names the list does not hold, values logged after passing through a function, and personal data of any name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.sensitive-data-logged",
+          "covers": "A value named like a password, token or secret passed to a Python logging call.",
+          "misses": "Sensitive values under other names, values logged after passing through a function, and personal data of any name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.sensitive-data-logged-header",
+          "covers": "The Authorization header or a similar credential header of the request passed to a logging call.",
+          "misses": "Headers copied into another structure before logging, whole-request dumps, and other credential headers the rule does not name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.sensitive-data-logged",
+          "covers": "A value named like a password, token or secret passed to a C# logging call.",
+          "misses": "Sensitive values under other names, values logged after passing through a function, and personal data of any name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.sensitive-data-logged-header",
+          "covers": "The Authorization header of the request passed to a logging call.",
+          "misses": "Headers copied into another structure before logging, whole-request dumps, and other credential headers.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.sensitive-data-logged",
+          "covers": "A value named like a password, token or secret passed to a Go logging call.",
+          "misses": "Sensitive values under other names, values logged after passing through a function, and personal data of any name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.sensitive-data-logged-key",
+          "covers": "A structured-logging field whose key is named like a password, token or secret.",
+          "misses": "Fields under other key names, values logged through a wrapper, and personal data of any name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.sensitive-data-logged-header",
+          "covers": "The Authorization header of the request passed to a logging call.",
+          "misses": "Headers copied into another structure before logging, whole-request dumps, and other credential headers.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.sensitive-data-logged",
+          "covers": "A value named like a password, token or secret passed to SLF4J, Log4j, Logback, java.util.logging, commons-logging or System.out.",
+          "misses": "Sensitive values under other names, values logged after passing through a function, and personal data of any name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.sensitive-data-logged-header",
+          "covers": "The Authorization header of the request passed to a logging call.",
+          "misses": "Headers copied into another structure before logging, whole-request dumps, and other credential headers.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.sensitive-data-logged",
+          "covers": "A value named like a password, token or secret passed to a PHP logging call.",
+          "misses": "Sensitive values under other names, values logged after passing through a function, and personal data of any name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.sensitive-data-logged",
+          "covers": "A value named like a password, token or secret given to a log or tracing macro, as an argument, a field value or inline in the format string.",
+          "misses": "Sensitive values under other names, values logged after passing through a function, and personal data of any name.",
+          "depth": "partial"
         }
       ],
-      "why": "Both audit blocks look for sensitive values reaching logs, the violation this item forbids.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "Both audit blocks look for sensitive values reaching logs, and the rules name the credential-named value in a logging call in each language, which is the violation this item forbids when the name gives it away."
     },
     {
       "requirement": "V16.3.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the login, logout and credential-check paths for a log entry on success and on failure, with the type of authentication.",
+          "misses": "Authentication done by an identity provider or a gateway outside the repository, and what the logs hold at run time.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Whether every authentication path logs both outcomes is a question about the presence of a call in many places, which a model can read and a pattern cannot decide."
     },
     {
       "requirement": "V16.3.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the authorization checks and their failure branches for a log entry when access is refused.",
+          "misses": "Denials made by a gateway or framework layer outside the repository, and logging of every decision or of sensitive-data access at the higher assurance levels.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The presence of a log call on each refusal branch is a judgment over the authorization code, which the AI review can examine."
     },
     {
       "requirement": "V16.3.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of input validation, business-rule and anti-automation checks for a log entry when a request fails them.",
+          "misses": "Which security events the project documents, bypass attempts seen only at run time, and controls outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Whether rejected requests leave a trace depends on each control's failure branch, read in context against what the project calls a security event."
     },
     {
       "requirement": "V16.3.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.swallowed-exception",
+          "covers": "Empty catch blocks and empty promise catch handlers in JavaScript and TypeScript, where an error is dropped with no log.",
+          "misses": "Handlers that do something unrelated to logging, errors dropped through a wrapper, and security control failures that raise no exception.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.swallowed-exception",
+          "covers": "Python handlers that catch an exception and drop it with no log, rethrow or handling.",
+          "misses": "Handlers that do something unrelated to logging, errors dropped through a wrapper, and control failures that raise no exception.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.swallowed-exception",
+          "covers": "Empty broad catch blocks in C#, where the error is dropped with no log.",
+          "misses": "Narrow handlers that drop errors, handlers with unrelated statements, and control failures that raise no exception.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.swallowed-exception",
+          "covers": "Go error checks whose branch drops the error with no log, handling or return.",
+          "misses": "Errors assigned to a name and never checked, branches with unrelated statements, and control failures that return no error.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.swallowed-exception",
+          "covers": "Java catch blocks that drop the exception with no log, handling or rethrow; a variable named ignored marks a deliberate choice.",
+          "misses": "Handlers with unrelated statements, errors dropped through a wrapper, and control failures that raise no exception.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.swallowed-exception",
+          "covers": "PHP catch blocks that drop the exception with no log, handling or rethrow.",
+          "misses": "Handlers with unrelated statements, errors dropped through a wrapper, and control failures that raise no exception.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An error that is caught and dropped is never logged, which is the direct opposite of this item. The rules see the empty handler, not a handler that logs poorly or a security failure that never throws."
     },
     {
       "requirement": "V16.4.1",
@@ -133,9 +295,11 @@
     },
     {
       "requirement": "V16.5.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
+      "subdimensions": [
+        "hardening"
+      ],
       "checks": [
         {
           "unit": "semantic-method",
@@ -144,34 +308,261 @@
           "covers": "Stack traces, driver messages and verbose errors written into responses.",
           "misses": "Errors produced by frameworks or proxies configured outside the repository.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.stack-trace-in-response",
+          "covers": "An error's stack written through an Express or Fastify style response call.",
+          "misses": "Stacks put into a variable first, other response APIs, and a framework's own debug error page.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.stack-trace-in-response-koa",
+          "covers": "An error's stack assigned to the Koa response body.",
+          "misses": "Stacks put into a variable first, other response APIs, and a framework's own debug error page.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.error-detail-in-response",
+          "covers": "An exception's message written through a response call, where internal detail such as a query or a path can reach the caller.",
+          "misses": "Messages built from the error before sending, generic messages that still hold detail, and other response APIs.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.stack-trace-in-response",
+          "covers": "Python tracebacks or formatted exception traces written into an HTTP response.",
+          "misses": "Traces placed in a variable first, a debug mode that renders them, and other response APIs.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.error-detail-in-response",
+          "covers": "An exception's text written into an HTTP response.",
+          "misses": "Messages built from the exception before sending, and generic messages that still hold detail.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.stack-trace-in-response",
+          "covers": "An exception's stack trace written into the HTTP response.",
+          "misses": "Traces placed in a variable first, the developer exception page enabled by configuration, and other response APIs.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.error-detail-in-response",
+          "covers": "An exception's message written into the HTTP response.",
+          "misses": "Messages built from the exception before sending, and generic messages that still hold detail.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.stack-trace-in-response",
+          "covers": "A stack trace written to an HTTP response writer.",
+          "misses": "Traces placed in a variable first, and response paths of frameworks the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.error-detail-in-response",
+          "covers": "An error's text written to an HTTP response writer.",
+          "misses": "Messages built from the error before sending, and generic messages that still hold detail.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.stack-trace-in-response",
+          "covers": "A stack trace written through the servlet response, Spring or JAX-RS response objects.",
+          "misses": "Traces put into a variable first, and the container's own error page.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.stack-trace-in-response-print",
+          "covers": "printStackTrace into the response writer.",
+          "misses": "Traces put into a variable first, and the container's own error page.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.error-detail-in-response",
+          "covers": "An exception's message written into the HTTP response.",
+          "misses": "Messages built from the exception before sending, and generic messages that still hold detail.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.stack-trace-in-response",
+          "covers": "A stack trace written into the PHP response output.",
+          "misses": "Traces put into a variable first, and display_errors settings outside the code.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.error-detail-in-response",
+          "covers": "An exception's message written into the PHP response output.",
+          "misses": "Messages built from the exception before sending, and generic messages that still hold detail.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.stack-trace-in-response",
+          "covers": "Framework configuration files that switch error detail on for the client (display_errors, custom errors mode, include-stacktrace and the like).",
+          "misses": "Settings passed by environment variable or command line, and values that differ between environments.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "90022",
+            "10023"
+          ],
+          "covers": "Error pages of a running instance that disclose application errors or debug messages, found by ZAP's passive checks on the pages its crawl or spec reached.",
+          "misses": "Everything only a deployed system shows beyond those pages: error paths ZAP never provoked, content behind logins it could not use, and what a proxy rewrites.",
+          "depth": "partial"
         }
       ],
-      "why": "The debug-features category reports exactly internal detail returned to the caller in error responses.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The method category and the rules find error detail written into responses in source and in framework configuration; the ZAP check finds what the running pages return. The ZAP identifiers are the passive-scan alerts for application error disclosure and debug error messages: ruleId is the alert reference of the report (src/adapters/zap/normalize.ts, recorded ZAP 2.17.0 report), and the two alert numbers come from the ZAP alert documentation, not from a recorded report with those alerts, so the review has to confirm them."
     },
     {
       "requirement": "V16.5.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.http-client-without-timeout",
+          "covers": "axios requests made without a timeout, so the failure of an external resource is never signalled to the caller.",
+          "misses": "Other HTTP clients, a timeout set by a shared factory, and the fallback behaviour (circuit breaker, degraded response) after a failure.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.http-client-without-timeout",
+          "covers": "Outbound HTTP calls of the common Python clients made without a timeout.",
+          "misses": "A timeout set on a session or wrapper elsewhere, and the fallback behaviour after a failure.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.http-client-without-timeout",
+          "covers": "Go HTTP clients and calls built without a timeout.",
+          "misses": "A deadline carried by a context, a shared client built elsewhere, and the fallback behaviour after a failure.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.http-client-without-timeout",
+          "covers": "Java outbound clients built or used without a timeout.",
+          "misses": "Timeouts set through a shared bean or container, and the fallback behaviour after a failure.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.http-client-without-timeout",
+          "covers": "PHP outbound HTTP calls made without a timeout option.",
+          "misses": "A timeout in the client's shared configuration, and the fallback behaviour after a failure.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.http-client-without-timeout",
+          "covers": "reqwest clients and calls built without a timeout.",
+          "misses": "A timeout set outside the same expression, and the fallback behaviour after a failure.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A call with no timeout cannot fail in time, which blocks any graceful behaviour when an external resource stops answering. The rules see this precondition only; circuit breakers and degraded modes are outside what a pattern shows."
     },
     {
       "requirement": "V16.5.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Retry storm and fail-open amplification",
+          "covers": "Failure paths that continue or retry when a dependency or a check fails, treating the failure as a pass.",
+          "misses": "Validation failures in business logic that are not about availability, and behaviour that depends on deployed components.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.swallowed-exception",
+          "covers": "Empty catch blocks and promise handlers in JavaScript and TypeScript, where the code goes on as if nothing failed.",
+          "misses": "Handlers with statements that still let the flow continue unsafely, and fail-open logic written without any exception.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.swallowed-exception",
+          "covers": "Python handlers that drop the exception and let execution continue.",
+          "misses": "Handlers with statements that still let the flow continue unsafely, and fail-open logic written without any exception.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.swallowed-exception",
+          "covers": "Empty broad catch blocks in C#, where the code goes on after the failure.",
+          "misses": "Narrow handlers with the same effect, and fail-open logic written without any exception.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.swallowed-exception",
+          "covers": "Go error checks whose branch drops the error, so the code goes on after the failure.",
+          "misses": "Errors never checked, errors checked but handled in an unsafe way, and fail-open logic written without any error value.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.swallowed-exception",
+          "covers": "Java catch blocks that drop the exception, so the code goes on after the failure.",
+          "misses": "Handlers with statements that still let the flow continue unsafely, and fail-open logic written without any exception.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.swallowed-exception",
+          "covers": "PHP catch blocks that drop the exception, so the code goes on after the failure.",
+          "misses": "Handlers with statements that still let the flow continue unsafely, and fail-open logic written without any exception.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A dropped error is the simplest way a flow goes on after a failed check. The ledger block reads the wider fail-open paths; the rules mark only the empty handler."
     },
     {
       "requirement": "V16.5.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Reachable fatal error or deadlock",
+          "covers": "Paths where an unhandled error or panic can end a shared process, the case a last-resort handler exists to stop.",
+          "misses": "Whether such a handler is registered at all (the block hunts the consequence, not the handler), and supervisors outside the repository.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the application entry point and the framework setup for a global handler that catches what is left unhandled and logs it.",
+          "misses": "Handlers installed by the runtime, the platform or a supervisor outside the repository, and code the model did not read.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The existence of one catch-all handler at the entry point is a fact about the application's wiring, which a model can read and no single pattern covers across frameworks."
     }
   ]
 }

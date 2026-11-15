@@ -39,17 +39,100 @@
     },
     {
       "requirement": "V15.2.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "capability",
+          "id": "osv-scanner#dependencies",
+          "covers": "Components of the lockfiles and manifests that carry a published advisory in the OSV database, the sign that a component was left behind.",
+          "misses": "The documented update and remediation time frames themselves (a person's policy), components with no published advisory, and anything resolved only at install or deploy time.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "trivy#dependencies",
+          "covers": "Components of the lockfiles and manifests that carry a published vulnerability, with the fixed version when there is one.",
+          "misses": "The documented time frames for updates (they are a person's policy), components with no published advisory, and packages added at build or deploy time.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "govulncheck#dependencies",
+          "covers": "Go modules with a published vulnerability whose vulnerable function the program actually reaches.",
+          "misses": "The documented update time frames, vulnerable modules the call analysis cannot prove reachable, and non-Go components.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "cargo-audit#dependencies",
+          "covers": "Rust crates of Cargo.lock listed in the RustSec advisory database, yanked crates included.",
+          "misses": "The documented update time frames, crates with no advisory yet, and non-Rust components.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "dotnet-vulnerable#dependencies",
+          "covers": "NuGet packages, direct and transitive, that the .NET tooling reports as vulnerable.",
+          "misses": "The documented update time frames, packages with no advisory, and anything outside NuGet.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A component with a published advisory that is still in the project is the visible sign of a breached remediation window. The tools find the advisory, not the project's own deadline, so each check is partial."
     },
     {
       "requirement": "V15.2.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.http-client-without-timeout",
+          "covers": "axios requests made without a timeout, which wait forever by default and let one stalled server hold the work.",
+          "misses": "Other HTTP clients (fetch, got, node-fetch), a timeout set by a shared client factory or an interceptor, and every other time-consuming or resource-hungry function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.http-client-without-timeout",
+          "covers": "Outbound HTTP calls of the common Python client libraries made without a timeout argument.",
+          "misses": "A timeout set on a session, an adapter or a wrapper defined elsewhere, other libraries, and every other resource-demanding function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.http-client-without-timeout",
+          "covers": "Go HTTP clients and calls built without a timeout, where the default client waits forever.",
+          "misses": "A deadline carried by a context passed through several functions, a shared client built elsewhere, and every other resource-demanding function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.http-client-without-timeout",
+          "covers": "Java outbound clients (the JDK HttpClient, RestTemplate, Apache HttpClient, HttpURLConnection) built or used without a timeout.",
+          "misses": "Timeouts configured through a shared bean or container settings, other clients, and every other resource-demanding function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.http-client-without-timeout",
+          "covers": "PHP outbound HTTP calls made without a timeout option.",
+          "misses": "A timeout set in the client's shared configuration, php.ini limits, and every other resource-demanding function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.http-client-without-timeout",
+          "covers": "reqwest clients and calls, blocking and async, built without a timeout.",
+          "misses": "A timeout set on the request elsewhere than the same expression, other clients, and every other resource-demanding function.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An outbound call that never times out is one concrete way a slow dependency exhausts the service's workers, which this item guards against. The rules see only that case; rate limits, size limits and queue bounds stay outside."
     },
     {
       "requirement": "V15.2.3",
@@ -60,7 +143,7 @@
     },
     {
       "requirement": "V15.2.4",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -70,13 +153,33 @@
           "covers": "Resolver settings, source priority and lockfile use that let a package name resolve from an unintended registry.",
           "misses": "Registry-side controls and transitive dependencies resolved only at install time.",
           "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "supply-chain#supply-chain",
+          "findingRules": [
+            "supply-chain/unpinned-registry",
+            "supply-chain/unpinned-source",
+            "supply-chain/missing-integrity"
+          ],
+          "covers": "Lockfile entries of npm and Python that resolve from a registry host outside the trusted list, from a git or URL source, or with no integrity hash, which is where a name can be taken by another party.",
+          "misses": "Registry-side controls such as namespace reservation, ecosystems with no lockfile reader (only npm and Python lockfiles are read), and resolver settings outside the lockfiles.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zizmor#ci-cd",
+          "findingRules": [
+            "unpinned-uses",
+            "ref-confusion",
+            "impostor-commit"
+          ],
+          "covers": "CI workflow references to actions that are not pinned to an immutable commit, or whose reference can be read as a branch or a tag, the pipeline form of a source the name does not fix.",
+          "misses": "Package resolution inside the build steps, registries chosen by the runner's environment, and the audits that need the GitHub API (they run only when the instance turns offline mode off).",
+          "depth": "partial"
         }
       ],
-      "why": "The audit block hunts exactly the namespace-confusion weakness this item is about, in the resolver configuration found in the repository.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The ledger block reads the resolver configuration; the supply-chain tool reads the lockfiles for sources and integrity that leave a name open to substitution, and the workflow audit does the same for pipeline references. Identifiers for supply-chain were read in the adapter's analyzer (src/adapters/supply-chain/analyze.ts); those for zizmor come from the audit names in its documentation of the pinned range and were not seen in a recorded report here, so the review has to confirm them."
     },
     {
       "requirement": "V15.2.5",
@@ -87,14 +190,39 @@
     },
     {
       "requirement": "V15.3.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.serializer-exposes-all-fields",
+          "covers": "Python serializers or model forms declared to output every field of a model, so a column added later is returned unreviewed.",
+          "misses": "Handlers that return a model object directly, serializers whose field list is built dynamically, and fields that are listed but should not be.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.serializer-exposes-all-fields",
+          "covers": "Jackson configured to see every field of a model, private ones included.",
+          "misses": "Entities returned straight from a controller with default visibility, other serialization libraries, and listed fields that should stay private.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.serializer-exposes-all-fields",
+          "covers": "PHP resources or serializers declared to output the whole model.",
+          "misses": "Models returned directly as JSON, a hidden-attribute list that is too short, and other frameworks.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Returning every field of a data object is the exact shape of returning more than the caller needs. The rules find the declared-all form only, so the check is partial."
     },
     {
       "requirement": "V15.3.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -106,17 +234,20 @@
           "covers": "Server-side fetches of caller-influenced URLs, including how redirects are followed.",
           "misses": "Fixed trusted URLs whose redirect setting is a plain client option, and HTTP clients configured outside the repository.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.outbound-request-follows-redirects",
+          "covers": "PHP outbound requests whose address comes from request data while redirect following is left on, the default of Guzzle and the Laravel HTTP client.",
+          "misses": "Other PHP HTTP clients, addresses that reach the call through another function, and every other language.",
+          "depth": "partial"
         }
       ],
-      "why": "The audit block asks the reader to follow redirect handling in outbound fetches, which is where an unwanted redirect-following setting shows up.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The audit block follows redirect handling in fetches, and the rule marks the PHP case where the address is caller-chosen and redirects stay enabled."
     },
     {
       "requirement": "V15.3.3",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -128,19 +259,59 @@
           "covers": "Request-body fields that override what the permission model meant to restrict, the pattern of binding client input straight to a stored object.",
           "misses": "Every framework binding feature by name; it is a model's reading, not a rule per framework.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.mass-assignment",
+          "covers": "A model created or updated from the whole request body in JavaScript and TypeScript.",
+          "misses": "A body copied into a variable first, ORMs other than the ones the rule names, and fields filtered by a middleware.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.mass-assignment-schema-open",
+          "covers": "Model schemas that accept fields they do not declare, so request data can store any field.",
+          "misses": "Schemas built dynamically, validation done before the model, and ORMs the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.mass-assignment",
+          "covers": "Models built or updated from the whole request body and forms declared open to every field.",
+          "misses": "Dictionaries unpacked after passing through a function, allow-lists applied elsewhere, and frameworks not modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.mass-assignment",
+          "covers": "TryUpdateModelAsync or UpdateModel used without a list of allowed properties.",
+          "misses": "Entities bound as action parameters, DTOs that carry sensitive fields, and binder attributes declared on the model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.mass-assignment",
+          "covers": "Beans filled from the whole request parameter map, or a data binder whose default protection is cleared.",
+          "misses": "Binding through annotations on the entity, DTOs with sensitive fields, and frameworks other than the ones modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.mass-assignment",
+          "covers": "Models filled from the whole request, or declared open to every attribute.",
+          "misses": "A fillable list that is too wide, guarded models that are filled with unvetted keys elsewhere, and other frameworks.",
+          "depth": "partial"
         }
       ],
-      "why": "The audit block asks whether a body field can change something the action was not meant to change, which is the mass-assignment weakness.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The audit block asks whether a body field can change what the action did not mean to change, and the rules name the construct that binds the whole request to a model, in six languages."
     },
     {
       "requirement": "V15.3.4",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
+      "subdimensions": [
+        "authorization"
+      ],
       "checks": [
         {
           "unit": "semantic-ledger",
@@ -148,24 +319,80 @@
           "covers": "Trust placed in forwarded-address headers and how the application derives the client address from them.",
           "misses": "The proxy and web server configuration outside the repository, and how the chain is deployed.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.client-ip-from-forwarded-header",
+          "covers": "The client address read straight from a forwarding header in JavaScript and TypeScript handlers.",
+          "misses": "A trust-proxy setting that makes the header safe, the address passing through a helper, and the proxy chain itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.client-ip-from-forwarded-header",
+          "covers": "The client address read straight from a forwarding header in Python request handlers.",
+          "misses": "A trusted-proxy middleware that makes the header safe, the address passing through a helper, and the proxy chain itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.client-ip-from-forwarded-header",
+          "covers": "The client address read straight from a forwarding header in C# handlers.",
+          "misses": "The forwarded-headers middleware configured for known proxies, the address passing through a helper, and the proxy chain itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.client-ip-from-forwarded-header",
+          "covers": "The client address read straight from a forwarding header in Go handlers.",
+          "misses": "A trusted-proxy setting in the router, the address passing through a helper, and the proxy chain itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.client-ip-from-forwarded-header",
+          "covers": "The client address read straight from a forwarding header in Java handlers.",
+          "misses": "A container configured to rewrite the address for known proxies, the address passing through a helper, and the proxy chain itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.client-ip-from-forwarded-header",
+          "covers": "The client address read straight from a forwarding header in PHP code.",
+          "misses": "Trusted proxies configured in the framework, the address passing through a helper, and the proxy chain itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.client-ip-from-forwarded-header",
+          "covers": "The client address read straight from a forwarding header in Rust handlers.",
+          "misses": "A proxy that overwrites the header before it reaches the program, the address passing through a helper, and the proxy chain itself.",
+          "depth": "partial"
         }
       ],
-      "why": "The audit block treats forwarded-address headers as trust decisions and traces them to the security decision they feed, such as rate limiting.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The audit block treats forwarded-address headers as trust decisions, and the rules mark the read of such a header as the client address in each language, which is the part of the item a pattern can see."
     },
     {
       "requirement": "V15.3.5",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.loose-comparison-of-secret",
+          "covers": "A hash, token or password compared with PHP's type-juggling equality, where a string that looks like a number can match another.",
+          "misses": "Loose comparisons of values the rule does not name as secrets, type confusion in other languages, and checks of variable types before use.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Type juggling in a comparison is the named weakness, and PHP is where the language makes it the default behaviour of the equality operator. Other languages need their own rules and stay outside."
     },
     {
       "requirement": "V15.3.6",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -177,20 +404,47 @@
           "covers": "Recursive merges and path writes that let an attacker-chosen key reach prototype state, with the gadget that uses it.",
           "misses": "JavaScript that is never reached by this reading, and a defensive style (such as using maps) that is absent but harmless.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.prototype-pollution",
+          "covers": "A property name taken from the request that is used to reach into an object and assign a value, with no check of the reserved names.",
+          "misses": "Names that reach the write through another function, key checks written in a form the rule does not recognize, and server code that is not JavaScript.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.prototype-pollution-recursive-merge",
+          "covers": "Hand-written recursive merges that copy every key of their source without skipping the reserved names.",
+          "misses": "Merge functions of libraries (their versions are a dependency question), merges using another loop shape, and merges into objects without a prototype.",
+          "depth": "partial"
         }
       ],
-      "why": "The audit block hunts prototype pollution in JavaScript directly.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "applies": {
+        "languages": {
+          "only": [
+            "javascript",
+            "typescript"
+          ]
+        }
+      },
+      "why": "Prototype pollution exists in JavaScript and TypeScript only; the audit block and the two rules look for the write and the unguarded merge that cause it."
     },
     {
       "requirement": "V15.3.7",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source for places where a parameter can arrive from several sources (query, body, cookie, header) with no rule on which one wins.",
+          "misses": "What the framework or a proxy does with repeated parameters at run time, and code the model did not read.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern tells which source a framework prefers for a repeated parameter; reading how handlers pick their inputs is a judgment the AI review can make and a person must still check."
     },
     {
       "requirement": "V15.4.1",

@@ -74,10 +74,31 @@
     },
     {
       "requirement": "V17.3.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Pre-authentication work imbalance",
+          "covers": "Work a requester can force on a server before it is authenticated, with little effort of its own, which a flood of signaling messages exploits.",
+          "misses": "Limits applied by a proxy or gateway in front of the signaling server, and which signaling protocol the project uses.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the signaling server's message handlers for a limit on how many messages a peer or address may send.",
+          "misses": "Rate limits applied outside the repository, behaviour under a real flood, and code the model did not read.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "webrtc"
+        ]
+      },
+      "why": "A signaling-level limit is a property of the server's message handlers, read in context; the requirement concerns only projects that use WebRTC."
     },
     {
       "requirement": "V17.3.2",
