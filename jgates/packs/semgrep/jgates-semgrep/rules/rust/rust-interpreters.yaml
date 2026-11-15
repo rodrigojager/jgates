@@ -1,0 +1,248 @@
+# Rust interpreter-injection rules: LDAP, XPath, template sources, mail headers built as text, and LaTeX shell escape.
+# Taint sources: parameters of an async handler typed as axum or actix-web extractors (Query, Path, Form, Json, with or
+# without web::), which rocket shares for Form and Json. Source and sink must sit in one handler.
+# Sinks: the ldap3 search call, sxd_xpath evaluation and compilation, tera / handlebars / minijinja template sources,
+# and a text format string that starts a mail header line.
+rules:
+  - id: jgates.rust.ldap-injection
+    message: Request data is joined into an LDAP filter or DN that is passed to a search. Escape each value with ldap3::ldap_escape before building the filter.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-90"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.6"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: ldap3::ldap_escape(...)
+      - pattern: ldap_escape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $L.search($B, $S, $FILTER, ...)
+          - focus-metavariable: $FILTER
+      - patterns:
+          - pattern: $L.search($BASE, ...)
+          - focus-metavariable: $BASE
+
+  - id: jgates.rust.xpath-injection
+    message: Request data is joined into an XPath expression that is compiled or evaluated. Keep the expression a literal and pass values as variables on the evaluation context.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-643"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.7"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: escape_xpath_literal(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: sxd_xpath::evaluate_xpath($D, $X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: evaluate_xpath($D, $X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Factory::new().build($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: sxd_xpath::Factory::new().build($X)
+          - focus-metavariable: $X
+
+  - id: jgates.rust.template-from-request
+    message: A template source is built from request data and compiled or rendered, so the request can run template code. Keep the source a literal or a file and pass the request data as context values.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1336"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.7"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sinks:
+      - patterns:
+          - pattern: Tera::one_off($S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: tera::Tera::one_off($S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: $T.add_raw_template($N, $S)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: $E.render_template($S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: $E.render_str($S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: $E.template_from_str($S)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: $E.register_template_string($N, $S)
+          - focus-metavariable: $S
+
+  - id: jgates.rust.mail-header-injection
+    message: Request data is placed in a mail header line of a message built as text, so a line break in it can add headers. Build the message with a mail library builder, or strip carriage returns and line feeds from the value first.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.11"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: strip_crlf(...)
+      - pattern: strip_newlines(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: format!($FMT, ..., $X, ...)
+          - metavariable-regex:
+              metavariable: $FMT
+              regex: '(?i)^"\s*(to|cc|bcc|from|subject|reply-to|sender)\s*:'
+          - focus-metavariable: $X
+
+  - id: jgates.rust.latex-shell-escape
+    message: A LaTeX program is started with the shell-escape (write18) switch, which lets the document run commands. Compile without it, or with -no-shell-escape.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.8"]
+    patterns:
+      - pattern-either:
+          - pattern: Command::new($P). ... .arg("-shell-escape")
+          - pattern: Command::new($P). ... .arg("--shell-escape")
+          - pattern: Command::new($P). ... .arg("-enable-write18")
+          - pattern: Command::new($P). ... .arg("--enable-write18")
+          - pattern: Command::new($P). ... .args([..., "-shell-escape", ...])
+          - pattern: Command::new($P). ... .args([..., "--shell-escape", ...])
+          - pattern: Command::new($P). ... .args([..., "-enable-write18", ...])
+          - pattern: Command::new($P). ... .args([..., "--enable-write18", ...])
+          - pattern: Command::new($P). ... .args(&[..., "-shell-escape", ...])
+          - pattern: Command::new($P). ... .args(&[..., "--shell-escape", ...])
+      - metavariable-regex:
+          metavariable: $P
+          regex: '(?i)^"([^"]*[/\\])?(pdflatex|xelatex|lualatex|latexmk|pdftex|xetex|luatex|tex|latex|context)(\.exe)?"$'
