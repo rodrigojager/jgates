@@ -336,5 +336,5 @@
   "wvr_problem": "Não foi possível ler {file}, então nenhuma dispensa dele valerá: {detail}",
   "wvr_open_file": "Abrir {file}",
   "wvr_summary_label": "Dispensas que valerão",
-  "wvr_summary_value": "{count, plural, =0 {nenhuma} one {1} other {#}}"
+  "wvr_summary_value": "{count, plural, =0 {nenhuma} other {#}}"
 }

@@ -232,8 +232,9 @@ test("V2-79: one waiver covering four findings reads approved with 1 waiver (4 f
   assert.equal(result.waivers.findings, 4);
   assert.equal(result.waivers.applied[0].findings, 4);
   assert.deepEqual(results.approvalWording(result), { kind: "with-waivers", waivers: 1, findings: 4 });
-  assert.equal(results.resultSummary(result, translator("run", "en")), "approved with 1 waiver (4 findings)");
-  assert.equal(results.resultSummary(result, translator("run", "pt-BR")), "aprovado com 1 dispensa (4 achados)");
+  // The workspace has no commit, so the summary may go on with the note about local changes after a ";".
+  assert.match(results.resultSummary(result, translator("run", "en")), /^approved with 1 waiver \(4 findings\)(;|$)/);
+  assert.match(results.resultSummary(result, translator("run", "pt-BR")), /^aprovado com 1 dispensa \(4 achados\)(;|$)/);
 });
 
 test("V2-79: a check in error, timeout or blocked stays so with and without waivers, and the decision is the same", async () => {
@@ -270,6 +271,8 @@ test("V2-79: a stored result without the waivers block that passed with waived f
 test("V2-79: with both gates a Quality approval with waivers lets the Semantic run follow and the sequence says the wording; with --no-waivers the failed Quality run does not advance", async () => {
   const seq = await load("core", "sequence", "index.js");
   const { computeSourceIdentity } = await load("core", "gates", "index.js");
+  // The sequence message follows the process language: pin it, whatever the machine's language is.
+  (await load("i18n", "index.js")).setLocale("en");
   const files = { "src/app.js": "risky(1);\nrisky(2);\n" };
   const s = await scenario(files, { waivers: [RULE_WAIVER] });
   const assess = (result) => {

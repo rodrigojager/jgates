@@ -93,6 +93,7 @@ function startUi(env, cwd) {
 }
 
 async function session(ui) {
+  assert.ok(ui.info.launcher, `jgates ui did not start: ${ui.out}\n${ui.err}`);
   const html = fs.readFileSync(ui.info.launcher, "utf8");
   const href = /href="([^"]+)"/.exec(html)?.[1]?.replace(/&amp;/g, "&");
   assert.ok(href, "launcher has no bootstrap link");

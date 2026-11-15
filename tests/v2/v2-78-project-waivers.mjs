@@ -390,11 +390,14 @@ test("V2-78: the entry applies in the next run and an expired one does not; noth
   assert.equal(expired.waivers.expired.length, 1);
   const lapsed = JSON.parse(p.cli(["waivers", "list", "--cwd", p.project, "--json"]).stdout);
   assert.equal(lapsed.waivers[0].state, "expired");
+  // The id comes from the content of the entry, so the hand-edited date gives the entry a new id.
+  const lapsedId = lapsed.waivers[0].id;
+  assert.notEqual(lapsedId, id);
 
   // Removing it: the data folder is not touched by the command, and the project changes only in that file.
   const homeMid = snapshot(p.home);
   const projectMid = snapshot(p.project);
-  const gone = p.cli(["waivers", "remove", id, "--cwd", p.project, "--json"]);
+  const gone = p.cli(["waivers", "remove", lapsedId, "--cwd", p.project, "--json"]);
   assert.equal(gone.status, 0, gone.stdout + gone.stderr);
   assert.deepEqual(changedFiles(homeMid, snapshot(p.home)), []);
   assert.deepEqual(changedFiles(projectMid, snapshot(p.project)), [FILE]);

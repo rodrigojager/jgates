@@ -105,6 +105,18 @@ export function pluralCategory(count: number): "one" | "other" {
 
 const PLURAL_HEAD = /\{(\w+),\s*plural,\s*/y;
 
+/** Replaces each "#" that is not inside a "{...}" of the text. */
+function replaceTopLevelHash(text: string, value: string): string {
+  let depth = 0;
+  let out = "";
+  for (const ch of text) {
+    if (ch === "{") depth++;
+    else if (ch === "}") depth = Math.max(0, depth - 1);
+    out += ch === "#" && depth === 0 ? value : ch;
+  }
+  return out;
+}
+
 /**
  * Resolves the ICU-style plural blocks of a template: "{count, plural, one {# test} other {# tests}}" becomes the
  * branch of the count with "#" replaced by the number. "=0 {...}" matches that exact number; "other" is the fallback.
@@ -145,7 +157,8 @@ export function resolvePlurals(template: string, params: Params = {}): string {
       out += template.slice(open, end);
     } else {
       const chosen = branches.get(`=${count}`) ?? branches.get(pluralCategory(count)) ?? (branches.get("other") as string);
-      out += chosen.replace(/#/g, String(raw));
+      // "#" is this block's number only outside nested blocks; a nested plural keeps its own "#" and is resolved next.
+      out += resolvePlurals(replaceTopLevelHash(chosen, String(raw)), params);
     }
     i = end;
   }

@@ -4,7 +4,6 @@
   "sequence_config_unreadable": "The configuration could not be read to find the gate selection: {detail}",
   "sequence_reason_quality_approved_waivers": "Quality run {runId} passed complete, not reduced, valid and for the current source, approved with {waivers, plural, one {# waiver} other {# waivers}}{more, plural, =0 {} other { ({findings, plural, one {# finding} other {# findings}})}}: Semantic may start.",
   "sequence_reason_quality_approved":"Quality run {runId} passed complete, not reduced, valid and for the current source: Semantic may start.",
-  "sequence_reason_quality_approved_waivers": "Quality run {runId} passed complete, not reduced, valid and for the current source, approved with {waivers, plural, one {
   "sequence_reason_quality_run_unreadable": "The result of Quality run {runId} cannot be read: nothing proves it passed.",
   "sequence_reason_quality_partial": "Quality run {runId} did not finish (its result is partial): it proves nothing yet.",
   "sequence_reason_quality_cancelled": "Quality run {runId} was cancelled; its partial evidence is kept and Semantic does not start.",

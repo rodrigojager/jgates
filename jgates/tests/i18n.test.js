@@ -27,7 +27,8 @@ function walk(dir) {
   return out;
 }
 
-const placeholders = (text) => [...text.matchAll(/\{(\w+)(?:,\s*plural,|\})/g)].map((m) => m[1]).sort();
+// A "{word}" right after a plural selector ("=0 {none}", "other {#}") is the text of a branch, not a placeholder.
+const placeholders = (text) => [...text.matchAll(/(?<!(?:=\d+|\b(?:zero|one|two|few|many|other))\s*)\{(\w+)(?:,\s*plural,|\})/g)].map((m) => m[1]).sort();
 
 /**
  * Compares the catalog files of a folder tree: every <name>.pt-BR.json needs its <name>.en.json (and the reverse) with the

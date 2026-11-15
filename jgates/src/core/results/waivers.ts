@@ -238,7 +238,7 @@ export interface WaiverRecordEntry {
   id: string;
   tool?: string;
   rule?: string;
-  /** The file (or the path pattern of a hand-written waiver). */
+  /** The file of the finding it waived (one finding), or the path (maybe a pattern) recorded in the entry. */
   path?: string;
   /** The line of the finding it waived (one finding), or the line recorded in the entry. */
   line?: number;
@@ -280,7 +280,8 @@ function waiverIdOf(waiver: Waiver): string | undefined {
 
 function recordEntry(waiver: Waiver, waived: ResultFinding[], cause?: StaleCause): WaiverRecordEntry {
   const only = waived.length === 1 ? waived[0] : undefined;
-  const p = waiver.path ?? only?.location?.path;
+  // File and line go together: the finding's when the waiver waived exactly one, else the entry's own (maybe a pattern).
+  const p = only?.location?.path ?? waiver.path;
   const line = only?.location?.line ?? waiver.line;
   const tool = waiver.tool ?? only?.tool;
   return {

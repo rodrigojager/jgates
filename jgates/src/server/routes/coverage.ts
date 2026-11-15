@@ -138,7 +138,8 @@ export const routes: RouteDefinition[] = [
       type: "object",
       properties: {
         action: { enum: ["level", "not-applicable", "remove"] },
-        level: { type: ["integer", "string"] },
+        // The server's validator runs in strict mode, which refuses a union `type`; anyOf says the same.
+        level: { anyOf: [{ type: "integer" }, { type: "string" }] },
         id: { type: "string", minLength: 1, maxLength: 32 },
         reason: { type: "string", maxLength: 4000 },
         expectedRevision: REVISION,
