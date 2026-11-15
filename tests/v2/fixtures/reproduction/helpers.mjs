@@ -85,7 +85,7 @@ export async function prepareDependencies(ws) {
 /** A workspace with the project, the replaying engine, prepared dependencies and the earlier run. */
 export async function reproductionWorkspace(prefix, { files = PROJECT, candidates = SEED_CANDIDATES, deps = true } = {}) {
   const ws = B.setupWorkspace(prefix, files);
-  Object.assign(ws.env, containerEnv(ws, { engine: ENGINE }), { JGATES_RUNNER_RECORDINGS: RECORDINGS });
+  Object.assign(ws.env, containerEnv(ws, { engine: ENGINE, env: { JGATES_RUNNER_RECORDINGS: RECORDINGS } }));
   if (deps) await prepareDependencies(ws);
   const seed = candidates ? await writeSeedRun(ws, candidates) : null;
   const { workspaceId } = await load("core/ids/index.js");

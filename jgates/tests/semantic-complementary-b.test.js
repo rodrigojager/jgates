@@ -436,7 +436,7 @@ test("the test-file runner starts one container of the tools image per file unde
     assert.equal((await regressions.runTestFile(environment, fx, "src/format.py")).outcome, "not-run");
     const noEngine = await regressions.testRuntime({ ...ws.env, JGATES_CONTAINER_RUNTIME: path.join(ws.root, "missing-engine") });
     assert.deepEqual([noEngine.ok, noEngine.code], [false, "ENGINE_NOT_INSTALLED"]);
-    const noImage = await regressions.testRuntime({ ...ws.env, FAKE_DOCKER_LABELS: "none" });
+    const noImage = await regressions.testRuntime({ ...ws.env, ...H.containerEnv(ws, { env: { FAKE_DOCKER_LABELS: "none" } }) });
     assert.deepEqual([noImage.ok, noImage.code], [false, "IMAGE_MISSING"]);
     assert.equal(H.testContainers(ws).length, before);
   } finally {

@@ -191,7 +191,9 @@ test("V2-84: confirm by reproduction, asked for from the terminal, shows each ne
     assert.match(statusText.out, /C3  needs validation, reproduction attempted .*: the reproducer did not run to a verdict/);
 
     // 5. One finding, in text: the cost comes first, then the run; a later attempt never undoes the confirmation.
-    const one = run(["semantic", "run", "--cwd", ws.dir, "--method", METHOD, "--from", SEED_RUN, "--finding", "C2"], { script: reproductionScript() });
+    // The reproduction run numbers its own candidates: the one finding it tries (C2 of the earlier run) is its C1.
+    const onlyC2 = { contexts: { "reproducer:C1": [read(["src/inventory.py"]), answer({ summary: "One reproducer for the finding in src/inventory.py.", defect: "the behavior the finding in src/inventory.py describes", test: TESTS.reserveLimit })] } };
+    const one = run(["semantic", "run", "--cwd", ws.dir, "--method", METHOD, "--from", SEED_RUN, "--finding", "C2"], { script: onlyC2 });
     const costAt = one.out.indexOf(`Confirm by reproduction from ${SEED_RUN}: 1 finding, up to 24 model calls; the project's tests run in a container without network.`);
     assert.ok(costAt >= 0, one.out);
     assert.ok(costAt < one.out.indexOf("Run sem_"), "the cost is printed before the run");

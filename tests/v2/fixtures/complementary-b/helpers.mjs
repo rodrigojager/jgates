@@ -289,10 +289,21 @@ export const TOOLS_IMAGE_ID = `sha256:${"7a".repeat(32)}`;
  * The variables of the container mode (not inside the tools image) with the replaying engine, its call log and its
  * state in the workspace's temporary root. Assign them to ws.env (in-process runs) or pass them to one CLI call.
  */
-export function containerEnv(ws, { engine = REPLAY_ENGINE } = {}) {
+/** The engine wrappers containerEnv wrote, by path, with the engine each one loads. */
+const ENGINE_WRAPPERS = new Map();
+
+export function containerEnv(ws, { engine = REPLAY_ENGINE, env = {} } = {}) {
   const state = path.join(ws.root, "engine-state");
   fs.mkdirSync(state, { recursive: true });
-  return { JGATES_IMAGE_JSON: "", JGATES_CONTAINER_RUNTIME: engine, FAKE_DOCKER_STATE: state, FAKE_DOCKER_LOG: path.join(ws.root, "engine.log"), FAKE_DOCKER_IMAGE_ID: TOOLS_IMAGE_ID };
+  const engineEnv = { FAKE_DOCKER_STATE: state, FAKE_DOCKER_LOG: path.join(ws.root, "engine.log"), FAKE_DOCKER_IMAGE_ID: TOOLS_IMAGE_ID, ...env };
+  // The engine client gets only an allowlist of the parent's variables (core/engine), so the fake engine's own
+  // variables travel in a small wrapper that sets them and then loads the engine (one wrapper per set of variables).
+  const lines = Object.entries(engineEnv).map(([k, v]) => `process.env[${JSON.stringify(k)}] = ${JSON.stringify(v)};`);
+  const text = `${lines.join("\n")}\nrequire(${JSON.stringify(engine)});\n`;
+  const wrapper = path.join(ws.root, `engine-${crypto.createHash("sha256").update(text).digest("hex").slice(0, 12)}.cjs`);
+  fs.writeFileSync(wrapper, text);
+  ENGINE_WRAPPERS.set(path.resolve(wrapper), path.resolve(engine));
+  return { JGATES_IMAGE_JSON: "", JGATES_CONTAINER_RUNTIME: wrapper, ...engineEnv };
 }
 
 /** Every engine call recorded so far (argument lists). */
@@ -357,7 +368,8 @@ export async function withoutHostTests(engine, run) {
   const saved = Object.fromEntries(names.map((n) => [n, cp[n]]));
   const isTest = (command, args) => {
     const list = Array.isArray(args) ? args.map(String) : [];
-    if (list[0] && path.resolve(list[0]) === path.resolve(engine)) return false;
+    const first = list[0] ? path.resolve(list[0]) : null;
+    if (first && (first === path.resolve(engine) || ENGINE_WRAPPERS.get(first) === path.resolve(engine))) return false;
     const text = [String(command), ...list].join(" ");
     const node = String(command) === process.execPath || /(^|[\\/])node(\.exe)?$/i.test(String(command));
     return (node && list.some((a) => a.startsWith("--test") || a.startsWith("--permission") || /\.test\.(mjs|cjs|js)$/.test(a))) || /\bnode\b.*--test-reporter/.test(text);
