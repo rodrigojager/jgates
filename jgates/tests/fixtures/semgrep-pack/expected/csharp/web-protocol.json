@@ -1,0 +1,14 @@
+{
+  "files": ["WebProtocol.cs"],
+  "ruleIds": [
+    "jgates.csharp.security-headers-disabled",
+    "jgates.csharp.csp-unsafe-directive",
+    "jgates.csharp.websocket-without-tls",
+    "jgates.csharp.websocket-origin-not-checked",
+    "jgates.csharp.graphql-introspection-enabled",
+    "jgates.csharp.graphql-without-depth-limit",
+    "jgates.csharp.open-redirect",
+    "jgates.csharp.client-ip-from-forwarded-header",
+    "jgates.csharp.host-header-in-url"
+  ]
+}

@@ -1,0 +1,263 @@
+# Group web-protocol for C#. Libraries covered: ASP.NET Core (HSTS options, antiforgery options, response headers,
+# WebSocketOptions, ClientWebSocket, redirects, Request.Headers, Request.Host), WebSocketSharp, HotChocolate.
+# Taint sources: string parameters of controller actions and minimal API handlers, and members of HttpRequest
+# (Query, Form, Headers, Cookies, RouteValues, QueryString). The analysis stays inside one method.
+rules:
+  - id: jgates.csharp.security-headers-disabled
+    message: A security header is switched off or weakened (HSTS with a max-age under one year, the frame protection of the antiforgery options, or a removed security header). Keep the header on, with an HSTS max-age of at least one year.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.1", "V3.4.3", "V3.4.4", "V3.4.6"]
+    patterns:
+      - pattern-either:
+          - pattern: $O.SuppressXFrameOptionsHeader = true;
+          - pattern: new AntiforgeryOptions { ..., SuppressXFrameOptionsHeader = true, ... }
+          - patterns:
+              - pattern-either:
+                  - pattern: $H.Remove("$N")
+                  - pattern: $H.Remove("$N", ...)
+              - metavariable-regex:
+                  metavariable: $N
+                  regex: (?i)^(strict-transport-security|content-security-policy|x-content-type-options|x-frame-options)$
+          - patterns:
+              - pattern-either:
+                  - pattern: $O.MaxAge = TimeSpan.FromDays($N);
+                  - pattern: $O.MaxAge = TimeSpan.FromHours($N);
+                  - pattern: $O.MaxAge = TimeSpan.FromSeconds($N);
+                  - pattern: $O.MaxAge = TimeSpan.Zero;
+              - pattern-inside: |
+                  $X.AddHsts($O => {
+                    ...
+                  });
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N > 0 and ($N < 365)
+          - pattern: |
+              $X.AddHsts($O => {
+                ...
+                $O.MaxAge = TimeSpan.Zero;
+                ...
+              });
+
+  - id: jgates.csharp.csp-unsafe-directive
+    message: A Content-Security-Policy allows inline or eval script execution, or any script source. Use nonces or hashes and list the script origins you trust.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.3"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $R.Headers["$N"] = "$V";
+                  - pattern: $R.Headers.Append("$N", "$V")
+                  - pattern: $R.Headers.Add("$N", "$V")
+                  - pattern: $R.Headers["$N"] = "$V"
+              - metavariable-regex:
+                  metavariable: $N
+                  regex: (?i)^content-security-policy$
+          - pattern: $R.Headers.ContentSecurityPolicy = "$V";
+      - metavariable-regex:
+          metavariable: $V
+          regex: (?i).*(script-src|script-src-elem|default-src)[^;]*('unsafe-inline'|'unsafe-eval'|\s\*(\s|;|$)|\s(https?|data):(\s|;|$))
+
+  - id: jgates.csharp.websocket-without-tls
+    message: A WebSocket connection is opened to a plain ws:// address that is not the local machine, so traffic travels unencrypted. Use a wss:// address.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $C.ConnectAsync(new Uri("$U"), ...)
+          - pattern: new WebSocket("$U", ...)
+          - pattern: new WebSocketSharp.WebSocket("$U", ...)
+          - pattern: new HubConnectionBuilder().WithUrl("$U", ...)
+      - metavariable-regex:
+          metavariable: $U
+          regex: (?i)^ws://(?!(localhost|127\.0\.0\.1|\[::1\])([:/]|$))
+
+  - id: jgates.csharp.websocket-origin-not-checked
+    message: A WebSocket server accepts connections from every origin, so any web page can open one for a signed-in user. Compare the Origin header with an allow-list.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: authorization
+      cwe: "CWE-1385"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.4.2"]
+    pattern-either:
+      - pattern: $O.AllowedOrigins.Add("*")
+      - pattern: new WebSocketOptions { ..., AllowedOrigins = { ..., "*", ... }, ... }
+      - pattern: $S.OriginValidator = ($V) => true;
+      - pattern: $S.OriginValidator = $V => true;
+
+  - id: jgates.csharp.graphql-introspection-enabled
+    message: A GraphQL server is created with introspection switched on, which hands the whole schema to anyone. Enable it only in development.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.2"]
+    pattern-either:
+      - pattern: $B.AllowIntrospection(true)
+      - pattern: $O.DisableIntrospection = false;
+
+  - id: jgates.csharp.graphql-without-depth-limit
+    message: A GraphQL server is created without a depth limit, so one query can ask for unbounded work. Add AddMaxExecutionDepthRule or a cost limit to the server.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: availability
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.1"]
+    patterns:
+      - pattern: $S.AddGraphQLServer(...)
+      - pattern-not-inside: |
+          $S.AddGraphQLServer(...). ... .AddMaxExecutionDepthRule(...)
+      - pattern-not-inside: |
+          $S.AddGraphQLServer(...). ... .ModifyCostOptions(...)
+      - pattern-not-inside: |
+          $S.AddGraphQLServer(...). ... .ModifyRequestOptions(...)
+
+  - id: jgates.csharp.open-redirect
+    message: The redirect target comes from the incoming request, so an attacker can send users to another site. Use LocalRedirect, check Url.IsLocalUrl, or redirect only to a target found in an allow-list.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-601"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V3.7.2"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              if (Url.IsLocalUrl($P)) {
+                ...
+              }
+      - pattern: Url.IsLocalUrl(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: Redirect($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: RedirectPermanent($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new RedirectResult($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $R.Redirect($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Results.Redirect($U, ...)
+          - focus-metavariable: $U
+
+  - id: jgates.csharp.client-ip-from-forwarded-header
+    message: The client address is read from a forwarding header that the client itself can set, so it can be forged. Use the connection address (with the forwarded headers middleware configured for known proxies).
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: authorization
+      cwe: "CWE-348"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.4", "V4.1.3"]
+    patterns:
+      - pattern-either:
+          - pattern: $R.Headers["$H"]
+          - pattern: $R.Headers.TryGetValue("$H", ...)
+          - pattern: $R.Headers.GetCommaSeparatedValues("$H")
+          - pattern: $R.Headers.ContainsKey("$H")
+      - metavariable-regex:
+          metavariable: $H
+          regex: (?i)^(x-forwarded-for|x-real-ip|x-client-ip|x-originating-ip|forwarded)$
+
+  - id: jgates.csharp.host-header-in-url
+    message: The request's Host header is used to build an absolute URL, and the client controls that header. Build links from a configured base URL.
+    severity: WARNING
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: authorization
+      cwe: "CWE-644"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.1.3"]
+    pattern-sources:
+      - pattern: Request.Host
+      - pattern: Request.Host.Value
+      - pattern: Request.Host.Host
+      - pattern: Request.Headers["Host"]
+      - pattern: $C.Request.Host
+      - pattern: $C.Request.Host.Value
+    pattern-sinks:
+      - patterns:
+          - pattern: new UriBuilder($S, $H, ...)
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: new UriBuilder { ..., Host = $H, ... }
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: |
+              "$S" + $H
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^https?://$
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: string.Format("$S", ..., $H, ...)
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^https?://
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: $"https://{$H}..."
+          - focus-metavariable: $H
