@@ -19,6 +19,7 @@ import {
 } from "../../core/discovery/index.js";
 import { compareStrings, defaultReadDir, walkProject } from "../../core/discovery/walk.js";
 import { listBuiltinTemplates } from "../../builtin/index.js";
+import { bundledPackLanguages } from "../../adapters/semgrep/index.js";
 import { readGitContext } from "../git.js";
 import { HttpError, refuseMsg } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
@@ -267,7 +268,11 @@ export const routes: RouteDefinition[] = [
     path: "/api/workspace/vocabulary",
     handler({ server }) {
       const { inventory } = discoverWorkspace(server.projectDir);
-      return { status: 200, json: { ...buildVocabulary(), status: "OK", folders: foldersOf(server, inventory) } };
+      // `packRules`: a language without a stack for which the bundled JGates Semgrep pack has rules (Java, PHP).
+      const packLanguages = new Set(bundledPackLanguages());
+      const vocabulary = buildVocabulary();
+      const languages = vocabulary.languages.map((l) => ({ ...l, packRules: packLanguages.has(l.id) }));
+      return { status: 200, json: { ...vocabulary, languages, status: "OK", folders: foldersOf(server, inventory) } };
     },
   },
   {
@@ -321,6 +326,7 @@ export const routes: RouteDefinition[] = [
           listLimit: MAX_LIST,
           files: lists,
           unsupported: inventory.classifications.filter((c) => c.classificationStatus === "unsupported"),
+          packLanguages: bundledPackLanguages(),
           conflicting: inventory.classifications.filter((c) => c.reasonCode === "CONFLICTING_LOCKFILES"),
           inventory,
         },

@@ -13,6 +13,8 @@ export interface SemgrepParse {
   findings: ResultFinding[];
   /** Non-fatal scanner notices (a target file that did not parse, for instance). */
   warnings: string[];
+  /** The paths the scanner says it scanned (`paths.scanned`), as it printed them; null when the output has no such list. */
+  scanned?: string[] | null;
   /** Why the output could not be interpreted. */
   problem?: string;
 }
@@ -93,5 +95,53 @@ export function parseSemgrepOutput(text: string, opts: { stageId: string; versio
       waived: false,
     });
   }
-  return { ok: true, findings, warnings };
+  const paths = isRec(doc.paths) ? doc.paths : null;
+  const scanned = paths && Array.isArray(paths.scanned) ? paths.scanned.filter((p): p is string => typeof p === "string") : null;
+  return { ok: true, findings, warnings, scanned };
+}
+
+/** File extension (lower case, with the dot) to the language name the scanned-languages record uses. */
+const SCANNED_LANGUAGE_BY_EXTENSION: Readonly<Record<string, string>> = {
+  ".js": "javascript",
+  ".jsx": "javascript",
+  ".mjs": "javascript",
+  ".cjs": "javascript",
+  ".ts": "typescript",
+  ".tsx": "typescript",
+  ".mts": "typescript",
+  ".cts": "typescript",
+  ".py": "python",
+  ".go": "go",
+  ".cs": "csharp",
+  ".rs": "rust",
+  ".java": "java",
+  ".php": "php",
+  ".kt": "kotlin",
+  ".kts": "kotlin",
+  ".rb": "ruby",
+  ".swift": "swift",
+  ".scala": "scala",
+  ".c": "c",
+  ".h": "c",
+  ".cpp": "cpp",
+  ".cc": "cpp",
+  ".hpp": "cpp",
+  ".dart": "dart",
+  ".ex": "elixir",
+  ".exs": "elixir",
+  ".lua": "lua",
+};
+
+/**
+ * How many files of each language the scan covered, from the scanner's own list of scanned paths. Every language in
+ * `include` is present (0 when no file of it was scanned); any other language appears only when a file of it was scanned.
+ */
+export function scannedLanguageCounts(scanned: readonly string[], include: readonly string[] = []): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const language of include) counts[language] = 0;
+  for (const file of scanned) {
+    const language = SCANNED_LANGUAGE_BY_EXTENSION[path.extname(file).toLowerCase()];
+    if (language) counts[language] = (counts[language] ?? 0) + 1;
+  }
+  return counts;
 }

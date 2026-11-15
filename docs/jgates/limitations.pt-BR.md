@@ -32,6 +32,17 @@ O `npm install --global git+https://github.com/rodrigojager/jgates` **não funci
 - dentro de um projeto: `npm install git+https://github.com/rodrigojager/jgates`, e os comandos pelo `npx`;
 - global: `npm pack` num clone, seguido de `npm install --global ./jgates-<versão>.tgz`.
 
+## Java e PHP: só SAST
+
+O JGates reconhece Java e PHP, mas não tem stack para elas. O que roda num projeto Java ou PHP são as verificações que valem para qualquer projeto (segredos, tamanho de arquivo, dados pessoais, duplicação, varreduras de dependências e de infraestrutura) e, com o SAST ligado (não no perfil Essencial), o Semgrep com o pacote de regras do JGates, que tem regras para oito linguagens: JavaScript, TypeScript, Python, Go, C#, Rust, Java e PHP. O que continua faltando para Java e PHP:
+
+- não há template de componente, lint, verificação de tipos, testes, cobertura, teste de mutação nem preparo de dependências;
+- os dados de avisos offline cobrem só npm, PyPI, Go, crates.io e NuGet; por isso dependências vulneráveis de Maven ou Composer só são achadas pelo que o Trivy lê;
+- arquivos de template (Jinja, Blade, Razor, EJS, templates do Go) não são varridos;
+- uma linguagem para a qual o pacote não tem regra (Kotlin, Ruby e outras) aparece no plano como limitação da etapa do Semgrep, e o resultado registra quantos arquivos de cada linguagem a varredura cobriu.
+
+O modo dentro da imagem (o JGates rodando dentro da imagem de ferramentas, como num contêiner de CI) usa a cópia do pacote que está na imagem: ela continua com o pacote antigo, menor, até a imagem ser reconstruída. Um run iniciado no host usa sempre o pacote do JGates instalado.
+
 ## Semantic gate
 
 O semantic gate é opcional, continua no computador e está descrito em [semantic gate](semantic-gate.pt-BR.md). Todo teste usa um provider falso, para não gastar tokens. O **smoke com um provider real está pendente**: nenhuma revisão real foi executada de ponta a ponta com uma chave real. O comportamento em timeout, orçamento esgotado e provider indisponível é coberto pelo provider falso.

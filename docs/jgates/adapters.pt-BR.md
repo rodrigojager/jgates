@@ -60,6 +60,8 @@ O `--dry-run` mostra versões, a rede que seria usada e o que seria gravado, sem
 
 O `prepare` vale para o Semgrep, cujas regras locais são baixadas uma vez e fixadas por hash. Em qualquer outra instância ele responde `PREPARE_NOT_SUPPORTED`.
 
+O adaptador do Semgrep também pode rodar o pacote de regras do JGates (`tools.<id>.rulePack: jgates`, o padrão do template base): regras originais para JavaScript, TypeScript, Python, Go, C#, Rust, Java e PHP. O item do plano nomeia as linguagens que o pacote cobre e, quando a descoberta achou uma linguagem para a qual o pacote não tem regra, avisa isso como limitação. A etapa do Semgrep no resultado traz `scannedLanguages`, o número de arquivos de cada linguagem que a varredura cobriu. Para Java e PHP, que não têm stack, o pacote é a única verificação específica da linguagem.
+
 ### A ponte de qualidade foi aposentada
 
 A ponte do quality-gate (o MegaLinter e a imagem do sidecar) não participa mais dos planos. Cada scanner é uma instância do próprio adaptador, executada na imagem de ferramentas: Semgrep (`sast`), Gitleaks (`secrets`), OSV-Scanner e Trivy (`dependencies`), Trivy e Checkov (`iac`), jscpd (`duplication`) e file-size (`file-size`) vêm do template base; o lint vem do linter de cada stack (Ruff, ESLint, golangci-lint, Clippy, os analisadores do .NET, ShellCheck, Hadolint) e os testes e a cobertura do executor de testes de cada stack. Nenhuma imagem de MegaLinter ou de sidecar é iniciada.

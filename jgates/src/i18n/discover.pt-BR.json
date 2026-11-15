@@ -12,6 +12,8 @@
   "discover_none": "Nenhum componente encontrado.",
   "discover_entry": "{status}  {root}  {language}  ({reason})",
   "discover_inconsistency": "Inconsistência {code}: {root}",
+  "discover_unsupported_note": "{language} é reconhecida: as verificações que valem para qualquer projeto (segredos, tamanho de arquivo, dados pessoais, duplicação, varreduras de dependências e de infraestrutura) rodam nela; o JGates não tem lint, verificação de tipos, testes nem verificação de dependências para {language}.",
+  "discover_unsupported_note_pack": "{language} é reconhecida: as verificações que valem para qualquer projeto (segredos, tamanho de arquivo, dados pessoais, duplicação, varreduras de dependências e de infraestrutura) rodam nela, e as regras do Semgrep do JGates para {language} rodam quando o SAST está ligado (não no perfil Essencial); o JGates não tem lint, verificação de tipos, testes nem verificação de dependências para {language}.",
   "discover_status_explicit": "declarado",
   "discover_status_detected": "detectado",
   "discover_status_ambiguous": "ambíguo",

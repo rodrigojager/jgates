@@ -37,6 +37,8 @@ interface Preview {
   listLimit: number;
   files: { included: FileRow[]; excluded: FileRow[]; ambiguous: FileRow[] };
   unsupported: Classification[];
+  /** Languages the bundled JGates Semgrep pack has rules for. */
+  packLanguages?: string[];
   conflicting: Classification[];
 }
 
@@ -284,7 +286,7 @@ export function ScopeTab({ settings, refreshKey, onChanged }: { settings: Settin
             {(preview?.unsupported ?? []).map((c, i) => (
               <li key={`${c.componentRoot}:${c.language}:${i}`}>
                 <strong>{t("ws_unsupported_item", { language: c.language ?? "?", path: c.componentRoot })}</strong>
-                <div className="small">{t("ws_unsupported_reason")}</div>
+                <div className="small">{t(c.language && preview?.packLanguages?.includes(c.language) ? "ws_unsupported_reason_pack" : "ws_unsupported_reason")}</div>
                 <div className="small">
                   <code>{c.evidencePaths.join(", ")}</code>
                 </div>

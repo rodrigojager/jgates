@@ -32,6 +32,17 @@ This page gathers what JGates does not do yet, what was not tested and the contr
 - inside a project: `npm install git+https://github.com/rodrigojager/jgates`, and the commands through `npx`;
 - global: `npm pack` in a clone, followed by `npm install --global ./jgates-<version>.tgz`.
 
+## Java and PHP: SAST only
+
+JGates recognizes Java and PHP but has no stack for them. What runs on a Java or PHP project is the checks that work on any project (secrets, file size, personal data, duplication, dependency and infrastructure scans) and, when SAST is on (not under the Essential profile), Semgrep with the JGates rule pack, which has rules for eight languages: JavaScript, TypeScript, Python, Go, C#, Rust, Java and PHP. What stays missing for Java and PHP:
+
+- no component template, lint, type check, tests, coverage, mutation testing or dependency preparation;
+- the offline advisory data covers npm, PyPI, Go, crates.io and NuGet only, so vulnerable Maven or Composer dependencies are found only by what Trivy reads;
+- template files (Jinja, Blade, Razor, EJS, Go templates) are not scanned;
+- a language the pack has no rule for (Kotlin, Ruby and others) is named in the plan as a limitation of the Semgrep step, and the result records how many files of each language the scan covered.
+
+In-image mode (JGates running inside the tools image, as in a CI container) uses the copy of the pack that sits in the image: it keeps the older, smaller pack until the image is rebuilt. A run started from the host always uses the pack of the installed JGates.
+
 ## Semantic gate
 
 The semantic gate is optional, stays on the host and is described in [semantic gate](semantic-gate.en.md). Every test uses a fake provider, to spend no tokens. The **smoke with a real provider is pending**: no real review was run end to end with a real key. The behavior on timeout, exhausted budget and unavailable provider is covered by the fake provider.

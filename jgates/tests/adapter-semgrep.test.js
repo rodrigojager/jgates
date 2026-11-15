@@ -467,25 +467,47 @@ test("every rule of the bundled pack has its language prefix, its metadata and a
   }
 });
 
-test("the bundled pack flags the vulnerable fixture of every language as expected and its clean twin none, with normalized findings [proves: semgrep#sast]", () => {
+/** One language's twins: every expected rule id comes back from the vulnerable twin, the clean twin has no finding. */
+function checkTwin(language) {
   const known = new Set(semgrepAdapter.buildPackIndex(PACK_RULES).rules.map((r) => r.id));
-  const languages = twinLanguages();
-  assert.ok(languages.length >= 3, "javascript, typescript and python are twinned");
-  for (const language of languages) {
-    const expected = JSON.parse(fs.readFileSync(path.join(PACK_FIXTURES, "expected", `${language}.json`), "utf8"));
-    assert.ok(Array.isArray(expected.ruleIds) && expected.ruleIds.length > 0, `expected/${language}.json lists rule ids`);
-    for (const id of expected.ruleIds) assert.ok(known.has(id), `${language}: ${id} is a rule of the pack`);
-    const bad = scanWithPack("vulnerable", language);
-    const ids = new Set(bad.findings.map((f) => f.ruleId));
-    for (const id of expected.ruleIds) assert.ok(ids.has(id), `${language}: ${id} missing in ${[...ids].join(", ")}`);
-    for (const f of bad.findings) {
-      assert.equal(f.tool, "semgrep");
-      assert.ok(f.location.path && f.location.line > 0, JSON.stringify(f));
-    }
-    assert.deepEqual([...new Set(bad.findings.map((f) => f.location.path))].sort(), [...expected.files].sort(), language);
-    const clean = scanWithPack("clean", language);
-    assert.deepEqual(clean.findings.map((f) => f.ruleId), [], `${language} clean twin`);
+  const expected = JSON.parse(fs.readFileSync(path.join(PACK_FIXTURES, "expected", `${language}.json`), "utf8"));
+  assert.ok(Array.isArray(expected.ruleIds) && expected.ruleIds.length > 0, `expected/${language}.json lists rule ids`);
+  for (const id of expected.ruleIds) assert.ok(known.has(id), `${language}: ${id} is a rule of the pack`);
+  const bad = scanWithPack("vulnerable", language);
+  const ids = new Set(bad.findings.map((f) => f.ruleId));
+  for (const id of expected.ruleIds) assert.ok(ids.has(id), `${language}: ${id} missing in ${[...ids].join(", ")}`);
+  for (const f of bad.findings) {
+    assert.equal(f.tool, "semgrep");
+    assert.ok(f.location.path && f.location.line > 0, JSON.stringify(f));
   }
+  assert.deepEqual([...new Set(bad.findings.map((f) => f.location.path))].sort(), [...expected.files].sort(), language);
+  const clean = scanWithPack("clean", language);
+  assert.deepEqual(clean.findings.map((f) => f.ruleId), [], `${language} clean twin`);
+}
+
+// The five languages added to the pack each have a literal-titled test below: the stack matrix cites them as the proof
+// of the `validated` row of that stack. Any other twin language is covered by the data-driven test.
+const TITLED_TWINS = ["go", "csharp", "rust", "java", "php"];
+
+test("the bundled pack flags the vulnerable fixture of every other language as expected and its clean twin none, with normalized findings [proves: semgrep#sast]", () => {
+  const languages = twinLanguages();
+  assert.ok(languages.length >= 8, "the eight languages of the pack are twinned");
+  for (const language of TITLED_TWINS) assert.ok(languages.includes(language), `${language} is twinned`);
+  for (const language of languages.filter((l) => !TITLED_TWINS.includes(l))) checkTwin(language);
+});
+
+test("the bundled pack flags the vulnerable Go twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@go]", () => checkTwin("go"));
+test("the bundled pack flags the vulnerable C# twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@csharp]", () => checkTwin("csharp"));
+test("the bundled pack flags the vulnerable Rust twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@rust]", () => checkTwin("rust"));
+test("the bundled pack flags the vulnerable Java twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@java]", () => checkTwin("java"));
+test("the bundled pack flags the vulnerable PHP twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@php]", () => checkTwin("php"));
+
+test("the scanned languages of a Semgrep output are counted per language, a pack language with no file is 0, and the plan names what the pack lacks", () => {
+  const counts = semgrepAdapter.scannedLanguageCounts(["/ws/A.java", "/ws/b.php", "/ws/c.PHP", "/ws/d.kt", "/ws/readme.md"], ["java", "php", "go"]);
+  assert.deepEqual(counts, { java: 1, php: 2, go: 0, kotlin: 1 });
+  const parsed = semgrepAdapter.parseSemgrepOutput(JSON.stringify({ results: [], errors: [], paths: { scanned: ["/ws/A.java"] } }), { stageId: "s", version: null, workspace: "/ws", cwd: "/ws" });
+  assert.deepEqual(parsed.scanned, ["/ws/A.java"]);
+  assert.deepEqual(semgrepAdapter.packLanguagesOf(["javascript-xss.yaml", "go/go-xss.yaml", "java/java-injection.yaml", "php/php-taint.yaml"]), ["javascript", "go", "java", "php"]);
 });
 
 test("the pack runs next to the customer's own rules, and an unknown pack id is refused", () => {

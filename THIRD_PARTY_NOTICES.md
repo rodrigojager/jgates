@@ -121,6 +121,10 @@ LGPLv3 or MPL), by `quality-gate/scripts/build-codespell-pt-br.py`; keep that no
 travel with it; provenance in `jgates-pack.json`). No rule is copied from another collection, and the official
 Semgrep registry rules are never bundled. Semgrep itself (LGPL-2.1) is customer-supplied.
 
+The pack has rules for eight languages (JavaScript/TypeScript, Python, Go, C#, Rust, Java and PHP) and for the classes
+injection (SQL, command, XSS, XXE), SSRF, path traversal, weak cryptography and TLS, insecure deserialization and
+authorization (token and CSRF settings). It was last verified with Semgrep 1.184.0.
+
 ## Quality integrations added in V2
 
 None of these tools is bundled in the npm package. They are customer-supplied or prepared by `jgates doctor --fix` from

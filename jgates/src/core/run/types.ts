@@ -64,6 +64,8 @@ export interface ResultStage extends StageResult {
   cache?: StageCacheInfo;
   /** What the analysis read besides the code, as the tool reports it (the vulnerability database of a scanner). */
   analysisInput?: StageAnalysisInput;
+  /** Semgrep stage: files of each language the scan covered (`{ language: files }`), from the scanner's scanned paths. */
+  scannedLanguages?: Record<string, number>;
 }
 
 /** $defs.stage.analysisInput: the vulnerability database a scanner used (source, date when the tool says it). */

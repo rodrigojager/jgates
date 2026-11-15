@@ -923,6 +923,14 @@
         "cache": {
           "$ref": "#/$defs/stageCache"
         },
+        "scannedLanguages": {
+          "description": "Semgrep stage: how many files of each language the scan covered, from the scanner's own list of scanned paths. Keys are the pack language ids (javascript, typescript, python, go, csharp, rust, java, php) or other language names; a language of the pack with no file is recorded as 0.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
         "analysisInput": {
           "description": "What the analysis read besides the code, as the tool reports it: the vulnerability database (source, date) of Trivy and OSV-Scanner.",
           "type": "object",

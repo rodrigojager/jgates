@@ -60,6 +60,8 @@ jgates tools prepare --instance <instance> --no-interactive
 
 `prepare` applies to Semgrep, whose local rules are downloaded once and pinned by hash. On any other instance it answers `PREPARE_NOT_SUPPORTED`.
 
+The Semgrep adapter can also run the JGates rule pack (`tools.<id>.rulePack: jgates`, the default of the base template): original rules for JavaScript, TypeScript, Python, Go, C#, Rust, Java and PHP. Its plan item names the languages the pack covers and, when discovery found a language the pack has no rule for, says so as a limitation. The Semgrep stage of the result carries `scannedLanguages`, the number of files of each language the scan covered. For Java and PHP, which have no stack, the pack is the only language-specific check.
+
 ### The quality bridge is retired
 
 The quality gate's bridge (MegaLinter and its sidecar image) no longer takes part in the plans. Each scanner is an instance of its own adapter, run in the tools image: Semgrep (`sast`), Gitleaks (`secrets`), OSV-Scanner and Trivy (`dependencies`), Trivy and Checkov (`iac`), jscpd (`duplication`) and file-size (`file-size`) come from the base template; lint comes from the linter of each stack (Ruff, ESLint, golangci-lint, Clippy, the .NET analyzers, ShellCheck, Hadolint) and tests and coverage from the test runner of each stack. No MegaLinter or sidecar image is ever started.

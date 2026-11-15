@@ -180,11 +180,16 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
   semgrep: {
     capabilities: {
       sast: {
-        // The bundled JGates pack: its vulnerable fixture (Python, JavaScript, TypeScript) yields findings, its clean twin none.
+        // The bundled JGates pack: its vulnerable twin of each language yields the expected rule ids, its clean twin none.
         stacks: {
           python: [t("adapter-semgrep.test.js", "a violation of a local rule comes back"), t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
           javascript: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
           typescript: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
+          go: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable Go twin")],
+          csharp: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable C# twin")],
+          rust: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable Rust twin")],
+          java: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable Java twin")],
+          php: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable PHP twin")],
         },
         tests: [t("adapter-semgrep.test.js", "a violation of a local rule comes back"), t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
       },
