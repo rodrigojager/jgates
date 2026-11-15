@@ -4,30 +4,197 @@
   "entries": [
     {
       "requirement": "V12.1.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
       ],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.tls-old-protocol-version",
+          "covers": "Tls minVersion, maxVersion and secureProtocol options, and the default version settings, naming SSLv2, SSLv3, TLS 1.0 or TLS 1.1",
+          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.tls-old-protocol-version",
+          "covers": "Ssl protocol constants and TLSVersion members of SSLv2 to TLS 1.1, PyOpenSSL methods of those versions, and option masks that re-enable them",
+          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.tls-old-protocol-version",
+          "covers": "Tls.Config MinVersion or MaxVersion set to SSL 3.0, TLS 1.0 or TLS 1.1",
+          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.tls-old-protocol-version",
+          "covers": "SslProtocols and SecurityProtocolType members for SSL 2, SSL 3, TLS 1.0, TLS 1.1 or the system default",
+          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.tls-old-protocol-version",
+          "covers": "SSLContext.getInstance, enabled protocol lists, the jdk.tls and https.protocols properties and OkHttp TlsVersion naming SSL or TLS 1.0 or 1.1",
+          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.tls-old-protocol-version",
+          "covers": "CURL SSL version and stream crypto method constants for SSLv2, SSLv3, TLS 1.0 and TLS 1.1",
+          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.tls-old-protocol-version",
+          "covers": "Openssl and native-tls minimum protocol settings of SSL 3, TLS 1.0 or TLS 1.1",
+          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.tls-old-protocol-version",
+          "covers": "Ssl_protocols of nginx, SSLProtocol of Apache httpd, enabled-protocols keys of Spring (properties, yml, env), Kestrel SslProtocols in appsettings and the Tomcat connector attributes naming old protocols",
+          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "checkov#iac",
+          "findingRules": [
+            "CKV_AWS_103",
+            "CKV_AWS_174",
+            "CKV_AWS_206",
+            "CKV_AWS_213",
+            "CKV_AWS_218"
+          ],
+          "covers": "Infrastructure files whose load balancer, CDN, API gateway or log search domain resource settings allow a TLS version below 1.2 (the named Checkov policies)",
+          "misses": "The TLS versions a deployed endpoint really accepts; clouds and resource types the named policies do not cover; settings applied outside the files",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules read the protocol versions a program or a server configuration file enables; the versions a deployed endpoint accepts and prefers are shown only by a deployed system."
     },
     {
       "requirement": "V12.1.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
       ],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.tls-weak-cipher-suite",
+          "covers": "Tls ciphers option strings that list NULL, EXPORT, RC4, DES or 3DES suites",
+          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.tls-weak-cipher-suite",
+          "covers": "SSLContext set_ciphers and urllib3 context cipher strings that list NULL, EXPORT, RC4 or DES suites",
+          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.tls-weak-cipher-suite",
+          "covers": "Tls.Config CipherSuites that list RC4, 3DES, NULL, EXPORT or DES suites, or the insecure suite list of crypto/tls",
+          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.tls-weak-cipher-suite",
+          "covers": "TlsCipherSuite members naming RC4, 3DES, DES, NULL or EXPORT",
+          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.tls-weak-cipher-suite",
+          "covers": "SSLSocket and HttpClient enabled cipher suite lists naming NULL, EXPORT, RC4, DES, 3DES or anonymous suites",
+          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.tls-weak-cipher-suite",
+          "covers": "CURL and stream context cipher lists naming NULL, EXPORT, RC4, DES or 3DES suites",
+          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.tls-weak-cipher-suite",
+          "covers": "Openssl set_cipher_list and set_ciphersuites strings naming NULL, EXPORT, RC4, DES or 3DES suites",
+          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.tls-weak-cipher-suite",
+          "covers": "Ssl_ciphers of nginx, SSLCipherSuite of Apache httpd, ciphers keys of Spring and Tomcat connector attributes that list NULL, EXPORT, RC4, DES or 3DES suites",
+          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules read the cipher lists a program or a server configuration file sets; the suites a deployed endpoint accepts, their order and forward secrecy are shown only by a deployed system."
     },
     {
       "requirement": "V12.1.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
       ],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.mtls-client-certificate-not-verified",
+          "covers": "TLS server options that request a client certificate and also set rejectUnauthorized to false",
+          "misses": "Validation that is present but too lax; client certificate checks done in a proxy or at the identity layer; whether the identity of a certificate is used for authorization in a sound way; servers in the other languages of the pack are not modeled",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.mtls-client-certificate-not-verified",
+          "covers": "PyOpenSSL set_verify callbacks that always accept the certificate",
+          "misses": "Validation that is present but too lax; client certificate checks done in a proxy or at the identity layer; whether the identity of a certificate is used for authorization in a sound way; servers in the other languages of the pack are not modeled",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.mtls-client-certificate-not-verified",
+          "covers": "Tls.Config ClientAuth values that ask for a client certificate without verifying it",
+          "misses": "Validation that is present but too lax; client certificate checks done in a proxy or at the identity layer; whether the identity of a certificate is used for authorization in a sound way; servers in the other languages of the pack are not modeled",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.mtls-client-certificate-not-verified",
+          "covers": "Kestrel and SslStream callbacks that accept every client certificate while one is required",
+          "misses": "Validation that is present but too lax; client certificate checks done in a proxy or at the identity layer; whether the identity of a certificate is used for authorization in a sound way; servers in the other languages of the pack are not modeled",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.mtls-client-certificate-not-verified",
+          "covers": "Server TLS settings that skip client certificate trust (optionalNoCA, trust all)",
+          "misses": "Validation that is present but too lax; client certificate checks done in a proxy or at the identity layer; whether the identity of a certificate is used for authorization in a sound way; servers in the other languages of the pack are not modeled",
+          "depth": "partial"
+        }
+      ],
+      "why": "Server code that asks for a client certificate and then accepts any of them uses the identity of an untrusted certificate; the rules flag the literal ways that is written."
     },
     {
       "requirement": "V12.1.4",
@@ -49,12 +216,70 @@
     },
     {
       "requirement": "V12.2.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
       ],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cleartext-http-url",
+          "covers": "Fetch, axios, got, http, undici, needle and superagent calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cleartext-http-url",
+          "covers": "Requests, httpx and urllib calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cleartext-http-url",
+          "covers": "Net/http request functions and client calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cleartext-http-url",
+          "covers": "HttpClient, WebRequest, WebClient and base address uses of a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cleartext-http-url",
+          "covers": "URL, java.net.http, Apache HttpClient, Spring clients, OkHttp, Jsoup and WebClient uses of a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cleartext-http-url",
+          "covers": "File_get_contents, fopen, cURL, Laravel Http and Guzzle uses of a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cleartext-http-url",
+          "covers": "Reqwest, ureq, surf, isahc, attohttpc and minreq calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.html.cleartext-http-url",
+          "covers": "Form actions, script and frame sources and WebSocket URLs written as plain http://, ftp:// or ws:// outside the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        }
+      ],
+      "why": "Literal plain-text URLs in client code and in HTML are the repository sign of external connections that do not use TLS; whether a deployed service answers or falls back to plain text is shown only by a deployed system."
     },
     {
       "requirement": "V12.2.2",
@@ -67,12 +292,79 @@
     },
     {
       "requirement": "V12.3.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
       ],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cleartext-http-url",
+          "covers": "Fetch, axios, got, http, undici, needle and superagent calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cleartext-http-url",
+          "covers": "Requests, httpx and urllib calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cleartext-http-url",
+          "covers": "Net/http request functions and client calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cleartext-http-url",
+          "covers": "HttpClient, WebRequest, WebClient and base address uses of a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cleartext-http-url",
+          "covers": "URL, java.net.http, Apache HttpClient, Spring clients, OkHttp, Jsoup and WebClient uses of a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cleartext-http-url",
+          "covers": "File_get_contents, fopen, cURL, Laravel Http and Guzzle uses of a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cleartext-http-url",
+          "covers": "Reqwest, ureq, surf, isahc, attohttpc and minreq calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "checkov#iac",
+          "findingRules": [
+            "CKV_AWS_2",
+            "CKV_AWS_34",
+            "CKV_AWS_83",
+            "CKV_AWS_90",
+            "CKV_AWS_105",
+            "CKV_AWS_202",
+            "CKV_AWS_220"
+          ],
+          "covers": "Infrastructure files whose listeners, distributions, search domains, caches or databases allow plain-text connections (the named Checkov policies)",
+          "misses": "Connections of the application itself; resources of other clouds or types; what a deployed system does",
+          "depth": "partial"
+        }
+      ],
+      "why": "Literal plain-text URLs in client code are the repository sign of outbound connections that skip TLS; connections of other protocols and what a deployed system does are not seen."
     },
     {
       "requirement": "V12.3.2",
@@ -140,12 +432,63 @@
     },
     {
       "requirement": "V12.3.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
       ],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cleartext-http-url",
+          "covers": "Fetch, axios, got, http, undici, needle and superagent calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cleartext-http-url",
+          "covers": "Requests, httpx and urllib calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cleartext-http-url",
+          "covers": "Net/http request functions and client calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cleartext-http-url",
+          "covers": "HttpClient, WebRequest, WebClient and base address uses of a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cleartext-http-url",
+          "covers": "URL, java.net.http, Apache HttpClient, Spring clients, OkHttp, Jsoup and WebClient uses of a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cleartext-http-url",
+          "covers": "File_get_contents, fopen, cURL, Laravel Http and Guzzle uses of a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cleartext-http-url",
+          "covers": "Reqwest, ureq, surf, isahc, attohttpc and minreq calls with a literal http:// or ftp:// URL that is not the local machine",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "depth": "partial"
+        }
+      ],
+      "why": "Literal plain-text URLs in client code are the repository sign of calls between internal services that skip TLS; what a deployed mesh does is not seen."
     },
     {
       "requirement": "V12.3.4",
