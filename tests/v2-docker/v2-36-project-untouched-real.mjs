@@ -36,13 +36,14 @@ const tmp = (prefix) => {
   return dir;
 };
 let workspace = "";
-test.after(() => {
+// Registered per test with t.after, so it runs after the case even when the case runs alone with --test-name-pattern.
+const cleanupCase = () => {
   for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
   if (!workspace) return;
   const filters = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
   for (const id of docker(["ps", "-aq", ...filters]).out.split(/\s+/).filter(Boolean)) docker(["rm", "-f", id]);
   for (const name of docker(["volume", "ls", "-q", ...filters]).out.split(/\s+/).filter(Boolean)) docker(["volume", "rm", "-f", name]);
-});
+};
 
 /** Hash of the whole tree: relative paths, kinds, sizes, mtimes and contents, in a stable order. */
 function treeHash(dir) {
@@ -81,7 +82,8 @@ const template = (tool, command, args) =>
     "",
   ].join("\n");
 
-test("V2-36 (real engine): the project folder is identical before and after a full run whose test step writes files", async () => {
+test("V2-36 (real engine): the project folder is identical before and after a full run whose test step writes files", async (t) => {
+  t.after(cleanupCase);
   const docker0 = docker(["version", "--format", "{{.Server.Version}}"]);
   assert.equal(docker0.code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);

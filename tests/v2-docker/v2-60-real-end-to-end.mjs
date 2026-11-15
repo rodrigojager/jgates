@@ -180,7 +180,8 @@ async function until(what, check, timeoutMs) {
 
 let scratch = "";
 let workspace = "";
-test.after(() => {
+// Registered per test with t.after, so it runs after the case even when the case runs alone with --test-name-pattern.
+const cleanupCase = () => {
   if (workspace) {
     const filters = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
     for (const id of lines(docker(["ps", "-aq", ...filters]).out)) docker(["rm", "-f", id]);
@@ -188,9 +189,10 @@ test.after(() => {
     for (const name of lines(docker(["volume", "ls", "-q", ...filters]).out)) docker(["volume", "rm", "-f", name]);
   }
   if (scratch) fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
-});
+};
 
-test("V2-60 (real engine): setup and a first run of a copy of the real test project through the wizard's server API, the result read back, and the copy's tree hash unchanged", { timeout: 3_600_000 }, async () => {
+test("V2-60 (real engine): setup and a first run of a copy of the real test project through the wizard's server API, the result read back, and the copy's tree hash unchanged", { timeout: 3_600_000 }, async (t) => {
+  t.after(cleanupCase);
   assert.equal(docker(["version", "--format", "{{.Server.Version}}"]).code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);
   const sourceRoot = path.resolve(process.env.JGATES_E2E_PROJECT || DEFAULT_PROJECT);

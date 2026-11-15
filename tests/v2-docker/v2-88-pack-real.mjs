@@ -33,14 +33,15 @@ const tmp = (prefix) => {
   return dir;
 };
 const workspaces = [];
-test.after(() => {
+// Registered per test with t.after, so it runs after the case even when the case runs alone with --test-name-pattern.
+const cleanupCase = () => {
   for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
   for (const workspace of workspaces) {
     const filters = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
     for (const id of docker(["ps", "-aq", ...filters]).out.split(/\s+/).filter(Boolean)) docker(["rm", "-f", id]);
     for (const name of docker(["volume", "ls", "-q", ...filters]).out.split(/\s+/).filter(Boolean)) docker(["volume", "rm", "-f", name]);
   }
-});
+};
 
 /** Hash of the whole tree: relative paths, kinds, sizes, mtimes and contents, in a stable order. */
 function treeHash(dir) {
@@ -60,7 +61,8 @@ function treeHash(dir) {
   return hash.digest("hex");
 }
 
-test("V2-88 (real engine): every rule of expected/<language>.json is found in the vulnerable twins, the clean twins have no Semgrep finding, and the projects are untouched", async () => {
+test("V2-88 (real engine): every rule of expected/<language>.json is found in the vulnerable twins, the clean twins have no Semgrep finding, and the projects are untouched", async (t) => {
+  t.after(cleanupCase);
   assert.equal(docker(["version", "--format", "{{.Server.Version}}"]).code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);
   const { workspaceId } = await import(pathToFileURL(path.join(dist, "core", "ids", "index.js")).href);

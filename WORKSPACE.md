@@ -58,7 +58,11 @@ One row per folder (and relevant subfolder) of this repository. Keep it portable
 - `docs/jgates/storage.pt-BR.md`
 - `docs/jgates/extension.en.md`
 - `docs/jgates/extension.pt-BR.md`
+- `docs/jgates/asvs-coverage.en.md`
+- `docs/jgates/asvs-coverage.pt-BR.md`
+- `jgates/packs/asvs/jgates-asvs-map/NOTICE.md`
 - `jgates/packs/semgrep/jgates-semgrep/NOTICE.md`
+- `jgates/vendor/owasp-asvs/NOTICE.md`
 - `jgates/vendor/cloudflare-security-audit/attack-classes/AI-AND-LLM.md`
 - `jgates/vendor/cloudflare-security-audit/attack-classes/ATTACK-CLASSES.md`
 - `jgates/vendor/cloudflare-security-audit/attack-classes/CLIENT-SIDE.md`

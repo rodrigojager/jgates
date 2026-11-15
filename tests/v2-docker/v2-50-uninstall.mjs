@@ -46,7 +46,8 @@ const tmp = (prefix) => {
 };
 let workspace = "";
 let unlabelled = "";
-test.after(() => {
+// Registered per test with t.after, so it runs after the case even when the case runs alone with --test-name-pattern.
+const cleanupCase = () => {
   for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
   if (workspace) {
     const filters = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
@@ -57,7 +58,7 @@ test.after(() => {
   }
   // Last: the unlabelled image the test made (a container of the workspace may have used it).
   if (unlabelled) docker(["image", "rm", unlabelled]);
-});
+};
 
 /** Hash of the whole tree: relative paths, kinds, sizes, mtimes and contents, in a stable order. */
 function treeHash(dir) {
@@ -95,7 +96,8 @@ const probeTemplate = [
   "",
 ].join("\n");
 
-test("V2-50 (real engine): uninstall removes every labelled object of the test workspace and leaves the unlabelled image, the shared objects and the project untouched", { timeout: 900_000 }, async () => {
+test("V2-50 (real engine): uninstall removes every labelled object of the test workspace and leaves the unlabelled image, the shared objects and the project untouched", { timeout: 900_000 }, async (t) => {
+  t.after(cleanupCase);
   assert.equal(docker(["version", "--format", "{{.Server.Version}}"]).code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);
   const { workspaceId } = await import(pathToFileURL(path.join(dist, "core", "ids", "index.js")).href);

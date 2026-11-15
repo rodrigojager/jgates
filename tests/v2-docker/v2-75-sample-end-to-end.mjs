@@ -225,7 +225,8 @@ function summary(result) {
 
 let scratch = "";
 let workspace = "";
-test.after(() => {
+// Registered per test with t.after, so it runs after the case even when the case runs alone with --test-name-pattern.
+const cleanupCase = () => {
   if (workspace) {
     const filters = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
     for (const id of lines(docker(["ps", "-aq", ...filters]).out)) docker(["rm", "-f", id]);
@@ -233,9 +234,10 @@ test.after(() => {
     for (const name of lines(docker(["volume", "ls", "-q", ...filters]).out)) docker(["volume", "rm", "-f", name]);
   }
   if (scratch) fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
-});
+};
 
-test("V2-75 (real engine): the sample project end to end, master reports the twelve problems of its README and correcoes only the secret in the history, with no error stage and the clone unchanged", { timeout: 7_200_000 }, async () => {
+test("V2-75 (real engine): the sample project end to end, master reports the twelve problems of its README and correcoes only the secret in the history, with no error stage and the clone unchanged", { timeout: 7_200_000 }, async (t) => {
+  t.after(cleanupCase);
   assert.equal(docker(["version", "--format", "{{.Server.Version}}"]).code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);
   const source = path.resolve(process.env.JGATES_SAMPLE_PROJECT || DEFAULT_SAMPLE);
