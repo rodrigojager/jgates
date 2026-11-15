@@ -1,0 +1,292 @@
+# Java file-handling rules: uploads, archive extraction, request size limits and download headers.
+# Libraries covered: Spring MVC (MultipartFile), the Servlet API (Part, @MultipartConfig, request input streams),
+# Apache Commons FileUpload (FileItem, ServletFileUpload), java.util.zip (ZipEntry, ZipInputStream), Apache Commons
+# Compress (ZipArchiveEntry, TarArchiveEntry, ArchiveEntry), Zip4j (ZipFile.extractAll), Commons IO (FilenameUtils,
+# IOUtils) and the HttpServletRequest, @RequestParam, @PathVariable, @RequestBody, @RequestHeader, JAX-RS getters that the
+# taint rules of this language use as sources. The analysis stays inside one method.
+rules:
+  - id: jgates.java.upload-client-filename-in-path
+    message: The file name the client sent with an upload is used in a path the file is written to. Reduce it to a base name with FilenameUtils.getName, or store the file under a name the server generates (UUID.randomUUID().toString()).
+    severity: ERROR
+    languages: [java]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.3.2"]
+    pattern-sources:
+      - pattern: (MultipartFile $F).getOriginalFilename()
+      - pattern: (Part $P).getSubmittedFileName()
+      - pattern: (FileItem $I).getName()
+    pattern-sanitizers:
+      - pattern: FilenameUtils.getName(...)
+      - pattern: FilenameUtils.getBaseName(...)
+      - pattern: FilenameUtils.getExtension(...)
+      - pattern: sanitizeFileName(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: new File($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new File($D, $U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new FileOutputStream($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new FileWriter($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Paths.get($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Paths.get($D, $U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Path.of($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Path.of($D, $U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: (Path $D).resolve($U)
+          - focus-metavariable: $U
+
+  - id: jgates.java.archive-extraction-unchecked
+    message: An archive is extracted whole, or each entry is written to a path built from the entry's own name, with no check of the path or the size. Extract entry by entry, resolve each destination with normalize() or getCanonicalPath() and require it to start with the target folder, skip links, and stop when the total size passes a limit.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: file-handling
+      cwe: "CWE-22"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.3", "V5.2.5", "V5.3.2"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: new File($D, $E.getName())
+                  - pattern: new File($E.getName())
+                  - pattern: new FileOutputStream($E.getName())
+                  - pattern: Paths.get($D, $E.getName())
+                  - pattern: Path.of($D, $E.getName())
+                  - pattern: $D.resolve($E.getName())
+              - metavariable-type:
+                  metavariable: $E
+                  types:
+                    - ZipEntry
+                    - JarEntry
+                    - ZipArchiveEntry
+                    - TarArchiveEntry
+                    - ArchiveEntry
+              - pattern-not-inside: |
+                  $T $M(...) {
+                    ...
+                    if (<... $X.startsWith(...) ...>) { ... }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  $T $M(...) {
+                    ...
+                    if (<... $E.getName().contains("..") ...>) { ... }
+                    ...
+                  }
+          - patterns:
+              - pattern: $Z.extractAll(...)
+              - metavariable-type:
+                  metavariable: $Z
+                  types:
+                    - ZipFile
+              - pattern-not-inside: |
+                  $T $M(...) {
+                    ...
+                    if (<... $X.length() > $N ...>) { ... }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  $T $M(...) {
+                    ...
+                    if (<... $X.length() >= $N ...>) { ... }
+                    ...
+                  }
+
+  - id: jgates.java.request-body-without-size-limit
+    message: A request size limit is removed, a multipart handler is declared without one, or a request body is read in full where the API sets no limit, so one request can use all the memory or disk of the server. Set a limit that fits the endpoint, for example @MultipartConfig(maxFileSize = ...), setFileSizeMax with a positive value, or a bounded read such as readNBytes.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.1"]
+    pattern-either:
+      - pattern-regex: '@MultipartConfig\b(?!\s*\([^)]*\bmaxFileSize)'
+      - pattern: $U.setFileSizeMax(-1)
+      - pattern: $U.setFileSizeMax(-1L)
+      - pattern: $U.setSizeMax(-1)
+      - pattern: $U.setSizeMax(-1L)
+      - patterns:
+          - pattern-either:
+              - pattern: (HttpServletRequest $R).getInputStream().readAllBytes()
+              - pattern: IOUtils.toByteArray((HttpServletRequest $R).getInputStream())
+              - pattern: IOUtils.toString((HttpServletRequest $R).getInputStream(), ...)
+              - pattern: new String((HttpServletRequest $R).getInputStream().readAllBytes(), ...)
+          - pattern-not-inside: |
+              $T $M(...) {
+                ...
+                if (<... $X.getContentLength() > $N ...>) { ... }
+                ...
+              }
+          - pattern-not-inside: |
+              $T $M(...) {
+                ...
+                if (<... $X.getContentLengthLong() > $N ...>) { ... }
+                ...
+              }
+
+  - id: jgates.java.upload-content-type-trusted
+    message: The content type the client declared for an upload is used as the type check, and the client can set it to anything. Read the first bytes of the file and compare them with the signature of the allowed formats instead.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: file-handling
+      cwe: "CWE-434"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.2"]
+    pattern-either:
+      - pattern: (MultipartFile $F).getContentType().equals(...)
+      - pattern: (MultipartFile $F).getContentType().equalsIgnoreCase(...)
+      - pattern: (MultipartFile $F).getContentType().startsWith(...)
+      - pattern: (MultipartFile $F).getContentType().contains(...)
+      - pattern: (MultipartFile $F).getContentType().matches(...)
+      - pattern: $X.equals((MultipartFile $F).getContentType())
+      - pattern: $X.equalsIgnoreCase((MultipartFile $F).getContentType())
+      - pattern: $X.contains((MultipartFile $F).getContentType())
+      - pattern: (Part $F).getContentType().equals(...)
+      - pattern: (Part $F).getContentType().equalsIgnoreCase(...)
+      - pattern: (Part $F).getContentType().startsWith(...)
+      - pattern: (Part $F).getContentType().contains(...)
+      - pattern: $X.equals((Part $F).getContentType())
+      - pattern: $X.equalsIgnoreCase((Part $F).getContentType())
+      - pattern: $X.contains((Part $F).getContentType())
+      - pattern: (FileItem $F).getContentType().equals(...)
+      - pattern: (FileItem $F).getContentType().equalsIgnoreCase(...)
+      - pattern: (FileItem $F).getContentType().startsWith(...)
+      - pattern: $X.equals((FileItem $F).getContentType())
+      - pattern: $X.contains((FileItem $F).getContentType())
+
+  - id: jgates.java.content-disposition-from-request
+    message: Data from the incoming request is joined into a Content-Disposition header. Build the value with Spring's ContentDisposition builder, which quotes the file name, or encode the name with URLEncoder.encode instead of concatenating it.
+    severity: ERROR
+    languages: [java]
+    mode: taint
+    metadata:
+      category: file-handling
+      cwe: "CWE-113"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.4.1", "V5.4.2"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sanitizers:
+      - pattern: ContentDisposition.attachment().filename(...).build()
+      - pattern: ContentDisposition.inline().filename(...).build()
+      - pattern: ContentDisposition.builder(...).filename(...).build()
+      - pattern: ContentDisposition.attachment().filename(...).build().toString()
+      - pattern: ContentDisposition.inline().filename(...).build().toString()
+      - pattern: ContentDisposition.builder(...).filename(...).build().toString()
+      - pattern: URLEncoder.encode(...)
+      - pattern: UriUtils.encode(...)
+      - pattern: sanitizeFileName(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $R.$M($K, $V)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(setHeader|addHeader|header|add|set)$
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i).*content[-_]disposition.*
+          - focus-metavariable: $V
