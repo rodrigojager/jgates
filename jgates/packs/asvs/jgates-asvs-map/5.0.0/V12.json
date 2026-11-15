@@ -4,7 +4,7 @@
   "entries": [
     {
       "requirement": "V12.1.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
@@ -20,7 +20,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.tls-old-protocol-version",
-          "covers": "Ssl protocol constants and TLSVersion members of SSLv2 to TLS 1.1, PyOpenSSL methods of those versions, and option masks that re-enable them",
+          "covers": "The ssl constants PROTOCOL_SSLv2, PROTOCOL_SSLv3, PROTOCOL_TLSv1 and PROTOCOL_TLSv1_1, TLSVersion members SSLv3, TLSv1 and TLSv1_1, PyOpenSSL methods of SSLv3 to TLS 1.1, and option masks that re-enable SSLv3, TLS 1.0 and TLS 1.1",
           "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
           "depth": "partial"
         },
@@ -34,8 +34,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.tls-old-protocol-version",
-          "covers": "SslProtocols and SecurityProtocolType members for SSL 2, SSL 3, TLS 1.0, TLS 1.1 or the system default",
-          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order",
+          "covers": "SslProtocols members Ssl2, Ssl3, Tls, Tls11 and the legacy Default value, and SecurityProtocolType members Ssl3, Tls and Tls11",
+          "misses": "A server or client that keeps the library default, which the rule cannot see; settings in files of other formats, in a proxy or load balancer outside the repository, or applied at deployment; the preferred version order; SecurityProtocolType.SystemDefault and SslProtocols.None are not reported",
           "depth": "partial"
         },
         {
@@ -76,7 +76,7 @@
             "CKV_AWS_213",
             "CKV_AWS_218"
           ],
-          "covers": "Infrastructure files whose load balancer, CDN, API gateway or log search domain resource settings allow a TLS version below 1.2 (the named Checkov policies)",
+          "covers": "Infrastructure files whose load balancer listener, CloudFront distribution, API Gateway domain, classic load balancer policy or CloudSearch domain settings allow a TLS version below 1.2 (the named Checkov policies)",
           "misses": "The TLS versions a deployed endpoint really accepts; clouds and resource types the named policies do not cover; settings applied outside the files",
           "depth": "partial"
         }
@@ -85,7 +85,7 @@
     },
     {
       "requirement": "V12.1.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
@@ -109,7 +109,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.go.tls-weak-cipher-suite",
           "covers": "Tls.Config CipherSuites that list RC4, 3DES, NULL, EXPORT or DES suites, or the insecure suite list of crypto/tls",
-          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment",
+          "misses": "Cipher lists that omit weak suites but are still not restricted to recommended ones; the preference order of the suites; forward secrecy of the list; settings in a proxy or load balancer outside the repository or applied at deployment; tls.InsecureCipherSuites is reported wherever it is called, also in code that uses it to reject those suites",
           "depth": "partial"
         },
         {
@@ -152,7 +152,7 @@
     },
     {
       "requirement": "V12.1.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -168,7 +168,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.mtls-client-certificate-not-verified",
-          "covers": "PyOpenSSL set_verify callbacks that always accept the certificate",
+          "covers": "PyOpenSSL set_verify with a callback that always returns true",
           "misses": "Validation that is present but too lax; client certificate checks done in a proxy or at the identity layer; whether the identity of a certificate is used for authorization in a sound way; servers in the other languages of the pack are not modeled",
           "depth": "partial"
         },
@@ -182,8 +182,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.mtls-client-certificate-not-verified",
-          "covers": "Kestrel and SslStream callbacks that accept every client certificate while one is required",
-          "misses": "Validation that is present but too lax; client certificate checks done in a proxy or at the identity layer; whether the identity of a certificate is used for authorization in a sound way; servers in the other languages of the pack are not modeled",
+          "covers": "Kestrel ClientCertificateValidation callbacks that return true, and SslStream callbacks that accept every certificate while a client certificate is required",
+          "misses": "Validation that is present but too lax; client certificate checks done in a proxy or at the identity layer; whether the identity of a certificate is used for authorization in a sound way; servers in the other languages of the pack are not modeled; the Kestrel form is reported whether or not a client certificate is required",
           "depth": "partial"
         },
         {
@@ -216,7 +216,7 @@
     },
     {
       "requirement": "V12.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
@@ -240,7 +240,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.go.cleartext-http-url",
           "covers": "Net/http request functions and client calls with a literal http:// or ftp:// URL that is not the local machine",
-          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS; the Get, Head and Post methods are matched on any receiver",
           "depth": "partial"
         },
         {
@@ -254,7 +254,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.java.cleartext-http-url",
           "covers": "URL, java.net.http, Apache HttpClient, Spring clients, OkHttp, Jsoup and WebClient uses of a literal http:// or ftp:// URL that is not the local machine",
-          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS; new URL is matched for any use of the address, not only for a connection",
           "depth": "partial"
         },
         {
@@ -292,7 +292,7 @@
     },
     {
       "requirement": "V12.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
@@ -316,7 +316,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.go.cleartext-http-url",
           "covers": "Net/http request functions and client calls with a literal http:// or ftp:// URL that is not the local machine",
-          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS; the Get, Head and Post methods are matched on any receiver",
           "depth": "partial"
         },
         {
@@ -330,7 +330,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.java.cleartext-http-url",
           "covers": "URL, java.net.http, Apache HttpClient, Spring clients, OkHttp, Jsoup and WebClient uses of a literal http:// or ftp:// URL that is not the local machine",
-          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS; new URL is matched for any use of the address, not only for a connection",
           "depth": "partial"
         },
         {
@@ -432,7 +432,7 @@
     },
     {
       "requirement": "V12.3.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "cryptography"
@@ -456,7 +456,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.go.cleartext-http-url",
           "covers": "Net/http request functions and client calls with a literal http:// or ftp:// URL that is not the local machine",
-          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS; the Get, Head and Post methods are matched on any receiver",
           "depth": "partial"
         },
         {
@@ -470,7 +470,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.java.cleartext-http-url",
           "covers": "URL, java.net.http, Apache HttpClient, Spring clients, OkHttp, Jsoup and WebClient uses of a literal http:// or ftp:// URL that is not the local machine",
-          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS",
+          "misses": "URLs built at run time or read from configuration; a client that is redirected or falls back to plain text; connections of other protocols (databases, message brokers, SSH); the transport actually used when a proxy terminates TLS; new URL is matched for any use of the address, not only for a connection",
           "depth": "partial"
         },
         {

@@ -58,7 +58,7 @@
     },
     {
       "requirement": "V11.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -74,7 +74,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.weak-key-size",
-          "covers": "Crypto, node-forge and node-rsa key generation with a literal RSA or DSA size under 2048 bits, and elliptic curves of 192 bits or fewer",
+          "covers": "Crypto, node-forge and node-rsa key generation with a literal RSA size under 2048 bits (DSA only through crypto.generateKeyPair), and elliptic curves from a short list of named curves (secp112 to secp192, prime192v1, sect113 to sect193)",
           "misses": "Sizes held in variables or configuration; keys made outside the code (key store, HSM, command line tools); symmetric key lengths; strength is judged by size alone, not by the whole algorithm and its configuration",
           "depth": "partial"
         },
@@ -88,7 +88,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.weak-key-size",
-          "covers": "Cryptography and PyCryptodome RSA and DSA key generation with a literal size under 2048 bits, and the short curves SECP192R1 and SECT163",
+          "covers": "Cryptography, PyCryptodome and paramiko RSA generation and DSA generation with a literal size under 2048 bits, and the curves SECP192R1, SECT163K1 and SECT163R2",
           "misses": "Sizes held in variables or configuration; keys made outside the code (key store, HSM, command line tools); symmetric key lengths; strength is judged by size alone, not by the whole algorithm and its configuration",
           "depth": "partial"
         },
@@ -117,7 +117,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-key-size",
           "covers": "RSA and DSA creation or KeySize assignment with a literal size under 2048 bits, and short named elliptic curves",
-          "misses": "Sizes held in variables or configuration; keys made outside the code (key store, HSM, command line tools); symmetric key lengths; strength is judged by size alone, not by the whole algorithm and its configuration",
+          "misses": "Sizes held in variables or configuration; keys made outside the code (key store, HSM, command line tools); symmetric key lengths; strength is judged by size alone, not by the whole algorithm and its configuration; a KeySize assignment is matched on any receiver whose name contains rsa or dsa (ecdsa too), so the size of an elliptic curve key can be read as an RSA or DSA size",
           "depth": "partial"
         },
         {
@@ -167,7 +167,7 @@
     },
     {
       "requirement": "V11.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -177,20 +177,20 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.timing-unsafe-comparison",
           "covers": "Ordinary equality between a value named like a MAC, signature or digest and another expression",
-          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals",
+          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals; the name pattern is a substring match (signature, hmac, digest, mac, sig), so comparisons of an algorithm or header name that contain those words are reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.timing-unsafe-comparison",
-          "covers": "A digest or hexdigest call compared with == or !=, and variables named like a MAC, digest or signature compared that way",
+          "covers": "A digest or hexdigest call compared with == or !=, and variables named mac, hmac, digest, hexdigest, signature or sig compared that way",
           "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.timing-unsafe-comparison",
-          "covers": "Bytes.Equal and == on a hash sum, on header values named signature or digest, and on variables named like a MAC or signature",
+          "covers": "Bytes.Equal and == on a hash sum, on header values named signature, hmac or digest, and on variables whose name ends in mac, digest, signature or sig",
           "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals",
           "depth": "partial"
         },
@@ -198,28 +198,28 @@
           "unit": "semgrep-rule",
           "id": "jgates.csharp.timing-unsafe-comparison",
           "covers": "==, Equals and SequenceEqual on values named like an HMAC, signature or digest",
-          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals",
+          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals; the name is matched by substring, so a comparison of a length, an algorithm name or a header name that contains digest, mac or signature is reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.timing-unsafe-comparison",
           "covers": "Equals, equalsIgnoreCase, contentEquals and Arrays.equals on values named like an HMAC, signature or digest",
-          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals",
+          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals; the name is matched by substring, so a comparison of a length, an algorithm name or a header name that contains digest, mac or signature is reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.timing-unsafe-comparison",
           "covers": "== and === on values named like an HMAC, digest or signature, and hash_hmac results compared directly",
-          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals",
+          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals; the name pattern ends in mac, so an unrelated variable such as a MAC address is reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.timing-unsafe-comparison",
-          "covers": "== and != on bytes named like a MAC, digest, signature or tag, and a finalized MAC compared directly",
-          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals",
+          "covers": "== and != on a value named like a mac, hmac, digest, signature, sig, tag, hash or checksum, and a finalized MAC compared directly",
+          "misses": "Secrets compared under names the pattern does not match; comparisons hidden in helpers; other operations of a cryptographic routine that are not constant time (branches, table lookups, early returns); library internals; hash and checksum names are reported although the value may not be secret",
           "depth": "partial"
         }
       ],
@@ -227,7 +227,7 @@
     },
     {
       "requirement": "V11.2.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -245,7 +245,7 @@
     },
     {
       "requirement": "V11.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -261,8 +261,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.weak-cipher-mode",
-          "covers": "ECB modes (cryptography and PyCryptodome), and PKCS#1 v1.5 padding or cipher objects",
-          "misses": "Modes or padding chosen through variables or configuration; other libraries and wrappers; padding schemes of other kinds",
+          "covers": "ECB mode objects (cryptography modes.ECB, PyCryptodome AES.MODE_ECB), and RSA encrypt or decrypt calls with PKCS#1 v1.5 padding (cryptography padding.PKCS1v15, PyCryptodome PKCS1_v1_5)",
+          "misses": "Modes or padding chosen through variables or configuration; other libraries and wrappers; padding schemes of other kinds; signing with PKCS#1 v1.5 padding is not reported",
           "depth": "partial"
         },
         {
@@ -289,7 +289,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.weak-cipher",
-          "covers": "Cipher.getInstance with a string literal naming AES in ECB mode",
+          "covers": "Cipher.getInstance with a string literal naming AES in ECB mode, or AES with no mode (the Java default is ECB)",
           "misses": "Cipher names built at run time or read from configuration; weak padding such as RSA PKCS#1 v1.5",
           "depth": "partial"
         },
@@ -369,7 +369,7 @@
     },
     {
       "requirement": "V11.3.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -429,7 +429,7 @@
     },
     {
       "requirement": "V11.3.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -438,7 +438,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.static-iv-or-nonce",
-          "covers": "CreateCipheriv with a literal, zero-filled or constant-buffer IV, and CryptoJS AES with a literal iv",
+          "covers": "CreateCipheriv with a literal string, a Buffer.alloc, a Buffer.from literal or byte list, or a new Uint8Array given as the IV, and CryptoJS AES with a literal iv",
           "misses": "A nonce reused through a counter bug or across messages with one key when it is not a literal; values that cross a function; whether the generation method fits the algorithm; uniqueness per key and data element cannot be proved by reading code",
           "depth": "partial"
         },
@@ -453,14 +453,14 @@
           "unit": "semgrep-rule",
           "id": "jgates.go.static-iv-or-nonce",
           "covers": "Cipher block modes and AEAD Seal and Open given a literal or zero-valued IV or nonce that is not filled with random bytes before use",
-          "misses": "A nonce reused through a counter bug or across messages with one key when it is not a literal; values that cross a function; whether the generation method fits the algorithm; uniqueness per key and data element cannot be proved by reading code",
+          "misses": "A nonce reused through a counter bug or across messages with one key when it is not a literal; values that cross a function; whether the generation method fits the algorithm; uniqueness per key and data element cannot be proved by reading code; a Seal or Open call of another library, whose second argument is the message and not the nonce, is read the same way",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.static-iv-or-nonce",
-          "covers": "An IV or CreateEncryptor argument that is a literal or zero-filled byte array, and AEAD encrypt calls given such a nonce",
-          "misses": "A nonce reused through a counter bug or across messages with one key when it is not a literal; values that cross a function; whether the generation method fits the algorithm; uniqueness per key and data element cannot be proved by reading code",
+          "covers": "An IV or CreateEncryptor argument that is a literal or zero-filled byte array, and any Encrypt call whose first argument is such an array",
+          "misses": "A nonce reused through a counter bug or across messages with one key when it is not a literal; values that cross a function; whether the generation method fits the algorithm; uniqueness per key and data element cannot be proved by reading code; the Encrypt form is matched on any receiver, so a literal passed as the data and not as a nonce is reported too",
           "depth": "partial"
         },
         {
@@ -489,7 +489,7 @@
     },
     {
       "requirement": "V11.3.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -571,7 +571,7 @@
     },
     {
       "requirement": "V11.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -581,98 +581,98 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.password-hash-with-fast-hash",
           "covers": "Crypto.createHash and CryptoJS digests, and md5, sha1, sha256 or sha512 helpers, applied to a value named like a password",
-          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function",
+          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function; a fast hash taken for another purpose than storing a password (a reset token, a check against a list of breached passwords, a pre-hash before a slow function) is reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.weak-kdf-parameters",
           "covers": "PBKDF2 under 100000 iterations, bcrypt cost under 10, scrypt N under 16384 and Argon2 memory or time below the floor, as literals in crypto, CryptoJS, bcrypt, bcryptjs and argon2",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.password-hash-with-fast-hash",
-          "covers": "Hashlib constructors, including update calls, applied to a value named like a password",
-          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function",
+          "covers": "Hashlib constructors for MD5, SHA-1, SHA-2, SHA-3 and BLAKE2, including update calls, applied to a value named like a password",
+          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function; a fast hash taken for another purpose than storing a password (a reset token, a check against a list of breached passwords, a pre-hash before a slow function) is reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.weak-kdf-parameters",
           "covers": "PBKDF2 under 100000 iterations, bcrypt rounds under 10, scrypt n under 16384 and Argon2 time or memory below the floor, as literals in hashlib, cryptography, passlib, bcrypt and argon2",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.password-hash-with-fast-hash",
           "covers": "Hash packages md5, sha1, sha256, sha512 and sha3 applied to a password-named value, through Sum, New and Write",
-          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function",
+          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function; a fast hash taken for another purpose than storing a password (a reset token, a check against a list of breached passwords, a pre-hash before a slow function) is reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.weak-kdf-parameters",
           "covers": "Pbkdf2 under 100000 iterations, bcrypt cost under 10, scrypt N under 16384 and Argon2 time or memory below the floor, as literals",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.password-hash-with-fast-hash",
-          "covers": "Static HashData and ComputeHash of MD5 and SHA-2 family classes over a password-named value",
-          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function",
+          "covers": "Static HashData of MD5, SHA-1 and SHA-2 classes, and ComputeHash on a variable whose name contains md5, sha, hash or crypt, over a password-named value",
+          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function; a fast hash taken for another purpose than storing a password (a reset token, a check against a list of breached passwords, a pre-hash before a slow function) is reported too; ComputeHash is selected by the name of the variable, not by the type of the object",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-kdf-parameters",
           "covers": "Rfc2898DeriveBytes without or under 100000 iterations, BCrypt cost, Scrypt, ASP.NET password hasher iteration count and Argon2 parameters below the floor",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.password-hash-with-fast-hash",
           "covers": "MessageDigest, commons-codec DigestUtils and Guava hashing applied to a password-named value",
-          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function",
+          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function; a fast hash taken for another purpose than storing a password (a reset token, a check against a list of breached passwords, a pre-hash before a slow function) is reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.weak-kdf-parameters",
           "covers": "PBEKeySpec iteration counts, BCrypt and Spring encoder costs, SCrypt and Argon2 parameters below the floor, as literals",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.password-hash-with-fast-hash",
           "covers": "Hash, openssl_digest, crc32 and sodium generichash applied to a value named like a password",
-          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function",
+          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function; a fast hash taken for another purpose than storing a password (a reset token, a check against a list of breached passwords, a pre-hash before a slow function) is reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.weak-kdf-parameters",
           "covers": "Hash_pbkdf2 and openssl_pbkdf2 iterations, password_hash cost options and sodium pwhash limits below the floor, as literals",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.password-hash-with-fast-hash",
           "covers": "RustCrypto and ring digests and openssl hash applied to a value named like a password",
-          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function",
+          "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function; a fast hash taken for another purpose than storing a password (a reset token, a check against a list of breached passwords, a pre-hash before a slow function) is reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.weak-kdf-parameters",
           "covers": "Pbkdf2, bcrypt, scrypt and argon2 crates called with a literal work factor below the floor",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts",
           "depth": "partial"
         },
         {
@@ -687,7 +687,7 @@
     },
     {
       "requirement": "V11.4.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -697,49 +697,49 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.weak-signature-hash",
           "covers": "CreateHmac, createSign, createVerify, sign and verify with a literal MD5 or SHA-1 name, and the CryptoJS HmacMD5 and HmacSHA1",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); an HMAC with MD5 or SHA-1 is reported although its security does not rest on collision resistance (TOTP codes are a usual case)",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.weak-signature-hash",
           "covers": "Hmac with md5 or sha1, cryptography sign, verify and ECDSA with MD5 or SHA-1, and PyCryptodome PKCS#1 signing with those hashes",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); an HMAC with MD5 or SHA-1 is reported although its security does not rest on collision resistance (TOTP codes are a usual case)",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.weak-signature-hash",
           "covers": "Hmac with md5 or sha1, rsa PKCS#1 v1.5 and PSS signing and verifying with MD5 or SHA-1, and the x509 SHA-1 and MD5 signature algorithms",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); an HMAC with MD5 or SHA-1 is reported although its security does not rest on collision resistance (TOTP codes are a usual case); the x509 signature algorithm constants are reported also in code that uses them to reject such certificates",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-signature-hash",
           "covers": "SignData, SignHash, VerifyData and VerifyHash with MD5 or SHA-1, the HMACSHA1 and HMACMD5 classes, and SHA-1 security algorithm constants",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); an HMAC with MD5 or SHA-1 is reported although its security does not rest on collision resistance (TOTP codes are a usual case)",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.weak-signature-hash",
           "covers": "Signature and Mac algorithms with MD2, MD5 or SHA-1, and commons-codec and Guava HMAC helpers of MD5 and SHA-1",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); an HMAC with MD5 or SHA-1 is reported although its security does not rest on collision resistance (TOTP codes are a usual case)",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.weak-signature-hash",
           "covers": "Hash_hmac with md5, sha1 or similar, and openssl_sign and openssl_verify with an MD5 or SHA-1 algorithm, or no algorithm named",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); an HMAC with MD5 or SHA-1 is reported although its security does not rest on collision resistance (TOTP codes are a usual case)",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.weak-signature-hash",
           "covers": "RustCrypto HMAC, RSA signing schemes and signing keys instantiated with MD5 or SHA-1",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); an HMAC with MD5 or SHA-1 is reported although its security does not rest on collision resistance (TOTP codes are a usual case)",
           "depth": "partial"
         }
       ],
@@ -747,7 +747,7 @@
     },
     {
       "requirement": "V11.4.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -757,49 +757,49 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.weak-kdf-parameters",
           "covers": "PBKDF2 under 100000 iterations, bcrypt cost under 10, scrypt N under 16384 and Argon2 memory or time below the floor, as literals in crypto, CryptoJS, bcrypt, bcryptjs and argon2",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts; bcrypt cost is reported too, although bcrypt is a password hash and not a function that derives a key",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.weak-kdf-parameters",
           "covers": "PBKDF2 under 100000 iterations, bcrypt rounds under 10, scrypt n under 16384 and Argon2 time or memory below the floor, as literals in hashlib, cryptography, passlib, bcrypt and argon2",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts; bcrypt cost is reported too, although bcrypt is a password hash and not a function that derives a key",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.weak-kdf-parameters",
           "covers": "Pbkdf2 under 100000 iterations, bcrypt cost under 10, scrypt N under 16384 and Argon2 time or memory below the floor, as literals",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts; bcrypt cost is reported too, although bcrypt is a password hash and not a function that derives a key",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-kdf-parameters",
           "covers": "Rfc2898DeriveBytes without or under 100000 iterations, BCrypt cost, Scrypt, ASP.NET password hasher iteration count and Argon2 parameters below the floor",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts; bcrypt cost is reported too, although bcrypt is a password hash and not a function that derives a key",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.weak-kdf-parameters",
           "covers": "PBEKeySpec iteration counts, BCrypt and Spring encoder costs, SCrypt and Argon2 parameters below the floor, as literals",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts; bcrypt cost is reported too, although bcrypt is a password hash and not a function that derives a key",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.weak-kdf-parameters",
           "covers": "Hash_pbkdf2 and openssl_pbkdf2 iterations, password_hash cost options and sodium pwhash limits below the floor, as literals",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts; bcrypt cost is reported too, although bcrypt is a password hash and not a function that derives a key",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.weak-kdf-parameters",
           "covers": "Pbkdf2, bcrypt, scrypt and argon2 crates called with a literal work factor below the floor",
-          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware",
+          "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts; bcrypt cost is reported too, although bcrypt is a password hash and not a function that derives a key",
           "depth": "partial"
         }
       ],
@@ -807,7 +807,7 @@
     },
     {
       "requirement": "V11.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -816,22 +816,22 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.insecure-random-for-secret",
-          "covers": "Math.random and lodash random flowing into a variable or property named like a token, secret, password, nonce, salt or key",
+          "covers": "Math.random and lodash random flowing into a variable or property named like a token, secret, password, nonce, salt, OTP, CSRF value, session id, API, private, secret or encryption key, or a reset, verification or similar code",
           "misses": "Secrets under names the pattern does not match; values that cross a function; the amount of entropy of a secure generator (bit length); behavior of the generator under load",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.uuid-as-secret-token",
-          "covers": "Uuid v1 and v4 and crypto.randomUUID assigned to a name like token, secret, nonce, salt or key",
-          "misses": "UUIDs used as secrets under other names; whether a given UUID version is predictable; an informational finding that does not block",
+          "covers": "Uuid v1 and v4 and crypto.randomUUID flowing into a name like token, secret, password, nonce, salt, OTP, CSRF value, API, private, secret or encryption key, or a reset, verification or similar code",
+          "misses": "UUIDs used as secrets under other names; whether a given UUID version is predictable; an informational finding that does not block; a uuid function imported under another name (for example { v4 }) is not seen",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.insecure-random-for-secret",
           "covers": "Random module calls assigned to a name like token, secret, password, code, nonce, salt or key",
-          "misses": "Secrets under names the pattern does not match; values that cross a function; the amount of entropy of a secure generator (bit length); behavior of the generator under load",
+          "misses": "Secrets under names the pattern does not match; values that cross a function; the amount of entropy of a secure generator (bit length); behavior of the generator under load; the names key and code are matched on their own, so an index or a status code assigned from a random call is reported too",
           "depth": "partial"
         },
         {
@@ -845,7 +845,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.go.insecure-random-for-secret",
           "covers": "Math/rand calls assigned to a name like token, secret, password, nonce, salt or key (crypto/rand big ints are not flagged)",
-          "misses": "Secrets under names the pattern does not match; values that cross a function; the amount of entropy of a secure generator (bit length); behavior of the generator under load",
+          "misses": "Secrets under names the pattern does not match; values that cross a function; the amount of entropy of a secure generator (bit length); behavior of the generator under load; the names key and code are matched on their own, so an index or a status code assigned from a random call is reported too",
           "depth": "partial"
         },
         {
@@ -858,57 +858,57 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.insecure-random-for-secret",
-          "covers": "System.Random instances and Random.Shared assigned to a name like password, token, secret, nonce, salt or key",
+          "covers": "System.Random instances and Random.Shared assigned to a name like password, token, secret, nonce, salt, OTP, CSRF value, or an API, private, encryption, signing or HMAC key",
           "misses": "Secrets under names the pattern does not match; values that cross a function; the amount of entropy of a secure generator (bit length); behavior of the generator under load",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.uuid-as-secret-token",
-          "covers": "Guid.NewGuid and Guid.CreateVersion7 assigned to a name like token, secret, key, nonce or session id",
+          "covers": "Guid.NewGuid and Guid.CreateVersion7 assigned to a name like token, secret, password, nonce, salt, OTP, CSRF value, session id, or an API, private, encryption, signing or HMAC key",
           "misses": "UUIDs used as secrets under other names; whether a given UUID version is predictable; an informational finding that does not block",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.insecure-random-for-secret",
-          "covers": "Java.util.Random, Math.random, ThreadLocalRandom and RandomStringUtils assigned to a name like token, secret, password, nonce, salt or key",
+          "covers": "Java.util.Random, Math.random, ThreadLocalRandom and RandomStringUtils assigned to a name like password, token, secret, nonce, salt, OTP, CSRF value, or an API, private, encryption, signing or HMAC key",
           "misses": "Secrets under names the pattern does not match; values that cross a function; the amount of entropy of a secure generator (bit length); behavior of the generator under load",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.uuid-as-secret-token",
-          "covers": "UUID.randomUUID and nameUUIDFromBytes assigned to a name like token, secret, key, nonce or session id",
+          "covers": "UUID.randomUUID and nameUUIDFromBytes assigned to a name like token, secret, password, nonce, salt, OTP, CSRF value, session id, or an API, private, encryption, signing or HMAC key",
           "misses": "UUIDs used as secrets under other names; whether a given UUID version is predictable; an informational finding that does not block",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.insecure-random-for-secret",
-          "covers": "Rand, mt_rand, uniqid, lcg_value, str_shuffle and microtime assigned to a name like token, secret, password, nonce, salt or key",
+          "covers": "Rand, mt_rand, uniqid, lcg_value, str_shuffle and microtime flowing into a name like token, secret, password, nonce, salt, OTP, CSRF value, or an API, private, encryption, signing or master key",
           "misses": "Secrets under names the pattern does not match; values that cross a function; the amount of entropy of a secure generator (bit length); behavior of the generator under load",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.uuid-as-secret-token",
-          "covers": "Ramsey Uuid and Laravel Str::uuid assigned to a name like token, secret, key, nonce or code",
+          "covers": "Ramsey Uuid and Laravel Str::uuid flowing into a name like token, secret, password, nonce, salt, OTP, CSRF value, or an API, private, encryption, signing or master key",
           "misses": "UUIDs used as secrets under other names; whether a given UUID version is predictable; an informational finding that does not block",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.insecure-random-for-secret",
-          "covers": "SmallRng, seeded rand generators, fastrand and PCG or xoshiro generators assigned to a name like token, secret, password, nonce, salt or key",
+          "covers": "SmallRng, seeded rand generators, fastrand and PCG or xoshiro generators flowing into a name like token, secret, password, nonce, salt, OTP, CSRF value, or an API, private, encryption, signing or master key",
           "misses": "Secrets under names the pattern does not match; values that cross a function; the amount of entropy of a secure generator (bit length); behavior of the generator under load",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.uuid-as-secret-token",
-          "covers": "Uuid v4 and v7 constructors assigned to a name like token, secret, key, nonce or code",
-          "misses": "UUIDs used as secrets under other names; whether a given UUID version is predictable; an informational finding that does not block",
+          "covers": "Uuid::new_v4 and Uuid::new_v7 assigned to a name like token, secret, password, nonce, salt, OTP, CSRF value, or an API, private, encryption, signing or master key",
+          "misses": "UUIDs used as secrets under other names; whether a given UUID version is predictable; an informational finding that does not block; Uuid::now_v7 is not seen",
           "depth": "partial"
         }
       ],
@@ -925,7 +925,7 @@
     },
     {
       "requirement": "V11.6.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -934,29 +934,29 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.weak-key-size",
-          "covers": "Crypto, node-forge and node-rsa key generation with a literal RSA or DSA size under 2048 bits, and elliptic curves of 192 bits or fewer",
+          "covers": "Crypto, node-forge and node-rsa key generation with a literal RSA size under 2048 bits (DSA only through crypto.generateKeyPair), and elliptic curves from a short list of named curves (secp112 to secp192, prime192v1, sect113 to sect193)",
           "misses": "Sizes held in variables or configuration; keys made outside the code (key store, HSM, command line tools); symmetric key lengths; strength is judged by size alone, not by the whole algorithm and its configuration; the algorithms and modes used to generate and seed keys, and key generation flaws other than a short size",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.weak-signature-hash",
-          "covers": "CreateHmac, createSign, createVerify, sign and verify with a literal MD5 or SHA-1 name, and the CryptoJS HmacMD5 and HmacSHA1",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "covers": "Crypto createSign, createVerify, sign and verify with a literal MD5 or SHA-1 name",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); the message authentication calls the rule also reports are not read as digital signatures here",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.weak-key-size",
-          "covers": "Cryptography and PyCryptodome RSA and DSA key generation with a literal size under 2048 bits, and the short curves SECP192R1 and SECT163",
+          "covers": "Cryptography, PyCryptodome and paramiko RSA generation and DSA generation with a literal size under 2048 bits, and the curves SECP192R1, SECT163K1 and SECT163R2",
           "misses": "Sizes held in variables or configuration; keys made outside the code (key store, HSM, command line tools); symmetric key lengths; strength is judged by size alone, not by the whole algorithm and its configuration; the algorithms and modes used to generate and seed keys, and key generation flaws other than a short size",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.weak-signature-hash",
-          "covers": "Hmac with md5 or sha1, cryptography sign, verify and ECDSA with MD5 or SHA-1, and PyCryptodome PKCS#1 signing with those hashes",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "covers": "Cryptography sign, verify and ECDSA with MD5 or SHA-1, and PyCryptodome PKCS#1 signing with those hashes",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); the message authentication calls the rule also reports are not read as digital signatures here",
           "depth": "partial"
         },
         {
@@ -969,22 +969,22 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.weak-signature-hash",
-          "covers": "Hmac with md5 or sha1, rsa PKCS#1 v1.5 and PSS signing and verifying with MD5 or SHA-1, and the x509 SHA-1 and MD5 signature algorithms",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "covers": "rsa PKCS#1 v1.5 and PSS signing and verifying with MD5 or SHA-1, and the x509 SHA-1 and MD5 signature algorithm constants",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); the message authentication calls the rule also reports are not read as digital signatures here",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-key-size",
           "covers": "RSA and DSA creation or KeySize assignment with a literal size under 2048 bits, and short named elliptic curves",
-          "misses": "Sizes held in variables or configuration; keys made outside the code (key store, HSM, command line tools); symmetric key lengths; strength is judged by size alone, not by the whole algorithm and its configuration; the algorithms and modes used to generate and seed keys, and key generation flaws other than a short size",
+          "misses": "Sizes held in variables or configuration; keys made outside the code (key store, HSM, command line tools); symmetric key lengths; strength is judged by size alone, not by the whole algorithm and its configuration; the algorithms and modes used to generate and seed keys, and key generation flaws other than a short size; a KeySize assignment is matched on any receiver whose name contains rsa or dsa (ecdsa too), so the size of an elliptic curve key can be read as an RSA or DSA size",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-signature-hash",
-          "covers": "SignData, SignHash, VerifyData and VerifyHash with MD5 or SHA-1, the HMACSHA1 and HMACMD5 classes, and SHA-1 security algorithm constants",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "covers": "SignData, SignHash, VerifyData and VerifyHash with MD5 or SHA-1, and the SHA-1 signature algorithm constants of the security library",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); the message authentication calls the rule also reports are not read as digital signatures here",
           "depth": "partial"
         },
         {
@@ -997,8 +997,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.weak-signature-hash",
-          "covers": "Signature and Mac algorithms with MD2, MD5 or SHA-1, and commons-codec and Guava HMAC helpers of MD5 and SHA-1",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "covers": "Signature algorithms with MD2, MD5 or SHA-1",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); the message authentication calls the rule also reports are not read as digital signatures here",
           "depth": "partial"
         },
         {
@@ -1011,8 +1011,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.weak-signature-hash",
-          "covers": "Hash_hmac with md5, sha1 or similar, and openssl_sign and openssl_verify with an MD5 or SHA-1 algorithm, or no algorithm named",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "covers": "openssl_sign and openssl_verify with an MD5 or SHA-1 algorithm, or no algorithm named (the default is SHA-1)",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); the message authentication calls the rule also reports are not read as digital signatures here",
           "depth": "partial"
         },
         {
@@ -1025,8 +1025,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.weak-signature-hash",
-          "covers": "RustCrypto HMAC, RSA signing schemes and signing keys instantiated with MD5 or SHA-1",
-          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation)",
+          "covers": "RSA signing schemes, signing and verifying keys, and openssl Signer and Verifier instantiated with MD5 or SHA-1, and the legacy SHA-1 signature constants of ring",
+          "misses": "Algorithms held in variables or configuration; other libraries; digests used for data integrity outside signatures and MACs; output length of hashes beyond the weak list (SHA-2 truncation); the message authentication calls the rule also reports are not read as digital signatures here",
           "depth": "partial"
         }
       ],
@@ -1034,7 +1034,7 @@
     },
     {
       "requirement": "V11.6.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -1057,14 +1057,14 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-dh-parameters",
-          "covers": "Diffie-Hellman creation with a key size under 2048 bits or a weak group",
+          "covers": "BouncyCastle DHParametersGenerator initialised with a size under 2048 bits",
           "misses": "Sizes held in variables or configuration; elliptic curve key exchange parameters; the standard groups beyond the weak list; the key exchange algorithms a TLS stack negotiates (that is configuration of the server)",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.weak-dh-parameters",
-          "covers": "KeyPairGenerator, AlgorithmParameterGenerator and DHGenParameterSpec for DH with a size under 2048 bits, and the small named groups",
+          "covers": "KeyPairGenerator and AlgorithmParameterGenerator initialised for DH with a size under 2048 bits, DHGenParameterSpec, and BouncyCastle DHParametersGenerator",
           "misses": "Sizes held in variables or configuration; elliptic curve key exchange parameters; the standard groups beyond the weak list; the key exchange algorithms a TLS stack negotiates (that is configuration of the server)",
           "depth": "partial"
         },

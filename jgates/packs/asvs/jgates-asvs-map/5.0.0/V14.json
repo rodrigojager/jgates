@@ -22,7 +22,7 @@
     },
     {
       "requirement": "V14.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "privacy"
@@ -32,49 +32,49 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.sensitive-query-parameter",
           "covers": "URLs and URLSearchParams, searchParams and request params that carry a password, secret or API key parameter name",
-          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.sensitive-query-parameter",
           "covers": "URLs, requests params and urlencode dictionaries that carry a password, secret or API key parameter name",
-          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.sensitive-query-parameter",
           "covers": "URL strings and url.Values that carry a password, secret or API key parameter name",
-          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.sensitive-query-parameter",
           "covers": "URL strings and QueryHelpers calls that carry a password, secret or API key parameter name",
-          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.sensitive-query-parameter",
           "covers": "URL strings, query parameters and URIBuilder calls that carry a password, secret or API key parameter name",
-          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.sensitive-query-parameter",
           "covers": "URL strings, http_build_query and client query options that carry a password, secret or API key parameter name",
-          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.sensitive-query-parameter",
           "covers": "URL strings, query pairs and request queries that carry a password, secret or API key parameter name",
-          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
           "depth": "partial"
         },
         {
@@ -98,7 +98,7 @@
     },
     {
       "requirement": "V14.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "privacy"
@@ -134,7 +134,7 @@
     },
     {
       "requirement": "V14.2.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "privacy"
@@ -161,7 +161,7 @@
     },
     {
       "requirement": "V14.2.8",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "privacy"
@@ -184,7 +184,7 @@
     },
     {
       "requirement": "V14.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "privacy"
@@ -207,7 +207,7 @@
     },
     {
       "requirement": "V14.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "privacy",
@@ -230,7 +230,7 @@
     },
     {
       "requirement": "V14.3.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "privacy"

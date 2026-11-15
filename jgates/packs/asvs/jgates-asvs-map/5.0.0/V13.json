@@ -34,7 +34,7 @@
     },
     {
       "requirement": "V13.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "secrets"
@@ -96,7 +96,7 @@
     },
     {
       "requirement": "V13.2.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -105,8 +105,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.http-client-without-timeout",
-          "covers": "Axios calls and instances with no timeout option",
-          "misses": "Only the connection timeout is examined: connection pool limits, behavior when the limit is reached and retry strategy are not; timeouts set elsewhere (shared client, proxy, wrapper); what the documented configuration for each service says; an informational finding that does not block",
+          "covers": "Axios method calls and axios(...) with no timeout option",
+          "misses": "Only the connection timeout is examined: connection pool limits, behavior when the limit is reached and retry strategy are not; timeouts set elsewhere (shared client, proxy, wrapper); what the documented configuration for each service says; an informational finding that does not block; clients made with axios.create are not seen",
           "depth": "partial"
         },
         {
@@ -149,7 +149,7 @@
     },
     {
       "requirement": "V13.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "secrets"
@@ -264,7 +264,7 @@
     },
     {
       "requirement": "V13.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -287,7 +287,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.debug-mode-enabled",
-          "covers": "Gin debug mode and framework Debug flags set in code",
+          "covers": "Gin SetMode with the debug mode, and Debug set to true on an Echo instance made in the same function",
           "misses": "Debug behavior controlled by environment variables that decide at run time, or by deployment configuration outside the repository; defaults of a framework that no file states; components of the system other than those modeled; whether the setting reaches production",
           "depth": "partial"
         },
@@ -315,7 +315,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.config.debug-mode-enabled",
-          "covers": "Debug keys of .env files, php.ini, .htaccess, web.config, application properties and yml, and Laravel app configuration set to on",
+          "covers": "Debug switches of .env files (APP_DEBUG, FLASK_DEBUG, DJANGO_DEBUG and SYMFONY_DEBUG on), a top-level debug key set to true, a Laravel 'debug' => true, the ASP.NET compilation debug attribute, and Xdebug remote or debug modes in php.ini",
           "misses": "Debug behavior controlled by environment variables that decide at run time, or by deployment configuration outside the repository; defaults of a framework that no file states; components of the system other than those modeled; whether the setting reaches production",
           "depth": "partial"
         },
@@ -332,7 +332,7 @@
     },
     {
       "requirement": "V13.4.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "hardening"
@@ -410,7 +410,7 @@
     },
     {
       "requirement": "V13.4.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "hardening"
@@ -428,7 +428,7 @@
     },
     {
       "requirement": "V13.4.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "hardening"
@@ -472,14 +472,14 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.docs-or-monitoring-endpoint-exposed",
-          "covers": "Routes named like metrics, actuator, swagger, api-docs, telescope, horizon or debug endpoints",
+          "covers": "Routes named metrics, actuator, swagger, api-docs, docs, openapi, telescope, horizon, _profiler, debugbar, server-status or prometheus",
           "misses": "Endpoints guarded by authentication, network rules or environment conditions the rule cannot see; whether exposure is intended; documentation or monitoring endpoints of other frameworks; what a running system actually serves; an informational finding that does not block",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.config.docs-or-monitoring-endpoint-exposed",
-          "covers": "Spring Boot Actuator exposure keys in properties, yml and env files",
+          "covers": "Spring Boot Actuator exposure set to every endpoint (a wildcard) in properties, yml and env files",
           "misses": "Endpoints guarded by authentication, network rules or environment conditions the rule cannot see; whether exposure is intended; documentation or monitoring endpoints of other frameworks; what a running system actually serves; an informational finding that does not block",
           "depth": "partial"
         }
@@ -488,7 +488,7 @@
     },
     {
       "requirement": "V13.4.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "hardening"
@@ -497,14 +497,14 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.version-header-exposed",
-          "covers": "X-Powered-By header set explicitly, Express x-powered-by left enabled, and helmet hidePoweredBy off",
-          "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
+          "covers": "X-Powered-By header set explicitly to any value, Express x-powered-by enabled explicitly, and helmet hidePoweredBy off",
+          "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block; Express sends X-Powered-By by default, which no file states and the rule cannot see",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.version-header-exposed",
-          "covers": "X-Powered-By and Server headers set to a literal with a version, and uvicorn server header left on",
+          "covers": "X-Powered-By header set to any value, a Server header literal that holds a digit, and uvicorn server header turned on explicitly",
           "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
           "depth": "partial"
         },
@@ -518,14 +518,14 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.version-header-exposed",
-          "covers": "Kestrel AddServerHeader and response headers that carry framework names with versions",
+          "covers": "Kestrel AddServerHeader set to true, X-Powered-By and ASP.NET version headers set to a literal, and a Server header literal with a version number",
           "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.version-header-exposed",
-          "covers": "X-Powered-By, X-Generator and similar headers set explicitly, and Jetty or Tomcat version sending options on",
+          "covers": "X-Powered-By, X-Generator and X-AspNet-Version headers set with any value, and the Jetty options that send the server version or X-Powered-By",
           "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
           "depth": "partial"
         },
@@ -551,7 +551,7 @@
             "10037",
             "10061"
           ],
-          "covers": "Alerts of the ZAP scan of a running target about the Server, X-Powered-By and X-AspNet-Version response headers that show versions",
+          "covers": "Alerts of the ZAP scan of a running target about a Server header that carries a version (10036-2), any X-Powered-By header (10037) and the X-AspNet-Version header (10061)",
           "misses": "Version details in bodies or error pages; headers on pages ZAP did not reach; components that show versions only on some paths",
           "depth": "partial"
         }
