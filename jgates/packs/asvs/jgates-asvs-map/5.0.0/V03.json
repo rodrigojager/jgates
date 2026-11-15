@@ -5,219 +5,345 @@
     {
       "requirement": "V3.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "A written statement of browser expectations is a document a person must supply; no check reads documentation."
     },
     {
       "requirement": "V3.2.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "Whether a resource can be framed or rendered out of context depends on the headers a deployed server really sends; no JGates check inspects that."
     },
     {
       "requirement": "V3.2.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xss-dom-html-write",
+          "covers": "Assignments to innerHTML or outerHTML, document.write and insertAdjacentHTML fed a value that is not a literal, in JavaScript and TypeScript.",
+          "misses": "Other languages, jQuery html(), framework-specific sinks, values wrapped by a sanitizer the rule does not recognize, and any proof that the data was meant to be text.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xss-react-dangerously-set-html",
+          "covers": "React markup props that inject a non-literal value as HTML.",
+          "misses": "Other front-end frameworks, a sanitizer the rule does not know, and any judgment on the data's intent.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "CLIENT-SIDE.md#DOM-based XSS",
+          "covers": "A model traces browser-controlled sources into HTML-writing sinks and framework escape hatches.",
+          "misses": "Anything the model does not read; the finding depends on its source reading only.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules and the audit block look for the unsafe way of writing text into the page, which is the opposite of the safe rendering the requirement wants."
     },
     {
       "requirement": "V3.2.3",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "CLIENT-SIDE.md#DOM clobbering",
+          "covers": "A model looks for injected id or name attributes that shadow a global or configuration value the code later trusts.",
+          "misses": "Code outside the reviewed files, and whether the page applies every protective practice the requirement lists.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit class is the same attack the requirement guards against, so a completed review of it examines part of the requirement."
     },
     {
       "requirement": "V3.3.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check reads cookie attributes or cookie-name prefixes; the audit class on cookies treats missing flags as hardening notes only."
     },
     {
       "requirement": "V3.3.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check looks at the SameSite value chosen for each cookie."
     },
     {
       "requirement": "V3.3.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check looks at cookie-name prefixes."
     },
     {
       "requirement": "V3.3.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check reads the HttpOnly attribute of cookies or how a session value reaches the client."
     },
     {
       "requirement": "V3.3.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "Cookie size depends on the data a running system stores; a source check cannot bound it."
     },
     {
       "requirement": "V3.4.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "The header must be present on every response of the deployed system; no JGates check inspects live responses for it."
     },
     {
       "requirement": "V3.4.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cors-any-origin-with-credentials",
+          "covers": "The Express cors() middleware configured with a wildcard origin and credentials together.",
+          "misses": "Reflected or weakly matched origins, CORS set by hand on responses, other frameworks and languages, and the case of a wildcard on a response that carries sensitive data without credentials.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "CLIENT-SIDE.md#Credentialed CORS trust",
+          "covers": "A model checks whether the server reflects or loosely matches the Origin value while allowing credentials and returning sensitive data.",
+          "misses": "Behavior of the deployed server and proxies; only the source that was read.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rule catches the worst wildcard setup and the audit block catches origin values accepted without a proper allowlist, which are the two ways the requirement is violated in code."
     },
     {
       "requirement": "V3.4.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "The policy header is set by the running application or its proxy; no JGates check reads response headers."
     },
     {
       "requirement": "V3.4.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "Needs the real response headers of a deployed system; no JGates check inspects them."
     },
     {
       "requirement": "V3.4.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "A referrer policy lives in response headers or page markup of a deployed system; no JGates check inspects either."
     },
     {
       "requirement": "V3.4.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "The directive must be on every response of the running system; the clickjacking audit class treats missing headers on read-only content as a hardening note, so it does not examine this."
     },
     {
       "requirement": "V3.4.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "The reporting location is part of a deployed policy header that no JGates check reads."
     },
     {
       "requirement": "V3.4.8",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "Needs the headers of live document responses; no JGates check reads them."
     },
     {
       "requirement": "V3.5.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.csrf-protection-disabled",
+          "covers": "Django-style views decorated with csrf_exempt, which removes the token check.",
+          "misses": "Other Python frameworks, CSRF defenses that are absent rather than disabled, and views protected by another means.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.csrf-protection-disabled",
+          "covers": "Spring Security configuration that switches CSRF protection off.",
+          "misses": "Applications where protection was never added, other Java frameworks, and token-authenticated endpoints where disabling is intended.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Ordinary CSRF",
+          "covers": "A model inventories cookie-authenticated mutations and checks whether each has a token, same-site binding or strict origin validation.",
+          "misses": "Anything outside the source the model read, and endpoints it does not enumerate.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Each check examines whether state-changing requests from another site are validated, which is the control the requirement asks for when preflight is not relied on."
     },
     {
       "requirement": "V3.5.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check tests whether sensitive functionality can be called with a request that avoids a preflight."
     },
     {
       "requirement": "V3.5.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check maps sensitive operations to the HTTP method used to reach them."
     },
     {
       "requirement": "V3.5.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "Which hostnames serve which applications is a deployment fact outside the repository."
     },
     {
       "requirement": "V3.5.5",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "CLIENT-SIDE.md#`postMessage` origin and source trust",
+          "covers": "A model looks at message handlers that act on event data without an exact origin allowlist.",
+          "misses": "Syntax validation of the message body is not the focus, and handlers the model does not read are missed.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit class examines the origin check of message handlers, which is the core of the requirement."
     },
     {
       "requirement": "V3.5.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check looks for JSONP endpoints."
     },
     {
       "requirement": "V3.5.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check looks for authorization-bound data placed in script responses."
     },
     {
       "requirement": "V3.5.8",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "Depends on request-header validation or a resource policy header of a deployed system; no JGates check examines either."
     },
     {
       "requirement": "V3.6.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check reads page markup for externally hosted assets or integrity attributes; the supply-chain method concerns dependencies and releases, not this."
     },
     {
       "requirement": "V3.7.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check identifies obsolete browser plugin technologies."
     },
     {
       "requirement": "V3.7.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "CLIENT-SIDE.md#Client-side navigation confusion",
+          "covers": "A model checks browser-side code where a source controls a redirect or navigation without destination policy.",
+          "misses": "Server-side redirects in HTTP responses, which the requirement also covers, are not part of this block.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit class looks for redirects steered by input without a destination policy, which is half of what the requirement concerns (the browser side)."
     },
     {
       "requirement": "V3.7.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "No check looks for an interstitial before leaving the application."
     },
     {
       "requirement": "V3.7.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "Membership of a public preload list is an external fact about a domain, not visible in the repository."
     },
     {
       "requirement": "V3.7.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
-      "checks": []
+      "checks": [],
+      "why": "Needs observation of the application in browsers lacking the features, plus the document that states the intended behavior."
     }
   ]
 }
