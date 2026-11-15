@@ -1,0 +1,104 @@
+# Group configuration for Go. Frameworks covered: net/http (FileServer, DefaultServeMux profiling imports),
+# gin, echo, fiber, gorilla/mux, prometheus promhttp, swaggo (gin-swagger, echo-swagger, http-swagger),
+# gin-contrib/pprof, fiber's pprof and monitor middleware.
+rules:
+  - id: jgates.go.debug-mode-enabled
+    message: The framework debug mode is switched on outside a development-only branch, which prints routes, errors and stack traces to clients or logs. Use gin.ReleaseMode, or leave Debug off, and enable it only inside a check of the environment.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: configuration
+      cwe: "CWE-489"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.2"]
+    patterns:
+      - pattern-either:
+          - pattern: gin.SetMode(gin.DebugMode)
+          - pattern: gin.SetMode("debug")
+          - patterns:
+              - pattern: $E.Debug = true
+              - pattern-inside: |
+                  $E := echo.New()
+                  ...
+      - pattern-not-inside: |
+          if $C {
+            ...
+          }
+
+  - id: jgates.go.docs-or-monitoring-endpoint-exposed
+    message: An API documentation, profiling or monitoring endpoint is registered unconditionally, so anyone who reaches the service can read it. Register it only behind a development check or an authentication middleware, or serve it on an internal-only listener.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.5"]
+    patterns:
+      - pattern-either:
+          - pattern: import _ "net/http/pprof"
+          - pattern: import _ "expvar"
+          - pattern: $R.GET("/swagger/*any", ginSwagger.WrapHandler(...))
+          - pattern: $R.GET("/swagger/*", echoSwagger.WrapHandler)
+          - pattern: $R.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
+          - pattern: $M.Handle("/swagger/", httpSwagger.Handler(...))
+          - pattern: $M.Handle("/metrics", promhttp.Handler())
+          - pattern: $M.HandleFunc("/debug/pprof/", pprof.Index)
+          - pattern: $M.Handle("/debug/pprof/", pprof.Handler(...))
+          - pattern: pprof.Register($R)
+          - pattern: $A.Use(pprof.New())
+          - pattern: $A.Get("/metrics", monitor.New(...))
+      - pattern-not-inside: |
+          if $C {
+            ...
+          }
+
+  - id: jgates.go.directory-listing-enabled
+    message: A static file handler lists directory contents, which reveals files that were never meant to be linked. Wrap the file system so Open fails on directories without an index file, serve named files with http.ServeFile, or leave listing off.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: configuration
+      cwe: "CWE-548"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.3"]
+    pattern-either:
+      - pattern: http.FileServer(http.Dir(...))
+      - pattern: gin.Dir($R, true)
+      - pattern: 'middleware.StaticConfig{..., Browse: true, ...}'
+      - pattern: 'fiber.Static{..., Browse: true, ...}'
+      - pattern: 'static.Config{..., Browse: true, ...}'
+
+  - id: jgates.go.version-header-exposed
+    message: A response header states the framework or server version, which helps an attacker pick known exploits. Do not set the header, or set it to a value without a version.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: configuration
+      cwe: "CWE-497"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.6"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $W.Header().Set("$N", "$V")
+                  - pattern: $W.Header().Add("$N", "$V")
+                  - pattern: $C.Header("$N", "$V")
+                  - pattern: $C.Set("$N", "$V")
+                  - pattern: $C.Response().Header().Set("$N", "$V")
+              - metavariable-regex:
+                  metavariable: $N
+                  regex: (?i)^(server|x-powered-by|x-aspnet-version|x-generator)$
+              - metavariable-regex:
+                  metavariable: $V
+                  regex: .*\d+\.\d+.*
+          - patterns:
+              - pattern: 'fiber.Config{..., ServerHeader: "$V", ...}'
+              - metavariable-regex:
+                  metavariable: $V
+                  regex: .*\d+\.\d+.*

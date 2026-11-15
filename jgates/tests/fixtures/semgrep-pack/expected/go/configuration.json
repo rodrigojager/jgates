@@ -1,0 +1,9 @@
+{
+  "files": ["configuration.go"],
+  "ruleIds": [
+    "jgates.go.debug-mode-enabled",
+    "jgates.go.docs-or-monitoring-endpoint-exposed",
+    "jgates.go.directory-listing-enabled",
+    "jgates.go.version-header-exposed"
+  ]
+}
