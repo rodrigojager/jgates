@@ -88,6 +88,8 @@
   "coverage_reason_unsupported_no_check": "nenhuma verificação do JGates examina isto",
   "coverage_reason_unsupported_pending": "nenhuma verificação revisada do JGates examina isto (a entrada do mapeamento aguarda revisão)",
   "coverage_reason_unsupported_other_stacks": "as verificações mapeadas não existem para as stacks deste projeto. {details}",
+  "coverage_reason_unsupported_no_check_for_languages": "nenhuma verificação do JGates cobre isto em {languages} (existem para: {others})",
+  "coverage_reason_unsupported_no_check_for_no_languages": "nenhuma verificação do JGates cobre isto nas linguagens deste projeto (existem para: {others})",
   "coverage_check_ran": "rodou até o fim em {run}",
   "coverage_check_ran_reused": "rodou até o fim em {run}, reaproveitada do cache (mesmas entradas)",
   "coverage_check_disabled": "desligada: {detail}",

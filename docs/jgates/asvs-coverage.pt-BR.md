@@ -21,6 +21,25 @@ requisito examinado por uma verificação determinística diz isso; um examinado
 do código por IA" e é contado à parte em todos os totais. Uma verificação reaproveitada do cache conta, e a linha diz
 "reaproveitada".
 
+### As verificações de um requisito aberto
+
+Um requisito aberto lista as verificações mapeadas a ele, cada uma com o seu status:
+
+| Status | O que significa |
+|---|---|
+| executada | Rodou até o fim nas execuções que o mapa lê |
+| não executada | Poderia rodar neste projeto e não rodou (desligada, falhou, estourou o tempo, sem execução Semantic do seu método...) |
+| sem suporte neste projeto | Deveria rodar nas linguagens do projeto, mas não consegue: a linguagem existe mas não foi varrida, a capacidade não tem linha validada na matriz para a stack do projeto, a ferramenta disse que não pode rodar neste projeto, ou a regra é desconhecida nesta instalação |
+| deixada de fora (somente determinísticas) | Uma verificação Semantic, deixada de fora por "somente determinísticas" |
+
+Uma verificação de uma linguagem que o projeto não tem (uma regra Go ou Rust num projeto só com C#) não é listada e
+não conta em nada: ela não tem relação com este projeto. Quando todas as verificações mapeadas a um requisito são desse
+tipo, o requisito continua sem suporte e o motivo nomeia as linguagens do projeto e as linguagens para as quais as
+verificações existem, por exemplo "nenhuma verificação do JGates cobre isto em C# (existem para: Go, Rust)". Isso
+depende de uma execução Quality: sem ela as linguagens do projeto são desconhecidas e todas as verificações são
+listadas. A saída `--json` mantém essa verificação, com `"relevant": false` e o código `LANGUAGE_ABSENT`; todas as
+outras têm `"relevant": true`.
+
 ## A regra do mapeamento
 
 O mapeamento é conservador por construção, porque um mapeamento otimista é uma afirmação falsa.

@@ -45,6 +45,8 @@ interface Check {
   runId: string | null;
   reused: boolean;
   openFindings: number | null;
+  /** False for a rule of a language the project lacks: not shown and not counted. */
+  relevant: boolean;
 }
 
 export interface Row {
@@ -380,6 +382,8 @@ function RequirementRow({ row, governed, busy, onNotApplicable, onRemove }: { ro
   const [open, setOpen] = useState(false);
   const panel = `asvs-panel-${row.id}`;
   const own = row.decision !== null && row.decision.id === row.id;
+  // A rule of a language the project lacks bears on nothing here: it is not listed (`relevant` absent: an older answer).
+  const checks = row.checks.filter((c) => c.relevant !== false);
   return (
     <li className="asvs-row" data-testid={`asvs-row-${row.id}`} data-state={row.state}>
       <div className="asvs-row-head">
@@ -417,9 +421,9 @@ function RequirementRow({ row, governed, busy, onNotApplicable, onRemove }: { ro
               {t("asvs_decision", { id: row.decision.id, reason: row.decision.reason, date: row.decision.recorded })}
             </p>
           ) : null}
-          {row.checks.length > 0 ? (
+          {checks.length > 0 ? (
             <ul className="asvs-checks" aria-label={t("asvs_checks_label")}>
-              {row.checks.map((c) => (
+              {checks.map((c) => (
                 <li key={`${c.unit}:${c.id}`} className="asvs-check" data-testid="asvs-check" data-status={c.status}>
                   <strong>{c.category ? `${c.id} (${c.category})` : c.id}</strong> · <span>{tOr(`asvs_check_status_${key(c.status)}`, c.status)}</span>
                   <p className="small">{c.reason}</p>
@@ -450,6 +454,8 @@ function RequirementRow({ row, governed, busy, onNotApplicable, onRemove }: { ro
             </ul>
           ) : row.state === "awaiting-evidence" ? (
             <p data-testid="asvs-awaits">{t("asvs_awaits", { kind: tOr(`asvs_evidence_${key(row.evidence)}`, row.evidence) })}</p>
+          ) : row.checks.length > 0 ? (
+            <p data-testid="asvs-no-check">{t("asvs_no_check_for_languages")}</p>
           ) : (
             <p data-testid="asvs-no-check">{t("asvs_no_check")}</p>
           )}

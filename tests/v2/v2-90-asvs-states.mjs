@@ -80,8 +80,10 @@ const R = {
   pending: distinctSections[6],
   na: distinctSections[7],
   plain: distinctSections[8],
+  goRust: distinctSections[9],
+  csRust: distinctSections[10],
 };
-assert.equal(new Set(Object.values(R).map((r) => r?.id)).size, 9, "nine distinct level-1 requirements");
+assert.equal(new Set(Object.values(R).map((r) => r?.id)).size, 11, "eleven distinct level-1 requirements");
 
 const capabilityRow = matrix.buildMatrix().rows.find((r) => r.state === "validated" && r.stack === "any" && r.adapter !== "semgrep");
 assert.ok(capabilityRow, "a capability with a validated row for any stack");
@@ -89,7 +91,9 @@ const CAPABILITY = `${capabilityRow.adapter}#${capabilityRow.capability}`;
 const packRules = semgrep.buildPackIndex(RULES).rules;
 const jsRule = packRules.find((r) => r.language === "javascript");
 const goRule = packRules.find((r) => r.language === "go");
-assert.ok(jsRule && goRule, "the pack has a JavaScript rule and a Go rule");
+const rustRule = packRules.find((r) => r.language === "rust");
+const csRule = packRules.find((r) => r.language === "csharp");
+assert.ok(jsRule && goRule && rustRule && csRule, "the pack has a JavaScript, a Go, a Rust and a C# rule");
 
 const check = (unit, id, extra = {}) => ({ unit, id, covers: "a construct this check flags", misses: "what it does not model", depth: "partial", ...extra });
 const why = "It bears on the requirement for a reason of its own.";
@@ -123,6 +127,8 @@ function fixtureMapping() {
   set(R.person, unmapped("person"));
   set(R.pending, { status: "pending", evidence: "repository", subdimensions: ["secrets"], checks: [check("capability", CAPABILITY)], why });
   set(R.na, reviewed([check("capability", CAPABILITY)], ["secrets"]));
+  set(R.goRust, reviewed([check("semgrep-rule", goRule.id), check("semgrep-rule", rustRule.id)], [goRule.subdimension]));
+  set(R.csRust, reviewed([check("semgrep-rule", csRule.id), check("semgrep-rule", rustRule.id)], [csRule.subdimension]));
   return dir;
 }
 
@@ -141,10 +147,10 @@ const OTHER_COMMIT = "2222222222222222222222222222222222222222";
  * A finished Quality run with a Semgrep step (the JGates pack selected) and the step of the mapped capability.
  * capability: completed | error | timeout | off. pack: current | stale. scanned: the scanned-languages record or null.
  */
-function storeQuality(home, project, runId, startedAt, { capability = "completed", pack = "current", scanned = { javascript: 4, typescript: 1 }, commit = COMMIT } = {}) {
+function storeQuality(home, project, runId, startedAt, { capability = "completed", pack = "current", scanned = { javascript: 4, typescript: 1 }, languages = ["javascript", "typescript"], commit = COMMIT } = {}) {
   const dir = path.join(home, "workspaces", workspaceId(project), "runs", runId);
   const semgrepStage = { id: "semgrep#sast", label: "Semgrep", kind: "step", adapter: "semgrep", state: "completed", interpreted: true, ...(scanned ? { scannedLanguages: scanned } : {}) };
-  const semgrepItem = { id: "semgrep#sast", tool: "semgrep", adapter: "semgrep", subcheck: null, capabilities: ["sast"], languages: ["javascript", "typescript"], configFiles: packRecords(pack), state: { enabled: true, originLabel: "profile Balanced" }, reason: { code: "SELECTED", message: "Selected by capability:sast" } };
+  const semgrepItem = { id: "semgrep#sast", tool: "semgrep", adapter: "semgrep", subcheck: null, capabilities: ["sast"], languages, configFiles: packRecords(pack), state: { enabled: true, originLabel: "profile Balanced" }, reason: { code: "SELECTED", message: "Selected by capability:sast" } };
   const item = { id: CAPABILITY, tool: capabilityRow.adapter, adapter: capabilityRow.adapter, subcheck: null, capabilities: [capabilityRow.capability], languages: [], configFiles: [] };
   const stages = [semgrepStage];
   const willRun = [semgrepItem];
@@ -222,7 +228,7 @@ const SEM_SAME = "sem_20261114T110000Z_0a0a0a0a";
 const SEM_OTHER = "sem_20261101T110000Z_0b0b0b0b";
 
 /** A throwaway project and data folder with the stored runs, the fixture mapping and a fake engine that records calls. */
-function crafted() {
+function crafted({ runs = true } = {}) {
   const project = tmp("v2-90-project-");
   const home = tmp("v2-90-home-");
   const engine = tmp("v2-90-engine-");
@@ -230,14 +236,16 @@ function crafted() {
   const runtime = path.join(engine, "docker.cjs");
   fs.writeFileSync(runtime, `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(calls)};\nprocess.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};\nrequire(${JSON.stringify(FAKE)});\n`);
   const mapDir = fixtureMapping();
-  storeQuality(home, project, RUNS.good, "2026-11-14T10:00:00.000Z");
-  storeQuality(home, project, RUNS.error, "2026-11-13T10:00:00.000Z", { capability: "error" });
-  storeQuality(home, project, RUNS.timeout, "2026-11-12T10:00:00.000Z", { capability: "timeout" });
-  storeQuality(home, project, RUNS.off, "2026-11-11T10:00:00.000Z", { capability: "off" });
-  storeQuality(home, project, RUNS.stale, "2026-11-10T10:00:00.000Z", { pack: "stale" });
-  storeQuality(home, project, RUNS.noscan, "2026-11-09T10:00:00.000Z", { scanned: null });
-  storeSemantic(home, project, SEM_SAME, "2026-11-14T11:00:00.000Z");
-  storeSemantic(home, project, SEM_OTHER, "2026-11-01T11:00:00.000Z", { commit: OTHER_COMMIT });
+  if (runs) {
+    storeQuality(home, project, RUNS.good, "2026-11-14T10:00:00.000Z");
+    storeQuality(home, project, RUNS.error, "2026-11-13T10:00:00.000Z", { capability: "error" });
+    storeQuality(home, project, RUNS.timeout, "2026-11-12T10:00:00.000Z", { capability: "timeout" });
+    storeQuality(home, project, RUNS.off, "2026-11-11T10:00:00.000Z", { capability: "off" });
+    storeQuality(home, project, RUNS.stale, "2026-11-10T10:00:00.000Z", { pack: "stale" });
+    storeQuality(home, project, RUNS.noscan, "2026-11-09T10:00:00.000Z", { scanned: null });
+    storeSemantic(home, project, SEM_SAME, "2026-11-14T11:00:00.000Z");
+    storeSemantic(home, project, SEM_OTHER, "2026-11-01T11:00:00.000Z", { commit: OTHER_COMMIT });
+  }
   const cli = (args, { locale = "en", env = {} } = {}) => {
     const full = { ...process.env, JGATES_HOME: home, JGATES_LOCALE: locale, NO_COLOR: "1", JGATES_ASVS_MAP_DIR: mapDir, JGATES_CONTAINER_RUNTIME: runtime, ...env };
     if (!("JGATES_POLICY_DIR" in env)) delete full.JGATES_POLICY_DIR;
@@ -296,8 +304,10 @@ test("V2-90: stored runs and a fixture mapping reach each of the five states for
 
   const go = row(doc, R.goRule);
   assert.equal(go.state, "unsupported", "a rule of a language the project lacks");
-  assert.equal(go.code, "UNSUPPORTED_OTHER_STACKS");
-  assert.deepEqual(go.checks.map((c) => [c.status, c.code, c.language]), [["unsupported", "LANGUAGE_NOT_SCANNED", "go"]]);
+  assert.equal(go.code, "UNSUPPORTED_NO_CHECK_FOR_LANGUAGES");
+  assert.equal(go.reason, "no JGates check covers this in JavaScript, TypeScript (there are checks for: Go)");
+  assert.deepEqual(go.checks.map((c) => [c.status, c.code, c.language, c.relevant]), [["unsupported", "LANGUAGE_ABSENT", "go", false]], "kept in the JSON, marked not relevant");
+  assert.ok(rule.checks.every((c) => c.relevant === true));
 
   const ai = row(doc, R.semantic);
   assert.equal(ai.state, "examined");
@@ -391,6 +401,54 @@ test("V2-90: a rule of a language the project lacks is unsupported; another vers
   assert.equal(row(noscan, R.goRule).state, "unsupported");
   assert.deepEqual(row(noscan, R.goRule).checks.map((c) => c.code), ["LANGUAGE_ABSENT"]);
   assert.equal(row(p.map(["--run", RUNS.good]), R.goRule).state, "unsupported");
+});
+
+test("V2-90: in a C#-only project the Go and Rust rules are hidden; a language present but not scanned stays unsupported; without a Quality run nothing is hidden", () => {
+  const p = crafted({ runs: false });
+  const CS = "run_20261115T100000Z_c5c5c5c5";
+  const CS_GO = "run_20261115T090000Z_c6c6c6c6";
+  storeQuality(p.home, p.project, CS, "2026-11-15T10:00:00.000Z", { languages: ["csharp"], scanned: { csharp: 3 } });
+  // The plan saw Go files too (a Go component), but the scan covered none: the Go rule should run and could not.
+  storeQuality(p.home, p.project, CS_GO, "2026-11-15T09:00:00.000Z", { languages: ["csharp", "go"], scanned: { csharp: 3 } });
+
+  const cs = p.map(["--run", CS]);
+  const goRust = row(cs, R.goRust);
+  assert.deepEqual([goRust.state, goRust.code], ["unsupported", "UNSUPPORTED_NO_CHECK_FOR_LANGUAGES"]);
+  assert.equal(goRust.reason, "no JGates check covers this in C# (there are checks for: Go, Rust)", "the reason names the languages, not the checks");
+  assert.ok(!goRust.reason.includes(goRule.id) && !goRust.reason.includes(rustRule.id), goRust.reason);
+  assert.deepEqual(goRust.checks.map((c) => [c.id, c.code, c.relevant]), [[goRule.id, "LANGUAGE_ABSENT", false], [rustRule.id, "LANGUAGE_ABSENT", false]]);
+  const csRust = row(cs, R.csRust);
+  assert.deepEqual([csRust.state, csRust.code], ["examined", "EXAMINED"]);
+  assert.deepEqual(csRust.checks.map((c) => [c.id, c.status, c.relevant]), [[csRule.id, "ran", true], [rustRule.id, "unsupported", false]]);
+  assert.ok(!csRust.reason.includes(rustRule.id), csRust.reason);
+  // The JavaScript rule is irrelevant here too, and requirements with no mapped check keep their own reason.
+  assert.equal(row(cs, R.rule).code, "UNSUPPORTED_NO_CHECK_FOR_LANGUAGES");
+  assert.equal(row(cs, R.rule).reason, "no JGates check covers this in C# (there are checks for: JavaScript/TypeScript)");
+  assert.equal(row(cs, R.plain).code, "UNSUPPORTED_NO_CHECK");
+
+  // The text lists only the relevant checks, in both languages.
+  const text = p.cli(["coverage", "asvs", "--cwd", p.project, "--run", CS]);
+  assert.equal(text.code, 0, text.err);
+  assert.ok(text.out.includes(`no JGates check covers this in C# (there are checks for: Go, Rust)`), text.out.slice(0, 2000));
+  assert.ok(text.out.includes(`- ${csRule.id}:`), "the C# rule is listed");
+  assert.ok(!text.out.includes(`- ${goRule.id}:`) && !text.out.includes(`- ${rustRule.id}:`), "the Go and Rust rules are not listed");
+  const pt = p.cli(["coverage", "asvs", "--cwd", p.project, "--run", CS], { locale: "pt-BR" });
+  assert.equal(pt.code, 0, pt.err);
+  assert.ok(pt.out.includes("nenhuma verificação do JGates cobre isto em C# (existem para: Go, Rust)"), pt.out.slice(0, 2000));
+  assert.ok(!pt.out.includes(`- ${rustRule.id}:`));
+
+  // Go is in the project but was not scanned: the Go rule is relevant and unsupported, the Rust rule is hidden.
+  const csGo = row(p.map(["--run", CS_GO]), R.goRust);
+  assert.deepEqual([csGo.state, csGo.code], ["unsupported", "UNSUPPORTED_OTHER_STACKS"]);
+  assert.deepEqual(csGo.checks.map((c) => [c.id, c.status, c.code, c.relevant]), [[goRule.id, "unsupported", "LANGUAGE_NOT_SCANNED", true], [rustRule.id, "unsupported", "LANGUAGE_ABSENT", false]]);
+  assert.ok(csGo.reason.includes(goRule.id) && !csGo.reason.includes(rustRule.id), csGo.reason);
+
+  // No Quality run: the project's languages are unknown, so nothing is hidden.
+  const none = crafted({ runs: false }).map();
+  assert.equal(none.runs.quality, null);
+  const unknown = row(none, R.goRust);
+  assert.equal(unknown.state, "unexamined");
+  assert.deepEqual(unknown.checks.map((c) => [c.code, c.relevant]), [["NO_QUALITY_RUN", true], ["NO_QUALITY_RUN", true]]);
 });
 
 test("V2-90: not applicable is one entry of .jgates/asvs.json with a reason, a preview and an undo, refused in governed mode", () => {

@@ -53,6 +53,7 @@
   "asvs_evidence_person": "a resposta de uma pessoa ou um processo",
   "asvs_evidence_repository": "o repositório",
   "asvs_no_check": "Nenhuma verificação do JGates examina isto.",
+  "asvs_no_check_for_languages": "Nenhuma verificação do JGates examina isto nas linguagens deste projeto.",
   "asvs_text_english": "O texto dos requisitos é o texto oficial em inglês.",
   "asvs_text_english_sr": "Texto oficial do requisito, em inglês:",
   "asvs_source_link": "fonte",

@@ -99,7 +99,8 @@ function mapText(ctx: CommandContext, map: AsvsMapAnswer): void {
 function rowText(out: (line?: string) => void, row: AsvsRequirementRow): void {
   out(`  ${row.id}  L${row.level}  ${t(stateKey(row.state))}: ${row.reason}`);
   out(`      ${row.text}`);
-  for (const c of row.checks) {
+  // A check of a language the project lacks bears on nothing here: it stays in the JSON only.
+  for (const c of row.checks.filter((check) => check.relevant)) {
     const name = c.category ? `${c.id} (${c.category})` : c.id;
     out(`      - ${name}: ${c.reason}`);
     if (c.ran) {

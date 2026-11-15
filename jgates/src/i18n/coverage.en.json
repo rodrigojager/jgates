@@ -88,6 +88,8 @@
   "coverage_reason_unsupported_no_check": "no JGates check examines this",
   "coverage_reason_unsupported_pending": "no reviewed JGates check examines this (the mapping entry awaits its review)",
   "coverage_reason_unsupported_other_stacks": "the mapped checks do not exist for this project's stacks. {details}",
+  "coverage_reason_unsupported_no_check_for_languages": "no JGates check covers this in {languages} (there are checks for: {others})",
+  "coverage_reason_unsupported_no_check_for_no_languages": "no JGates check covers this in the languages of this project (there are checks for: {others})",
   "coverage_check_ran": "ran to completion in {run}",
   "coverage_check_ran_reused": "ran to completion in {run}, reused from the cache (same inputs)",
   "coverage_check_disabled": "switched off: {detail}",

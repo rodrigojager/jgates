@@ -20,6 +20,24 @@ standard."
 examined by a deterministic check says so; one examined only by a Semantic unit says "AI review of the source" and is
 counted apart in every total. A check reused from the cache counts, and the row says "reused".
 
+### The checks of an opened requirement
+
+An opened requirement lists the checks mapped to it, each with its status:
+
+| Status | What it means |
+|---|---|
+| ran | It ran to completion in the runs the map reads |
+| did not run | It could run on this project and did not (switched off, failed, timed out, no Semantic run of its method...) |
+| not supported for this project | It should run on the project's languages but cannot: the language is present but was not scanned, the capability has no validated matrix row for the project's stack, the tool said it cannot run on this project, or the rule is unknown to this installation |
+| left out (deterministic only) | A Semantic check, left out by "deterministic only" |
+
+A check of a language the project does not have at all (a Go or Rust rule in a project with only C#) is not listed and
+is counted nowhere: it bears on nothing in this project. When every check mapped to a requirement is of that kind, the
+requirement stays unsupported and its reason names the project's languages and the languages the checks exist for, for
+example "no JGates check covers this in C# (there are checks for: Go, Rust)". This needs a Quality run: without one the
+project's languages are unknown and every check is listed. The `--json` output keeps such a check, with
+`"relevant": false` and the code `LANGUAGE_ABSENT`; every other check has `"relevant": true`.
+
 ## The mapping rule
 
 The mapping is conservative by construction, because an optimistic mapping is a false claim.
