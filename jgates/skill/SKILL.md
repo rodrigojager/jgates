@@ -126,6 +126,8 @@ jgates baseline show --cwd . --json
 
 Fewer findings than the baseline is not approval: only the decision of the run is.
 
+Findings are matched per tool, rule and file: by the anchor (the flagged line's text) when every finding of that group has one on both sides, otherwise by the fingerprint; `baseline.matchedBy` says `anchor`, `fingerprint` or `mixed`.
+
 ## Personal data in the project files
 
 `jgates run` never changes the project. Two explicit commands look at personal data (CPF, CNPJ, card, phone, or what the project's own tool recognizes) in the files that go into the next commit. Neither prints the value found, in text or in `--json`; do not try to recover it from the files and do not copy it into a message, a log or a commit.

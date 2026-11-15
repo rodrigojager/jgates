@@ -150,7 +150,10 @@ export interface BaselineComparison {
   warnings: Array<{ code: string; message: string }>;
   new: number;
   kept: number;
-  resolved: Array<{ fingerprint: string; ruleId: string; tool?: string; path?: string }>;
+  /** `line` is the baseline finding's line, when it had one. */
+  resolved: Array<{ fingerprint: string; ruleId: string; tool?: string; path?: string; line?: number }>;
+  /** How the findings were matched: by anchor, by fingerprint v1, or both (groups of each kind). Information only. */
+  matchedBy?: "anchor" | "fingerprint" | "mixed";
 }
 
 export interface ResultRequirement {

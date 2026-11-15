@@ -696,9 +696,20 @@
               },
               "path": {
                 "type": "string"
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 1
               }
             }
           }
+        },
+        "matchedBy": {
+          "enum": [
+            "anchor",
+            "fingerprint",
+            "mixed"
+          ]
         }
       }
     }
