@@ -390,6 +390,11 @@ export default function OverviewScreen() {
         <div>
           <h1>{t("overview_title")}</h1>
           <p>{t("overview_subtitle")}</p>
+          <p className="small">
+            <a href="#/validations/coverage/asvs" data-testid="asvs-link">
+              {t("overview_asvs_link")}
+            </a>
+          </p>
         </div>
         <a className="btn primary" href="#/validations/choose" data-testid="new-run">
           <Icon name="play" />

@@ -1,4 +1,5 @@
 {
+  "semres_asvs_link": "ASVS coverage map with this run",
   "semres_back": "Semantic history",
   "semres_title": "Semantic review {runId}",
   "semres_not_found": "This semantic review does not exist in this workspace.",

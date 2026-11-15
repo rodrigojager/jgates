@@ -1,4 +1,5 @@
 {
+  "semres_asvs_link": "Mapa de cobertura ASVS com esta execução",
   "semres_back": "Histórico semântico",
   "semres_title": "Revisão semântica {runId}",
   "semres_not_found": "Esta revisão semântica não existe neste workspace.",

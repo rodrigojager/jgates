@@ -19,6 +19,11 @@ export default function ValidationsResultScreen({ params }: { params: Record<str
           <a href="#/validations">{t("vres_back")}</a>
         </div>
         <h1>{t("vres_title_page")}</h1>
+        <p className="small">
+          <a href={`#/validations/coverage/asvs?run=${encodeURIComponent(id)}`} data-testid="asvs-link">
+            {t("vres_asvs_link")}
+          </a>
+        </p>
       </div>
       {loaded.loading ? <Loading /> : null}
       {notFound ? <p>{t("vres_not_found")}</p> : loaded.error ? <ErrorNotice error={loaded.error} onRetry={loaded.reload} /> : null}

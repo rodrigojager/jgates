@@ -1,4 +1,5 @@
 {
+  "vres_asvs_link": "ASVS coverage map for this validation",
   "vres_title": "Result",
   "vres_title_page": "Validation details",
   "vres_loading_error": "Could not open this result.",
