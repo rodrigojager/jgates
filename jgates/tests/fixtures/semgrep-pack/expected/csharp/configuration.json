@@ -1,0 +1,10 @@
+{
+  "files": ["Configuration.cs"],
+  "ruleIds": [
+    "jgates.csharp.debug-mode-enabled",
+    "jgates.csharp.docs-or-monitoring-endpoint-exposed",
+    "jgates.csharp.directory-listing-enabled",
+    "jgates.csharp.version-header-exposed",
+    "jgates.csharp.mass-assignment"
+  ]
+}
