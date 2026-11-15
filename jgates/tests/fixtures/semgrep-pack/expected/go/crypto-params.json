@@ -1,0 +1,17 @@
+{
+  "files": ["crypto-params.go"],
+  "ruleIds": [
+    "jgates.go.weak-key-size",
+    "jgates.go.rsa-key-below-3072",
+    "jgates.go.static-iv-or-nonce",
+    "jgates.go.cipher-mode-without-authentication",
+    "jgates.go.weak-cipher-mode",
+    "jgates.go.weak-kdf-parameters",
+    "jgates.go.password-hash-with-fast-hash",
+    "jgates.go.timing-unsafe-comparison",
+    "jgates.go.weak-signature-hash",
+    "jgates.go.hardcoded-encryption-key",
+    "jgates.go.insecure-random-for-secret",
+    "jgates.go.uuid-as-secret-token"
+  ]
+}
