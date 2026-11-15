@@ -11,45 +11,319 @@
     },
     {
       "requirement": "V5.2.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "hardening",
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.request-body-without-size-limit",
+          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.request-body-without-size-limit",
+          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.request-body-without-size-limit",
+          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.request-body-without-size-limit",
+          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.request-body-without-size-limit",
+          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.request-body-without-size-limit",
+          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.request-body-without-size-limit",
+          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A body read in full, or a limit removed or raised to the maximum, leaves the size of what is accepted unbounded in the code.",
+      "applies": {
+        "technology": [
+          "file-upload"
+        ]
+      }
     },
     {
       "requirement": "V5.2.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.upload-content-type-trusted",
+          "covers": "The content type the client declared for an upload used as the type check.",
+          "misses": "The file extension check, the check of the file's own bytes or an image rewrite done in another function, and archives whose members are never typed. A silent result does not show the contents were verified.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.upload-content-type-trusted",
+          "covers": "The content type the client declared for an upload used as the type check.",
+          "misses": "The file extension check, the check of the file's own bytes or an image rewrite done in another function, and archives whose members are never typed. A silent result does not show the contents were verified.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.upload-content-type-trusted",
+          "covers": "The content type the client declared for an upload used as the type check.",
+          "misses": "The file extension check, the check of the file's own bytes or an image rewrite done in another function, and archives whose members are never typed. A silent result does not show the contents were verified.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.upload-content-type-trusted",
+          "covers": "The content type the client declared for an upload used as the type check.",
+          "misses": "The file extension check, the check of the file's own bytes or an image rewrite done in another function, and archives whose members are never typed. A silent result does not show the contents were verified.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.upload-content-type-trusted",
+          "covers": "The content type the client declared for an upload used as the type check.",
+          "misses": "The file extension check, the check of the file's own bytes or an image rewrite done in another function, and archives whose members are never typed. A silent result does not show the contents were verified.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.upload-content-type-trusted",
+          "covers": "The content type the client declared for an upload used as the type check.",
+          "misses": "The file extension check, the check of the file's own bytes or an image rewrite done in another function, and archives whose members are never typed. A silent result does not show the contents were verified.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.upload-content-type-trusted",
+          "covers": "The content type the client declared for an upload used as the type check.",
+          "misses": "The file extension check, the check of the file's own bytes or an image rewrite done in another function, and archives whose members are never typed. A silent result does not show the contents were verified.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Trusting the content type the client declared is the weak form of checking an upload that this requirement rules out; the rule sees that one shape only.",
+      "applies": {
+        "technology": [
+          "file-upload"
+        ]
+      }
     },
     {
       "requirement": "V5.2.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.archive-extraction-unchecked",
+          "covers": "An archive extracted whole or entry by entry with no guard in sight, the situation in which no size or entry-count limit can have been applied between the entries.",
+          "misses": "The rule never measures the uncompressed size or the entry count: a loop that checks the destination path but not the sizes stays silent, and a limit held in a wrapper or a library option is invisible. Decompressors that are not archives (gzip streams, office documents).",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.archive-extraction-unchecked",
+          "covers": "An archive extracted whole or entry by entry with no guard in sight, the situation in which no size or entry-count limit can have been applied between the entries.",
+          "misses": "The rule never measures the uncompressed size or the entry count: a loop that checks the destination path but not the sizes stays silent, and a limit held in a wrapper or a library option is invisible. Decompressors that are not archives (gzip streams, office documents).",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.archive-extraction-unchecked",
+          "covers": "An archive extracted whole or entry by entry with no guard in sight, the situation in which no size or entry-count limit can have been applied between the entries.",
+          "misses": "The rule never measures the uncompressed size or the entry count: a loop that checks the destination path but not the sizes stays silent, and a limit held in a wrapper or a library option is invisible. Decompressors that are not archives (gzip streams, office documents).",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.archive-extraction-unchecked",
+          "covers": "An archive extracted whole or entry by entry with no guard in sight, the situation in which no size or entry-count limit can have been applied between the entries.",
+          "misses": "The rule never measures the uncompressed size or the entry count: a loop that checks the destination path but not the sizes stays silent, and a limit held in a wrapper or a library option is invisible. Decompressors that are not archives (gzip streams, office documents).",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.archive-extraction-unchecked",
+          "covers": "An archive extracted whole or entry by entry with no guard in sight, the situation in which no size or entry-count limit can have been applied between the entries.",
+          "misses": "The rule never measures the uncompressed size or the entry count: a loop that checks the destination path but not the sizes stays silent, and a limit held in a wrapper or a library option is invisible. Decompressors that are not archives (gzip streams, office documents).",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.archive-extraction-unchecked",
+          "covers": "An archive extracted whole or entry by entry with no guard in sight, the situation in which no size or entry-count limit can have been applied between the entries.",
+          "misses": "The rule never measures the uncompressed size or the entry count: a loop that checks the destination path but not the sizes stays silent, and a limit held in a wrapper or a library option is invisible. Decompressors that are not archives (gzip streams, office documents).",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.archive-extraction-unchecked",
+          "covers": "An archive extracted whole or entry by entry with no guard in sight, the situation in which no size or entry-count limit can have been applied between the entries.",
+          "misses": "The rule never measures the uncompressed size or the entry count: a loop that checks the destination path but not the sizes stays silent, and a limit held in a wrapper or a library option is invisible. Decompressors that are not archives (gzip streams, office documents).",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Decompression and representation amplification",
+          "covers": "A model reading of whether limits are checked after every expansion of an archive or compressed file.",
+          "misses": "It finds missing limits in the paths the model read and cannot show every archive path is bounded.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An archive extracted with no guard in sight is the situation in which no size or entry-count limit has been applied; the rule reads the extraction code only.",
+      "applies": {
+        "technology": [
+          "archives"
+        ]
+      }
     },
     {
       "requirement": "V5.2.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Unbounded buffering and cardinality",
+          "covers": "Uploads and stored files that accumulate without a per-user or aggregate limit, read by a model.",
+          "misses": "It finds missing quotas in the paths the model read and cannot see storage limits applied by the platform.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for a per-user file count and size quota on stored uploads."
     },
     {
       "requirement": "V5.2.5",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom (path check, filter, link check) in sight; for tar in Python and JavaScript the filter argument is what counts.",
+          "misses": "Whether links are rejected is only visible where the extraction call takes a filter; a loop that checks the destination path alone stays silent, and an archive that is rejected at upload by another component is not seen. Uploads that are not archives, and libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom (path check, filter, link check) in sight; for tar in Python and JavaScript the filter argument is what counts.",
+          "misses": "Whether links are rejected is only visible where the extraction call takes a filter; a loop that checks the destination path alone stays silent, and an archive that is rejected at upload by another component is not seen. Uploads that are not archives, and libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom (path check, filter, link check) in sight; for tar in Python and JavaScript the filter argument is what counts.",
+          "misses": "Whether links are rejected is only visible where the extraction call takes a filter; a loop that checks the destination path alone stays silent, and an archive that is rejected at upload by another component is not seen. Uploads that are not archives, and libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom (path check, filter, link check) in sight; for tar in Python and JavaScript the filter argument is what counts.",
+          "misses": "Whether links are rejected is only visible where the extraction call takes a filter; a loop that checks the destination path alone stays silent, and an archive that is rejected at upload by another component is not seen. Uploads that are not archives, and libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom (path check, filter, link check) in sight; for tar in Python and JavaScript the filter argument is what counts.",
+          "misses": "Whether links are rejected is only visible where the extraction call takes a filter; a loop that checks the destination path alone stays silent, and an archive that is rejected at upload by another component is not seen. Uploads that are not archives, and libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom (path check, filter, link check) in sight; for tar in Python and JavaScript the filter argument is what counts.",
+          "misses": "Whether links are rejected is only visible where the extraction call takes a filter; a loop that checks the destination path alone stays silent, and an archive that is rejected at upload by another component is not seen. Uploads that are not archives, and libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom (path check, filter, link check) in sight; for tar in Python and JavaScript the filter argument is what counts.",
+          "misses": "Whether links are rejected is only visible where the extraction call takes a filter; a loop that checks the destination path alone stays silent, and an archive that is rejected at upload by another component is not seen. Uploads that are not archives, and libraries the rule does not model.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Extraction with no filter or entry check in sight cannot have refused link entries; the rule reads the extraction code only.",
+      "applies": {
+        "technology": [
+          "archives"
+        ]
+      }
     },
     {
       "requirement": "V5.2.6",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.image-pixel-limit-disabled",
+          "covers": "The image library's decompression-bomb pixel limit switched off.",
+          "misses": "A pixel limit of a very large value, images opened through other libraries, and a size check made before the image is opened.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Switching the image library's pixel limit off is the configuration this requirement is about; the rule exists for Python's imaging library only.",
+      "applies": {
+        "technology": [
+          "file-upload"
+        ]
+      }
     },
     {
       "requirement": "V5.3.1",
@@ -60,7 +334,7 @@
     },
     {
       "requirement": "V5.3.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -128,13 +402,107 @@
           "covers": "Path traversal, including symlinks, encoded sequences and null bytes, read by a model.",
           "misses": "Sampled reading.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.upload-client-filename-in-path",
+          "covers": "The file name the client sent with an upload used in the path the file is written to.",
+          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.upload-client-filename-in-path",
+          "covers": "The file name the client sent with an upload used in the path the file is written to.",
+          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.upload-client-filename-in-path",
+          "covers": "The file name the client sent with an upload used in the path the file is written to.",
+          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.upload-client-filename-in-path",
+          "covers": "The file name the client sent with an upload used in the path the file is written to.",
+          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.upload-client-filename-in-path",
+          "covers": "The file name the client sent with an upload used in the path the file is written to.",
+          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.upload-client-filename-in-path",
+          "covers": "The file name the client sent with an upload used in the path the file is written to.",
+          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.upload-client-filename-in-path",
+          "covers": "The file name the client sent with an upload used in the path the file is written to.",
+          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
+          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
+          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
+          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
+          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
+          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
+          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.archive-extraction-unchecked",
+          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
+          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "depth": "partial"
         }
       ],
-      "why": "The rules flag file paths taken from the request without reduction or containment, the construct that lets user-submitted names escape the intended folder.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "Path traversal rules gain the upload file name and the archive entry name as sources of a path."
     },
     {
       "requirement": "V5.3.3",
@@ -158,17 +526,123 @@
     },
     {
       "requirement": "V5.4.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A Content-Disposition header built from request data is where a user-supplied name reaches the response header."
     },
     {
       "requirement": "V5.4.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.content-disposition-from-request",
+          "covers": "Request data joined by string building into a Content-Disposition response header.",
+          "misses": "Headers set by a framework helper the rule does not model, names that cross a function before the join, and filenames in JSON or URL parameters that reach a different sink.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Joining request data into the header by string building skips the quoting and encoding of the file name that a header helper performs."
     },
     {
       "requirement": "V5.4.3",

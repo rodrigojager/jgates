@@ -25,24 +25,71 @@
     },
     {
       "requirement": "V2.2.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Business logic",
+          "covers": "Missing or lax validation of values that drive business decisions (negative, zero, overflow, type coercion), read by a model.",
+          "misses": "It finds gaps in the paths the model read and cannot show that every input is validated.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the handlers of the source for positive validation of their input against rules the code itself defines."
     },
     {
       "requirement": "V2.2.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for validation that exists only on the client side and is not repeated by the server."
     },
     {
       "requirement": "V2.2.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Business logic",
+          "covers": "Combinations of related fields accepted although they contradict each other, read by a model.",
+          "misses": "It finds unchecked combinations in the paths the model read and cannot know the rules the business defined elsewhere.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for checks that related fields are consistent with each other."
     },
     {
       "requirement": "V2.3.1",
@@ -68,10 +115,28 @@
     },
     {
       "requirement": "V2.3.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Business logic",
+          "covers": "Limits on quantities and amounts that the code should enforce, read by a model.",
+          "misses": "The limits the business documented are not in the repository, so the model checks that some limit exists, not that it is the documented one.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for business limits and the places that enforce or skip them."
     },
     {
       "requirement": "V2.3.3",
@@ -133,10 +198,28 @@
     },
     {
       "requirement": "V2.4.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Business logic",
+          "covers": "Time-based logic of a flow (rate windows, minimum intervals), read by a model.",
+          "misses": "A realistic human timing is a property the model can only look for in code, and a timing control outside the application stays invisible.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for flows that enforce a minimum interval or reject submissions that arrive too fast."
     }
   ]
 }

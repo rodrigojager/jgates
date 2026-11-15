@@ -4,17 +4,67 @@
   "entries": [
     {
       "requirement": "V1.1.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.double-decoding",
+          "covers": "A value decoded (URL, HTML or base64) and then passed through the same decoder a second time in the same code path.",
+          "misses": "Decoding spread over two functions or files, a second decode done by a library the rule does not model, other encodings, and whether the decode happens before or after the validation step.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.double-decoding",
+          "covers": "A value decoded (URL, HTML or base64) and then passed through the same decoder a second time in the same code path.",
+          "misses": "Decoding spread over two functions or files, a second decode done by a library the rule does not model, other encodings, and whether the decode happens before or after the validation step.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.double-decoding",
+          "covers": "A value decoded (URL, HTML or base64) and then passed through the same decoder a second time in the same code path.",
+          "misses": "Decoding spread over two functions or files, a second decode done by a library the rule does not model, other encodings, and whether the decode happens before or after the validation step.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.double-decoding",
+          "covers": "A value decoded (URL, HTML or base64) and then passed through the same decoder a second time in the same code path.",
+          "misses": "Decoding spread over two functions or files, a second decode done by a library the rule does not model, other encodings, and whether the decode happens before or after the validation step.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A second pass of the same decoder over a value is the shape of decoding more than once, which these rules look for in each language they cover."
     },
     {
       "requirement": "V1.1.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Injection",
+          "covers": "Whether untrusted data is encoded for the interpreter it reaches, read by a model.",
+          "misses": "It finds missing encoding in the paths the model read and cannot show every output path encodes at the last step.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the output paths of the source for where encoding is applied relative to the interpreter that consumes the value."
     },
     {
       "requirement": "V1.2.1",
@@ -152,17 +202,81 @@
     },
     {
       "requirement": "V1.2.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.url-parameter-unencoded",
+          "covers": "Request data joined by string building into the query or path of a URL with no encoding function applied.",
+          "misses": "The scheme check of the finished URL, URL builders and HTTP clients the rule does not model, values that cross a function before the join, and encodings other than URL encoding.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.url-parameter-unencoded",
+          "covers": "Request data joined by string building into the query or path of a URL with no encoding function applied.",
+          "misses": "The scheme check of the finished URL, URL builders and HTTP clients the rule does not model, values that cross a function before the join, and encodings other than URL encoding.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.url-parameter-unencoded",
+          "covers": "Request data joined by string building into the query or path of a URL with no encoding function applied.",
+          "misses": "The scheme check of the finished URL, URL builders and HTTP clients the rule does not model, values that cross a function before the join, and encodings other than URL encoding.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.url-parameter-unencoded",
+          "covers": "Request data joined by string building into the query or path of a URL with no encoding function applied.",
+          "misses": "The scheme check of the finished URL, URL builders and HTTP clients the rule does not model, values that cross a function before the join, and encodings other than URL encoding.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A URL built from request data without an encoding call is the construct this requirement is about when the URL is assembled dynamically."
     },
     {
       "requirement": "V1.2.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.json-built-by-concatenation",
+          "covers": "Request data joined by string building into JSON or script text instead of going through the language's serializer.",
+          "misses": "Script or JSON built through template engines or helper functions, values that cross a function before the join, and output contexts other than the JSON and script shapes the rule models.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.json-built-by-concatenation",
+          "covers": "Request data joined by string building into JSON or script text instead of going through the language's serializer.",
+          "misses": "Script or JSON built through template engines or helper functions, values that cross a function before the join, and output contexts other than the JSON and script shapes the rule models.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.json-built-by-concatenation",
+          "covers": "Request data joined by string building into JSON or script text instead of going through the language's serializer.",
+          "misses": "Script or JSON built through template engines or helper functions, values that cross a function before the join, and output contexts other than the JSON and script shapes the rule models.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.json-built-by-concatenation",
+          "covers": "Request data joined by string building into JSON or script text instead of going through the language's serializer.",
+          "misses": "Script or JSON built through template engines or helper functions, values that cross a function before the join, and output contexts other than the JSON and script shapes the rule models.",
+          "depth": "partial"
+        }
+      ],
+      "why": "JSON or script text assembled by joining strings lets a value change its structure, which is the injection this requirement describes."
     },
     {
       "requirement": "V1.2.4",
@@ -315,38 +429,297 @@
     },
     {
       "requirement": "V1.2.6",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.ldap-injection",
+          "covers": "Request data joined into an LDAP filter or distinguished name that is then used in a directory search, with no escape function of the library in between.",
+          "misses": "LDAP libraries and query builders the rule does not model, values that reach the search through another function, and filters built from stored data.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.ldap-injection",
+          "covers": "Request data joined into an LDAP filter or distinguished name that is then used in a directory search, with no escape function of the library in between.",
+          "misses": "LDAP libraries and query builders the rule does not model, values that reach the search through another function, and filters built from stored data.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.ldap-injection",
+          "covers": "Request data joined into an LDAP filter or distinguished name that is then used in a directory search, with no escape function of the library in between.",
+          "misses": "LDAP libraries and query builders the rule does not model, values that reach the search through another function, and filters built from stored data.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.ldap-injection",
+          "covers": "Request data joined into an LDAP filter or distinguished name that is then used in a directory search, with no escape function of the library in between.",
+          "misses": "LDAP libraries and query builders the rule does not model, values that reach the search through another function, and filters built from stored data.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.ldap-injection",
+          "covers": "Request data joined into an LDAP filter or distinguished name that is then used in a directory search, with no escape function of the library in between.",
+          "misses": "LDAP libraries and query builders the rule does not model, values that reach the search through another function, and filters built from stored data.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.ldap-injection",
+          "covers": "Request data joined into an LDAP filter or distinguished name that is then used in a directory search, with no escape function of the library in between.",
+          "misses": "LDAP libraries and query builders the rule does not model, values that reach the search through another function, and filters built from stored data.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.ldap-injection",
+          "covers": "Request data joined into an LDAP filter or distinguished name that is then used in a directory search, with no escape function of the library in between.",
+          "misses": "LDAP libraries and query builders the rule does not model, values that reach the search through another function, and filters built from stored data.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Joining request data into an LDAP filter or name is the injection this requirement names, and the rule flags it without an escape call.",
+      "applies": {
+        "technology": [
+          "ldap"
+        ]
+      }
     },
     {
       "requirement": "V1.2.7",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xpath-injection",
+          "covers": "Request data joined into an XPath expression that is compiled or evaluated, instead of a literal expression with bound variables.",
+          "misses": "XPath engines the rule does not model, expressions assembled in another function, and data read from a store before it is joined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.xpath-injection",
+          "covers": "Request data joined into an XPath expression that is compiled or evaluated, instead of a literal expression with bound variables.",
+          "misses": "XPath engines the rule does not model, expressions assembled in another function, and data read from a store before it is joined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.xpath-injection",
+          "covers": "Request data joined into an XPath expression that is compiled or evaluated, instead of a literal expression with bound variables.",
+          "misses": "XPath engines the rule does not model, expressions assembled in another function, and data read from a store before it is joined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.xpath-injection",
+          "covers": "Request data joined into an XPath expression that is compiled or evaluated, instead of a literal expression with bound variables.",
+          "misses": "XPath engines the rule does not model, expressions assembled in another function, and data read from a store before it is joined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.xpath-injection",
+          "covers": "Request data joined into an XPath expression that is compiled or evaluated, instead of a literal expression with bound variables.",
+          "misses": "XPath engines the rule does not model, expressions assembled in another function, and data read from a store before it is joined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.xpath-injection",
+          "covers": "Request data joined into an XPath expression that is compiled or evaluated, instead of a literal expression with bound variables.",
+          "misses": "XPath engines the rule does not model, expressions assembled in another function, and data read from a store before it is joined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.xpath-injection",
+          "covers": "Request data joined into an XPath expression that is compiled or evaluated, instead of a literal expression with bound variables.",
+          "misses": "XPath engines the rule does not model, expressions assembled in another function, and data read from a store before it is joined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An XPath expression built from request data is the injection this requirement names; a literal expression with bound variables is the safe form.",
+      "applies": {
+        "technology": [
+          "xml"
+        ]
+      }
     },
     {
       "requirement": "V1.2.8",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.latex-shell-escape",
+          "covers": "A TeX or LaTeX program started with the shell-escape switch.",
+          "misses": "Switches set by a wrapper script or an environment variable, TeX processors started through a library the rule does not model, and the command allow-list a project may or may not use.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.latex-shell-escape",
+          "covers": "A TeX or LaTeX program started with the shell-escape switch.",
+          "misses": "Switches set by a wrapper script or an environment variable, TeX processors started through a library the rule does not model, and the command allow-list a project may or may not use.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.latex-shell-escape",
+          "covers": "A TeX or LaTeX program started with the shell-escape switch.",
+          "misses": "Switches set by a wrapper script or an environment variable, TeX processors started through a library the rule does not model, and the command allow-list a project may or may not use.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.latex-shell-escape",
+          "covers": "A TeX or LaTeX program started with the shell-escape switch.",
+          "misses": "Switches set by a wrapper script or an environment variable, TeX processors started through a library the rule does not model, and the command allow-list a project may or may not use.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.latex-shell-escape",
+          "covers": "A TeX or LaTeX program started with the shell-escape switch.",
+          "misses": "Switches set by a wrapper script or an environment variable, TeX processors started through a library the rule does not model, and the command allow-list a project may or may not use.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.latex-shell-escape",
+          "covers": "A TeX or LaTeX program started with the shell-escape switch.",
+          "misses": "Switches set by a wrapper script or an environment variable, TeX processors started through a library the rule does not model, and the command allow-list a project may or may not use.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.latex-shell-escape",
+          "covers": "A TeX or LaTeX program started with the shell-escape switch.",
+          "misses": "Switches set by a wrapper script or an environment variable, TeX processors started through a library the rule does not model, and the command allow-list a project may or may not use.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Starting a TeX processor with the shell-escape switch is the unsafe configuration this requirement names.",
+      "applies": {
+        "technology": [
+          "latex"
+        ]
+      }
     },
     {
       "requirement": "V1.2.9",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Request data that becomes part of a regular expression without the language's escape call can be read as metacharacters."
     },
     {
       "requirement": "V1.2.10",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.csv-formula-injection",
+          "covers": "Request data written as a field of a CSV or spreadsheet writer with no check of its first character.",
+          "misses": "Other spreadsheet formats (XLS, XLSX, ODF), exports built by string joining, values that cross a function before the writer, and the quoting rules of the CSV format itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.csv-formula-injection",
+          "covers": "Request data written as a field of a CSV or spreadsheet writer with no check of its first character.",
+          "misses": "Other spreadsheet formats (XLS, XLSX, ODF), exports built by string joining, values that cross a function before the writer, and the quoting rules of the CSV format itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.csv-formula-injection",
+          "covers": "Request data written as a field of a CSV or spreadsheet writer with no check of its first character.",
+          "misses": "Other spreadsheet formats (XLS, XLSX, ODF), exports built by string joining, values that cross a function before the writer, and the quoting rules of the CSV format itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.csv-formula-injection",
+          "covers": "Request data written as a field of a CSV or spreadsheet writer with no check of its first character.",
+          "misses": "Other spreadsheet formats (XLS, XLSX, ODF), exports built by string joining, values that cross a function before the writer, and the quoting rules of the CSV format itself.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Writing request data as a spreadsheet field with no check of its first character is the formula-injection exposure of an export."
     },
     {
       "requirement": "V1.3.1",
@@ -379,7 +752,7 @@
     },
     {
       "requirement": "V1.3.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -412,34 +785,147 @@
           "covers": "The legacy preg_replace e modifier that runs replacement text as code.",
           "misses": "Dynamic execution in languages without a rule (Go, C#, Java, Rust), expression languages such as SpEL, and indirect evaluation through other APIs.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.dynamic-code-execution",
+          "covers": "A script engine, expression language or runtime evaluator given text that is not a literal.",
+          "misses": "Evaluators the rule does not model, text assembled in another function, and whether the text is sanitized before it is evaluated.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.dynamic-code-execution",
+          "covers": "A script engine, expression language or runtime evaluator given text that is not a literal.",
+          "misses": "Evaluators the rule does not model, text assembled in another function, and whether the text is sanitized before it is evaluated.",
+          "depth": "partial"
         }
       ],
-      "why": "The rules flag eval and its equivalents applied to values that are not literals, which is the dynamic execution this requirement wants avoided.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The existing rules gain the C# and Java forms of dynamic evaluation."
     },
     {
       "requirement": "V1.3.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Injection",
+          "covers": "Whether data entering a dangerous context is restricted or trimmed beforehand, read by a model.",
+          "misses": "It finds unsanitized flows in the paths the model read and cannot show every dangerous context is guarded.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for data that reaches dangerous contexts and the sanitizing that precedes it."
     },
     {
       "requirement": "V1.3.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for places that accept or render user-supplied SVG and the sanitizing applied to them."
     },
     {
       "requirement": "V1.3.5",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.markdown-raw-html-enabled",
+          "covers": "A Markdown renderer set to pass raw HTML through, or whose output is not sanitized, for text that is not a constant.",
+          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, and other scriptable content such as BBCode or CSS.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.markdown-raw-html-enabled",
+          "covers": "A Markdown renderer set to pass raw HTML through, or whose output is not sanitized, for text that is not a constant.",
+          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, and other scriptable content such as BBCode or CSS.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.markdown-raw-html-enabled",
+          "covers": "A Markdown renderer set to pass raw HTML through, or whose output is not sanitized, for text that is not a constant.",
+          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, and other scriptable content such as BBCode or CSS.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.markdown-raw-html-enabled",
+          "covers": "A Markdown renderer set to pass raw HTML through, or whose output is not sanitized, for text that is not a constant.",
+          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, and other scriptable content such as BBCode or CSS.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.markdown-raw-html-enabled",
+          "covers": "A Markdown renderer set to pass raw HTML through, or whose output is not sanitized, for text that is not a constant.",
+          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, and other scriptable content such as BBCode or CSS.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xslt-from-request",
+          "covers": "A stylesheet that comes from the incoming request loaded into an XSLT processor.",
+          "misses": "Stylesheets assembled from stored data, processors the rule does not model, and the secure-processing options of the processor when the stylesheet is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.xslt-from-request",
+          "covers": "A stylesheet that comes from the incoming request loaded into an XSLT processor.",
+          "misses": "Stylesheets assembled from stored data, processors the rule does not model, and the secure-processing options of the processor when the stylesheet is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.xslt-from-request",
+          "covers": "A stylesheet that comes from the incoming request loaded into an XSLT processor.",
+          "misses": "Stylesheets assembled from stored data, processors the rule does not model, and the secure-processing options of the processor when the stylesheet is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.xslt-from-request",
+          "covers": "A stylesheet that comes from the incoming request loaded into an XSLT processor.",
+          "misses": "Stylesheets assembled from stored data, processors the rule does not model, and the secure-processing options of the processor when the stylesheet is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.xslt-from-request",
+          "covers": "A stylesheet that comes from the incoming request loaded into an XSLT processor.",
+          "misses": "Stylesheets assembled from stored data, processors the rule does not model, and the secure-processing options of the processor when the stylesheet is fixed.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Markdown rendered with raw HTML allowed, and a stylesheet taken from a request, are the two forms of scriptable user content these rules can see."
     },
     {
       "requirement": "V1.3.6",
@@ -514,45 +1000,343 @@
     },
     {
       "requirement": "V1.3.7",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.template-from-request",
+          "covers": "A template source built from request data and then compiled or rendered, as opposed to request data passed as the model.",
+          "misses": "Template engines the rule does not model, source assembled in another function, and templates read from a store the user can write to.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.template-from-request",
+          "covers": "A template source built from request data and then compiled or rendered, as opposed to request data passed as the model.",
+          "misses": "Template engines the rule does not model, source assembled in another function, and templates read from a store the user can write to.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.template-from-request",
+          "covers": "A template source built from request data and then compiled or rendered, as opposed to request data passed as the model.",
+          "misses": "Template engines the rule does not model, source assembled in another function, and templates read from a store the user can write to.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.template-from-request",
+          "covers": "A template source built from request data and then compiled or rendered, as opposed to request data passed as the model.",
+          "misses": "Template engines the rule does not model, source assembled in another function, and templates read from a store the user can write to.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.template-from-request",
+          "covers": "A template source built from request data and then compiled or rendered, as opposed to request data passed as the model.",
+          "misses": "Template engines the rule does not model, source assembled in another function, and templates read from a store the user can write to.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.template-from-request",
+          "covers": "A template source built from request data and then compiled or rendered, as opposed to request data passed as the model.",
+          "misses": "Template engines the rule does not model, source assembled in another function, and templates read from a store the user can write to.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.template-from-request",
+          "covers": "A template source built from request data and then compiled or rendered, as opposed to request data passed as the model.",
+          "misses": "Template engines the rule does not model, source assembled in another function, and templates read from a store the user can write to.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A template whose source comes from request data is the template injection this requirement names.",
+      "applies": {
+        "technology": [
+          "templates"
+        ]
+      }
     },
     {
       "requirement": "V1.3.8",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jndi-lookup-from-request",
+          "covers": "A JNDI lookup whose name is not a literal.",
+          "misses": "Lookups through frameworks that wrap JNDI, the JNDI environment and factory configuration, and JVM-level settings that restrict remote class loading.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A JNDI lookup with a non-literal name is the injection this requirement names; the rule is for Java only.",
+      "applies": {
+        "languages": {
+          "only": [
+            "java"
+          ]
+        }
+      }
     },
     {
       "requirement": "V1.3.9",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.memcache-key-from-request",
+          "covers": "Request data used as a memcache key.",
+          "misses": "Memcache clients the rule does not model, keys that cross a function before use, the validation or hashing a project applies in a helper, and the value stored under the key.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.memcache-key-from-request",
+          "covers": "Request data used as a memcache key.",
+          "misses": "Memcache clients the rule does not model, keys that cross a function before use, the validation or hashing a project applies in a helper, and the value stored under the key.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.memcache-key-from-request",
+          "covers": "Request data used as a memcache key.",
+          "misses": "Memcache clients the rule does not model, keys that cross a function before use, the validation or hashing a project applies in a helper, and the value stored under the key.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.memcache-key-from-request",
+          "covers": "Request data used as a memcache key.",
+          "misses": "Memcache clients the rule does not model, keys that cross a function before use, the validation or hashing a project applies in a helper, and the value stored under the key.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Request data used as a memcache key can carry protocol characters, which is the injection this requirement names.",
+      "applies": {
+        "technology": [
+          "memcache"
+        ]
+      }
     },
     {
       "requirement": "V1.3.10",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.format-string-from-request",
+          "covers": "Request data used as the format string of a formatting, printing or logging call.",
+          "misses": "Format strings that cross a function before the call, formatting helpers of the project, and format strings read from stored data or resource files.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.format-string-from-request",
+          "covers": "Request data used as the format string of a formatting, printing or logging call.",
+          "misses": "Format strings that cross a function before the call, formatting helpers of the project, and format strings read from stored data or resource files.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.format-string-from-request",
+          "covers": "Request data used as the format string of a formatting, printing or logging call.",
+          "misses": "Format strings that cross a function before the call, formatting helpers of the project, and format strings read from stored data or resource files.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.format-string-from-request",
+          "covers": "Request data used as the format string of a formatting, printing or logging call.",
+          "misses": "Format strings that cross a function before the call, formatting helpers of the project, and format strings read from stored data or resource files.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.format-string-from-request",
+          "covers": "Request data used as the format string of a formatting, printing or logging call.",
+          "misses": "Format strings that cross a function before the call, formatting helpers of the project, and format strings read from stored data or resource files.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.format-string-from-request",
+          "covers": "Request data used as the format string of a formatting, printing or logging call.",
+          "misses": "Format strings that cross a function before the call, formatting helpers of the project, and format strings read from stored data or resource files.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Request data used as the format string of a formatting call is the unsafe format string this requirement names.",
+      "applies": {
+        "languages": {
+          "exempt": {
+            "languages": [
+              "rust"
+            ],
+            "reason": "compile-time-format-strings"
+          }
+        }
+      }
     },
     {
       "requirement": "V1.3.11",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.mail-header-injection",
+          "covers": "Request data placed in a header (recipient, subject, extra headers) of a mail message built as text.",
+          "misses": "Mail libraries that reject line breaks themselves, IMAP commands, values that cross a function before the message is built, and body content.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.mail-header-injection",
+          "covers": "Request data placed in a header (recipient, subject, extra headers) of a mail message built as text.",
+          "misses": "Mail libraries that reject line breaks themselves, IMAP commands, values that cross a function before the message is built, and body content.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.mail-header-injection",
+          "covers": "Request data placed in a header (recipient, subject, extra headers) of a mail message built as text.",
+          "misses": "Mail libraries that reject line breaks themselves, IMAP commands, values that cross a function before the message is built, and body content.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.mail-header-injection",
+          "covers": "Request data placed in a header (recipient, subject, extra headers) of a mail message built as text.",
+          "misses": "Mail libraries that reject line breaks themselves, IMAP commands, values that cross a function before the message is built, and body content.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.mail-header-injection",
+          "covers": "Request data placed in a header (recipient, subject, extra headers) of a mail message built as text.",
+          "misses": "Mail libraries that reject line breaks themselves, IMAP commands, values that cross a function before the message is built, and body content.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Request data placed in a header of a mail message built as text is the mail injection this requirement names.",
+      "applies": {
+        "technology": [
+          "mail"
+        ]
+      }
     },
     {
       "requirement": "V1.3.12",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.regex-from-request",
+          "covers": "Request data compiled or matched as a regular expression, or joined into one, without the language's escape function.",
+          "misses": "Regular expressions built from stored data or from values that cross a function, escape helpers of the project's own, and which pattern shapes actually backtrack badly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.redos-nested-quantifier",
+          "covers": "A regular expression literal with a quantified group that itself ends in a quantifier (the nested shapes behind catastrophic backtracking).",
+          "misses": "Other backtracking shapes (overlapping alternations, adjacent unbounded repeats), patterns held in variables or built at run time, and whether untrusted input reaches the pattern.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.redos-nested-quantifier",
+          "covers": "A regular expression literal with a quantified group that itself ends in a quantifier (the nested shapes behind catastrophic backtracking).",
+          "misses": "Other backtracking shapes (overlapping alternations, adjacent unbounded repeats), patterns held in variables or built at run time, and whether untrusted input reaches the pattern.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.redos-nested-quantifier",
+          "covers": "A regular expression literal with a quantified group that itself ends in a quantifier (the nested shapes behind catastrophic backtracking).",
+          "misses": "Other backtracking shapes (overlapping alternations, adjacent unbounded repeats), patterns held in variables or built at run time, and whether untrusted input reaches the pattern.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.redos-nested-quantifier",
+          "covers": "A regular expression literal with a quantified group that itself ends in a quantifier (the nested shapes behind catastrophic backtracking).",
+          "misses": "Other backtracking shapes (overlapping alternations, adjacent unbounded repeats), patterns held in variables or built at run time, and whether untrusted input reaches the pattern.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.redos-nested-quantifier",
+          "covers": "A regular expression literal with a quantified group that itself ends in a quantifier (the nested shapes behind catastrophic backtracking).",
+          "misses": "Other backtracking shapes (overlapping alternations, adjacent unbounded repeats), patterns held in variables or built at run time, and whether untrusted input reaches the pattern.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Nested quantifiers are the classic backtracking shape, and request data compiled as a pattern lets a caller choose one; Go and Rust engines run in linear time.",
+      "applies": {
+        "languages": {
+          "exempt": {
+            "languages": [
+              "go",
+              "rust"
+            ],
+            "reason": "linear-time-regex"
+          }
+        }
+      }
     },
     {
       "requirement": "V1.4.1",
@@ -616,7 +1400,7 @@
     },
     {
       "requirement": "V1.5.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -635,13 +1419,30 @@
           "covers": "A JAXP or StAX factory created without turning DTDs off.",
           "misses": "Other XML libraries, and hardening applied through a wrapper the rule cannot follow.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xml-external-entity",
+          "covers": "An XML parser created or configured so that DTDs or external entities are resolved.",
+          "misses": "Parsers configured in another function or by a shared factory, libraries the rule does not model, and parser behaviour that depends on the library version.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.xml-external-entity",
+          "covers": "An XML parser created or configured so that DTDs or external entities are resolved.",
+          "misses": "Parsers configured in another function or by a shared factory, libraries the rule does not model, and parser behaviour that depends on the library version.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.xml-external-entity",
+          "covers": "An XML parser created or configured so that DTDs or external entities are resolved.",
+          "misses": "Parsers configured in another function or by a shared factory, libraries the rule does not model, and parser behaviour that depends on the library version.",
+          "depth": "partial"
         }
       ],
-      "why": "The rules flag XML parsers left able to read DTDs or external entities, which is the unsafe feature this requirement wants disabled.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The existing XML parser rules gain the JavaScript, Python and PHP forms."
     },
     {
       "requirement": "V1.5.2",
