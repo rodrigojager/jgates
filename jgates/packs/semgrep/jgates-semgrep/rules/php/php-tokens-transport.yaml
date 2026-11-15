@@ -1,0 +1,160 @@
+# Original JGates rules for token validation and transport security.
+# Libraries covered: firebase/php-jwt (JWT, Key, JWK), lcobucci/jwt (Configuration, Signer),
+# the curl extension (curl_setopt, curl_setopt_array, curl_init), PHP stream contexts and
+# stream_socket_enable_crypto, file_get_contents/fopen/get_headers, Guzzle clients and the
+# Laravel Http facade.
+# TLS rules read constants and literals only; an old protocol or weak cipher chosen at run time is not seen.
+rules:
+  - id: jgates.php.jwt-signature-not-verified
+    message: The token is read without verifying its signature, so anyone can forge its claims. Parse and validate it with a signed configuration and a SignedWith constraint, or use JWT::decode with the verification key.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V6.8.2", "V9.1.1"]
+    pattern-either:
+      - pattern: \Lcobucci\JWT\Configuration::forUnsecuredSigner(...)
+      - pattern: Configuration::forUnsecuredSigner(...)
+      - pattern: JWT::jsonDecode(JWT::urlsafeB64Decode(...))
+      - pattern: \Firebase\JWT\JWT::jsonDecode(\Firebase\JWT\JWT::urlsafeB64Decode(...))
+
+  - id: jgates.php.jwt-algorithm-not-restricted
+    message: The token is accepted with the none algorithm, so its signature is not checked. Pin the verification to one expected algorithm such as RS256 or ES256 and never allow none.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: authorization
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.2"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: new Key($K, $ALG)
+                  - pattern: new \Firebase\JWT\Key($K, $ALG)
+              - metavariable-regex:
+                  metavariable: $ALG
+                  regex: (?i)^["']none["']$
+          - pattern: JWT::decode($T, $K, [..., "none", ...])
+          - pattern: JWT::decode($T, $K, [..., "None", ...])
+          - pattern: \Firebase\JWT\JWT::decode($T, $K, [..., "none", ...])
+          - pattern: new Signer\None()
+          - pattern: new \Lcobucci\JWT\Signer\None()
+
+  - id: jgates.php.jwt-algorithm-not-restricted-header
+    message: The verification algorithm is taken from the token's own header, so the sender chooses how it is checked. Pin the verification to one expected algorithm held in your configuration.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: authorization
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.2"]
+    pattern-sources:
+      - pattern: $H['alg']
+      - pattern: $H["alg"]
+      - pattern: $H->alg
+    pattern-sinks:
+      - patterns:
+          - pattern: new Key($K, $ALG)
+          - focus-metavariable: $ALG
+      - patterns:
+          - pattern: new \Firebase\JWT\Key($K, $ALG)
+          - focus-metavariable: $ALG
+      - patterns:
+          - pattern: JWT::decode($T, $K, $ALG)
+          - focus-metavariable: $ALG
+
+  - id: jgates.php.tls-old-protocol-version
+    message: The TLS configuration allows SSL 3, TLS 1.0 or TLS 1.1, which are broken or deprecated. Require TLS 1.2 or newer (CURL_SSLVERSION_TLSv1_2 or STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT).
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: transport
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.1"]
+    pattern-either:
+      - pattern: CURL_SSLVERSION_SSLv2
+      - pattern: CURL_SSLVERSION_SSLv3
+      - pattern: CURL_SSLVERSION_TLSv1_0
+      - pattern: CURL_SSLVERSION_TLSv1_1
+      - pattern: STREAM_CRYPTO_METHOD_SSLv2_CLIENT
+      - pattern: STREAM_CRYPTO_METHOD_SSLv3_CLIENT
+      - pattern: STREAM_CRYPTO_METHOD_TLSv1_0_CLIENT
+      - pattern: STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT
+      - pattern: STREAM_CRYPTO_METHOD_SSLv2_SERVER
+      - pattern: STREAM_CRYPTO_METHOD_SSLv3_SERVER
+      - pattern: STREAM_CRYPTO_METHOD_TLSv1_0_SERVER
+      - pattern: STREAM_CRYPTO_METHOD_TLSv1_1_SERVER
+
+  - id: jgates.php.tls-weak-cipher-suite
+    message: The cipher suite list names null, export, RC4, DES or 3DES suites, which give no or weak protection. List only AEAD suites such as ECDHE with AES-GCM or CHACHA20, or drop the setting to use the library defaults.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: transport
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.2"]
+    patterns:
+      - pattern-either:
+          - pattern: curl_setopt($H, CURLOPT_SSL_CIPHER_LIST, $C)
+          - pattern: curl_setopt_array($H, [..., CURLOPT_SSL_CIPHER_LIST => $C, ...])
+          - pattern: stream_context_create([..., "ssl" => [..., "ciphers" => $C, ...], ...])
+          - pattern: stream_context_create([..., 'ssl' => [..., 'ciphers' => $C, ...], ...])
+      - metavariable-regex:
+          metavariable: $C
+          regex: (?i).*?(?:^|[:\s"',])(?:[a-z0-9]+[-_])*(?:anull|enull|null|export|exp|rc4|3des|des)(?:[-_:\s"',]|$)
+
+  - id: jgates.php.cleartext-http-url
+    message: A clear-text address (http or ftp scheme) is passed to a network client, so the traffic can be read or changed on the way. Use the encrypted scheme (https or sftp), unless the address is the local machine.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.2.1", "V12.3.1", "V12.3.3"]
+    patterns:
+      - pattern-either:
+          - pattern: file_get_contents($U, ...)
+          - pattern: fopen($U, ...)
+          - pattern: get_headers($U, ...)
+          - pattern: curl_init($U)
+          - pattern: curl_setopt($H, CURLOPT_URL, $U)
+          - pattern: curl_setopt_array($H, [..., CURLOPT_URL => $U, ...])
+          - pattern: Http::get($U, ...)
+          - pattern: Http::post($U, ...)
+          - pattern: Http::put($U, ...)
+          - pattern: Http::patch($U, ...)
+          - pattern: Http::delete($U, ...)
+          - pattern: new Client([..., "base_uri" => $U, ...])
+          - pattern: new Client([..., 'base_uri' => $U, ...])
+          - pattern: new \GuzzleHttp\Client([..., "base_uri" => $U, ...])
+          - pattern: new \GuzzleHttp\Client([..., 'base_uri' => $U, ...])
+          - patterns:
+              - pattern-either:
+                  - pattern: $C->get($U, ...)
+                  - pattern: $C->post($U, ...)
+                  - pattern: $C->put($U, ...)
+                  - pattern: $C->patch($U, ...)
+                  - pattern: $C->delete($U, ...)
+                  - pattern: $C->head($U, ...)
+                  - pattern: $C->request($M, $U, ...)
+              - metavariable-regex:
+                  metavariable: $C
+                  regex: (?i)^\$.*(client|http|guzzle)
+      - metavariable-regex:
+          metavariable: $U
+          regex: (?i)^["'](?:http|ftp)://(?!(?:localhost|127\.0\.0\.1|\[::1\])(?:[:/"']|$))

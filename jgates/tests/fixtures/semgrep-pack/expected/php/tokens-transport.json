@@ -1,0 +1,13 @@
+{
+  "files": [
+    "tokens-transport.php"
+  ],
+  "ruleIds": [
+    "jgates.php.jwt-signature-not-verified",
+    "jgates.php.jwt-algorithm-not-restricted",
+    "jgates.php.jwt-algorithm-not-restricted-header",
+    "jgates.php.tls-old-protocol-version",
+    "jgates.php.tls-weak-cipher-suite",
+    "jgates.php.cleartext-http-url"
+  ]
+}
