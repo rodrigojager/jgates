@@ -5,133 +5,195 @@
     {
       "requirement": "V7.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.1.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.1.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.2.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.2.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.2.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.2.4",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Session fixation and invalidation",
+          "covers": "Whether the session identifier is rotated on login, MFA completion and other privilege changes.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Rotation of the identifier at login and re-authentication is exactly what the block checks."
     },
     {
       "requirement": "V7.3.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.3.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.4.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Session fixation and invalidation",
+          "covers": "Whether a session stays usable after logout, expiry or revocation, across server sessions, refresh tokens and cached copies.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block checks that ended sessions stop working, including token and cache copies."
     },
     {
       "requirement": "V7.4.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Session fixation and invalidation",
+          "covers": "Sessions and refresh tokens that remain valid after the account is disabled.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Survival of sessions after an account disable is named in the block."
     },
     {
       "requirement": "V7.4.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.4.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.4.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.5.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Account linking and identity collision",
+          "covers": "Whether adding an email, phone or external identity requires a current session and fresh step-up.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#MFA enrollment and assurance downgrade",
+          "covers": "Whether replacing or disabling a factor requires the policy-required fresh authentication.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "These blocks examine changes to email, phone and factors, and whether they demand fresh authentication."
     },
     {
       "requirement": "V7.5.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.5.3",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Step-up binding and bypass",
+          "covers": "Whether sensitive operations demand the assurance check on every route, including alternate and batch routes.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block looks for routes that skip the extra verification before a sensitive operation."
     },
     {
       "requirement": "V7.6.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V7.6.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     }

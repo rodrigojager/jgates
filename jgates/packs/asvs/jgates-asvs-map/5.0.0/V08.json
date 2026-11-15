@@ -5,91 +5,161 @@
     {
       "requirement": "V8.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V8.1.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V8.1.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V8.1.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V8.2.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Access control",
+          "covers": "Endpoints that check login but not permission, weaker alternate paths to the same state change, and bulk operations without per-item checks.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block examines whether each function is guarded by the right permission."
     },
     {
       "requirement": "V8.2.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization",
+        "tenant-isolation"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Access control",
+          "covers": "Whether the permission checked is the right one for the specific resource.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "DATA-ISOLATION-AND-LIFECYCLE.md#Missing tenant or owner enforcement",
+          "covers": "Reads, updates and deletes that identify an object without binding it to the authenticated owner.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Unbound object lookups are the direct reference weakness this requirement names, and both blocks look for them."
     },
     {
       "requirement": "V8.2.3",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Access control",
+          "covers": "Request fields that override what the permission system meant to restrict.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block covers body fields that bypass restrictions, which is the property-level case; it does not model read restrictions in full."
     },
     {
       "requirement": "V8.2.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V8.3.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.client-controlled-privilege",
+          "covers": "A branch decided by an administrator flag read from a request argument or header.",
+          "misses": "Other languages, other flag names and other ways of trusting caller input; it does not inspect front-end code.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A privilege decision taken from caller-supplied input is an authorization control the caller can manipulate."
     },
     {
       "requirement": "V8.3.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V8.3.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V8.4.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "tenant-isolation"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "DATA-ISOLATION-AND-LIFECYCLE.md#Missing tenant or owner enforcement",
+          "covers": "Queries and updates that are not bound to the authenticated tenant.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "DATA-ISOLATION-AND-LIFECYCLE.md#Composite-key and namespace collision",
+          "covers": "Keys, paths and caches that omit the tenant and let two tenants meet.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Both blocks look for places where one tenant's operation can reach another tenant's data."
     },
     {
       "requirement": "V8.4.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     }

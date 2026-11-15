@@ -4,50 +4,161 @@
   "entries": [
     {
       "requirement": "V9.1.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-signature-not-verified",
+          "covers": "A jwt decode call that reads claims without verifying the signature.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-signature-not-verified",
+          "covers": "A jwt decode call with signature verification switched off.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jwt-signature-not-verified",
+          "covers": "ParseUnverified calls and use of the unsafe none signature type.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.token-validation-disabled",
+          "covers": "A switch that turns off signing-key validation, or token validation that does not require signed tokens.",
+          "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Signature verification and decode-without-verify paths.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Each check looks for token contents used without a verified signature, the case this requirement forbids."
     },
     {
       "requirement": "V9.1.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-signature-not-verified",
+          "covers": "A verify call whose algorithm list includes none.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jwt-signature-not-verified",
+          "covers": "Use of the unsafe none signature type.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Server-pinned algorithm choice and key confusion between algorithm families.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules catch the none algorithm where it is spelled out; the block checks the allowlist itself."
     },
     {
       "requirement": "V9.1.3",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Key selection through kid, jku and x5u treated as untrusted and the pinned key source.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block names jku, x5u and kid handling, the trusted-source question of this requirement."
     },
     {
       "requirement": "V9.2.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.token-validation-disabled",
+          "covers": "A switch that turns off lifetime validation.",
+          "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Checks of exp and nbf.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rule catches lifetime validation disabled in .NET and the block reads expiry and not-before handling elsewhere."
     },
     {
       "requirement": "V9.2.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V9.2.3",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.token-validation-disabled",
+          "covers": "A switch that turns off audience validation.",
+          "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Checks of the audience claim against what the service expects.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rule catches audience validation disabled in .NET and the block reads audience handling elsewhere."
     },
     {
       "requirement": "V9.2.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     }

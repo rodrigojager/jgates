@@ -5,252 +5,336 @@
     {
       "requirement": "V10.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.1.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Session-bound state, PKCE verifier and nonce handling in the callback.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block checks that callback values are tied to the session that began the flow."
     },
     {
       "requirement": "V10.2.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Use of PKCE or a session-bound state value in the code flow.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "State and PKCE protection against forged callbacks is what the block checks."
     },
     {
       "requirement": "V10.2.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.2.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.3.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.token-validation-disabled",
+          "covers": "A switch that turns off audience validation.",
+          "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Checks of the audience claim in access tokens.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A resource server reading tokens for another service is covered by the audience part of the block, plus the rule for .NET."
     },
     {
       "requirement": "V10.3.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.3.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.3.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.3.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Exact redirect URI ownership where the project is the authorization server.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block names exact redirect URI validation for the authorization server role."
     },
     {
       "requirement": "V10.4.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.6",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "PKCE and authorization code binding at the server where it applies.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block includes PKCE enforcement and code binding, though not the rejection of the plain method specifically."
     },
     {
       "requirement": "V10.4.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.8",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.9",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.10",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.11",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.12",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.13",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.14",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.15",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.4.16",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.5.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Nonce checks on ID Tokens.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Nonce validation of ID Tokens is named in the block."
     },
     {
       "requirement": "V10.5.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.5.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.5.4",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Audience checks on ID Tokens.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Audience validation of ID Tokens is named in the block."
     },
     {
       "requirement": "V10.5.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.6.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.6.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.7.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.7.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V10.7.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     }

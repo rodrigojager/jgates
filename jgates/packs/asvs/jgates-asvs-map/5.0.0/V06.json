@@ -5,329 +5,449 @@
     {
       "requirement": "V6.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.1.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.1.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.8",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.9",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.10",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.11",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.2.12",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.3.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.3.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-method",
+          "id": "insecure-defaults",
+          "category": "default-credentials",
+          "covers": "Seeded or first-boot accounts and credential literals that a running deployment can sign in with.",
+          "misses": "Accounts created by deployment scripts or the database outside the repository, and default accounts of third-party products; a model reading of the source.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The default-credentials category looks for exactly the seeded administrator style accounts this requirement wants absent or disabled."
     },
     {
       "requirement": "V6.3.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.3.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.3.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.3.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.3.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.3.8",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.4.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.4.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.4.3",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Password reset and broader recovery",
+          "covers": "Recovery token randomness, binding to user and action, expiry, one-time use and invalidation of earlier tokens.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#MFA enrollment and assurance downgrade",
+          "covers": "Fallback login and recovery paths that skip the second factor a valid first factor should still face.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Both blocks examine whether the recovery path demands the same assurance as normal login, which is the point of this requirement."
     },
     {
       "requirement": "V6.4.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.4.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.4.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.5.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Step-up binding and bypass",
+          "covers": "Whether a challenge is consumed on completion and cannot be replayed for another session or action.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The step-up block checks one-time completion of a challenge, the property this requirement asks of one-time codes."
     },
     {
       "requirement": "V6.5.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.5.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.5.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.5.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.5.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.5.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.5.8",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.6.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.6.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Step-up binding and bypass",
+          "covers": "Binding of a challenge to the principal, the current session and the operation it was issued for.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block examines whether a challenge can be moved to another request, which is what binding to the original request prevents."
     },
     {
       "requirement": "V6.6.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.6.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.7.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.7.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V6.8.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Account linking and identity collision",
+          "covers": "Collisions of external identifiers with existing accounts and linking that is not bound to the initiating session.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Identity collision across providers is the spoofing path this requirement closes; the block examines it for linking and sign-in routes."
     },
     {
       "requirement": "V6.8.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-signature-not-verified",
+          "covers": "A jwt decode call that reads claims without verifying the signature, and a verify call that lists the none algorithm.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-signature-not-verified",
+          "covers": "A jwt decode call with signature verification switched off.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jwt-signature-not-verified",
+          "covers": "ParseUnverified calls and use of the unsafe none signature type.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.token-validation-disabled",
+          "covers": "A switch that turns off signing-key validation, or token validation that does not require signed tokens.",
+          "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Signature verification, pinned algorithm and key source, and decode-without-verify paths for JWTs.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#SAML signed-object and assertion binding",
+          "covers": "That the signed element is the one used as identity and that unsigned fallbacks are rejected.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Each check looks for assertions that are accepted without a valid signature, for JWTs by rule and for JWT and SAML by reading."
     },
     {
       "requirement": "V6.8.3",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#SAML signed-object and assertion binding",
+          "covers": "Replay state, validity windows and request correlation of SAML assertions.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Replay state of assertions is one of the items the block checks, matching the one-time processing this requirement asks for."
     },
     {
       "requirement": "V6.8.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     }
