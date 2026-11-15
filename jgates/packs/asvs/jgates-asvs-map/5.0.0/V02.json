@@ -25,7 +25,7 @@
     },
     {
       "requirement": "V2.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "business-logic"
@@ -46,11 +46,15 @@
           "depth": "partial"
         }
       ],
-      "why": "An AI reading of the handlers of the source for positive validation of their input against rules the code itself defines."
+      "why": "An AI reading of the handlers of the source for positive validation of their input against rules the code itself defines.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V2.2.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "business-logic"
@@ -64,23 +68,20 @@
           "depth": "partial"
         }
       ],
-      "why": "An AI reading of the source for validation that exists only on the client side and is not repeated by the server."
+      "why": "An AI reading of the source for validation that exists only on the client side and is not repeated by the server.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V2.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "business-logic"
       ],
       "checks": [
-        {
-          "unit": "semantic-ledger",
-          "id": "ATTACK-CLASSES.md#Business logic",
-          "covers": "Combinations of related fields accepted although they contradict each other, read by a model.",
-          "misses": "It finds unchecked combinations in the paths the model read and cannot know the rules the business defined elsewhere.",
-          "depth": "partial"
-        },
         {
           "unit": "semantic-requirement",
           "id": "asvs-review",
@@ -89,7 +90,11 @@
           "depth": "partial"
         }
       ],
-      "why": "An AI reading of the source for checks that related fields are consistent with each other."
+      "why": "An AI reading of the source for checks that related fields are consistent with each other.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V2.3.1",
@@ -115,7 +120,7 @@
     },
     {
       "requirement": "V2.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "business-logic"
@@ -124,7 +129,7 @@
         {
           "unit": "semantic-ledger",
           "id": "ATTACK-CLASSES.md#Business logic",
-          "covers": "Limits on quantities and amounts that the code should enforce, read by a model.",
+          "covers": "Quantities and amounts manipulated past what a flow should accept (negative, zero, overflowing or mis-typed values), read by a model.",
           "misses": "The limits the business documented are not in the repository, so the model checks that some limit exists, not that it is the documented one.",
           "depth": "partial"
         },
@@ -136,7 +141,11 @@
           "depth": "partial"
         }
       ],
-      "why": "An AI reading of the source for business limits and the places that enforce or skip them."
+      "why": "An AI reading of the source for business limits and the places that enforce or skip them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V2.3.3",
@@ -198,19 +207,12 @@
     },
     {
       "requirement": "V2.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "business-logic"
       ],
       "checks": [
-        {
-          "unit": "semantic-ledger",
-          "id": "ATTACK-CLASSES.md#Business logic",
-          "covers": "Time-based logic of a flow (rate windows, minimum intervals), read by a model.",
-          "misses": "A realistic human timing is a property the model can only look for in code, and a timing control outside the application stays invisible.",
-          "depth": "partial"
-        },
         {
           "unit": "semantic-requirement",
           "id": "asvs-review",
@@ -219,7 +221,11 @@
           "depth": "partial"
         }
       ],
-      "why": "An AI reading of the source for flows that enforce a minimum interval or reject submissions that arrive too fast."
+      "why": "An AI reading of the source for flows that enforce a minimum interval or reject submissions that arrive too fast.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     }
   ]
 }
