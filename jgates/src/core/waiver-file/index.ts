@@ -16,7 +16,7 @@ import { AtomicWriteError, writeBytesAtomic } from "../documents/atomic.js";
 import { unifiedDiff } from "../documents/diff.js";
 import { insideBySegments } from "../documents/paths.js";
 import { listRuns } from "../artifacts/index.js";
-import { classifyWaivers, isExpired, occurrenceWaiver, parseWaivers, WAIVERS_FILE, type OccurrenceWaiverEntry, type StaleCause, type Waiver } from "../results/index.js";
+import { classifyWaivers, isExpired, isInformational, occurrenceWaiver, parseWaivers, WAIVERS_FILE, type OccurrenceWaiverEntry, type StaleCause, type Waiver } from "../results/index.js";
 import type { ResultFinding, RunResult } from "../run/types.js";
 import { appendEntries, locateEntries, newFileText, removeElement, type Span } from "./layout.js";
 
@@ -39,6 +39,7 @@ export type WaiverFileCode =
   | "WAIVER_FINDING_NOT_FOUND"
   | "WAIVER_FINDING_AMBIGUOUS"
   | "WAIVER_FINDING_NOT_WAIVABLE"
+  | "WAIVER_FINDING_INFORMATIONAL"
   | "WAIVER_ALREADY_EXISTS"
   | "WAIVER_ID_REQUIRED"
   | "WAIVER_NOT_FOUND"
@@ -405,6 +406,8 @@ export function prepareAdd(projectDir: string, request: AddRequest): PreparedCha
   for (const given of request.findings) {
     const r = resolveFinding(findings, given);
     if (!("finding" in r)) return r;
+    // An informational finding does not block: there is nothing to waive on it.
+    if (isInformational(r.finding)) return refuse("WAIVER_FINDING_INFORMATIONAL", `the finding ${shortFingerprint(r.finding.fingerprint ?? "")} is informational: it does not block the validation, so it cannot be waived`, { fingerprint: r.finding.fingerprint ?? null, rule: r.finding.ruleId });
     if (!chosen.some((f) => f.fingerprint === r.finding.fingerprint)) chosen.push(r.finding);
   }
   const created = request.now.toISOString().slice(0, 10);

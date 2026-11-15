@@ -69,7 +69,9 @@ export const command: CommandModule = {
     now.findings = assignFingerprints(now.findings ?? []);
     const cmp = compareWithBaseline(base, now);
     const codes = cmp.warnings.map((w) => w.code).join(", ");
-    let line = t("baseline_compare_line", { new: cmp.new, resolved: cmp.resolved.length, kept: cmp.kept });
+    const informational = { new: cmp.newInformational ?? 0, resolved: cmp.resolvedInformational ?? 0, kept: cmp.keptInformational ?? 0 };
+    let line = t("baseline_compare_line", { new: cmp.new, resolved: cmp.resolved.length - informational.resolved, kept: cmp.kept });
+    if (informational.new + informational.resolved + informational.kept > 0) line += "\n" + t("baseline_compare_informational", informational);
     if (!cmp.comparable) line += "\n" + t("baseline_not_comparable", { codes });
     return say({ runId, comparison: cmp }, line);
   },

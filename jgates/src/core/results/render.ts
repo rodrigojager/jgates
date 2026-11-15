@@ -6,7 +6,7 @@ import { translator, type Translator } from "../../i18n/index.js";
 import type { ResultFinding, RunResult } from "../run/types.js";
 import { FINGERPRINT_PREFIX } from "./fingerprint.js";
 import type { WaiverRecordEntry } from "./waivers.js";
-import { approvalWording, approvalWordingParams } from "./wording.js";
+import { approvalWording, approvalWordingParams, informationalCount, isInformational } from "./wording.js";
 
 function decisionSummary(r: RunResult, t: Translator): string {
   const missing = r.unsatisfied.length;
@@ -38,7 +38,9 @@ function decisionSummary(r: RunResult, t: Translator): string {
  */
 export function resultSummary(r: RunResult, t: Translator = translator("run")): string {
   const notes = r.analyzed?.stale ? t("run_summary_stale") : r.analyzed?.dirty === true ? t("run_summary_dirty") : "";
-  return decisionSummary(r, t) + notes;
+  // The verdict counts only the blocking findings; the ones that do not block are added as "and N informational".
+  const informational = r.decision === "passed" || r.decision === "failed" ? informationalCount(r) : 0;
+  return decisionSummary(r, t) + (informational > 0 ? t("run_summary_informational", { count: informational }) : "") + notes;
 }
 
 /** Digits of a fingerprint shown in the terminal (the first ones after `jgf1:`); any longer unique prefix works as well. */
@@ -118,13 +120,31 @@ export function waiverLines(result: Pick<RunResult, "waivers" | "decision" | "fi
 export function findingLines(result: Pick<RunResult, "findings" | "runId">, t: Translator = translator("run")): string[] {
   const active = (result.findings ?? []).filter((f) => !f.waived);
   if (active.length === 0) return [];
-  const ordered = [...active].sort((a, b) => Number(b.blocking) - Number(a.blocking));
-  const lines = [t("run_text_findings_title", { count: active.length })];
-  for (const f of ordered.slice(0, MAX_TEXT_FINDINGS)) {
+  const blocking = active.filter((f) => !isInformational(f));
+  const informational = active.filter(isInformational);
+  const lineOf = (f: ResultFinding): string => {
     const where = f.location?.path ? `${f.location.path}${f.location.line !== undefined ? `:${f.location.line}` : ""}` : "-";
-    lines.push(`  ${(shortFingerprint(f) ?? "-").padEnd(SHORT_FINGERPRINT_DIGITS)}  ${f.normalizedSeverity}${f.blocking ? "*" : ""}  ${f.ruleId}  ${where}`);
+    const asvs = f.asvsRequirements && f.asvsRequirements.length > 0 ? `  ${asvsLabel(f.asvsRequirements)}` : "";
+    return `  ${(shortFingerprint(f) ?? "-").padEnd(SHORT_FINGERPRINT_DIGITS)}  ${f.normalizedSeverity}${f.blocking ? "*" : ""}  ${f.ruleId}  ${where}${asvs}`;
+  };
+  const lines: string[] = [];
+  let room = MAX_TEXT_FINDINGS;
+  if (blocking.length > 0) {
+    lines.push(t("run_text_findings_title", { count: blocking.length }));
+    for (const f of blocking.slice(0, room)) lines.push(lineOf(f));
+    room = Math.max(0, room - blocking.length);
+  }
+  // The findings that do not block come after the blocking ones, under their own heading.
+  if (informational.length > 0) {
+    lines.push(t("run_text_informational_title", { count: informational.length }));
+    for (const f of informational.slice(0, room)) lines.push(lineOf(f));
   }
   if (active.length > MAX_TEXT_FINDINGS) lines.push(t("run_text_findings_more", { count: active.length - MAX_TEXT_FINDINGS, runId: result.runId }));
-  lines.push(t("run_text_findings_hint"));
+  if (blocking.length > 0) lines.push(t("run_text_findings_hint"));
   return lines;
+}
+
+/** The label of the requirement ids a rule was written for: "ASVS V3.3.1, V3.3.2". It never says a requirement is met. */
+export function asvsLabel(ids: readonly string[]): string {
+  return `ASVS ${ids.join(", ")}`;
 }

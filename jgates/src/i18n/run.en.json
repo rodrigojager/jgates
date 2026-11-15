@@ -63,6 +63,8 @@
   "run_no_waivers_with_waiver": "--no-waivers and --waiver cannot be used together.",
   "run_no_waivers_with_waiver_fix": "Remove one of them: --no-waivers accepts no waiver at all, --waiver adds one.",
   "run_text_findings_title": "Findings to fix or waive ({count}; * blocks):",
+  "run_text_informational_title": "Informational findings ({count}; they do not block the validation and cannot be waived):",
+  "run_summary_informational": " and {count} informational",
   "run_text_findings_more": "  ... and {count, plural, one {# more finding} other {# more findings}}: jgates report {runId} --format text",
   "run_text_findings_hint": "  To waive one: jgates waivers add --finding <fingerprint> --until YYYY-MM-DD --reason \"...\"",
   "waiver_text_until": "until {date}",

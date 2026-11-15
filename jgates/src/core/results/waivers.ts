@@ -18,6 +18,7 @@ import fs from "node:fs";
 import { contentHash } from "../ids/index.js";
 import type { ResultFinding, ResultStage, RunResult } from "../run/types.js";
 import { normalizeFindingPath } from "./fingerprint.js";
+import { isInformational } from "./wording.js";
 
 /** Where a waiver came from: the project's .jgates/waivers.json, a `jgates run --waiver`, or the pinned CI policy. */
 export type WaiverSource = "project" | "flag" | "policy";
@@ -319,7 +320,8 @@ export function applyWaivers(
   const owner = new Map<number, number>();
   for (const s of statuses) {
     if (s.state !== "live") continue;
-    for (const i of s.matches) if (!owner.has(i) && !findings[i]!.waived) owner.set(i, s.index);
+    // An informational finding (it does not block) is never waived: there is nothing to dismiss.
+    for (const i of s.matches) if (!owner.has(i) && !findings[i]!.waived && !isInformational(findings[i]!)) owner.set(i, s.index);
   }
   const released = new Map<string, number>();
   const waivedBy = new Map<number, ResultFinding[]>();

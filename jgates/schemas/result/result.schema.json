@@ -675,6 +675,18 @@
           "type": "integer",
           "minimum": 0
         },
+        "newInformational": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "keptInformational": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resolvedInformational": {
+          "type": "integer",
+          "minimum": 0
+        },
         "resolved": {
           "type": "array",
           "items": {
@@ -1096,6 +1108,10 @@
             "legacy-verdict"
           ]
         },
+        "informational": {
+          "type": "boolean",
+          "description": "The tool reported the finding as informational: it never blocks the validation and cannot be waived. Shown and counted apart."
+        },
         "waived": {
           "type": "boolean"
         },
@@ -1142,6 +1158,14 @@
             "unchanged"
           ],
           "description": "Against the baseline run: new or kept."
+        },
+        "asvsRequirements": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^V[0-9]+\\.[0-9]+\\.[0-9]+$"
+          },
+          "description": "The ASVS requirement ids the rule of a bundled pack was written for. A label of intent: it never says a requirement is or is not met. Only findings of the bundled pack carry it."
         }
       }
     },

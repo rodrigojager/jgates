@@ -63,6 +63,8 @@
   "run_no_waivers_with_waiver": "--no-waivers e --waiver não podem ser usados juntos.",
   "run_no_waivers_with_waiver_fix": "Tire um dos dois: --no-waivers não aceita dispensa nenhuma, --waiver adiciona uma.",
   "run_text_findings_title": "Achados para corrigir ou dispensar ({count}; * bloqueia):",
+  "run_text_informational_title": "Achados informativos ({count}; não bloqueiam a validação e não podem ser dispensados):",
+  "run_summary_informational": " e {count, plural, one {# informativo} other {# informativos}}",
   "run_text_findings_more": "  ... e mais {count, plural, one {# achado} other {# achados}}: jgates report {runId} --format text",
   "run_text_findings_hint": "  Para dispensar um: jgates waivers add --finding <impressão digital> --until AAAA-MM-DD --reason \"...\"",
   "waiver_text_until": "até {date}",

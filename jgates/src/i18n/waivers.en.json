@@ -37,6 +37,8 @@
   "waivers_refused_waiver_finding_ambiguous_fix": "Give a longer prefix of one of them.",
   "waivers_refused_waiver_finding_not_waivable": "{detail}",
   "waivers_refused_waiver_finding_not_waivable_fix": "A finding needs a fingerprint and a file; a result stored by an old version may have neither.",
+  "waivers_refused_waiver_finding_informational": "The finding {rule} is informational: it does not block the validation, so there is nothing to waive.",
+  "waivers_refused_waiver_finding_informational_fix": "Waive only findings that block; an informational finding is shown and counted, and cannot be waived.",
   "waivers_refused_waiver_already_exists": "{detail}",
   "waivers_refused_waiver_already_exists_fix": "Remove it first with jgates waivers remove {id}, or leave it as it is.",
   "waivers_refused_waiver_id_required": "Name the waiver to remove.",

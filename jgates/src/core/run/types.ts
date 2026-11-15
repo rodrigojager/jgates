@@ -99,6 +99,8 @@ export interface ResultFinding {
   origin?: string;
   blocking: boolean;
   blockingReason?: BlockingReason;
+  /** The tool reported it as informational (it never blocks and cannot be waived); shown and counted apart. */
+  informational?: boolean;
   waived: boolean;
   waiverReason?: string;
   /** Fingerprint the tool or the sidecar gave (kept so old waiver files still match). */
@@ -121,6 +123,8 @@ export interface ResultFinding {
   anchor?: string;
   /** Against the baseline run: new or kept. */
   baselineState?: "new" | "unchanged";
+  /** The ASVS requirement ids the rule of a bundled pack was written for: a label, never a statement that one is met. */
+  asvsRequirements?: string[];
 }
 
 export interface ResultMetric {
@@ -150,8 +154,13 @@ export interface BaselineComparison {
   runId: string;
   comparable: boolean;
   warnings: Array<{ code: string; message: string }>;
+  /** Blocking findings (a waived one counts here: it blocked before the waiver). Informational findings are counted apart. */
   new: number;
   kept: number;
+  /** The informational findings (they do not block) that are new, kept and resolved against the baseline. */
+  newInformational?: number;
+  keptInformational?: number;
+  resolvedInformational?: number;
   /** `line` is the baseline finding's line, when it had one. */
   resolved: Array<{ fingerprint: string; ruleId: string; tool?: string; path?: string; line?: number }>;
   /** How the findings were matched: by anchor, by fingerprint v1, or both (groups of each kind). Information only. */

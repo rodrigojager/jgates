@@ -40,7 +40,32 @@ function relativeTo(roots: string[], cwd: string, filename: string): string {
   return filename.split(path.sep).join("/");
 }
 
-export function parseSemgrepOutput(text: string, opts: { stageId: string; version: string | null; workspace: string; cwd: string }): SemgrepParse {
+/**
+ * The requirement ids of a finding of a rule of the bundled pack: Semgrep prefixes the id with the folders of the rule
+ * file, so a rule matches by its full id or by the id after a dot. A rule outside the pack gets nothing.
+ */
+function packRequirementsOf(ruleId: string, packRules: ReadonlyMap<string, readonly string[]> | undefined): string[] | undefined {
+  if (!packRules) return undefined;
+  const direct = packRules.get(ruleId);
+  if (direct) return direct.length > 0 ? [...direct] : undefined;
+  for (let at = ruleId.indexOf("."); at >= 0; at = ruleId.indexOf(".", at + 1)) {
+    const own = packRules.get(ruleId.slice(at + 1));
+    if (own) return own.length > 0 ? [...own] : undefined;
+  }
+  return undefined;
+}
+
+export function parseSemgrepOutput(
+  text: string,
+  opts: {
+    stageId: string;
+    version: string | null;
+    workspace: string;
+    cwd: string;
+    /** The rules of the bundled pack in the run (rule id to the requirement ids it was written for); absent without the pack. */
+    packRules?: ReadonlyMap<string, readonly string[]>;
+  },
+): SemgrepParse {
   let doc: unknown;
   try {
     doc = JSON.parse(text);
@@ -78,6 +103,7 @@ export function parseSemgrepOutput(text: string, opts: { stageId: string; versio
     const file = relativeTo(roots, opts.cwd, entry.path);
     const native = typeof entry.extra.severity === "string" ? entry.extra.severity.toUpperCase() : "WARNING";
     const level = SEVERITY[native] ?? { normalized: "medium" as const, blocking: true };
+    const asvsRequirements = packRequirementsOf(entry.check_id, opts.packRules);
     findings.push({
       stageId: opts.stageId,
       tool: "semgrep",
@@ -92,7 +118,10 @@ export function parseSemgrepOutput(text: string, opts: { stageId: string; versio
       origin: "semgrep",
       blocking: level.blocking,
       ...(level.blocking ? { blockingReason: "blocking-tool" as const } : {}),
+      // INFO is an informational finding (a policy of the standard, not a vulnerability): it never blocks.
+      ...(native === "INFO" ? { informational: true } : {}),
       waived: false,
+      ...(asvsRequirements ? { asvsRequirements } : {}),
     });
   }
   const paths = isRec(doc.paths) ? doc.paths : null;

@@ -2,6 +2,7 @@
 // kept. A different policy, rules or scope (or a reduced or partial run) is reported as a warning and the comparison
 // is flagged not comparable: the lists are still there, but they must not be read as a like-for-like diff.
 import type { BaselineComparison, ResultFinding, RunResult } from "../run/types.js";
+import { isInformational } from "./wording.js";
 
 type Warning = BaselineComparison["warnings"][number];
 
@@ -31,7 +32,11 @@ export function compareWithBaseline(
   if (scopeOf(baseline) !== scopeOf(current)) warnings.push({ code: "SCOPE_CHANGED", message: "the scope differs between the baseline and this run" });
 
   const m = matchFindings(baseline.findings ?? [], current.findings);
-  const kept = m.keptFlags.filter(Boolean).length;
+  // Informational findings (they do not block) are counted apart: `new` and `kept` hold the blocking side only.
+  const keptInformational = m.keptFlags.filter((flag, i) => flag && isInformational(current.findings[i]!)).length;
+  const kept = m.keptFlags.filter(Boolean).length - keptInformational;
+  const informationalNow = current.findings.filter(isInformational).length;
+  const resolvedInformational = m.resolved.filter(isInformational).length;
   const resolved = m.resolved.map((f) => ({
     fingerprint: f.fingerprint!,
     ruleId: f.ruleId,
@@ -39,7 +44,18 @@ export function compareWithBaseline(
     ...(f.location?.path ? { path: f.location.path } : {}),
     ...(typeof f.location?.line === "number" ? { line: f.location.line } : {}),
   }));
-  return { runId: baseline.runId, comparable: warnings.length === 0, warnings, new: current.findings.length - kept, kept, resolved, matchedBy: m.matchedBy };
+  return {
+    runId: baseline.runId,
+    comparable: warnings.length === 0,
+    warnings,
+    new: current.findings.length - informationalNow - kept,
+    kept,
+    newInformational: informationalNow - keptInformational,
+    keptInformational,
+    resolvedInformational,
+    resolved,
+    matchedBy: m.matchedBy,
+  };
 }
 
 /** Marks each finding of the current run as new or kept against the baseline. */

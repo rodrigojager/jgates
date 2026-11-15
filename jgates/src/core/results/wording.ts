@@ -1,7 +1,7 @@
 // "Approved with N waivers": the wording of a result that passed. The decision stays `passed` and the exit codes keep their
 // meaning; this is only what every surface (the CLI text, the agent context, the screens through the server) says. One
 // function turns a result into the wording key and its numbers, so all of them agree.
-import type { RunResult } from "../run/types.js";
+import type { ResultFinding, RunResult } from "../run/types.js";
 
 export type ApprovalWordingKind = "plain" | "with-waivers";
 
@@ -30,6 +30,20 @@ export function approvalWording(result: WordingSource): ApprovalWording {
   if (waived.length === 0) return none;
   const ids = new Set(waived.map((f) => f.waiverId ?? f.waiverReason ?? "waiver"));
   return { kind: "with-waivers", waivers: ids.size, findings: waived.length };
+}
+
+/**
+ * An informational finding: one a tool reported as such (the adapter sets `informational`: a policy of a standard many
+ * sound projects do not follow), that does not block the validation. A waived finding blocked before the waiver and is
+ * not informational. The one test every surface uses; other non-blocking findings are not told apart by it.
+ */
+export function isInformational(f: Pick<ResultFinding, "blocking" | "waived" | "informational">): boolean {
+  return f.informational === true && f.blocking !== true && f.waived !== true;
+}
+
+/** How many informational findings a result has. */
+export function informationalCount(result: Pick<RunResult, "findings">): number {
+  return (result.findings ?? []).filter(isInformational).length;
 }
 
 /** The message key and parameters of the wording in a catalog that holds the `*_passed` and `*_passed_waivers` keys. */

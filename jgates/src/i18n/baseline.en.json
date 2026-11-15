@@ -17,5 +17,6 @@
   "baseline_cleared": "Baseline removed.",
   "baseline_none": "No baseline.",
   "baseline_compare_line": "new {new}, resolved {resolved}, kept {kept}",
+  "baseline_compare_informational": "informational (they do not block): new {new}, resolved {resolved}, kept {kept}",
   "baseline_not_comparable": "Warning: the comparison is not like for like ({codes})."
 }

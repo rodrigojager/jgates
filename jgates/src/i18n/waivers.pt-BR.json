@@ -37,6 +37,8 @@
   "waivers_refused_waiver_finding_ambiguous_fix": "Informe um prefixo mais longo de um deles.",
   "waivers_refused_waiver_finding_not_waivable": "{detail}",
   "waivers_refused_waiver_finding_not_waivable_fix": "Um achado precisa de impressão digital e de arquivo; um resultado guardado por uma versão antiga pode não ter nenhum dos dois.",
+  "waivers_refused_waiver_finding_informational": "O achado {rule} é informativo: ele não bloqueia a validação, então não há o que dispensar.",
+  "waivers_refused_waiver_finding_informational_fix": "Dispense só achados que bloqueiam; um achado informativo é mostrado e contado, e não pode ser dispensado.",
   "waivers_refused_waiver_already_exists": "{detail}",
   "waivers_refused_waiver_already_exists_fix": "Remova antes com jgates waivers remove {id}, ou deixe como está.",
   "waivers_refused_waiver_id_required": "Informe a dispensa a remover.",
