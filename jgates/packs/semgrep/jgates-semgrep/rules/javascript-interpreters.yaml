@@ -38,6 +38,9 @@ rules:
           - focus-metavariable: $DN
       - patterns:
           - pattern: $CLIENT.compare($DN, ...)
+          - metavariable-regex:
+              metavariable: $CLIENT
+              regex: ^(?!(bcrypt|bcryptjs|argon2|scrypt|crypto)$)
           - focus-metavariable: $DN
 
   - id: jgates.js.xpath-injection
