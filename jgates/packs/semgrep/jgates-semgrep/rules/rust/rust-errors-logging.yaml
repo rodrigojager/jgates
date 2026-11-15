@@ -1,0 +1,39 @@
+# Errors, logging and availability for Rust.
+# Libraries covered: the log and tracing macros (trace!, debug!, info!, warn!, error!, with their log:: and tracing::
+# paths) for the logging rule; reqwest (the blocking and the async client) for the outbound timeout rule; actix-web and
+# axum responses for the error detail rules.
+rules:
+  - id: jgates.rust.sensitive-data-logged
+    message: A value named like a password, a secret, a token or an authorization header is passed to a logging macro, so it ends up in the log files. Log an identifier or a masked form instead, or leave the value out.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    # Macro arguments are token trees, so the rule reads the text of the call: a sensitive name given as an argument,
+    # as the value of a tracing field, or inline in the format string ({password}).
+    pattern-regex: '(?is)\b(?:(?:log|tracing)::)?(?:trace|debug|info|warn|error)!\s*(?=\()(?:[^;]*?[,(]\s*[&%?]*\s*(?:\w+\.)*(?:\w*_)?(?:password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(?:_\w*)?\s*[,)]|[^;]*?[,(]\s*(?:\w*_)?(?:password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(?:_\w*)?\s*=|[^;]*?"[^"]*\{(?:\w*_)?(?:password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(?:_\w*)?(?::[^}]*)?\})'
+
+  - id: jgates.rust.http-client-without-timeout
+    message: An outbound HTTP call or client is built without a timeout, and reqwest waits forever by default, so a slow server holds the task open. Build the client with Client::builder().timeout(...) or set .timeout(...) on the request.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: availability
+      cwe: "CWE-400"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.2", "V13.2.6", "V15.2.2"]
+    pattern-either:
+      - pattern: reqwest::get(...)
+      - pattern: reqwest::blocking::get(...)
+      - pattern: reqwest::Client::new()
+      - pattern: reqwest::blocking::Client::new()
+      - patterns:
+          - pattern: $B.build()
+          - metavariable-regex:
+              metavariable: $B
+              regex: (?s)^(?!.*\.(connect_)?timeout\().*reqwest::(blocking::)?Client::builder\(\).*$

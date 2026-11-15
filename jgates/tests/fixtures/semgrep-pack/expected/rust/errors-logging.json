@@ -1,0 +1,4 @@
+{
+  "files": ["src/errors-logging.rs"],
+  "ruleIds": ["jgates.rust.sensitive-data-logged", "jgates.rust.http-client-without-timeout"]
+}
