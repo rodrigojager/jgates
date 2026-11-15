@@ -1,0 +1,10 @@
+{
+  "files": ["files.go"],
+  "ruleIds": [
+    "jgates.go.upload-client-filename-in-path",
+    "jgates.go.archive-extraction-unchecked",
+    "jgates.go.request-body-without-size-limit",
+    "jgates.go.upload-content-type-trusted",
+    "jgates.go.content-disposition-from-request"
+  ]
+}

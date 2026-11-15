@@ -1,0 +1,10 @@
+{
+  "files": ["files.ts"],
+  "ruleIds": [
+    "jgates.js.upload-client-filename-in-path",
+    "jgates.js.archive-extraction-unchecked",
+    "jgates.js.request-body-without-size-limit",
+    "jgates.js.upload-content-type-trusted",
+    "jgates.js.content-disposition-from-request"
+  ]
+}

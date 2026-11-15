@@ -1,0 +1,484 @@
+# Go file-handling rules: uploads, archive extraction, request size limits and download headers.
+# Frameworks covered: net/http (also chi handlers), gin, echo and fiber where a rule names them.
+rules:
+  - id: jgates.go.upload-client-filename-in-path
+    message: The file name the client sent with an upload is used in a path the file is written to. Reduce it to a base name with filepath.Base, or store the file under a name the server generates.
+    severity: ERROR
+    languages: [go]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.3.2"]
+    pattern-sources:
+      - patterns:
+          - pattern: $H.Filename
+          - pattern-either:
+              - pattern-inside: |
+                  $F, $H, $E := $R.FormFile(...)
+                  ...
+              - pattern-inside: |
+                  $F, $H, $E = $R.FormFile(...)
+                  ...
+              - pattern-inside: |
+                  $H, $E := $R.FormFile(...)
+                  ...
+              - pattern-inside: |
+                  $H, $E = $R.FormFile(...)
+                  ...
+              - pattern-inside: |
+                  for _, $H := range $FORM.File[...] {
+                    ...
+                  }
+              - pattern-inside: |
+                  $FILES := $FORM.File[...]
+                  ...
+                  for _, $H := range $FILES {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $H *multipart.FileHeader, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $H *multipart.FileHeader, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $H *multipart.FileHeader, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $H *multipart.FileHeader, ...) $RET {
+                    ...
+                  }
+    pattern-sanitizers:
+      - pattern: filepath.Base(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: os.Create($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.OpenFile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.WriteFile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: ioutil.WriteFile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.Rename($S, $P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.MkdirAll($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $C.SaveUploadedFile($U, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $C.SaveFile($U, $P)
+          - focus-metavariable: $P
+
+  - id: jgates.go.archive-extraction-unchecked
+    message: An archive entry is written to a path built from the entry's own name, and the loop never checks that the path stays under the target folder. Reject names that are absolute or contain "..", check the resolved path against the target folder, and skip links and oversized entries.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: file-handling
+      cwe: "CWE-22"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.3", "V5.2.5", "V5.3.2"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-inside: |
+                  for _, $F := range $ZR.File {
+                    ...
+                  }
+              - pattern-either:
+                  - pattern: filepath.Join(..., $F.Name, ...)
+                  - pattern: path.Join(..., $F.Name, ...)
+                  - pattern: os.Create($F.Name)
+                  - pattern: os.OpenFile($F.Name, ...)
+                  - pattern: os.MkdirAll($F.Name, ...)
+              - pattern-not-inside: |
+                  for _, $F := range $ZR.File {
+                    ...
+                    if <... strings.HasPrefix(...) ...> {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  for _, $F := range $ZR.File {
+                    ...
+                    if <... filepath.IsLocal(...) ...> {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  for _, $F := range $ZR.File {
+                    ...
+                    if <... strings.Contains($F.Name, "..") ...> {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  for _, $F := range $ZR.File {
+                    ...
+                    if <... filepath.Rel(...) ...> {
+                      ...
+                    }
+                    ...
+                  }
+          - patterns:
+              - pattern-inside: |
+                  for {
+                    ...
+                    $H, $E := $T.Next()
+                    ...
+                  }
+              - pattern-either:
+                  - pattern: filepath.Join(..., $H.Name, ...)
+                  - pattern: path.Join(..., $H.Name, ...)
+                  - pattern: os.Create($H.Name)
+                  - pattern: os.OpenFile($H.Name, ...)
+                  - pattern: os.MkdirAll($H.Name, ...)
+              - pattern-not-inside: |
+                  for {
+                    ...
+                    $H, $E := $T.Next()
+                    ...
+                    if <... strings.HasPrefix(...) ...> {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  for {
+                    ...
+                    $H, $E := $T.Next()
+                    ...
+                    if <... filepath.IsLocal(...) ...> {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  for {
+                    ...
+                    $H, $E := $T.Next()
+                    ...
+                    if <... strings.Contains($H.Name, "..") ...> {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  for {
+                    ...
+                    $H, $E := $T.Next()
+                    ...
+                    if <... filepath.Rel(...) ...> {
+                      ...
+                    }
+                    ...
+                  }
+
+  - id: jgates.go.request-body-without-size-limit
+    message: The request body is read in full with no size limit, so one request can use all the memory or disk of the server. Wrap the body with http.MaxBytesReader before reading it.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.1"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: io.ReadAll($R.Body)
+                  - pattern: ioutil.ReadAll($R.Body)
+                  - pattern: json.NewDecoder($R.Body)
+                  - pattern: xml.NewDecoder($R.Body)
+                  - pattern: io.Copy($W, $R.Body)
+                  - pattern: $R.ParseMultipartForm(...)
+                  - pattern: $R.FormFile(...)
+              - pattern-either:
+                  - pattern-inside: |
+                      func $F(..., $R *http.Request, ...) {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func $F(..., $R *http.Request, ...) $RET {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func(..., $R *http.Request, ...) {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func(..., $R *http.Request, ...) $RET {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func ($X $T) $F(..., $R *http.Request, ...) {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                        ...
+                      }
+              - pattern-not-inside: |
+                  $R.Body = http.MaxBytesReader(...)
+                  ...
+          - patterns:
+              - pattern-either:
+                  - pattern: io.ReadAll($C.Request.Body)
+                  - pattern: ioutil.ReadAll($C.Request.Body)
+                  - pattern: json.NewDecoder($C.Request.Body)
+                  - pattern: $C.GetRawData()
+                  - pattern: $C.ShouldBindJSON(...)
+                  - pattern: $C.BindJSON(...)
+                  - pattern: $C.FormFile(...)
+                  - pattern: $C.MultipartForm()
+                  - pattern: $C.Request.ParseMultipartForm(...)
+              - pattern-either:
+                  - pattern-inside: |
+                      func $F(..., $C *gin.Context, ...) {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func $F(..., $C *gin.Context, ...) $RET {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func(..., $C *gin.Context, ...) {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func(..., $C *gin.Context, ...) $RET {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func ($X $T) $F(..., $C *gin.Context, ...) {
+                        ...
+                      }
+                  - pattern-inside: |
+                      func ($X $T) $F(..., $C *gin.Context, ...) $RET {
+                        ...
+                      }
+              - pattern-not-inside: |
+                  $C.Request.Body = http.MaxBytesReader(...)
+                  ...
+
+  - id: jgates.go.upload-content-type-trusted
+    message: The content type the client declared for an upload is used as the type check, and the client can set it to anything. Detect the type from the file content with http.DetectContentType and compare that instead.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: file-handling
+      cwe: "CWE-434"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.2"]
+    patterns:
+      - pattern-either:
+          - pattern: $H.Header.Get("Content-Type") == $X
+          - pattern: $H.Header.Get("Content-Type") != $X
+          - pattern: $X == $H.Header.Get("Content-Type")
+          - pattern: $X != $H.Header.Get("Content-Type")
+          - pattern: strings.HasPrefix($H.Header.Get("Content-Type"), ...)
+          - pattern: $ALLOWED[$H.Header.Get("Content-Type")]
+      - pattern-either:
+          - pattern-inside: |
+              $F, $H, $E := $R.FormFile(...)
+              ...
+          - pattern-inside: |
+              $F, $H, $E = $R.FormFile(...)
+              ...
+          - pattern-inside: |
+              $H, $E := $R.FormFile(...)
+              ...
+          - pattern-inside: |
+              $H, $E = $R.FormFile(...)
+              ...
+          - pattern-inside: |
+              for _, $H := range $FORM.File[...] {
+                ...
+              }
+          - pattern-inside: |
+              func $F(..., $H *multipart.FileHeader, ...) {
+                ...
+              }
+          - pattern-inside: |
+              func $F(..., $H *multipart.FileHeader, ...) $RET {
+                ...
+              }
+
+  - id: jgates.go.content-disposition-from-request
+    message: Data from the incoming request is joined into a Content-Disposition header. Build the value with mime.FormatMediaType, which quotes the file name, instead of concatenating it.
+    severity: ERROR
+    languages: [go]
+    mode: taint
+    metadata:
+      category: file-handling
+      cwe: "CWE-113"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.4.1", "V5.4.2"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.URL.Path
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.Header.Get(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.DefaultQuery(...)
+              - pattern: $R.PostForm(...)
+              - pattern: $R.DefaultPostForm(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.GetHeader(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.QueryParam(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.FormValue(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.Params(...)
+              - pattern: $R.FormValue(...)
+      - pattern: chi.URLParam($R, ...)
+    pattern-sanitizers:
+      - pattern: mime.FormatMediaType(...)
+      - pattern: url.PathEscape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $W.Header().Set("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $W.Header().Add("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $C.Header("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $C.Set("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $C.Response().Header().Set("Content-Disposition", $V)
+          - focus-metavariable: $V
