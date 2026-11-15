@@ -1,0 +1,259 @@
+# Python file handling checks (group files).
+# Sources cover Flask/Werkzeug (request.files, request.args, request.form), Django (request.FILES, request.GET,
+# request.POST), Starlette/FastAPI (UploadFile parameters, request.query_params). Sinks cover open, os.path.join,
+# pathlib joins, Werkzeug FileStorage.save, tarfile, zipfile, shutil.unpack_archive, Pillow and header writes.
+rules:
+  - id: jgates.python.upload-client-filename-in-path
+    message: The file name the client sent with an upload is used to build a storage path. Store under a name you generate, or reduce it with secure_filename or os.path.basename and check the result stays in the upload folder.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.3.2"]
+    pattern-sources:
+      - pattern: request.files[...].filename
+      - pattern: request.files.get(...).filename
+      - pattern: request.FILES[...].name
+      - pattern: request.FILES.get(...).name
+      - patterns:
+          - pattern: $F.filename
+          - pattern-either:
+              - pattern-inside: |
+                  $F = request.files[...]
+                  ...
+              - pattern-inside: |
+                  $F = request.files.get(...)
+                  ...
+              - pattern-inside: |
+                  def $FUNC(..., $F: UploadFile, ...):
+                    ...
+              - pattern-inside: |
+                  async def $FUNC(..., $F: UploadFile, ...):
+                    ...
+      - patterns:
+          - pattern: $F.name
+          - pattern-either:
+              - pattern-inside: |
+                  $F = request.FILES[...]
+                  ...
+              - pattern-inside: |
+                  $F = request.FILES.get(...)
+                  ...
+    pattern-sanitizers:
+      - pattern: secure_filename(...)
+      - pattern: os.path.basename(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: os.path.join($BASE, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: open($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $FS.save($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: pathlib.Path(...) / $P
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: Path(...) / $P
+          - focus-metavariable: $P
+
+  - id: jgates.python.archive-extraction-unchecked
+    message: An archive is extracted without checking where the entries land, what kind of entry they are, or how large they grow. Extract tar files with filter="data" (or pass a checked members list), and check the entry paths and the total size before extracting a zip file.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: file-handling
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.3", "V5.2.5", "V5.3.2"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: $T.extractall(...)
+              - pattern-either:
+                  - pattern-inside: |
+                      with tarfile.open(...) as $T:
+                        ...
+                  - pattern-inside: |
+                      $T = tarfile.open(...)
+                      ...
+              - pattern-not: $T.extractall(..., filter=..., ...)
+              - pattern-not: $T.extractall(..., members=..., ...)
+              - pattern-not: $T.extractall($D, $M, ...)
+          - patterns:
+              - pattern: tarfile.open(...).extractall(...)
+              - pattern-not: tarfile.open(...).extractall(..., filter=..., ...)
+              - pattern-not: tarfile.open(...).extractall(..., members=..., ...)
+          - pattern: $T.extractall(..., filter="fully_trusted", ...)
+          - patterns:
+              - pattern: $T.extract($M, ...)
+              - pattern-either:
+                  - pattern-inside: |
+                      with tarfile.open(...) as $T:
+                        ...
+                  - pattern-inside: |
+                      $T = tarfile.open(...)
+                      ...
+              - pattern-not: $T.extract($M, ..., filter=..., ...)
+          - patterns:
+              - pattern: $Z.extractall(...)
+              - pattern-either:
+                  - pattern-inside: |
+                      with zipfile.ZipFile(...) as $Z:
+                        ...
+                  - pattern-inside: |
+                      $Z = zipfile.ZipFile(...)
+                      ...
+              - pattern-not: $Z.extractall(..., members=..., ...)
+              - pattern-not-inside: |
+                  with zipfile.ZipFile(...) as $Z:
+                    ...
+                    <... $Z.infolist() ...>
+                    ...
+              - pattern-not-inside: |
+                  $Z = zipfile.ZipFile(...)
+                  ...
+                  <... $Z.infolist() ...>
+                  ...
+          - patterns:
+              - pattern: zipfile.ZipFile(...).extractall(...)
+              - pattern-not: zipfile.ZipFile(...).extractall(..., members=..., ...)
+          - patterns:
+              - pattern: shutil.unpack_archive($A, ...)
+              - pattern-not: shutil.unpack_archive(..., filter=..., ...)
+              - pattern-not: shutil.unpack_archive($A, $D, $FMT, $FILTER)
+
+
+  - id: jgates.python.request-body-without-size-limit
+    message: The request body size limit is switched off, so a client can send a body of any size. Set a limit (MAX_CONTENT_LENGTH in Flask, DATA_UPLOAD_MAX_MEMORY_SIZE in Django) that fits the largest legitimate upload.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V5.2.1"]
+    pattern-either:
+      - pattern: $APP.config["MAX_CONTENT_LENGTH"] = None
+      - pattern: $APP.config.update(..., MAX_CONTENT_LENGTH=None, ...)
+      - pattern: $APP.config.from_mapping(..., MAX_CONTENT_LENGTH=None, ...)
+      - pattern: DATA_UPLOAD_MAX_MEMORY_SIZE = None
+      - pattern: settings.DATA_UPLOAD_MAX_MEMORY_SIZE = None
+
+  - id: jgates.python.image-pixel-limit-disabled
+    message: The image library's decompression bomb protection is switched off, so a small crafted file can exhaust memory when opened. Keep Image.MAX_IMAGE_PIXELS at its default or set a number that fits your largest legitimate image.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: file-handling
+      cwe: "CWE-409"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.6"]
+    pattern-either:
+      - pattern: Image.MAX_IMAGE_PIXELS = None
+      - pattern: PIL.Image.MAX_IMAGE_PIXELS = None
+      - pattern: warnings.simplefilter("ignore", Image.DecompressionBombWarning)
+      - pattern: warnings.simplefilter("ignore", PIL.Image.DecompressionBombWarning)
+      - pattern: warnings.filterwarnings("ignore", category=Image.DecompressionBombWarning, ...)
+
+  - id: jgates.python.upload-content-type-trusted
+    message: The content type the client declared for an upload is used to decide whether the file is allowed. The client controls that value; inspect the file content (magic bytes or a decoder) instead.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: file-handling
+      cwe: "CWE-434"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.2"]
+    patterns:
+      - pattern-either:
+          - pattern: request.files[...].mimetype in $L
+          - pattern: request.files[...].mimetype not in $L
+          - pattern: request.files[...].mimetype != $V
+          - pattern: request.files[...].content_type not in $L
+          - pattern: request.files[...].content_type != $V
+          - pattern: request.files[...].mimetype == $V
+          - pattern: request.files[...].content_type in $L
+          - pattern: request.files[...].content_type == $V
+          - pattern: request.FILES[...].content_type in $L
+          - pattern: request.FILES[...].content_type == $V
+          - patterns:
+              - pattern-either:
+                  - pattern: $F.content_type in $L
+                  - pattern: $F.content_type not in $L
+                  - pattern: $F.content_type != $V
+                  - pattern: $F.mimetype not in $L
+                  - pattern: $F.mimetype != $V
+                  - pattern: $F.content_type == $V
+                  - pattern: $F.mimetype in $L
+                  - pattern: $F.mimetype == $V
+                  - pattern: $F.content_type.startswith(...)
+                  - pattern: $F.mimetype.startswith(...)
+              - pattern-either:
+                  - pattern-inside: |
+                      $F = request.files[...]
+                      ...
+                  - pattern-inside: |
+                      $F = request.FILES[...]
+                      ...
+                  - pattern-inside: |
+                      def $FUNC(..., $F: UploadFile, ...):
+                        ...
+                  - pattern-inside: |
+                      async def $FUNC(..., $F: UploadFile, ...):
+                        ...
+
+  - id: jgates.python.content-disposition-from-request
+    message: Request data is joined into a Content-Disposition header. A quote or separator in it changes the header's meaning. Build the header with a helper that quotes the file name, or reduce the name with secure_filename first.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: file-handling
+      cwe: "CWE-113"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.4.1", "V5.4.2"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+      - pattern: request.query_params.get(...)
+      - pattern: request.view_args[...]
+    pattern-sanitizers:
+      - pattern: secure_filename(...)
+      - pattern: quote(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $R.headers["Content-Disposition"] = $V
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R["Content-Disposition"] = $V
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.headers.set("Content-Disposition", $V, ...)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.headers.add("Content-Disposition", $V, ...)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: '$CALL(..., headers={..., "Content-Disposition": $V, ...}, ...)'
+          - focus-metavariable: $V
