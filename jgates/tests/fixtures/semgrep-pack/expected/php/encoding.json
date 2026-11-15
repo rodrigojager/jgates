@@ -1,0 +1,10 @@
+{
+  "files": [
+    "encoding.php"
+  ],
+  "ruleIds": [
+    "jgates.php.regex-from-request",
+    "jgates.php.redos-nested-quantifier",
+    "jgates.php.format-string-from-request"
+  ]
+}

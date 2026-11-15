@@ -1,0 +1,166 @@
+# Original JGates rules. Intra-procedural request sources: PHP superglobals,
+# Laravel request() and $request/$req input/query/post/cookie/file methods,
+# Symfony $request/$req get() and query/request/cookies/files/headers bags.
+# Object sources intentionally require the conventional request/req variable name.
+# Only request-controlled $_SERVER keys are sources, not server configuration.
+# Regular expression sinks: preg_* functions and the mb_ereg family. Format sinks:
+# printf, sprintf, vprintf, vsprintf, fprintf.
+rules:
+  - id: jgates.php.regex-from-request
+    message: Request data is used as a regular expression. Escape it with preg_quote (passing the delimiter) before building the pattern.
+    severity: WARNING
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.9", "V1.3.12"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: preg_quote(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: "preg_match($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_match_all($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_replace($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_replace_callback($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_split($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_grep($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "mb_ereg($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "mb_eregi($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "mb_ereg_replace($RE, ...)"
+          - focus-metavariable: $RE
+
+  - id: jgates.php.redos-nested-quantifier
+    message: This regular expression has a quantified group that itself ends in a quantifier, which can backtrack catastrophically. Rewrite it without the nested quantifier, for example with an atomic or possessive form.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.12"]
+    patterns:
+      - pattern-either:
+          - pattern: preg_match($RE, ...)
+          - pattern: preg_match_all($RE, ...)
+          - pattern: preg_replace($RE, ...)
+          - pattern: preg_replace_callback($RE, ...)
+          - pattern: preg_split($RE, ...)
+          - pattern: preg_grep($RE, ...)
+      - focus-metavariable: $RE
+      - metavariable-regex:
+          metavariable: $RE
+          regex: (?s)^["'].*[^()\\][+*]\)[+*].*$
+
+  - id: jgates.php.format-string-from-request
+    message: Request data is used as the format string of a formatting function. Use a constant format string and pass the request data as an argument.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-134"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.10"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: str_replace("%", "%%", ...)
+    pattern-sinks:
+      - patterns:
+          - pattern: "printf($F, ...)"
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: "sprintf($F, ...)"
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: "vprintf($F, ...)"
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: "vsprintf($F, ...)"
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: "fprintf($H, $F, ...)"
+          - focus-metavariable: $F
