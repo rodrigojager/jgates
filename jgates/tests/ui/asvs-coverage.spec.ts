@@ -81,16 +81,25 @@ interface Ids {
   unsupported: string;
   /** The requirement the tests record as not applicable (unsupported before). */
   target: string;
+  /** With `rules`: a requirement with a JavaScript rule and a Go rule, and one with only a Go and a Rust rule. */
+  mixed?: string;
+  absentOnly?: string;
+  jsRule?: string;
+  goRule?: string;
+  rustRule?: string;
 }
 
-/** A copy of the shipped mapping pack where five level-1 requirements, one per section, have exactly the entry the test needs. */
-async function fixtureMapping(): Promise<{ dir: string; ids: Ids }> {
+/**
+ * A copy of the shipped mapping pack where five level-1 requirements, one per section, have exactly the entry the test needs.
+ * With `rules`, two more: one checked by a JavaScript and a Go rule, one checked by a Go and a Rust rule only.
+ */
+async function fixtureMapping(rules = false): Promise<{ dir: string; ids: Ids }> {
   const asvs = await import(pathToFileURL(path.join(DIST, "core", "coverage", "asvs", "index.js")).href);
   const data = asvs.loadAsvs("5.0.0");
   const level1 = asvs.asvsRequirements(data, { level: 1 }) as Array<{ id: string; chapter: string; section: string }>;
   const sections: typeof level1 = [];
   for (const r of level1) if (!sections.some((x) => x.section === r.section)) sections.push(r);
-  const pick = sections.slice(0, 5);
+  const pick = sections.slice(0, rules ? 7 : 5);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-asvs-map-"));
   const versionDir = path.join(dir, "5.0.0");
   fs.cpSync(MAP_PACK, versionDir, { recursive: true });
@@ -109,7 +118,22 @@ async function fixtureMapping(): Promise<{ dir: string; ids: Ids }> {
   set(awaiting, { status: "pending", evidence: "deployment", checks: [], subdimensions: [] });
   set(unsupported, { status: "pending", evidence: "repository", checks: [], subdimensions: [] });
   set(target, { status: "pending", evidence: "repository", checks: [], subdimensions: [] });
-  return { dir, ids: { examined: examined.id, unexamined: unexamined.id, awaiting: awaiting.id, unsupported: unsupported.id, target: target.id } };
+  const ids: Ids = { examined: examined.id, unexamined: unexamined.id, awaiting: awaiting.id, unsupported: unsupported.id, target: target.id };
+  if (rules) {
+    const semgrep = await import(pathToFileURL(path.join(DIST, "adapters", "semgrep", "index.js")).href);
+    const packRules = semgrep.buildPackIndex(path.resolve(MAP_PACK, "..", "..", "..", "semgrep", "jgates-semgrep", "rules")).rules as Array<{ id: string; language: string; subdimension: string }>;
+    const js = packRules.find((r) => r.language === "javascript");
+    const go = packRules.find((r) => r.language === "go");
+    const rust = packRules.find((r) => r.language === "rust");
+    if (!js || !go || !rust) throw new Error("the pack has no JavaScript, Go and Rust rule");
+    const ruleCheck = (rule: { id: string }) => ({ unit: "semgrep-rule", id: rule.id, covers: "a construct this rule flags", misses: "what it does not model", depth: "partial" });
+    const reviewedRules = (list: Array<{ id: string; subdimension: string }>) => ({ status: "reviewed", evidence: "repository", subdimensions: [list[0]!.subdimension], checks: list.map(ruleCheck), why: "It bears on the requirement for a reason of its own.", review: { by: "independent context", date: "2026-11-14" } });
+    const [mixed, absentOnly] = pick.slice(5) as [(typeof level1)[number], (typeof level1)[number]];
+    set(mixed, reviewedRules([js, go]));
+    set(absentOnly, reviewedRules([go, rust]));
+    Object.assign(ids, { mixed: mixed.id, absentOnly: absentOnly.id, jsRule: js.id, goRule: go.id, rustRule: rust.id });
+  }
+  return { dir, ids };
 }
 
 async function workspaceIdOf(fixture: Fixture): Promise<string> {
@@ -120,7 +144,7 @@ async function workspaceIdOf(fixture: Fixture): Promise<string> {
 const base = { schemaVersion: 1, tool: "jgates", version: "2.0.0", requirements: [], unsatisfied: [], warnings: [], blockingViolations: 0, disabled: [], complete: true, reduced: false };
 
 /** A finished Quality run and a finished Semantic run of the same revision, stored the way the runners store them. */
-async function writeRuns(fixture: Fixture, language: "pt-BR" | "en", withSemantic: boolean): Promise<void> {
+async function writeRuns(fixture: Fixture, language: "pt-BR" | "en", withSemantic: boolean, projectLanguages: string[] = []): Promise<void> {
   const wsId = await workspaceIdOf(fixture);
   const runDir = path.join(fixture.home, "workspaces", wsId, "runs", RUN_ID);
   fs.mkdirSync(path.join(runDir, "logs"), { recursive: true });
@@ -141,7 +165,7 @@ async function writeRuns(fixture: Fixture, language: "pt-BR" | "en", withSemanti
     artifacts: { result: "result.json", logs: [], outputs: [], plan: "plan.json" },
   };
   writeJson(path.join(runDir, "result.json"), result);
-  writeJson(path.join(runDir, "plan.json"), { schemaVersion: 1, kind: "jgates-plan", groups: { willRun: [], notApplicableOrDisabled: [] } });
+  writeJson(path.join(runDir, "plan.json"), { schemaVersion: 1, kind: "jgates-plan", groups: { willRun: projectLanguages.length > 0 ? [{ id: "semgrep#sast", languages: projectLanguages }] : [], notApplicableOrDisabled: [] } });
   writeJson(path.join(runDir, "run.json"), { schemaVersion: 1, gate: "quality", runId: RUN_ID, source: { commit: COMMIT, dirty: false, dirtyContentHash: null } });
   const event = (sequence: number, type: string) => JSON.stringify({ schemaVersion: 1, runId: RUN_ID, sequence, type, at: "2026-11-13T10:00:01.000Z", data: {} });
   fs.writeFileSync(path.join(runDir, "events.jsonl"), `${event(1, "run-started")}\n${event(2, "run-finished")}\n`);
@@ -166,13 +190,13 @@ async function writeRuns(fixture: Fixture, language: "pt-BR" | "en", withSemanti
   fs.writeFileSync(path.join(fixture.home, "preferences.json"), `${JSON.stringify({ schemaVersion: 1, theme: "system", language }, null, 2)}\n`, { mode: 0o600 });
 }
 
-async function withProject(page: Page, language: "pt-BR" | "en", body: (ctx: { fixture: Fixture; base: string; ids: Ids }) => Promise<void>, options: { env?: Record<string, string>; semantic?: boolean } = {}) {
+async function withProject(page: Page, language: "pt-BR" | "en", body: (ctx: { fixture: Fixture; base: string; ids: Ids }) => Promise<void>, options: { env?: Record<string, string>; semantic?: boolean; languages?: string[]; rules?: boolean } = {}) {
   const fixture = createFixture();
-  const mapping = await fixtureMapping();
+  const mapping = await fixtureMapping(options.rules === true);
   Object.assign(fixture.env, { JGATES_ASVS_MAP_DIR: mapping.dir }, options.env ?? {});
   let server: Awaited<ReturnType<typeof startServer>> | null = null;
   try {
-    await writeRuns(fixture, language, options.semantic !== false);
+    await writeRuns(fixture, language, options.semantic !== false, options.languages ?? []);
     server = await startServer(fixture);
     const url = await openApp(page, server);
     await body({ fixture, base: url, ids: mapping.ids });
@@ -435,6 +459,41 @@ test("in governed mode \"Não se aplica\" is disabled with its reason beside it,
       expect(fs.existsSync(path.join(fixture.dir, FILE))).toBe(false);
     },
     { env: { JGATES_POLICY_DIR: "/etc/policies/company-policy", JGATES_POLICY_SHA256: "a".repeat(64) } },
+  );
+});
+
+test("a single-language project's opened requirement lists no check of an absent language, and a requirement with only such checks names the languages in its reason", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await withProject(
+    page,
+    "en",
+    async ({ base: url, ids }) => {
+      await openMap(page, url, EN);
+      const mixed = ids.mixed!;
+      const absentOnly = ids.absentOnly!;
+
+      // A JavaScript project: the opened requirement lists the JavaScript rule and nothing of Go.
+      await press(page, row(page, mixed).getByTestId(`asvs-toggle-${mixed}`));
+      const detail = page.getByTestId(`asvs-detail-${mixed}`);
+      await expect(detail.getByTestId("asvs-check")).toHaveCount(1);
+      await expect(detail.getByTestId("asvs-check")).toContainText(ids.jsRule!);
+      await expect(detail).not.toContainText(ids.goRule!);
+
+      // Only Go and Rust rules: no check is listed, the row is unsupported and its reason names the project's language and the others.
+      const only = row(page, absentOnly);
+      await expect(only).toHaveAttribute("data-state", "unsupported");
+      const reason = (await only.getByTestId("asvs-row-reason").textContent()) ?? "";
+      expect(reason).toContain("JavaScript");
+      expect(reason).toContain("Go");
+      expect(reason).toContain("Rust");
+      await press(page, only.getByTestId(`asvs-toggle-${absentOnly}`));
+      const detailOnly = page.getByTestId(`asvs-detail-${absentOnly}`);
+      await expect(detailOnly.getByTestId("asvs-check")).toHaveCount(0);
+      await expect(detailOnly.getByTestId("asvs-no-check")).toHaveText(/in the languages of this project/);
+      await expect(detailOnly).not.toContainText(ids.goRule!);
+      await expect(detailOnly).not.toContainText(ids.rustRule!);
+    },
+    { languages: ["javascript"], rules: true },
   );
 });
 

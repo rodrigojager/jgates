@@ -58,5 +58,10 @@
   "semrun_stage_validation": "Validação",
   "semrun_stage_structured_output": "Saída estruturada",
   "semrun_stage_output": "Saída",
+  "semrun_stage_verification": "Verificação",
+  "semrun_stage_verify": "Verificação",
+  "semrun_stage_reporting": "Relatório",
+  "semrun_stage_report": "Relatório",
+  "semrun_stage_summary": "Resumo",
   "semrun_stage_records": "Registros"
 }
