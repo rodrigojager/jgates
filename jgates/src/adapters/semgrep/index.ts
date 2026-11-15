@@ -94,9 +94,13 @@ function languagesWithoutPackRules(input: ExternalPlanInput, packLanguages: read
   return [...new Set(missing)].sort();
 }
 
-/** Rule id to the requirement ids the rule was written for, for the bundled pack folders a run's arguments select. */
-function packRequirementsOfArgs(args: readonly string[]): Map<string, readonly string[]> | undefined {
+/**
+ * For the bundled pack folders a run's arguments select: rule id to the requirement ids the rule was written for (the
+ * checks), and rule id to the tag of a signal rule (the signals). Both absent without the pack.
+ */
+function packRulesOfArgs(args: readonly string[]): { rules?: Map<string, readonly string[]>; signals?: Map<string, string> } {
   let rules: Map<string, readonly string[]> | undefined;
+  let signals: Map<string, string> | undefined;
   for (let i = 0; i < args.length - 1; i += 1) {
     if (args[i] !== "--config") continue;
     const value = path.resolve(args[i + 1] as string);
@@ -104,10 +108,14 @@ function packRequirementsOfArgs(args: readonly string[]): Map<string, readonly s
       const dir = bundledPackRulesDir(id);
       if (!dir || path.resolve(dir) !== value) continue;
       rules ??= new Map();
-      for (const rule of buildPackIndex(dir).rules) if (rule.signal === null) rules.set(rule.id, rule.asvsRequirements);
+      signals ??= new Map();
+      for (const rule of buildPackIndex(dir).rules) {
+        if (rule.signal === null) rules.set(rule.id, rule.asvsRequirements);
+        else signals.set(rule.id, rule.signal);
+      }
     }
   }
-  return rules;
+  return { ...(rules ? { rules } : {}), ...(signals ? { signals } : {}) };
 }
 
 /** The pack the instance selects in its settings, if any. */
@@ -314,7 +322,7 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
   // The step container sees the synchronized project and the run folder only: rules that live elsewhere on the host (a
   // bundled pack, the rules `tools prepare` stored, the policy's under jgates ci) are copied into the run folder first.
   const packLanguages = packLanguagesOfArgs(args);
-  const packRules = packRequirementsOfArgs(args);
+  const pack = packRulesOfArgs(args);
   args = stageRules(args, [context.workspacePath, context.runDir], path.join(outDir, "rules"));
   // The runner streams both outputs to the log files with its size limit (JGATES_MAX_LOG_BYTES) and the process facts.
   const result = await runSpec(
@@ -338,7 +346,7 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
   }
   // Semgrep prints the paths it was given: /workspace/... in the step container, the host paths inside the image.
   const view = (p: string): string => stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, p);
-  const parsed = parseSemgrepOutput(json, { stageId: items[0]?.id as string, version, workspace: view(context.workspacePath), cwd: view(cwd), ...(packRules ? { packRules } : {}) });
+  const parsed = parseSemgrepOutput(json, { stageId: items[0]?.id as string, version, workspace: view(context.workspacePath), cwd: view(cwd), ...(pack.rules ? { packRules: pack.rules } : {}), ...(pack.signals ? { packSignals: pack.signals } : {}) });
   if (!parsed.ok || result.truncated) {
     const detail = result.truncated ? "output truncated" : (parsed.problem ?? "");
     return { ...base, stages: items.map((i) => stageFor(i, "completed", t("semgrep_invalid_output", { detail }), { interpreted: false, nativeStatus: "exit 0" })), findings: [] };
@@ -360,6 +368,8 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
         findings: count,
         nativeStatus: "exit 0",
         ...(scannedLanguages ? { scannedLanguages } : {}),
+        // Which technologies the signal rules of the pack matched (tag to matches): a record of the scan, never findings.
+        ...(parsed.signals ? { signals: parsed.signals } : {}),
       }),
     ),
     findings: parsed.findings,

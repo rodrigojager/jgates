@@ -66,6 +66,11 @@ export interface ResultStage extends StageResult {
   analysisInput?: StageAnalysisInput;
   /** Semgrep stage: files of each language the scan covered (`{ language: files }`), from the scanner's scanned paths. */
   scannedLanguages?: Record<string, number>;
+  /**
+   * Semgrep stage with the bundled pack: for every tag of a signal rule of the pack, how many results its rules had
+   * (`{ tag: matches }`, 0 when none). The results of signal rules are this record, never findings.
+   */
+  signals?: Record<string, number>;
 }
 
 /** $defs.stage.analysisInput: the vulnerability database a scanner used (source, date when the tool says it). */

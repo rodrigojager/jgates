@@ -29,6 +29,7 @@
           "items": { "enum": ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence", "hardening"] }
         },
         "checks": { "type": "array", "items": { "$ref": "#/$defs/check" } },
+        "applies": { "$ref": "#/$defs/applies" },
         "why": { "type": "string", "minLength": 1 },
         "review": {
           "type": "object",
@@ -43,8 +44,13 @@
       "allOf": [
         {
           "if": { "properties": { "status": { "const": "unmapped" } } },
-          "then": { "properties": { "checks": { "type": "array", "maxItems": 0 } } },
-          "else": { "properties": { "checks": { "type": "array", "minItems": 1 }, "why": { "type": "string", "minLength": 1 } }, "required": ["why"] }
+          "then": { "properties": { "checks": { "type": "array", "maxItems": 0 } }, "not": { "properties": { "applies": true }, "required": ["applies"] } },
+          "else": {
+            "properties": { "why": { "type": "string", "minLength": 1 } },
+            "required": ["why"],
+            "description": "A pending or reviewed entry names at least one check, or says which projects the requirement concerns (applies), or both.",
+            "anyOf": [{ "properties": { "checks": { "type": "array", "minItems": 1 } } }, { "properties": { "applies": true }, "required": ["applies"] }]
+          }
         }
       ]
     },
@@ -53,13 +59,62 @@
       "additionalProperties": false,
       "required": ["unit", "id", "covers", "misses", "depth"],
       "properties": {
-        "unit": { "enum": ["semgrep-rule", "capability", "semantic-ledger", "semantic-method"] },
+        "unit": { "enum": ["semgrep-rule", "capability", "semantic-ledger", "semantic-method", "semantic-requirement"] },
         "id": { "type": "string", "minLength": 1 },
         "category": { "type": "string", "minLength": 1 },
+        "findingRules": {
+          "description": "Only on a capability check: the tool's own rule or alert ids the check stands for, as they appear in the normalized findings of the adapter. Only the stage's findings with one of these rule ids are its open findings; without the field, all of them.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
         "covers": { "type": "string", "minLength": 1 },
         "misses": { "type": "string", "minLength": 1 },
         "depth": { "enum": ["partial", "full"] }
+      },
+      "allOf": [
+        { "if": { "properties": { "unit": { "not": { "const": "capability" } } } }, "then": { "not": { "properties": { "findingRules": true }, "required": ["findingRules"] } } },
+        { "if": { "properties": { "unit": { "const": "semantic-requirement" } } }, "then": { "properties": { "id": { "const": "asvs-review" } } } }
+      ]
+    },
+    "applies": {
+      "description": "Which projects the requirement concerns at all. technology: only projects that use one of these technologies (the signal tags of the Semgrep pack). languages.only: only these languages. languages.exempt: these languages rule the weakness out by design, for the reason named. JGates only suggests 'not applicable' from it; the user's recorded decision is what makes a requirement not applicable.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "technology": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["graphql", "websocket", "webrtc", "oauth-client", "oauth-authorization-server", "jwt", "saml", "totp", "ldap", "xml", "latex", "memcache", "mail", "templates", "file-upload", "archives", "browser-dom"] }
+        },
+        "languages": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "only": { "$ref": "#/$defs/languageList" },
+            "exempt": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["languages", "reason"],
+              "properties": {
+                "languages": { "$ref": "#/$defs/languageList" },
+                "reason": { "enum": ["compile-time-format-strings", "linear-time-regex"] }
+              }
+            }
+          }
+        }
       }
+    },
+    "languageList": {
+      "description": "Language ids; javascript also stands for TypeScript, as in the Semgrep pack.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["javascript", "typescript", "python", "go", "csharp", "rust", "java", "php", "kotlin", "ruby", "swift", "scala", "c", "cpp", "dart", "elixir", "lua"] }
     }
   }
 }

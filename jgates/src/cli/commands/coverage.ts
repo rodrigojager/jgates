@@ -4,12 +4,16 @@
 // calls (core/coverage/asvs, buildAsvsMap). It never says the project complies and always exits 0 when the map was built.
 //
 //   jgates coverage asvs [--level 1|2|3] [--run <id>] [--semantic-run <id>]... [--state <state>] [--chapter <id>]
-//                        [--subdimension <id>] [--deterministic-only] [--json]
+//                        [--subdimension <id>] [--with-suggestion] [--deterministic-only] [--json]
 //   jgates coverage asvs level <1|2|3>                       records the project's level
 //   jgates coverage asvs not-applicable <id> --reason "..."  records that a requirement, section or chapter does not apply
+//   jgates coverage asvs not-applicable <id> --from-suggestion
+//                                                            the same, with the reason of the suggestion the map carries
 //   jgates coverage asvs not-applicable <id> --remove        takes that decision out
 //   jgates coverage asvs undo <token>                        puts .jgates/asvs.json back as it was before a write
 //
+// The text prints the suggestions of "not applicable" after the totals (a section or chapter whose requirements all
+// carry the same suggestion once); JGates only suggests, and nothing is recorded until the user confirms.
 // A write shows the entry and the change of the file and asks first (--yes writes without asking, --json never asks,
 // --preview shows and writes nothing); it changes .jgates/asvs.json by that entry and nothing else and is refused in
 // governed (read-only) mode.
@@ -29,6 +33,7 @@ import {
   prepareNotApplicable,
   prepareRemoveNotApplicable,
   readAsvsDecisions,
+  suggestionOfTarget,
   undoDecision,
   undoToken,
   AsvsDataError,
@@ -83,6 +88,8 @@ function mapText(ctx: CommandContext, map: AsvsMapAnswer): void {
   for (const s of map.runs.semantic) out(t("coverage_text_runs_semantic", { run: s.runId, methods: s.methods.join(", ") || "-", revision: s.revision ?? t("coverage_text_revision_unknown") }));
   for (const w of map.warnings) out(t("coverage_text_warning", { message: w.message }));
   out(t("coverage_text_totals", { ...map.totals }));
+  suggestionsText(out, map);
+  if (map.filters.withSuggestion) out(t("coverage_text_with_suggestion"));
   const shown = new Set(map.requirements.map((r) => r.id));
   if (shown.size === 0) out(t("coverage_text_no_rows"));
   for (const chapter of map.chapters) {
@@ -96,9 +103,40 @@ function mapText(ctx: CommandContext, map: AsvsMapAnswer): void {
   out(t("coverage_text_attribution", { version: map.source.version, licence: map.source.licence, sourceUrl: map.source.sourceUrl, licenceUrl: map.source.licenceUrl }));
 }
 
+/**
+ * The suggestions of "not applicable", after the totals: a chapter whose requirements all carry the same suggestion
+ * once, then a section the same way, then each requirement left. Nothing when there is none.
+ */
+function suggestionsText(out: (line?: string) => void, map: AsvsMapAnswer): void {
+  const lines: string[] = [];
+  const offeredChapters = new Set<string>();
+  const offeredSections = new Set<string>();
+  for (const chapter of map.chapters) {
+    if (chapter.suggestion) {
+      offeredChapters.add(chapter.id);
+      lines.push(t("coverage_text_suggestion_chapter", { id: chapter.id, reason: chapter.suggestion.reason }));
+      continue;
+    }
+    for (const section of chapter.sections) {
+      if (!section.suggestion) continue;
+      offeredSections.add(section.id);
+      lines.push(t("coverage_text_suggestion_section", { id: section.id, reason: section.suggestion.reason }));
+    }
+  }
+  for (const row of map.requirements) {
+    if (!row.suggestion || offeredChapters.has(row.chapter) || offeredSections.has(row.section)) continue;
+    lines.push(t("coverage_text_suggestion_requirement", { id: row.id, reason: row.suggestion.reason }));
+  }
+  if (lines.length === 0) return;
+  out(t("coverage_text_suggestions_title", { count: lines.length }));
+  for (const line of lines) out(line);
+  out(t("coverage_text_suggestion_accept"));
+}
+
 function rowText(out: (line?: string) => void, row: AsvsRequirementRow): void {
   out(`  ${row.id}  L${row.level}  ${t(stateKey(row.state))}: ${row.reason}`);
   out(`      ${row.text}`);
+  if (row.suggestion) out(`      ${t("coverage_text_row_suggestion", { reason: row.suggestion.reason })}`);
   // A check of a language the project lacks bears on nothing here: it stays in the JSON only.
   for (const c of row.checks.filter((check) => check.relevant)) {
     const name = c.category ? `${c.id} (${c.category})` : c.id;
@@ -122,7 +160,9 @@ export const command: CommandModule = {
     { name: "chapter", type: "string", description: t("coverage_option_chapter") },
     { name: "subdimension", type: "string", description: t("coverage_option_subdimension") },
     { name: "deterministic-only", type: "boolean", description: t("coverage_option_deterministic_only") },
+    { name: "with-suggestion", type: "boolean", description: t("coverage_option_with_suggestion") },
     { name: "reason", type: "string", description: t("coverage_option_reason") },
+    { name: "from-suggestion", type: "boolean", description: t("coverage_option_from_suggestion") },
     { name: "remove", type: "boolean", description: t("coverage_option_remove") },
     { name: "preview", type: "boolean", description: t("coverage_option_preview") },
     { name: "yes", type: "boolean", description: t("coverage_option_yes") },
@@ -158,6 +198,7 @@ export const command: CommandModule = {
       if (state !== undefined) request.state = state;
       if (chapter) request.chapter = chapter;
       if (subdimension) request.subdimension = subdimension;
+      if (ctx.options["with-suggestion"] === true) request.withSuggestion = true;
       const answer = buildAsvsMap(request);
       if ("ok" in answer) return refused(answer);
       if (ctx.json) writeJson(ctx, { ...base, ...answer });
@@ -197,7 +238,16 @@ export const command: CommandModule = {
         if (!(error instanceof AsvsDataError)) throw error;
         data = loadAsvs(DEFAULT_ASVS_VERSION);
       }
-      prepared = prepareNotApplicable(workspacePath, { data, id: ctx.args[2], reason: str(ctx, "reason"), now: new Date() });
+      let reason = str(ctx, "reason");
+      // Confirming a suggestion: the reason is the suggestion's own (an explicit --reason edits it); the write is the same.
+      if (ctx.options["from-suggestion"] === true && reason === undefined && ctx.args[2] !== undefined) {
+        const map = buildAsvsMap({ home, workspaceId: wsId, projectDir: workspacePath, level: 3, version: data.version });
+        if ("ok" in map) return refused(map);
+        const suggestion = suggestionOfTarget(map, ctx.args[2]);
+        if (!suggestion) return refused({ ok: false, code: "ASVS_NO_SUGGESTION", message: `the map carries no suggestion for ${ctx.args[2]}`, details: { id: ctx.args[2] } });
+        reason = suggestion.reason;
+      }
+      prepared = prepareNotApplicable(workspacePath, { data, id: ctx.args[2], reason, now: new Date() });
     }
     if (!prepared.ok) return refused(prepared);
     const change = prepared;

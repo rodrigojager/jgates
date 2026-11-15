@@ -943,6 +943,14 @@
             "minimum": 0
           }
         },
+        "signals": {
+          "description": "Semgrep stage with the bundled JGates pack: for every technology tag of a signal rule of the pack, how many results its rules had (0 when none). The results of signal rules are this record of the scan, never findings; it feeds the 'not applicable' suggestions of the ASVS map.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
         "analysisInput": {
           "description": "What the analysis read besides the code, as the tool reports it: the vulnerability database (source, date) of Trivy and OSV-Scanner.",
           "type": "object",

@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // What ran, read from stored runs with no engine (core/coverage/asvs, collectCheckUnits): the check units of a Quality
@@ -18,6 +19,7 @@ const JGATES = path.resolve(here, "..");
 const dist = path.join(JGATES, "dist");
 const asvs = await import(pathToFileURL(path.join(dist, "core", "coverage", "asvs", "index.js")).href);
 const semgrep = await import(pathToFileURL(path.join(dist, "adapters", "semgrep", "index.js")).href);
+const Ajv2020 = createRequire(import.meta.url)("ajv/dist/2020").default;
 
 const FIXTURES = path.join(here, "fixtures", "asvs");
 const RULES = path.join(JGATES, "packs", "semgrep", "jgates-semgrep", "rules");
@@ -63,6 +65,10 @@ function materialize(name, edit = {}) {
     writeJson(path.join(dir, LEDGER), ledger);
   }
   if (edit.removeLedger) fs.rmSync(path.join(dir, LEDGER));
+  for (const [rel, value] of Object.entries(edit.files ?? {})) {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    writeJson(path.join(dir, rel), value);
+  }
   return dir;
 }
 
@@ -253,6 +259,128 @@ test("security-audit units come from its coverage ledger: only examined blocks c
     assert.equal(m.code, code, label);
     assert.ok(m.reason, label);
   }
+});
+
+// ---- the AI review of the source against the requirement itself (asvs-review) ------------------------------------
+
+const REVIEW_LEDGER = path.join("evidence", "asvs-review", "requirements-ledger.json");
+const workspace = path.join(tmpRoot, "workspace");
+fs.mkdirSync(path.join(workspace, "src"), { recursive: true });
+fs.writeFileSync(path.join(workspace, "src", "auth.js"), "line 1\nline 2\nline 3\nline 4\n");
+fs.writeFileSync(path.join(workspace, "src", "session.js"), "line 1\nline 2\n");
+fs.writeFileSync(path.join(tmpRoot, "outside.js"), "outside the workspace\n");
+
+const reviewLedger = (requirements, over = {}) => ({ schemaVersion: 1, kind: "asvs-review-ledger", method: "asvs-review", asvsVersion: "5.0.0", level: 1, requirements, ...over });
+const ANSWERS = [
+  { id: "V6.2.1", unit: "V6", answer: "examined", references: [{ path: "src/auth.js", startLine: 1, endLine: 4 }], outcome: "no-violation-found" },
+  { id: "V6.2.2", unit: "V6", answer: "examined", references: [{ path: "src/auth.js", startLine: 2, endLine: 3 }, { path: "src/session.js", startLine: 1, endLine: 2 }], outcome: "finding", findings: ["fp-1"] },
+  { id: "V6.2.3", unit: "V6", answer: "examined", references: [{ path: "src/missing.js", startLine: 1, endLine: 2 }], outcome: "no-violation-found" },
+  { id: "V6.2.4", unit: "V6", answer: "examined", references: [{ path: "../outside.js", startLine: 1, endLine: 1 }], outcome: "no-violation-found" },
+  { id: "V6.2.5", unit: "V6", answer: "examined", references: [{ path: "src/auth.js", startLine: 3, endLine: 2 }], outcome: "no-violation-found" },
+  { id: "V6.2.6", unit: "V6", answer: "not-examinable", reason: "running-system", detail: "the lockout is enforced by the identity provider" },
+];
+const reviewRun = ({ ledger, noLedger, result } = {}) =>
+  materialize("semantic-defaults", {
+    result: (r) => {
+      r.semanticRun.methods = ["asvs-review"];
+      r.findings = [{ fingerprint: "fp-1", waived: false }];
+      result?.(r);
+    },
+    files: noLedger ? {} : { [REVIEW_LEDGER]: ledger ?? reviewLedger(ANSWERS) },
+  });
+const reviewUnits = (edit = {}, input = { workspaceDir: workspace, asvsVersion: "5.0.0" }) => asvs.collectCheckUnits({ semantic: [asvs.readSemanticRunRecord(reviewRun(edit))], ...input });
+const requirementUnit = (list, id) => {
+  const found = list.units.filter((u) => u.unit === "semantic-requirement" && u.requirement === id);
+  assert.equal(found.length, 1, `${id}: ${JSON.stringify(found)}`);
+  return found[0];
+};
+
+test("asvs-review: a finished run with a valid ledger gives one semantic-requirement unit per answer; only an examined answer whose files exist in the workspace ran", () => {
+  const list = reviewUnits();
+  const run = { gate: "semantic", runId: "sem_20261114T120000Z_4e5f6a7b" };
+  assert.equal(one(list, "semantic-method", "asvs-review").state, "completed");
+  const units = ofKind(list, "semantic-requirement");
+  assert.deepEqual(units.map((u) => u.requirement), ["V6.2.1", "V6.2.2", "V6.2.3", "V6.2.4", "V6.2.5", "V6.2.6"]);
+  for (const u of units) {
+    assert.equal(u.id, "asvs-review");
+    assert.equal(u.basis, "ai-source-review");
+    assert.equal(asvs.CHECK_UNIT_BASIS_LABELS[u.basis], AI);
+    assert.deepEqual(u.run, run);
+  }
+  const clean = requirementUnit(list, "V6.2.1");
+  assert.deepEqual([clean.state, clean.code, clean.references, clean.outcome], ["completed", null, 1, "no-violation-found"]);
+  const finding = requirementUnit(list, "V6.2.2");
+  assert.deepEqual([finding.state, finding.references, finding.outcome, finding.findings], ["completed", 2, "finding", ["fp-1"]]);
+  // A reference to a missing file, a path that leaves the workspace, a range that ends before it starts: nothing.
+  for (const [id, pattern] of [
+    ["V6.2.3", /src\/missing\.js: no such file/],
+    ["V6.2.4", /not a path inside the workspace/],
+    ["V6.2.5", /ends before it starts/],
+  ]) {
+    const u = requirementUnit(list, id);
+    assert.deepEqual([u.state, u.code], ["error", "REFERENCE_MISSING"], id);
+    assert.match(u.reason, pattern, id);
+  }
+  const no = requirementUnit(list, "V6.2.6");
+  assert.deepEqual([no.state, no.code], ["not-applicable", "NOT_EXAMINABLE"]);
+  assert.match(no.reason, /it needs a running system: the lockout is enforced by the identity provider/);
+});
+
+test("asvs-review: a link that leads out of the workspace counts for nothing, and without a workspace no examined answer counts", (t) => {
+  try {
+    fs.symlinkSync(path.join(tmpRoot, "outside.js"), path.join(workspace, "src", "link.js"));
+  } catch {
+    t.diagnostic("symbolic links are not available here; the link case is skipped");
+  }
+  if (fs.existsSync(path.join(workspace, "src", "link.js"))) {
+    const linked = reviewUnits({ ledger: reviewLedger([{ id: "V6.2.1", answer: "examined", references: [{ path: "src/link.js", startLine: 1, endLine: 1 }], outcome: "no-violation-found" }]) });
+    assert.deepEqual([requirementUnit(linked, "V6.2.1").state, requirementUnit(linked, "V6.2.1").code], ["error", "REFERENCE_MISSING"]);
+    assert.match(requirementUnit(linked, "V6.2.1").reason, /outside the workspace/);
+    fs.rmSync(path.join(workspace, "src", "link.js"));
+  }
+  const unknown = reviewUnits({}, { asvsVersion: "5.0.0" });
+  for (const u of ofKind(unknown, "semantic-requirement").filter((x) => x.requirement !== "V6.2.6")) assert.deepEqual([u.state, u.code], ["error", "REFERENCES_UNVERIFIED"], u.requirement);
+});
+
+test("asvs-review: a missing, invalid or other-version ledger, or a run that did not finish, gives no semantic-requirement unit and the method says why", () => {
+  const cases = [
+    ["missing ledger", { noLedger: true }, "error", "REVIEW_LEDGER_MISSING"],
+    ["an id answered twice", { ledger: reviewLedger([ANSWERS[0], ANSWERS[0]]) }, "error", "REVIEW_LEDGER_INVALID"],
+    ["examined without references", { ledger: reviewLedger([{ id: "V6.2.1", answer: "examined", outcome: "no-violation-found" }]) }, "error", "REVIEW_LEDGER_INVALID"],
+    ["not-examinable without a reason", { ledger: reviewLedger([{ id: "V6.2.1", answer: "not-examinable" }]) }, "error", "REVIEW_LEDGER_INVALID"],
+    ["a finding without its fingerprints", { ledger: reviewLedger([{ ...ANSWERS[0], outcome: "finding" }]) }, "error", "REVIEW_LEDGER_INVALID"],
+    ["the requirement text copied in a field the schema does not have", { ledger: reviewLedger([{ ...ANSWERS[0], text: "x" }]) }, "error", "REVIEW_LEDGER_INVALID"],
+    ["another ASVS version", { ledger: reviewLedger(ANSWERS, { asvsVersion: "4.0.3" }) }, "error", "REVIEW_LEDGER_OTHER_VERSION"],
+    ["unfinished run", { result: (r) => (r.partial = true) }, "error", "RUN_UNFINISHED"],
+    ["timed out", { result: (r) => Object.assign(r.semanticRun.outcome, { state: "timeout", reason: "the review timed out" }) }, "timed-out", "TIMEOUT"],
+  ];
+  for (const [label, edit, state, code] of cases) {
+    const list = reviewUnits(edit);
+    assert.equal(ofKind(list, "semantic-requirement").length, 0, label);
+    const method = one(list, "semantic-method", "asvs-review");
+    assert.deepEqual([method.state, method.code], [state, code], label);
+    assert.ok(method.reason, label);
+  }
+});
+
+test("asvs-review: the ledger schema and the validator agree, and a sound ledger validates", () => {
+  const ajv = new Ajv2020({ strict: true, allErrors: true, strictTypes: false });
+  const validate = ajv.compile(readJson(path.join(JGATES, "schemas", "coverage", "asvs-review-ledger.schema.json")));
+  const sound = reviewLedger(ANSWERS);
+  assert.ok(validate(sound), ajv.errorsText(validate.errors));
+  assert.deepEqual(asvs.asvsReviewLedgerProblems(sound), []);
+  for (const bad of [
+    reviewLedger([{ id: "V6.2.1", answer: "examined", references: [], outcome: "no-violation-found" }]),
+    reviewLedger([{ id: "V6.2.1", answer: "examined", references: [{ path: "/etc/passwd", startLine: 1, endLine: 1 }], outcome: "no-violation-found" }]),
+    reviewLedger([{ id: "V6.2.1", answer: "examined", references: [{ path: "C:/x.js", startLine: 1, endLine: 1 }], outcome: "no-violation-found" }]),
+    reviewLedger([{ id: "V6.2.6", answer: "not-examinable", reason: "running-system", outcome: "no-violation-found" }]),
+    reviewLedger([{ id: "6.2.1", answer: "examined", references: [{ path: "a.js", startLine: 1, endLine: 1 }], outcome: "no-violation-found" }]),
+    { ...sound, method: "general-review" },
+  ]) {
+    assert.equal(validate(bad), false, JSON.stringify(bad.requirements?.[0] ?? bad.method));
+    assert.notDeepEqual(asvs.asvsReviewLedgerProblems(bad), []);
+  }
+  assert.equal(asvs.ASVS_REVIEW_LEDGER_FILE, "evidence/asvs-review/requirements-ledger.json");
 });
 
 test("another Semantic method gives one unit for the run and one per category its record shows, examined or not", () => {

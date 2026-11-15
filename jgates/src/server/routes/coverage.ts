@@ -97,7 +97,9 @@ const LANG = { enum: ["en", "pt-BR"] };
 
 export const routes: RouteDefinition[] = [
   {
-    // The map. `semanticRuns` is a comma-separated list of Semantic run ids; the other filters are those of the command.
+    // The map. `semanticRuns` is a comma-separated list of Semantic run ids; the other filters are those of the command
+    // (`withSuggestion`: only the rows that carry a suggestion of "not applicable"). Confirming a suggestion is the
+    // ordinary "not applicable" write below, with the suggestion's reason filled in by the screen.
     method: "GET",
     path: "/api/coverage/asvs",
     query: {
@@ -110,6 +112,7 @@ export const routes: RouteDefinition[] = [
         chapter: { type: "string", maxLength: 16 },
         subdimension: { type: "string", maxLength: 64 },
         deterministicOnly: { enum: ["true", "false", "1", "0"] },
+        withSuggestion: { enum: ["true", "false", "1", "0"] },
         lang: LANG,
       },
       additionalProperties: false,
@@ -123,6 +126,7 @@ export const routes: RouteDefinition[] = [
       if (query.state) request.state = query.state;
       if (query.chapter) request.chapter = query.chapter;
       if (query.subdimension) request.subdimension = query.subdimension;
+      if (query.withSuggestion === "true" || query.withSuggestion === "1") request.withSuggestion = true;
       const answer = inLocale(query.lang, () => buildAsvsMap(request));
       if ("ok" in answer) throw failure(answer, query.lang);
       return { status: 200, json: { ...base(server), ...answer } };

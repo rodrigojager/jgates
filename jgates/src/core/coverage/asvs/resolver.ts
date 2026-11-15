@@ -12,6 +12,9 @@
 //      language the project is known to lack is not relevant to it (`relevant: false`): the screen and the text leave it
 //      out, and when only such rules are mapped the reason names the project's languages instead.
 // Examined is not satisfied: the map never claims the project meets the standard, has no percentage and no gate.
+// A row that is unsupported, unexamined or awaiting evidence may carry a suggestion of "not applicable" (suggestions.ts):
+// a proposal the user confirms or ignores, never a state of the map. A section or chapter whose requirements (of every
+// level) all carry the same suggestion carries it once.
 import fs from "node:fs";
 import path from "node:path";
 import { bundledPackRulesDir, buildPackIndex, type PackRule } from "../../../adapters/semgrep/index.js";
@@ -22,7 +25,8 @@ import { findSemanticRun, listSemanticRuns } from "../../semantic/store.js";
 import { translator, type Params } from "../../../i18n/index.js";
 import { labelOf } from "../../discovery/vocabulary.js";
 import { asvsTree, loadAsvs, ASVS_LEVELS, AsvsDataError, type AsvsData, type AsvsLevel, type AsvsRequirement, type AsvsSource } from "./index.js";
-import { asvsMapDir, countedChecks, loadMapping, AsvsMappingError, MAPPING_SUBDIMENSIONS, type AsvsMapping, type MappingCheck, type MappingEntry, type MappingStatus } from "./mapping.js";
+import { ASVS_REVIEW_METHOD, asvsMapDir, countedApplies, countedChecks, loadMapping, AsvsMappingError, MAPPING_SUBDIMENSIONS, type AsvsMapping, type MappingCheck, type MappingEntry, type MappingStatus } from "./mapping.js";
+import { sameSuggestion, suggestionFor, type AsvsSuggestion } from "./suggestions.js";
 import {
   collectCheckUnits,
   readQualityRunRecord,
@@ -69,6 +73,8 @@ export interface AsvsCheckRow {
   reused: boolean;
   /** `semgrep-rule`: the pack language of the rule. */
   language?: string;
+  /** `capability`: the tool's rule or alert ids the check stands for (only those findings are its open findings). */
+  findingRules?: string[];
   /** Findings of this check left open (not waived) in the run that ran it; null when they cannot be told apart. */
   openFindings: number | null;
   /**
@@ -98,6 +104,8 @@ export interface AsvsRequirementRow {
   checks: AsvsCheckRow[];
   /** The user's decision that makes it not applicable, when there is one. */
   decision: (NotApplicableEntry & { scope: "requirement" | "section" | "chapter" }) | null;
+  /** A proposed "not applicable" decision (unsupported, unexamined or awaiting evidence only); absent when there is none. */
+  suggestion?: AsvsSuggestion;
 }
 
 export interface AsvsTotals {
@@ -133,14 +141,16 @@ export interface AsvsMapAnswer {
   /** option: asked for this call only; project: the project's recorded level; default: level 1. */
   levelSource: "option" | "project" | "default";
   deterministicOnly: boolean;
-  filters: { state: AsvsState | null; chapter: string | null; subdimension: string | null };
+  /** withSuggestion: only the rows that carry a suggestion are listed (the totals still count every row). */
+  filters: { state: AsvsState | null; chapter: string | null; subdimension: string | null; withSuggestion: boolean };
   /** "This map shows what was examined, not whether the project meets the standard." */
   statement: string;
   runs: { quality: AsvsRunRef | null; semantic: Array<AsvsRunRef & { methods: string[] }> };
   warnings: AsvsWarning[];
   decisions: { file: string; exists: boolean; revision: string; level: AsvsLevel | null; notApplicable: number; problem: string | null };
   totals: AsvsTotals;
-  chapters: Array<{ id: string; name: string; totals: AsvsTotals; sections: Array<{ id: string; name: string; totals: AsvsTotals }> }>;
+  /** A chapter or section carries `suggestion` when every one of its requirements, at every level, carries that same suggestion. */
+  chapters: Array<{ id: string; name: string; totals: AsvsTotals; suggestion?: AsvsSuggestion; sections: Array<{ id: string; name: string; totals: AsvsTotals; suggestion?: AsvsSuggestion }> }>;
   requirements: AsvsRequirementRow[];
 }
 
@@ -153,7 +163,8 @@ export type AsvsMapCode =
   | "ASVS_STATE_INVALID"
   | "ASVS_CHAPTER_UNKNOWN"
   | "ASVS_SUBDIMENSION_UNKNOWN"
-  | "ASVS_DECISIONS_UNSAFE";
+  | "ASVS_DECISIONS_UNSAFE"
+  | "ASVS_NO_SUGGESTION";
 
 export interface AsvsMapRefusal {
   ok: false;
@@ -294,10 +305,19 @@ function openFindingsOf(check: MappingCheck, unit: CheckUnit, ctx: Context): num
     const result = ctx.quality && isObj(ctx.quality.result) ? ctx.quality.result : {};
     const findings = objs(result.findings).filter((f) => f.waived !== true);
     if (check.unit === "semgrep-rule") return findings.filter((f) => f.stageId === unit.stageId && typeof f.ruleId === "string" && (f.ruleId === check.id || f.ruleId.endsWith(`.${check.id}`))).length;
-    return findings.filter((f) => f.stageId === unit.stageId).length;
+    // A capability tied to named alerts counts only the stage's findings of those alerts; without the list, all of them.
+    const named = check.unit === "capability" && check.findingRules ? new Set(check.findingRules) : null;
+    return findings.filter((f) => f.stageId === unit.stageId && (named === null || (typeof f.ruleId === "string" && named.has(f.ruleId)))).length;
+  }
+  const record = ctx.semantic.find((s) => s.runId === unit.run.runId);
+  if (check.unit === "semantic-requirement") {
+    // The findings the answer raised, as long as the run still has them open.
+    if (unit.outcome !== "finding") return 0;
+    const raised = new Set(unit.findings ?? []);
+    const result = record && isObj(record.result) ? record.result : {};
+    return objs(result.findings).filter((f) => f.waived !== true && typeof f.fingerprint === "string" && raised.has(f.fingerprint)).length;
   }
   if (check.unit !== "semantic-method") return null;
-  const record = ctx.semantic.find((s) => s.runId === unit.run.runId);
   const result = record && isObj(record.result) ? record.result : null;
   const semanticRun = result && isObj(result.semanticRun) ? result.semanticRun : null;
   // A Semantic finding does not name its method: it can be told apart only in a run of one method.
@@ -373,8 +393,23 @@ function evaluateMethod(check: MappingCheck, ctx: Context): Evaluated {
   return { status: "not-run", code: unit.code ?? "NOT_REVIEWED", detail: unit.reason, params: { detail: unit.reason ?? "" }, unit };
 }
 
-function evaluateCheck(check: MappingCheck, ctx: Context): AsvsCheckRow {
-  const semantic = check.unit === "semantic-ledger" || check.unit === "semantic-method";
+/** The AI review of the source against the requirement itself (`asvs-review`): what its ledger answered for this requirement. */
+function evaluateRequirementReview(check: MappingCheck, requirement: string, ctx: Context): Evaluated {
+  const own = ctx.units.units.filter((u) => u.unit === "semantic-requirement" && u.id === check.id && u.requirement === requirement);
+  const done = own.find((u) => u.state === "completed");
+  if (done) return { status: "ran", code: "RAN", detail: null, params: { run: done.run.runId }, unit: done };
+  const method = pick(ctx.units.units.filter((u) => u.unit === "semantic-method" && u.id === ASVS_REVIEW_METHOD && u.category === undefined));
+  if (!method) return { status: "not-run", code: "NO_SEMANTIC_RUN", detail: null, params: { method: ASVS_REVIEW_METHOD } };
+  if (method.state !== "completed") return { status: "not-run", code: method.code ?? "NOT_REVIEWED", detail: method.reason, params: { detail: method.reason ?? "" }, unit: method };
+  const answer = own.find((u) => u.run.runId === method.run.runId) ?? own[0];
+  // The model said the source cannot answer it: this check cannot bear on it here, and it gives nothing.
+  if (answer?.state === "not-applicable") return { status: "unsupported", code: "NOT_EXAMINABLE", detail: answer.reason, params: { detail: answer.reason ?? "" }, unit: answer };
+  if (answer) return { status: "not-run", code: answer.code ?? "REFERENCE_MISSING", detail: answer.reason, params: { detail: answer.reason ?? "" }, unit: answer };
+  return { status: "not-run", code: "REQUIREMENT_NOT_REVIEWED", detail: null, params: {}, unit: method };
+}
+
+function evaluateCheck(check: MappingCheck, requirement: string, ctx: Context): AsvsCheckRow {
+  const semantic = check.unit === "semantic-ledger" || check.unit === "semantic-method" || check.unit === "semantic-requirement";
   const basis: CheckUnitBasis = semantic ? "ai-source-review" : "deterministic";
   let e: Evaluated;
   if (semantic && ctx.deterministicOnly) e = { status: "excluded", code: "DETERMINISTIC_ONLY", detail: null, params: {} };
@@ -382,6 +417,7 @@ function evaluateCheck(check: MappingCheck, ctx: Context): AsvsCheckRow {
   else if (check.unit === "semgrep-rule") e = evaluateRule(check, ctx);
   else if (check.unit === "semantic-ledger") e = evaluateLedger(check, ctx);
   else if (check.unit === "semantic-method") e = evaluateMethod(check, ctx);
+  else if (check.unit === "semantic-requirement") e = evaluateRequirementReview(check, requirement, ctx);
   else e = { status: "unsupported", code: "UNKNOWN_UNIT", detail: null, params: {} };
   const ran = e.status === "ran";
   return {
@@ -400,6 +436,7 @@ function evaluateCheck(check: MappingCheck, ctx: Context): AsvsCheckRow {
     runId: e.unit?.run.runId ?? null,
     reused: ran && e.unit?.reused === true,
     ...(e.language !== undefined ? { language: e.language } : {}),
+    ...(check.unit === "capability" && check.findingRules ? { findingRules: [...check.findingRules] } : {}),
     openFindings: ran && e.unit ? openFindingsOf(check, e.unit, ctx) : null,
     relevant: e.code !== "LANGUAGE_ABSENT",
   };
@@ -414,8 +451,18 @@ const languageList = (languages: Iterable<string>, label: (language: string) => 
 
 const checkName = (c: AsvsCheckRow): string => (c.category ? `${c.id} (${c.category})` : c.id);
 
+/** The states a suggestion of "not applicable" may be offered on: never examined, never already not applicable. */
+const SUGGESTIBLE: ReadonlySet<AsvsState> = new Set(["unsupported", "unexamined", "awaiting-evidence"]);
+
 function decideRequirement(requirement: AsvsRequirement, entry: MappingEntry | undefined, decisions: readonly NotApplicableEntry[], ctx: Context): AsvsRequirementRow {
-  const checks = entry ? countedChecks(entry).map((c) => evaluateCheck(c, ctx)) : [];
+  const row = decideState(requirement, entry, decisions, ctx);
+  if (!entry || !SUGGESTIBLE.has(row.state)) return row;
+  const suggestion = suggestionFor(countedApplies(entry), ctx);
+  return suggestion ? { ...row, suggestion } : row;
+}
+
+function decideState(requirement: AsvsRequirement, entry: MappingEntry | undefined, decisions: readonly NotApplicableEntry[], ctx: Context): AsvsRequirementRow {
+  const checks = entry ? countedChecks(entry).map((c) => evaluateCheck(c, requirement.id, ctx)) : [];
   const na = notApplicableFor(decisions, requirement);
   const base = {
     id: requirement.id,
@@ -450,6 +497,8 @@ function decideRequirement(requirement: AsvsRequirement, entry: MappingEntry | u
   const relevant = checks.filter((c) => c.relevant);
   if (relevant.length > 0) {
     const details = relevant.map((c) => `${checkName(c)}: ${c.reason}`).join("; ");
+    // Every relevant check is an AI review that answered "not examinable from the source": say that, not "other stacks".
+    if (relevant.every((c) => c.code === "NOT_EXAMINABLE")) return { ...base, state: "unsupported", code: "UNSUPPORTED_NOT_EXAMINABLE", reason: t("coverage_reason_unsupported_not_examinable", { details }), basis: null };
     return { ...base, state: "unsupported", code: "UNSUPPORTED_OTHER_STACKS", reason: t("coverage_reason_unsupported_other_stacks", { details }), basis: null };
   }
   if (checks.length > 0) {
@@ -499,10 +548,14 @@ export interface ResolveAsvsInput {
   state?: AsvsState;
   chapter?: string;
   subdimension?: string;
+  /** List only the rows that carry a suggestion of "not applicable". */
+  withSuggestion?: boolean;
   /** The rules folder of the JGates Semgrep pack; defaults to the pack of this installation. */
   rulesDir?: string | null;
   /** The matrix rows to judge capabilities by; defaults to the matrix of this installation. */
   matrixRows?: readonly MatrixRow[];
+  /** The project folder the file references of an ASVS review must exist in; absent or null: no AI review answer counts. */
+  workspaceDir?: string | null;
 }
 
 /** The map, from records already read. Pure over its input (plus the pack's rule files, to compare hashes). */
@@ -524,27 +577,44 @@ export function resolveAsvsMap(input: ResolveAsvsInput): AsvsMapAnswer {
     if (!validated.has(key)) validated.set(key, new Set());
     validated.get(key)!.add(row.stack);
   }
-  const units = collectCheckUnits({ quality: input.quality, semantic: input.semantic, ...(input.rulesDir !== undefined ? { rulesDir: input.rulesDir } : {}) });
+  const units = collectCheckUnits({
+    quality: input.quality,
+    semantic: input.semantic,
+    ...(input.rulesDir !== undefined ? { rulesDir: input.rulesDir } : {}),
+    workspaceDir: input.workspaceDir ?? null,
+    asvsVersion: data.version,
+  });
   const ctx: Context = { units, quality: input.quality, semantic: [...input.semantic], rules, validated, languages: projectLanguages(input.quality), deterministicOnly };
 
   const entries = new Map(mapping.entries.map((e) => [e.requirement, e]));
   const notApplicable = usableDecisions?.notApplicable ?? [];
+  // Every requirement of the version is decided once: a section or chapter carries a suggestion only when all of its
+  // requirements, at every level, carry the same one (a decision on a section covers every level).
+  const decided = new Map(data.requirements.map((r) => [r.id, decideRequirement(r, entries.get(r.id), notApplicable, ctx)]));
+  const commonSuggestion = (ids: readonly string[]): AsvsSuggestion | undefined => {
+    const first = decided.get(ids[0] ?? "")?.suggestion;
+    return first && ids.every((id) => sameSuggestion(decided.get(id)?.suggestion, first)) ? first : undefined;
+  };
   const tree = asvsTree(data, { level, ...(input.chapter ? { chapter: input.chapter } : {}) });
   const chapters: AsvsMapAnswer["chapters"] = [];
   const all: AsvsRequirementRow[] = [];
   for (const chapter of tree) {
     const sections: AsvsMapAnswer["chapters"][number]["sections"] = [];
     const chapterRows: AsvsRequirementRow[] = [];
+    const fullChapter = data.chapters.find((c) => c.id === chapter.id);
     for (const section of chapter.sections) {
       const rows = section.requirements
-        .map((r) => decideRequirement(r, entries.get(r.id), notApplicable, ctx))
+        .map((r) => decided.get(r.id) as AsvsRequirementRow)
         .filter((r) => !input.subdimension || r.subdimensions.includes(input.subdimension));
       if (rows.length === 0) continue;
-      sections.push({ id: section.id, name: section.name, totals: totalsOf(rows) });
+      const fullSection = fullChapter?.sections.find((s) => s.id === section.id);
+      const suggestion = commonSuggestion((fullSection?.requirements ?? []).map((r) => r.id));
+      sections.push({ id: section.id, name: section.name, totals: totalsOf(rows), ...(suggestion ? { suggestion } : {}) });
       chapterRows.push(...rows);
     }
     if (chapterRows.length === 0) continue;
-    chapters.push({ id: chapter.id, name: chapter.name, totals: totalsOf(chapterRows), sections });
+    const suggestion = commonSuggestion((fullChapter?.sections ?? []).flatMap((s) => s.requirements.map((r) => r.id)));
+    chapters.push({ id: chapter.id, name: chapter.name, totals: totalsOf(chapterRows), ...(suggestion ? { suggestion } : {}), sections });
     all.push(...chapterRows);
   }
 
@@ -581,7 +651,7 @@ export function resolveAsvsMap(input: ResolveAsvsInput): AsvsMapAnswer {
     level,
     levelSource,
     deterministicOnly,
-    filters: { state: input.state ?? null, chapter: input.chapter ?? null, subdimension: input.subdimension ?? null },
+    filters: { state: input.state ?? null, chapter: input.chapter ?? null, subdimension: input.subdimension ?? null, withSuggestion: input.withSuggestion === true },
     statement: t("coverage_statement"),
     runs: { quality, semantic },
     warnings,
@@ -595,8 +665,24 @@ export function resolveAsvsMap(input: ResolveAsvsInput): AsvsMapAnswer {
     },
     totals: totalsOf(all),
     chapters,
-    requirements: input.state ? all.filter((r) => r.state === input.state) : all,
+    requirements: all.filter((r) => (!input.state || r.state === input.state) && (input.withSuggestion !== true || r.suggestion !== undefined)),
   };
+}
+
+/**
+ * The suggestion a map offers for a target: the requirement's own, or the one a section or chapter carries once. Null
+ * when the target carries none (what `not-applicable --from-suggestion` needs to fill in the reason).
+ */
+export function suggestionOfTarget(map: AsvsMapAnswer, id: string): AsvsSuggestion | null {
+  const target = id.trim().replace(/^v/, "V");
+  const row = map.requirements.find((r) => r.id === target);
+  if (row) return row.suggestion ?? null;
+  for (const chapter of map.chapters) {
+    if (chapter.id === target) return chapter.suggestion ?? null;
+    const section = chapter.sections.find((s) => s.id === target);
+    if (section) return section.suggestion ?? null;
+  }
+  return null;
 }
 
 export interface AsvsMapRequest {
@@ -611,6 +697,8 @@ export interface AsvsMapRequest {
   chapter?: string;
   subdimension?: string;
   deterministicOnly?: boolean;
+  /** List only the rows that carry a suggestion of "not applicable". */
+  withSuggestion?: boolean;
   /** The ASVS version; defaults to the project's, else the default version. */
   version?: string;
   /** The mapping pack folder; defaults to JGATES_ASVS_MAP_DIR, else the pack of this installation. */
@@ -681,5 +769,7 @@ export function buildAsvsMap(request: AsvsMapRequest): AsvsMapAnswer | AsvsMapRe
     ...(state ? { state } : {}),
     ...(chapter ? { chapter } : {}),
     ...(request.subdimension ? { subdimension: request.subdimension } : {}),
+    ...(request.withSuggestion === true ? { withSuggestion: true } : {}),
+    workspaceDir: request.projectDir,
   });
 }

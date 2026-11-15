@@ -246,6 +246,65 @@ test("hardening is a subdimension the mapping schema and the mapping gates accep
   assert.ok(validateMap({ version: "5.0.0", chapter: "V1", entries: [entry] }), ajv.errorsText(validateMap.errors));
 });
 
+test("findingRules belongs to a capability check only; semantic-requirement names asvs-review and never a requirement whose evidence is a person", () => {
+  const capability = [...context.capabilities][0];
+  assert.ok(capability, "a capability with a validated matrix row");
+  const gate = (check, subdimensions, patch = {}) => {
+    const m = withEntry(mapping(), "V1.1.1", "pending", [check], subdimensions);
+    Object.assign(find(m, "V1.1.1"), patch);
+    // Only the entry under test: rules other tasks are adding to the pack may be unmapped for a while.
+    return asvs.validateMapping(m, data, context).filter((p) => p.includes(" V1.1.1:")).join("\n");
+  };
+  assert.equal(gate(goodCheck({ unit: "capability", id: capability, findingRules: ["ALERT-1", "ALERT-2"] })), "");
+  assert.match(gate(goodCheck({ findingRules: ["ALERT-1"] })), /findingRules is allowed only on a capability check, not on semgrep-rule/);
+  assert.match(gate(goodCheck({ unit: "semantic-method", id: "differential-review", findingRules: ["X"] })), /findingRules is allowed only on a capability check/);
+  assert.match(gate(goodCheck({ unit: "capability", id: capability, findingRules: [] })), /findingRules must be a list/);
+  assert.match(gate(goodCheck({ unit: "capability", id: capability, findingRules: ["A", "A"] })), /findingRules must be a list/);
+  assert.equal(gate(goodCheck({ unit: "semantic-requirement", id: "asvs-review" })), "");
+  assert.match(gate(goodCheck({ unit: "semantic-requirement", id: "general-review" })), /names the method asvs-review/);
+  assert.match(gate(goodCheck({ unit: "semantic-requirement", id: "asvs-review" }), undefined, { evidence: "person" }), /evidence is a person/);
+
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  const validateMap = ajv.compile(readJson(path.join(JGATES, "schemas", "coverage", "asvs-map.schema.json")));
+  const entry = (checks, extra = {}) => ({ version: "5.0.0", chapter: "V1", entries: [{ requirement: "V1.1.1", status: "reviewed", evidence: "repository", subdimensions: [], checks, why: "A reason of its own.", ...extra }] });
+  assert.ok(validateMap(entry([goodCheck({ unit: "capability", id: capability, findingRules: ["ALERT-1"] })])), ajv.errorsText(validateMap.errors));
+  assert.ok(!validateMap(entry([goodCheck({ findingRules: ["ALERT-1"] })])), "the schema refuses findingRules on a rule check");
+  assert.ok(validateMap(entry([goodCheck({ unit: "semantic-requirement", id: "asvs-review" })])), ajv.errorsText(validateMap.errors));
+  assert.ok(!validateMap(entry([goodCheck({ unit: "semantic-requirement", id: "general-review" })])));
+});
+
+test("applies: a reviewed entry may say which projects a requirement concerns, with or without a check; the gates and the schema keep it to the closed lists", () => {
+  const withApplies = (status, applies, checks = []) => {
+    const m = mapping();
+    Object.assign(find(m, "V1.1.1"), { status, evidence: "repository", subdimensions: [], checks, applies, why: "Only projects that use the technology are concerned." });
+    return asvs.validateMapping(m, data, context).filter((p) => p.includes(" V1.1.1:")).join("\n");
+  };
+  assert.equal(withApplies("reviewed", { technology: ["graphql"] }), "", "an entry with only applies is sound");
+  assert.equal(withApplies("reviewed", { technology: ["oauth-client", "oauth-authorization-server"], languages: { only: ["java"] } }), "");
+  assert.equal(withApplies("reviewed", { languages: { exempt: { languages: ["go", "rust"], reason: "linear-time-regex" } } }), "");
+  assert.match(withApplies("reviewed", { technology: ["cobol"] }), /unknown tag cobol/);
+  assert.match(withApplies("reviewed", { languages: { only: ["klingon"] } }), /unknown language klingon/);
+  assert.match(withApplies("reviewed", { languages: { exempt: { languages: ["rust"], reason: "it is safe" } } }), /exempt\.reason must be one of/);
+  assert.match(withApplies("reviewed", {}), /neither a technology nor languages/);
+  assert.match(withApplies("unmapped", { technology: ["graphql"] }), /unmapped but has applies/);
+  assert.deepEqual(asvs.TECHNOLOGY_TAGS.length, 17);
+  assert.deepEqual([...asvs.EXEMPT_REASONS], ["compile-time-format-strings", "linear-time-regex"]);
+  // Only a reviewed entry's applies counts, as its checks do.
+  const e = { ...find(mapping(), "V1.1.1"), applies: { technology: ["graphql"] } };
+  assert.equal(asvs.countedApplies({ ...e, status: "pending" }), null);
+  assert.deepEqual(asvs.countedApplies({ ...e, status: "reviewed" }), { technology: ["graphql"] });
+
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  const validateMap = ajv.compile(readJson(path.join(JGATES, "schemas", "coverage", "asvs-map.schema.json")));
+  const doc = (status, applies, checks = []) => ({ version: "5.0.0", chapter: "V1", entries: [{ requirement: "V1.1.1", status, evidence: "repository", subdimensions: [], checks, applies, why: "Only projects that use it." }] });
+  assert.ok(validateMap(doc("reviewed", { technology: ["graphql"] })), ajv.errorsText(validateMap.errors));
+  assert.ok(validateMap(doc("reviewed", { languages: { exempt: { languages: ["rust"], reason: "compile-time-format-strings" } } })), ajv.errorsText(validateMap.errors));
+  assert.ok(!validateMap(doc("reviewed", { technology: ["cobol"] })));
+  assert.ok(!validateMap(doc("reviewed", { languages: { exempt: { languages: ["rust"] } } })));
+  assert.ok(!validateMap({ ...doc("unmapped", { technology: ["graphql"] }), entries: [{ requirement: "V1.1.1", status: "unmapped", evidence: null, subdimensions: [], checks: [], applies: { technology: ["graphql"] } }] }), "an unmapped entry cannot carry applies");
+  assert.ok(!validateMap({ version: "5.0.0", chapter: "V1", entries: [{ requirement: "V1.1.1", status: "reviewed", evidence: "repository", subdimensions: [], checks: [], why: "x" }] }), "a reviewed entry needs a check or applies");
+});
+
 test("the distribution check accepts the data folder and the mapping pack", () => {
   const report = distribution.checkDistribution({ packs: [DATA_DIR, MAP_DIR] });
   assert.deepEqual(report.problems, []);

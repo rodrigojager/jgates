@@ -191,4 +191,6 @@ export function asvsLevelCounts(data: AsvsData): Record<AsvsLevel, number> {
 export * from "./mapping.js";
 export * from "./units.js";
 export * from "./decisions.js";
+export * from "./review-ledger.js";
+export * from "./suggestions.js";
 export * from "./resolver.js";

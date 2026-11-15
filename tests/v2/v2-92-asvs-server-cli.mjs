@@ -289,6 +289,11 @@ test("V2-92: the route returns the map of `jgates coverage asvs --json`, in the 
     const det = await same("deterministic only", "?deterministicOnly=true", ["--deterministic-only"]);
     assert.equal(det.deterministicOnly, true);
     assert.equal(row(det, R.examined).state, "unexamined", "what only the Semantic run examined is no longer examined");
+    // The filter of the rows with a suggestion of "not applicable" (V2-98 has the suggestions themselves).
+    const suggested = await same("with a suggestion", "?withSuggestion=true", ["--with-suggestion"]);
+    assert.equal(suggested.filters.withSuggestion, true);
+    assert.ok(suggested.requirements.every((r) => r.suggestion));
+    assert.deepEqual(suggested.totals, base.totals, "the filter narrows the rows listed, not the totals");
     const differ = await same("another revision", `?semanticRuns=${SEM_OTHER}`, ["--semantic-run", SEM_OTHER]);
     assert.ok(differ.warnings.some((w) => w.code === "REVISIONS_DIFFER"));
 

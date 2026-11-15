@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { bundledPackRulesDir, buildPackIndex } from "../../../adapters/semgrep/index.js";
+import { PACK_LISTS, bundledPackRulesDir, buildPackIndex } from "../../../adapters/semgrep/index.js";
 import { buildMatrix } from "../../matrix/index.js";
 import { loadVendored } from "../../semantic-modules/cloudflare/source.js";
 import type { AsvsData } from "./index.js";
@@ -15,20 +15,58 @@ import type { AsvsData } from "./index.js";
 export const MAPPING_STATUSES = ["unmapped", "pending", "reviewed", "owner-reviewed"] as const;
 export type MappingStatus = (typeof MAPPING_STATUSES)[number];
 export const MAPPING_EVIDENCE = ["repository", "deployment", "person"] as const;
-export const MAPPING_UNITS = ["semgrep-rule", "capability", "semantic-ledger", "semantic-method"] as const;
+/**
+ * `semantic-requirement`: the AI review of the source against the requirement itself (the Semantic method
+ * `asvs-review`), read per requirement from the method's ledger.
+ */
+export const MAPPING_UNITS = ["semgrep-rule", "capability", "semantic-ledger", "semantic-method", "semantic-requirement"] as const;
 export type MappingUnit = (typeof MAPPING_UNITS)[number];
 export const MAPPING_DEPTHS = ["partial", "full"] as const;
 export const MAPPING_SUBDIMENSIONS = ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence", "hardening"] as const;
 
+/** The Semantic method a `semantic-requirement` check names: the only one that answers per requirement. */
+export const ASVS_REVIEW_METHOD = "asvs-review";
+
+/** The technology tags an entry's `applies.technology` may name: the signal tags of the Semgrep pack (one closed list). */
+export const TECHNOLOGY_TAGS: readonly string[] = PACK_LISTS.signalTags;
+
+/** The languages `applies.languages` may name (`javascript` there also stands for TypeScript, as in the pack). */
+export const APPLIES_LANGUAGES = ["javascript", "typescript", "python", "go", "csharp", "rust", "java", "php", "kotlin", "ruby", "swift", "scala", "c", "cpp", "dart", "elixir", "lua"] as const;
+
+/**
+ * Why a language rules a weakness out by its design: a closed list of messages (`coverage_exempt_<id>` in the
+ * coverage messages). compile-time-format-strings: format strings are checked when the program is compiled (Rust);
+ * linear-time-regex: the standard regular expressions run in linear time (Go, Rust).
+ */
+export const EXEMPT_REASONS = ["compile-time-format-strings", "linear-time-regex"] as const;
+export type ExemptReason = (typeof EXEMPT_REASONS)[number];
+
 export interface MappingCheck {
   unit: MappingUnit;
-  /** A rule id, `<adapter>#<capability>`, `FILE.md#Class`, or a Semantic method id. */
+  /** A rule id, `<adapter>#<capability>`, `FILE.md#Class`, a Semantic method id, or `asvs-review`. */
   id: string;
   /** Only for `semantic-method`: the category of the method the entry relies on. */
   category?: string;
+  /**
+   * Only for `capability`: the tool's own rule or alert ids this check stands for, as they appear in the normalized
+   * findings of the adapter. Only the stage's findings with one of these rule ids are the check's open findings.
+   */
+  findingRules?: string[];
   covers: string;
   misses: string;
   depth: (typeof MAPPING_DEPTHS)[number];
+}
+
+/** Which projects a requirement concerns at all: what a "not applicable" suggestion is built from. */
+export interface MappingApplies {
+  /** The requirement concerns only projects that use one of these technologies (signal tags). */
+  technology?: string[];
+  languages?: {
+    /** The requirement concerns only these languages. */
+    only?: string[];
+    /** These languages rule the weakness out by design, for the reason named. */
+    exempt?: { languages: string[]; reason: ExemptReason };
+  };
 }
 
 export interface MappingEntry {
@@ -38,6 +76,8 @@ export interface MappingEntry {
   evidence: (typeof MAPPING_EVIDENCE)[number] | null;
   subdimensions: string[];
   checks: MappingCheck[];
+  /** Which projects the requirement concerns; reviewed like a check, and counted only on a reviewed entry. */
+  applies?: MappingApplies;
   why?: string;
   review?: { by: string; date: string };
 }
@@ -105,6 +145,47 @@ export function loadMapping(version: string = "5.0.0", dir: string = asvsMapDir(
 /** The checks an entry is worth: only a reviewed entry counts. A `pending` entry behaves as unmapped. */
 export function countedChecks(entry: MappingEntry): MappingCheck[] {
   return entry.status === "reviewed" || entry.status === "owner-reviewed" ? entry.checks : [];
+}
+
+/** The `applies` an entry is worth: only a reviewed entry's counts, as its checks do. */
+export function countedApplies(entry: MappingEntry): MappingApplies | null {
+  return (entry.status === "reviewed" || entry.status === "owner-reviewed") && entry.applies ? entry.applies : null;
+}
+
+const isStringList = (v: unknown): v is string[] => Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === "string" && x.trim() !== "") && new Set(v).size === v.length;
+
+/** The problems of an entry's `applies`; empty when it is sound. */
+export function appliesProblems(applies: unknown): string[] {
+  const out: string[] = [];
+  if (!applies || typeof applies !== "object" || Array.isArray(applies)) return ["applies must be an object"];
+  const a = applies as Record<string, unknown>;
+  for (const key of Object.keys(a)) if (key !== "technology" && key !== "languages") out.push(`applies has an unknown field ${key}`);
+  if (a.technology === undefined && a.languages === undefined) out.push("applies names neither a technology nor languages");
+  if (a.technology !== undefined) {
+    if (!isStringList(a.technology)) out.push("applies.technology must be a list of distinct tags");
+    else for (const tag of a.technology) if (!TECHNOLOGY_TAGS.includes(tag)) out.push(`applies.technology names the unknown tag ${tag}`);
+  }
+  if (a.languages !== undefined) {
+    const l = a.languages as Record<string, unknown> | null;
+    if (!l || typeof l !== "object" || Array.isArray(l)) return [...out, "applies.languages must be an object"];
+    for (const key of Object.keys(l)) if (key !== "only" && key !== "exempt") out.push(`applies.languages has an unknown field ${key}`);
+    if (l.only === undefined && l.exempt === undefined) out.push("applies.languages names neither only nor exempt");
+    const known = (list: unknown, where: string): void => {
+      if (!isStringList(list)) out.push(`${where} must be a list of distinct languages`);
+      else for (const language of list) if (!(APPLIES_LANGUAGES as readonly string[]).includes(language)) out.push(`${where} names the unknown language ${language}`);
+    };
+    if (l.only !== undefined) known(l.only, "applies.languages.only");
+    if (l.exempt !== undefined) {
+      const e = l.exempt as Record<string, unknown> | null;
+      if (!e || typeof e !== "object" || Array.isArray(e)) out.push("applies.languages.exempt must be an object");
+      else {
+        known(e.languages, "applies.languages.exempt.languages");
+        if (!(EXEMPT_REASONS as readonly unknown[]).includes(e.reason)) out.push(`applies.languages.exempt.reason must be one of ${EXEMPT_REASONS.join(", ")}`);
+        for (const key of Object.keys(e)) if (key !== "languages" && key !== "reason") out.push(`applies.languages.exempt has an unknown field ${key}`);
+      }
+    }
+  }
+  return out;
 }
 
 /** What the gates check mapped checks against. */
@@ -176,9 +257,13 @@ function strings(value: unknown, out: string[] = []): string[] {
 }
 
 /** The problems of one check against the context; empty when the check is sound. */
-export function checkProblems(check: MappingCheck, context: MappingContext, entrySubdimensions: readonly string[] = []): string[] {
+export function checkProblems(check: MappingCheck, context: MappingContext, entrySubdimensions: readonly string[] = [], evidence: MappingEntry["evidence"] = null): string[] {
   const out: string[] = [];
   if (!(MAPPING_UNITS as readonly string[]).includes(check.unit)) return [`unknown unit "${String(check.unit)}"`];
+  if (check.findingRules !== undefined) {
+    if (check.unit !== "capability") out.push(`findingRules is allowed only on a capability check, not on ${check.unit}`);
+    else if (!isStringList(check.findingRules)) out.push("findingRules must be a list of distinct, non-empty rule ids");
+  }
   if (check.unit === "semgrep-rule") {
     const sub = context.rules.get(check.id);
     if (sub === undefined) out.push(`unknown rule ${check.id}`);
@@ -187,6 +272,9 @@ export function checkProblems(check: MappingCheck, context: MappingContext, entr
     if (!context.capabilities.has(check.id)) out.push(`unknown capability ${check.id}: no validated matrix row`);
   } else if (check.unit === "semantic-ledger") {
     if (!context.attackBlocks.has(check.id)) out.push(`unknown attack class ${check.id}`);
+  } else if (check.unit === "semantic-requirement") {
+    if (check.id !== ASVS_REVIEW_METHOD) out.push(`a semantic-requirement check names the method ${ASVS_REVIEW_METHOD}, not ${check.id}`);
+    if (evidence === "person") out.push("a semantic-requirement check cannot examine a requirement whose evidence is a person");
   } else {
     const categories = context.methods.get(check.id);
     if (!categories) out.push(`unknown Semantic method ${check.id}`);
@@ -221,9 +309,12 @@ export function validateMapping(mapping: AsvsMapping, data: AsvsData, context: M
       seen.add(entry.requirement);
       if (!(MAPPING_STATUSES as readonly string[]).includes(entry.status)) problems.push(`${where}: unknown status ${String(entry.status)}`);
       if (entry.status === "unmapped" && entry.checks.length > 0) problems.push(`${where}: unmapped but has checks`);
-      if (entry.status !== "unmapped" && entry.checks.length === 0) problems.push(`${where}: ${String(entry.status)} without a check`);
-      if (entry.checks.length > 0 && (typeof entry.why !== "string" || entry.why.trim() === "")) problems.push(`${where}: checks without a why`);
-      for (const check of entry.checks) for (const p of checkProblems(check, context, entry.subdimensions ?? [])) problems.push(`${where}: ${p}`);
+      if (entry.status === "unmapped" && entry.applies !== undefined) problems.push(`${where}: unmapped but has applies`);
+      // An entry may say only which projects the requirement concerns (applies), with no check: it is reviewed all the same.
+      if (entry.status !== "unmapped" && entry.checks.length === 0 && entry.applies === undefined) problems.push(`${where}: ${String(entry.status)} without a check`);
+      if ((entry.checks.length > 0 || entry.applies !== undefined) && (typeof entry.why !== "string" || entry.why.trim() === "")) problems.push(`${where}: checks without a why`);
+      for (const check of entry.checks) for (const p of checkProblems(check, context, entry.subdimensions ?? [], entry.evidence)) problems.push(`${where}: ${p}`);
+      if (entry.applies !== undefined) for (const p of appliesProblems(entry.applies)) problems.push(`${where}: ${p}`);
       for (const sub of entry.subdimensions ?? []) if (!(MAPPING_SUBDIMENSIONS as readonly string[]).includes(sub)) problems.push(`${where}: unknown subdimension ${sub}`);
     }
   }

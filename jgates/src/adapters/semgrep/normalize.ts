@@ -15,6 +15,11 @@ export interface SemgrepParse {
   warnings: string[];
   /** The paths the scanner says it scanned (`paths.scanned`), as it printed them; null when the output has no such list. */
   scanned?: string[] | null;
+  /**
+   * The signals record: for every tag of a signal rule of the bundled pack in the run, how many results its rules had
+   * (0 when none). The results of signal rules are a record of the scan, never findings. Null without the pack.
+   */
+  signals?: Record<string, number> | null;
   /** Why the output could not be interpreted. */
   problem?: string;
 }
@@ -55,6 +60,18 @@ function packRequirementsOf(ruleId: string, packRules: ReadonlyMap<string, reado
   return undefined;
 }
 
+/** The tag of a result of a signal rule of the bundled pack (by its full id or the id after a dot), else undefined. */
+function packSignalOf(ruleId: string, packSignals: ReadonlyMap<string, string> | undefined): string | undefined {
+  if (!packSignals) return undefined;
+  const direct = packSignals.get(ruleId);
+  if (direct) return direct;
+  for (let at = ruleId.indexOf("."); at >= 0; at = ruleId.indexOf(".", at + 1)) {
+    const own = packSignals.get(ruleId.slice(at + 1));
+    if (own) return own;
+  }
+  return undefined;
+}
+
 export function parseSemgrepOutput(
   text: string,
   opts: {
@@ -64,6 +81,8 @@ export function parseSemgrepOutput(
     cwd: string;
     /** The rules of the bundled pack in the run (rule id to the requirement ids it was written for); absent without the pack. */
     packRules?: ReadonlyMap<string, readonly string[]>;
+    /** The signal rules of the bundled pack in the run (rule id to its tag); absent without the pack. */
+    packSignals?: ReadonlyMap<string, string>;
   },
 ): SemgrepParse {
   let doc: unknown;
@@ -93,9 +112,20 @@ export function parseSemgrepOutput(
     }
   }
   const findings: ResultFinding[] = [];
+  let signals: Record<string, number> | null = null;
+  if (opts.packSignals) {
+    signals = {};
+    for (const tag of [...new Set(opts.packSignals.values())].sort()) signals[tag] = 0;
+  }
   for (const [index, entry] of doc.results.entries()) {
     if (!isRec(entry) || typeof entry.check_id !== "string" || typeof entry.path !== "string" || !isRec(entry.extra) || typeof entry.extra.message !== "string") {
       return { ok: false, findings: [], warnings, problem: `result ${index} has no check_id, path or message` };
+    }
+    // A signal rule says which technology the project uses: counted in the record, never a finding.
+    const signal = packSignalOf(entry.check_id, opts.packSignals);
+    if (signal !== undefined && signals) {
+      signals[signal] = (signals[signal] ?? 0) + 1;
+      continue;
     }
     const start = isRec(entry.start) ? entry.start : {};
     const line = typeof start.line === "number" && start.line >= 1 ? start.line : undefined;
@@ -126,7 +156,7 @@ export function parseSemgrepOutput(
   }
   const paths = isRec(doc.paths) ? doc.paths : null;
   const scanned = paths && Array.isArray(paths.scanned) ? paths.scanned.filter((p): p is string => typeof p === "string") : null;
-  return { ok: true, findings, warnings, scanned };
+  return { ok: true, findings, warnings, scanned, signals };
 }
 
 /** File extension (lower case, with the dot) to the language name the scanned-languages record uses. */

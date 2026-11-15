@@ -12,10 +12,16 @@
 // - `semantic-ledger`: one attack-class block of a security-audit run whose ledger is valid, only when at least one
 //   ledger unit of that block is `examined`; pending, unsupported, not applicable and out of scope give nothing.
 // - `semantic-method`: one Semantic method run (and, for insecure-defaults, one per category of its record).
+// - `semantic-requirement`: one requirement the method `asvs-review` answered in its requirements ledger. It is
+//   completed only when the run finished, the ledger is valid and the answer is `examined` with file references that
+//   exist in the workspace; a `not-examinable` answer and an answer whose references do not hold give a unit that did
+//   not run, with the reason.
 //
 // The scanned-languages record (PLAN-semgrep-pack.md section 3) is the optional field `scannedLanguages` of the
 // Semgrep stage: how many files of each language the scan covered, `{ "<language>": <files> }`, the language being
-// the pack language (`javascript`, `python`, `go`, `csharp`, `rust`, `java`, `php`) or a Semgrep language name.
+// the pack language (`javascript`, `python`, `go`, `csharp`, `rust`, `java`, `php`) or a Semgrep language name. The
+// signals record beside it (`signals`, `{ "<tag>": <matches> }`) says which technologies the signal rules of the pack
+// matched; a signal rule that ran is a `semgrep-rule` unit like any other.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -25,7 +31,8 @@ import { DEFAULTS_FILE, INSECURE_DEFAULTS_METHOD } from "../../semantic-modules/
 import { SECURITY_AUDIT_METHOD } from "../../semantic-modules/cloudflare/index.js";
 import { validateLedger, type LedgerUnit } from "../../semantic-modules/cloudflare/ledger.js";
 import { LEDGER_FILE } from "../../semantic-modules/cloudflare/prior.js";
-import type { MappingUnit } from "./mapping.js";
+import { ASVS_REVIEW_METHOD, type MappingUnit } from "./mapping.js";
+import { ASVS_REVIEW_LEDGER_FILE, readAsvsReviewLedger, type AsvsReviewVerdict } from "./review-ledger.js";
 
 export const CHECK_UNIT_STATES = ["completed", "off", "error", "timed-out", "blocked", "not-selected", "not-applicable"] as const;
 export type CheckUnitState = (typeof CHECK_UNIT_STATES)[number];
@@ -67,6 +74,11 @@ export interface CheckUnit {
   ruleFile?: string;
   /** `semantic-ledger`: how many ledger units of the block were examined. */
   examinedUnits?: number;
+  /** `semantic-requirement`: the requirement answered, how many file references the answer has, its outcome and the fingerprints of the findings it raised. */
+  requirement?: string;
+  references?: number;
+  outcome?: AsvsReviewVerdict["outcome"];
+  findings?: string[];
 }
 
 export const RULE_SKIP_CODES = ["PLAN_MISSING", "STAGE_NOT_COMPLETED", "PACK_NOT_SELECTED", "PACK_OTHER_VERSION", "NO_SCANNED_LANGUAGES", "LANGUAGE_NOT_SCANNED"] as const;
@@ -103,6 +115,8 @@ export interface SemanticRunRecord {
   ledger: unknown;
   /** evidence/insecure-defaults/defaults.json, when present. */
   defaults: unknown;
+  /** evidence/asvs-review/requirements-ledger.json, when present. */
+  asvsReview?: unknown;
 }
 
 export interface CheckUnitsInput {
@@ -110,6 +124,10 @@ export interface CheckUnitsInput {
   semantic?: readonly SemanticRunRecord[];
   /** The rules folder of the JGates pack to compare with; defaults to the pack of this installation. */
   rulesDir?: string | null;
+  /** The workspace the file references of an ASVS review must exist in; absent or null: they cannot be checked, so none counts. */
+  workspaceDir?: string | null;
+  /** The ASVS version of the map: a requirements ledger of another version counts for nothing. */
+  asvsVersion?: string;
 }
 
 type Obj = Record<string, unknown>;
@@ -142,7 +160,16 @@ export function readSemanticRunRecord(dir: string): SemanticRunRecord | null {
     result,
     ledger: readJson(path.join(dir, ...LEDGER_FILE.split("/"))),
     defaults: readJson(path.join(dir, ...DEFAULTS_FILE.split("/"))),
+    asvsReview: readJson(path.join(dir, ...ASVS_REVIEW_LEDGER_FILE.split("/"))),
   };
+}
+
+/** The signals record of a Semgrep stage (`{ tag: matches }`), or null when the stage has none (the pack did not run, or the run predates the record). */
+export function signalsOf(stage: unknown): Record<string, number> | null {
+  if (!isObj(stage) || !isObj(stage.signals)) return null;
+  const out: Record<string, number> = {};
+  for (const [tag, matches] of Object.entries(stage.signals)) if (typeof matches === "number" && Number.isFinite(matches) && matches >= 0) out[tag] = matches;
+  return out;
 }
 
 /** The scanned-languages record of a stage (`{ language: files }`), or null when the stage has none. */
@@ -429,7 +456,32 @@ function readLedger(raw: unknown): { units: LedgerUnit[] } | { code: string; rea
   return { units };
 }
 
-function semanticUnits(record: SemanticRunRecord, out: CheckUnitList): void {
+/** The `semantic-requirement` units of a finished `asvs-review` run, one per answered requirement; or why the ledger gives none. */
+function requirementUnits(record: SemanticRunRecord, run: CheckUnitRun, input: CheckUnitsInput, out: CheckUnitList): { code: string; reason: string } | null {
+  const read = readAsvsReviewLedger(record.asvsReview ?? null, { workspaceDir: input.workspaceDir ?? null, ...(input.asvsVersion !== undefined ? { asvsVersion: input.asvsVersion } : {}) });
+  if (!read.ok) return { code: read.code, reason: read.reason };
+  const ids = [...read.verdicts.keys()].sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
+  for (const id of ids) {
+    const v = read.verdicts.get(id) as AsvsReviewVerdict;
+    const state: CheckUnitState = v.state === "examined" ? "completed" : v.state === "not-examinable" ? "not-applicable" : "error";
+    out.units.push({
+      unit: "semantic-requirement",
+      id: ASVS_REVIEW_METHOD,
+      requirement: id,
+      state,
+      code: v.code,
+      reason: v.reason,
+      basis: AI,
+      run,
+      references: v.references,
+      outcome: v.outcome,
+      findings: v.findings,
+    });
+  }
+  return null;
+}
+
+function semanticUnits(record: SemanticRunRecord, input: CheckUnitsInput, out: CheckUnitList): void {
   const run: CheckUnitRun = { gate: "semantic", runId: record.runId };
   out.runs.push(run);
   const result = isObj(record.result) ? record.result : {};
@@ -437,6 +489,14 @@ function semanticUnits(record: SemanticRunRecord, out: CheckUnitList): void {
   const runState = semanticRunState(result);
   for (const method of strs(semanticRun.methods)) {
     let { state, code, reason } = runState;
+    if (method === ASVS_REVIEW_METHOD && state === "completed") {
+      // Only a finished run with a valid ledger answers; a missing, invalid or other-version ledger gives nothing.
+      const problem = requirementUnits(record, run, input, out);
+      if (problem) {
+        ({ code, reason } = problem);
+        state = "error";
+      }
+    }
     if (method === SECURITY_AUDIT_METHOD && state === "completed") {
       const ledger = readLedger(record.ledger);
       if ("code" in ledger) {
@@ -482,6 +542,6 @@ function semanticUnits(record: SemanticRunRecord, out: CheckUnitList): void {
 export function collectCheckUnits(input: CheckUnitsInput): CheckUnitList {
   const out: CheckUnitList = { runs: [], units: [], skippedRules: [] };
   if (input.quality) qualityUnits(input.quality, packState(input.rulesDir), out);
-  for (const record of input.semantic ?? []) semanticUnits(record, out);
+  for (const record of input.semantic ?? []) semanticUnits(record, input, out);
   return out;
 }
