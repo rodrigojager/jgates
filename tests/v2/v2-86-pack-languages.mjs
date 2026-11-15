@@ -74,8 +74,10 @@ const init = (p, profile) => {
   assert.equal(r.status, 0, r.stderr + r.stdout);
   spawnSync("git", ["add", "-A"], { cwd: p.project });
 };
-const planOf = (p) => {
-  const r = p.cli(["plan", "--cwd", p.project, "--only", "tool:semgrep", "--json"]);
+// `--only` turns the selected step on for that run (it overrides the profile), so a case about what the profile
+// leaves off plans the whole project instead.
+const planOf = (p, { only = true } = {}) => {
+  const r = p.cli(["plan", "--cwd", p.project, ...(only ? ["--only", "tool:semgrep"] : []), "--json"]);
   const doc = JSON.parse(r.stdout);
   return doc.plan ?? doc;
 };
@@ -176,7 +178,7 @@ test("V2-86: jgates discover and the workspace vocabulary say which checks run o
 test("V2-86: under Essential the Semgrep step is off, with the profile as the reason", () => {
   const p = setup({ "pom.xml": "<project><modelVersion>4.0.0</modelVersion></project>\n", "src/main/java/App.java": JAVA });
   init(p, "minimal");
-  const plan = planOf(p);
+  const plan = planOf(p, { only: false });
   assert.equal(semgrepItem(plan), undefined, "the step does not run");
   const item = plan.groups.notApplicableOrDisabled.find((i) => i.id === "semgrep#sast");
   assert.ok(item, JSON.stringify(plan.groups.notApplicableOrDisabled.map((i) => i.id)));

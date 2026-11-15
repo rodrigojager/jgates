@@ -94,11 +94,19 @@ assert.ok(jsRule && goRule, "the pack has a JavaScript rule and a Go rule");
 const check = (unit, id, extra = {}) => ({ unit, id, covers: "a construct this check flags", misses: "what it does not model", depth: "partial", ...extra });
 const why = "It bears on the requirement for a reason of its own.";
 
-/** A copy of the shipped mapping pack with the fixture entries. */
+/** A copy of the shipped mapping pack, every entry reset to nothing mapped, with the fixture entries. */
 function fixtureMapping() {
   const dir = tmp("v2-90-map-");
   const versionDir = path.join(dir, "5.0.0");
   fs.cpSync(MAP_PACK, versionDir, { recursive: true });
+  // The counts below are those of the fixture alone, whatever the shipped mapping maps: every chapter entry starts
+  // unmapped, with repository evidence (an undefined field is left out when the file is written).
+  const unmapped = (evidence) => ({ status: "unmapped", evidence, subdimensions: [], checks: [], why: undefined, review: undefined });
+  for (const name of fs.readdirSync(versionDir).filter((f) => /^V\d+\.json$/.test(f))) {
+    const doc = readJson(path.join(versionDir, name));
+    for (const entry of doc.entries) Object.assign(entry, unmapped("repository"));
+    writeJson(path.join(versionDir, name), doc);
+  }
   const set = (requirement, patch) => {
     const file = path.join(versionDir, `${asvs.chapterFileStem(requirement.chapter)}.json`);
     const doc = readJson(file);
@@ -111,8 +119,8 @@ function fixtureMapping() {
   set(R.rule, reviewed([check("semgrep-rule", jsRule.id)], [jsRule.subdimension]));
   set(R.goRule, reviewed([check("semgrep-rule", goRule.id)], [goRule.subdimension]));
   set(R.semantic, reviewed([check("semantic-method", "differential-review")], ["business-logic"]));
-  set(R.deployment, { evidence: "deployment" });
-  set(R.person, { evidence: "person" });
+  set(R.deployment, unmapped("deployment"));
+  set(R.person, unmapped("person"));
   set(R.pending, { status: "pending", evidence: "repository", subdimensions: ["secrets"], checks: [check("capability", CAPABILITY)], why });
   set(R.na, reviewed([check("capability", CAPABILITY)], ["secrets"]));
   return dir;

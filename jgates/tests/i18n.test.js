@@ -99,10 +99,13 @@ test("the catalog test fails when a key exists in one language and not in the ot
 
 test("no catalog text has an emoji or decorative pictogram in either language", () => {
   const pictograph = /[\p{Extended_Pictographic}\u{FE0F}\u{20E3}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{25A0}-\u{25FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
+  // The copyright, registered and trade mark signs are Extended_Pictographic in Unicode but typographic in text (the
+  // licence attribution of the ASVS text needs ©); their emoji form still fails through U+FE0F.
+  const typographic = /[\u{00A9}\u{00AE}\u{2122}]/gu;
   for (const dir of [CLI_DIR, UI_SRC]) {
     for (const file of walk(dir).filter((f) => /\.(pt-BR|en)\.json$/.test(f))) {
       for (const [key, value] of Object.entries(JSON.parse(fs.readFileSync(file, "utf8")))) {
-        assert.ok(!pictograph.test(value), `${path.relative(root, file)} ${key} has a pictogram`);
+        assert.ok(!pictograph.test(String(value).replace(typographic, "")), `${path.relative(root, file)} ${key} has a pictogram`);
       }
     }
   }
