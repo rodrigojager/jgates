@@ -64,19 +64,20 @@ function treeHash(dir) {
   return hash.digest("hex");
 }
 
-let scratch = "";
-let workspace = "";
-test.after(() => {
-  if (workspace) {
-    const filters = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
-    for (const id of lines(docker(["ps", "-aq", ...filters]).out)) docker(["rm", "-f", id]);
-    for (const id of lines(docker(["network", "ls", "-q", ...filters]).out)) docker(["network", "rm", id]);
-    for (const name of lines(docker(["volume", "ls", "-q", ...filters]).out)) docker(["volume", "rm", "-f", name]);
-  }
-  if (scratch) fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
-});
+test("V2-93 (real engine): on a clone of the sample validated under Balanced, the examined requirements of the level-1 ASVS map are exactly those whose mapped checks completed in that run, each naming its check, and the sample is untouched", { timeout: 3_600_000 }, async (t) => {
+  let scratch = "";
+  let workspace = "";
+  // The cleanup belongs to this test (a root `after` hook can run before the test when the harness filters by name).
+  t.after(() => {
+    if (workspace) {
+      const filters = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
+      for (const id of lines(docker(["ps", "-aq", ...filters]).out)) docker(["rm", "-f", id]);
+      for (const id of lines(docker(["network", "ls", "-q", ...filters]).out)) docker(["network", "rm", id]);
+      for (const name of lines(docker(["volume", "ls", "-q", ...filters]).out)) docker(["volume", "rm", "-f", name]);
+    }
+    if (scratch) fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+  });
 
-test("V2-93 (real engine): on a clone of the sample validated under Balanced, the examined requirements of the level-1 ASVS map are exactly those whose mapped checks completed in that run, each naming its check, and the sample is untouched", { timeout: 3_600_000 }, async () => {
   assert.equal(docker(["version", "--format", "{{.Server.Version}}"]).code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);
   const source = path.resolve(process.env.JGATES_SAMPLE_PROJECT || DEFAULT_SAMPLE);
