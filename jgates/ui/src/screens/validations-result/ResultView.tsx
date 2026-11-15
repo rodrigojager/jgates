@@ -8,6 +8,7 @@ import { ErrorNotice, Pill } from "../../components/common";
 import { Icon, type IconName } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
+import { WaiveBlock, WaiveProvider, WaiveSummary } from "./waive";
 import "./result-cards.css";
 
 type Tone = "green" | "gold" | "red" | "blue";
@@ -349,6 +350,7 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
           {f.waiverExpires ? ` · ${t("vres_waiver_until", { date: String(f.waiverExpires) })}` : ` · ${t("vres_waiver_no_date")}`}
         </p>
       ) : null}
+      <WaiveBlock f={f} />
       {f.remediation ? (
         <p className="small" data-testid="finding-remediation">
           <strong>{t("vres_finding_remediation")}:</strong> {f.remediation}
@@ -788,9 +790,11 @@ export function ResultView({ result, previous, crashed = false, compact = false,
   const duration = Number.isFinite(started) && Number.isFinite(finished) ? finished - started : undefined;
   const git = result.analyzed?.git;
   return (
+    <WaiveProvider result={result}>
     <section className="stack" aria-labelledby="result-title">
       <h2 id="result-title">{t("vres_title")}</h2>
       <Banner result={result} crashed={crashed} onShowWaived={showWaived} />
+      <WaiveSummary result={result} />
       <QualityMascotStrip snapshot={mascots} onSelect={(domain, ids) => setDomainFilter({ domain, ids })} />
       <div className="card flat">
         <dl className="kv">
@@ -868,5 +872,6 @@ export function ResultView({ result, previous, crashed = false, compact = false,
       <Provenance result={result} />
       {compact ? null : <Link result={result} />}
     </section>
+    </WaiveProvider>
   );
 }
