@@ -1,0 +1,409 @@
+# Cryptographic parameters for PHP: key sizes, IVs and nonces, cipher modes, key-derivation work factors, fast hashes
+# of passwords, timing-safe comparison, signature hashes, hard-coded keys and non-cryptographic randomness.
+# Libraries covered: the openssl extension (openssl_pkey_new, openssl_encrypt, openssl_decrypt, openssl_sign,
+# openssl_verify, openssl_pbkdf2), the hash extension (hash, hash_hmac, hash_pbkdf2, hash_equals), password_hash,
+# libsodium (sodium_crypto_*), phpseclib (RSA::createKey), firebase/php-jwt (JWT::encode, Key) and ramsey/uuid
+# (Uuid::uuid4). The analysis stays inside one function or one file.
+rules:
+  - id: jgates.php.weak-key-size
+    message: An RSA or DSA key is generated with fewer than 2048 bits, or an elliptic curve under 224 bits is chosen, so the key can be broken with modest resources. Generate RSA keys with at least 3072 bits (2048 at the very least) and use prime256v1 or a larger curve.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3", "V11.6.1"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: openssl_pkey_new([..., $K => $N, ...])
+                  - pattern: openssl_csr_new($DN, $KEY, [..., $K => $N, ...])
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: ^["']private_key_bits["']$
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N < 2048
+          - patterns:
+              - pattern-either:
+                  - pattern: RSA::createKey($N)
+                  - pattern: \phpseclib3\Crypt\RSA::createKey($N)
+                  - pattern: \phpseclib\Crypt\RSA::createKey($N)
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N < 2048
+          - patterns:
+              - pattern: openssl_pkey_new([..., $K => $C, ...])
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: ^["']curve_name["']$
+              - metavariable-regex:
+                  metavariable: $C
+                  regex: (?i)^["'](secp112r[12]|secp128r[12]|secp160[kr][12]|secp192[kr]1|prime192v[123]|sect113r[12]|sect131r[12]|sect163[kr][12]|sect193r[12])["']$
+
+  - id: jgates.php.rsa-key-below-3072
+    message: An RSA key is generated with 2048 to 3071 bits. That is still accepted, but a key of at least 3072 bits gives the security level the standard recommends; generate 3072 bits or more.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: openssl_pkey_new([..., $K => $N, ...])
+                  - pattern: openssl_csr_new($DN, $KEY, [..., $K => $N, ...])
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: ^["']private_key_bits["']$
+          - patterns:
+              - pattern-either:
+                  - pattern: RSA::createKey($N)
+                  - pattern: \phpseclib3\Crypt\RSA::createKey($N)
+                  - pattern: \phpseclib\Crypt\RSA::createKey($N)
+      - metavariable-comparison:
+          metavariable: $N
+          comparison: $N >= 2048 and $N < 3072
+
+  - id: jgates.php.static-iv-or-nonce
+    message: A cipher gets a literal, zeroed or constant IV or nonce, so equal plaintexts give equal ciphertexts and a reused nonce breaks authenticated encryption. Create a fresh value for every message with random_bytes() and store it next to the ciphertext.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-329"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: openssl_encrypt($D, $C, $K, $O, $IV, ...)
+              - pattern: openssl_decrypt($D, $C, $K, $O, $IV, ...)
+              - pattern: sodium_crypto_secretbox($M, $IV, $K)
+              - pattern: sodium_crypto_aead_chacha20poly1305_ietf_encrypt($M, $AD, $IV, $K)
+              - pattern: sodium_crypto_aead_xchacha20poly1305_ietf_encrypt($M, $AD, $IV, $K)
+              - pattern: sodium_crypto_aead_aes256gcm_encrypt($M, $AD, $IV, $K)
+          - metavariable-regex:
+              metavariable: $IV
+              regex: ^(["'].*["']|(str_repeat|hex2bin|base64_decode|pack|sodium_hex2bin)\(\s*["'].*|chr\(.*)$
+      - patterns:
+          - pattern-either:
+              - pattern: openssl_encrypt($D, $C, $K, $O, $IV, ...)
+              - pattern: openssl_decrypt($D, $C, $K, $O, $IV, ...)
+              - pattern: sodium_crypto_secretbox($M, $IV, $K)
+              - pattern: sodium_crypto_aead_chacha20poly1305_ietf_encrypt($M, $AD, $IV, $K)
+              - pattern: sodium_crypto_aead_xchacha20poly1305_ietf_encrypt($M, $AD, $IV, $K)
+              - pattern: sodium_crypto_aead_aes256gcm_encrypt($M, $AD, $IV, $K)
+          - pattern-either:
+              - pattern-inside: |
+                  $IV = "...";
+                  ...
+              - pattern-inside: |
+                  $IV = str_repeat("...", ...);
+                  ...
+              - pattern-inside: |
+                  $IV = hex2bin("...");
+                  ...
+              - pattern-inside: |
+                  $IV = base64_decode("...");
+                  ...
+
+  - id: jgates.php.cipher-mode-without-authentication
+    message: A block cipher mode without authentication (CBC, CTR, CFB or OFB) is selected. The ciphertext can be changed undetected unless a MAC is checked before decryption. Prefer an authenticated mode such as aes-256-gcm, or sodium_crypto_secretbox.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.3"]
+    patterns:
+      - pattern-either:
+          - pattern: openssl_encrypt($D, $C, ...)
+          - pattern: openssl_decrypt($D, $C, ...)
+      - metavariable-regex:
+          metavariable: $C
+          regex: (?i)^["'][a-z0-9]+-[a-z0-9-]*?-?(cbc|ctr|cfb[0-9]*|ofb)(-hmac-sha[0-9]+)?["']$
+
+  - id: jgates.php.weak-kdf-parameters
+    message: A password hashing or key derivation call uses a literal work factor below the accepted floor, so offline guessing is cheap. Use at least 100000 PBKDF2 iterations, bcrypt cost 10, or Argon2 with 19 MiB of memory and a time cost of 2; password_hash() defaults are a good start.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V11.4.4"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: hash_pbkdf2($A, $P, $S, $N, ...)
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N < 100000
+          - patterns:
+              - pattern: openssl_pbkdf2($P, $S, $L, $N, ...)
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N < 100000
+          - patterns:
+              - pattern-either:
+                  - pattern: password_hash($P, $ALG, [..., $K => $N, ...])
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: ^["']cost["']$
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N < 10
+          - patterns:
+              - pattern: password_hash($P, $ALG, [..., $K => $N, ...])
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: ^["']memory_cost["']$
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N < 19456
+          - patterns:
+              - pattern: password_hash($P, $ALG, [..., $K => $N, ...])
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: ^["']time_cost["']$
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N < 2
+          - patterns:
+              - pattern-either:
+                  - pattern: sodium_crypto_pwhash($L, $P, $S, $OPS, $MEM, ...)
+                  - pattern: sodium_crypto_pwhash_str($P, $OPS, $MEM)
+              - metavariable-comparison:
+                  metavariable: $OPS
+                  comparison: $OPS < 2
+          - patterns:
+              - pattern-either:
+                  - pattern: sodium_crypto_pwhash($L, $P, $S, $OPS, $MEM, ...)
+                  - pattern: sodium_crypto_pwhash_str($P, $OPS, $MEM)
+              - metavariable-comparison:
+                  metavariable: $MEM
+                  comparison: $MEM < 19922944
+
+  - id: jgates.php.password-hash-with-fast-hash
+    message: A value named like a password is given to a general-purpose hash function, which is fast and unsalted and so cheap to brute-force. Store passwords with password_hash() and check them with password_verify().
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V6.5.2"]
+    patterns:
+      - pattern-either:
+          - pattern: hash($ALG, $PASSWORD, ...)
+          - pattern: openssl_digest($PASSWORD, ...)
+          - pattern: crc32($PASSWORD)
+          - pattern: sodium_crypto_generichash($PASSWORD, ...)
+      - metavariable-regex:
+          metavariable: $PASSWORD
+          regex: (?i).*(password|passwd|pwd|passphrase|senha).*
+
+  - id: jgates.php.timing-unsafe-comparison
+    message: A MAC, digest or signature is compared with an ordinary equality operator, which stops at the first differing byte and leaks timing. Compare with hash_equals($known, $user).
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-208"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.4"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $A == $B
+                  - pattern: $A === $B
+                  - pattern: $A != $B
+                  - pattern: $A !== $B
+              - metavariable-regex:
+                  metavariable: $A
+                  regex: (?i)^\$?\w*(hmac|digest|signature|mac)(_\w+)?$
+              - metavariable-regex:
+                  metavariable: $B
+                  regex: (?i)^(?!(null|false|true|0|""|''|\[\])$)
+          - patterns:
+              - pattern-either:
+                  - pattern: $A == $B
+                  - pattern: $A === $B
+                  - pattern: $A != $B
+                  - pattern: $A !== $B
+              - metavariable-regex:
+                  metavariable: $B
+                  regex: (?i)^\$?\w*(hmac|digest|signature|mac)(_\w+)?$
+              - metavariable-regex:
+                  metavariable: $A
+                  regex: (?i)^(?!(null|false|true|0|""|''|\[\])$)
+          - pattern: hash_hmac(...) == $X
+          - pattern: hash_hmac(...) === $X
+          - pattern: hash_hmac(...) != $X
+          - pattern: hash_hmac(...) !== $X
+          - pattern: $X == hash_hmac(...)
+          - pattern: $X === hash_hmac(...)
+          - pattern: $X != hash_hmac(...)
+          - pattern: $X !== hash_hmac(...)
+
+  - id: jgates.php.weak-signature-hash
+    message: A signature or MAC is made or verified with MD5 or SHA-1, whose collisions make forged signatures practical. Use SHA-256 or stronger, and pass OPENSSL_ALGO_SHA256 explicitly because openssl_sign() and openssl_verify() default to SHA-1.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-328"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: hash_hmac($A, ...)
+              - pattern: hash_hmac_file($A, ...)
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i)^["'](md2|md4|md5|sha1|sha-1)["']$
+      - patterns:
+          - pattern-either:
+              - pattern: openssl_sign($D, $S, $K, $A)
+              - pattern: openssl_verify($D, $S, $K, $A)
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i)^(OPENSSL_ALGO_(MD2|MD4|MD5|SHA1)|["'](md2|md4|md5|sha1|sha-1)["'])$
+      - pattern: openssl_sign($D, $S, $K)
+      - pattern: openssl_verify($D, $S, $K)
+
+  - id: jgates.php.hardcoded-encryption-key
+    message: A string literal is used as the key of a cipher, a MAC or a token signature, so anyone with the source can decrypt or forge data. Read the key from the environment or a secret store, or generate it with random_bytes().
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-321"
+      author: JGates
+      subdimension: secrets
+      asvs_requirements: ["V13.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: openssl_encrypt($D, $C, $KEY, ...)
+          - pattern: openssl_decrypt($D, $C, $KEY, ...)
+          - pattern: hash_hmac($A, $D, $KEY, ...)
+          - pattern: sodium_crypto_secretbox($M, $N, $KEY)
+          - pattern: sodium_crypto_secretbox_open($M, $N, $KEY)
+          - pattern: sodium_crypto_auth($M, $KEY)
+          - pattern: sodium_crypto_aead_chacha20poly1305_ietf_encrypt($M, $AD, $N, $KEY)
+          - pattern: sodium_crypto_aead_xchacha20poly1305_ietf_encrypt($M, $AD, $N, $KEY)
+          - pattern: JWT::encode($P, $KEY, ...)
+          - pattern: new Key($KEY, ...)
+          - pattern: \Firebase\JWT\JWT::encode($P, $KEY, ...)
+          - pattern: new \Firebase\JWT\Key($KEY, ...)
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: ^(["'].*["']|(hex2bin|base64_decode|sodium_hex2bin|sodium_base642bin)\(\s*["'].*)$
+
+  - id: jgates.php.insecure-random-for-secret
+    message: A value named like a token, secret, password, code, nonce, salt or key is built from a non-cryptographic generator, so it can be predicted. Use random_bytes() or random_int(), for example bin2hex(random_bytes(32)).
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-338"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1", "V7.2.3", "V6.5.3", "V6.4.1"]
+    pattern-sources:
+      - pattern: rand(...)
+      - pattern: mt_rand(...)
+      - pattern: uniqid(...)
+      - pattern: lcg_value()
+      - pattern: str_shuffle(...)
+      - pattern: microtime(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $V = $X
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?i).*(token|secret|passw(or)?d|pwd|passphrase|otp|nonce|salt|csrf|(secret|api|enc\w*|private|signing|hmac|aes|crypto|master)_?key|(reset|verif\w*|activation|confirm\w*|sms|auth)_?code)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $O->$P = $X
+          - metavariable-regex:
+              metavariable: $P
+              regex: (?i).*(token|secret|passw(or)?d|pwd|passphrase|otp|nonce|salt|csrf|(secret|api|enc\w*|private|signing|hmac|aes|crypto|master)_?key|(reset|verif\w*|activation|confirm\w*|sms|auth)_?code)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $ARR[$K] = $X
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["'](\w*)(token|secret|passw(or)?d|pwd|passphrase|otp|nonce|salt|csrf|(secret|api|enc\w*|private|signing|hmac|aes|crypto|master)_?key|(reset|verif\w*|activation|confirm\w*|sms|auth)_?code)\w*["']$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: "[..., $K => $X, ...]"
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["'](\w*)(token|secret|passw(or)?d|pwd|passphrase|otp|nonce|salt|csrf|(secret|api|enc\w*|private|signing|hmac|aes|crypto|master)_?key|(reset|verif\w*|activation|confirm\w*|sms|auth)_?code)\w*["']$
+          - focus-metavariable: $X
+
+  - id: jgates.php.uuid-as-secret-token
+    message: A UUID is used as a token, secret, password, code, nonce, salt or key. A UUID is an identifier with a fixed layout, not a secret of full strength. Use bin2hex(random_bytes(32)) for a token.
+    severity: INFO
+    languages: [php]
+    mode: taint
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-330"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1"]
+    pattern-sources:
+      - pattern: Uuid::uuid1(...)
+      - pattern: Uuid::uuid3(...)
+      - pattern: Uuid::uuid4(...)
+      - pattern: Uuid::uuid5(...)
+      - pattern: Uuid::uuid6(...)
+      - pattern: Uuid::uuid7(...)
+      - pattern: \Ramsey\Uuid\Uuid::uuid4(...)
+      - pattern: Str::uuid()
+      - pattern: Str::orderedUuid()
+    pattern-sinks:
+      - patterns:
+          - pattern: $V = $X
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?i).*(token|secret|passw(or)?d|pwd|passphrase|otp|nonce|salt|csrf|(secret|api|enc\w*|private|signing|hmac|aes|crypto|master)_?key|(reset|verif\w*|activation|confirm\w*|sms|auth)_?code)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $O->$P = $X
+          - metavariable-regex:
+              metavariable: $P
+              regex: (?i).*(token|secret|passw(or)?d|pwd|passphrase|otp|nonce|salt|csrf|(secret|api|enc\w*|private|signing|hmac|aes|crypto|master)_?key|(reset|verif\w*|activation|confirm\w*|sms|auth)_?code)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $ARR[$K] = $X
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["'](\w*)(token|secret|passw(or)?d|pwd|passphrase|otp|nonce|salt|csrf|(secret|api|enc\w*|private|signing|hmac|aes|crypto|master)_?key|(reset|verif\w*|activation|confirm\w*|sms|auth)_?code)\w*["']$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: "[..., $K => $X, ...]"
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["'](\w*)(token|secret|passw(or)?d|pwd|passphrase|otp|nonce|salt|csrf|(secret|api|enc\w*|private|signing|hmac|aes|crypto|master)_?key|(reset|verif\w*|activation|confirm\w*|sms|auth)_?code)\w*["']$
+          - focus-metavariable: $X
