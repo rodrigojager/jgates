@@ -77,6 +77,9 @@ export interface AsvsCheckRow {
   findingRules?: string[];
   /** Findings of this check left open (not waived) in the run that ran it; null when they cannot be told apart. */
   openFindings: number | null;
+  /** The same findings as two numbers that are never added into one: those that block, and the informational ones. */
+  openBlocking: number | null;
+  openInformational: number | null;
   /**
    * False when the check cannot bear on this project at all: a rule of a language the project is known to lack
    * (LANGUAGE_ABSENT). Such a check stays in the JSON but the screen and the text leave it out and count nothing for it.
@@ -300,10 +303,18 @@ const checkMessage = (code: string, params: Params): string => {
 /** A completed unit first, else the one of the newest run (the list is in run order: Quality, then Semantic newest first). */
 const pick = (units: CheckUnit[]): CheckUnit | undefined => units.find((u) => u.state === "completed") ?? units[0];
 
-function openFindingsOf(check: MappingCheck, unit: CheckUnit, ctx: Context): number | null {
+/** The open findings of a check as two numbers that are never added into one: blocking and informational (INFO rules). */
+function openSplitOf(check: MappingCheck, unit: CheckUnit, ctx: Context): { blocking: number; informational: number } | null {
+  const all = openFindingsOf(check, unit, ctx, () => true);
+  if (all === null) return null;
+  const informational = openFindingsOf(check, unit, ctx, (f) => f.informational === true) ?? 0;
+  return { blocking: all - informational, informational };
+}
+
+function openFindingsOf(check: MappingCheck, unit: CheckUnit, ctx: Context, keep: (f: Record<string, unknown>) => boolean = () => true): number | null {
   if (unit.run.gate === "quality") {
     const result = ctx.quality && isObj(ctx.quality.result) ? ctx.quality.result : {};
-    const findings = objs(result.findings).filter((f) => f.waived !== true);
+    const findings = objs(result.findings).filter((f) => f.waived !== true && keep(f));
     if (check.unit === "semgrep-rule") return findings.filter((f) => f.stageId === unit.stageId && typeof f.ruleId === "string" && (f.ruleId === check.id || f.ruleId.endsWith(`.${check.id}`))).length;
     // A capability tied to named alerts counts only the stage's findings of those alerts; without the list, all of them.
     const named = check.unit === "capability" && check.findingRules ? new Set(check.findingRules) : null;
@@ -315,14 +326,14 @@ function openFindingsOf(check: MappingCheck, unit: CheckUnit, ctx: Context): num
     if (unit.outcome !== "finding") return 0;
     const raised = new Set(unit.findings ?? []);
     const result = record && isObj(record.result) ? record.result : {};
-    return objs(result.findings).filter((f) => f.waived !== true && typeof f.fingerprint === "string" && raised.has(f.fingerprint)).length;
+    return objs(result.findings).filter((f) => f.waived !== true && keep(f) && typeof f.fingerprint === "string" && raised.has(f.fingerprint)).length;
   }
   if (check.unit !== "semantic-method") return null;
   const result = record && isObj(record.result) ? record.result : null;
   const semanticRun = result && isObj(result.semanticRun) ? result.semanticRun : null;
   // A Semantic finding does not name its method: it can be told apart only in a run of one method.
   if (!result || !semanticRun || strs(semanticRun.methods).length !== 1) return null;
-  return objs(result.findings).filter((f) => f.waived !== true).length;
+  return objs(result.findings).filter((f) => f.waived !== true && keep(f)).length;
 }
 
 interface Evaluated {
@@ -420,6 +431,7 @@ function evaluateCheck(check: MappingCheck, requirement: string, ctx: Context): 
   else if (check.unit === "semantic-requirement") e = evaluateRequirementReview(check, requirement, ctx);
   else e = { status: "unsupported", code: "UNKNOWN_UNIT", detail: null, params: {} };
   const ran = e.status === "ran";
+  const split = ran && e.unit ? openSplitOf(check, e.unit, ctx) : null;
   return {
     unit: check.unit,
     id: check.id,
@@ -438,6 +450,8 @@ function evaluateCheck(check: MappingCheck, requirement: string, ctx: Context): 
     ...(e.language !== undefined ? { language: e.language } : {}),
     ...(check.unit === "capability" && check.findingRules ? { findingRules: [...check.findingRules] } : {}),
     openFindings: ran && e.unit ? openFindingsOf(check, e.unit, ctx) : null,
+    openBlocking: split ? split.blocking : null,
+    openInformational: split ? split.informational : null,
     relevant: e.code !== "LANGUAGE_ABSENT",
   };
 }

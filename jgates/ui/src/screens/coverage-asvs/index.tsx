@@ -4,7 +4,7 @@
 // write goes through POST /api/coverage/asvs/decisions (`preview: true` first). The requirement text is the official English
 // text, marked as English and shown with its attribution. Nothing here says the project complies, and no figure is a
 // percentage: the counters are plain counts.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api";
 import { useShell } from "../../app/shell-context";
 import { currentQuery } from "../../app/route";
@@ -45,8 +45,20 @@ interface Check {
   runId: string | null;
   reused: boolean;
   openFindings: number | null;
+  /** The open findings as two numbers that are never added: those that block and the informational ones. */
+  openBlocking?: number | null;
+  openInformational?: number | null;
+  language?: string;
   /** False for a rule of a language the project lacks: not shown and not counted. */
   relevant: boolean;
+}
+
+/** A proposed "not applicable" decision: JGates only suggests it, the user confirms it. */
+export interface Suggestion {
+  kind: string;
+  tags?: string[];
+  languages?: string[];
+  reason: string;
 }
 
 export interface Row {
@@ -62,6 +74,7 @@ export interface Row {
   evidence: string;
   checks: Check[];
   decision: { id: string; reason: string; recorded: string; scope: "requirement" | "section" | "chapter" } | null;
+  suggestion?: Suggestion;
 }
 
 interface Totals {
@@ -91,7 +104,7 @@ export interface AsvsMap {
   warnings: Array<{ code: string; message: string }>;
   decisions: { file: string; exists: boolean; revision: string; level: number | null; notApplicable: number; problem: string | null };
   totals: Totals;
-  chapters: Array<{ id: string; name: string; totals: Totals; sections: Array<{ id: string; name: string; totals: Totals }> }>;
+  chapters: Array<{ id: string; name: string; totals: Totals; suggestion?: Suggestion; sections: Array<{ id: string; name: string; totals: Totals; suggestion?: Suggestion }> }>;
   requirements: Row[];
 }
 
@@ -109,6 +122,9 @@ export default function CoverageAsvsScreen() {
     return n === 1 || n === 2 || n === 3 ? n : null;
   });
   const [deterministicOnly, setDeterministicOnly] = useState(false);
+  const [withSuggestion, setWithSuggestion] = useState(false);
+  // `requirement=<id>` in the query of the route: that row opens and takes the focus.
+  const focusId = query.get("requirement") ?? "";
   const [filter, setFilter] = useState<State | null>(null);
   const [target, setTarget] = useState<Target | null>(null);
   const [undo, setUndo] = useState<UndoInfo | null>(null);
@@ -121,11 +137,22 @@ export default function CoverageAsvsScreen() {
   const params = new URLSearchParams({ lang });
   if (viewLevel !== null) params.set("level", String(viewLevel));
   if (deterministicOnly) params.set("deterministicOnly", "true");
+  if (withSuggestion) params.set("withSuggestion", "true");
   if (run) params.set("run", run);
   if (semanticRun) params.set("semanticRuns", semanticRun);
   const url = `/api/coverage/asvs?${params.toString()}`;
   const loaded = useAsync(() => api<AsvsMap>("GET", url), `asvs:${url}`);
   const map = loaded.data;
+
+  // A linked requirement of a higher level than the view is out of the answer: widen the view (it records nothing) once.
+  const [widened, setWidened] = useState(false);
+  useEffect(() => {
+    if (!map || !focusId || widened) return;
+    if (!map.requirements.some((r) => r.id === focusId) && map.level < 3 && viewLevel !== 3) {
+      setWidened(true);
+      setViewLevel(3);
+    }
+  }, [map, focusId, widened, viewLevel]);
 
   const guarded = async (work: () => Promise<void>): Promise<void> => {
     setBusy(true);
@@ -221,6 +248,10 @@ export default function CoverageAsvsScreen() {
                 <input type="checkbox" checked={deterministicOnly} onChange={(e) => setDeterministicOnly(e.target.checked)} data-testid="asvs-deterministic-only" />
                 <span>{t("asvs_deterministic_only")}</span>
               </label>
+              <label className="asvs-switch">
+                <input type="checkbox" checked={withSuggestion} onChange={(e) => setWithSuggestion(e.target.checked)} data-testid="asvs-with-suggestion" />
+                <span>{t("asvs_only_suggestion")}</span>
+              </label>
             </div>
             <p className="small muted" data-testid="asvs-level-source">
               {governed ? t("asvs_level_governed") : t(`asvs_level_source_${map.levelSource}`, { level: map.level })}
@@ -284,7 +315,7 @@ export default function CoverageAsvsScreen() {
               ))}
             </div>
             <p className="small" role="status" data-testid="asvs-shown">
-              {filter === null ? t("asvs_shown_all", { count: rows.length }) : t("asvs_shown_filtered", { count: rows.length, state: t(`asvs_state_${key(filter)}`) })}
+              {withSuggestion ? t("asvs_shown_suggestions", { count: rows.length }) : filter === null ? t("asvs_shown_all", { count: rows.length }) : t("asvs_shown_filtered", { count: rows.length, state: t(`asvs_state_${key(filter)}`) })}
               {filter !== null ? (
                 <>
                   {" "}
@@ -319,6 +350,7 @@ export default function CoverageAsvsScreen() {
                   </h2>
                   <NaButton id={chapter.id} label={`${chapter.id} ${chapter.name}`} kind="chapter" governed={governed} busy={busy} onOpen={setTarget} />
                 </div>
+                {chapter.suggestion ? <SuggestionLine id={chapter.id} label={`${chapter.id} ${chapter.name}`} kind="chapter" suggestion={chapter.suggestion} governed={governed} busy={busy} onOpen={setTarget} /> : null}
                 {chapter.sections.map((section) => {
                   const list = sections.get(section.id);
                   if (!list) return null;
@@ -330,9 +362,10 @@ export default function CoverageAsvsScreen() {
                         </h3>
                         <NaButton id={section.id} label={`${section.id} ${section.name}`} kind="section" governed={governed} busy={busy} onOpen={setTarget} />
                       </div>
+                      {section.suggestion && !chapter.suggestion ? <SuggestionLine id={section.id} label={`${section.id} ${section.name}`} kind="section" suggestion={section.suggestion} governed={governed} busy={busy} onOpen={setTarget} /> : null}
                       <ul className="asvs-rows">
                         {list.map((row) => (
-                          <RequirementRow key={row.id} row={row} governed={governed} busy={busy} onNotApplicable={setTarget} onRemove={removeDecision} />
+                          <RequirementRow key={row.id} row={row} governed={governed} busy={busy} onNotApplicable={setTarget} onRemove={removeDecision} focused={row.id === focusId} sharedSuggestion={Boolean(section.suggestion || chapter.suggestion)} />
                         ))}
                       </ul>
                     </div>
@@ -376,18 +409,104 @@ function NaButton({ id, label, kind, governed, busy, onOpen }: { id: string; lab
   );
 }
 
+function CheckItem({ c }: { c: Check }) {
+  const blocking = c.openBlocking ?? c.openFindings;
+  const informational = c.openInformational ?? 0;
+  const blockingText = t("asvs_check_open_blocking", { count: blocking ?? 0 });
+  return (
+    <li className="asvs-check" data-testid="asvs-check" data-status={c.status} data-unit={c.unit}>
+      <strong>{c.category ? `${c.id} (${c.category})` : c.id}</strong> · <span>{tOr(`asvs_check_status_${key(c.status)}`, c.status)}</span>
+      <p className="small">{c.reason}</p>
+      <dl className="kv small">
+        <dt>{t("asvs_check_covers")}</dt>
+        <dd>{c.covers}</dd>
+        <dt>{t("asvs_check_misses")}</dt>
+        <dd>{c.misses}</dd>
+        <dt>{t("asvs_check_basis")}</dt>
+        <dd>{tOr(`asvs_basis_${key(c.basis)}`, c.basis)}</dd>
+        {c.language ? (
+          <>
+            <dt>{t("asvs_check_files")}</dt>
+            <dd data-testid="asvs-check-files">{tOr(`asvs_language_${key(c.language)}`, c.language)}</dd>
+          </>
+        ) : null}
+        {c.ran && blocking !== null ? (
+          <>
+            <dt>{t("asvs_check_open")}</dt>
+            <dd>
+              <span data-testid="asvs-check-blocking" data-count={blocking}>
+                {c.runId ? (
+                  <a href={`#/validations/result/${encodeURIComponent(c.runId)}`} data-testid="asvs-check-link">
+                    {blockingText}
+                  </a>
+                ) : (
+                  blockingText
+                )}
+              </span>
+              {" · "}
+              <span data-testid="asvs-check-informational" data-count={informational}>
+                {t("asvs_check_open_informational", { count: informational })}
+              </span>
+            </dd>
+          </>
+        ) : null}
+      </dl>
+    </li>
+  );
+}
+
+/** The action of a suggestion: it opens the existing dialog with the reason filled in (editable); never writes by itself. */
+function SuggestionAction({ id, label, kind, suggestion, governed, busy, onOpen }: { id: string; label: string; kind: Target["kind"]; suggestion: Suggestion; governed: boolean; busy: boolean; onOpen: (t: Target) => void }) {
+  const why = `asvs-sug-why-${id}`;
+  return (
+    <span className="asvs-na">
+      <button type="button" className="btn" disabled={governed || busy} aria-label={`${t("asvs_suggestion_action")}: ${label}`} {...(governed ? { "aria-describedby": why } : {})} data-testid={`asvs-suggestion-action-${id}`} onClick={() => onOpen({ id, label, kind, reason: suggestion.reason })}>
+        {t("asvs_suggestion_action")}
+      </button>
+      {governed ? (
+        <span className="small muted" id={why} data-testid={`asvs-suggestion-governed-${id}`}>
+          {t("asvs_suggestion_governed")}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/** A suggestion offered once for a whole section or chapter: one confirmation records it for every requirement. */
+function SuggestionLine({ id, label, kind, suggestion, governed, busy, onOpen }: { id: string; label: string; kind: "section" | "chapter"; suggestion: Suggestion; governed: boolean; busy: boolean; onOpen: (t: Target) => void }) {
+  return (
+    <div className="asvs-suggestion row wrap" data-testid={`asvs-suggestion-${id}`}>
+      <p className="small grow" style={{ margin: 0 }}>
+        {t(kind === "chapter" ? "asvs_suggestion_all_chapter" : "asvs_suggestion_all_section", { reason: suggestion.reason })}
+      </p>
+      <SuggestionAction id={id} label={label} kind={kind} suggestion={suggestion} governed={governed} busy={busy} onOpen={onOpen} />
+    </div>
+  );
+}
+
 const TONE: Record<State, "green" | "gold" | "red" | "blue" | undefined> = { examined: "green", unexamined: "gold", unsupported: undefined, "not-applicable": "blue", "awaiting-evidence": "blue" };
 
-function RequirementRow({ row, governed, busy, onNotApplicable, onRemove }: { row: Row; governed: boolean; busy: boolean; onNotApplicable: (t: Target) => void; onRemove: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
+function RequirementRow({ row, governed, busy, onNotApplicable, onRemove, focused, sharedSuggestion }: { row: Row; governed: boolean; busy: boolean; onNotApplicable: (t: Target) => void; onRemove: (id: string) => void; focused: boolean; sharedSuggestion: boolean }) {
+  const [open, setOpen] = useState(focused);
+  const toggle = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!focused) return;
+    setOpen(true);
+    toggle.current?.focus();
+    toggle.current?.scrollIntoView({ block: "center" });
+  }, [focused]);
   const panel = `asvs-panel-${row.id}`;
   const own = row.decision !== null && row.decision.id === row.id;
   // A rule of a language the project lacks bears on nothing here: it is not listed (`relevant` absent: an older answer).
   const checks = row.checks.filter((c) => c.relevant !== false);
+  // An AI review of the source (`semantic-requirement`) is shown apart from the deterministic checks.
+  const isAi = (c: Check): boolean => c.unit === "semantic-requirement" || c.basis === "ai-source-review";
+  const deterministic = checks.filter((c) => !isAi(c));
+  const ai = checks.filter(isAi);
   return (
-    <li className="asvs-row" data-testid={`asvs-row-${row.id}`} data-state={row.state}>
+    <li className="asvs-row" id={`asvs-requirement-${row.id}`} data-testid={`asvs-row-${row.id}`} data-state={row.state} data-focused={focused || undefined}>
       <div className="asvs-row-head">
-        <button type="button" className="asvs-toggle" aria-expanded={open} aria-controls={panel} onClick={() => setOpen(!open)} data-testid={`asvs-toggle-${row.id}`}>
+        <button type="button" ref={toggle} className="asvs-toggle" aria-expanded={open} aria-controls={panel} onClick={() => setOpen(!open)} data-testid={`asvs-toggle-${row.id}`}>
           <span className={`asvs-chevron${open ? " open" : ""}`}><Icon name="chevron" /></span>
           <strong className="asvs-id">{row.id}</strong>
           <span className="pill" data-testid="asvs-row-level">{t("asvs_level_short", { level: row.level })}</span>
@@ -414,6 +533,14 @@ function RequirementRow({ row, governed, busy, onNotApplicable, onRemove }: { ro
       <p className="small" data-testid="asvs-row-reason">
         {row.reason}
       </p>
+      {row.suggestion && !sharedSuggestion ? (
+        <div className="asvs-suggestion row wrap" data-testid={`asvs-suggestion-${row.id}`}>
+          <p className="small grow" style={{ margin: 0 }}>
+            {t("asvs_suggestion", { reason: row.suggestion.reason })}
+          </p>
+          <SuggestionAction id={row.id} label={row.id} kind="requirement" suggestion={row.suggestion} governed={governed} busy={busy} onOpen={onNotApplicable} />
+        </div>
+      ) : null}
       {open ? (
         <div id={panel} className="stack asvs-detail" data-testid={`asvs-detail-${row.id}`}>
           {row.decision ? (
@@ -422,36 +549,29 @@ function RequirementRow({ row, governed, busy, onNotApplicable, onRemove }: { ro
             </p>
           ) : null}
           {checks.length > 0 ? (
-            <ul className="asvs-checks" aria-label={t("asvs_checks_label")}>
-              {checks.map((c) => (
-                <li key={`${c.unit}:${c.id}`} className="asvs-check" data-testid="asvs-check" data-status={c.status}>
-                  <strong>{c.category ? `${c.id} (${c.category})` : c.id}</strong> · <span>{tOr(`asvs_check_status_${key(c.status)}`, c.status)}</span>
-                  <p className="small">{c.reason}</p>
-                  <dl className="kv small">
-                    <dt>{t("asvs_check_covers")}</dt>
-                    <dd>{c.covers}</dd>
-                    <dt>{t("asvs_check_misses")}</dt>
-                    <dd>{c.misses}</dd>
-                    <dt>{t("asvs_check_basis")}</dt>
-                    <dd>{tOr(`asvs_basis_${key(c.basis)}`, c.basis)}</dd>
-                    {c.ran && c.openFindings !== null ? (
-                      <>
-                        <dt>{t("asvs_check_open")}</dt>
-                        <dd>
-                          {c.runId ? (
-                            <a href={`#/validations/result/${encodeURIComponent(c.runId)}`} data-testid="asvs-check-link">
-                              {t("asvs_check_open_findings", { count: c.openFindings })}
-                            </a>
-                          ) : (
-                            t("asvs_check_open_findings", { count: c.openFindings })
-                          )}
-                        </dd>
-                      </>
-                    ) : null}
-                  </dl>
-                </li>
-              ))}
-            </ul>
+            <>
+              {deterministic.length > 0 ? (
+                <section className="stack" aria-label={t("asvs_checks_label")} data-testid="asvs-checks-deterministic">
+                  {ai.length > 0 ? <h4>{t("asvs_deterministic_checks")}</h4> : null}
+                  <ul className="asvs-checks">
+                    {deterministic.map((c) => (
+                      <CheckItem key={`${c.unit}:${c.id}`} c={c} />
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+              {ai.length > 0 ? (
+                <section className="stack" aria-label={t("asvs_ai_review_title")} data-testid="asvs-checks-ai">
+                  <h4>{t("asvs_ai_review_title")}</h4>
+                  <p className="small muted">{t("asvs_ai_review_note")}</p>
+                  <ul className="asvs-checks">
+                    {ai.map((c) => (
+                      <CheckItem key={`${c.unit}:${c.id}`} c={c} />
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+            </>
           ) : row.state === "awaiting-evidence" ? (
             <p data-testid="asvs-awaits">{t("asvs_awaits", { kind: tOr(`asvs_evidence_${key(row.evidence)}`, row.evidence) })}</p>
           ) : row.checks.length > 0 ? (

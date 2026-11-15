@@ -183,6 +183,8 @@
         "reused": { "type": "boolean" },
         "language": { "type": "string" },
         "openFindings": { "type": ["integer", "null"], "minimum": 0 },
+        "openBlocking": { "type": ["integer", "null"], "minimum": 0, "description": "Open findings that block the validation; never added to openInformational." },
+        "openInformational": { "type": ["integer", "null"], "minimum": 0, "description": "Open informational findings: shown and counted, they do not block the validation." },
         "relevant": { "type": "boolean", "description": "False when the check cannot bear on this project: a rule of a language the project is known to lack (code LANGUAGE_ABSENT). The screen and the text output leave such a check out and count nothing for it." }
       }
     },

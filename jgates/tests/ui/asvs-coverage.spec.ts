@@ -535,3 +535,194 @@ test("the Quality result, the Semantic result and the overview link to the map, 
     await expect(page.getByRole("navigation").getByRole("link", { name: EN.title, exact: true })).toHaveAttribute("aria-current", "page");
   });
 });
+
+// ---- Suggestions of "not applicable", the two numbers of open findings, the AI review unit, the route to a row ----
+// The answer of the server is patched in the browser (the suggestion, the split counts and the unit kinds are the server's
+// own, tested elsewhere): the screen is what is under test here.
+
+interface SuggestionTexts {
+  reasonRow: string;
+  reasonSection: string;
+  suggestion: (reason: string) => string;
+  action: string;
+  blocking: RegExp;
+  informational: RegExp;
+  noBlockWords: RegExp;
+  html: string;
+  config: string;
+  aiTitle: RegExp;
+  onlySuggestion: string;
+  governedWhy: RegExp;
+}
+
+const SUGGEST: Record<"pt-BR" | "en", SuggestionTexts> = {
+  "pt-BR": {
+    reasonRow: "nenhum sinal de GraphQL neste projeto",
+    reasonSection: "nenhum sinal de WebSocket neste projeto",
+    suggestion: (reason) => `Sugestão: ${reason}`,
+    action: "Marcar como não se aplica",
+    blocking: /2 achados que bloqueiam/,
+    informational: /3 achados informativos \(não bloqueia a validação\)/,
+    noBlockWords: /não bloqueia a validação/,
+    html: "arquivos HTML",
+    config: "arquivos de configuração",
+    aiTitle: /Revisão do código por IA/,
+    onlySuggestion: "Só requisitos com sugestão",
+    governedWhy: /Modo governado/,
+  },
+  en: {
+    reasonRow: "no sign of GraphQL in this project",
+    reasonSection: "no sign of WebSocket in this project",
+    suggestion: (reason) => `Suggestion: ${reason}`,
+    action: "Mark as not applicable",
+    blocking: /2 blocking findings/,
+    informational: /3 informational findings \(does not block the validation\)/,
+    noBlockWords: /does not block the validation/,
+    html: "HTML files",
+    config: "configuration files",
+    aiTitle: /AI review of the source/,
+    onlySuggestion: "Only requirements with a suggestion",
+    governedWhy: /Governed mode/,
+  },
+};
+
+/** Patches the map's answer: a suggestion on one row, one shared by a whole section, split counts and two more checks on an examined row. */
+async function patchMap(page: Page, ids: Ids, s: SuggestionTexts): Promise<void> {
+  await page.route(/\/api\/coverage\/asvs\?/, async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const rowOf = (id: string) => body.requirements.find((r: { id: string }) => r.id === id);
+    const target = rowOf(ids.target);
+    if (target) target.suggestion = { kind: "technology", tags: ["graphql"], reason: s.reasonRow };
+    const shared = rowOf(ids.unexamined);
+    if (shared) {
+      const suggestion = { kind: "technology", tags: ["websocket"], reason: s.reasonSection };
+      for (const chapter of body.chapters) for (const section of chapter.sections) if (section.id === shared.section) section.suggestion = suggestion;
+      for (const r of body.requirements) if (r.section === shared.section) r.suggestion = suggestion;
+    }
+    const examined = rowOf(ids.examined);
+    if (examined && examined.checks.length > 0) {
+      const first = examined.checks[0];
+      Object.assign(first, { language: "html", openFindings: 5, openBlocking: 2, openInformational: 3, ran: true, status: "ran", relevant: true });
+      examined.checks.push({ ...first, unit: "semantic-requirement", id: "asvs-review", basis: "ai-source-review", language: undefined, openFindings: 0, openBlocking: 0, openInformational: 0 });
+      examined.checks.push({ ...first, unit: "semgrep-rule", id: "config-rule", basis: "deterministic", language: "config", openFindings: 0, openBlocking: 0, openInformational: 0 });
+    }
+    if (new URL(route.request().url()).searchParams.get("withSuggestion") === "true") body.requirements = body.requirements.filter((r: { suggestion?: unknown }) => r.suggestion !== undefined);
+    await route.fulfill({ response, json: body });
+  });
+}
+
+for (const { text, width, height } of VARIANTS) {
+  const s = SUGGEST[text.language];
+  test(`suggestions: a row, a section, the filter, the dialog prefilled, the two numbers, the AI review apart (${text.language}, ${width} px, keyboard only)`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await withProject(page, text.language, async ({ fixture, base: url, ids }) => {
+      await patchMap(page, ids, s);
+      await openMap(page, url, text);
+      const file = path.join(fixture.dir, FILE);
+
+      // The suggestion sits under the reason of the row, with its action.
+      const target = row(page, ids.target);
+      await expect(target.getByTestId(`asvs-suggestion-${ids.target}`)).toContainText(s.suggestion(s.reasonRow));
+      await expect(target.getByTestId(`asvs-suggestion-action-${ids.target}`)).toHaveText(s.action);
+
+      // A section whose rows all carry one suggestion shows it once, in its header, and not on the rows.
+      const unexamined = row(page, ids.unexamined);
+      const sectionTestId = (await unexamined.evaluate((el) => el.closest("[data-testid^='asvs-section-']")?.getAttribute("data-testid"))) ?? "";
+      const sectionKey = sectionTestId.replace("asvs-section-", "");
+      await expect(page.getByTestId(`asvs-suggestion-${sectionKey}`)).toContainText(s.reasonSection);
+      await expect(unexamined.getByTestId(`asvs-suggestion-${ids.unexamined}`)).toHaveCount(0);
+
+      // The two numbers of open findings, apart from each other; html and configuration files in words; the AI review apart.
+      const examined = row(page, ids.examined);
+      await press(page, examined.getByTestId(`asvs-toggle-${ids.examined}`));
+      const detail = page.getByTestId(`asvs-detail-${ids.examined}`);
+      await expect(detail.getByTestId("asvs-check-blocking").first()).toHaveText(s.blocking);
+      await expect(detail.getByTestId("asvs-check-informational").first()).toHaveText(s.informational);
+      await expect(detail.getByTestId("asvs-check-informational").first()).toContainText(s.noBlockWords);
+      await expect(detail.getByTestId("asvs-checks-deterministic")).toContainText(s.html);
+      await expect(detail.getByTestId("asvs-checks-deterministic")).toContainText(s.config);
+      await expect(detail.getByTestId("asvs-checks-ai")).toContainText(s.aiTitle);
+      await expect(detail.getByTestId("asvs-checks-ai")).toContainText("asvs-review");
+      await expect(detail.getByTestId("asvs-checks-deterministic")).not.toContainText("asvs-review");
+      await axeClean(page, "[data-testid='asvs-screen']");
+      await noSidewaysScroll(page);
+
+      // The filter leaves only the rows with a suggestion.
+      await expect(page.getByLabel(s.onlySuggestion)).toBeVisible();
+      await tabTo(page, page.getByTestId("asvs-with-suggestion"));
+      await page.keyboard.press("Space");
+      await expect(row(page, ids.examined)).toHaveCount(0);
+      await expect(row(page, ids.target)).toHaveCount(1);
+      await page.keyboard.press("Space");
+      await expect(row(page, ids.examined)).toHaveCount(1);
+
+      // Confirming the row's suggestion: the dialog opens with the reason filled in and editable, and the entry shown.
+      await press(page, page.getByTestId(`asvs-suggestion-action-${ids.target}`));
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByTestId("asvs-na-reason")).toHaveValue(s.reasonRow);
+      await expect(dialog.getByTestId("asvs-na-diff")).toContainText(ids.target);
+      expect(fs.existsSync(file), "nothing is written before the confirmation").toBe(false);
+      await typeInto(page, dialog.getByTestId("asvs-na-reason"), `${s.reasonRow}!`);
+      await expect(dialog.getByTestId("asvs-na-diff")).toContainText(`${s.reasonRow}!`);
+      await press(page, dialog.getByTestId("asvs-na-save"));
+      await expect(dialog).toHaveCount(0);
+      expect(readJson(file).notApplicable[0]).toMatchObject({ id: ids.target, reason: `${s.reasonRow}!` });
+      await expect(page.getByTestId("asvs-undo-bar")).toBeVisible();
+      await press(page, page.getByTestId("asvs-undo"));
+      await expect(page.getByTestId("asvs-undo-bar")).toHaveCount(0);
+
+      // The section's suggestion is one confirmation for the whole section.
+      await press(page, page.getByTestId(`asvs-suggestion-action-${sectionKey}`));
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByTestId("asvs-na-reason")).toHaveValue(s.reasonSection);
+      await expect(dialog.getByTestId("asvs-na-diff")).toContainText(sectionKey);
+      await press(page, dialog.getByTestId("asvs-na-cancel"));
+      await expect(dialog).toHaveCount(0);
+    });
+  });
+
+  test(`the route opens the requirement's row, opened and focused, from requirement=<id> (${text.language}, ${width} px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await withProject(page, text.language, async ({ base: url, ids }) => {
+      await page.goto(`${url}#/validations/coverage/asvs?requirement=${ids.examined}`);
+      await reloadPage(page);
+      await expect(page.getByTestId("asvs-counters")).toBeVisible();
+      await expect(page.getByTestId(`asvs-toggle-${ids.examined}`)).toHaveAttribute("aria-expanded", "true");
+      await expect(page.getByTestId(`asvs-toggle-${ids.examined}`)).toBeFocused();
+      await expect(page.getByTestId(`asvs-detail-${ids.examined}`)).toBeVisible();
+    });
+  });
+}
+
+test("in governed mode the suggestion's action is disabled and says why, and nothing is written", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const s = SUGGEST.en;
+  await withProject(
+    page,
+    "en",
+    async ({ fixture, base: url, ids }) => {
+      await patchMap(page, ids, s);
+      await openMap(page, url, EN);
+      const action = page.getByTestId(`asvs-suggestion-action-${ids.target}`);
+      await expect(action).toBeDisabled();
+      await expect(page.getByTestId(`asvs-suggestion-governed-${ids.target}`)).toContainText(s.governedWhy);
+      await expect(action).toHaveAttribute("aria-describedby", `asvs-sug-why-${ids.target}`);
+      expect(fs.existsSync(path.join(fixture.dir, FILE))).toBe(false);
+    },
+    { env: { JGATES_POLICY_DIR: "/etc/policies/company-policy", JGATES_POLICY_SHA256: "a".repeat(64) } },
+  );
+});
+
+test("the map says nothing of compliance and shows no percentage, with suggestions and split counts on screen", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await withProject(page, "en", async ({ base: url, ids }) => {
+    await patchMap(page, ids, SUGGEST.en);
+    await openMap(page, url, EN);
+    await press(page, row(page, ids.examined).getByTestId(`asvs-toggle-${ids.examined}`));
+    const own = await ownText(page);
+    expect(own).not.toMatch(/\b(compliant|conformant|certified)\b/i);
+    expect(own).not.toMatch(/\d\s*%/);
+  });
+});

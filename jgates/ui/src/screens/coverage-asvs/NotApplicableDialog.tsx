@@ -15,6 +15,8 @@ export interface Target {
   id: string;
   label: string;
   kind: "requirement" | "section" | "chapter";
+  /** A suggestion's reason: the field starts filled with it and stays editable. */
+  reason?: string;
 }
 
 interface Preview {
@@ -27,7 +29,7 @@ export interface Written {
 }
 
 export function NotApplicableDialog({ target, revision, lang, onClose, onWritten }: { target: Target; revision: string; lang: string; onClose: () => void; onWritten: (info: Written) => void }) {
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState(() => (target.reason ?? "").slice(0, REASON_MAX));
   const [preview, setPreview] = useState<Preview | null>(null);
   const [previewError, setPreviewError] = useState<unknown>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -38,7 +40,7 @@ export function NotApplicableDialog({ target, revision, lang, onClose, onWritten
 
   const trimmed = reason.trim();
   const valid = trimmed.length >= REASON_MIN && trimmed.length <= REASON_MAX;
-  const dirty = trimmed !== "";
+  const dirty = trimmed !== (target.reason ?? "").slice(0, REASON_MAX).trim() && trimmed !== "";
   const requestClose = (): void => {
     if (!dirty) onClose();
     else setConfirmDiscard(true);
