@@ -38,10 +38,10 @@ const FINDINGS = [
   finding({ fingerprint: "f3", stageId: "ruff#lint", tool: "ruff", ruleId: "F401", category: "style", normalizedSeverity: "low", severity: "warning", blocking: false, message: "os imported but unused", location: { path: "demo/__init__.py", line: 1 } }),
 ];
 
-function storedResult(fixture: Fixture) {
+function storedResult(fixture: Fixture, runId = RUN_ID, findings: unknown[] = FINDINGS, over: Record<string, unknown> = {}) {
   return {
     schemaVersion: 1,
-    runId: RUN_ID,
+    runId,
     tool: "jgates",
     version: "0.0.0",
     startedAt: "2026-11-12T10:00:00.000Z",
@@ -64,15 +64,27 @@ function storedResult(fixture: Fixture) {
       ...(c.card === "blocked" ? { reason: "CodeQL ainda não foi preparado" } : {}),
       ..."durationMs" in c ? { execution: { step: c.tool, durationMs: c.durationMs } } : {},
     })),
-    findings: FINDINGS,
+    findings,
     unsatisfied: [],
     warnings: [],
     blockingViolations: 2,
     disabled: [],
     workspaceChanges: { checked: true, added: [], modified: [], removed: [] },
     artifacts: { result: "result.json", logs: [], outputs: [] },
+    ...over,
   };
 }
+
+// Findings of the pack: one that blocks (with the requirement ids its rule was written for) and two informational ones.
+const MIXED_RUN = "run_20261112T110000Z_bbbbbbbb";
+const INFO_ONLY_RUN = "run_20261112T120000Z_cccccccc";
+const BLOCKING_PACK = finding({ fingerprint: "p1", stageId: "semgrep#pack", tool: "semgrep", ruleId: "jgates.python.weak-hash", message: "Weak hash for a password", asvsRequirements: ["V11.4.2"], location: { path: "app/auth.py", line: 12 } });
+const INFO_PACK = [
+  finding({ fingerprint: "i1", stageId: "semgrep#pack", tool: "semgrep", ruleId: "jgates.python.policy-min-length", normalizedSeverity: "info", severity: "info", blocking: false, informational: true, message: "Password length policy not found", asvsRequirements: ["V3.3.1", "V6.2.1"], location: { path: "app/policy.py", line: 3 } }),
+  finding({ fingerprint: "i2", stageId: "semgrep#pack", tool: "semgrep", ruleId: "jgates.js.policy-session", normalizedSeverity: "info", severity: "info", blocking: false, informational: true, message: "Session timeout policy not found", location: { path: "web/session.js", line: 9 } }),
+];
+const OLDER = { startedAt: "2026-11-11T10:00:00.000Z", finishedAt: "2026-11-11T10:00:09.000Z" };
+const PACK_STAGE =[{ id: "semgrep#pack", label: "Semgrep", adapter: "semgrep", state: "completed", findings: 3 }];
 
 async function workspaceIdOf(fixture: Fixture): Promise<string> {
   const mod = await import(pathToFileURL(path.join(path.dirname(MAIN), "..", "core", "ids", "index.js")).href);
@@ -81,6 +93,16 @@ async function workspaceIdOf(fixture: Fixture): Promise<string> {
 
 /** The stored run, written the way the runner writes it: result.json, a log folder and the events of its steps. */
 async function writeStoredRun(fixture: Fixture) {
+  // Two more stored runs with a pack stage: blocking plus informational findings, and informational findings only.
+  for (const extra of [
+    // Older than the main run, so the overview and the history still lead with it.
+    { id: MIXED_RUN, findings: [BLOCKING_PACK, ...INFO_PACK], over: { ...OLDER, stages: PACK_STAGE, decision: "failed", blockingViolations: 1 } },
+    { id: INFO_ONLY_RUN, findings: INFO_PACK, over: { ...OLDER, stages: PACK_STAGE, decision: "passed", complete: true, exitCode: 0, blockingViolations: 0 } },
+  ]) {
+    const extraDir = path.join(fixture.home, "workspaces", await workspaceIdOf(fixture), "runs", extra.id);
+    fs.mkdirSync(path.join(extraDir, "logs"), { recursive: true });
+    fs.writeFileSync(path.join(extraDir, "result.json"), JSON.stringify(storedResult(fixture, extra.id, extra.findings, extra.over)));
+  }
   const dir = path.join(fixture.home, "workspaces", await workspaceIdOf(fixture), "runs", RUN_ID);
   fs.mkdirSync(path.join(dir, "logs"), { recursive: true });
   fs.writeFileSync(path.join(dir, "result.json"), JSON.stringify(storedResult(fixture)));
@@ -210,6 +232,78 @@ for (const language of ["pt-BR", "en"] as const) {
 
       const axe = await new AxeBuilder({ page }).analyze();
       expect(axe.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
+    });
+  });
+}
+
+for (const language of ["pt-BR", "en"] as const) {
+  for (const width of [1280, 375]) {
+    test(`informational findings come after the blocking ones, cannot be waived, and requirement labels open the map (${language}, ${width} px, keyboard only)`, async ({ page }) => {
+      await withServer(page, async ({ fixture, base }) => {
+        setLanguage(fixture, language);
+        await page.setViewportSize({ width, height: 900 });
+        const en = language === "en";
+        await page.goto(`${base}#/validations/result/${MIXED_RUN}`);
+        await page.reload();
+
+        // The verdict counts the blocking finding only and adds how many are informational.
+        const title = page.getByTestId("result-banner-title");
+        await expect(title).toContainText(en ? "Rejected" : "Reprovado");
+        await expect(page.getByTestId("result-banner-informational")).toHaveText(en ? "and 2 informational" : "e 2 informativos");
+
+        // Blocking first, then the informational ones under their own heading.
+        const blocking = page.getByTestId("finding-cards").getByTestId("finding-card");
+        await expect(blocking).toHaveCount(1);
+        await expect(blocking.first().getByTestId("finding-rule")).toHaveText("jgates.python.weak-hash");
+        const section = page.getByTestId("informational-findings");
+        await expect(section.getByRole("heading", { name: en ? "Informational findings (2)" : "Achados informativos (2)" })).toBeVisible();
+        await expect(section).toContainText(en ? "does not block the validation" : "não bloqueia a validação");
+        const info = section.getByTestId("finding-card");
+        await expect(info).toHaveCount(2);
+        const order = await page.evaluate(() => {
+          const a = document.querySelector('[data-testid="finding-cards"]')!;
+          const b = document.querySelector('[data-testid="informational-findings"]')!;
+          return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+        });
+        expect(order, "informational findings come after the blocking ones").toBeTruthy();
+
+        // Waive stays on the blocking finding and is never offered on an informational one.
+        const waive = en ? "Waive" : "Dispensar";
+        await expect(blocking.first().getByRole("button", { name: waive })).toHaveCount(1);
+        await expect(section.getByRole("button", { name: waive })).toHaveCount(0);
+
+        // Requirement labels: links to the map's row, never a statement that a requirement is or is not met.
+        const labels = info.first().getByTestId("finding-requirement");
+        await expect(labels).toHaveCount(2);
+        await expect(labels.first()).toHaveText("ASVS V3.3.1");
+        await expect(labels.first()).toHaveAttribute("href", "#/validations/coverage/asvs?requirement=V3.3.1");
+        await expect(labels.nth(1)).toHaveAttribute("href", "#/validations/coverage/asvs?requirement=V6.2.1");
+        await expect(info.nth(1).getByTestId("finding-requirement")).toHaveCount(0);
+        await expect(blocking.first().getByTestId("finding-requirement")).toHaveText("ASVS V11.4.2");
+        const sentence = (await page.getByTestId("finding-requirements").first().innerText()).toLowerCase();
+        expect(sentence).not.toMatch(/\b(met|not met|atendid|cumpr|compliant|conforme)/);
+        await noSidewaysScroll(page, "result with informational findings");
+
+        // The keyboard opens the link; the address carries the requirement.
+        await press(page, labels.first());
+        await expect(page).toHaveURL(/requirement=V3\.3\.1/);
+
+        const axe = await new AxeBuilder({ page }).analyze();
+        expect(axe.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
+      });
+    });
+  }
+
+  test(`a run with only informational findings reads as approved with their count (${language})`, async ({ page }) => {
+    await withServer(page, async ({ fixture, base }) => {
+      setLanguage(fixture, language);
+      const en = language === "en";
+      await page.goto(`${base}#/validations/result/${INFO_ONLY_RUN}`);
+      await page.reload();
+      await expect(page.getByTestId("result-banner")).toHaveAttribute("data-kind", "passed");
+      await expect(page.getByTestId("result-banner-title")).toContainText(en ? "Approved and 2 informational" : "Aprovado e 2 informativos");
+      await expect(page.getByTestId("finding-cards")).toHaveCount(0);
+      await expect(page.getByTestId("informational-findings").getByTestId("finding-card")).toHaveCount(2);
     });
   });
 }
