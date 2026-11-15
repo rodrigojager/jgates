@@ -11,7 +11,7 @@
   "semhist_col_result": "Resultado",
   "semhist_col_backend": "Backend e modelo",
   "semhist_col_actions": "Ações",
-  "semhist_running": "Em execução",
+  "semhist_running": "Em andamento",
   "semhist_interrupted": "Interrompida",
   "semhist_cancel_requested": "Cancelamento pedido",
   "semhist_follow": "Acompanhar a execução",

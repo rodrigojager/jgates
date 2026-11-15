@@ -11,7 +11,7 @@ import type { ScreenMeta } from "../../registry";
 import { ResultView, approvedWithWaiversText, isApprovedWithWaivers, formatDuration, stageName, stateText, type DomainFilter } from "../validations-result/ResultView";
 import { RunPhases } from "./phases";
 import { StepLogPanel } from "./step-log";
-import "./run-summary.css";
+import "../../components/run-summary.css";
 
 // Runs are opened by the id the server gave (job_...) or by the id of a stored run (run_...); the route stays /runs/:id.
 export const screen: ScreenMeta = { id: "validations-run", path: "/runs/:id", area: "validations", order: 40 };

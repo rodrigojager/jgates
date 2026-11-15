@@ -4,7 +4,7 @@
 .run-summary-state { display: flex; align-items: center; gap: 10px; font-size: 17px; min-width: 0; }
 .run-summary-spinner { flex: 0 0 auto; width: 19px; height: 19px; border: 2px solid var(--line); border-top-color: var(--accent); border-right-color: var(--accent); border-radius: 50%; animation: run-summary-turn .85s linear infinite; }
 .run-summary-icon { color: var(--accent); display: inline-flex; }
-.run-summary-icon[data-state="failed"], .run-summary-icon[data-state="crashed"] { color: var(--red); }
+.run-summary-icon[data-state="failed"], .run-summary-icon[data-state="crashed"], .run-summary-icon[data-state="interrupted"] { color: var(--red); }
 .run-summary-icon[data-state="cancelled"] { color: var(--gold); }
 .run-summary-icon[data-state="waivers"] { color: var(--blue); }
 .run-summary-current { display: grid; gap: 5px; overflow-wrap: anywhere; }

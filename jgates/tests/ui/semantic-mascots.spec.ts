@@ -3,12 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { createFixture, openApp, startServer, type Fixture, type UiServer } from "./support";
 
-// The six animated 3D Semantic mascots (Atlas, Trace, Verdict, Fit, Seal, Folio) on the Semantic run and result screens.
+// The six animated 3D Semantic mascots (one per phase) on the Semantic run and result screens, laid out like the Quality strip:
+// no proper names, each says what it does, its status is the shared icon-and-text status, no cards.
 // The run is a fake one: the Semantic run routes are answered in the browser with a run covering the six phases, so each
 // mascot can be shown in each of the six states. Each mascot is its own painted canvas, drawn from one shared WebGL
 // context: a working mascot keeps moving, a mascot that changes state plays a reaction and then stays still, and nothing
 // repaints once nothing moves (never under reduced motion); with WebGL disabled each one is its pre-rendered image; label
-// and badge are the same either way, in pt-BR and en; old role ids of stored runs still render; no console error.
+// and status are the same either way, in pt-BR and en; old role ids of stored runs still render; no console error.
 // JGATES_SEMANTIC_MASCOT_SHOTS names a folder for the review screenshots (1280 and 375 px, light and dark).
 
 const RUN = "sem_20261112T120000Z_5e3a7c01";
@@ -24,16 +25,17 @@ const STAGES: Record<(typeof IDS)[number], string> = {
 };
 const TEXT = {
   "pt-BR": {
-    names: { atlas: "Atlas", trace: "Trace", verdict: "Verdict", fit: "Fit", seal: "Seal", folio: "Folio" },
     roles: { atlas: "Reconhecimento", trace: "Caça guiada pela cobertura", verdict: "Validação dos candidatos", fit: "Saída estruturada", seal: "Verificação independente", folio: "Relatório neutro quanto ao alvo" },
     states: { waiting: "Aguardando a vez", working: "Trabalhando", done: "Concluído", incomplete: "Incompleto", failed: "Falhou", cancelled: "Cancelado" },
   },
   en: {
-    names: { atlas: "Atlas", trace: "Trace", verdict: "Verdict", fit: "Fit", seal: "Seal", folio: "Folio" },
     roles: { atlas: "Reconnaissance", trace: "Coverage-led hunting", verdict: "Candidate validation", fit: "Structured output", seal: "Independent verification", folio: "Target-neutral reporting" },
     states: { waiting: "Waiting for its turn", working: "Working", done: "Done", incomplete: "Incomplete", failed: "Failed", cancelled: "Cancelled" },
   },
 } as const;
+
+// The status tone of each state: the same colours and icon behaviour as Quality's status.
+const TONES: Record<(typeof STATES)[number], string> = { waiting: "alert", working: "busy", done: "passed", incomplete: "neutral", failed: "failed", cancelled: "neutral" };
 
 type Snapshot = { schemaVersion: 1; runId: string; running: boolean; cancelled: boolean; mascots: Array<{ mascot: string; state: string; stages: Array<{ id: string; state: string }>; progress: { completed: number; total: number } | null }> };
 
@@ -109,10 +111,14 @@ async function preferences(page: Page, base: string, prefs: { language?: "pt-BR"
   await page.reload();
 }
 
-/** Each mascot: one of the six, its label and badge in the given language and state, and its picture (canvas or image). */
+/** Each mascot: one of the six, what it does, its label and status in the given language and state, its picture (canvas or image). */
 async function expectMascots(page: Page, locale: "pt-BR" | "en", states: Record<string, string>, render: "webgl" | "fallback") {
   const strip = page.getByTestId("semantic-mascots");
   await expect(strip.locator("li[data-mascot]")).toHaveCount(6);
+  // Like Quality: no card around the strip or around a mascot, and no proper name anywhere.
+  expect(await strip.evaluate((el) => el.matches(".card") || el.querySelector(".card") !== null)).toBe(false);
+  for (const name of ["Atlas", "Trace", "Verdict", "Fit", "Seal", "Folio"]) await expect(strip).not.toContainText(new RegExp(`\\b${name}\\b`));
+  await expect(strip.locator(".sem3d-badge")).toHaveCount(0);
   expect(await strip.locator("li[data-mascot]").evaluateAll((els) => els.map((e) => e.getAttribute("data-mascot")))).toEqual([...IDS]);
   const text = TEXT[locale];
   for (const id of IDS) {
@@ -121,11 +127,16 @@ async function expectMascots(page: Page, locale: "pt-BR" | "en", states: Record<
     await expect(item).toHaveAttribute("data-state", state);
     const figure = item.locator(".sem3d");
     await expect(figure).toHaveAttribute("role", "img");
-    await expect(figure).toHaveAttribute("aria-label", `${text.names[id]}, ${text.roles[id]}: ${text.states[state]}`);
+    await expect(figure).toHaveAttribute("aria-label", `${text.roles[id]}: ${text.states[state]}`);
     await expect(figure).toHaveAttribute("data-render", render);
-    await expect(figure.locator(`.sem3d-badge[data-state="${state}"] svg`)).toBeVisible();
-    await expect(item.getByTestId("semantic-mascot-state")).toHaveText(text.states[state]);
-    await expect(item.locator("strong")).toHaveText(text.names[id]);
+    // The picture is as big as a Quality mascot (190 px high, 180 on a phone).
+    expect(Math.round((await figure.boundingBox())!.height)).toBe(page.viewportSize()!.width <= 520 ? 180 : 190);
+    const status = item.getByTestId("semantic-mascot-state");
+    await expect(status).toHaveText(text.states[state]);
+    await expect(status).toHaveClass(/\bmascot-strip-status\b/);
+    await expect(status).toHaveAttribute("data-tone", TONES[state]);
+    await expect(status.locator(`svg.icon`)).toBeVisible();
+    await expect(item.locator("strong")).toHaveText(text.roles[id]);
     if (render === "webgl") {
       await expect(item.locator("canvas.sem3d-model")).toHaveAttribute("data-painted", /^[1-9]/);
       await expect(item.locator("img")).toHaveCount(0);
@@ -178,7 +189,7 @@ async function withServer(page: Page, body: (ctx: { base: string; fixture: Fixtu
   }
 }
 
-test("run and result screens: six distinct 3D mascots, one WebGL context, painted on demand, label and badge for every state in pt-BR and en", async ({ page }) => {
+test("run and result screens: six distinct 3D mascots, one WebGL context, painted on demand, label and status for every state in pt-BR and en", async ({ page }) => {
   test.setTimeout(300_000);
   await watchGraphics(page, false);
   const run: FakeRun = { lifecycle: "running", snapshot: rotated(0) };
@@ -260,7 +271,7 @@ test("with reduced motion no mascot moves: every state is a still pose, also rig
   });
 });
 
-test("without WebGL each mascot shows its pre-rendered image with the same label and badge", async ({ page }) => {
+test("without WebGL each mascot shows its pre-rendered image with the same label and status", async ({ page }) => {
   test.setTimeout(180_000);
   await watchGraphics(page, true);
   const run: FakeRun = { lifecycle: "running", snapshot: rotated(0) };

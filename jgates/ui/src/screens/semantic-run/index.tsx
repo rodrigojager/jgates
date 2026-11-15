@@ -3,6 +3,7 @@ import { ApiError, api } from "../../api";
 import { ErrorNotice, Loading } from "../../components/common";
 import { Heartbeat } from "../../components/Heartbeat";
 import { Icon } from "../../components/icons";
+import "../../components/run-summary.css";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { SemanticResultsView, type SemanticReport } from "../semantic-results/ResultsView";
@@ -166,10 +167,13 @@ export default function SemanticRunScreen({ params }: { params: Record<string, s
       {error ? <ErrorNotice error={error} onRetry={() => setVersion((n) => n + 1)} /> : null}
       {!run && !notFound && !error ? <Loading /> : null}
       {run ? (
-        <section className="card flat stack" data-running={running} aria-label={t("semrun_summary")}>
-          <div className="between wrap">
-            <div className="row" role="status">
-              <Icon name={running ? "hourglass" : uiState === "finished" ? "check" : uiState === "cancelled" ? "stop" : "alert"} />
+        <section className="run-summary" data-running={running} aria-label={t("semrun_summary")}>
+          <div className="run-summary-header">
+            {/* The same state line as the Quality run screen: a spinner while it runs, an icon once it ended. */}
+            <div className="run-summary-state" role="status">
+              <span className={running ? "run-summary-spinner" : "run-summary-icon"} data-state={uiState} aria-hidden="true">
+                {running ? null : <Icon name={uiState === "finished" ? "check" : uiState === "cancelled" ? "stop" : "alert"} />}
+              </span>
               <strong data-testid="semantic-run-state" data-state={uiState}>
                 {t(`semrun_state_${uiState}`)}
               </strong>
@@ -183,7 +187,7 @@ export default function SemanticRunScreen({ params }: { params: Record<string, s
           </div>
           {running || uiState === "interrupted" ? <Heartbeat state={running && !connectionLost ? "alive" : "dead"} detail={connectionLost ? t("pulse_connection_lost") : running ? t("semrun_alive") : t("semrun_interrupted_detail")} /> : null}
           {stages.length > 0 ? (
-            <div className="stack" style={{ gap: 4 }}>
+            <div className="run-summary-progress">
               <span className="small muted" data-testid="semantic-run-progress">
                 {current ? t("semrun_current", { stage: stageLabel(current.id) }) : t("semrun_phases_done", { done: closed, total: stages.length })}
               </span>

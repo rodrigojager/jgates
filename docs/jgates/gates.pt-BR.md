@@ -111,5 +111,6 @@ jgates regressions list
 ## A área Semantic e seus mascotes
 
 O `jgates ui` tem uma área Semantic separada (telas de histórico, configuração, preparação, execução e resultados) e
-seis mascotes de IA, um por fase: Atlas, Trace, Verdict, Fit, Seal e Folio. Os seis mascotes do Quality nunca mostram trabalho de IA e
+seis mascotes de IA, um por fase: reconhecimento, caça guiada pela cobertura, validação dos candidatos, saída estruturada,
+verificação independente e relatório; como os do Quality, cada um tem como título o que faz e mostra o seu status embaixo. Os seis mascotes do Quality nunca mostram trabalho de IA e
 os mascotes de IA nunca mostram um domínio do Quality. Veja [os mascotes Semantic](semantic-mascots.pt-BR.md).
