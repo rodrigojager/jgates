@@ -1,0 +1,4 @@
+{
+  "files": ["errors-logging.py"],
+  "ruleIds": ["jgates.python.sensitive-data-logged", "jgates.python.sensitive-data-logged-header", "jgates.python.stack-trace-in-response", "jgates.python.error-detail-in-response", "jgates.python.swallowed-exception", "jgates.python.http-client-without-timeout"]
+}
