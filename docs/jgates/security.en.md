@@ -120,7 +120,7 @@ A result is bound to the plan, the configuration and the state of the code (`ana
 
 ## Governed mode
 
-`jgates ci` is the governed mode: the rules come from an external policy checked by SHA-256, the commit is analyzed in a clean copy and the job does not choose its own rules (no `--skip`, `--waiver`, `--plan` and the like). JGates does not loosen this mode and the interface, when it detects it, blocks editing. The scanners that read configuration from the analyzed tree stay out of `jgates ci` (the hardened bridge covers them), what comes from tools that execute project code is marked self-reported, and the policy can forbid or pin the project's own images (`execution.extensionImage`) and the services' host effects. Details in [CI](ci.en.md). To stop the code author from changing the gate, use the external policy and a controlled runner.
+`jgates ci` is the governed mode: the rules come from an external policy checked by SHA-256, the commit is analyzed in a clean copy and the job does not choose its own rules (no `--skip`, `--waiver`, `--no-waivers`, `--plan` and the like; only the waivers of the pinned policy apply, never the project's `.jgates/waivers.json`). JGates does not loosen this mode and the interface, when it detects it, blocks editing. The scanners that read configuration from the analyzed tree stay out of `jgates ci` (the hardened bridge covers them), what comes from tools that execute project code is marked self-reported, and the policy can forbid or pin the project's own images (`execution.extensionImage`) and the services' host effects. Details in [CI](ci.en.md). To stop the code author from changing the gate, use the external policy and a controlled runner.
 
 ## Telemetry
 

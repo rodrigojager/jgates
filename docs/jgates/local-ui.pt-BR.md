@@ -113,6 +113,9 @@ A tela do resultado:
 
 - um cartão por verificação, com ícone e palavra próprios para cada estado: passou, falhou, incompleta, bloqueada, não se aplica, desligada; com a ferramenta, a duração e o número de achados;
 - um cartão por achado: severidade, ferramenta, regra, mensagem, a correção quando a ferramenta dá uma, e o `arquivo:linha`;
+- **Dispensar** em cada achado que pode ser dispensado: pede um motivo e uma data final, mostra antes a entrada exata e só então a grava no `.jgates/waivers.json` do projeto. Uma dispensa aponta para uma ocorrência do achado;
+- as dispensas do projeto, listadas na revisão do plano: cada uma com o motivo, a data final e o estado (vigente, vencida ou desatualizada), e um jeito de removê-la. Uma dispensa vencida, ou que não casa mais com o código de forma segura (desatualizada), não vale;
+- uma execução que passa com dispensas diz "aprovado com N dispensas" e lista os achados que elas cobrem;
 - filtros por severidade, ferramenta, categoria e componente;
 - **Exportar JSON**, **Exportar SARIF** e **Copiar para o agente** (um resumo seguro para colar num agente; nada é enviado);
 - com o que a execução rodou (versão do JGates, imagem de ferramentas, idade dos dados de segurança, chaves das dependências, serviços).

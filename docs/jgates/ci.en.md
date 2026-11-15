@@ -4,7 +4,7 @@ In CI the rules are not decided by the code being checked. `jgates ci` takes the
 
 ## The model
 
-- **Locally** you edit everything: `jgates.yml`, profiles, templates, waivers. It is your work area, and `jgates run` obeys it.
+- **Locally** you edit everything: `jgates.yml`, profiles, templates, waivers (`.jgates/waivers.json`). It is your work area, and `jgates run` obeys it.
 - **In CI** only the owner of the pipeline defines the rules. The configuration comes from the policy folder (`--policy` or `JGATES_POLICY_DIR`), and the project's own `jgates.yml` and `.jgates/` are never read.
 - The policy is pinned by `JGATES_POLICY_SHA256`, a protected CI variable. If the hash of the policy folder differs, nothing runs (exit 3).
 - The commit is analyzed in a clean copy, so files that are not in the commit do not count.
@@ -39,6 +39,8 @@ The command in both is the same:
 ```bash
 jgates ci --policy <policy-folder> --sarif jgates.sarif
 ```
+
+`jgates ci` is unchanged by the project waivers: it applies only the waivers of the pinned policy, never the project's `.jgates/waivers.json`, and it refuses `--waiver` and `--no-waivers`. For a deploy flow outside the governed mode that must accept no waiver at all, run `jgates run --no-waivers`.
 
 The policy is checked out **outside** the project: on GitHub, two `actions/checkout` steps (`path: project` and `path: policy`) and the command runs in `project`; on GitLab, the project is `$CI_PROJECT_DIR` and the policy is cloned into `$CI_BUILDS_DIR`. A policy inside the analyzed project is refused with `POLICY_INSIDE_PROJECT`.
 
@@ -76,7 +78,7 @@ The services of the project follow the policy too: a host bind mount, a privileg
 
 Exit 3, before anything runs:
 
-- `--skip`, `--only`, `--waiver`, `--no-cache`, `--plan`, `--path` and `--template`: the job cannot choose its own rules;
+- `--skip`, `--only`, `--waiver`, `--no-waivers`, `--no-cache`, `--plan`, `--path` and `--template`: the job cannot choose its own rules;
 - `--bridge-mode quick` or `offline`, and `--scope paths`;
 - a policy without `JGATES_POLICY_SHA256`, with a different hash, with symbolic links or with references outside its folder;
 - a quality policy that turns off or loosens the mandatory budgets;

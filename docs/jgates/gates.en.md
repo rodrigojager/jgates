@@ -106,6 +106,6 @@ jgates regressions list
 
 ## The Semantic area and its mascots
 
-`jgates ui` has a separate Semantic area (history, configuration, setup, run and results screens) and four AI mascots:
-Scout, Tracker, Challenger and Verifier. Quality's six mascots never show AI work and the AI mascots never show a
+`jgates ui` has a separate Semantic area (history, configuration, setup, run and results screens) and six AI mascots, one per phase:
+Atlas, Trace, Verdict, Fit, Seal and Folio. Quality's six mascots never show AI work and the AI mascots never show a
 Quality domain. See [the Semantic mascots](semantic-mascots.en.md).

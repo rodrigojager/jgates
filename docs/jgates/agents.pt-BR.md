@@ -47,9 +47,11 @@ jgates report <runId> --format sarif --out resultado.sarif
 Corrigir o gate em vez do código. Por isso o resultado mostra quando a política mudou:
 
 - um run com `reduced: true` (por `--skip`, por exemplo) **nunca** encerra o ciclo como aprovado; ele mostra o que foi desligado;
-- o resultado guarda em `provenance` os hashes da configuração, da política e dos templates, para comparar com os do ciclo anterior; desligar uma regra, ampliar um `exclude` ou criar um waiver muda esses hashes, e é uma nova revisão do plano, não prova de que o código passou nos critérios anteriores;
-- o resumo para o agente começa com a instrução de política congelada: corrigir o código, não editar `jgates.yml`, a pasta `.jgates/`, limiares, regras, waivers nem baseline, e, se um critério parecer errado, descrever o problema e parar;
-- waivers precisam de regra, caminho, motivo e validade, e um waiver vencido não se aplica.
+- o resultado guarda em `provenance` os hashes da configuração, da política e dos templates, para comparar com os do ciclo anterior; desligar uma regra ou ampliar um `exclude` muda esses hashes, e é uma nova revisão do plano, não prova de que o código passou nos critérios anteriores;
+- o resumo para o agente começa com a instrução de política congelada: corrigir o código, não editar `jgates.yml`, a pasta `.jgates/`, limiares, regras, dispensas nem baseline, e, se um critério parecer errado, descrever o problema e parar;
+- uma dispensa precisa de um motivo e de uma data final, aponta para uma ocorrência de um achado, e uma dispensa vencida ou desatualizada não vale. Uma execução que passa com dispensas diz "aprovado com N dispensas" no contexto do agente, e os achados que ele lista como dispensados foram dispensados por uma pessoa, não corrigidos;
+- o agente não deve criar, editar nem remover dispensas (`.jgates/waivers.json`, `jgates waivers` ou `--waiver`): dispensar um achado é decisão de uma pessoa;
+- o arquivo de dispensas é registrado em `provenance.waivers` (o SHA-256 dele e o número de dispensas), fora dos hashes de proveniência acima, então uma dispensa nova não os muda: a comparação com a validação anterior informa que as dispensas mudaram.
 
 No modo local o usuário pode mudar a própria política. Proteção contra o autor do código mudar o gate exige a política externa e o [modo governado](security.pt-BR.md).
 

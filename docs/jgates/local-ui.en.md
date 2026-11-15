@@ -113,6 +113,9 @@ The result screen:
 
 - one card per check, with its own icon and word for each state: passed, failed, incomplete, blocked, not applicable, turned off; with the tool, the duration and the number of findings;
 - one card per finding: severity, tool, rule, message, the fix when the tool gives one, and the `file:line`;
+- **Waive** on each finding that can be waived: it asks for a reason and an end date, shows the exact entry first, and only then writes it to `.jgates/waivers.json` of the project. A waiver points at one occurrence of the finding;
+- the project's waivers, listed in the review of the plan: each with its reason, its end date and its state (in force, expired or stale), and a way to remove it. An expired waiver, or one that no longer matches the code safely (stale), does not apply;
+- a run that passes with waivers says "approved with N waivers" and lists which findings they cover;
 - filters by severity, tool, category and component;
 - **Export JSON**, **Export SARIF** and **Copy for the agent** (a safe summary to paste into an agent; nothing is sent);
 - what the run used (JGates version, tools image, age of the security data, dependency keys, services).

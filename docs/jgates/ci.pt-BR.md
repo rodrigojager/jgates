@@ -4,7 +4,7 @@ No CI as regras não são decididas pelo código que está sendo verificado. O `
 
 ## O modelo
 
-- **Localmente** você edita tudo: `jgates.yml`, perfis, templates, waivers. É a sua área de trabalho, e o `jgates run` a obedece.
+- **Localmente** você edita tudo: `jgates.yml`, perfis, templates, dispensas (`.jgates/waivers.json`). É a sua área de trabalho, e o `jgates run` a obedece.
 - **No CI** só quem controla o pipeline define as regras. A configuração vem da pasta da política (`--policy` ou `JGATES_POLICY_DIR`), e o `jgates.yml` e o `.jgates/` do próprio projeto nunca são lidos.
 - A política é amarrada por `JGATES_POLICY_SHA256`, uma variável protegida do CI. Se o hash da pasta da política for diferente, nada roda (saída 3).
 - O commit é analisado numa cópia limpa, então arquivos que não estão no commit não contam.
@@ -39,6 +39,8 @@ O comando é o mesmo nos dois:
 ```bash
 jgates ci --policy <policy-folder> --sarif jgates.sarif
 ```
+
+O `jgates ci` não muda com as dispensas do projeto: ele aplica só as dispensas da política fixada, nunca o `.jgates/waivers.json` do projeto, e recusa `--waiver` e `--no-waivers`. Para um fluxo de deploy fora do modo governado que não deve aceitar nenhuma dispensa, rode `jgates run --no-waivers`.
 
 A política é obtida **fora** do projeto: no GitHub, dois passos `actions/checkout` (`path: project` e `path: policy`) e o comando roda em `project`; no GitLab, o projeto é `$CI_PROJECT_DIR` e a política é clonada em `$CI_BUILDS_DIR`. Uma política dentro do projeto analisado é recusada com `POLICY_INSIDE_PROJECT`.
 
@@ -76,7 +78,7 @@ Os serviços do projeto também seguem a política: um bind mount do computador,
 
 Saída 3, antes de qualquer coisa rodar:
 
-- `--skip`, `--only`, `--waiver`, `--no-cache`, `--plan`, `--path` e `--template`: o job não escolhe as próprias regras;
+- `--skip`, `--only`, `--waiver`, `--no-waivers`, `--no-cache`, `--plan`, `--path` e `--template`: o job não escolhe as próprias regras;
 - `--bridge-mode quick` ou `offline`, e `--scope paths`;
 - uma política sem `JGATES_POLICY_SHA256`, com hash diferente, com links simbólicos ou com referências fora da sua pasta;
 - uma política de qualidade que desliga ou afrouxa os orçamentos obrigatórios;

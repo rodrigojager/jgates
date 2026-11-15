@@ -47,9 +47,11 @@ jgates report <runId> --format sarif --out resultado.sarif
 Fix the gate instead of the code. That is why the result shows when the policy changed:
 
 - a run with `reduced: true` (by `--skip`, for example) **never** closes the cycle as approved; it shows what was turned off;
-- the result stores in `provenance` the hashes of the configuration, the policy and the templates, to compare with the previous cycle; turning a rule off, widening an `exclude` or creating a waiver changes those hashes, and it is a new plan review, not proof that the code passed the earlier criteria;
+- the result stores in `provenance` the hashes of the configuration, the policy and the templates, to compare with the previous cycle; turning a rule off or widening an `exclude` changes those hashes, and it is a new plan review, not proof that the code passed the earlier criteria;
 - the summary for the agent starts with the frozen policy instruction: fix the code, do not edit `jgates.yml`, the `.jgates/` folder, thresholds, rules, waivers or baseline, and, if a criterion looks wrong, describe the problem and stop;
-- waivers need a rule, a path, a reason and an expiry, and an expired waiver does not apply.
+- a waiver needs a reason and an end date, points at one occurrence of a finding, and an expired or stale waiver does not apply. A run that passes with waivers says "approved with N waivers" in the agent context, and the findings it lists as waived were dismissed by a person, not fixed;
+- the agent must not create, edit or remove waivers (`.jgates/waivers.json`, `jgates waivers` or `--waiver`): dismissing a finding is a decision of a person;
+- the waiver file is recorded in `provenance.waivers` (its SHA-256 and the number of waivers), outside the provenance hashes above, so a new waiver does not change them: the comparison with the previous validation reports that the waivers changed.
 
 In local mode the user can change their own policy. Protection against the code author changing the gate needs the external policy and [governed mode](security.en.md).
 

@@ -61,7 +61,7 @@
   "governed_sha_pinned": "Fixado pelo ambiente",
   "governed_sha_missing": "Não informado pelo ambiente",
   "governed_sha_reason": "O valor vem do ambiente da execução; sem ele, o modo governado recusa a política.",
-  "governed_waivers_label": "Dispensas (waivers)",
+  "governed_waivers_label": "Dispensas",
   "governed_waivers_value": "Recusadas",
   "governed_waivers_reason": "O modo governado não aceita dispensas nem desligamento de verificações por execução.",
   "ws_switch": "Selecionar workspace",

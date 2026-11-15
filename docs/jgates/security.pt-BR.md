@@ -120,7 +120,7 @@ Um resultado é vinculado ao plano, à configuração e ao estado do código (`a
 
 ## Modo governado
 
-O `jgates ci` é o modo governado: as regras vêm de uma política externa conferida por SHA-256, o commit é analisado numa cópia limpa e o job não escolhe as próprias regras (sem `--skip`, `--waiver`, `--plan` e afins). O JGates não afrouxa esse modo e a interface, quando o detecta, bloqueia a edição. Os scanners que leem configuração da árvore analisada ficam fora do `jgates ci` (a ponte endurecida os cobre), o que vem de ferramentas que executam código do projeto é marcado como autodeclarado, e a política pode proibir ou fixar as imagens próprias do projeto (`execution.extensionImage`) e os efeitos dos serviços no computador. Detalhes em [CI](ci.pt-BR.md). Para impedir que o autor do código mude o gate, use a política externa e um runner controlado.
+O `jgates ci` é o modo governado: as regras vêm de uma política externa conferida por SHA-256, o commit é analisado numa cópia limpa e o job não escolhe as próprias regras (sem `--skip`, `--waiver`, `--no-waivers`, `--plan` e afins; só valem as dispensas da política fixada, nunca o `.jgates/waivers.json` do projeto). O JGates não afrouxa esse modo e a interface, quando o detecta, bloqueia a edição. Os scanners que leem configuração da árvore analisada ficam fora do `jgates ci` (a ponte endurecida os cobre), o que vem de ferramentas que executam código do projeto é marcado como autodeclarado, e a política pode proibir ou fixar as imagens próprias do projeto (`execution.extensionImage`) e os efeitos dos serviços no computador. Detalhes em [CI](ci.pt-BR.md). Para impedir que o autor do código mude o gate, use a política externa e um runner controlado.
 
 ## Telemetria
 
