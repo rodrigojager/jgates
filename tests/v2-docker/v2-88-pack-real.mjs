@@ -67,8 +67,22 @@ test("V2-88 (real engine): every rule of expected/<language>.json is found in th
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);
   const { workspaceId } = await import(pathToFileURL(path.join(dist, "core", "ids", "index.js")).href);
 
-  const languages = fs.readdirSync(path.join(FIXTURES, "expected")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort();
-  for (const language of ["javascript", "typescript", "python", "go", "csharp", "rust", "java", "php"]) assert.ok(languages.includes(language), `${language} is twinned`);
+  // The data: expected/<language>.json and every expected/<language>/<group>.json (a group lists ruleIds or signals).
+  const expectedDir = path.join(FIXTURES, "expected");
+  const entries = fs.readdirSync(expectedDir, { withFileTypes: true });
+  const perLanguage = entries.filter((e) => e.isFile() && e.name.endsWith(".json")).map((e) => e.name.replace(/\.json$/, "")).sort();
+  const groupDirs = entries.filter((e) => e.isDirectory()).map((e) => e.name).sort();
+  const languages = [...new Set([...perLanguage, ...groupDirs])].sort();
+  for (const language of ["javascript", "typescript", "python", "go", "csharp", "rust", "java", "php"]) assert.ok(perLanguage.includes(language), `${language} is twinned`);
+  const expectedOf = (language) => {
+    const sets = [];
+    if (perLanguage.includes(language)) sets.push({ name: language, ...JSON.parse(fs.readFileSync(path.join(expectedDir, `${language}.json`), "utf8")) });
+    const dir = path.join(expectedDir, language);
+    if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
+      for (const f of fs.readdirSync(dir).filter((n) => n.endsWith(".json")).sort()) sets.push({ name: `${language}/${f.replace(/\.json$/, "")}`, ...JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")) });
+    }
+    return sets;
+  };
 
   const home = tmp("v2-88-real-home-");
   const env = { ...process.env, JGATES_HOME: home, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: IMAGE, JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
@@ -99,11 +113,13 @@ test("V2-88 (real engine): every rule of expected/<language>.json is found in th
   const bad = runProject("vulnerable");
   const found = bad.doc.findings.filter((f) => f.tool === "semgrep");
   for (const language of languages) {
-    const expected = JSON.parse(fs.readFileSync(path.join(FIXTURES, "expected", `${language}.json`), "utf8"));
-    for (const id of expected.ruleIds) {
-      const hit = found.find((f) => f.ruleId === id && f.location.path.startsWith(`${language}/`));
-      assert.ok(hit, `${language}: ${id} missing; found ${[...new Set(found.map((f) => f.ruleId))].join(", ")}`);
-      assert.ok(hit.location.line > 0, `${language}: ${id} has a line`);
+    for (const expected of expectedOf(language)) {
+      // A signals group has no rule ids: its tags are read from the `uses-<tag>` results when the run reports them as such.
+      for (const id of expected.ruleIds ?? []) {
+        const hit = found.find((f) => f.ruleId === id && f.location.path.startsWith(`${language}/`));
+        assert.ok(hit, `${expected.name}: ${id} missing; found ${[...new Set(found.map((f) => f.ruleId))].join(", ")}`);
+        assert.ok(hit.location.line > 0, `${expected.name}: ${id} has a line`);
+      }
     }
     assert.ok((bad.stage.scannedLanguages?.[language] ?? 0) > 0, `${language}: the stage records the files scanned (${JSON.stringify(bad.stage.scannedLanguages)})`);
   }

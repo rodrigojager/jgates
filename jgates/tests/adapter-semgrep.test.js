@@ -386,9 +386,37 @@ function engine() {
   throw new assert.AssertionError({ message: `no Semgrep engine available: install semgrep (JGATES_SEMGREP, .venv or PATH) or use the tools image ${TOOLS_IMAGE}; the pack tests cannot pass without one` });
 }
 
-const packWorkspace = (variant, language) => {
+// Group twins: `expected/<language>/<group>.json` ({ files, ruleIds } or { files, signals }) names the files (relative to the
+// language folder) of one group's twins. Those files stay out of the per-language workspace and make a workspace of their
+// own, so a new group twin is data only.
+const GROUP_SUPPORT_FILES = { rust: ["Cargo.toml"] };
+const groupsOf = (language) => {
+  const dir = path.join(PACK_FIXTURES, "expected", language);
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return [];
+  return fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort().map((f) => ({ group: f.replace(/\.json$/, ""), expected: JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")) }));
+};
+const twinGroupLanguages = () => {
+  const dir = path.join(PACK_FIXTURES, "expected");
+  return fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
+};
+const slash = (p) => p.split(path.sep).join("/");
+
+const packWorkspace = (variant, language, group = null) => {
   const dir = tmp("jgates-pack-ws-");
-  fs.cpSync(path.join(PACK_FIXTURES, variant, language), dir, { recursive: true });
+  const src = path.join(PACK_FIXTURES, variant, language);
+  const groups = groupsOf(language);
+  if (group === null) {
+    const taken = new Set(groups.flatMap((g) => g.expected.files ?? []));
+    fs.cpSync(src, dir, { recursive: true, filter: (from) => fs.statSync(from).isDirectory() || !taken.has(slash(path.relative(src, from))) });
+  } else {
+    const found = groups.find((g) => g.group === group);
+    assert.ok(found, `${language}: no expected/${language}/${group}.json`);
+    for (const file of [...(GROUP_SUPPORT_FILES[language] ?? []), ...found.expected.files]) {
+      if (!fs.existsSync(path.join(src, file))) continue;
+      fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+      fs.copyFileSync(path.join(src, file), path.join(dir, file));
+    }
+  }
   return dir;
 };
 const PACK_TOOLS = "schemaVersion: 1\ntools:\n  semgrep:\n    adapter: semgrep\n    capabilities: [sast]\n    rulePack: jgates\n";
@@ -399,9 +427,9 @@ function packCli(dir, home) {
 }
 
 /** Plans through the CLI, runs the planned semgrep arguments on the engine and normalizes the output with the adapter. */
-function scanWithPack(variant, language) {
+function scanWithPack(variant, language, group = null) {
   const eng = engine();
-  const dir = packWorkspace(variant, language);
+  const dir = packWorkspace(variant, language, group);
   const out = tmp("jgates-pack-out-");
   const home = tmp("jgates-pack-home-");
   try {
@@ -431,7 +459,7 @@ function scanWithPack(variant, language) {
     const root = docker ? "/ws" : dir;
     const parsed = semgrepAdapter.parseSemgrepOutput(fs.readFileSync(outFile, "utf8"), { stageId: "semgrep#sast", version: eng.kind, workspace: root, cwd: root });
     assert.equal(parsed.ok, true, parsed.problem);
-    return { findings: parsed.findings, configs, item };
+    return { findings: parsed.findings, signals: parsed.signals, configs, item };
   } finally {
     for (const d of [dir, out, home]) fs.rmSync(d, { recursive: true, force: true });
   }
@@ -513,6 +541,75 @@ function checkTwin(language) {
   const clean = scanWithPack("clean", language);
   assert.deepEqual(clean.findings.map((f) => f.ruleId), [], `${language} clean twin`);
 }
+
+const SIGNAL_ID = /^jgates\.[a-z]+\.uses-([a-z0-9-]+)$/;
+/** The signal tags of a scan: the `signals` record of the parse result when present, else the ids `jgates.<prefix>.uses-<tag>`. */
+function signalTags(scan) {
+  const record = scan.signals;
+  if (record !== undefined && record !== null) {
+    const entries = Array.isArray(record) ? record : Object.entries(record).filter(([, v]) => v).map(([k]) => k);
+    return [...new Set(entries.map((e) => (typeof e === "string" ? e : e.tag ?? e.signal)))].sort();
+  }
+  return [...new Set(scan.findings.map((f) => SIGNAL_ID.exec(f.ruleId)?.[1]).filter(Boolean))].sort();
+}
+const isSignal = (f) => SIGNAL_ID.test(f.ruleId);
+
+/** Compares a scan of a group's vulnerable twin with its expected file: exact rule ids, or exact signal tags. */
+function compareGroup(label, expected, scan) {
+  const real = scan.findings.filter((f) => !isSignal(f));
+  if (expected.signals !== undefined) {
+    assert.deepEqual(signalTags(scan), [...expected.signals].sort(), `${label}: signal tags`);
+    assert.deepEqual([...new Set(real.map((f) => f.ruleId))], [], `${label}: a signals group has no finding`);
+    return;
+  }
+  assert.deepEqual([...new Set(real.map((f) => f.ruleId))].sort(), [...expected.ruleIds].sort(), `${label}: rule ids`);
+  assert.deepEqual([...new Set(real.map((f) => f.location.path))].sort(), [...expected.files].filter((f) => !/(^|\/)Cargo\.toml$/.test(f)).sort(), `${label}: files with findings`);
+}
+
+/** One group's twins: the vulnerable twin gives exactly the expected ids (or tags), the clean twin nothing; the whole pack is the configuration. */
+function checkGroupTwin(language, group, expected) {
+  const label = `${language}/${group}`;
+  assert.ok(Array.isArray(expected.files) && expected.files.length > 0, `expected/${label}.json lists files`);
+  assert.ok(Array.isArray(expected.ruleIds) !== Array.isArray(expected.signals), `expected/${label}.json lists ruleIds or signals`);
+  if (expected.ruleIds) {
+    const known = new Set(semgrepAdapter.buildPackIndex(PACK_RULES).rules.map((r) => r.id));
+    for (const id of expected.ruleIds) assert.ok(known.has(id), `${label}: ${id} is a rule of the pack`);
+  }
+  const bad = scanWithPack("vulnerable", language, group);
+  for (const f of bad.findings) assert.ok(f.tool === "semgrep" && f.location.path && f.location.line > 0, JSON.stringify(f));
+  compareGroup(label, expected, bad);
+  const clean = scanWithPack("clean", language, group);
+  assert.deepEqual(clean.findings.filter((f) => !isSignal(f)).map((f) => f.ruleId), [], `${label} clean twin`);
+  if (expected.signals !== undefined) assert.deepEqual(signalTags(clean), [], `${label} clean twin signals`);
+}
+
+test("every group twin (expected/<language>/<group>.json) gives exactly its rule ids or signal tags on the vulnerable twin and nothing on the clean one [proves: semgrep#sast]", () => {
+  for (const language of twinGroupLanguages()) {
+    for (const { group, expected } of groupsOf(language)) checkGroupTwin(language, group, expected);
+  }
+});
+
+test("the group comparison fails when the expected ids or tags differ, and a group file stays out of the per-language workspace", () => {
+  const finding = (ruleId, p) => ({ ruleId, tool: "semgrep", location: { path: p, line: 1 } });
+  const scan = { findings: [finding("jgates.go.a", "x.go"), finding("jgates.go.uses-graphql", "x.go")] };
+  compareGroup("ok", { files: ["x.go"], ruleIds: ["jgates.go.a"] }, scan);
+  assert.throws(() => compareGroup("more", { files: ["x.go"], ruleIds: ["jgates.go.a", "jgates.go.b"] }, scan), assert.AssertionError);
+  assert.throws(() => compareGroup("fewer", { files: ["x.go"], ruleIds: [] }, scan), assert.AssertionError);
+  compareGroup("tags", { files: ["x.go"], signals: ["graphql"] }, { findings: [finding("jgates.go.uses-graphql", "x.go")] });
+  assert.throws(() => compareGroup("tags", { files: ["x.go"], signals: ["graphql", "grpc"] }, { findings: [finding("jgates.go.uses-graphql", "x.go")] }), assert.AssertionError);
+  assert.deepEqual(signalTags({ findings: [], signals: { graphql: 2, grpc: 0 } }), ["graphql"], "the signals record wins when present");
+  // The workspace of a language folder leaves the files of its groups out; the workspace of a group holds only its files.
+  const language = twinGroupLanguages()[0];
+  if (language) {
+    const taken = new Set(groupsOf(language).flatMap((g) => g.expected.files));
+    const whole = packWorkspace("vulnerable", language);
+    try {
+      for (const file of taken) assert.ok(!fs.existsSync(path.join(whole, file)), `${file} is a group twin file`);
+    } finally {
+      fs.rmSync(whole, { recursive: true, force: true });
+    }
+  }
+});
 
 // The five languages added to the pack each have a literal-titled test below: the stack matrix cites them as the proof
 // of the `validated` row of that stack. Any other twin language is covered by the data-driven test.
