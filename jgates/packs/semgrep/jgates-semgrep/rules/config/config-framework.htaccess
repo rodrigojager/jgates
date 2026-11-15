@@ -1,0 +1,24 @@
+# ruleid: jgates.config.cookie-without-secure
+php_flag session.cookie_secure off
+# ok: jgates.config.cookie-without-secure
+php_flag session.cookie_secure on
+# ruleid: jgates.config.cookie-without-httponly
+php_flag session.cookie_httponly off
+# ok: jgates.config.cookie-without-httponly
+php_flag session.cookie_httponly on
+# ruleid: jgates.config.stack-trace-in-response
+php_flag display_errors on
+# ok: jgates.config.stack-trace-in-response
+php_flag display_errors off
+# ruleid: jgates.config.security-headers-disabled
+Header always unset X-Frame-Options
+# ruleid: jgates.config.security-headers-disabled
+Header unset Content-Security-Policy
+# ruleid: jgates.config.security-headers-disabled
+Header always set Strict-Transport-Security "max-age=300"
+# ok: jgates.config.security-headers-disabled
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+# ok: jgates.config.security-headers-disabled
+Header always set X-Frame-Options "DENY"
+# ok: jgates.config.security-headers-disabled
+Header unset X-Powered-By

@@ -1,0 +1,6 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    csrf_protection: false
+    session:
+        cookie_secure: false
+        cookie_httponly: false
