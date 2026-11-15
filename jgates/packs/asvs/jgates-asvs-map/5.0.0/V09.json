@@ -4,7 +4,7 @@
   "entries": [
     {
       "requirement": "V9.1.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -73,11 +73,15 @@
           "saml"
         ]
       },
-      "why": "Each check looks for token contents used without a verified signature, by rule in seven languages and by reading elsewhere. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "Each check looks for token contents used without a verified signature, by rule in seven languages and by reading elsewhere. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V9.1.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -142,7 +146,7 @@
         {
           "unit": "semantic-ledger",
           "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
-          "covers": "Server-pinned algorithm choice and key confusion between algorithm families.",
+          "covers": "Server-pinned algorithm choice and key source.",
           "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
           "depth": "partial"
         }
@@ -153,11 +157,15 @@
           "saml"
         ]
       },
-      "why": "The rules catch the none algorithm and header-chosen algorithms where they are spelled out; the block checks the allowlist itself. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "The rules catch the none algorithm and header-chosen algorithms where they are spelled out; the block checks the allowlist itself. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V9.1.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -226,11 +234,15 @@
           "saml"
         ]
       },
-      "why": "The rules catch a key or key address taken from the token header, the untrusted-source case; the block reads jku, x5u and kid handling. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "The rules catch a key or key address taken from the token header, the untrusted-source case; the block reads jku, x5u and kid handling. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V9.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -292,23 +304,20 @@
           "saml"
         ]
       },
-      "why": "The rules catch expiry validation switched off; the block reads expiry and not-before handling elsewhere. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "The rules catch expiry validation switched off; the block reads expiry and not-before handling elsewhere. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V9.2.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
-        {
-          "unit": "semantic-ledger",
-          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
-          "covers": "Claim checks on verified tokens, where a token of the wrong kind or for another purpose is rejected.",
-          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It names issuer, audience and time claims; a token-type check is not named.",
-          "depth": "partial"
-        },
         {
           "unit": "semantic-requirement",
           "id": "asvs-review",
@@ -323,11 +332,15 @@
           "saml"
         ]
       },
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V9.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -382,23 +395,20 @@
           "saml"
         ]
       },
-      "why": "The rules catch audience validation switched off or never requested; the block reads audience handling elsewhere. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "The rules catch audience validation switched off or never requested; the block reads audience handling elsewhere. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V9.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
-        {
-          "unit": "semantic-ledger",
-          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
-          "covers": "Audience and issuer claim checks, including a valid token reused for another service.",
-          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not examine how the issuer provisions audiences.",
-          "depth": "partial"
-        },
         {
           "unit": "semantic-requirement",
           "id": "asvs-review",
@@ -413,7 +423,11 @@
           "saml"
         ]
       },
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     }
   ]
 }

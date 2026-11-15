@@ -32,7 +32,7 @@
     },
     {
       "requirement": "V8.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -74,7 +74,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules catch a global switch that lets every request through; the block reads whether each function is guarded by the right permission."
+      "why": "The rules catch a global switch that lets every request through; the block reads whether each function is guarded by the right permission.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V8.2.2",
@@ -130,7 +134,7 @@
     },
     {
       "requirement": "V8.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -144,11 +148,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V8.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -204,11 +212,15 @@
           "depth": "partial"
         }
       ],
-      "why": "A privilege decision taken from caller-supplied input is a control the caller can manipulate; the rules look for it in seven languages."
+      "why": "A privilege decision taken from caller-supplied input is a control the caller can manipulate; the rules look for it in seven languages.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V8.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -229,11 +241,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V8.3.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -254,7 +270,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V8.4.1",

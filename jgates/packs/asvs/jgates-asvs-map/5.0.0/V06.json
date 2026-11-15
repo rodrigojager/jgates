@@ -25,7 +25,7 @@
     },
     {
       "requirement": "V6.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -35,57 +35,61 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.password-min-length-below-8",
           "covers": "A password field whose validator (Joi, zod, yup, Mongoose or Sequelize options, express-validator, validator.js, class-validator or a hand-written length test) sets a literal minimum below 8.",
-          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged. A length test on the password typed at sign-in, rather than on one being set, matches as well.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.password-min-length-below-8",
           "covers": "A password field in a Django form, model or validator, a DRF or marshmallow or pydantic schema, or a WTForms field with a literal minimum length below 8.",
-          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged. A length test on the password typed at sign-in, rather than on one being set, matches as well.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.password-min-length-below-8",
           "covers": "A password length comparison, a DataAnnotations or FluentValidation minimum, or an Identity PasswordOptions length set below 8.",
-          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged. A length test on the password typed at sign-in, rather than on one being set, matches as well.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.password-min-length-below-8",
           "covers": "A len or rune-count test, a validator or gin binding tag, or an ozzo rule on a password value that lets fewer than 8 characters through.",
-          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged. A length test on the password typed at sign-in, rather than on one being set, matches as well.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.password-min-length-below-8",
           "covers": "A Bean Validation size, a Hibernate Validator length, a Passay length rule or a String length test on a password field with a literal minimum below 8.",
-          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged. A length test on the password typed at sign-in, rather than on one being set, matches as well.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.password-min-length-below-8",
           "covers": "A Laravel validation rule or Password rule, a Symfony Length constraint or an strlen test on a password value with a literal minimum below 8.",
-          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged. A length test on the password typed at sign-in, rather than on one being set, matches as well.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.password-min-length-below-8",
           "covers": "A length test or a validator-crate length attribute on a password value that accepts fewer than 8 characters.",
-          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged. A length test on the password typed at sign-in, rather than on one being set, matches as well.",
           "depth": "partial"
         }
       ],
-      "why": "The minimum length of a password is set in validators with a literal number, which is what the rules read."
+      "why": "The minimum length of a password is set in validators with a literal number, which is what the rules read.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -99,11 +103,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -117,11 +125,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -135,11 +147,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -188,11 +204,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Composition rules are written as class switches or look-ahead patterns, which the rules recognize; the requirement forbids them."
+      "why": "Composition rules are written as class switches or look-ahead patterns, which the rules recognize; the requirement forbids them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -213,11 +233,15 @@
           "depth": "partial"
         }
       ],
-      "why": "An input named like a password with no masking type shows what is typed, the case the rules look for in JSX and HTML."
+      "why": "An input named like a password with no masking type shows what is typed, the case the rules look for in JSX and HTML.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.7",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -238,11 +262,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Cancelled paste and switched-off autocomplete on a password input are visible in JSX, HTML and DOM handlers."
+      "why": "Cancelled paste and switched-off autocomplete on a password input are visible in JSX, HTML and DOM handlers.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.8",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -251,7 +279,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.password-transformed-before-verify",
-          "covers": "A value named like a password that is lower-cased, upper-cased, trimmed or cut before it reaches bcrypt, bcryptjs, argon2 or Node crypto hashing or comparison.",
+          "covers": "A value named like a password that is lower-cased, upper-cased or cut before it reaches bcrypt, bcryptjs, argon2 or Node crypto hashing or comparison.",
           "misses": "Taint stays inside one function: a transformation made in another function, in a framework layer or at the client is not followed, and a limit inside the hash function itself is not considered.",
           "depth": "partial"
         },
@@ -298,11 +326,15 @@
           "depth": "partial"
         }
       ],
-      "why": "A password changed in case or length before hashing or comparing is a visible data flow within a function."
+      "why": "A password changed in case or length before hashing or comparing is a visible data flow within a function.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.9",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -312,57 +344,61 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.password-max-length-below-64",
           "covers": "A password validator in the same libraries that rejects passwords longer than a literal limit under 64.",
-          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen. A length comparison with a literal is read as a cap whether or not its branch rejects: a strength score or a hash-length test on a password-named value matches too.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.password-max-length-below-64",
           "covers": "A password field or schema with a literal maximum length under 64.",
-          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen. A length comparison with a literal is read as a cap whether or not its branch rejects: a strength score or a hash-length test on a password-named value matches too.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.password-max-length-below-64",
           "covers": "A MaxLength or StringLength attribute, a FluentValidation maximum or a length comparison on a password that caps it under 64.",
-          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen. A length comparison with a literal is read as a cap whether or not its branch rejects: a strength score or a hash-length test on a password-named value matches too.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.password-max-length-below-64",
           "covers": "A len or rune-count test, a validator tag or an ozzo rule that rejects a password above a limit under 64.",
-          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen. A length comparison with a literal is read as a cap whether or not its branch rejects: a strength score or a hash-length test on a password-named value matches too.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.password-max-length-below-64",
           "covers": "A Bean Validation size, a Hibernate length or a String length test that caps a password under 64.",
-          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen. A length comparison with a literal is read as a cap whether or not its branch rejects: a strength score or a hash-length test on a password-named value matches too.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.password-max-length-below-64",
           "covers": "A Laravel max rule, a Symfony Length maximum or an strlen test that caps a password under 64.",
-          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen. A length comparison with a literal is read as a cap whether or not its branch rejects: a strength score or a hash-length test on a password-named value matches too.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.password-max-length-below-64",
           "covers": "A length test or validator attribute that caps a password under 64.",
-          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen. A length comparison with a literal is read as a cap whether or not its branch rejects: a strength score or a hash-length test on a password-named value matches too.",
           "depth": "partial"
         }
       ],
-      "why": "A literal cap under 64 on a password is a direct breach of the allowed length."
+      "why": "A literal cap under 64 on a password is a direct breach of the allowed length.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.10",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -376,11 +412,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.11",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -394,11 +434,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.2.12",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -412,7 +456,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.3.1",
@@ -453,7 +501,7 @@
     },
     {
       "requirement": "V6.3.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -474,11 +522,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.3.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -492,11 +544,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.3.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -510,11 +566,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.3.7",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -528,7 +588,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.3.8",
@@ -539,7 +603,7 @@
     },
     {
       "requirement": "V6.4.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography",
@@ -596,11 +660,15 @@
           "depth": "partial"
         }
       ],
-      "why": "A guessable generator feeding an initial password or activation value is the weak-randomness part of the requirement; expiry and single use need a reader."
+      "why": "A guessable generator feeding an initial password or activation value is the weak-randomness part of the requirement; expiry and single use need a reader.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -656,7 +724,11 @@
           "depth": "partial"
         }
       ],
-      "why": "A field or model named as a secret question is how knowledge-based recovery shows in code."
+      "why": "A field or model named as a secret question is how knowledge-based recovery shows in code.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.4.3",
@@ -703,19 +775,12 @@
     },
     {
       "requirement": "V6.4.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
-        {
-          "unit": "semantic-ledger",
-          "id": "WEB-PROTOCOL-AND-AUTH.md#Password reset and broader recovery",
-          "covers": "Support and administrator recovery paths and whether they let someone other than the user end up knowing a credential.",
-          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not examine whether an administrator can set a password directly.",
-          "depth": "partial"
-        },
         {
           "unit": "semantic-requirement",
           "id": "asvs-review",
@@ -724,7 +789,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.5.1",
@@ -750,7 +819,7 @@
     },
     {
       "requirement": "V6.5.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization",
@@ -765,11 +834,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.5.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography",
@@ -826,11 +899,15 @@
           "depth": "partial"
         }
       ],
-      "why": "A guessable generator feeding a code or seed named like a secret is the predictable-value case of the requirement."
+      "why": "A guessable generator feeding a code or seed named like a secret is the predictable-value case of the requirement.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.5.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization",
@@ -852,11 +929,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.5.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -866,57 +947,61 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.totp-window-too-wide",
           "covers": "speakeasy, otplib or otpauth options with a step above 30 seconds or a window wider than one step each side.",
-          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined. A window of exactly one step on each side is not flagged, although a code then stays usable for longer than one step.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.totp-window-too-wide",
           "covers": "pyotp or django-otp devices with an interval above 30 seconds or a tolerance or valid window above one step.",
-          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined. A window of exactly one step on each side is not flagged, although a code then stays usable for longer than one step.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.totp-window-too-wide",
           "covers": "Otp.NET Totp objects with a step above 30 seconds or a verification window wider than one step.",
-          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined. A window of exactly one step on each side is not flagged, although a code then stays usable for longer than one step.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.totp-window-too-wide",
           "covers": "pquerna/otp options with a period above 30 seconds or a skew above one step.",
-          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined. A window of exactly one step on each side is not flagged, although a code then stays usable for longer than one step.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.totp-window-too-wide",
           "covers": "java-otp, samstevens totp or GoogleAuth settings with a step above 30 seconds or a window or discrepancy above one step.",
-          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined. A window of exactly one step on each side is not flagged, although a code then stays usable for longer than one step.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.totp-window-too-wide",
           "covers": "OTPHP, TwoFactorAuth or Google2FA settings with a period above 30 seconds or a window above one step.",
-          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined. A window of exactly one step on each side is not flagged, although a code then stays usable for longer than one step.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.totp-window-too-wide",
           "covers": "totp-rs and totp-lite settings with a step above 30 seconds or a skew above one step.",
-          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined. A window of exactly one step on each side is not flagged, although a code then stays usable for longer than one step.",
           "depth": "partial"
         }
       ],
-      "why": "The step and window of a TOTP check are literals in the libraries' options, which the rules read; out-of-band lifetimes need a reader."
+      "why": "The step and window of a TOTP check are literals in the libraries' options, which the rules read; out-of-band lifetimes need a reader.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.5.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -937,11 +1022,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.5.7",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -955,11 +1044,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.5.8",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -978,11 +1071,15 @@
           "totp"
         ]
       },
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.6.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -996,7 +1093,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.6.2",
@@ -1022,7 +1123,7 @@
     },
     {
       "requirement": "V6.6.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -1043,11 +1144,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.6.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -1061,7 +1166,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.7.1",
@@ -1072,7 +1181,7 @@
     },
     {
       "requirement": "V6.7.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization",
@@ -1087,11 +1196,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.8.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -1111,11 +1224,15 @@
           "saml"
         ]
       },
-      "why": "Identity collision across providers is the spoofing path this requirement closes; the block examines it for linking and sign-in routes. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "Identity collision across providers is the spoofing path this requirement closes; the block examines it for linking and sign-in routes. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.8.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -1192,11 +1309,15 @@
           "oauth-client"
         ]
       },
-      "why": "Each check looks for assertions accepted without a valid signature: rules for tokens in seven languages, readings for tokens and SAML. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "Each check looks for assertions accepted without a valid signature: rules for tokens in seven languages, readings for tokens and SAML. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.8.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -1215,23 +1336,20 @@
           "saml"
         ]
       },
-      "why": "Replay state of assertions is one of the items the block checks, matching the one-time processing this requirement asks for. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "Replay state of assertions is one of the items the block checks, matching the one-time processing this requirement asks for. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V6.8.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
-        {
-          "unit": "semantic-ledger",
-          "id": "WEB-PROTOCOL-AND-AUTH.md#Step-up binding and bypass",
-          "covers": "Whether an assurance target is bound to the session and checked on every route to the operation.",
-          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not read the strength claims an identity provider returns.",
-          "depth": "partial"
-        },
         {
           "unit": "semantic-requirement",
           "id": "asvs-review",
@@ -1246,7 +1364,11 @@
           "saml"
         ]
       },
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     }
   ]
 }

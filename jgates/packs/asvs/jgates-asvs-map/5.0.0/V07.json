@@ -25,7 +25,7 @@
     },
     {
       "requirement": "V7.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -39,11 +39,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V7.2.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -57,11 +61,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V7.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography",
@@ -106,7 +114,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.insecure-random-for-secret",
-          "covers": "A non-cryptographic generator such as rand or mt_rand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a session identifier or reference token.",
+          "covers": "A non-cryptographic generator such as rand or mt_rand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a session or reference token named with the word token; a bare session id name is not matched.",
           "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; the 128-bit length cannot be measured by a pattern, and session ids made by the framework's own session layer are not seen.",
           "depth": "partial"
         },
@@ -118,11 +126,15 @@
           "depth": "partial"
         }
       ],
-      "why": "A guessable generator feeding a session identifier is the predictable-token case; the length of the identifier needs a reader."
+      "why": "A guessable generator feeding a session identifier is the predictable-token case; the length of the identifier needs a reader.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V7.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -157,7 +169,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Renewal of the identifier at login is what the rules look for where renewal is a call, and what the block reads in the rest of the code."
+      "why": "Renewal of the identifier at login is what the rules look for where renewal is a call, and what the block reads in the rest of the code.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V7.3.1",
@@ -219,7 +235,7 @@
     },
     {
       "requirement": "V7.4.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -240,11 +256,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V7.4.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -258,11 +278,15 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V7.4.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -276,7 +300,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V7.5.1",
@@ -309,7 +337,7 @@
     },
     {
       "requirement": "V7.5.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -323,7 +351,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V7.5.3",
@@ -349,7 +381,7 @@
     },
     {
       "requirement": "V7.6.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "authorization"
@@ -361,11 +393,15 @@
           "saml"
         ]
       },
-      "why": "Only a project that relies on an identity provider has relying-party sessions to coordinate."
+      "why": "Only a project that relies on an identity provider has relying-party sessions to coordinate.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V7.6.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -385,7 +421,11 @@
           "saml"
         ]
       },
-      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     }
   ]
 }
