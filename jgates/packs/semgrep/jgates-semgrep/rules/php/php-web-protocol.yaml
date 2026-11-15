@@ -1,0 +1,244 @@
+# Group web-protocol for PHP. Libraries covered: the PHP built-ins (header, header_remove), PSR-7 responses
+# (withHeader, withoutHeader), Symfony HttpFoundation (response headers bag, RedirectResponse, AbstractController
+# redirect), Laravel (response header(), redirect(), Redirect facade), spatie/laravel-csp, the Ratchet Pawl client and
+# textalk/websocket client. Taint sources: PHP superglobals, Laravel request() and $request/$req input methods,
+# Symfony $request/$req bags (the request-variable convention of php-taint.yaml). The analysis stays inside one function.
+rules:
+  - id: jgates.php.security-headers-disabled
+    message: A security header is removed or weakened (HSTS, nosniff, frame protection, Content-Security-Policy, or an HSTS max-age under one year). Keep the header on and send an HSTS max-age of at least one year.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.1", "V3.4.3", "V3.4.4", "V3.4.6"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: header_remove($H)
+              - pattern: $R->withoutHeader($H)
+              - pattern: $R->headers->remove($H)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["'](strict-transport-security|x-content-type-options|x-frame-options|content-security-policy)["']$
+      - patterns:
+          - pattern: header($H, ...)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?is)^["']strict-transport-security:.*max-age=\s*(\d{1,7}|[12]\d{7}|30\d{6}|31[0-4]\d{5}|315[0-2]\d{4}|3153[0-5]\d{3})(?!\d).*
+
+  - id: jgates.php.csp-unsafe-directive
+    message: A Content-Security-Policy allows inline or eval script execution, or any script source. Use nonces or hashes and list the script origins you trust.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.3"]
+    pattern-either:
+      - patterns:
+          - pattern: header($H, ...)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?is)^["']content-security-policy:.*(script-src|script-src-elem|default-src)[^;]*(unsafe-inline|unsafe-eval|\s\*(\s|;|["'])|\s(https?|data):(\s|;|["'])).*
+      - patterns:
+          - pattern-either:
+              - pattern: $R->withHeader($N, $V)
+              - pattern: $R->header($N, $V)
+              - pattern: $R->headers->set($N, $V)
+              - pattern: $R->setHeader($N, $V)
+              - pattern: $R->addHeader($N, $V)
+          - metavariable-regex:
+              metavariable: $N
+              regex: (?i)^["']content-security-policy["']$
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?is).*(script-src|script-src-elem|default-src)[^;]*(unsafe-inline|unsafe-eval|\s\*(\s|;|["'])|\s(https?|data):(\s|;|["'])).*
+      - patterns:
+          - pattern: $X->addDirective($DIR, $KW)
+          - metavariable-regex:
+              metavariable: $DIR
+              regex: (?i).*(SCRIPT|DEFAULT).*
+          - metavariable-regex:
+              metavariable: $KW
+              regex: (?i).*(UNSAFE_INLINE|UNSAFE_EVAL).*
+
+  - id: jgates.php.websocket-without-tls
+    message: A WebSocket connection is opened to a plain ws:// address that is not the local machine, so traffic travels unencrypted. Use a wss:// address.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: new WebSocket\Client($U, ...)
+          - pattern: new Client($U, ...)
+          - pattern: Ratchet\Client\connect($U, ...)
+          - pattern: connect($U, ...)
+          - pattern: $C->connect($U, ...)
+          - pattern: $C($U, ...)
+      - metavariable-regex:
+          metavariable: $U
+          regex: (?is)^["']ws://(?!(localhost|127\.0\.0\.1|\[::1\])([:/"']|$)).*
+
+  - id: jgates.php.open-redirect
+    message: The redirect target comes from the incoming request, so an attacker can send users to another site. Redirect only to a target found in an allow-list, or to a path you build yourself.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-601"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V3.7.2"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              if (in_array($P, ...)) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              if (isset($ALLOWED[$P])) {
+                ...
+              }
+    pattern-sinks:
+      - patterns:
+          - pattern: header($H, ...)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?is)^["']location:.*
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: redirect($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Redirect::to($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Redirect::away($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: redirect()->to($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: redirect()->away($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $this->redirect($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new RedirectResponse($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $R->withHeader("Location", $U)
+          - focus-metavariable: $U
+
+  - id: jgates.php.client-ip-from-forwarded-header
+    message: The client address is read from a forwarding header that the client itself can set, so it can be forged. Use the connection address (REMOTE_ADDR or the framework's trusted-proxy aware ip()), with the trusted proxies configured.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: authorization
+      cwe: "CWE-348"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.4", "V4.1.3"]
+    pattern-either:
+      - patterns:
+          - pattern: $_SERVER[$H]
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["'](http_)?(x[-_]forwarded[-_]for|x[-_]real[-_]ip|x[-_]client[-_]ip|client[-_]ip|x[-_]originating[-_]ip|forwarded)["']$
+      - patterns:
+          - pattern-either:
+              - pattern: $R->header($H, ...)
+              - pattern: $R->headers->get($H, ...)
+              - pattern: $R->getHeaderLine($H)
+              - pattern: $R->getHeader($H)
+              - pattern: getallheaders()[$H]
+              - pattern: apache_request_headers()[$H]
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["'](x[-_]forwarded[-_]for|x[-_]real[-_]ip|x[-_]client[-_]ip|client[-_]ip|x[-_]originating[-_]ip|forwarded)["']$
+
+  - id: jgates.php.host-header-in-url
+    message: The request's Host header is used to build an absolute URL, and the client controls that header. Build links from a configured base URL.
+    severity: WARNING
+    languages: [php]
+    mode: taint
+    metadata:
+      category: authorization
+      cwe: "CWE-644"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.1.3"]
+    pattern-sources:
+      - pattern: $_SERVER["HTTP_HOST"]
+      - pattern: $_SERVER["HTTP_X_FORWARDED_HOST"]
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->getHost()
+              - pattern: $REQUEST->getHttpHost()
+              - pattern: $REQUEST->httpHost()
+              - pattern: $REQUEST->getSchemeAndHttpHost()
+              - pattern: $REQUEST->schemeAndHttpHost()
+              - pattern: $REQUEST->root()
+              - pattern: $REQUEST->header("Host")
+              - pattern: $REQUEST->headers->get("Host")
+              - pattern: $REQUEST->getHeaderLine("Host")
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sinks:
+      - patterns:
+          - pattern: $S . $H
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^["']https?://["']$
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: sprintf($S, ..., $H, ...)
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^["']https?://.*
+          - focus-metavariable: $H
