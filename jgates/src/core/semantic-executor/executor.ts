@@ -21,7 +21,7 @@ import { artifactShape, parseArtifactText, settleArtifact, validateArtifact, typ
 import { agentCliBackend, providerToolBackend, type AgentCliGate, type CallTurn, type ContextRunResult, type InvestigationBackend, type TranscriptEntry } from "./backends.js";
 import { BudgetMeter, budgetLimits, DEFAULT_TURNS, reserveFor, type UsageSnapshot } from "./budget.js";
 import { HostTools, LIMITING_REFUSALS, type CandidateInput, type ContextState } from "./host-tools.js";
-import type { ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation, ModuleApplicability } from "./types.js";
+import type { ArtifactCandidate, ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation, ModuleApplicability } from "./types.js";
 import { renameWithRetry } from "../fs-retry/index.js";
 
 export const INVESTIGATION_RECORD = "evidence/investigation.json";
@@ -365,14 +365,37 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     if (answer.applicable && module.prerequisites) {
       try {
         const missing = await module.prerequisites({ ...applicabilityInput, inputs: answer.inputs ?? {}, signal: options.signal });
-        if (missing) answer = { applicable: false, ...missing };
+        if (missing && "code" in missing) answer = { applicable: false, ...missing };
+        // The machine serves only part of the inputs: the run goes on with those.
+        else if (missing && "inputs" in missing) answer = { applicable: true, inputs: missing.inputs, record: { ...(answer.record ?? {}), ...(missing.record ?? {}) } };
       } catch (error) {
         answer = { applicable: false, code: "APPLICABILITY_CHECK_FAILED", missing: "prerequisites", reason: `the prerequisites check failed: ${error instanceof Error ? error.message : String(error)}` };
+      }
+    }
+    // The candidates the host establishes before any context (the findings a method re-examines).
+    let seeded: ArtifactCandidate[] = [];
+    if (answer.applicable && module.seedCandidates) {
+      try {
+        seeded = module.seedCandidates({ inputs: answer.inputs ?? {} });
+      } catch (error) {
+        answer = { applicable: false, code: "APPLICABILITY_CHECK_FAILED", missing: "seed candidates", reason: `the seed candidates could not be established: ${error instanceof Error ? error.message : String(error)}` };
       }
     }
     if (answer.applicable) {
       applied = answer.inputs ?? {};
       applicability = { state: "applicable", ...(answer.record ?? {}) };
+      const host: ContextState = { stage: "host", label: "host", seen: new Set(), refused: [] };
+      const dropped: string[] = [];
+      for (const c of seeded) {
+        const p = normalizeScopePath(c.path);
+        if (!p || !tools.readable(p) || (c.line !== null && (tools.lines(p) ?? Infinity) < c.line)) {
+          dropped.push(brief(`${String(c.path)}${c.line !== null ? `:${c.line}` : ""}: not readable in this scope, or no such line`));
+          continue;
+        }
+        const r = addCandidate({ title: c.title, path: p, line: c.line, severity: c.severity, category: c.category, rationale: c.rationale, ...(c.details ? { details: c.details } : {}) }, host);
+        if ("problems" in r) dropped.push(brief(r.problems.join("; ")));
+      }
+      if (dropped.length > 0) applicability.seedsDropped = dropped;
     } else {
       const reason = brief(answer.reason);
       applicability = { state: "not-applicable", code: answer.code, missing: answer.missing, reason };
@@ -635,7 +658,9 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     }
     if (candidate) {
       if (check.verdict) applyVerdict(spec, check.verdict, ctx, candidate);
-      else {
+      else if (spec.decides === false && !spec.verify) {
+        // A preparing stage: the candidate stays open for the deciding stage that follows.
+      } else {
         candidate.status = "unresolved";
         candidate.reason = `${spec.verify ? "not verified" : "not validated"}: the context's artifact carried no verdict`;
       }

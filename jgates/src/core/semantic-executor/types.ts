@@ -84,6 +84,13 @@ export type ModuleApplicability =
   | { applicable: true; inputs?: Record<string, unknown>; record?: Record<string, unknown> }
   | { applicable: false; code: string; missing: string; reason: string };
 
+/**
+ * The answer of a prerequisites check: null when the machine has what the run needs; a code with the missing input
+ * (the method is not applicable); or narrowed inputs (the machine serves only part of them: the run goes on with those,
+ * and `record` is added to the applicability record).
+ */
+export type ModulePrerequisites = { code: string; missing: string; reason: string } | { inputs: Record<string, unknown>; record?: Record<string, unknown> } | null;
+
 /** A candidate a custom artifact contributes (the executor applies it like a reported one). */
 export interface ArtifactCandidate {
   title: string;
@@ -146,6 +153,13 @@ export interface InvestigationStageSpec {
    * other change (or a verdict that disputes it) leaves the candidate unresolved until a further verification.
    */
   verify?: boolean;
+  /**
+   * Per-candidate only. false: the stage prepares a later deciding stage instead of deciding (confirm-by-reproduction
+   * writes and executes a reproducer per finding): a valid artifact without a verdict leaves its candidate open for the
+   * next stage, and a verdict the artifact does carry (decided by the module's host work, never by the model alone)
+   * applies. Absent or true: a valid artifact without a verdict leaves the candidate unresolved.
+   */
+  decides?: boolean;
 }
 
 /** What a module may add to the brief of one context (host-validated material of earlier stages, prior runs). */
@@ -220,7 +234,13 @@ export interface InvestigationModule {
    * otherwise the method is not applicable with that code. Asynchronous and only asked by a run, never by a plan
    * preview (a request handler of the local server never waits for the engine, ADR-0010).
    */
-  prerequisites?(input: ModuleApplicabilityInput & { inputs: Readonly<Record<string, unknown>>; signal: AbortSignal }): Promise<{ code: string; missing: string; reason: string } | null>;
+  prerequisites?(input: ModuleApplicabilityInput & { inputs: Readonly<Record<string, unknown>>; signal: AbortSignal }): Promise<ModulePrerequisites>;
+  /**
+   * Candidates the host establishes before any context starts, from the applicable inputs (the findings of an earlier
+   * run that a method re-examines). They are added like reported candidates (readable path, existing line) and the
+   * per-candidate stages take them in order. Absent: the stages start without candidates.
+   */
+  seedCandidates?(input: { inputs: Readonly<Record<string, unknown>> }): ArtifactCandidate[];
   /** Extra brief text for one context (null: nothing to add). */
   brief?(input: ModuleBriefInput): string | null;
   /** Host-side reporting after every stage: structured records, readable report, agent context. */

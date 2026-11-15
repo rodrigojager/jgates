@@ -91,5 +91,19 @@
   "semantic_api_run_not_found": "Não há execução semântica {runId} neste workspace.",
   "semantic_api_run_not_active": "A execução semântica {runId} já terminou; não há o que cancelar.",
   "semantic_api_semantic_policy_mode": "Uma pasta de política de CI está sendo editada: não é um projeto, então não há o que revisar.",
-  "semantic_api_semantic_policy_mode_fix": "Abra o projeto com jgates ui para executar uma revisão semântica."
+  "semantic_api_semantic_policy_mode_fix": "Abra o projeto com jgates ui para executar uma revisão semântica.",
+  "semantic_reproduction_reproduced": "Reproduzido: confirmado por execução",
+  "semantic_reproduction_attempted": "Tentativa de reprodução: {reason}",
+  "semantic_reproduction_reason_REPRODUCER_PASSED": "o reprodutor passou, então o defeito não apareceu",
+  "semantic_reproduction_reason_REPRODUCER_DID_NOT_LOAD": "o reprodutor não chegou a um veredito (não carregou ou não declarou teste)",
+  "semantic_reproduction_reason_DEPENDENCIES_NOT_PREPARED": "falta preparar um pacote de que o reprodutor precisa (jgates deps prepare)",
+  "semantic_reproduction_reason_NOT_EXECUTED": "o reprodutor não foi executado",
+  "semantic_reproduction_reason_ATTRIBUTED_TO_REPRODUCER": "o reprodutor falhou por causa do próprio teste, não do defeito",
+  "semantic_reproduction_reason_ATTRIBUTED_TO_ENVIRONMENT": "o reprodutor falhou por causa do ambiente, não do defeito",
+  "semantic_reproduction_reason_ATTRIBUTION_UNDECIDED": "o reprodutor falhou, mas não foi possível atribuir a falha ao defeito",
+  "semantic_reproduction_reason_BUDGET": "o orçamento da execução acabou antes",
+  "semantic_reproduction_reason_REPRODUCER_INVALID": "o reprodutor foi recusado pelas verificações do JGates",
+  "semantic_reproduction_reason_NOT_RUN": "a execução parou antes",
+  "semantic_reproduction_never_rejects": "Uma reprodução que falha nunca rejeita um achado nem rebaixa a sua severidade.",
+  "semantic_reproduction_cost": "{count, plural, one {# achado} other {# achados}}, até {calls, plural, one {# chamada ao modelo} other {# chamadas ao modelo}}; os testes do projeto rodam num contêiner sem rede."
 }
