@@ -1,0 +1,96 @@
+# Group encoding for JavaScript and TypeScript.
+# Sources: Express-style req.query / req.body / req.params / req.headers / req.cookies, and Koa-style ctx.query / ctx.request.body.
+# Sinks: RegExp construction, util.format / console printing / sprintf-js, Markdown renderer options (markdown-it,
+# Remarkable, marked, remark-rehype).
+rules:
+  - id: jgates.js.regex-from-request
+    message: A regular expression is built from data of the incoming request. A crafted value can change the pattern or make it run for a very long time; escape it first (for example with lodash escapeRegExp) or match with a plain string function.
+    severity: WARNING
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.9", "V1.3.12"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+      - pattern: ctx.query
+      - pattern: ctx.request.body
+    pattern-sanitizers:
+      - pattern: _.escapeRegExp(...)
+      - pattern: escapeRegExp(...)
+      - pattern: escapeStringRegexp(...)
+      - pattern: RegExp.escape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: new RegExp($RE, ...)
+              - pattern: RegExp($RE, ...)
+          - focus-metavariable: $RE
+
+  - id: jgates.js.redos-nested-quantifier
+    message: This regular expression repeats a group that itself ends in a repeated part, such as (x+)+. A long input that almost matches makes it run for a very long time. Rewrite it so the repeated parts cannot match the same text.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.12"]
+    pattern-regex: '(?<=[=(,:\[!&|?{;\s])/(?![/*])(?:[^/\n\\]|\\.)*\((?:\?:)?(?:[^()\n\\/]|\\.)*[+*]\)[+*](?:[^/\n\\]|\\.)*/'
+
+  - id: jgates.js.format-string-from-request
+    message: Data from the incoming request is used as the format string of a formatting or printing call, so the caller controls the % directives. Pass a fixed format such as "%s" and give the data as an argument.
+    severity: WARNING
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-134"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.10"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+      - pattern: ctx.query
+      - pattern: ctx.request.body
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: util.format($F, ...)
+              - pattern: console.log($F, ...)
+              - pattern: console.info($F, ...)
+              - pattern: console.warn($F, ...)
+              - pattern: console.error($F, ...)
+              - pattern: sprintf($F, ...)
+              - pattern: vsprintf($F, ...)
+          - focus-metavariable: $F
+
+  - id: jgates.js.markdown-raw-html-enabled
+    message: A Markdown renderer is set to pass raw HTML through, or its sanitizing is switched off, so HTML written in the Markdown reaches the page. Keep raw HTML disabled, or sanitize the rendered output with a library such as DOMPurify.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    pattern-either:
+      - pattern: 'markdownit({..., html: true, ...})'
+      - pattern: 'new MarkdownIt({..., html: true, ...})'
+      - pattern: 'new Remarkable({..., html: true, ...})'
+      - pattern: 'remarkRehype({..., allowDangerousHtml: true, ...})'
+      - pattern: 'marked.setOptions({..., sanitize: false, ...})'
+      - pattern: 'marked.use({..., sanitize: false, ...})'
