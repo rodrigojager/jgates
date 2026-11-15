@@ -1,0 +1,229 @@
+# Configuration, exposure, mass assignment and weakly typed comparison for PHP.
+# Libraries covered: the PHP built-ins (ini_set, define, header, in_array and the comparison operators), Laravel
+# (config files, Eloquent models, API resources, routes), Symfony (kernel and error handler), Slim (error middleware
+# and routes), Whoops, WordPress and Yii debug constants, and CakePHP configuration. The analysis stays inside one
+# function or one file. Not written: directory-listing-enabled (PHP serves files through the web server, see the
+# configuration rules) and prototype-pollution (JavaScript's object model).
+rules:
+  - id: jgates.php.debug-mode-enabled
+    message: The framework debug mode or a developer error page is switched on outside a development-only branch, which sends stack traces and internals to clients. Keep it inside an environment check such as if ($env === 'dev'), and set display_errors to 0 and the debug flag to false in production.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: configuration
+      cwe: "CWE-489"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.2"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: ini_set("display_errors", $V)
+                  - pattern: ini_set("display_startup_errors", $V)
+              - metavariable-regex:
+                  metavariable: $V
+                  regex: (?i)^["']?(1|on|true|yes|stderr|stdout)["']?$
+          - patterns:
+              - pattern-either:
+                  - pattern: define("WP_DEBUG", true)
+                  - pattern: define("WP_DEBUG_DISPLAY", true)
+                  - pattern: define("YII_DEBUG", true)
+          - patterns:
+              - pattern-either:
+                  - pattern: Configure::write("debug", true)
+                  - pattern: Config::set("app.debug", true)
+                  - pattern: config(["app.debug" => true])
+          - pattern: "[..., 'debug' => env('APP_DEBUG', true), ...]"
+          - pattern: "[..., \"debug\" => env(\"APP_DEBUG\", true), ...]"
+          - pattern: Debug::enable(...)
+          - pattern: new PrettyPageHandler(...)
+          - pattern: $A->addErrorMiddleware(true, ...)
+          - patterns:
+              - pattern: new $K($E, true, ...)
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: (?:^|\\)Kernel$
+      - pattern-not-inside:
+          patterns:
+            - pattern: |
+                if ($C) {
+                  ...
+                }
+            - metavariable-regex:
+                metavariable: $C
+                regex: (?is).*(\bdev\b|\bdevelopment\b|\blocal\b|\btesting\b|\bdebug\b|isDevelopment|isLocal).*
+
+  - id: jgates.php.docs-or-monitoring-endpoint-exposed
+    message: An API documentation, profiling or monitoring route is registered unconditionally, so anyone who can reach the application can read it. Register it inside an authenticated route group or behind an environment check, or serve it on an internal port.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.5"]
+    patterns:
+      - pattern-either:
+          - pattern: Route::get($P, ...)
+          - pattern: Route::any($P, ...)
+          - pattern: $A->get($P, ...)
+      - metavariable-regex:
+          metavariable: $P
+          regex: (?i)^["']/?(metrics|actuator(/.*)?|swagger(-ui)?(/.*)?|api-docs|api/docs|api/documentation|docs|openapi(\.json|\.yaml)?|telescope|horizon|_profiler|_wdt|debugbar|server-status|prometheus)["']$
+      - pattern-not-inside: |
+          Route::middleware(...)->group(function () { ... });
+      - pattern-not-inside: |
+          Route::group([..., 'middleware' => $M, ...], function () { ... });
+      - pattern-not-inside: |
+          if ($C) {
+            ...
+          }
+      - pattern-not-inside: |
+          Route::$H(...)->middleware(...);
+      - pattern-not-inside: |
+          $A->get(...)->add(...);
+
+  - id: jgates.php.version-header-exposed
+    message: A response header states the framework, language or server version, which tells an attacker which known weaknesses to try. Do not set X-Powered-By or Server with a version, and remove the header with header_remove('X-Powered-By').
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: configuration
+      cwe: "CWE-497"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.6"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: header($H, ...)
+              - metavariable-regex:
+                  metavariable: $H
+                  regex: (?is)^["'](x-powered-by|server|x-generator|x-aspnet-version)\s*:.*\d+\.\d+
+          - patterns:
+              - pattern-either:
+                  - pattern: $R->withHeader($N, $V)
+                  - pattern: $R->header($N, $V)
+                  - pattern: $R->headers->set($N, $V)
+              - metavariable-regex:
+                  metavariable: $N
+                  regex: (?i)^["'](x-powered-by|server|x-generator)["']$
+              - metavariable-regex:
+                  metavariable: $V
+                  regex: (?s).*\d+\.\d+.*
+
+  - id: jgates.php.mass-assignment
+    message: A model is created or updated from the whole request body, or declared open to every field, so a client can set fields it should not, such as roles or ownership. Pass only the validated fields ($request->validated() or $request->only([...])) and declare an explicit $fillable list.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: authorization
+      cwe: "CWE-915"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.3"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $O::create($B)
+              - pattern: $O->create($B)
+              - pattern: $O->fill($B)
+              - pattern: $O->update($B)
+              - pattern: $O->forceFill($B)
+              - pattern: $O->updateOrCreate($X, $B)
+              - pattern: $O::updateOrCreate($X, $B)
+              - pattern: $O::firstOrCreate($X, $B)
+          - metavariable-pattern:
+              metavariable: $B
+              pattern-either:
+                - pattern: $R->all()
+                - pattern: $R->input()
+                - pattern: $R->post()
+                - pattern: $R->request->all()
+                - pattern: $_POST
+                - pattern: $_REQUEST
+      - patterns:
+          - pattern: |
+              class $C extends $P {
+                ...
+                protected $guarded = $V;
+                ...
+              }
+          - metavariable-regex:
+              metavariable: $P
+              regex: (?:^|\\)(Model|Authenticatable|Pivot)$
+          - metavariable-regex:
+              metavariable: $V
+              regex: ^\[\s*\]$
+          - focus-metavariable: $V
+      - pattern: $M::unguard(...)
+
+  - id: jgates.php.serializer-exposes-all-fields
+    message: An API resource returns every attribute of the model (parent::toArray or the underlying model's toArray), so a column added later is exposed without review. Return an explicit array of the fields the client needs.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-213"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: return parent::toArray($R);
+          - pattern: return $this->resource->toArray();
+      - pattern-inside: |
+          class $C extends $P {
+            ...
+          }
+      - metavariable-regex:
+          metavariable: $P
+          regex: (?:^|\\)(JsonResource|Resource)$
+
+  - id: jgates.php.loose-comparison-of-secret
+    message: A hash, token, password or other secret is compared with == or !=, or with the non-strict in_array, so PHP type juggling can make different values equal (for example two hashes that look like 0e123 numbers) and the comparison is not constant time. Compare with hash_equals() or password_verify().
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: authentication
+      cwe: "CWE-697"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.5"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - patterns:
+                      - pattern-either:
+                          - pattern: $A == $B
+                          - pattern: $A != $B
+                      - metavariable-regex:
+                          metavariable: $A
+                          regex: (?is)^(\s*(md5|sha1|hash|hash_hmac|crypt)\s*\(|(?!\s*["']|\s*(count|strlen|sizeof|isset|empty|is_\w+)\s*\()(?:.*)(password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|token|jwt|session_id|sessionid|otp|nonce|salt|csrf|reset_code|verification_code|activation_code|hash|hmac|signature|digest))
+                  - patterns:
+                      - pattern-either:
+                          - pattern: $A == $B
+                          - pattern: $A != $B
+                      - metavariable-regex:
+                          metavariable: $B
+                          regex: (?is)^(\s*(md5|sha1|hash|hash_hmac|crypt)\s*\(|(?!\s*["']|\s*(count|strlen|sizeof|isset|empty|is_\w+)\s*\()(?:.*)(password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|token|jwt|session_id|sessionid|otp|nonce|salt|csrf|reset_code|verification_code|activation_code|hash|hmac|signature|digest))
+              - pattern-not: $X == null
+              - pattern-not: $X != null
+              - pattern-not: $X == false
+              - pattern-not: $X != false
+              - pattern-not: $X == true
+              - pattern-not: $X != true
+              - pattern-not: $X == ""
+              - pattern-not: $X != ""
+              - pattern-not: $X == ''
+              - pattern-not: $X != ''
+              - pattern-not: null == $X
+              - pattern-not: null != $X
+          - patterns:
+              - pattern: in_array($T, $L)
+              - metavariable-regex:
+                  metavariable: $T
+                  regex: (?is)^(?!\s*["'])(?:.*)(password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|token|jwt|session_id|sessionid|otp|nonce|salt|csrf|reset_code|verification_code|activation_code|hash|hmac|signature|digest)

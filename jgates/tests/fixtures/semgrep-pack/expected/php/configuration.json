@@ -1,0 +1,11 @@
+{
+  "files": ["configuration.php"],
+  "ruleIds": [
+    "jgates.php.debug-mode-enabled",
+    "jgates.php.docs-or-monitoring-endpoint-exposed",
+    "jgates.php.version-header-exposed",
+    "jgates.php.mass-assignment",
+    "jgates.php.serializer-exposes-all-fields",
+    "jgates.php.loose-comparison-of-secret"
+  ]
+}
