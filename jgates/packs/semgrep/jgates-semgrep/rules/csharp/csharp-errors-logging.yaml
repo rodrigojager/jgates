@@ -1,0 +1,242 @@
+# Errors and logging for C#.
+# Libraries covered: Microsoft.Extensions.Logging (ILogger extension methods), Serilog (Log and ILogger), NLog and
+# log4net style loggers for the logging rule; ASP.NET Core MVC (Controller helpers Ok, BadRequest, Content, Json,
+# StatusCode, Problem), minimal APIs (Results.*) and HttpResponse.WriteAsync for the response rules.
+# The analysis stays inside one method.
+rules:
+  - id: jgates.csharp.sensitive-data-logged
+    message: A value named like a password, a secret, a token or an authorization header is passed to a logging call, so it ends up in the log files. Log an identifier or a masked form instead, or leave the value out.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $L.$M(..., $X, ...)
+          - pattern: $L.$M(..., $"...{$X}...", ...)
+          - pattern: $L.$M(..., string.Format(..., $X, ...), ...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: (?i)^([A-Za-z_]\w*\.)*(_?log|_?logger|\w*logger|_?logging)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(Log\w*|Trace|Debug|Info|Information|Warn|Warning|Error|Fatal|Critical|Verbose)$
+      - metavariable-regex:
+          metavariable: $X
+          regex: ^([A-Za-z_]\w*\.)*((?i:(\w*_)?(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(_\w*)?)|_?[a-z]*(Password|Passwd|Passphrase|Senha|Secret|ApiKey|APIKey|PrivateKey|ClientSecret|Segredo|Token|JWT|Jwt|SessionId|SessionID|OTP|Otp|Nonce|Salt|CSRF|Csrf|ResetCode|VerificationCode|ActivationCode|SSN|CPF|CNPJ|CardNumber|CVV|IBAN|Authorization)([A-Z]\w*)?)$
+
+  - id: jgates.csharp.sensitive-data-logged-header
+    message: The Authorization header of the request is passed to a logging call, so the credential ends up in the log files. Log the request path or a request id instead.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $L.$M(..., $R.Headers["Authorization"], ...)
+          - pattern: $L.$M(..., $R.Headers[HeaderNames.Authorization], ...)
+          - pattern: $L.$M(..., $R.Headers.Authorization, ...)
+          - pattern: $L.$M(..., $"...{$R.Headers["Authorization"]}...", ...)
+          - pattern: $L.$M(..., $"...{$R.Headers.Authorization}...", ...)
+          - pattern: $L.$M(..., $"...{$R.Headers[HeaderNames.Authorization]}...", ...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: (?i)^([A-Za-z_]\w*\.)*(_?log|_?logger|\w*logger|_?logging)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(Log\w*|Trace|Debug|Info|Information|Warn|Warning|Error|Fatal|Critical|Verbose)$
+
+  - id: jgates.csharp.stack-trace-in-response
+    message: A stack trace is written to the HTTP response, which tells the caller about the code and the server. Log the exception on the server and return a generic error message.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    pattern-sources:
+      - pattern: $E.StackTrace
+      - pattern: Environment.StackTrace
+      - pattern: new StackTrace(...)
+      - pattern: new System.Diagnostics.StackTrace(...)
+      - patterns:
+          - pattern: $E.ToString()
+          - metavariable-regex:
+              metavariable: $E
+              regex: (?i)^(ex|e|exc|err|error|exception|\w+_?ex|\w+exception|\w+_exception)$
+    pattern-sinks:
+      - patterns:
+          - pattern: $R.WriteAsync($X, ...)
+          - metavariable-regex:
+              metavariable: $R
+              regex: ^([A-Za-z_]\w*\.)*Response$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $R.WriteAsJsonAsync($X, ...)
+          - metavariable-regex:
+              metavariable: $R
+              regex: ^([A-Za-z_]\w*\.)*Response$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Content($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Ok($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: BadRequest($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Json($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: StatusCode($C, $X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Problem($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: 'Problem(..., detail: $X, ...)'
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.Text($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.Ok($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.BadRequest($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.Json($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.Problem($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: 'Results.Problem(..., detail: $X, ...)'
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.StatusCode($C, $X)
+          - focus-metavariable: $X
+
+  - id: jgates.csharp.error-detail-in-response
+    message: The message of an exception is written to the HTTP response, which can expose paths, queries and internals. Log the exception on the server and return a generic error message.
+    severity: INFO
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    pattern-sources:
+      - patterns:
+          - pattern: $E.Message
+          - metavariable-regex:
+              metavariable: $E
+              regex: (?i)^(ex|e|exc|err|error|exception|\w+_?ex|\w+exception|\w+_exception)$
+    pattern-sinks:
+      - patterns:
+          - pattern: $R.WriteAsync($X, ...)
+          - metavariable-regex:
+              metavariable: $R
+              regex: ^([A-Za-z_]\w*\.)*Response$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $R.WriteAsJsonAsync($X, ...)
+          - metavariable-regex:
+              metavariable: $R
+              regex: ^([A-Za-z_]\w*\.)*Response$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Content($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Ok($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: BadRequest($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Json($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: StatusCode($C, $X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Problem($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: 'Problem(..., detail: $X, ...)'
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.Text($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.Ok($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.BadRequest($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.Json($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.Problem($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: 'Results.Problem(..., detail: $X, ...)'
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Results.StatusCode($C, $X)
+          - focus-metavariable: $X
+
+  - id: jgates.csharp.swallowed-exception
+    message: A broad exception handler is empty, so the error is dropped with no log and no handling. Log it, handle it or rethrow it, and catch a narrower exception type when the failure is expected.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: error-handling
+      cwe: "CWE-390"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.3.4", "V16.5.3"]
+    pattern-either:
+      - pattern: |
+          try {
+            ...
+          } catch {
+          }
+      - pattern: |
+          try {
+            ...
+          } catch (Exception) {
+          }
+      - pattern: |
+          try {
+            ...
+          } catch (Exception $E) {
+          }
+      - pattern: |
+          try {
+            ...
+          } catch (System.Exception) {
+          }
+      - pattern: |
+          try {
+            ...
+          } catch (System.Exception $E) {
+          }
