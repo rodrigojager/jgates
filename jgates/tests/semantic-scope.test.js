@@ -251,3 +251,13 @@ test("purpose is only a shortcut for a method list: same plan hash as the method
   assert.equal(plan({}).purpose, null, "no purpose given, none shown");
   assert.deepEqual(plan({ methods: ["general-review", "security-audit"] }).methods.map((m) => m.id), ["general-review", "security-audit"], "two methods keep their order");
 });
+
+test("every method of the catalog can be selected at once, and the limit follows the catalog's size", () => {
+  const r = repo(APP);
+  const all = semantic.semanticMethodCatalog().map((m) => m.id);
+  assert.equal(semantic.MAX_SELECTED_METHODS, all.length, "the limit is the size of the catalog");
+  const p = semantic.buildSemanticPlan({ workspacePath: r.dir, home: r.home, env: r.env, methods: all });
+  assert.equal(p.blockers.some((x) => x.code === "SEMANTIC_TOO_MANY_METHODS"), false, "the whole catalog is not 'too many methods'");
+  const over = semantic.buildSemanticPlan({ workspacePath: r.dir, home: r.home, env: r.env, methods: [...all, "extra-method"] });
+  assert.equal(over.blockers.some((x) => x.code === "SEMANTIC_TOO_MANY_METHODS"), true, "one more than the catalog is refused");
+});

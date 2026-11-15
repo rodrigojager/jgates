@@ -35,8 +35,11 @@ export function methodAvailable(id: string): boolean {
 }
 /** Methods that read the review context from the working tree (a context-only call, or a module's host tools). */
 const WORKING_TREE_METHODS: ReadonlySet<string> = new Set([GENERAL_REVIEW, SECURITY_AUDIT]);
-/** At most this many methods in one selection (each one becomes its own Semantic run). */
-export const MAX_SELECTED_METHODS = 9;
+/**
+ * At most this many methods in one selection (each one becomes its own Semantic run): every method of the catalog, so
+ * a method added to the registry is selectable together with the others without touching this limit.
+ */
+export const MAX_SELECTED_METHODS = SEMANTIC_MODULES.length;
 /** A method ID as the CLI, the API and the UI accept it. */
 export const METHOD_ID_PATTERN = "^[a-z][a-z0-9-]{1,63}$";
 
