@@ -8,7 +8,7 @@ import { Heartbeat } from "../../components/Heartbeat";
 import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
-import { ResultView, formatDuration, stageName, stateText, type DomainFilter } from "../validations-result/ResultView";
+import { ResultView, approvedWithWaiversText, isApprovedWithWaivers, formatDuration, stageName, stateText, type DomainFilter } from "../validations-result/ResultView";
 import { RunPhases } from "./phases";
 import { StepLogPanel } from "./step-log";
 import "./run-summary.css";
@@ -314,8 +314,11 @@ export default function RunScreen({ params }: { params: Record<string, string> }
   const uiState = job?.state === "crashed" ? "crashed" : final?.result && job?.state === "running" ? "finished" : (job?.state ?? "running");
   // A run that ended with a decision other than "passed" never reads as a bare "Finished": it names the decision.
   const decision = typeof final?.result?.decision === "string" ? (final.result.decision as string) : null;
-  const endedLabel =
-    uiState === "finished" && decision && decision !== "passed" ? tOr(`vres_decision_${decision}`, decision) : tOr(`vrun_state_${uiState}`, uiState);
+  // A run that passed with waivers says so in the ended state too, with its own icon colour, never a plain "Finished".
+  const withWaivers = uiState === "finished" && decision === "passed" && isApprovedWithWaivers(final?.result?.approval);
+  const endedLabel = withWaivers
+    ? approvedWithWaiversText(final?.result?.approval)
+    : uiState === "finished" && decision && decision !== "passed" ? tOr(`vres_decision_${decision}`, decision) : tOr(`vrun_state_${uiState}`, uiState);
   const startedAt: string | undefined = job?.startedAt ?? events[0]?.at;
   const elapsed = since(startedAt, now);
   const currentStart = current ? [...events].reverse().find((e) => e.type === "step-started" && e.data.step === current.id)?.at : undefined;
@@ -346,8 +349,8 @@ export default function RunScreen({ params }: { params: Record<string, string> }
         <section className="run-summary" data-running={running} aria-label={t("vrun_summary")}>
           <div className="run-summary-header">
             <div className="run-summary-state" role="status">
-              <span className={running ? "run-summary-spinner" : "run-summary-icon"} data-state={uiState} aria-hidden="true">
-                {running ? null : <Icon name={uiState === "finished" ? "check" : uiState === "cancelled" ? "stop" : "alert"} />}
+              <span className={running ? "run-summary-spinner" : "run-summary-icon"} data-state={withWaivers ? "waivers" : uiState} aria-hidden="true">
+                {running ? null : <Icon name={withWaivers ? "info" : uiState === "finished" ? "check" : uiState === "cancelled" ? "stop" : "alert"} />}
               </span>
               <strong data-testid="run-state" data-state={uiState}>
                 {endedLabel}

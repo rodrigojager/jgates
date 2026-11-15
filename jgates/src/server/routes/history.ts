@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { listRuns, markRun, type RunInfo } from "../../core/artifacts/index.js";
 import { discoverWorkspace } from "../../core/discovery/index.js";
-import { assignFingerprints, compareWithBaseline } from "../../core/results/index.js";
+import { approvalWording, approvalWordingParams, assignFingerprints, compareWithBaseline } from "../../core/results/index.js";
 import type { ResultFinding, RunResult } from "../../core/run/types.js";
 import { translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
@@ -43,6 +43,11 @@ function componentResolver(projectDir: string): (file: string | undefined) => st
 
 const distinct = (values: Array<string | null | undefined>): string[] => [...new Set(values.filter((v): v is string => typeof v === "string" && v !== ""))].sort();
 
+function approvalOf(result: RunResult | null): { kind: string; waivers: number; findings: number; more: number } {
+  const wording = result ? approvalWording(result) : { kind: "plain" as const, waivers: 0, findings: 0 };
+  return { kind: wording.kind, ...approvalWordingParams(wording) };
+}
+
 function summary(run: RunInfo, result: RunResult | null, componentOf: (file: string | undefined) => string | null) {
   const findings: ResultFinding[] = result?.findings ?? [];
   const active = findings.filter((f) => !f.waived);
@@ -55,6 +60,8 @@ function summary(run: RunInfo, result: RunResult | null, componentOf: (file: str
     startedAt: run.startedAt,
     durationMs: Number.isFinite(started) && Number.isFinite(finished) ? Math.max(0, finished - started) : null,
     decision: run.decision,
+    // "Approved with N waivers" when a run that passed had findings dismissed (an old result is counted from its findings).
+    approval: approvalOf(result),
     complete: result?.complete ?? false,
     // A reduced run is a partial round (not the full profile); an unfinished one has no final result.
     partial: run.partial || run.reduced,

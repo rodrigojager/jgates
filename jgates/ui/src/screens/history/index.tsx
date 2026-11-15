@@ -7,6 +7,7 @@ import { Icon } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
+import { approvedWithWaiversText, isApprovedWithWaivers, type Approval } from "../validations-result/ResultView";
 import { Comparison } from "./comparison";
 import "./history.css";
 
@@ -17,6 +18,8 @@ export interface RunRow {
   startedAt: string | null;
   durationMs: number | null;
   decision: string | null;
+  /** "Approved with N waivers" numbers, computed by the server. */
+  approval?: Approval;
   complete: boolean;
   partial: boolean;
   reduced: boolean;
@@ -198,7 +201,14 @@ export default function HistoryScreen() {
                   </th>
                   <td data-label={t("history_col_result")}>
                     <div className="history-pills">
-                      <Pill tone={r.running ? "blue" : (TONE[r.decision ?? ""] ?? "blue")}>{r.running ? t("history_running") : r.unfinished ? t("history_unfinished") : tOr(`history_decision_${r.decision}`, r.decision ?? "-")}</Pill>
+                      {!r.running && !r.unfinished && r.decision === "passed" && isApprovedWithWaivers(r.approval) ? (
+                        <Pill tone="blue">
+                          <Icon name="info" />
+                          <span data-testid="history-decision" data-kind="passed-waivers">{approvedWithWaiversText(r.approval)}</span>
+                        </Pill>
+                      ) : (
+                        <Pill tone={r.running ? "blue" : (TONE[r.decision ?? ""] ?? "blue")}><span data-testid="history-decision" data-kind={r.decision ?? ""}>{r.running ? t("history_running") : r.unfinished ? t("history_unfinished") : tOr(`history_decision_${r.decision}`, r.decision ?? "-")}</span></Pill>
+                      )}
                       {r.partial && !r.unfinished ? <Pill tone="gold">{t("history_partial")}</Pill> : null}
                       {r.baseline ? <Pill tone="blue">{t("history_baseline")}</Pill> : null}
                       {r.preserved ? <Pill tone="green">{t("history_preserved")}</Pill> : null}

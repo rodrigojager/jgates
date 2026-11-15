@@ -8,7 +8,7 @@ import path from "node:path";
 import { buildAgentContext, scrub } from "../../core/agent-context/index.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { listRuns } from "../../core/artifacts/index.js";
-import { compareWithPrevious, toSarif } from "../../core/results/index.js";
+import { approvalWording, approvalWordingParams, compareWithPrevious, toSarif } from "../../core/results/index.js";
 import { RESULT_FILE } from "../../core/run/index.js";
 import type { RunResult } from "../../core/run/types.js";
 import { openInBrowser } from "../browser.js";
@@ -44,6 +44,12 @@ function readResult(server: ServerContext, runId: string): { dir: string; result
   }
 }
 
+/** "Approved with N waivers" for the screens: the kind and its numbers, from the one function every surface uses (also for an old stored result). */
+function approvalOf(result: RunResult): { kind: string; waivers: number; findings: number; more: number } {
+  const wording = approvalWording(result);
+  return { kind: wording.kind, ...approvalWordingParams(wording) };
+}
+
 /** The run before this one in the history of the workspace, and whether the policy (or anything else) differs. */
 function previousOf(server: ServerContext, result: RunResult): Record<string, unknown> | null {
   const runs = listRuns(server.home, server.workspace.id);
@@ -69,7 +75,7 @@ export const routes: RouteDefinition[] = [
     params: runParams,
     handler({ params, server }) {
       const { result } = readResult(server, params.runId as string);
-      return { status: 200, json: { schemaVersion: 1, status: "OK", result: localizeResult(result), mascots: runMascots(server, result.runId, result, { orphan: result.partial === true }), previous: previousOf(server, result) } };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", result: { ...localizeResult(result), approval: approvalOf(result) }, mascots: runMascots(server, result.runId, result, { orphan: result.partial === true }), previous: previousOf(server, result) } };
     },
   },
   {

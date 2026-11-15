@@ -41,14 +41,29 @@ export function metricText(m: any): string {
   return unit === "%" ? `${n}%` : unit ? `${n} ${unit}` : n;
 }
 
-function Banner({ result, crashed }: { result: any; crashed: boolean }) {
+/** The "approval" the server computed for a result (kind and numbers); a result without it reads as a plain approval. */
+export interface Approval {
+  kind: "plain" | "with-waivers";
+  waivers: number;
+  findings: number;
+  more: number;
+}
+
+export const isApprovedWithWaivers = (approval: Approval | null | undefined): approval is Approval => approval?.kind === "with-waivers" && approval.waivers > 0;
+
+/** "Approved with 2 waivers", with "(4 findings)" when the waivers dismissed more findings than their number. Every screen uses this one. */
+export function approvedWithWaiversText(approval: Approval): string {
+  return t("vres_approved_waivers", { waivers: approval.waivers }) + (approval.more > 0 ? " " + t("vres_approved_waivers_findings", { findings: approval.findings }) : "");
+}
+
+function Banner({ result, crashed, onShowWaived }: { result: any; crashed: boolean; onShowWaived?: () => void }) {
   const runDisabled: any[] = (result.disabled ?? []).filter((d: any) => d.origin === "run");
   const blocking = result.blockingViolations ?? 0;
   const partial = result.partial === true || result.decision === "cancelled";
   let title: string;
   let text: string;
   let tone: Tone = DECISION_TONE[result.decision] ?? "gold";
-  let icon: "check" | "alert" | "stop" = result.decision === "passed" ? "check" : "alert";
+  let icon: "check" | "alert" | "stop" | "info" = result.decision === "passed" ? "check" : "alert";
   let kind: string = result.decision;
   if (partial) {
     title = result.decision === "cancelled" ? t("vres_banner_cancelled") : t("vres_banner_partial");
@@ -61,6 +76,13 @@ function Banner({ result, crashed }: { result: any; crashed: boolean }) {
     text = t("vres_banner_reduced_text");
     tone = "gold";
     kind = "passed-reduced";
+  } else if (result.decision === "passed" && isApprovedWithWaivers(result.approval)) {
+    // Approved, but only because findings were dismissed: its own tone and icon, never the plain green approval.
+    title = approvedWithWaiversText(result.approval);
+    text = t("vres_banner_passed_waivers_text");
+    tone = "blue";
+    icon = "info";
+    kind = "passed-waivers";
   } else if (result.decision === "passed") {
     title = t("vres_banner_passed");
     text = t("vres_banner_passed_text");
@@ -80,6 +102,13 @@ function Banner({ result, crashed }: { result: any; crashed: boolean }) {
       <div className="grow stack" style={{ gap: 6 }}>
         <strong data-testid="result-banner-title">{title}</strong>
         <p>{text}</p>
+        {kind === "passed-waivers" && onShowWaived ? (
+          <p>
+            <button type="button" className="btn" onClick={onShowWaived} data-testid="banner-waived-link">
+              {t("vres_banner_show_waived")}
+            </button>
+          </p>
+        ) : null}
         {partial || result.decision !== "passed" ? <p>{result.decision === "passed" ? "" : t("vres_no_approval")}</p> : null}
         {result.stopped ? (
           <p className="small">
@@ -312,6 +341,14 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
           </div>
         ) : null}
       </dl>
+      {f.waived ? (
+        <p className="small" data-testid="finding-waiver">
+          <strong>{t("vres_waived")}</strong>
+          {f.waiverSource ? ` · ${tOr(`vres_waiver_source_${f.waiverSource}`, String(f.waiverSource))}` : ""}
+          {f.waiverReason ? ` · ${t("vres_waiver_reason", { reason: String(f.waiverReason) })}` : ""}
+          {f.waiverExpires ? ` · ${t("vres_waiver_until", { date: String(f.waiverExpires) })}` : ` · ${t("vres_waiver_no_date")}`}
+        </p>
+      ) : null}
       {f.remediation ? (
         <p className="small" data-testid="finding-remediation">
           <strong>{t("vres_finding_remediation")}:</strong> {f.remediation}
@@ -325,6 +362,12 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
               <>
                 <dt>{t("vres_finding_waiver")}</dt>
                 <dd>{[f.waiverId, f.waiverReason].filter(Boolean).join(": ")}</dd>
+                {f.waiverSource ? (
+                  <>
+                    <dt>{t("vres_waiver_origin")}</dt>
+                    <dd>{tOr(`vres_waiver_source_${f.waiverSource}`, String(f.waiverSource))}</dd>
+                  </>
+                ) : null}
               </>
             ) : null}
             {f.evidence ? (
@@ -348,7 +391,7 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
   );
 }
 
-function Findings({ result, domainFilter, onClear }: { result: any; domainFilter: { domain: string; ids: string[] } | null; onClear: () => void }) {
+function Findings({ result, domainFilter, onClear, waivedOnly, onWaivedOnly }: { result: any; domainFilter: { domain: string; ids: string[] } | null; onClear: () => void; waivedOnly: boolean; onWaivedOnly: (on: boolean) => void }) {
   const findings: any[] = result.findings ?? [];
   const [severity, setSeverity] = useState("");
   const [category, setCategory] = useState("");
@@ -361,6 +404,7 @@ function Findings({ result, domainFilter, onClear }: { result: any; domainFilter
   const shown = findings.filter(
     (f) =>
       (!domainFilter || domainFilter.ids.includes(f.stageId)) &&
+      (!waivedOnly || f.waived === true) &&
       (!severity || String(f.normalizedSeverity) === severity) &&
       (!category || String(f.category ?? "") === category) &&
       (!component || String(f.component ?? "") === component) &&
@@ -416,6 +460,12 @@ function Findings({ result, domainFilter, onClear }: { result: any; domainFilter
                   </option>
                 ))}
               </select>
+            </label>
+          ) : null}
+          {findings.some((f) => f.waived === true) ? (
+            <label className="row">
+              <input type="checkbox" checked={waivedOnly} onChange={(e) => onWaivedOnly(e.target.checked)} data-testid="filter-waived" />
+              <span>{t("vres_filter_waived")}</span>
             </label>
           ) : null}
           <span className="muted" role="status" data-testid="filter-count">
@@ -727,6 +777,11 @@ function Actions({ runId }: { runId: string }) {
 export type DomainFilter = { domain: string; ids: string[] };
 export function ResultView({ result, previous, crashed = false, compact = false, mascots, selectedDomain, onClearDomain }: { result: any; previous: any; crashed?: boolean; /** On the run page, whose own step table lists the checks, they are not listed twice. */ compact?: boolean; mascots?: MascotSnapshot; selectedDomain?: DomainFilter | null; onClearDomain?: () => void }) {
   const [localDomain, setDomainFilter] = useState<DomainFilter | null>(null);
+  const [waivedOnly, setWaivedOnly] = useState(false);
+  const showWaived = () => {
+    setWaivedOnly(true);
+    setTimeout(() => document.getElementById("vres-findings")?.scrollIntoView({ block: "start" }), 0);
+  };
   const domainFilter = selectedDomain === undefined ? localDomain : selectedDomain;
   const started = Date.parse(result.startedAt ?? "");
   const finished = Date.parse(result.finishedAt ?? "");
@@ -735,7 +790,7 @@ export function ResultView({ result, previous, crashed = false, compact = false,
   return (
     <section className="stack" aria-labelledby="result-title">
       <h2 id="result-title">{t("vres_title")}</h2>
-      <Banner result={result} crashed={crashed} />
+      <Banner result={result} crashed={crashed} onShowWaived={showWaived} />
       <QualityMascotStrip snapshot={mascots} onSelect={(domain, ids) => setDomainFilter({ domain, ids })} />
       <div className="card flat">
         <dl className="kv">
@@ -789,7 +844,7 @@ export function ResultView({ result, previous, crashed = false, compact = false,
       </div>
       <Actions runId={result.runId} />
       {compact ? null : <Stages result={result} domainFilter={domainFilter} />}
-      <Findings result={result} domainFilter={domainFilter} onClear={() => { setDomainFilter(null); onClearDomain?.(); }} />
+      <Findings result={result} waivedOnly={waivedOnly} onWaivedOnly={setWaivedOnly} domainFilter={domainFilter} onClear={() => { setDomainFilter(null); onClearDomain?.(); }} />
       <Metrics result={result} />
       <Architecture result={result} />
       {compact ? (

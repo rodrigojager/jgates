@@ -13,7 +13,7 @@ export interface SequenceDto {
     reason?: { code: string; message: string };
   };
   details: {
-    quality: { runId: string; decision: string | null; complete: boolean; reduced: boolean } | null;
+    quality: { runId: string; decision: string | null; complete: boolean; reduced: boolean; approval?: { kind: "plain" | "with-waivers"; waivers: number; findings: number; more: number } } | null;
     semantic: { runId: string; decision: string | null; complete: boolean; reduced: boolean } | null;
     assessment: { approved: boolean; status: string; code: string; message: string; reasons: Array<{ code: string; message: string }> } | null;
     coverage: { message: string } | null;
@@ -28,6 +28,8 @@ export interface GateView {
   runId: string | null;
   complete: boolean | null;
   reduced: boolean;
+  /** The Quality gate passed with waivers: "approved with N waivers" (numbers from the server). */
+  approval?: { kind: "plain" | "with-waivers"; waivers: number; findings: number; more: number };
 }
 
 /** One gate of the sequence: not started (no run reference), running (a run without a decision yet) or its own decision. */
@@ -38,5 +40,6 @@ export function gateState(sequence: SequenceDto, gate: "quality" | "semantic"): 
   const decision = summary?.decision ?? null;
   const known: GateStateName[] = ["passed", "failed", "incomplete", "invalid", "cancelled"];
   const state: GateStateName = decision && (known as string[]).includes(decision) ? (decision as GateStateName) : sequence.lifecycle === "running" ? "running" : "incomplete";
-  return { state, runId: ref.runId, complete: summary ? summary.complete : null, reduced: summary?.reduced === true };
+  const approval = gate === "quality" && state === "passed" ? (summary as { approval?: GateView["approval"] } | null)?.approval : undefined;
+  return { state, runId: ref.runId, complete: summary ? summary.complete : null, reduced: summary?.reduced === true, ...(approval ? { approval } : {}) };
 }

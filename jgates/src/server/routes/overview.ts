@@ -9,6 +9,7 @@ import { projectInventory } from "../../core/cache/project.js";
 import { withEngineFacts } from "../../core/engine/facts.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { buildPlan, type Plan } from "../../core/plan/index.js";
+import { approvalWording, approvalWordingParams } from "../../core/results/index.js";
 import { RESULT_FILE } from "../../core/run/index.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 
@@ -83,6 +84,7 @@ function readLastRun(server: ServerContext): Record<string, unknown> | null {
     dataAgeDays,
     runId: String(result.runId ?? last.runId),
     decision: String(result.decision ?? ""),
+    approval: { kind: approvalWording(result).kind, ...approvalWordingParams(approvalWording(result)) },
     complete: result.complete === true,
     partial: result.partial === true,
     running: last.alive,

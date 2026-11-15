@@ -6,6 +6,7 @@
 .run-summary-icon { color: var(--accent); display: inline-flex; }
 .run-summary-icon[data-state="failed"], .run-summary-icon[data-state="crashed"] { color: var(--red); }
 .run-summary-icon[data-state="cancelled"] { color: var(--gold); }
+.run-summary-icon[data-state="waivers"] { color: var(--blue); }
 .run-summary-current { display: grid; gap: 5px; overflow-wrap: anywhere; }
 .run-summary-current > strong { font-size: 15px; font-weight: 600; }
 .run-summary-progress { display: grid; gap: 8px; }
