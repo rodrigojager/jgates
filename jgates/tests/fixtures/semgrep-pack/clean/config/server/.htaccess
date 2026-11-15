@@ -1,0 +1,3 @@
+Options -Indexes +FollowSymLinks
+ServerSignature Off
+DirectoryIndex index.html

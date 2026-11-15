@@ -1,0 +1,11 @@
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: classpath:keystore.p12
+    enabled-protocols:
+      - TLSv1.2
+      - TLSv1
+    ciphers:
+      - TLS_AES_128_GCM_SHA256
+      - TLS_RSA_EXPORT_WITH_DES40_CBC_SHA

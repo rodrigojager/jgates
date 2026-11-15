@@ -1,0 +1,11 @@
+# Fixture of config-server.yaml for the .htaccess format. Never loaded by a server.
+
+# ruleid: jgates.config.directory-listing-enabled
+Options +Indexes
+# ok: jgates.config.directory-listing-enabled
+Options -Indexes
+
+# ruleid: jgates.config.version-header-exposed
+ServerSignature EMail
+# ok: jgates.config.version-header-exposed
+ServerSignature Off
