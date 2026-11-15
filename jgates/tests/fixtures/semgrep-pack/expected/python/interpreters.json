@@ -1,0 +1,12 @@
+{
+  "files": ["interpreters.py"],
+  "ruleIds": [
+    "jgates.python.ldap-injection",
+    "jgates.python.xpath-injection",
+    "jgates.python.template-from-request",
+    "jgates.python.xml-external-entity",
+    "jgates.python.xslt-from-request",
+    "jgates.python.latex-shell-escape",
+    "jgates.python.mail-header-injection"
+  ]
+}

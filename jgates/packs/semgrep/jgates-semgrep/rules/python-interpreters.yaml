@@ -1,0 +1,303 @@
+# Python rules: injection into interpreters other than SQL and the shell (LDAP, XPath, templates, XML
+# entities, XSLT, LaTeX, mail headers).
+# Sources: the Flask request object (args, form, values, json, data, cookies, headers) and the Django
+# request mappings (GET, POST). Sinks: ldap3 and python-ldap searches, lxml XPath and XSLT, Jinja2, Mako and
+# Django template compilation, the email package's legacy message classes. The engine is intra-procedural.
+rules:
+  - id: jgates.python.ldap-injection
+    message: An LDAP filter or base DN is built from the incoming request and passed to a search. Escape each value with escape_filter_chars (filters) or escape_dn_chars (DNs) before joining it.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-90"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.6"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.data
+      - pattern: request.cookies.get(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sanitizers:
+      - pattern: escape_filter_chars(...)
+      - pattern: ldap.filter.escape_filter_chars(...)
+      - pattern: ldap3.utils.conv.escape_filter_chars(...)
+      - pattern: escape_dn_chars(...)
+      - pattern: ldap.dn.escape_dn_chars(...)
+      - pattern: ldap3.utils.dn.escape_rdn(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $C.search($BASE, $F, ...)
+          - pattern-not: re.search(...)
+          - pattern-either:
+              - pattern-inside: |
+                  import ldap3
+                  ...
+              - pattern-inside: |
+                  from ldap3 import $X
+                  ...
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $C.search($BASE, $F, ...)
+          - pattern-not: re.search(...)
+          - pattern-either:
+              - pattern-inside: |
+                  import ldap3
+                  ...
+              - pattern-inside: |
+                  from ldap3 import $X
+                  ...
+          - focus-metavariable: $BASE
+      - patterns:
+          - pattern: $C.search(..., search_filter=$F, ...)
+          - pattern-either:
+              - pattern-inside: |
+                  import ldap3
+                  ...
+              - pattern-inside: |
+                  from ldap3 import $X
+                  ...
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $C.$M($BASE, $SCOPE, $F, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(search_s|search_st|search_ext|search_ext_s)$
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $C.$M($BASE, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(search_s|search_st|search_ext|search_ext_s)$
+          - focus-metavariable: $BASE
+
+  - id: jgates.python.xpath-injection
+    message: An XPath expression is built from the incoming request and then compiled or evaluated. Keep the expression a literal and pass the values as XPath variables (tree.xpath("//user[@name=$n]", n=value)).
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-643"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.7"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.data
+      - pattern: request.cookies.get(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sinks:
+      - patterns:
+          - pattern: $T.xpath($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: etree.XPath($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: lxml.etree.XPath($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: etree.XPathEvaluator(...).evaluate($X, ...)
+          - focus-metavariable: $X
+
+  - id: jgates.python.template-from-request
+    message: A template source is built from the incoming request and then compiled or rendered, which lets the sender run template expressions. Keep the template text a literal or a file and pass request values as render data.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1336"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.7"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.data
+      - pattern: request.cookies.get(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sinks:
+      - patterns:
+          - pattern: render_template_string($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: flask.render_template_string($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: jinja2.Template($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: mako.template.Template($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: django.template.Template($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: $E.from_string($T, ...)
+          - focus-metavariable: $T
+
+  - id: jgates.python.xml-external-entity
+    message: An XML parser is configured to resolve external entities or load DTDs, which exposes local files and internal hosts to the document's author. Leave entity resolution off (resolve_entities=False, no_network=True) or parse with defusedxml.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: xxe
+      cwe: "CWE-611"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.5.1"]
+    pattern-either:
+      - pattern: etree.XMLParser(..., resolve_entities=True, ...)
+      - pattern: lxml.etree.XMLParser(..., resolve_entities=True, ...)
+      - pattern: etree.XMLParser(..., load_dtd=True, ...)
+      - pattern: lxml.etree.XMLParser(..., load_dtd=True, ...)
+      - pattern: etree.XMLParser(..., no_network=False, ...)
+      - pattern: lxml.etree.XMLParser(..., no_network=False, ...)
+      - pattern: $P.setFeature(xml.sax.handler.feature_external_ges, True)
+      - pattern: $P.setFeature(xml.sax.handler.feature_external_pes, True)
+      - pattern: $P.setFeature("http://xml.org/sax/features/external-general-entities", True)
+      - pattern: $P.setFeature("http://xml.org/sax/features/external-parameter-entities", True)
+      - pattern: defusedxml.$M.$F(..., forbid_external=False, ...)
+      - pattern: defusedxml.$M.$F(..., forbid_dtd=False, ...)
+
+  - id: jgates.python.xslt-from-request
+    message: An XSLT stylesheet comes from the incoming request and is compiled, so the sender controls what the transform reads and runs. Compile only stylesheets shipped with the application and pass request data as the input document.
+    severity: WARNING
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-91"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.data
+      - pattern: request.get_data(...)
+      - pattern: request.files[...]
+      - pattern: request.files.get(...)
+      - pattern: request.POST.get(...)
+      - pattern: request.FILES[...]
+    pattern-sinks:
+      - patterns:
+          - pattern: etree.XSLT($S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: lxml.etree.XSLT($S, ...)
+          - focus-metavariable: $S
+
+  - id: jgates.python.latex-shell-escape
+    message: A LaTeX program is started with the shell-escape (write18) switch, which lets the document run shell commands. Leave it off, or use -no-shell-escape or -shell-restricted for a closed command list.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.8"]
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.$F($A, ...)
+          - pattern: os.system($A)
+          - pattern: os.popen($A, ...)
+          - pattern: asyncio.create_subprocess_exec(..., $A, ...)
+          - pattern: asyncio.create_subprocess_shell($A, ...)
+      - metavariable-regex:
+          metavariable: $A
+          regex: (?s).*(['"]-{1,2}(shell-escape|enable-write18)['"\s{]|\s-{1,2}(shell-escape|enable-write18)(['"\s{]|$))
+  - id: jgates.python.mail-header-injection
+    message: Data from the incoming request is placed in a mail header of a message built with the legacy MIME classes, which do not refuse line breaks. A line break in the value adds headers or recipients. Build the message with email.message.EmailMessage (it rejects line breaks) or strip CR and LF first.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.11"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.data
+      - pattern: request.cookies.get(...)
+      - pattern: request.headers.get(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sanitizers:
+      - pattern: $V.replace("\r", ...)
+      - pattern: $V.replace("\n", ...)
+      - pattern: $V.splitlines()[0]
+    pattern-sinks:
+      - patterns:
+          - pattern: $M[$H] = $X
+          - pattern-inside: |
+              $M = $CTOR(...)
+              ...
+          - metavariable-regex:
+              metavariable: $CTOR
+              regex: (^|\.)(MIMEText|MIMEMultipart|MIMEBase|MIMEApplication|MIMEImage|MIMEAudio|Message)$
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^['"](subject|to|from|cc|bcc|reply-to|sender|return-path)['"]$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $M.add_header($H, $X, ...)
+          - pattern-inside: |
+              $M = $CTOR(...)
+              ...
+          - metavariable-regex:
+              metavariable: $CTOR
+              regex: (^|\.)(MIMEText|MIMEMultipart|MIMEBase|MIMEApplication|MIMEImage|MIMEAudio|Message)$
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^['"](subject|to|from|cc|bcc|reply-to|sender|return-path)['"]$
+          - focus-metavariable: $X
