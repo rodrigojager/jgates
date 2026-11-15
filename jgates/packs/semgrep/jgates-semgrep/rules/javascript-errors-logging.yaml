@@ -1,0 +1,179 @@
+# Group errors-logging for JavaScript and TypeScript.
+# Libraries covered: console, winston, pino, bunyan and any logger object named like one (log, logger, this.logger);
+# Express and Fastify style responses (res.send, res.json, res.end, reply.send) and Koa (ctx.body); the try/catch
+# statement and Promise catch handlers; axios.
+# The name lists of the pack apply to the identifier, the property or the object key that holds the value.
+rules:
+  - id: jgates.js.sensitive-data-logged
+    message: A value named like a password, a secret, a token or an authorization header is given to a logging call, so it ends up in the log files. Log an identifier of the account or a masked value instead, and never the credential itself.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-inside: $L.$M(...)
+      - pattern-either:
+          - patterns:
+              - pattern: $L.$M(..., $X, ...)
+              - metavariable-regex:
+                  metavariable: $X
+                  regex: (?i)^[\w$.]*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|authorization)$
+          - patterns:
+              - pattern: $L.$M(..., $A + $X, ...)
+              - metavariable-regex:
+                  metavariable: $X
+                  regex: (?i)^[\w$.]*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|authorization)$
+          - patterns:
+              - pattern: $L.$M(..., $X + $A, ...)
+              - metavariable-regex:
+                  metavariable: $X
+                  regex: (?i)^[\w$.]*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|authorization)$
+          - patterns:
+              - pattern: $L.$M(..., `...${$X}...`, ...)
+              - metavariable-regex:
+                  metavariable: $X
+                  regex: (?i)^[\w$.]*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|authorization)$
+          - patterns:
+              - pattern: '$L.$M(..., {..., $K: $V, ...}, ...)'
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: (?i)^["']?[\w$]*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|authorization)["']?$
+              - metavariable-regex:
+                  metavariable: $V
+                  regex: ^[\w$.]
+          - patterns:
+              - pattern: '$L.$M(..., {..., $K, ...}, ...)'
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: (?i)^[\w$]*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|authorization)$
+      - metavariable-regex:
+          metavariable: $L
+          regex: ^(console|log|logger|winston|pino|bunyan|this\.logger|this\.log|req\.log|request\.log|ctx\.log|fastify\.log)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(log|info|warn|error|debug|trace|fatal|verbose|silly|http)$
+
+  - id: jgates.js.stack-trace-in-response
+    message: A stack trace is written to the HTTP response, so the caller learns file paths, library versions and the shape of the code. Log the error on the server and send a generic message with a correlation id.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    patterns:
+      - pattern: $E.stack
+      - metavariable-regex:
+          metavariable: $E
+          regex: ^(err|error|e|ex|exc|exception|reason|cause|this\.error)$
+      - pattern-inside: $RES.$M(...)
+      - metavariable-regex:
+          metavariable: $RES
+          regex: ^(res|resp|response|reply|rep)(\.\w+\([^()]*\))*$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(send|json|jsonp|end|write)$
+
+  - id: jgates.js.stack-trace-in-response-koa
+    message: A stack trace is assigned to the Koa response body, so the caller learns file paths, library versions and the shape of the code. Log the error on the server and send a generic message with a correlation id.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    patterns:
+      - pattern: $E.stack
+      - metavariable-regex:
+          metavariable: $E
+          regex: ^(err|error|e|ex|exc|exception|reason|cause)$
+      - pattern-inside: $CTX.body = ...
+      - metavariable-regex:
+          metavariable: $CTX
+          regex: ^(ctx|context)$
+
+  - id: jgates.js.error-detail-in-response
+    message: The message of an exception is written to the HTTP response, so internal detail such as a query, a path or a host name reaches the caller. Send a generic message and log the exception on the server.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    patterns:
+      - pattern: $E.message
+      - metavariable-regex:
+          metavariable: $E
+          regex: ^(err|error|e|ex|exc|exception)$
+      - pattern-inside: $RES.$M(...)
+      - metavariable-regex:
+          metavariable: $RES
+          regex: ^(res|resp|response|reply|rep)(\.\w+\([^()]*\))*$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(send|json|jsonp|end|write)$
+
+  - id: jgates.js.swallowed-exception
+    message: An error is caught and dropped because the handler is empty, so nothing is logged, rethrown or handled and a failure goes unnoticed. Log the error, rethrow it or handle it explicitly.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: error-handling
+      cwe: "CWE-390"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.3.4", "V16.5.3"]
+    pattern-either:
+      - pattern: |
+          try {
+            ...
+          } catch ($E) {}
+      - pattern: |
+          try {
+            ...
+          } catch {}
+      - pattern: $P.catch(() => {})
+      - pattern: $P.catch(function () {})
+      - pattern: $P.catch(($E) => {})
+      - pattern: $P.catch(function ($E) {})
+
+  - id: jgates.js.http-client-without-timeout
+    message: An axios call is made without a timeout, and axios waits forever by default, so a stalled server holds the request and its resources. Pass a timeout in the request options, or create the client with axios.create and a timeout.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: availability
+      cwe: "CWE-400"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.2", "V13.2.6", "V15.2.2"]
+    patterns:
+      - pattern-either:
+          - pattern: axios.get($U)
+          - pattern: axios.get($U, {...})
+          - pattern: axios.delete($U)
+          - pattern: axios.delete($U, {...})
+          - pattern: axios.head($U)
+          - pattern: axios.head($U, {...})
+          - pattern: axios.options($U)
+          - pattern: axios.options($U, {...})
+          - pattern: axios.post($U, $D)
+          - pattern: axios.post($U, $D, {...})
+          - pattern: axios.put($U, $D)
+          - pattern: axios.put($U, $D, {...})
+          - pattern: axios.patch($U, $D)
+          - pattern: axios.patch($U, $D, {...})
+          - pattern: axios({...})
+          - pattern: axios.request({...})
+      - pattern-not: 'axios.$M(..., {..., timeout: $T, ...})'
+      - pattern-not: 'axios({..., timeout: $T, ...})'

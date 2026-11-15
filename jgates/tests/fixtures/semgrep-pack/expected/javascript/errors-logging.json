@@ -1,0 +1,11 @@
+{
+  "files": ["errors-logging.js"],
+  "ruleIds": [
+    "jgates.js.sensitive-data-logged",
+    "jgates.js.stack-trace-in-response",
+    "jgates.js.stack-trace-in-response-koa",
+    "jgates.js.error-detail-in-response",
+    "jgates.js.swallowed-exception",
+    "jgates.js.http-client-without-timeout"
+  ]
+}
