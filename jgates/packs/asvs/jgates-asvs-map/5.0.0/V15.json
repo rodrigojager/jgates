@@ -39,7 +39,7 @@
     },
     {
       "requirement": "V15.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -79,11 +79,15 @@
           "depth": "partial"
         }
       ],
-      "why": "A component with a published advisory that is still in the project is the visible sign of a breached remediation window. The tools find the advisory, not the project's own deadline, so each check is partial."
+      "why": "A component with a published advisory that is still in the project is the visible sign of a breached remediation window. The tools find the advisory, not the project's own deadline, so each check is partial.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.2.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -132,7 +136,11 @@
           "depth": "partial"
         }
       ],
-      "why": "An outbound call that never times out is one concrete way a slow dependency exhausts the service's workers, which this item guards against. The rules see only that case; rate limits, size limits and queue bounds stay outside."
+      "why": "An outbound call that never times out is one concrete way a slow dependency exhausts the service's workers, which this item guards against. The rules see only that case; rate limits, size limits and queue bounds stay outside.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.2.3",
@@ -143,7 +151,7 @@
     },
     {
       "requirement": "V15.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -163,7 +171,7 @@
             "supply-chain/missing-integrity"
           ],
           "covers": "Lockfile entries of npm and Python that resolve from a registry host outside the trusted list, from a git or URL source, or with no integrity hash, which is where a name can be taken by another party.",
-          "misses": "Registry-side controls such as namespace reservation, ecosystems with no lockfile reader (only npm and Python lockfiles are read), and resolver settings outside the lockfiles.",
+          "misses": "Registry-side controls such as namespace reservation, ecosystems with no lockfile reader (only npm and Python lockfiles are read, and requirements.txt only when the lockfiles setting names it), and resolver settings outside the lockfiles.",
           "depth": "partial"
         },
         {
@@ -174,12 +182,16 @@
             "ref-confusion",
             "impostor-commit"
           ],
-          "covers": "CI workflow references to actions that are not pinned to an immutable commit, or whose reference can be read as a branch or a tag, the pipeline form of a source the name does not fix.",
-          "misses": "Package resolution inside the build steps, registries chosen by the runner's environment, and the audits that need the GitHub API (they run only when the instance turns offline mode off).",
+          "covers": "Workflow references to actions that are not pinned to an immutable commit (the offline audit unpinned-uses); when the instance runs online, two more audits of the stage count: a name that is both a branch and a tag (ref-confusion) and a pinned commit that does not belong to the action's own repository (impostor-commit).",
+          "misses": "Package resolution inside the build steps, registries chosen by the runner's environment, and, in the default offline mode, the two audits that need the GitHub API: a clean default run says nothing about ref confusion or impostor commits.",
           "depth": "partial"
         }
       ],
-      "why": "The ledger block reads the resolver configuration; the supply-chain tool reads the lockfiles for sources and integrity that leave a name open to substitution, and the workflow audit does the same for pipeline references. Identifiers for supply-chain were read in the adapter's analyzer (src/adapters/supply-chain/analyze.ts); those for zizmor come from the audit names in its documentation of the pinned range and were not seen in a recorded report here, so the review has to confirm them."
+      "why": "The ledger block reads the resolver configuration; the supply-chain tool reads the lockfiles for sources and integrity that leave a name open to substitution, and the workflow audit does the same for pipeline references. The tool identifiers were read in the adapters' normalizers (the supply-chain analyzer and the zizmor ident); the zizmor audit names are those of its documentation, and two of the three need its online mode.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.2.5",
@@ -190,7 +202,7 @@
     },
     {
       "requirement": "V15.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -218,11 +230,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Returning every field of a data object is the exact shape of returning more than the caller needs. The rules find the declared-all form only, so the check is partial."
+      "why": "Returning every field of a data object is the exact shape of returning more than the caller needs. The rules find the declared-all form only, so the check is partial.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -239,15 +255,19 @@
           "unit": "semgrep-rule",
           "id": "jgates.php.outbound-request-follows-redirects",
           "covers": "PHP outbound requests whose address comes from request data while redirect following is left on, the default of Guzzle and the Laravel HTTP client.",
-          "misses": "Other PHP HTTP clients, addresses that reach the call through another function, and every other language.",
+          "misses": "Calls to fixed addresses that follow redirects, other PHP HTTP clients, addresses that reach the call through another function, and every other language.",
           "depth": "partial"
         }
       ],
-      "why": "The audit block follows redirect handling in fetches, and the rule marks the PHP case where the address is caller-chosen and redirects stay enabled."
+      "why": "The audit block follows redirect handling in fetches, and the rule marks the PHP case where the address is caller-chosen and redirects stay enabled.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.3.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -303,11 +323,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block asks whether a body field can change what the action did not mean to change, and the rules name the construct that binds the whole request to a model, in six languages."
+      "why": "The audit block asks whether a body field can change what the action did not mean to change, and the rules name the construct that binds the whole request to a model, in six languages.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.3.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -324,57 +348,61 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.client-ip-from-forwarded-header",
           "covers": "The client address read straight from a forwarding header in JavaScript and TypeScript handlers.",
-          "misses": "A trust-proxy setting that makes the header safe, the address passing through a helper, and the proxy chain itself.",
+          "misses": "A permissive trust-proxy setting that lets the framework's own address follow a forged header, the address passing through a helper, and the proxy chain itself.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.client-ip-from-forwarded-header",
           "covers": "The client address read straight from a forwarding header in Python request handlers.",
-          "misses": "A trusted-proxy middleware that makes the header safe, the address passing through a helper, and the proxy chain itself.",
+          "misses": "A trusted-proxy middleware set to accept the header from any sender, the address passing through a helper, and the proxy chain itself.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.client-ip-from-forwarded-header",
           "covers": "The client address read straight from a forwarding header in C# handlers.",
-          "misses": "The forwarded-headers middleware configured for known proxies, the address passing through a helper, and the proxy chain itself.",
+          "misses": "Forwarded-headers middleware that accepts the header from any sender, the address passing through a helper, and the proxy chain itself.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.client-ip-from-forwarded-header",
           "covers": "The client address read straight from a forwarding header in Go handlers.",
-          "misses": "A trusted-proxy setting in the router, the address passing through a helper, and the proxy chain itself.",
+          "misses": "A router set to trust every proxy (the default of some frameworks), the address passing through a helper, and the proxy chain itself.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.client-ip-from-forwarded-header",
           "covers": "The client address read straight from a forwarding header in Java handlers.",
-          "misses": "A container configured to rewrite the address for known proxies, the address passing through a helper, and the proxy chain itself.",
+          "misses": "A container or filter that rewrites the address from the header for any sender, the address passing through a helper, and the proxy chain itself.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.client-ip-from-forwarded-header",
           "covers": "The client address read straight from a forwarding header in PHP code.",
-          "misses": "Trusted proxies configured in the framework, the address passing through a helper, and the proxy chain itself.",
+          "misses": "Trusted proxies set to accept any sender in the framework, the address passing through a helper, and the proxy chain itself.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.client-ip-from-forwarded-header",
           "covers": "The client address read straight from a forwarding header in Rust handlers.",
-          "misses": "A proxy that overwrites the header before it reaches the program, the address passing through a helper, and the proxy chain itself.",
+          "misses": "A framework helper that trusts the header on its own (only one actix call is modeled), the address passing through a helper, and the proxy chain itself.",
           "depth": "partial"
         }
       ],
-      "why": "The audit block treats forwarded-address headers as trust decisions, and the rules mark the read of such a header as the client address in each language, which is the part of the item a pattern can see."
+      "why": "The audit block treats forwarded-address headers as trust decisions, and the rules mark the read of such a header as the client address in each language, which is the part of the item a pattern can see.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.3.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -388,11 +416,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Type juggling in a comparison is the named weakness, and PHP is where the language makes it the default behaviour of the equality operator. Other languages need their own rules and stay outside."
+      "why": "Type juggling in a comparison is the named weakness, and PHP is where the language makes it the default behaviour of the equality operator. Other languages need their own rules and stay outside.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.3.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -409,14 +441,14 @@
           "unit": "semgrep-rule",
           "id": "jgates.js.prototype-pollution",
           "covers": "A property name taken from the request that is used to reach into an object and assign a value, with no check of the reserved names.",
-          "misses": "Names that reach the write through another function, key checks written in a form the rule does not recognize, and server code that is not JavaScript.",
+          "misses": "Names that reach the write through another function, key checks written in a form the rule does not recognize, a function that merely mentions the reserved name anywhere is treated as guarded, and server code that is not JavaScript.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.prototype-pollution-recursive-merge",
           "covers": "Hand-written recursive merges that copy every key of their source without skipping the reserved names.",
-          "misses": "Merge functions of libraries (their versions are a dependency question), merges using another loop shape, and merges into objects without a prototype.",
+          "misses": "Merge functions of libraries (their versions are a dependency question), merges using another loop shape, merges into objects without a prototype, and a function that merely mentions the reserved name anywhere is treated as guarded.",
           "depth": "partial"
         }
       ],
@@ -428,11 +460,15 @@
           ]
         }
       },
-      "why": "Prototype pollution exists in JavaScript and TypeScript only; the audit block and the two rules look for the write and the unguarded merge that cause it."
+      "why": "Prototype pollution exists in JavaScript and TypeScript only; the audit block and the two rules look for the write and the unguarded merge that cause it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.3.7",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -444,7 +480,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern tells which source a framework prefers for a repeated parameter; reading how handlers pick their inputs is a judgment the AI review can make and a person must still check."
+      "why": "No pattern tells which source a framework prefers for a repeated parameter; reading how handlers pick their inputs is a judgment the AI review can make and a person must still check.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V15.4.1",
@@ -463,7 +503,7 @@
       "why": "The audit block looks for state shared between concurrent paths that lacks the guard, which is the weakness this item names.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-14"
+        "date": "2026-11-15"
       }
     },
     {
@@ -490,7 +530,7 @@
       "why": "Both audit blocks name the gap between a check and its use as the thing to hunt.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-14"
+        "date": "2026-11-15"
       }
     },
     {
@@ -510,7 +550,7 @@
       "why": "The audit block hunts deadlocks from lock ordering, which is the stuck-thread half of this item.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-14"
+        "date": "2026-11-15"
       }
     },
     {
@@ -530,7 +570,7 @@
       "why": "The audit block looks for starvation of shared workers, the failure this item guards against.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-14"
+        "date": "2026-11-15"
       }
     }
   ]

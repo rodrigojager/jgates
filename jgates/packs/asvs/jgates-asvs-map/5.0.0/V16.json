@@ -11,7 +11,7 @@
     },
     {
       "requirement": "V16.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -23,7 +23,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Whether an entry carries enough metadata for an investigation depends on the logger's format and on each call site, a judgment no pattern makes."
+      "why": "Whether an entry carries enough metadata for an investigation depends on the logger's format and on each call site, a judgment no pattern makes.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V16.2.2",
@@ -48,7 +52,7 @@
     },
     {
       "requirement": "V16.2.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "secrets",
@@ -154,11 +158,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Both audit blocks look for sensitive values reaching logs, and the rules name the credential-named value in a logging call in each language, which is the violation this item forbids when the name gives it away."
+      "why": "Both audit blocks look for sensitive values reaching logs, and the rules name the credential-named value in a logging call in each language, which is the violation this item forbids when the name gives it away.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V16.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -170,11 +178,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Whether every authentication path logs both outcomes is a question about the presence of a call in many places, which a model can read and a pattern cannot decide."
+      "why": "Whether every authentication path logs both outcomes is a question about the presence of a call in many places, which a model can read and a pattern cannot decide.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V16.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -186,11 +198,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The presence of a log call on each refusal branch is a judgment over the authorization code, which the AI review can examine."
+      "why": "The presence of a log call on each refusal branch is a judgment over the authorization code, which the AI review can examine.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V16.3.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -202,11 +218,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Whether rejected requests leave a trace depends on each control's failure branch, read in context against what the project calls a security event."
+      "why": "Whether rejected requests leave a trace depends on each control's failure branch, read in context against what the project calls a security event.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V16.3.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -255,7 +275,11 @@
           "depth": "partial"
         }
       ],
-      "why": "An error that is caught and dropped is never logged, which is the direct opposite of this item. The rules see the empty handler, not a handler that logs poorly or a security failure that never throws."
+      "why": "An error that is caught and dropped is never logged, which is the direct opposite of this item. The rules see the empty handler, not a handler that logs poorly or a security failure that never throws.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V16.4.1",
@@ -276,7 +300,7 @@
       "why": "The injection block lists log injection as a sink to trace, which is what this item asks to prevent.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-14"
+        "date": "2026-11-15"
       }
     },
     {
@@ -295,7 +319,7 @@
     },
     {
       "requirement": "V16.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -426,11 +450,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The method category and the rules find error detail written into responses in source and in framework configuration; the ZAP check finds what the running pages return. The ZAP identifiers are the passive-scan alerts for application error disclosure and debug error messages: ruleId is the alert reference of the report (src/adapters/zap/normalize.ts, recorded ZAP 2.17.0 report), and the two alert numbers come from the ZAP alert documentation, not from a recorded report with those alerts, so the review has to confirm them."
+      "why": "The method category and the rules find error detail written into responses in source and in framework configuration; the ZAP check finds what the running pages return. The ZAP identifiers are the alert references of the report (the pluginid of ZAP's application error disclosure and debug error message rules, whose alert reference is not suffixed), matched exactly against the stage's findings.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V16.5.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -479,23 +507,20 @@
           "depth": "partial"
         }
       ],
-      "why": "A call with no timeout cannot fail in time, which blocks any graceful behaviour when an external resource stops answering. The rules see this precondition only; circuit breakers and degraded modes are outside what a pattern shows."
+      "why": "A call with no timeout cannot fail in time, which blocks any graceful behaviour when an external resource stops answering. The rules see this precondition only; circuit breakers and degraded modes are outside what a pattern shows.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V16.5.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
       ],
       "checks": [
-        {
-          "unit": "semantic-ledger",
-          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Retry storm and fail-open amplification",
-          "covers": "Failure paths that continue or retry when a dependency or a check fails, treating the failure as a pass.",
-          "misses": "Validation failures in business logic that are not about availability, and behaviour that depends on deployed components.",
-          "depth": "partial"
-        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.swallowed-exception",
@@ -539,11 +564,15 @@
           "depth": "partial"
         }
       ],
-      "why": "A dropped error is the simplest way a flow goes on after a failed check. The ledger block reads the wider fail-open paths; the rules mark only the empty handler."
+      "why": "A dropped error is the simplest way a flow goes on after a failed check, and the rules mark only the empty handler. Fail-open logic that raises no error, and what the code does after a validation fails, stay outside what a pattern shows.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V16.5.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -562,7 +591,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The existence of one catch-all handler at the entry point is a fact about the application's wiring, which a model can read and no single pattern covers across frameworks."
+      "why": "The existence of one catch-all handler at the entry point is a fact about the application's wiring, which a model can read and no single pattern covers across frameworks.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     }
   ]
 }

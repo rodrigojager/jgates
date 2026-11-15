@@ -74,15 +74,15 @@
     },
     {
       "requirement": "V17.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
         {
           "unit": "semantic-ledger",
           "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Pre-authentication work imbalance",
-          "covers": "Work a requester can force on a server before it is authenticated, with little effort of its own, which a flood of signaling messages exploits.",
-          "misses": "Limits applied by a proxy or gateway in front of the signaling server, and which signaling protocol the project uses.",
+          "covers": "Whether a server puts a size or rate gate in front of the work a requester can force before it is authenticated, the part of signaling flood handling that happens before a peer is known.",
+          "misses": "Limits on messages from authenticated peers, limits applied by a proxy or gateway in front of the signaling server, and which signaling protocol the project uses.",
           "depth": "partial"
         },
         {
@@ -98,7 +98,11 @@
           "webrtc"
         ]
       },
-      "why": "A signaling-level limit is a property of the server's message handlers, read in context; the requirement concerns only projects that use WebRTC."
+      "why": "A signaling-level limit is a property of the server's message handlers, read in context; the requirement concerns only projects that use WebRTC.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V17.3.2",
@@ -114,10 +118,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block hunts malformed input that takes a shared service down, the failure this item describes for a signaling server.",
+      "applies": {
+        "technology": [
+          "webrtc"
+        ]
+      },
+      "why": "The audit block hunts malformed input that takes a shared service down, the failure this item describes for a signaling server; the requirement concerns only projects that use WebRTC.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-14"
+        "date": "2026-11-15"
       }
     }
   ]
