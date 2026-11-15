@@ -1,0 +1,537 @@
+# Interpreters other than SQL and the shell. Sources named by the taint rules: HttpServletRequest getters (parameters,
+# headers, query string, path info, request URI), Spring MVC parameters annotated @RequestParam, @PathVariable,
+# @RequestBody or @RequestHeader, and JAX-RS parameters annotated @QueryParam, @PathParam, @FormParam or @HeaderParam.
+# Sinks: JNDI and Spring LDAP searches, javax.xml.xpath and dom4j XPath, Velocity, FreeMarker, Handlebars, Pebble,
+# Jinjava and Mustache template compilation, JAXP stylesheets. Non-literal rules cover script engines, SpEL, OGNL,
+# MVEL, Groovy, BeanShell, JEXL, javax.el and JNDI lookups, and the LaTeX shell-escape switches. The analysis stays
+# inside one method.
+rules:
+  - id: jgates.java.ldap-injection
+    message: Request data is joined into an LDAP filter or distinguished name. Escape each value with LdapEncoder.filterEncode or Rdn.escapeValue, or pass it as a filter argument.
+    severity: ERROR
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-90"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.6"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sanitizers:
+      - pattern: LdapEncoder.filterEncode(...)
+      - pattern: LdapEncoder.nameEncode(...)
+      - pattern: Rdn.escapeValue(...)
+      - pattern: Encode.forLdap(...)
+      - pattern: Encode.forLdapDn(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: (DirContext $C).search($N, $F, ...)
+              - pattern: (InitialDirContext $C).search($N, $F, ...)
+              - pattern: (LdapContext $C).search($N, $F, ...)
+              - pattern: (InitialLdapContext $C).search($N, $F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern-either:
+              - pattern: (DirContext $C).search($N, $F, ...)
+              - pattern: (InitialDirContext $C).search($N, $F, ...)
+              - pattern: (LdapContext $C).search($N, $F, ...)
+              - pattern: (InitialLdapContext $C).search($N, $F, ...)
+          - focus-metavariable: $N
+      - patterns:
+          - pattern-either:
+              - pattern: (LdapTemplate $T).search($B, $F, ...)
+              - pattern: (LdapTemplate $T).searchForObject($B, $F, ...)
+              - pattern: (LdapTemplate $T).authenticate($B, $F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern-either:
+              - pattern: (LdapTemplate $T).search($B, $F, $X, ...)
+              - pattern: (LdapTemplate $T).searchForObject($B, $F, $X, ...)
+              - pattern: (LdapTemplate $T).authenticate($B, $F, $X, ...)
+          - focus-metavariable: $B
+      - patterns:
+          - pattern: LdapQueryBuilder.query().filter($F)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: new LdapName($N)
+          - focus-metavariable: $N
+
+  - id: jgates.java.xpath-injection
+    message: Request data is joined into an XPath expression that is compiled or evaluated. Keep the expression a literal and pass values through an XPathVariableResolver.
+    severity: ERROR
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-643"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.7"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sanitizers:
+      - pattern: $ENC.encodeForXPath(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: (XPath $X).evaluate($E, ...)
+              - pattern: (XPath $X).compile($E)
+              - pattern: (XPath $X).evaluateExpression($E, ...)
+              - pattern: XPathFactory.newInstance().newXPath().evaluate($E, ...)
+              - pattern: XPathFactory.newInstance().newXPath().compile($E)
+              - pattern: (Node $D).selectNodes($E, ...)
+              - pattern: (Node $D).selectSingleNode($E)
+              - pattern: (Document $D).selectNodes($E, ...)
+              - pattern: (Document $D).selectSingleNode($E)
+              - pattern: (Element $D).selectNodes($E, ...)
+              - pattern: (Element $D).selectSingleNode($E)
+              - pattern: new DOMXPath($E)
+              - pattern: new Dom4jXPath($E)
+              - pattern: DocumentHelper.createXPath($E)
+              - pattern: (AutoPilot $A).selectXPath($E)
+          - focus-metavariable: $E
+
+  - id: jgates.java.template-from-request
+    message: Request data becomes the source of a template that is compiled or rendered. Load a fixed template and pass the request data in the template context.
+    severity: ERROR
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1336"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.7"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: Velocity.evaluate($C, $W, $T, $S)
+              - pattern: (VelocityEngine $V).evaluate($C, $W, $T, $S)
+              - pattern: new Template($N, new StringReader($S), ...)
+              - pattern: (Handlebars $H).compileInline($S, ...)
+              - pattern: (PebbleEngine $E).getLiteralTemplate($S)
+              - pattern: (Jinjava $J).render($S, ...)
+              - pattern: (MustacheFactory $F).compile(new StringReader($S), ...)
+          - focus-metavariable: $S
+
+  - id: jgates.java.dynamic-code-execution
+    message: A script engine or expression language evaluates text that is not a literal. Use a fixed expression with bound variables, or a restricted evaluation context such as SimpleEvaluationContext.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: injection
+      cwe: "CWE-95"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.2"]
+    patterns:
+      - pattern-either:
+          - pattern: (ScriptEngine $E).eval($X, ...)
+          - pattern: new ScriptEngineManager().getEngineByName(...).eval($X, ...)
+          - pattern: (ExpressionParser $P).parseExpression($X, ...)
+          - pattern: (SpelExpressionParser $P).parseExpression($X, ...)
+          - pattern: new SpelExpressionParser().parseExpression($X, ...)
+          - pattern: Ognl.parseExpression($X)
+          - pattern: Ognl.getValue((String $X), ...)
+          - pattern: Ognl.setValue((String $X), ...)
+          - pattern: MVEL.eval($X, ...)
+          - pattern: MVEL.compileExpression($X, ...)
+          - pattern: (GroovyShell $G).evaluate($X, ...)
+          - pattern: new GroovyShell(...).evaluate($X, ...)
+          - pattern: (GroovyShell $G).parse($X, ...)
+          - pattern: (Interpreter $I).eval($X)
+          - pattern: (JexlEngine $J).createExpression($X)
+          - pattern: (JexlEngine $J).createScript($X, ...)
+          - pattern: (ExpressionFactory $F).createValueExpression($C, $X, ...)
+      # Not a single literal, a concatenation of literals or a constant (an upper-case name such as SCRIPT or Scripts.SUM).
+      - metavariable-regex:
+          metavariable: $X
+          regex: '^(?!"[^"]*"(?:\s*\+\s*"[^"]*")*$)(?!(?:\w+\.)*[A-Z][A-Z0-9_]*$)'
+
+  - id: jgates.java.jndi-lookup-from-request
+    message: A JNDI lookup uses a name that is not a literal, so a caller can point it at a remote object. Look up a fixed name such as java:comp/env/jdbc/app.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: injection
+      cwe: "CWE-74"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.8"]
+    patterns:
+      - pattern-either:
+          - pattern: (Context $C).lookup($X)
+          - pattern: (InitialContext $C).lookup($X)
+          - pattern: (DirContext $C).lookup($X)
+          - pattern: (InitialDirContext $C).lookup($X)
+          - pattern: (LdapContext $C).lookup($X)
+          - pattern: new InitialContext().lookup($X)
+          - pattern: (JndiTemplate $C).lookup($X, ...)
+          - pattern: new JndiTemplate().lookup($X, ...)
+      - metavariable-regex:
+          metavariable: $X
+          regex: '^(?!"[^"]*"(?:\s*\+\s*"[^"]*")*$)(?!(?:\w+\.)*[A-Z][A-Z0-9_]*$)'
+
+  - id: jgates.java.xslt-from-request
+    message: Request data becomes the stylesheet that is compiled. Load a fixed stylesheet and pass request values as stylesheet parameters, with secure processing switched on.
+    severity: WARNING
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-91"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: (TransformerFactory $F).newTransformer($S)
+              - pattern: (TransformerFactory $F).newTemplates($S)
+              - pattern: TransformerFactory.newInstance().newTransformer($S)
+              - pattern: TransformerFactory.newInstance().newTemplates($S)
+          - focus-metavariable: $S
+
+  - id: jgates.java.latex-shell-escape
+    message: A LaTeX program is started with the shell-escape or write18 switch, so a document can run commands. Compile without it (the default is restricted) and keep input out of the document source.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.8"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: new ProcessBuilder(..., $F, ...)
+              - pattern: new String[] {..., $F, ...}
+              - pattern: List.of(..., $F, ...)
+              - pattern: Arrays.asList(..., $F, ...)
+              - pattern: $PB.command(..., $F, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '^"--?(shell-escape|enable-write18)"$'
+      - patterns:
+          - pattern-either:
+              - pattern: Runtime.getRuntime().exec($C, ...)
+              - pattern: new ProcessBuilder($C, ...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^"[^"]*tex[^"]*\s--?(shell-escape|enable-write18)(\s[^"]*)?"$'
