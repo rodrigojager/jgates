@@ -1,0 +1,219 @@
+# Signal rules of the Go front: which technologies a project uses (jgates.go.uses-<tag>).
+# They are records of the scan, never findings: they feed the "not applicable" suggestions.
+# Each rule matches the import of the libraries that bring the technology into a Go project, or the typical call
+# where the standard library needs no dependency. Imports are syntax, so a comment or a string that only mentions
+# a library does not match. The tag "latex" has no signal in Go: no library is common enough to list with confidence.
+rules:
+  - id: jgates.go.uses-graphql
+    message: The project uses GraphQL.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: graphql
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(github\.com/(graphql-go/[^"]*|99designs/gqlgen|vektah/gqlparser|graph-gophers/graphql-go|machinebox/graphql|hasura/go-graphql-client|shurcooL/graphql|shurcooL/githubv4|Yamashou/gqlgenc|samsarahq/thunder|appleboy/gin-graphql|dosco/graphjin|arsmn/fastgql|nautilus/[^"]*)|entgo\.io/contrib/entgql)(/.*)?"?$
+
+  - id: jgates.go.uses-websocket
+    message: The project uses WebSocket.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: websocket
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(github\.com/(gorilla/websocket|coder/websocket|gobwas/ws|olahol/melody|googollee/go-socket\.io|googollee/go-engine\.io|fasthttp/websocket|gofiber/websocket|gofiber/contrib/websocket|centrifugal/centrifuge|centrifugal/centrifuge-go|lesismal/nbio|lxzan/gws|igm/sockjs-go|sacOO7/gowebsocket|recws-org/recws|zishang520/socket\.io[^"]*)|nhooyr\.io/websocket|golang\.org/x/net/websocket|gopkg\.in/olahol/melody\.v[0-9]+)(/.*)?"?$
+
+  - id: jgates.go.uses-webrtc
+    message: The project uses WebRTC.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: webrtc
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(github\.com/(pion/[^"]*|livekit/server-sdk-go|livekit/server-sdk-go/v[0-9]+|livekit/protocol|livekit/livekit-server|AlexxIT/go2rtc|jech/galene|keroserene/go-webrtc|notedit/janus-go))(/.*)?"?$
+
+  - id: jgates.go.uses-oauth-client
+    message: The project uses OAuth 2.0 or OpenID Connect as a client.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: oauth-client
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(golang\.org/x/oauth2|gopkg\.in/oauth2\.v[0-9]+|github\.com/(coreos/go-oidc|zitadel/oidc|markbates/goth|dghubble/oauth1|dghubble/gologin|int128/oauth2cli|AzureAD/microsoft-authentication-library-for-go|okta/okta-jwt-verifier-golang|mrjones/oauth|garyburd/go-oauth|oauth2-proxy/oauth2-proxy|Nerzal/gocloak))(/.*)?"?$
+
+  - id: jgates.go.uses-oauth-authorization-server
+    message: The project runs an OAuth 2.0 or OpenID Connect authorization server.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: oauth-authorization-server
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(github\.com/(ory/fosite|ory/hydra|go-oauth2/oauth2|go-oauth2/gin-server|RangelReale/osin|openshift/osin|dexidp/dex|zitadel/zitadel|luikyv/go-oidc)|gopkg\.in/oauth2\.v[0-9]+/server|gopkg\.in/oauth2\.v[0-9]+/manage|gopkg\.in/oauth2\.v[0-9]+/store|gopkg\.in/oauth2\.v[0-9]+/generates)(/.*)?"?$
+
+  - id: jgates.go.uses-jwt
+    message: The project uses JSON Web Tokens.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: jwt
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(github\.com/(golang-jwt/jwt|dgrijalva/jwt-go|form3tech-oss/jwt-go|lestrrat-go/jwx|go-jose/go-jose|square/go-jose|cristalhq/jwt|pascaldekloe/jwt|gbrlsnchs/jwt|auth0/go-jwt-middleware|appleboy/gin-jwt|labstack/echo-jwt|gofiber/jwt|gofiber/contrib/jwt|gin-contrib/jwt|kataras/jwt|SermoDigital/jose|MicahParks/keyfunc|MicahParks/jwkset|go-chi/jwtauth|brianvoe/sjwt|robbert229/jwt|o1egl/paseto)|gopkg\.in/square/go-jose\.v[0-9]+|gopkg\.in/go-jose/go-jose\.v[0-9]+|gopkg\.in/dgrijalva/jwt-go\.v[0-9]+|gopkg\.in/appleboy/gin-jwt\.v[0-9]+)(/.*)?"?$
+
+  - id: jgates.go.uses-saml
+    message: The project uses SAML.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: saml
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(github\.com/(crewjam/saml|russellhaering/gosaml2|russellhaering/goxmldsig|RobotsAndPencils/go-saml|zitadel/saml|mattermost/gosaml2|onelogin/go-saml)|gopkg\.in/crewjam/saml\.v[0-9]+)(/.*)?"?$
+
+  - id: jgates.go.uses-totp
+    message: The project uses time-based or counter-based one-time passwords.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: totp
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(github\.com/(pquerna/otp|xlzd/gotp|dgryski/dgoogauth|hgfischer/go-otp|sec51/twofactor|gokyle/hotp|gokyle/twofactor|jltorresm/otpgo|creachadair/otp|wneessen/go-otp|bjarneh/totp)|rsc\.io/2fa|gopkg\.in/pquerna/otp\.v[0-9]+)(/.*)?"?$
+
+  - id: jgates.go.uses-ldap
+    message: The project uses LDAP.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: ldap
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(github\.com/(go-ldap/ldap|go-ldap/ldif|go-asn1-ber/asn1-ber|nmcclain/ldap|vjeantet/ldapserver|vjeantet/goldap|lor00x/goldap|jtblin/go-ldap-client|korylprince/go-ad-auth|glauth/ldap|glauth/glauth|jimlambrt/gldap|mavricknz/ldap|hashicorp/vault/sdk/helper/ldaputil)|gopkg\.in/ldap\.v[0-9]+|gopkg\.in/asn1-ber\.v[0-9]+)(/.*)?"?$
+
+  - id: jgates.go.uses-xml
+    message: The project parses or builds XML.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: xml
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(encoding/xml|github\.com/(beevik/etree|antchfx/xmlquery|antchfx/xpath|antchfx/htmlquery|moovweb/gokogiri|jbowtie/gokogiri|lestrrat-go/libxml2|ChrisTrenkamp/goxpath|clbanning/mxj|tamerh/xml-stream-parser|subchen/go-xmldom|basgys/goxml2json|go-xmlfmt/xmlfmt|mmcdole/gofeed|mmcdole/goxpp|ajstarks/svgo|santhosh-tekuri/xmlschema|kolo/xmlrpc|divan/gorilla-xmlrpc|fatih/xml|nbio/xml|russellhaering/goxmldsig)|gopkg\.in/xmlpath\.v[0-9]+|launchpad\.net/xmlpath)(/.*)?"?$
+
+  - id: jgates.go.uses-memcache
+    message: The project uses Memcached.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: memcache
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(github\.com/(bradfitz/gomemcache|rainycape/memcache|memcachier/mc|zeayes/gomemcache|couchbase/gomemcached|dgryski/go-memcache|mattn/go-memcache|eko/gocache/store/memcache|eko/gocache/v[0-9]+/store/memcache|alicebob/gomemcache)|google\.golang\.org/appengine/memcache|google\.golang\.org/appengine/v[0-9]+/memcache|gopkg\.in/memcache\.v[0-9]+)(/.*)?"?$
+
+  - id: jgates.go.uses-mail
+    message: The project sends or reads e-mail.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: mail
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(net/smtp|net/mail|golang\.org/x/net/smtp|github\.com/(go-gomail/gomail|go-mail/mail|go-mail/gomail|wneessen/go-mail|jordan-wright/email|sendgrid/sendgrid-go|mailgun/mailgun-go|mailjet/mailjet-apiv3-go|keighl/postmark|mrz1836/postmark|mattbaird/gochimp|aws/aws-sdk-go/service/ses|aws/aws-sdk-go/service/sesv2|aws/aws-sdk-go-v2/service/ses|aws/aws-sdk-go-v2/service/sesv2|resend/resend-go|emersion/go-smtp|emersion/go-imap|emersion/go-message|emersion/go-sasl|emersion/go-pop3|domodwyer/mailyak|xhit/go-simple-mail|matcornic/hermes|jhillyerd/enmime|mhale/smtpd|flashmob/go-guerrilla|knadh/smtppool|scorredoira/email|veqryn/go-email|mailersend/mailersend-go|getbrevo/brevo-go|sendinblue/APIv3-go-library|SparkPost/gosparkpost|ainsleyclark/go-mail|appleboy/gomail|bytbox/go-pop3)|gopkg\.in/gomail\.v[0-9]+|gopkg\.in/mail\.v[0-9]+|google\.golang\.org/api/gmail/v[0-9]+)(/.*)?"?$
+
+  - id: jgates.go.uses-templates
+    message: The project renders server-side templates.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: templates
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(html/template|text/template|github\.com/(flosch/pongo2|aymerick/raymond|cbroglie/mustache|hoisie/mustache|a-h/templ|valyala/quicktemplate|osteele/liquid|gofiber/template|yosssi/ace|eknkc/amber|CloudyKit/jet|kataras/blocks|unrolled/render|gobuffalo/plush|gin-contrib/multitemplate|Masterminds/sprig|nikolalohinski/gonja|noirbizarre/gonja|go-sprout/sprout|thedevsaddam/renderer|kataras/iris/v[0-9]+/view|kataras/iris/view|go-macaron/pongo2|Joker/jade)|gopkg\.in/flosch/pongo2\.v[0-9]+|gopkg\.in/yosssi/ace\.v[0-9]+|gopkg\.in/unrolled/render\.v[0-9]+)(/.*)?"?$
+
+  - id: jgates.go.uses-file-upload
+    message: The project accepts file uploads.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: file-upload
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: import "$M"
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^"?(mime/multipart|github\.com/(tus/tusd|tus/tusd/v[0-9]+|h2non/filetype))(/.*)?"?$
+      - pattern: $R.FormFile(...)
+      - pattern: $R.ParseMultipartForm(...)
+      - pattern: $R.MultipartReader()
+      - pattern: $C.SaveUploadedFile(...)
+      - pattern: $C.MultipartForm()
+
+  - id: jgates.go.uses-archives
+    message: The project reads or writes archive or compressed files.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: archives
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(archive/zip|archive/tar|compress/gzip|compress/bzip2|compress/zlib|compress/flate|compress/lzw|github\.com/(mholt/archiver|mholt/archives|ulikunitz/xz|klauspost/compress|klauspost/pgzip|bodgit/sevenzip|nwaples/rardecode|yeka/zip|pierrec/lz4|dsnet/compress|andybalholm/brotli|DataDog/zstd|valyala/gozstd|golang/snappy|saracen/fastzip|alexmullins/zip|gen2brain/go-unarr|codeclysm/extract|artdarek/go-unzip|hashicorp/go-extract|hashicorp/go-getter|blakesmith/ar|cavaliergopher/cpio)|gopkg\.in/mholt/archiver\.v[0-9]+|gopkg\.in/ulikunitz/xz\.v[0-9]+|gopkg\.in/pierrec/lz4\.v[0-9]+|gopkg\.in/alexmullins/zip\.v[0-9]+)(/.*)?"?$
+
+  - id: jgates.go.uses-browser-dom
+    message: The project runs Go in the browser and touches the DOM.
+    severity: INFO
+    languages: [go]
+    metadata:
+      signal: browser-dom
+      author: JGates
+    patterns:
+      - pattern: import "$M"
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^"?(syscall/js|github\.com/(gopherjs/gopherjs/js|gopherjs/jquery|gopherjs/vecty|hexops/vecty|maxence-charriere/go-app|vugu/vugu|vugu/vgrouter|siongui/godom|siongui/gopherjs-dom|dennwc/dom|norunners/vert|hack-pad/safejs|nlepage/go-js-promise)|honnef\.co/go/js/dom|honnef\.co/go/js/xhr|honnef\.co/go/js/util)(/.*)?"?$
