@@ -1,0 +1,12 @@
+{
+  "files": ["errors-logging.go"],
+  "ruleIds": [
+    "jgates.go.sensitive-data-logged",
+    "jgates.go.sensitive-data-logged-key",
+    "jgates.go.sensitive-data-logged-header",
+    "jgates.go.stack-trace-in-response",
+    "jgates.go.error-detail-in-response",
+    "jgates.go.swallowed-exception",
+    "jgates.go.http-client-without-timeout"
+  ]
+}
