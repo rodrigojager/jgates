@@ -1,0 +1,142 @@
+# Configuration rules for Python: debug mode, exposed documentation or monitoring endpoints, directory listing,
+# version headers, mass assignment and serializers.
+# Frameworks covered: Flask, Django (settings, forms, static serve), FastAPI, Starlette, Werkzeug, aiohttp,
+# http.server, Django REST framework, prometheus_client, drf-spectacular, django-silk.
+rules:
+  - id: jgates.python.debug-mode-enabled
+    message: The framework debug mode or interactive error page is switched on outside a development-only branch, which exposes source and variables on errors. Read the flag from the environment and keep it off by default.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: configuration
+      cwe: "CWE-489"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.2"]
+    patterns:
+      - pattern-either:
+          - pattern: $APP.run(..., debug=True, ...)
+          - pattern: $APP.run(..., use_debugger=True, ...)
+          - pattern: $APP.debug = True
+          - pattern: $APP.config["DEBUG"] = True
+          - pattern: FastAPI(..., debug=True, ...)
+          - pattern: Starlette(..., debug=True, ...)
+          - pattern: DebuggedApplication(..., evalex=True, ...)
+          - pattern: |
+              DEBUG = True
+      - pattern-not-inside:
+          patterns:
+            - pattern: |
+                if $COND:
+                    ...
+            - metavariable-regex:
+                metavariable: $COND
+                regex: (?i).*(debug|dev|local|environ|getenv|env).*
+
+  - id: jgates.python.docs-or-monitoring-endpoint-exposed
+    message: An API documentation, profiling or monitoring endpoint is registered unconditionally, so anyone who reaches the service can read it. Register it only behind a development or authentication check.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.5"]
+    patterns:
+      - pattern-either:
+          - pattern: SpectacularSwaggerView.as_view(...)
+          - pattern: SpectacularRedocView.as_view(...)
+          - pattern: include_docs_urls(...)
+          - pattern: include("silk.urls")
+          - pattern: start_http_server(...)
+      - pattern-not-inside:
+          patterns:
+            - pattern: |
+                if $COND:
+                    ...
+            - metavariable-regex:
+                metavariable: $COND
+                regex: (?i).*(debug|dev|local|environ|getenv|env).*
+
+  - id: jgates.python.directory-listing-enabled
+    message: A static file handler lists directory contents, which reveals files that were never meant to be linked. Turn the listing off and serve only named files.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: configuration
+      cwe: "CWE-548"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.3"]
+    pattern-either:
+      - pattern: $F(..., show_indexes=True, ...)
+      - pattern: $R.add_static(..., show_index=True, ...)
+      - pattern: HTTPServer($ADDR, SimpleHTTPRequestHandler)
+      - pattern: ThreadingHTTPServer($ADDR, SimpleHTTPRequestHandler)
+
+  - id: jgates.python.version-header-exposed
+    message: A response header states the framework or server version, which helps an attacker pick known exploits. Do not set it, or turn the server header off.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: configuration
+      cwe: "CWE-497"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.6"]
+    pattern-either:
+      - pattern: $R.headers["X-Powered-By"] = $V
+      - patterns:
+          - pattern: $R.headers["Server"] = $V
+          - metavariable-regex:
+              metavariable: $V
+              regex: .*\d.*
+      - pattern: uvicorn.run(..., server_header=True, ...)
+
+  - id: jgates.python.mass-assignment
+    message: A model is built or updated from the whole request body, or a form is declared open to every field, so a caller can set fields it should not. Pick the accepted fields by name.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-915"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.3"]
+    pattern-either:
+      - pattern: $M(..., **request.json, ...)
+      - pattern: $M(..., **request.form, ...)
+      - pattern: $M(..., **request.get_json(...), ...)
+      - pattern: $M(..., **request.POST, ...)
+      - pattern: $M(..., **request.POST.dict(...), ...)
+      - pattern: $M(..., **request.data, ...)
+      - patterns:
+          - pattern: |
+              fields = "__all__"
+          - pattern-inside: |
+              class $F(..., $B, ...):
+                  ...
+          - metavariable-regex:
+              metavariable: $B
+              regex: (.*\.)?ModelForm
+
+  - id: jgates.python.serializer-exposes-all-fields
+    message: A serializer outputs every field of its model, so a column added later leaks without review. List the exposed fields by name.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-213"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.1"]
+    patterns:
+      - pattern: |
+          fields = "__all__"
+      - pattern-inside: |
+          class $S(..., $B, ...):
+              ...
+      - metavariable-regex:
+          metavariable: $B
+          regex: (.*\.)?(Hyperlinked)?ModelSerializer
