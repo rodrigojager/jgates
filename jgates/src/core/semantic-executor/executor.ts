@@ -21,7 +21,7 @@ import { artifactShape, parseArtifactText, settleArtifact, validateArtifact, typ
 import { agentCliBackend, providerToolBackend, type AgentCliGate, type CallTurn, type ContextRunResult, type InvestigationBackend, type TranscriptEntry } from "./backends.js";
 import { BudgetMeter, budgetLimits, DEFAULT_TURNS, reserveFor, type UsageSnapshot } from "./budget.js";
 import { HostTools, LIMITING_REFUSALS, type CandidateInput, type ContextState } from "./host-tools.js";
-import type { ArtifactCandidate, ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation, ModuleApplicability } from "./types.js";
+import type { ArtifactCandidate, ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation, ModuleApplicability, ReviewUnit } from "./types.js";
 import { renameWithRetry } from "../fs-retry/index.js";
 
 export const INVESTIGATION_RECORD = "evidence/investigation.json";
@@ -155,6 +155,8 @@ interface ContextRecord {
   label: string;
   agentId: string;
   candidate: string | null;
+  /** The review unit of a per-unit context. */
+  unit?: string;
   status: ContextRunResult["status"] | "not-run";
   turns: number;
   artifact: { valid: boolean; code?: string; problems: string[] } | null;
@@ -417,6 +419,22 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     }
   }
 
+  // The review units of the per-unit stages (one fresh context per unit), from the applicable inputs.
+  let reviewUnits: ReviewUnit[] = [];
+  if (module.stages.some((st) => st.contexts === "per-unit")) {
+    try {
+      const seen = new Set<string>();
+      for (const u of module.reviewUnits?.({ inputs: applied ?? {} }) ?? []) {
+        if (!u || typeof u.id !== "string" || u.id === "" || seen.has(u.id)) continue;
+        seen.add(u.id);
+        reviewUnits.push({ id: u.id, label: typeof u.label === "string" && u.label !== "" ? u.label : u.id });
+      }
+    } catch (error) {
+      reviewUnits = [];
+      moduleGaps.push({ code: "REVIEW_UNITS_FAILED", reason: `the review units could not be established: ${brief(error instanceof Error ? error.message : String(error))}` });
+    }
+  }
+
   progress("context", "started", {});
   progress("context", "finished", { files: tools.readableFiles().length, policy: policy.context });
   if (backend.prepare) {
@@ -457,15 +475,20 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     rec.state = "running";
     emit("stage", { step: REVIEW_STEP, stageId: `${module.id}/${spec.id}`, state: "running", role: spec.role });
     // A verification stage re-checks the decided records (confirmed or needs-validation); a deciding stage the open ones.
-    const targets: Array<Candidate | null> =
-      spec.contexts === "once" ? [null] : spec.verify ? candidates.filter((c) => c.status === "confirmed" || c.status === "needs-validation") : candidates.filter((c) => c.status === "open");
+    // A per-unit stage runs one fresh context per review unit of the module.
+    const targets: Array<{ candidate: Candidate | null; unit: ReviewUnit | null }> =
+      spec.contexts === "once"
+        ? [{ candidate: null, unit: null }]
+        : spec.contexts === "per-unit"
+          ? reviewUnits.map((unit) => ({ candidate: null, unit }))
+          : (spec.verify ? candidates.filter((c) => c.status === "confirmed" || c.status === "needs-validation") : candidates.filter((c) => c.status === "open")).map((candidate) => ({ candidate, unit: null }));
     const maxTurns = spec.maxTurns ?? DEFAULT_TURNS[spec.role][options.rigor];
     let budgetHit: { dimension: string; message: string } | null = null;
     const notDone = spec.verify ? "not verified" : "not validated";
-    for (const candidate of targets) {
-      const label = candidate ? `${spec.id}:${candidate.id}` : spec.id;
+    for (const { candidate, unit } of targets) {
+      const label = candidate ? `${spec.id}:${candidate.id}` : unit ? `${spec.id}:${unit.id}` : spec.id;
       const ctx: ContextState = { stage: spec.id, label, seen: new Set(), refused: [] };
-      const ctxRec: ContextRecord = { label, agentId: contextAgentId(label), candidate: candidate?.id ?? null, status: "not-run", turns: 0, artifact: null, refused: ctx.refused, notes: [], transcript: null };
+      const ctxRec: ContextRecord = { label, agentId: contextAgentId(label), candidate: candidate?.id ?? null, ...(unit ? { unit: unit.id } : {}), status: "not-run", turns: 0, artifact: null, refused: ctx.refused, notes: [], transcript: null };
       rec.contexts.push(ctxRec);
       if (options.signal.aborted) {
         stopAll = "cancelled";
@@ -486,7 +509,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       let extra: string | null = null;
       if (module.brief) {
         try {
-          extra = module.brief({ stage: spec, candidate, accepted, candidates, scope: prep, rigor: options.rigor, runDir: options.runDir, readable: (p) => tools.readable(p), readFile: hostRead, ...(applied ? { inputs: applied } : {}) });
+          extra = module.brief({ stage: spec, candidate, ...(unit ? { unit } : {}), accepted, candidates, scope: prep, rigor: options.rigor, runDir: options.runDir, readable: (p) => tools.readable(p), readFile: hostRead, ...(applied ? { inputs: applied } : {}) });
         } catch (error) {
           // The module could not give this context its material: the context does not start.
           stopAll = "error";
@@ -565,7 +588,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       if (!("value" in parsed)) {
         ctxRec.artifact = { valid: false, code: parsed.code, problems: [parsed.problem] };
       } else {
-        const checkContext = { seen: ctx.seen, candidate, readable: (p: string) => tools.readable(p), lines: (p: string) => tools.lines(p), accepted, agentId: ctxRec.agentId, run: runFacts };
+        const checkContext = { seen: ctx.seen, candidate, ...(unit ? { unit } : {}), readable: (p: string) => tools.readable(p), lines: (p: string) => tools.lines(p), accepted, agentId: ctxRec.agentId, run: runFacts };
         // The module's host work on a valid artifact (executing a reproducer) happens before its claims are applied.
         const check = await settleArtifact(spec.artifact, validateArtifact(spec.artifact, parsed.value, checkContext), checkContext, options.signal);
         ctxRec.artifact = { valid: check.ok, ...(check.ok ? {} : { code: "invalid-field" }), problems: check.problems.map(brief) };
@@ -599,6 +622,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     if (rec.state === "budget-exhausted") rec.reason = budgetHit?.message ?? "the budget is spent";
     if (rec.state === "invalid") rec.reason = "a context ended without a valid artifact";
     if (spec.contexts === "per-candidate" && targets.length === 0) rec.reason = "no candidate to validate";
+    if (spec.contexts === "per-unit" && targets.length === 0) rec.reason = "no review unit";
     const refusedHere = rec.contexts.flatMap((c) => c.refused).filter((r) => LIMITING_REFUSALS.has(r.code));
     if (refusedHere.length > 0) {
       rec.limitations.push({ code: "CONTEXT_REFUSED", message: "the host refused workspace files this stage asked for; its conclusions hold only for what it could read", paths: [...new Set(refusedHere.map((r) => r.path))] });
@@ -709,7 +733,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
   if (module.finalize && stopAll !== "cancelled") {
     try {
       const out = module.finalize({
-        stages: stages.map((st) => ({ id: st.id, state: st.state, required: st.required, ...(st.reason ? { reason: st.reason } : {}), contexts: st.contexts.map((c) => ({ label: c.label, agentId: c.agentId, candidate: c.candidate, status: c.status, ...(c.accepted ? { accepted: c.accepted } : {}) })) })),
+        stages: stages.map((st) => ({ id: st.id, state: st.state, required: st.required, ...(st.reason ? { reason: st.reason } : {}), contexts: st.contexts.map((c) => ({ label: c.label, agentId: c.agentId, candidate: c.candidate, ...(c.unit ? { unit: c.unit } : {}), status: c.status, ...(c.accepted ? { accepted: c.accepted } : {}) })) })),
         accepted,
         candidates,
         scope: prep,

@@ -38,6 +38,8 @@ export interface ArtifactCheckContext {
   seen: ReadonlySet<string>;
   /** The candidate a per-candidate context examines. */
   candidate: Candidate | null;
+  /** The review unit a per-unit context examines (absent or null otherwise). */
+  unit?: ReviewUnit | null;
   /** Whether a workspace-relative path may be read at all (the guard's answer, never recorded). */
   readable(path: string): boolean;
   /** Line count of a readable file (null when unknown). */
@@ -68,6 +70,8 @@ export interface ModuleApplicabilityInput {
   runDir: string;
   workspacePath: string;
   env: NodeJS.ProcessEnv;
+  /** The JGates data folder the caller works in, when it knows it (absent: the one `env` names). */
+  home?: string;
   /** Workspace-relative files the run may read. */
   readableFiles(): string[];
   readable(path: string): boolean;
@@ -138,8 +142,11 @@ export interface InvestigationStageSpec {
   role: StageRole;
   /** A required stage that does not finish leaves the investigation incomplete. */
   required: boolean;
-  /** once: one context for the stage; per-candidate: one fresh context per open candidate (independent judgement). */
-  contexts: "once" | "per-candidate";
+  /**
+   * once: one context for the stage; per-candidate: one fresh context per open candidate (independent judgement);
+   * per-unit: one fresh context per review unit the module establishes from its applicable inputs (reviewUnits).
+   */
+  contexts: "once" | "per-candidate" | "per-unit";
   /** What this responsibility does (the stage part of the system prompt). */
   instructions: string;
   /** Offers the report_candidate tool (candidates may also be listed in an exploration artifact). */
@@ -166,6 +173,8 @@ export interface InvestigationStageSpec {
 export interface ModuleBriefInput {
   stage: InvestigationStageSpec;
   candidate: Candidate | null;
+  /** The review unit of a per-unit context (absent or null otherwise). */
+  unit?: ReviewUnit | null;
   accepted: Readonly<Record<string, Record<string, unknown>>>;
   candidates: readonly Candidate[];
   scope: ScopeRunPreparation;
@@ -180,7 +189,7 @@ export interface ModuleBriefInput {
 }
 
 export interface ModuleFinalizeInput {
-  stages: ReadonlyArray<{ id: string; state: string; required: boolean; reason?: string; contexts: ReadonlyArray<{ label: string; agentId: string; candidate: string | null; status: string; accepted?: Record<string, unknown> }> }>;
+  stages: ReadonlyArray<{ id: string; state: string; required: boolean; reason?: string; contexts: ReadonlyArray<{ label: string; agentId: string; candidate: string | null; unit?: string; status: string; accepted?: Record<string, unknown> }> }>;
   accepted: Readonly<Record<string, Record<string, unknown>>>;
   candidates: readonly Candidate[];
   scope: ScopeRunPreparation;
@@ -241,10 +250,22 @@ export interface InvestigationModule {
    * per-candidate stages take them in order. Absent: the stages start without candidates.
    */
   seedCandidates?(input: { inputs: Readonly<Record<string, unknown>> }): ArtifactCandidate[];
+  /**
+   * The review units of the per-unit stages, from the applicable inputs (the chapters of the requirements a method
+   * reviews): each per-unit stage runs one fresh context per unit, in order. Absent or empty: a per-unit stage starts
+   * no context.
+   */
+  reviewUnits?(input: { inputs: Readonly<Record<string, unknown>> }): ReviewUnit[];
   /** Extra brief text for one context (null: nothing to add). */
   brief?(input: ModuleBriefInput): string | null;
   /** Host-side reporting after every stage: structured records, readable report, agent context. */
   finalize?(input: ModuleFinalizeInput): ModuleFinalizeOutput;
+}
+
+/** One unit of a per-unit stage: an ID safe in a context label (`V6`) and a label for people. */
+export interface ReviewUnit {
+  id: string;
+  label: string;
 }
 
 export interface Evidence {

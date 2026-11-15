@@ -148,6 +148,15 @@ function reproductionPlanText(ctx: CommandContext, plan: SemanticPlan): void {
   ctx.stdout(`  ${t("semantic_reproduction_never_rejects")}\n`);
 }
 
+/** What an asvs-review run will review, before it starts: how many requirements, in which chapters, the call budget. */
+function asvsReviewPlanText(ctx: CommandContext, plan: SemanticPlan): void {
+  const a = plan.asvsReview;
+  if (!a || a.count === 0) return;
+  ctx.stdout(`${t("semantic_text_asvs_review_plan", { count: a.count, version: a.asvsVersion ?? "-", level: a.level ?? "-", qualityRun: a.qualityRun ?? "-", units: a.units.length, calls: a.budget.maxCalls })}\n`);
+  for (const u of a.units) ctx.stdout(`${t("semantic_text_asvs_review_unit", { unit: u.id, requirements: u.requirements.join(", ") })}\n`);
+  ctx.stdout(`${t("semantic_asvs_review_apart")}\n`);
+}
+
 /** How a finding's reproduction state reads (none, attempted with the reason, confirmed by execution). */
 function reproductionStateText(f: RunReproduction["findings"][number]): string {
   if (f.state === "confirmed") return t("semantic_reproduction_state_confirmed", { runId: f.reproductionRunId ?? "-" });
@@ -190,6 +199,7 @@ function planText(ctx: CommandContext, plan: SemanticPlan): void {
   for (const b of plan.blockers) ctx.stdout(`  -- ${b.code}: ${b.message}\n`);
   for (const w of r.warnings) ctx.stdout(`  !  ${w.message}\n`);
   reproductionPlanText(ctx, plan);
+  asvsReviewPlanText(ctx, plan);
   ctx.stdout(`${plan.ready ? t("semantic_text_ready") : t("semantic_text_not_ready")}\n`);
 }
 
@@ -351,7 +361,12 @@ export const command: CommandModule = {
     // Before a reproduction starts: how many findings it tries, the model calls it may spend, and that the project's
     // tests run in a container without network (with --json the same numbers are in the document, under reproduction).
     const reproductionPlan = plans.find((p) => p.reproduction)?.reproduction ?? null;
-    if (!ctx.json) for (const p of plans) reproductionPlanText(ctx, p);
+    const asvsReviewPlan = plans.find((p) => p.asvsReview)?.asvsReview ?? null;
+    if (!ctx.json) {
+      for (const p of plans) reproductionPlanText(ctx, p);
+      // Before an ASVS review starts: how many requirements it reviews and the model calls it may spend.
+      for (const p of plans) asvsReviewPlanText(ctx, p);
+    }
     const progress = ctx.json
       ? undefined
       : (event: RunEvent): void => {
@@ -400,14 +415,14 @@ export const command: CommandModule = {
     };
     if (plans.length === 1) {
       const result = results[0] as RunResult;
-      if (ctx.json) writeJson(ctx, reproductionPlan ? { ...result, reproduction: reproductionPlan } : result);
+      if (ctx.json) writeJson(ctx, { ...result, ...(reproductionPlan ? { reproduction: reproductionPlan } : {}), ...(asvsReviewPlan ? { asvsReview: asvsReviewPlan } : {}) });
       else printed(result);
       return result.exitCode;
     }
     // Several methods: every run's result, and the worst exit code (a run that did not pass is never hidden).
     const exitCode = results.reduce((worst, r) => Math.max(worst, r.exitCode), 0);
     const notStarted = plans.slice(results.length).map((p) => p.methods[0]?.id ?? "-");
-    if (ctx.json) writeJson(ctx, { ...base, methods: plans.map((p) => p.methods[0]?.id), runs: results, notStarted, ...(stopped ? { stopped } : {}), ...(reproductionPlan ? { reproduction: reproductionPlan } : {}), exitCode });
+    if (ctx.json) writeJson(ctx, { ...base, methods: plans.map((p) => p.methods[0]?.id), runs: results, notStarted, ...(stopped ? { stopped } : {}), ...(reproductionPlan ? { reproduction: reproductionPlan } : {}), ...(asvsReviewPlan ? { asvsReview: asvsReviewPlan } : {}), exitCode });
     else {
       for (const r of results) printed(r);
       if (notStarted.length > 0) ctx.stdout(`${t("semantic_text_sequence_stopped", { reason: `${stopped ?? "-"} (${notStarted.join(", ")})` })}\n`);

@@ -12,6 +12,7 @@ import { translator } from "../../i18n/index.js";
 // The registry of investigation modules (importing it registers every built-in module, the security-audit baseline too).
 import { investigationModuleFor, SEMANTIC_MODULES, unavailableModules } from "../semantic-modules/index.js";
 import { REPRODUCTION_METHOD, confirmByReproductionModule } from "../semantic-modules/reproduction/index.js";
+import { ASVS_REVIEW_METHOD, ASVS_REVIEW_REFUSALS } from "../semantic-modules/asvs-review/index.js";
 import { DEFAULT_CALLS, type InvestigationModule } from "../semantic-executor/index.js";
 import { TEST_RECIPES } from "../regressions/runner.js";
 import { prepareScopeRun, resolveSemanticScope, scopeControls, type ScopeControls, type ScopeRequest, type SemanticPurpose, type SemanticRigor, type SemanticScopeResolution } from "../semantic-scope/index.js";
@@ -118,6 +119,26 @@ export interface ReproductionPlan extends ReproductionSelection {
   execution: { where: "container"; network: "none"; host: false; runners: string[] };
 }
 
+/**
+ * What an asvs-review run will review, shown before it starts (the cost confirmation): the requirements of the project's
+ * ASVS level that the latest Quality run's map does not show as examined by a deterministic check and that are not
+ * recorded as not applicable, by chapter (one review context each), and the model calls the run may spend.
+ */
+export interface AsvsReviewPlan {
+  /** The Quality run whose map decided what is not examined (null when the plan was refused). */
+  qualityRun: string | null;
+  asvsVersion: string | null;
+  level: number | null;
+  /** How many requirements the run will review. */
+  count: number;
+  /** The requirement ids, in the order of the release file. */
+  requirements: string[];
+  /** The review units: one chapter each, one fresh context each. */
+  units: Array<{ id: string; requirements: string[] }>;
+  /** The model calls (and tokens) the run may spend at most. */
+  budget: { maxCalls: number; maxTokens: number | null };
+}
+
 /** The candidate ID form --finding accepts. */
 export const FINDING_ID_PATTERN = "^C[0-9]{1,4}$";
 
@@ -169,6 +190,8 @@ export interface SemanticPlan {
   blockers: Array<{ code: string; message: string }>;
   /** Only when confirm-by-reproduction is planned: what it starts from and what it will cost (absent in older plans). */
   reproduction?: ReproductionPlan | null;
+  /** Only when asvs-review is planned: which requirements it reviews and what it may cost (absent in older plans). */
+  asvsReview?: AsvsReviewPlan | null;
 }
 
 export interface SemanticPlanRequest {
@@ -256,7 +279,7 @@ function previewApplicability(
   for (const id of checked) {
     const module = moduleOf(id);
     try {
-      const answer = module!.applicability!({ scope: prep, rigor: options.rigor, runDir, workspacePath: options.workspacePath, env: options.env, readableFiles: () => prep.guard.readable(), readable, readFile });
+      const answer = module!.applicability!({ scope: prep, rigor: options.rigor, runDir, workspacePath: options.workspacePath, env: options.env, home: options.home, readableFiles: () => prep.guard.readable(), readable, readFile });
       if (answer.applicable && answer.record) options.records?.set(id, answer.record);
       out.set(id, answer.applicable ? { state: "applicable" } : { state: "not-applicable", code: answer.code, missing: answer.missing, reason: answer.reason.slice(0, 600) });
     } catch (error) {
@@ -352,6 +375,29 @@ export function buildSemanticPlan(request: SemanticPlanRequest): SemanticPlan {
       execution: { where: "container", network: "none", host: false, runners: Object.keys(TEST_RECIPES) },
     };
   }
+  // asvs-review reviews what the latest Quality run's map left unexamined: without that run (or with nothing left) the
+  // plan is refused with the reason, before anything is sent.
+  let asvsReview: AsvsReviewPlan | null = null;
+  if (methodIds.includes(ASVS_REVIEW_METHOD)) {
+    const a = applicability.get(ASVS_REVIEW_METHOD);
+    const record = records.get(ASVS_REVIEW_METHOD) ?? null;
+    if (a?.state === "not-applicable" && a.code && (ASVS_REVIEW_REFUSALS as readonly string[]).includes(a.code)) {
+      blockers.push({ code: a.code, message: t(`semantic_blocker_${a.code.toLowerCase()}`, { method: ASVS_REVIEW_METHOD, detail: a.reason ?? "-" }) });
+    } else if (a?.state === "error") {
+      blockers.push({ code: a.code ?? "APPLICABILITY_CHECK_FAILED", message: t("semantic_blocker_asvs_review_check_failed", { method: ASVS_REVIEW_METHOD, detail: a.reason ?? "-" }) });
+    }
+    const units = Array.isArray(record?.units) ? (record.units as Array<{ id?: unknown; requirements?: unknown }>).map((u) => ({ id: String(u.id ?? "-"), requirements: Array.isArray(u.requirements) ? u.requirements.map(String) : [] })) : [];
+    const requirements = units.flatMap((u) => u.requirements);
+    asvsReview = {
+      qualityRun: typeof record?.qualityRun === "string" ? record.qualityRun : null,
+      asvsVersion: typeof record?.asvsVersion === "string" ? record.asvsVersion : null,
+      level: typeof record?.level === "number" ? record.level : null,
+      count: requirements.length,
+      requirements,
+      units,
+      budget: { maxCalls: budget.maxCalls ?? DEFAULT_CALLS[rigor], maxTokens: budget.maxTokens },
+    };
+  }
   const methods: PlannedMethod[] = methodIds.map((id) => {
     const info = catalog.find((m) => m.id === id);
     return { id, title: info?.title ?? id, available: methodAvailable(id), selectedBy: methodSelection, applicability: applicability.get(id) ?? { state: "unchecked" } };
@@ -379,5 +425,6 @@ export function buildSemanticPlan(request: SemanticPlanRequest): SemanticPlan {
     ready: blockers.length === 0,
     blockers,
     ...(reproduction ? { reproduction } : {}),
+    ...(asvsReview ? { asvsReview } : {}),
   };
 }

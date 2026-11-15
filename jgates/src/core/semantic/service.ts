@@ -43,6 +43,8 @@ import {
   isSemanticRunId,
   semanticRunDir,
 } from "./store.js";
+import { SEMANTIC_FINDING_TOOL, semanticRuleId } from "./findings.js";
+import { assignFingerprints } from "../results/fingerprint.js";
 
 const t = translator("semantic");
 
@@ -236,13 +238,14 @@ function stagesOf(outcome: ResultSemantic | null, reached: Reached, cancelled: b
 function findingsOf(outcome: ResultSemantic | null): ResultFinding[] {
   const found = outcome?.state === "completed" ? outcome.conclusion?.findings : undefined;
   if (!Array.isArray(found)) return [];
-  return (found as Array<Record<string, unknown>>).map((f) => {
+  // Each finding carries its fingerprint (v1), the identity a module's own records name it by (findings.ts).
+  return assignFingerprints((found as Array<Record<string, unknown>>).map((f) => {
     const severity = String(f.severity ?? "unknown");
     const category = String(f.category ?? "general");
     return {
       stageId: REVIEW_STAGE,
-      tool: "semantic-gate",
-      ruleId: `semantic/${category || "general"}`,
+      tool: SEMANTIC_FINDING_TOOL,
+      ruleId: semanticRuleId(category),
       category,
       severity,
       normalizedSeverity: SEVERITY[severity] ?? "unknown",
@@ -252,7 +255,7 @@ function findingsOf(outcome: ResultSemantic | null): ResultFinding[] {
       waived: false,
       origin: "model",
     };
-  });
+  }));
 }
 
 function summaryOf(result: RunResult): string {
