@@ -5,210 +5,689 @@
     {
       "requirement": "V1.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.1.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.2.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xss-response-write",
+          "covers": "Request data sent into an HTTP response as HTML without an escaping helper.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xss-dom-html-write",
+          "covers": "A non-literal value written into the page as HTML (innerHTML, outerHTML, document.write, insertAdjacentHTML).",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xss-react-dangerously-set-html",
+          "covers": "dangerouslySetInnerHTML given a value that is not a literal or sanitized.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xss-template-autoescape-off",
+          "covers": "Template engines configured so that escaping is off.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.xss-response-write",
+          "covers": "Request data placed into a response body without an escaping helper.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.xss-template-autoescape-off",
+          "covers": "A template environment created with autoescaping off.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.xss-mark-request-data-safe",
+          "covers": "Request data marked as safe markup, which disables escaping for it.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.unsafe-html-type",
+          "covers": "A non-literal value typed as already-safe markup in html/template.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.text-template-for-html",
+          "covers": "Use of text/template, which does not escape HTML.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.request-written-to-response",
+          "covers": "Request data written to the response without HTML escaping.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.reflected-xss",
+          "covers": "Request data written to the response as markup without HTML encoding.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.raw-html-non-literal",
+          "covers": "Markup built by joining values and then marked safe.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.reflected-xss",
+          "covers": "Request data written to the HTTP response as HTML without escaping.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.xss",
+          "covers": "Request data written into an HTML response without an escaping function.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.pre-escaped-non-literal",
+          "covers": "A non-literal value marked as already-escaped markup.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.request-xss",
+          "covers": "Request data echoed or printed without HTML encoding.",
+          "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Injection",
+          "covers": "HTML output as a dangerous sink traced from untrusted input by a model reading the source.",
+          "misses": "Reading is sampled, not exhaustive, and the block does not check that the encoding fits each output context.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag the places where request or non-literal data reaches HTML output with escaping absent or switched off, which is the failure of the encoding this requirement wants."
     },
     {
       "requirement": "V1.2.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.2.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.2.4",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.sql-string-building",
+          "covers": "SQL statements assembled from concatenation, interpolation or formatting instead of bound parameters.",
+          "misses": "Queries of ORMs and query builders, stored procedures, non-SQL databases, and statements built in code the rule cannot follow.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.sql-string-building",
+          "covers": "SQL statements assembled from concatenation, interpolation or formatting instead of bound parameters.",
+          "misses": "Queries of ORMs and query builders, stored procedures, non-SQL databases, and statements built in code the rule cannot follow.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.sql-string-building",
+          "covers": "SQL statements assembled from concatenation, interpolation or formatting instead of bound parameters.",
+          "misses": "Queries of ORMs and query builders, stored procedures, non-SQL databases, and statements built in code the rule cannot follow.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.sql-string-building",
+          "covers": "SQL statements assembled from concatenation, interpolation or formatting instead of bound parameters.",
+          "misses": "Queries of ORMs and query builders, stored procedures, non-SQL databases, and statements built in code the rule cannot follow.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.sql-string-building",
+          "covers": "SQL statements assembled from concatenation, interpolation or formatting instead of bound parameters.",
+          "misses": "Queries of ORMs and query builders, stored procedures, non-SQL databases, and statements built in code the rule cannot follow.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.sql-string-building",
+          "covers": "SQL statements assembled from concatenation, interpolation or formatting instead of bound parameters.",
+          "misses": "Queries of ORMs and query builders, stored procedures, non-SQL databases, and statements built in code the rule cannot follow.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.sql-string-building",
+          "covers": "SQL statements assembled from concatenation, interpolation or formatting instead of bound parameters.",
+          "misses": "Queries of ORMs and query builders, stored procedures, non-SQL databases, and statements built in code the rule cannot follow.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Injection",
+          "covers": "SQL queries as a sink for untrusted input, read by a model.",
+          "misses": "Sampled reading; no guarantee that every query path was reached.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag queries assembled from text instead of bound parameters, the construct this requirement asks the application to avoid."
     },
     {
       "requirement": "V1.2.5",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.os-command-injection",
+          "covers": "A process or shell command started from a value that is not a literal.",
+          "misses": "Commands started through wrappers or libraries the rule does not model, and arguments that are unsafe even when the program name is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.os-command-injection",
+          "covers": "A process or shell command started from a value that is not a literal.",
+          "misses": "Commands started through wrappers or libraries the rule does not model, and arguments that are unsafe even when the program name is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.os-command-injection",
+          "covers": "A process or shell command started from a value that is not a literal.",
+          "misses": "Commands started through wrappers or libraries the rule does not model, and arguments that are unsafe even when the program name is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.os-command-injection",
+          "covers": "A process or shell command started from a value that is not a literal.",
+          "misses": "Commands started through wrappers or libraries the rule does not model, and arguments that are unsafe even when the program name is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.os-command-injection",
+          "covers": "A process or shell command started from a value that is not a literal.",
+          "misses": "Commands started through wrappers or libraries the rule does not model, and arguments that are unsafe even when the program name is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.os-command-injection",
+          "covers": "A process or shell command started from a value that is not a literal.",
+          "misses": "Commands started through wrappers or libraries the rule does not model, and arguments that are unsafe even when the program name is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.os-command-injection",
+          "covers": "A process or shell command started from a value that is not a literal.",
+          "misses": "Commands started through wrappers or libraries the rule does not model, and arguments that are unsafe even when the program name is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.os-command-non-literal-program",
+          "covers": "A Rust process started with a program name that is not a literal.",
+          "misses": "Commands started through wrappers or libraries the rule does not model, and arguments that are unsafe even when the program name is fixed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Injection",
+          "covers": "Shell command construction as a sink for untrusted input, read by a model.",
+          "misses": "Sampled reading; no guarantee that every call site was reached.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag commands built from non-literal values, the construct that opens the application to operating system command injection."
     },
     {
       "requirement": "V1.2.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.2.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.2.8",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.2.9",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.2.10",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.3.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xss-dom-html-write",
+          "covers": "A non-literal value written into the DOM as HTML that is not passed through DOMPurify or an escaping helper.",
+          "misses": "HTML sanitized with other libraries (reported anyway), server-side sanitization, and every language other than JavaScript and TypeScript.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.xss-react-dangerously-set-html",
+          "covers": "A React value injected as raw HTML that is not passed through DOMPurify.",
+          "misses": "Other sanitization libraries (reported anyway), and rich-text content sanitized on the server before it arrives.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Both rules report HTML written to the page from an unsanitized value, so a finding shows editor-style content that skips a sanitizer; they do not judge the quality of any sanitizer."
     },
     {
       "requirement": "V1.3.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.dynamic-code-execution",
+          "covers": "eval and new Function applied to a non-literal value.",
+          "misses": "Dynamic execution in languages without a rule (Go, C#, Java, Rust), expression languages such as SpEL, and indirect evaluation through other APIs.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.dynamic-code-execution",
+          "covers": "eval and exec applied to a non-literal value.",
+          "misses": "Dynamic execution in languages without a rule (Go, C#, Java, Rust), expression languages such as SpEL, and indirect evaluation through other APIs.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.dynamic-code-execution",
+          "covers": "Request data reaching eval or a string assertion.",
+          "misses": "Dynamic execution in languages without a rule (Go, C#, Java, Rust), expression languages such as SpEL, and indirect evaluation through other APIs.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.preg-replace-eval",
+          "covers": "The legacy preg_replace e modifier that runs replacement text as code.",
+          "misses": "Dynamic execution in languages without a rule (Go, C#, Java, Rust), expression languages such as SpEL, and indirect evaluation through other APIs.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Injection",
+          "covers": "Dynamic code execution as a dangerous sink, read by a model.",
+          "misses": "Sampled reading.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag eval and its equivalents applied to values that are not literals, which is the dynamic execution this requirement wants avoided."
     },
     {
       "requirement": "V1.3.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.3.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.3.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.3.6",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.ssrf",
+          "covers": "A request URL taken from the incoming request and fetched without an allow-list step the rule recognises.",
+          "misses": "Redirect following, DNS rebinding, URL parser differences, outbound calls through libraries the rule does not model, and the quality of any allow-list present.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.ssrf",
+          "covers": "A request URL taken from the incoming request and fetched without an allow-list step the rule recognises.",
+          "misses": "Redirect following, DNS rebinding, URL parser differences, outbound calls through libraries the rule does not model, and the quality of any allow-list present.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.ssrf",
+          "covers": "A request URL taken from the incoming request and fetched without an allow-list step the rule recognises.",
+          "misses": "Redirect following, DNS rebinding, URL parser differences, outbound calls through libraries the rule does not model, and the quality of any allow-list present.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.ssrf",
+          "covers": "A request URL taken from the incoming request and fetched without an allow-list step the rule recognises.",
+          "misses": "Redirect following, DNS rebinding, URL parser differences, outbound calls through libraries the rule does not model, and the quality of any allow-list present.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.ssrf",
+          "covers": "A request URL taken from the incoming request and fetched without an allow-list step the rule recognises.",
+          "misses": "Redirect following, DNS rebinding, URL parser differences, outbound calls through libraries the rule does not model, and the quality of any allow-list present.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.ssrf",
+          "covers": "A request URL taken from the incoming request and fetched without an allow-list step the rule recognises.",
+          "misses": "Redirect following, DNS rebinding, URL parser differences, outbound calls through libraries the rule does not model, and the quality of any allow-list present.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.ssrf",
+          "covers": "A request URL taken from the incoming request and fetched without an allow-list step the rule recognises.",
+          "misses": "Redirect following, DNS rebinding, URL parser differences, outbound calls through libraries the rule does not model, and the quality of any allow-list present.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Server-side request forgery, including redirects and parser differences, read by a model.",
+          "misses": "Sampled reading; allow-list quality is judged only by what the model reads.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag outbound request URLs that come from the incoming request without an allow-list step, which is the gap this requirement closes."
     },
     {
       "requirement": "V1.3.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.3.8",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.3.9",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.3.10",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.3.11",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.3.12",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V1.4.1",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Buffer overflow style defects in code that handles memory directly, read by a model.",
+          "misses": "It applies only where the code manages memory itself, finds defects rather than proving the safe string and copy practice, and reads a sample.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block directs a model to hunt overflow defects, which is the outcome this requirement guards against, but nothing deterministic checks the practice itself."
     },
     {
       "requirement": "V1.4.2",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Integer overflow defects in code that handles sizes and indexes directly, read by a model.",
+          "misses": "Sampled reading; it finds defects rather than proving range checks are applied consistently.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block directs a model to hunt integer overflow defects, the failure this requirement guards against, without a deterministic check."
     },
     {
       "requirement": "V1.4.3",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Use-after-free style defects in code that manages memory directly, read by a model.",
+          "misses": "Sampled reading; only meaningful for languages with manual memory management and no proof that every release is paired.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block directs a model to hunt use-after-free defects, the failure this requirement guards against, without a deterministic check."
     },
     {
       "requirement": "V1.5.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.xml-external-entity",
+          "covers": "An XML parser set to process DTDs or resolve external resources.",
+          "misses": "Parsers of other libraries and configuration applied elsewhere (for example a shared settings object).",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.xml-external-entity",
+          "covers": "A JAXP or StAX factory created without turning DTDs off.",
+          "misses": "Other XML libraries, and hardening applied through a wrapper the rule cannot follow.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag XML parsers left able to read DTDs or external entities, which is the unsafe feature this requirement wants disabled."
     },
     {
       "requirement": "V1.5.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.unsafe-deserialization",
+          "covers": "node-serialize and unsafe YAML types that execute code while loading.",
+          "misses": "Formats and libraries the rules do not model, and whether the data being deserialized is trusted.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.unsafe-deserialization",
+          "covers": "pickle, marshal and shelve loading.",
+          "misses": "Formats and libraries the rules do not model, and whether the data being deserialized is trusted.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.unsafe-yaml-load",
+          "covers": "yaml.load with a full loader.",
+          "misses": "Formats and libraries the rules do not model, and whether the data being deserialized is trusted.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.unsafe-deserialization",
+          "covers": "Request data decoded with encoding/gob.",
+          "misses": "Formats and libraries the rules do not model, and whether the data being deserialized is trusted.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.unsafe-deserialization",
+          "covers": "Deserializers that can build arbitrary types from their input.",
+          "misses": "Formats and libraries the rules do not model, and whether the data being deserialized is trusted.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.unsafe-deserialization",
+          "covers": "Request data reaching a native or object-binding deserializer.",
+          "misses": "Formats and libraries the rules do not model, and whether the data being deserialized is trusted.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.unsafe-deserialization",
+          "covers": "Request data decoded with a format that rebuilds arbitrary values or skips validation.",
+          "misses": "Formats and libraries the rules do not model, and whether the data being deserialized is trusted.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.unsafe-deserialization",
+          "covers": "Request data reaching native PHP unserialize.",
+          "misses": "Formats and libraries the rules do not model, and whether the data being deserialized is trusted.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Unsafe deserialization read by a model.",
+          "misses": "Sampled reading.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag deserializers known to rebuild arbitrary objects or run code from their input, the insecure mechanisms this requirement forbids on untrusted data."
     },
     {
       "requirement": "V1.5.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     }

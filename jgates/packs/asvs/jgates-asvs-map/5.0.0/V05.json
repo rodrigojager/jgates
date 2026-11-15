@@ -5,91 +5,167 @@
     {
       "requirement": "V5.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.2.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.2.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.2.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.2.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.2.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.2.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.3.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.3.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.path-traversal",
+          "covers": "A file path taken from the incoming request and used without reduction to a base name or a containment check.",
+          "misses": "Archive extraction, symlinks, file APIs the rule does not model, and path checks the rule cannot tell from a real containment check.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.path-traversal",
+          "covers": "A file path taken from the incoming request and used without reduction to a base name or a containment check.",
+          "misses": "Archive extraction, symlinks, file APIs the rule does not model, and path checks the rule cannot tell from a real containment check.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.path-traversal",
+          "covers": "A file path taken from the incoming request and used without reduction to a base name or a containment check.",
+          "misses": "Archive extraction, symlinks, file APIs the rule does not model, and path checks the rule cannot tell from a real containment check.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.path-traversal",
+          "covers": "A file path taken from the incoming request and used without reduction to a base name or a containment check.",
+          "misses": "Archive extraction, symlinks, file APIs the rule does not model, and path checks the rule cannot tell from a real containment check.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.path-traversal",
+          "covers": "A file path taken from the incoming request and used without reduction to a base name or a containment check.",
+          "misses": "Archive extraction, symlinks, file APIs the rule does not model, and path checks the rule cannot tell from a real containment check.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.path-traversal",
+          "covers": "A file path taken from the incoming request and used without reduction to a base name or a containment check.",
+          "misses": "Archive extraction, symlinks, file APIs the rule does not model, and path checks the rule cannot tell from a real containment check.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.path-traversal",
+          "covers": "A file path taken from the incoming request and used without reduction to a base name or a containment check.",
+          "misses": "Archive extraction, symlinks, file APIs the rule does not model, and path checks the rule cannot tell from a real containment check.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.file-inclusion",
+          "covers": "Request data choosing which PHP file is included.",
+          "misses": "Archive extraction, symlinks, file APIs the rule does not model, and path checks the rule cannot tell from a real containment check.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Path traversal, including symlinks, encoded sequences and null bytes, read by a model.",
+          "misses": "Sampled reading.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag file paths taken from the request without reduction or containment, the construct that lets user-submitted names escape the intended folder."
     },
     {
       "requirement": "V5.3.3",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Archive extraction that writes outside the target folder (zip slip), read by a model.",
+          "misses": "Sampled reading; no deterministic rule examines extraction code.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block names archive extraction as a path escape risk, which is the weakness this requirement addresses, but only a model reads it."
     },
     {
       "requirement": "V5.4.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.4.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V5.4.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     }
