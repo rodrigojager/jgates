@@ -1,0 +1,431 @@
+# Encoding rules for C#. Request sources: string parameters of public controller actions and of minimal API handlers
+# (MapGet, MapPost) and members of HttpRequest (Query, Form, Headers, Cookies, RouteValues, QueryString), as in
+# csharp-taint.yaml. Sinks: System.Text.RegularExpressions, string.Format and writer format calls, CsvHelper,
+# Enyim and other IMemcachedClient users, URL and JSON string building, double decoding, Markdig and CommonMark.NET.
+rules:
+  - id: jgates.csharp.regex-from-request
+    message: Request data is compiled or matched as a regular expression. Escape it with Regex.Escape before it becomes part of a pattern.
+    severity: WARNING
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.9", "V1.3.12"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+    pattern-sanitizers:
+      - pattern: Regex.Escape(...)
+      - pattern: System.Text.RegularExpressions.Regex.Escape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: new Regex($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: new System.Text.RegularExpressions.Regex($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: Regex.$M($I, $P, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(IsMatch|Match|Matches|Replace|Split)$
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: System.Text.RegularExpressions.Regex.$M($I, $P, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(IsMatch|Match|Matches|Replace|Split)$
+          - focus-metavariable: $P
+
+  - id: jgates.csharp.redos-nested-quantifier
+    message: This regular expression has a quantified group that itself ends in a quantifier, so a crafted input makes the engine backtrack for a very long time. Rewrite it without the nesting, or pass a match timeout to the Regex.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.12"]
+    patterns:
+      - pattern-either:
+          - pattern: new Regex($S, ...)
+          - pattern: new System.Text.RegularExpressions.Regex($S, ...)
+          - patterns:
+              - pattern: Regex.$M($I, $S, ...)
+              - metavariable-regex:
+                  metavariable: $M
+                  regex: ^(IsMatch|Match|Matches|Replace|Split)$
+          - patterns:
+              - pattern: System.Text.RegularExpressions.Regex.$M($I, $S, ...)
+              - metavariable-regex:
+                  metavariable: $M
+                  regex: ^(IsMatch|Match|Matches|Replace|Split)$
+      - metavariable-regex:
+          metavariable: $S
+          regex: '(?s)^@?".*\((?:[^()\\]|\\.)*(?<!\\)[+*]\)[+*]'
+
+  - id: jgates.csharp.format-string-from-request
+    message: Request data is used as the format string of a formatting or printing call, so braces in it can throw or read other arguments. Pass a constant format and give the request data as an argument, for example string.Format("{0}", value).
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-134"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.10"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+    pattern-sinks:
+      - patterns:
+          - pattern: string.Format($F, $A, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: String.Format($F, $A, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: string.Format($PROVIDER, $F, $A, ...)
+          - metavariable-regex:
+              metavariable: $PROVIDER
+              regex: ^(CultureInfo\.\w+|null)$
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: Console.WriteLine($F, $A, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: Console.Write($F, $A, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $SB.AppendFormat($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $W.WriteLine($F, $A, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $W.Write($F, $A, ...)
+          - focus-metavariable: $F
+
+  - id: jgates.csharp.csv-formula-injection
+    message: Request data is written as a CSV field without a check on its first character, so a value starting with =, +, - or @ can run as a formula when the file is opened in a spreadsheet. Prefix such values with an apostrophe or reject them before writing.
+    severity: WARNING
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1236"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.10"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+    pattern-sanitizers:
+      - pattern: SanitizeCsvField(...)
+      - pattern: EscapeCsvField(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $W.WriteField($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $W.WriteField($P, $Q)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $W.WriteField<$T>($P)
+          - focus-metavariable: $P
+
+  - id: jgates.csharp.memcache-key-from-request
+    message: Request data is used as a memcache key. A key with spaces or control characters can inject protocol commands or collide with other keys; hash or strictly validate it first.
+    severity: WARNING
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.9"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+    pattern-sanitizers:
+      - pattern: Convert.ToHexString(...)
+      - pattern: ValidateCacheKey(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: '(IMemcachedClient $C).$M($K, ...)'
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Get|GetAsync|Remove|RemoveAsync|Increment|IncrementAsync|Decrement|DecrementAsync|TryGet|Touch|TouchAsync)$
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: '(IMemcachedClient $C).$M($MODE, $K, ...)'
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Store|StoreAsync|Cas|CasAsync|Append|Prepend)$
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: '(MemcachedClient $C).$M($K, ...)'
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Get|GetAsync|Remove|RemoveAsync|Increment|IncrementAsync|Decrement|DecrementAsync|TryGet|Touch|TouchAsync)$
+          - focus-metavariable: $K
+
+  - id: jgates.csharp.double-decoding
+    message: A value is URL-, HTML- or base64-decoded and then decoded again with the same decoder, so encoded input can slip past checks made after the first decode. Decode once and validate the result.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: injection
+      cwe: "CWE-174"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.1.1"]
+    pattern-either:
+      - pattern: HttpUtility.UrlDecode(HttpUtility.UrlDecode(...))
+      - pattern: WebUtility.UrlDecode(WebUtility.UrlDecode(...))
+      - pattern: Uri.UnescapeDataString(Uri.UnescapeDataString(...))
+      - pattern: HttpUtility.HtmlDecode(HttpUtility.HtmlDecode(...))
+      - pattern: WebUtility.HtmlDecode(WebUtility.HtmlDecode(...))
+      - pattern: Convert.FromBase64String(Encoding.$E.GetString(Convert.FromBase64String(...)))
+      - pattern: |
+          $T1 $A = HttpUtility.UrlDecode($X);
+          ...
+          $T2 $B = HttpUtility.UrlDecode($A);
+      - pattern: |
+          $T1 $A = WebUtility.UrlDecode($X);
+          ...
+          $T2 $B = WebUtility.UrlDecode($A);
+      - pattern: |
+          $T1 $A = Uri.UnescapeDataString($X);
+          ...
+          $T2 $B = Uri.UnescapeDataString($A);
+      - pattern: |
+          $T1 $A = HttpUtility.HtmlDecode($X);
+          ...
+          $T2 $B = HttpUtility.HtmlDecode($A);
+      - pattern: |
+          $T1 $A = WebUtility.HtmlDecode($X);
+          ...
+          $T2 $B = WebUtility.HtmlDecode($A);
+
+  - id: jgates.csharp.url-parameter-unencoded
+    message: Request data is joined into the query or path of a URL without encoding. Use Uri.EscapeDataString or WebUtility.UrlEncode, or build the query with a collection such as HttpUtility.ParseQueryString.
+    severity: WARNING
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.2"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+    pattern-sanitizers:
+      - pattern: Uri.EscapeDataString(...)
+      - pattern: WebUtility.UrlEncode(...)
+      - pattern: HttpUtility.UrlEncode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $A + $P
+          - metavariable-regex:
+              metavariable: $A
+              regex: '(?s)^@?".*(\?|://).*[=/]"$'
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: string.Format($F, ..., $P, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '(?s)^@?".*(\?[^"]*=|[A-Za-z0-9_.-]/)\{\d'
+          - focus-metavariable: $P
+
+  - id: jgates.csharp.json-built-by-concatenation
+    message: Request data is joined into JSON or script text by string concatenation, so a quote or bracket in it changes the structure. Build the value with System.Text.Json (JsonSerializer.Serialize) or Json.NET instead.
+    severity: WARNING
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.3"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+    pattern-sanitizers:
+      - pattern: JsonSerializer.Serialize(...)
+      - pattern: JsonConvert.SerializeObject(...)
+      - pattern: HttpUtility.JavaScriptStringEncode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $A + $P
+          - metavariable-regex:
+              metavariable: $A
+              regex: '(?s)^@?"\s*[\{\[].*[:,\[]\s*(\\")?"$'
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: string.Format($F, ..., $P, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '(?s)^@?"(\s*\{\{|.*<script).*\{\d'
+          - focus-metavariable: $P
+
+  - id: jgates.csharp.markdown-raw-html-enabled
+    message: A Markdown renderer converts non-constant text with raw HTML allowed, and its output is not run through an HTML sanitizer. Build a Markdig pipeline with DisableHtml(), or sanitize the result with an HTML sanitizer.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    patterns:
+      - pattern-either:
+          - pattern: Markdown.ToHtml($X)
+          - pattern: Markdig.Markdown.ToHtml($X)
+          - pattern: CommonMarkConverter.Convert($X)
+      - pattern-not: Markdown.ToHtml("...")
+      - pattern-not: Markdig.Markdown.ToHtml("...")
+      - pattern-not: CommonMarkConverter.Convert("...")
+      - pattern-not-inside: $S.Sanitize(...)

@@ -1,0 +1,14 @@
+{
+  "files": ["Encoding.cs"],
+  "ruleIds": [
+    "jgates.csharp.regex-from-request",
+    "jgates.csharp.redos-nested-quantifier",
+    "jgates.csharp.format-string-from-request",
+    "jgates.csharp.csv-formula-injection",
+    "jgates.csharp.memcache-key-from-request",
+    "jgates.csharp.double-decoding",
+    "jgates.csharp.url-parameter-unencoded",
+    "jgates.csharp.json-built-by-concatenation",
+    "jgates.csharp.markdown-raw-html-enabled"
+  ]
+}
