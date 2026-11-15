@@ -5,149 +5,243 @@
     {
       "requirement": "V15.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.1.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.1.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.1.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.1.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.2.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.2.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.2.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.2.4",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "SUPPLY-CHAIN-AND-RELEASE.md#Dependency source and namespace confusion",
+          "covers": "Resolver settings, source priority and lockfile use that let a package name resolve from an unintended registry.",
+          "misses": "Registry-side controls and transitive dependencies resolved only at install time.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block hunts exactly the namespace-confusion weakness this item is about, in the resolver configuration found in the repository."
     },
     {
       "requirement": "V15.2.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.3.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.3.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Server-side fetches of caller-influenced URLs, including how redirects are followed.",
+          "misses": "Fixed trusted URLs whose redirect setting is a plain client option, and HTTP clients configured outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block asks the reader to follow redirect handling in outbound fetches, which is where an unwanted redirect-following setting shows up."
     },
     {
       "requirement": "V15.3.3",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Access control",
+          "covers": "Request-body fields that override what the permission model meant to restrict, the pattern of binding client input straight to a stored object.",
+          "misses": "Every framework binding feature by name; it is a model's reading, not a rule per framework.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block asks whether a body field can change something the action was not meant to change, which is the mass-assignment weakness."
     },
     {
       "requirement": "V15.3.4",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Host and forwarded-header trust",
+          "covers": "Trust placed in forwarded-address headers and how the application derives the client address from them.",
+          "misses": "The proxy and web server configuration outside the repository, and how the chain is deployed.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block treats forwarded-address headers as trust decisions and traces them to the security decision they feed, such as rate limiting."
     },
     {
       "requirement": "V15.3.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.3.6",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "CLIENT-SIDE.md#Prototype pollution and gadget chain",
+          "covers": "Recursive merges and path writes that let an attacker-chosen key reach prototype state, with the gadget that uses it.",
+          "misses": "JavaScript that is never reached by this reading, and a defensive style (such as using maps) that is absent but harmless.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block hunts prototype pollution in JavaScript directly."
     },
     {
       "requirement": "V15.3.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V15.4.1",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "MEMORY-SAFETY-AND-BINARY.md#Shared-state races and TOCTOU",
+          "covers": "Shared caches, lazy initialization and teardown reached by concurrent paths without a guard.",
+          "misses": "Races that need a schedule the reading cannot show; the block is written for native targets and reads less well on managed runtimes.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block looks for state shared between concurrent paths that lacks the guard, which is the weakness this item names."
     },
     {
       "requirement": "V15.4.2",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Races between a check and the use on file operations.",
+          "misses": "Permission checks followed by a separate action on non-file resources.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "MEMORY-SAFETY-AND-BINARY.md#Shared-state races and TOCTOU",
+          "covers": "Checks on state that concurrent paths can invalidate before use.",
+          "misses": "Races without a security-relevant state change, which the block leaves unconfirmed.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Both audit blocks name the gap between a check and its use as the thing to hunt."
     },
     {
       "requirement": "V15.4.3",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "MEMORY-SAFETY-AND-BINARY.md#Lock-order, deadlock, and starvation",
+          "covers": "Inconsistent lock acquisition order and locks held across callbacks or blocking calls.",
+          "misses": "Where lock logic lives (whether outside code can alter it) and cases that cannot be triggered by bounded input.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block hunts deadlocks from lock ordering, which is the stuck-thread half of this item."
     },
     {
       "requirement": "V15.4.4",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Worker, pool, and priority starvation",
+          "covers": "Shared pools and locks where one workload holds a slot others need.",
+          "misses": "Whether thread pools or priorities are used by design, which this block does not judge.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block looks for starvation of shared workers, the failure this item guards against."
     }
   ]
 }

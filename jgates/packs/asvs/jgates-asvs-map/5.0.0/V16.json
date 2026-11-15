@@ -5,119 +5,159 @@
     {
       "requirement": "V16.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.2.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.2.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.2.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.2.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.2.5",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "secrets",
+        "privacy"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Cryptography and secrets",
+          "covers": "Secrets written to logs and error messages.",
+          "misses": "Data that is allowed in logs only masked or hashed by protection level, and personal data.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "DATA-ISOLATION-AND-LIFECYCLE.md#Analytics, logs, traces, and diagnostics as alternate readers",
+          "covers": "Private content or credentials emitted into logs and traces readable by a broader audience.",
+          "misses": "Whether the application has a per-class logging policy to enforce.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Both audit blocks look for sensitive values reaching logs, the violation this item forbids."
     },
     {
       "requirement": "V16.3.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.3.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.3.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.3.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.4.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Injection",
+          "covers": "Untrusted input reaching logging and other secondary systems, log injection among the sinks listed.",
+          "misses": "The logging components' own encoding behaviour; the block treats logs as one sink among many.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The injection block lists log injection as a sink to trace, which is what this item asks to prevent."
     },
     {
       "requirement": "V16.4.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.4.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.5.1",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-method",
+          "id": "insecure-defaults",
+          "category": "debug-features",
+          "covers": "Stack traces, driver messages and verbose errors written into responses.",
+          "misses": "Errors produced by frameworks or proxies configured outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The debug-features category reports exactly internal detail returned to the caller in error responses."
     },
     {
       "requirement": "V16.5.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.5.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V16.5.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     }
