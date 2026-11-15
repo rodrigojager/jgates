@@ -8,6 +8,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.4.1"]
     pattern-either:
       - pattern: md5.New()
       - pattern: md5.Sum(...)
@@ -23,6 +24,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.3.2"]
     pattern-either:
       - pattern: des.NewCipher(...)
       - pattern: des.NewTripleDESCipher(...)
@@ -37,6 +39,7 @@ rules:
       cwe: "CWE-295"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V12.3.2"]
     pattern-either:
       - pattern: 'tls.Config{..., InsecureSkipVerify: true, ...}'
       - pattern: $C.InsecureSkipVerify = true
@@ -50,6 +53,7 @@ rules:
       cwe: "CWE-347"
       author: JGates
       subdimension: authorization
+      asvs_requirements: ["V6.8.2", "V9.1.1", "V9.1.2"]
     pattern-either:
       - pattern: $P.ParseUnverified(...)
       - pattern: jwt.UnsafeAllowNoneSignatureType

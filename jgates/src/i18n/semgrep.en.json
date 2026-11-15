@@ -11,6 +11,8 @@
   "semgrep_condition_local": "Uses only the binding's local rules; accesses neither a registry nor the network.",
   "semgrep_condition_pack": "Also runs the bundled JGates rule pack {pack} ({count} rule files shipped with JGates, MIT); nothing is downloaded.",
   "semgrep_condition_pack_languages": "The JGates pack has rules for: {languages}. A project in any of them gets only these Semgrep rules from JGates (no lint, type check, tests or dependency preparation).",
+  "semgrep_pack_language_html": "HTML files",
+  "semgrep_pack_language_config": "configuration files",
   "semgrep_limitation_pack_missing": "The JGates pack has no rule for: {languages}.",
   "semgrep_reason_scanned_none": "The scan covered no file of: {languages}; the pack's rules for {count, plural, one {that language} other {those languages}} did not run.",
   "semgrep_pack_unknown": "The instance {tool} selects the rule pack {pack}, which this JGates does not ship. Use tools.{tool}.rulePack: jgates or remove it.",

@@ -18,7 +18,7 @@ export type MascotStatus = "waiting" | "processing" | "passed" | "failed" | "inc
  */
 export const MASCOT_SUBDIMENSIONS: Readonly<Record<MascotDomain, readonly string[]>> = {
   quality: ["lint", "types", "builds", "maintainability", "reliability", "api-compatibility"],
-  security: ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence"],
+  security: ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence", "hardening"],
   dependencies: ["vulnerabilities", "licenses", "supply-chain"],
   tests: ["unit-integration", "contracts", "properties", "mutation", "regressions", "post-patch"],
   architecture: ["layer-boundaries", "cycles", "cross-module-effects", "invariants"],

@@ -18,7 +18,7 @@ export const MAPPING_EVIDENCE = ["repository", "deployment", "person"] as const;
 export const MAPPING_UNITS = ["semgrep-rule", "capability", "semantic-ledger", "semantic-method"] as const;
 export type MappingUnit = (typeof MAPPING_UNITS)[number];
 export const MAPPING_DEPTHS = ["partial", "full"] as const;
-export const MAPPING_SUBDIMENSIONS = ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence"] as const;
+export const MAPPING_SUBDIMENSIONS = ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence", "hardening"] as const;
 
 export interface MappingCheck {
   unit: MappingUnit;
@@ -51,6 +51,8 @@ export interface MappingChapterFile {
 
 export interface UnmappedRule {
   id: string;
+  /** The refused requirement of a (rule, requirement) pair; without it the entry refuses every requirement the rule was written for. */
+  requirement?: string;
   reason: string;
 }
 
@@ -109,6 +111,8 @@ export function countedChecks(entry: MappingEntry): MappingCheck[] {
 export interface MappingContext {
   /** Rule id to the subdimension its own metadata declares. */
   rules: Map<string, string>;
+  /** Rule id to the requirement ids its own metadata (`asvs_requirements`) says it was written for; a rule without any is absent. */
+  ruleRequirements: Map<string, string[]>;
   /** `<adapter>#<capability>` with at least one `validated` row of the matrix. */
   capabilities: Set<string>;
   /** `FILE.md#Class` blocks of the vendored attack-class files that a ledger unit can name. */
@@ -120,8 +124,14 @@ export interface MappingContext {
 /** The context of this installation: the pack index, the matrix, the vendored attack classes and the Semantic methods. */
 export function buildMappingContext(): MappingContext {
   const rules = new Map<string, string>();
+  const ruleRequirements = new Map<string, string[]>();
   const rulesDir = bundledPackRulesDir("jgates");
-  if (rulesDir) for (const rule of buildPackIndex(rulesDir).rules) rules.set(rule.id, rule.subdimension);
+  if (rulesDir) {
+    for (const rule of buildPackIndex(rulesDir).rules) {
+      rules.set(rule.id, rule.subdimension);
+      if (rule.asvsRequirements.length > 0) ruleRequirements.set(rule.id, rule.asvsRequirements);
+    }
+  }
   const capabilities = new Set<string>();
   for (const row of buildMatrix().rows) if (row.state === "validated") capabilities.add(`${row.adapter}#${row.capability}`);
   const attackBlocks = new Set<string>();
@@ -136,7 +146,7 @@ export function buildMappingContext(): MappingContext {
     ["cross-component", new Set()],
     ["supply-chain", new Set()],
   ]);
-  return { rules, capabilities, attackBlocks, methods };
+  return { rules, ruleRequirements, capabilities, attackBlocks, methods };
 }
 
 const words = (text: string): string[] => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(" ").filter(Boolean);
@@ -225,12 +235,48 @@ export function validateMapping(mapping: AsvsMapping, data: AsvsData, context: M
 
   const mapped = new Set(mapping.entries.flatMap((e) => e.checks.filter((c) => c.unit === "semgrep-rule").map((c) => c.id)));
   const listed = new Set<string>();
+  const pairs = new Set<string>();
   for (const rule of mapping.unmappedRules.rules) {
     if (!context.rules.has(rule.id)) problems.push(`${UNMAPPED_RULES_FILE}: unknown rule ${rule.id}`);
     if (typeof rule.reason !== "string" || rule.reason.trim() === "") problems.push(`${UNMAPPED_RULES_FILE}: ${rule.id} has no reason`);
-    if (listed.has(rule.id)) problems.push(`${UNMAPPED_RULES_FILE}: ${rule.id} listed twice`);
+    if (rule.requirement !== undefined && !known.has(rule.requirement)) problems.push(`${UNMAPPED_RULES_FILE}: ${rule.id} names the unknown requirement ${rule.requirement}`);
+    const pair = `${rule.id} ${rule.requirement ?? "*"}`;
+    if (pairs.has(pair)) problems.push(`${UNMAPPED_RULES_FILE}: ${rule.id}${rule.requirement ? ` for ${rule.requirement}` : ""} listed twice`);
+    pairs.add(pair);
     listed.add(rule.id);
   }
   for (const id of context.rules.keys()) if (!mapped.has(id) && !listed.has(id)) problems.push(`rule ${id} is neither mapped nor listed in ${UNMAPPED_RULES_FILE}`);
+  return problems;
+}
+
+/**
+ * The two-way gate between what a rule says it was written for (`asvs_requirements` in its metadata) and what the mapping
+ * says. One line per problem, empty when both agree:
+ *   - every requirement of a rule's `asvs_requirements` has an entry that names the rule, or the (rule, requirement) pair
+ *     is listed in unmapped-rules.json (an entry there without a requirement refuses all of the rule's requirements);
+ *   - every entry that names a rule names a requirement of that rule's `asvs_requirements`.
+ * The mapping stays the only thing the map trusts; this only keeps the two statements from drifting apart.
+ */
+export function validateRuleRequirements(mapping: AsvsMapping, context: MappingContext): string[] {
+  const problems: string[] = [];
+  const named = new Map<string, Set<string>>();
+  for (const entry of mapping.entries) {
+    for (const check of entry.checks) {
+      if (check.unit !== "semgrep-rule") continue;
+      if (!named.has(check.id)) named.set(check.id, new Set());
+      (named.get(check.id) as Set<string>).add(entry.requirement);
+    }
+  }
+  const refused = (id: string, requirement: string): boolean => mapping.unmappedRules.rules.some((r) => r.id === id && (r.requirement === undefined || r.requirement === requirement));
+  for (const [id, requirements] of context.ruleRequirements) {
+    for (const requirement of requirements) {
+      if (!(named.get(id)?.has(requirement) ?? false) && !refused(id, requirement)) problems.push(`rule ${id} was written for ${requirement}, which no entry maps to it and ${UNMAPPED_RULES_FILE} does not refuse`);
+    }
+  }
+  for (const [id, requirements] of named) {
+    if (!context.rules.has(id)) continue;
+    const stated = new Set(context.ruleRequirements.get(id) ?? []);
+    for (const requirement of requirements) if (!stated.has(requirement)) problems.push(`entry ${requirement} names rule ${id}, whose asvs_requirements do not include ${requirement}`);
+  }
   return problems;
 }

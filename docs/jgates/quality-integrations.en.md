@@ -53,7 +53,7 @@ domain and one subdimension, so no execution is counted twice, and a subdimensio
 not covered.
 
 - Quality: lint, types, builds, maintainability, reliability, api-compatibility.
-- Security: injection, authorization, tenant-isolation, secrets, cryptography, privacy, business-logic, runtime-evidence.
+- Security: injection, authorization, tenant-isolation, secrets, cryptography, privacy, business-logic, runtime-evidence, hardening (configuration, error handling and availability; "endurecimento" in Portuguese).
 - Dependencies: vulnerabilities, licenses, supply-chain.
 - Tests: unit-integration, contracts, properties, mutation, regressions, post-patch.
 - Architecture: layer-boundaries, cycles, cross-module-effects, invariants.

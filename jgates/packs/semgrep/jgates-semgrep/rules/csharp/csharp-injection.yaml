@@ -9,6 +9,7 @@ rules:
       cwe: "CWE-89"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.4"]
     patterns:
       - pattern-either:
           - pattern: new SqlCommand($Q, ...)
@@ -39,6 +40,7 @@ rules:
       cwe: "CWE-78"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.5"]
     patterns:
       - pattern-either:
           - pattern: Process.Start($F, ...)

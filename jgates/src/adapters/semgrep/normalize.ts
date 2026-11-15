@@ -130,7 +130,26 @@ const SCANNED_LANGUAGE_BY_EXTENSION: Readonly<Record<string, string>> = {
   ".ex": "elixir",
   ".exs": "elixir",
   ".lua": "lua",
+  // The two kinds of file of the JGates pack that are not a programming language.
+  ".html": "html",
+  ".htm": "html",
 };
+
+/** Extensions of the configuration files the pack reads (web servers, PHP, Java properties). */
+const CONFIG_EXTENSIONS: ReadonlySet<string> = new Set([".conf", ".properties", ".ini"]);
+
+/** Whether a scanned path is a configuration file of the pack: by extension, by file name or by the framework's folder. */
+export function isConfigFile(file: string): boolean {
+  const unix = file.replace(/\\/g, "/");
+  const base = (unix.split("/").pop() ?? "").toLowerCase();
+  if (CONFIG_EXTENSIONS.has(path.extname(base))) return true;
+  if (base === ".htaccess" || base === "web.config" || /^web\.[a-z0-9_-]+\.config$/.test(base)) return true;
+  // Spring (application.yml, application-dev.yaml) and .NET (appsettings.json, appsettings.Production.json).
+  if (/^application(-[a-z0-9_.-]+)?\.ya?ml$/.test(base) || /^appsettings(\.[a-z0-9_-]+)?\.json$/.test(base)) return true;
+  // Symfony (config/packages, config/services, config/routes) and Laravel (config/<name>.php).
+  if (/(^|\/)config\/(packages\/.+|services|routes|bundles)\.(ya?ml|xml|php)$/i.test(unix)) return true;
+  return /(^|\/)config\/[^/]+\.php$/i.test(unix);
+}
 
 /**
  * How many files of each language the scan covered, from the scanner's own list of scanned paths. Every language in
@@ -142,6 +161,8 @@ export function scannedLanguageCounts(scanned: readonly string[], include: reado
   for (const file of scanned) {
     const language = SCANNED_LANGUAGE_BY_EXTENSION[path.extname(file).toLowerCase()];
     if (language) counts[language] = (counts[language] ?? 0) + 1;
+    // A configuration file is counted as such as well (a Laravel config/app.php is also a PHP file the PHP rules read).
+    if (isConfigFile(file)) counts.config = (counts.config ?? 0) + 1;
   }
   return counts;
 }

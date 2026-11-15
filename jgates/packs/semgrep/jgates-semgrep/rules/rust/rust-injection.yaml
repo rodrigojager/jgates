@@ -12,6 +12,7 @@ rules:
       cwe: "CWE-89"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.4"]
     pattern-sources:
       - pattern: format!($FMT, $ARG, ...)
       - patterns:
@@ -52,6 +53,7 @@ rules:
       cwe: "CWE-78"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.5"]
     patterns:
       - pattern-either:
           - pattern: Command::new($SH).arg($FLAG).arg($CMD)
@@ -76,6 +78,7 @@ rules:
       cwe: "CWE-78"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.5"]
     patterns:
       - pattern: Command::new($P)
       - pattern-not: Command::new("...")

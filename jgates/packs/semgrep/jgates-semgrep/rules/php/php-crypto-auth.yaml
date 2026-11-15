@@ -6,9 +6,10 @@ rules:
     languages: [php]
     metadata:
       category: weak-crypto
-      cwe: "CWE-328"
+      cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.4.1", "V11.4.2"]
     patterns:
       - pattern-either:
           - pattern: md5($PASSWORD, ...)
@@ -26,6 +27,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.3.1", "V11.3.2"]
     patterns:
       - pattern: openssl_encrypt($DATA, $CIPHER, ...)
       - metavariable-regex:
@@ -41,6 +43,7 @@ rules:
       cwe: "CWE-295"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V12.3.2"]
     pattern-either:
       - pattern: curl_setopt($HANDLE, CURLOPT_SSL_VERIFYPEER, false)
       - pattern: curl_setopt($HANDLE, CURLOPT_SSL_VERIFYPEER, 0)

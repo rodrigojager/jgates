@@ -15,6 +15,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     pattern-sources:
       - pattern: $_GET[...]
       - pattern: $_POST[...]

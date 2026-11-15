@@ -8,6 +8,7 @@ rules:
       cwe: "CWE-89"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.4"]
     pattern-either:
       - patterns:
           - pattern-either:
@@ -51,6 +52,7 @@ rules:
       cwe: "CWE-78"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.5"]
     pattern-either:
       - patterns:
           - pattern-either:

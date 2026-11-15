@@ -12,6 +12,7 @@ rules:
       cwe: "CWE-918"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.3.6"]
     pattern-sources:
       - pattern: (HttpServletRequest $REQ).getParameter(...)
       - pattern: (HttpServletRequest $REQ).getHeader(...)
@@ -135,6 +136,7 @@ rules:
       cwe: "CWE-22"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V5.3.2"]
     pattern-sources:
       - pattern: (HttpServletRequest $REQ).getParameter(...)
       - pattern: (HttpServletRequest $REQ).getHeader(...)
@@ -256,6 +258,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     pattern-sources:
       - pattern: (HttpServletRequest $REQ).getParameter(...)
       - pattern: (HttpServletRequest $REQ).getHeader(...)
@@ -396,6 +399,7 @@ rules:
       cwe: "CWE-502"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.5.2"]
     pattern-sources:
       - pattern: (HttpServletRequest $REQ).getParameter(...)
       - pattern: (HttpServletRequest $REQ).getHeader(...)

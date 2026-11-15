@@ -14,6 +14,7 @@ rules:
       cwe: "CWE-89"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.4"]
     pattern-sources:
       - pattern: $_GET[...]
       - pattern: $_POST[...]
@@ -79,6 +80,7 @@ rules:
       cwe: "CWE-78"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.5"]
     pattern-sources:
       - pattern: $_GET[...]
       - pattern: $_POST[...]
@@ -140,6 +142,7 @@ rules:
       cwe: "CWE-95"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.3.2"]
     pattern-sources:
       - pattern: $_GET[...]
       - pattern: $_POST[...]
@@ -195,6 +198,7 @@ rules:
       cwe: "CWE-95"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.3.2"]
     patterns:
       - pattern: preg_replace($REGEX, $REPLACEMENT, $SUBJECT, ...)
       - metavariable-regex:

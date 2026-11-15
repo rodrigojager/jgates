@@ -16,6 +16,7 @@
         "required": ["id", "reason"],
         "properties": {
           "id": { "type": "string", "pattern": "^jgates\\.[a-z]+\\.[A-Za-z0-9_.-]+$" },
+          "requirement": { "type": "string", "pattern": "^V\\d+\\.\\d+\\.\\d+$", "description": "The requirement of the refused (rule, requirement) pair; without it the entry refuses every requirement the rule was written for." },
           "reason": { "type": "string", "minLength": 3 }
         }
       }

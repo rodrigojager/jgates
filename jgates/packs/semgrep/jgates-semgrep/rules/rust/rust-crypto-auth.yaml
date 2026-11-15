@@ -11,6 +11,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.4.1"]
     pattern-either:
       - pattern: md5::compute(...)
       - pattern: Md5::new()
@@ -37,6 +38,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.3.1", "V11.3.2"]
     pattern-either:
       - pattern: Des::new(...)
       - pattern: Des::new_from_slice(...)
@@ -66,6 +68,7 @@ rules:
       cwe: "CWE-295"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V12.3.2"]
     pattern-either:
       - pattern: $B.danger_accept_invalid_certs(true)
       - pattern: $B.danger_accept_invalid_hostnames(true)

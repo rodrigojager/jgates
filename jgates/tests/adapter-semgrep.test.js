@@ -337,10 +337,18 @@ const PACK_ROOT = path.resolve(here, "..", "packs", "semgrep");
 const PACK_RULES = path.join(PACK_ROOT, "jgates-semgrep", "rules");
 const PACK_FIXTURES = path.join(here, "fixtures", "semgrep-pack");
 const TOOLS_IMAGE = process.env.JGATES_SEMGREP_IMAGE || "jgates-tools:dev";
-const SECURITY_SUBDIMENSIONS = ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence"];
-const PACK_CATEGORIES = ["injection", "ssrf", "path-traversal", "deserialization", "weak-crypto", "authorization", "xss", "xxe"];
+// The closed lists of the pack (prefixes, categories, subdimensions, severities, signal tags, forbidden keys) are the
+// plain file the pack:check command reads too: one place, no copy in the tests.
+const PACK_LISTS = JSON.parse(fs.readFileSync(path.join(here, "..", "src", "adapters", "semgrep", "pack-lists.json"), "utf8"));
+const SECURITY_SUBDIMENSIONS = PACK_LISTS.subdimensions;
+const PACK_CATEGORIES = PACK_LISTS.categories;
 // Metadata keys (and links) typical of registry rules: a rule of this pack never carries one.
-const FORBIDDEN_METADATA = ["source-rule-url", "shortlink", "license", "technology", "references", "source", "impact", "likelihood", "confidence", "vulnerability_class", "owasp", "cwe2021-top25", "cwe2022-top25", "subcategory"];
+const FORBIDDEN_METADATA = PACK_LISTS.forbiddenMetadata;
+// `semgrep --test` pairs an annotated fixture for `html` and `generic` rules too (checked on 1.182.1), so every rule kind
+// of the pack, signals included, is proven by its fixture as well as by its twins.
+const asvsData = await import(pathToFileURL(path.join(dist, "core", "coverage", "asvs", "index.js")).href);
+const ASVS_IDS = new Set(asvsData.loadAsvs("5.0.0").requirements.map((r) => r.id));
+const PACK_SEVERITIES = PACK_LISTS.severities;
 const twinLanguages = () => fs.readdirSync(path.join(PACK_FIXTURES, "expected")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort();
 
 function localSemgrep() {
@@ -444,17 +452,38 @@ test("every rule of the bundled pack has its language prefix, its metadata and a
   assert.deepEqual(index.problems, []);
   assert.ok(index.rules.length >= 24, "the pack keeps its 24 JavaScript and Python rules");
   const prefixes = semgrepAdapter.PACK_LANGUAGE_PREFIX;
+  assert.deepEqual(Object.values(prefixes).sort(), ["config", "csharp", "go", "html", "java", "js", "php", "python", "rust"], "the nine prefixes");
+  assert.deepEqual(prefixes, PACK_LISTS.languages, "the index reads the same lists as the tests");
+  assert.ok(PACK_LISTS.subdimensions.includes("hardening"));
   const seen = new Set();
+  const families = new Map();
   for (const rule of index.rules) {
     assert.ok(!seen.has(rule.id), `${rule.id} is defined once`);
     seen.add(rule.id);
     assert.ok(prefixes[rule.language], `${rule.file}: ${rule.language} is a language of the pack`);
     assert.ok(rule.id.startsWith(`jgates.${prefixes[rule.language]}.`), `${rule.id} carries the prefix of ${rule.language}`);
-    assert.ok(PACK_CATEGORIES.includes(rule.category), `${rule.id}: category ${rule.category}`);
-    assert.match(rule.cwe, /^CWE-\d+$/, `${rule.id}: CWE`);
-    assert.ok(SECURITY_SUBDIMENSIONS.includes(rule.subdimension), `${rule.id}: subdimension ${rule.subdimension}`);
+    assert.ok(PACK_SEVERITIES.includes(rule.severity), `${rule.id}: severity ${rule.severity}`);
     assert.equal(rule.author, "JGates", `${rule.id}: author`);
     for (const key of FORBIDDEN_METADATA) assert.ok(!rule.metadataKeys.includes(key), `${rule.id}: metadata key ${key} is typical of registry rules`);
+    if (rule.signal !== null) {
+      // A signal rule is a record of the scan, never a finding: INFO, `signal` from the closed list, `author`, nothing else.
+      assert.ok(PACK_LISTS.signalTags.includes(rule.signal), `${rule.id}: signal ${rule.signal}`);
+      assert.equal(rule.severity, "INFO", `${rule.id}: a signal rule is INFO`);
+      assert.deepEqual(rule.metadataKeys, [...PACK_LISTS.signalMetadata].sort(), `${rule.id}: a signal rule carries only signal and author`);
+      assert.equal(rule.family, `uses-${rule.signal}`, `${rule.id}: named uses-<tag>`);
+    } else {
+      assert.ok(PACK_CATEGORIES.includes(rule.category), `${rule.id}: category ${rule.category}`);
+      assert.match(rule.cwe, /^CWE-\d+$/, `${rule.id}: CWE`);
+      assert.ok(SECURITY_SUBDIMENSIONS.includes(rule.subdimension), `${rule.id}: subdimension ${rule.subdimension}`);
+      assert.deepEqual(rule.metadataKeys, [...PACK_LISTS.ruleMetadata].sort(), `${rule.id}: only the metadata keys of a rule`);
+      assert.ok(rule.asvsRequirements.length > 0, `${rule.id}: asvs_requirements`);
+      for (const req of rule.asvsRequirements) assert.ok(ASVS_IDS.has(req), `${rule.id}: ${req} is a requirement of the vendored data`);
+      assert.equal(new Set(rule.asvsRequirements).size, rule.asvsRequirements.length, `${rule.id}: a requirement once`);
+      // One family name means one category and one CWE in every language.
+      const kind = `${rule.category} ${rule.cwe}`;
+      if (!families.has(rule.family)) families.set(rule.family, { kind, id: rule.id });
+      assert.equal(families.get(rule.family).kind, kind, `${rule.id}: the family ${rule.family} has another category or CWE than ${families.get(rule.family).id}`);
+    }
     assert.ok(rule.fixture, `${rule.file} has a fixture beside it`);
     const fixture = fs.readFileSync(path.join(PACK_RULES, rule.fixture), "utf8");
     const id = rule.id.replace(/[.]/g, "\\.");
@@ -501,6 +530,25 @@ test("the bundled pack flags the vulnerable C# twin as expected and its clean tw
 test("the bundled pack flags the vulnerable Rust twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@rust]", () => checkTwin("rust"));
 test("the bundled pack flags the vulnerable Java twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@java]", () => checkTwin("java"));
 test("the bundled pack flags the vulnerable PHP twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@php]", () => checkTwin("php"));
+
+test("HTML files and configuration files are counted as html and config, and a pack folder of each is a pack language", () => {
+  const scanned = [
+    "/ws/index.html", "/ws/old/page.HTM", "/ws/app.js", "/ws/conf/site.conf", "/ws/app.properties", "/ws/php.ini", "/ws/.htaccess", "/ws/web.config",
+    "/ws/src/main/resources/application.yml", "/ws/application-dev.yaml", "/ws/appsettings.json", "/ws/appsettings.Production.json",
+    "/ws/config/packages/security.yaml", "/ws/config/services.yaml", "/ws/config/app.php", "/ws/data.json", "/ws/ci.yml", "/ws/settings.xml",
+  ];
+  const counts = semgrepAdapter.scannedLanguageCounts(scanned, ["html", "config", "go"]);
+  assert.equal(counts.html, 2);
+  assert.equal(counts.config, 12, "the configuration files by extension, by file name and by the framework folders");
+  assert.equal(counts.go, 0);
+  assert.equal(counts.javascript, 1);
+  assert.equal(counts.php, 1, "a Laravel config file is also a PHP file");
+  assert.deepEqual(semgrepAdapter.scannedLanguageCounts(["/ws/data.json", "/ws/ci.yml"], ["html", "config"]), { html: 0, config: 0 });
+  // The plan item names the two kinds of file in words a person reads, in both languages.
+  assert.deepEqual(["html", "config"].map((l) => semgrepAdapter.packLanguageLabel(l, "en")), ["HTML files", "configuration files"]);
+  assert.deepEqual(["html", "config"].map((l) => semgrepAdapter.packLanguageLabel(l, "pt-BR")), ["arquivos HTML", "arquivos de configuração"]);
+  assert.deepEqual(semgrepAdapter.packLanguagesOf(["go/go-xss.yaml", "html/html-markup.yaml", "config/config-server.yaml", "config/config-framework.yaml"]), ["go", "html", "config"]);
+});
 
 test("the scanned languages of a Semgrep output are counted per language, a pack language with no file is 0, and the plan names what the pack lacks", () => {
   const counts = semgrepAdapter.scannedLanguageCounts(["/ws/A.java", "/ws/b.php", "/ws/c.PHP", "/ws/d.kt", "/ws/readme.md"], ["java", "php", "go"]);

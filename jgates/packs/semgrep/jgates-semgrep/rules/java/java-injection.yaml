@@ -10,6 +10,7 @@ rules:
       cwe: "CWE-89"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.4"]
     patterns:
       - pattern-either:
           - pattern: $S.executeQuery($Q)
@@ -42,6 +43,7 @@ rules:
       cwe: "CWE-78"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.5"]
     pattern-either:
       - patterns:
           - pattern: Runtime.getRuntime().exec($CMD, ...)
@@ -65,6 +67,7 @@ rules:
       cwe: "CWE-611"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.5.1"]
     pattern-either:
       - patterns:
           - pattern: DocumentBuilderFactory $F = DocumentBuilderFactory.newInstance();

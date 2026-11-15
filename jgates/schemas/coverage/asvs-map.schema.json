@@ -26,7 +26,7 @@
         "subdimensions": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "enum": ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence"] }
+          "items": { "enum": ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence", "hardening"] }
         },
         "checks": { "type": "array", "items": { "$ref": "#/$defs/check" } },
         "why": { "type": "string", "minLength": 1 },

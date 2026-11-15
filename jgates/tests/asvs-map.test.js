@@ -196,6 +196,56 @@ test("every pack rule is mapped or listed in unmapped-rules.json with a reason",
   assert.equal(asvs.validateMapping(mapped, data, context).some((p) => p.includes("neither mapped nor listed")), false, "a mapped rule needs no listing");
 });
 
+test("the two-way gate: a rule's asvs_requirements and the entries that name it agree, or the pair is refused in unmapped-rules.json", () => {
+  const gate = (m, ctx = context) => asvs.validateRuleRequirements(m, ctx);
+  assert.ok(context.ruleRequirements.size > 0, "the rules of the pack state their requirements");
+  assert.deepEqual(gate(mapping()), [], "today's pack and mapping agree");
+  const [ruleId, stated] = [...context.ruleRequirements.entries()][0];
+  const outside = data.requirements.map((r) => r.id).find((id) => !stated.includes(id));
+  // A rule written for a requirement no entry maps to it, and the pair is not refused.
+  const widened = { ...context, ruleRequirements: new Map(context.ruleRequirements).set(ruleId, [...stated, outside]) };
+  assert.match(gate(mapping(), widened).join("\n"), new RegExp(`${ruleId.replace(/\./g, "\\.")} was written for ${outside.replace(/\./g, "\\.")}`));
+  // The pair is listed in unmapped-rules.json: for that requirement only, or for the whole rule.
+  const refusedPair = mapping();
+  refusedPair.unmappedRules.rules.push({ id: ruleId, requirement: outside, reason: "No check of the rule bears on this requirement." });
+  assert.deepEqual(gate(refusedPair, widened), []);
+  const refusedOther = mapping();
+  refusedOther.unmappedRules.rules.push({ id: ruleId, requirement: stated[0], reason: "Refused for another requirement." });
+  assert.match(gate(refusedOther, widened).join("\n"), /was written for/, "a refusal of another requirement does not cover this one");
+  const refusedAll = mapping();
+  refusedAll.unmappedRules.rules.push({ id: ruleId, reason: "No requirement of the rule is examined by it." });
+  assert.deepEqual(gate(refusedAll, widened).filter((p) => p.includes(outside)), []);
+  // An entry that names a rule for a requirement outside the rule's asvs_requirements.
+  const stray = withEntry(mapping(), outside, "pending", [goodCheck({ id: ruleId })], [context.rules.get(ruleId)]);
+  assert.match(gate(stray).join("\n"), new RegExp(`entry ${outside.replace(/\./g, "\\.")} names rule ${ruleId.replace(/\./g, "\\.")}`));
+  // A rule that states no requirement cannot be named by any entry.
+  const bare = { ...context, ruleRequirements: new Map([...context.ruleRequirements].filter(([id]) => id !== ruleId)) };
+  assert.match(gate(mapping(), bare).join("\n"), /whose asvs_requirements do not include/);
+});
+
+test("a refused pair names a requirement of the official data, once, and the schema takes the field", () => {
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  const validateRules = ajv.compile(readJson(path.join(JGATES, "schemas", "coverage", "asvs-unmapped-rules.schema.json")));
+  const [ruleId] = [...context.rules.keys()];
+  const good = { version: "5.0.0", rules: [{ id: ruleId, requirement: "V1.2.4", reason: "Not examined by this rule." }, { id: ruleId, reason: "Whole rule." }] };
+  assert.ok(validateRules(good), ajv.errorsText(validateRules.errors));
+  assert.ok(!validateRules({ ...good, rules: [{ id: ruleId, requirement: "not-an-id", reason: "x y z" }] }));
+  const m = mapping();
+  m.unmappedRules.rules.push({ id: ruleId, requirement: "V99.9.9", reason: "Unknown requirement." });
+  assert.match(asvs.validateMapping(m, data, context).join("\n"), /unknown requirement V99\.9\.9/);
+  const twice = mapping();
+  twice.unmappedRules.rules.push({ id: ruleId, requirement: "V1.2.4", reason: "once" }, { id: ruleId, requirement: "V1.2.4", reason: "twice" });
+  assert.match(asvs.validateMapping(twice, data, context).join("\n"), /listed twice/);
+});
+
+test("hardening is a subdimension the mapping schema and the mapping gates accept", () => {
+  assert.ok(asvs.MAPPING_SUBDIMENSIONS.includes("hardening"));
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  const validateMap = ajv.compile(readJson(path.join(JGATES, "schemas", "coverage", "asvs-map.schema.json")));
+  const entry = { requirement: "V1.1.1", status: "unmapped", evidence: null, subdimensions: ["hardening"], checks: [] };
+  assert.ok(validateMap({ version: "5.0.0", chapter: "V1", entries: [entry] }), ajv.errorsText(validateMap.errors));
+});
+
 test("the distribution check accepts the data folder and the mapping pack", () => {
   const report = distribution.checkDistribution({ packs: [DATA_DIR, MAP_DIR] });
   assert.deepEqual(report.problems, []);

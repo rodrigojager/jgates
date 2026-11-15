@@ -23,15 +23,26 @@ const RULES = path.join(PACK, "rules");
 const adapter = await import(pathToFileURL(path.join(dist, "adapters", "semgrep", "index.js")).href);
 const semver = await import(pathToFileURL(path.join(dist, "core", "prepare", "semver.js")).href);
 
-const SUBDIMENSIONS = ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence"];
-const CATEGORIES = ["injection", "ssrf", "path-traversal", "deserialization", "weak-crypto", "authorization", "xss", "xxe"];
-const FORBIDDEN = ["source-rule-url", "shortlink", "license", "technology", "references", "source", "impact", "likelihood", "confidence", "vulnerability_class", "owasp", "cwe2021-top25", "cwe2022-top25", "subcategory"];
+// The closed lists are the file the index and the pack:check command read too (one place, no copy here).
+const LISTS = adapter.PACK_LISTS;
+const SUBDIMENSIONS = LISTS.subdimensions;
+const CATEGORIES = LISTS.categories;
+const FORBIDDEN = LISTS.forbiddenMetadata;
 const EIGHT = ["javascript", "typescript", "python", "go", "csharp", "rust", "java", "php"];
+const asvs = await import(pathToFileURL(path.join(dist, "core", "coverage", "asvs", "index.js")).href);
+const REQUIREMENTS = new Set(asvs.loadAsvs("5.0.0").requirements.map((r) => r.id));
 
 const index = adapter.buildPackIndex(RULES);
 const files = adapter.listPackRuleFiles(RULES);
 
+test("V2-87: the nine prefixes and the closed lists, with hardening a Security subdimension", () => {
+  assert.deepEqual(Object.values(adapter.PACK_LANGUAGE_PREFIX).sort(), ["config", "csharp", "go", "html", "java", "js", "php", "python", "rust"]);
+  assert.ok(SUBDIMENSIONS.includes("hardening"));
+  assert.deepEqual(LISTS.severities, ["ERROR", "WARNING", "INFO"]);
+});
+
 test("V2-87: every rule file has its fixture and every rule has its prefix, category, CWE, subdimension, author and no registry key", () => {
+  const families = new Map();
   assert.deepEqual(index.problems, []);
   assert.ok(files.length >= 8, "the pack keeps its eight JavaScript and Python rule files");
   for (const file of files) {
@@ -43,11 +54,24 @@ test("V2-87: every rule file has its fixture and every rule has its prefix, cate
     const prefix = adapter.PACK_LANGUAGE_PREFIX[rule.language];
     assert.ok(prefix, `${rule.file}: a language of the pack`);
     assert.ok(rule.id.startsWith(`jgates.${prefix}.`), `${rule.id}: prefix of ${rule.language}`);
-    assert.ok(CATEGORIES.includes(rule.category), `${rule.id}: category`);
-    assert.match(rule.cwe, /^CWE-\d+$/, `${rule.id}: CWE`);
-    assert.ok(SUBDIMENSIONS.includes(rule.subdimension), `${rule.id}: subdimension`);
+    assert.ok(LISTS.severities.includes(rule.severity), `${rule.id}: severity ${rule.severity}`);
     assert.equal(rule.author, "JGates", `${rule.id}: author`);
     for (const key of FORBIDDEN) assert.ok(!rule.metadataKeys.includes(key), `${rule.id}: ${key}`);
+    if (rule.signal !== null) {
+      assert.ok(LISTS.signalTags.includes(rule.signal), `${rule.id}: signal`);
+      assert.equal(rule.severity, "INFO", `${rule.id}: a signal rule is INFO`);
+      assert.deepEqual(rule.metadataKeys, [...LISTS.signalMetadata].sort(), `${rule.id}: signal and author only`);
+    } else {
+      assert.ok(CATEGORIES.includes(rule.category), `${rule.id}: category`);
+      assert.match(rule.cwe, /^CWE-\d+$/, `${rule.id}: CWE`);
+      assert.ok(SUBDIMENSIONS.includes(rule.subdimension), `${rule.id}: subdimension`);
+      assert.deepEqual(rule.metadataKeys, [...LISTS.ruleMetadata].sort(), `${rule.id}: the metadata keys of a rule`);
+      assert.ok(rule.asvsRequirements.length > 0, `${rule.id}: asvs_requirements`);
+      for (const req of rule.asvsRequirements) assert.ok(REQUIREMENTS.has(req), `${rule.id}: ${req} exists in the vendored data`);
+      const kind = `${rule.category} ${rule.cwe}`;
+      if (!families.has(rule.family)) families.set(rule.family, { kind, id: rule.id });
+      assert.equal(families.get(rule.family).kind, kind, `${rule.id}: the family ${rule.family} keeps its category and CWE (see ${families.get(rule.family).id})`);
+    }
     assert.ok(rule.fixture, `${rule.id}: fixture`);
     const fixture = fs.readFileSync(path.join(RULES, rule.fixture), "utf8");
     const id = rule.id.replace(/[.]/g, "\\.");

@@ -8,6 +8,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.4.1"]
     pattern-either:
       - patterns:
           - pattern: MessageDigest.getInstance($ALG, ...)
@@ -30,6 +31,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.3.1", "V11.3.2"]
     patterns:
       - pattern: Cipher.getInstance($ALG, ...)
       - metavariable-regex:
@@ -45,6 +47,7 @@ rules:
       cwe: "CWE-295"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V12.3.2"]
     pattern-either:
       - pattern: |
           new X509TrustManager() {
@@ -73,6 +76,7 @@ rules:
       cwe: "CWE-352"
       author: JGates
       subdimension: authorization
+      asvs_requirements: ["V3.5.1"]
     pattern-either:
       - pattern: $HTTP.csrf().disable()
       - pattern: $HTTP.csrf($C -> $C.disable())

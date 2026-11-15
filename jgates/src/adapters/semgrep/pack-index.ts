@@ -5,16 +5,26 @@ import fs from "node:fs";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 
+/**
+ * The closed lists of the pack (languages with their prefixes, categories, subdimensions, severities, signal tags, the
+ * metadata keys a rule may carry). They live in `pack-lists.json`, a plain file a Node script can read without a build:
+ * the `pack:check` command and the tests read the same file.
+ */
+export interface PackLists {
+  languages: Record<string, string>;
+  categories: string[];
+  subdimensions: string[];
+  severities: string[];
+  signalTags: string[];
+  forbiddenMetadata: string[];
+  ruleMetadata: string[];
+  signalMetadata: string[];
+}
+
+export const PACK_LISTS: Readonly<PackLists> = JSON.parse(fs.readFileSync(new URL("./pack-lists.json", import.meta.url), "utf8")) as PackLists;
+
 /** The language of a pack file and the id prefix its rules carry: `jgates.<prefix>.<name>`. */
-export const PACK_LANGUAGE_PREFIX: Readonly<Record<string, string>> = {
-  javascript: "js",
-  python: "python",
-  go: "go",
-  csharp: "csharp",
-  rust: "rust",
-  java: "java",
-  php: "php",
-};
+export const PACK_LANGUAGE_PREFIX: Readonly<Record<string, string>> = PACK_LISTS.languages;
 
 export interface PackRule {
   id: string;
@@ -33,10 +43,24 @@ export interface PackRule {
   fixture: string | null;
   /** Every metadata key of the rule, for the checks that refuse unwanted ones. */
   metadataKeys: string[];
+  /** The family name: the id without `jgates.<prefix>.`, the same in every language that has the family. */
+  family: string;
+  /** The ASVS requirement ids the rule was written for (a statement of intent, not a mapping); empty when it has none. */
+  asvsRequirements: string[];
+  /** The tag of a signal rule (a record of the scan, never a finding); null for a check. */
+  signal: string | null;
+}
+
+/** A (language, tag) pair some signal rule of the pack records. */
+export interface PackSignal {
+  language: string;
+  tag: string;
 }
 
 export interface PackIndex {
   rules: PackRule[];
+  /** The (language, tag) pairs that have a signal rule. */
+  signals: PackSignal[];
   /** Rule files that could not be read or parsed, and rules without an id. */
   problems: Array<{ file: string; message: string }>;
 }
@@ -107,10 +131,17 @@ export function buildPackIndex(rulesDir: string): PackIndex {
         file,
         fixture,
         metadataKeys: Object.keys(meta).sort(),
+        family: raw.id.replace(/^jgates\.[^.]+\./, ""),
+        asvsRequirements: Array.isArray(meta.asvs_requirements) ? meta.asvs_requirements.map(String) : [],
+        signal: typeof meta.signal === "string" && meta.signal !== "" ? meta.signal : null,
       });
     }
   }
-  return { rules, problems };
+  const signals: PackSignal[] = [];
+  for (const rule of rules) {
+    if (rule.signal !== null && !signals.some((s) => s.language === rule.language && s.tag === rule.signal)) signals.push({ language: rule.language, tag: rule.signal });
+  }
+  return { rules, signals, problems };
 }
 
 /** The index of a bundled pack folder (`<pack>/rules`). */

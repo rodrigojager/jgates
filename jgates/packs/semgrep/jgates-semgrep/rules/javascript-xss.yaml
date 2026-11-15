@@ -9,6 +9,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     pattern-sources:
       - pattern: req.query
       - pattern: req.body
@@ -40,6 +41,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1", "V1.3.1", "V3.2.2"]
     patterns:
       - pattern-either:
           - pattern: $E.innerHTML = $X
@@ -70,6 +72,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1", "V1.3.1", "V3.2.2"]
     patterns:
       - pattern-either:
           - pattern: '<$C ... dangerouslySetInnerHTML={{__html: $X}} ... />'
@@ -96,6 +99,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     pattern-either:
       - pattern: 'Handlebars.compile($T, {..., noEscape: true, ...})'
       - pattern: 'nunjucks.configure(..., {..., autoescape: false, ...})'

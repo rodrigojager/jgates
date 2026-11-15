@@ -8,6 +8,7 @@ rules:
       cwe: "CWE-502"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.5.2"]
     pattern-either:
       - pattern: pickle.load(...)
       - pattern: pickle.loads(...)
@@ -24,6 +25,7 @@ rules:
       cwe: "CWE-502"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.5.2"]
     patterns:
       - pattern-either:
           - pattern: yaml.load($X)

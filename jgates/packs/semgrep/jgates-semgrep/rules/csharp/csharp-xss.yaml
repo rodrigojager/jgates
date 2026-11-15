@@ -11,6 +11,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     pattern-sources:
       - patterns:
           - pattern: $P
@@ -71,6 +72,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     patterns:
       - pattern-either:
           - pattern: Html.Raw($Q)

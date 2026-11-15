@@ -11,6 +11,8 @@
   "semgrep_condition_local": "Usa só as regras locais do binding; não acessa registry nem rede.",
   "semgrep_condition_pack": "Roda também o pacote de regras JGates {pack} ({count} arquivos de regras distribuídos com o JGates, MIT); nada é baixado.",
   "semgrep_condition_pack_languages": "O pacote JGates tem regras para: {languages}. Um projeto em qualquer uma delas recebe do JGates só estas regras do Semgrep (sem lint, verificação de tipos, testes nem preparo de dependências).",
+  "semgrep_pack_language_html": "arquivos HTML",
+  "semgrep_pack_language_config": "arquivos de configuração",
   "semgrep_limitation_pack_missing": "O pacote JGates não tem regra para: {languages}.",
   "semgrep_reason_scanned_none": "A varredura não cobriu nenhum arquivo de: {languages}; as regras do pacote para {count, plural, one {essa linguagem} other {essas linguagens}} não rodaram.",
   "semgrep_pack_unknown": "A instância {tool} seleciona o pacote de regras {pack}, que este JGates não distribui. Use tools.{tool}.rulePack: jgates ou remova.",

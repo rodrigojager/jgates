@@ -8,6 +8,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     patterns:
       - pattern: template.$T($X)
       - metavariable-regex:
@@ -26,6 +27,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     # Importing text/template is not a flaw (it renders configuration, mail and CLI output): only a template created by
     # text/template and executed into an http.ResponseWriter is flagged. The package is followed through its import name.
     patterns:
@@ -91,6 +93,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     pattern-sources:
       - patterns:
           - pattern-either:

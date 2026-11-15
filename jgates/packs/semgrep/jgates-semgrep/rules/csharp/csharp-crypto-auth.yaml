@@ -8,6 +8,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.4.1"]
     pattern-either:
       - pattern: MD5.Create()
       - pattern: SHA1.Create()
@@ -28,6 +29,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.3.1", "V11.3.2"]
     pattern-either:
       - pattern: DES.Create()
       - pattern: TripleDES.Create()
@@ -46,6 +48,7 @@ rules:
       cwe: "CWE-295"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V12.3.2"]
     pattern-either:
       - pattern-regex: ServerCertificate(Custom)?ValidationCallback\s*\+?=\s*(\([^)]*\)|\w+)\s*=>\s*true\b
       - pattern-regex: ServerCertificateCustomValidationCallback\s*=\s*HttpClientHandler\.DangerousAcceptAnyServerCertificateValidator
@@ -59,6 +62,7 @@ rules:
       cwe: "CWE-347"
       author: JGates
       subdimension: authorization
+      asvs_requirements: ["V6.8.2", "V9.1.1", "V9.2.1", "V9.2.3", "V10.3.1"]
     pattern-either:
       - pattern-regex: Validate(IssuerSigningKey|Issuer|Audience|Lifetime)\s*=\s*false\b
       - pattern-regex: RequireSignedTokens\s*=\s*false\b

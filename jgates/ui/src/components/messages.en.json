@@ -55,6 +55,7 @@
   "mascot_sub_privacy": "Privacy",
   "mascot_sub_business-logic": "Business-logic abuse",
   "mascot_sub_runtime-evidence": "Runtime security evidence",
+  "mascot_sub_hardening": "Hardening",
   "mascot_sub_vulnerabilities": "Vulnerabilities",
   "mascot_sub_licenses": "Licenses",
   "mascot_sub_supply-chain": "Provenance and package execution",

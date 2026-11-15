@@ -9,6 +9,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     pattern-sources:
       - pattern: request.args.get(...)
       - pattern: request.args[...]
@@ -43,6 +44,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     pattern-either:
       - pattern: jinja2.Environment(..., autoescape=False, ...)
       - pattern: Environment(..., autoescape=False, ...)
@@ -58,6 +60,7 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.2.1"]
     pattern-sources:
       - pattern: request.args.get(...)
       - pattern: request.args[...]

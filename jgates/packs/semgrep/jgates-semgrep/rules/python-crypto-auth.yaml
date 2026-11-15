@@ -8,6 +8,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.4.1"]
     pattern-either:
       - pattern: hashlib.md5(...)
       - pattern: hashlib.sha1(...)
@@ -23,6 +24,7 @@ rules:
       cwe: "CWE-327"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V11.3.2"]
     pattern-either:
       - pattern: DES.new(...)
       - pattern: DES3.new(...)
@@ -37,6 +39,7 @@ rules:
       cwe: "CWE-295"
       author: JGates
       subdimension: cryptography
+      asvs_requirements: ["V12.3.2"]
     pattern-either:
       - pattern: requests.$M(..., verify=False, ...)
       - pattern: ssl._create_unverified_context(...)
@@ -50,6 +53,7 @@ rules:
       cwe: "CWE-347"
       author: JGates
       subdimension: authorization
+      asvs_requirements: ["V6.8.2", "V9.1.1"]
     pattern-either:
       - pattern: 'jwt.decode(..., options={"verify_signature": False, ...}, ...)'
       - pattern: jwt.decode(..., verify=False, ...)
@@ -63,6 +67,7 @@ rules:
       cwe: "CWE-352"
       author: JGates
       subdimension: authorization
+      asvs_requirements: ["V3.5.1"]
     pattern: |
       @csrf_exempt
       def $F(...):
@@ -77,6 +82,7 @@ rules:
       cwe: "CWE-639"
       author: JGates
       subdimension: authorization
+      asvs_requirements: ["V8.3.1"]
     pattern-either:
       - pattern: |
           if request.args.get("is_admin"):

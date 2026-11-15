@@ -27,7 +27,7 @@ import { probeSemgrep, scannerPath } from "./probe.js";
 export { semgrepManifest } from "./manifest.js";
 export { parseSemgrepOutput, scannedLanguageCounts } from "./normalize.js";
 export { findSemgrep, probeSemgrep, scannerPath } from "./probe.js";
-export { PACK_LANGUAGE_PREFIX, buildPackIndex, listPackRuleFiles, packRuleIndex, type PackIndex, type PackRule } from "./pack-index.js";
+export { PACK_LANGUAGE_PREFIX, PACK_LISTS, buildPackIndex, listPackRuleFiles, packRuleIndex, type PackIndex, type PackLists, type PackRule, type PackSignal } from "./pack-index.js";
 
 /** Ids of the rule packs that ship with JGates (tools.<id>.rulePack), mapped to their pack folder under packs/semgrep. */
 export const BUNDLED_RULE_PACKS: Readonly<Record<string, string>> = { jgates: "jgates-semgrep" };
@@ -64,8 +64,13 @@ export function bundledPackLanguages(): string[] {
   return [...out].sort();
 }
 
-/** Display name of a pack language (the JavaScript rules also serve TypeScript). */
-const packLanguageLabel = (language: string): string => (language === "javascript" ? "JavaScript/TypeScript" : labelOf(language));
+/** Display name of a pack language (the JavaScript rules also serve TypeScript; the two kinds of file are named in words). */
+export const packLanguageLabel = (language: string, locale?: string): string => {
+  if (language === "javascript") return "JavaScript/TypeScript";
+  if (language === "html") return translator("semgrep", locale)("semgrep_pack_language_html");
+  if (language === "config") return translator("semgrep", locale)("semgrep_pack_language_config");
+  return labelOf(language);
+};
 
 /** The pack languages of a bundled pack that a run's arguments select (`--config <pack rules folder>`), else an empty list. */
 function packLanguagesOfArgs(args: readonly string[]): string[] {
@@ -215,7 +220,7 @@ function planSemgrep(input: ExternalPlanInput): ExternalPlan {
     limitations: noRuleFor.length > 0 ? [t("semgrep_limitation_pack_missing", { languages: noRuleFor.map(labelOf).join(", ") })] : [],
     conditions: [
       usePrepared && prepared.entry ? t("semgrep_condition_prepared", { ref: prepared.entry.ref, hash: prepared.entry.hash.slice(0, 12), source: prepared.entry.source }) : t("semgrep_condition_local"),
-      ...(usePack && packId ? [t("semgrep_condition_pack", { pack: packId, count: packRules.length }), t("semgrep_condition_pack_languages", { languages: packLanguages.map(packLanguageLabel).join(", ") })] : []),
+      ...(usePack && packId ? [t("semgrep_condition_pack", { pack: packId, count: packRules.length }), t("semgrep_condition_pack_languages", { languages: packLanguages.map((l) => packLanguageLabel(l)).join(", ") })] : []),
       ...(governed ? [translator("governed")("governed_semgrep_condition")] : []),
     ],
     output: { format: "json", schema: null },
@@ -329,7 +334,7 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
     : null;
   const notScanned = scannedLanguages ? packLanguages.filter((l) => (l === "javascript" ? (scannedLanguages.javascript ?? 0) + (scannedLanguages.typescript ?? 0) : (scannedLanguages[l] ?? 0)) === 0) : [];
   const completedReason = t("semgrep_reason_completed", { version: version ?? "?", count, rules: ruleFiles });
-  const reason = notScanned.length > 0 ? `${completedReason}. ${t("semgrep_reason_scanned_none", { languages: notScanned.map(packLanguageLabel).join(", "), count: notScanned.length })}` : completedReason;
+  const reason = notScanned.length > 0 ? `${completedReason}. ${t("semgrep_reason_scanned_none", { languages: notScanned.map((l) => packLanguageLabel(l)).join(", "), count: notScanned.length })}` : completedReason;
   return {
     ...base,
     stages: items.map((i) =>

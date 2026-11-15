@@ -11,6 +11,7 @@ rules:
       cwe: "CWE-502"
       author: JGates
       subdimension: injection
+      asvs_requirements: ["V1.5.2"]
     pattern-sources:
       - patterns:
           - pattern-either:

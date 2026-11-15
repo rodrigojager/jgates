@@ -54,7 +54,7 @@ domínio primário e uma subdimensão, então nenhuma execução é contada duas
 selecionada aparece como não coberta.
 
 - Quality: lint, types, builds, maintainability, reliability, api-compatibility.
-- Security: injection, authorization, tenant-isolation, secrets, cryptography, privacy, business-logic, runtime-evidence.
+- Security: injection, authorization, tenant-isolation, secrets, cryptography, privacy, business-logic, runtime-evidence, hardening (configuração, tratamento de erros e disponibilidade; "endurecimento" na interface).
 - Dependencies: vulnerabilities, licenses, supply-chain.
 - Tests: unit-integration, contracts, properties, mutation, regressions, post-patch.
 - Architecture: layer-boundaries, cycles, cross-module-effects, invariants.
