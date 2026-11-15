@@ -1,0 +1,389 @@
+# Group web-protocol for Go. Frameworks covered: net/http, gorilla/websocket, nhooyr websocket,
+# golang.org/x/net/websocket, gin, echo, fiber, chi (request sources), gqlgen, graph-gophers/graphql-go,
+# unrolled/secure and gin-contrib/secure, echo's Secure middleware.
+rules:
+  - id: jgates.go.security-headers-disabled
+    message: A security header middleware is configured with a protection switched off (framing, content sniffing, HSTS or the whole middleware). Leave the header on, with an HSTS max-age of at least one year.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.1", "V3.4.3", "V3.4.4", "V3.4.6"]
+    patterns:
+      - pattern-either:
+          - pattern: 'secure.Options{..., ContentTypeNosniff: false, ...}'
+          - pattern: 'secure.Options{..., FrameDeny: false, ...}'
+          - pattern: 'secure.Options{..., STSSeconds: 0, ...}'
+          - pattern: 'secure.Options{..., IsDevelopment: true, ...}'
+          - pattern: 'secure.Config{..., ContentTypeNosniff: false, ...}'
+          - pattern: 'secure.Config{..., FrameDeny: false, ...}'
+          - pattern: 'secure.Config{..., STSSeconds: 0, ...}'
+          - pattern: 'secure.Config{..., IsDevelopment: true, ...}'
+          - pattern: 'middleware.SecureConfig{..., ContentTypeNosniff: "", ...}'
+          - pattern: 'middleware.SecureConfig{..., XFrameOptions: "", ...}'
+          - pattern: 'middleware.SecureConfig{..., HSTSMaxAge: 0, ...}'
+          - patterns:
+              - pattern-either:
+                  - pattern: 'secure.Options{..., STSSeconds: $N, ...}'
+                  - pattern: 'secure.Config{..., STSSeconds: $N, ...}'
+                  - pattern: 'middleware.SecureConfig{..., HSTSMaxAge: $N, ...}'
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N > 0 and $N < 31536000
+
+  - id: jgates.go.csp-unsafe-directive
+    message: A Content-Security-Policy allows inline or eval script execution, or any script source. Use nonces or hashes and list the script origins you trust.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.3"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $W.Header().Set("$N", "$V")
+                  - pattern: $W.Header().Add("$N", "$V")
+                  - pattern: $C.Header("$N", "$V")
+                  - pattern: $C.Set("$N", "$V")
+              - metavariable-regex:
+                  metavariable: $N
+                  regex: (?i)^content-security-policy$
+          - patterns:
+              - pattern-either:
+                  - pattern: 'secure.Options{..., ContentSecurityPolicy: "$V", ...}'
+                  - pattern: 'secure.Config{..., ContentSecurityPolicy: "$V", ...}'
+      - metavariable-regex:
+          metavariable: $V
+          regex: (?i).*(script-src|script-src-elem|default-src)[^;]*('unsafe-inline'|'unsafe-eval'|\s\*(\s|;|$)|\s(https?|data):(\s|;|$))
+
+  - id: jgates.go.websocket-without-tls
+    message: A WebSocket connection is opened to a plain ws:// address that is not the local machine, so traffic travels unencrypted. Use a wss:// address.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: websocket.DefaultDialer.Dial("$U", ...)
+          - pattern: $D.Dial("$U", ...)
+          - pattern: $D.DialContext($CTX, "$U", ...)
+          - pattern: websocket.Dial("$U", ...)
+          - pattern: websocket.Dial($CTX, "$U", ...)
+          - pattern: websocket.NewConfig("$U", ...)
+      - metavariable-regex:
+          metavariable: $U
+          regex: (?i)^ws://(?!(localhost|127\.0\.0\.1|\[::1\])([:/]|$))
+
+  - id: jgates.go.websocket-origin-not-checked
+    message: A WebSocket server accepts connections from every origin, so any web page can open one for a signed-in user. Compare the Origin header with an allow-list.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-1385"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.4.2"]
+    pattern-either:
+      - pattern: |
+          websocket.Upgrader{..., CheckOrigin: func(...) bool { return true }, ...}
+      - pattern: |
+          $U.CheckOrigin = func(...) bool { return true }
+      - pattern: '$P.AcceptOptions{..., InsecureSkipVerify: true, ...}'
+      - pattern: '$P.AcceptOptions{..., OriginPatterns: []string{..., "*", ...}, ...}'
+
+  - id: jgates.go.graphql-introspection-enabled
+    message: A GraphQL server is created with introspection switched on, which hands the whole schema to anyone. Enable it only in development.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.2"]
+    pattern-either:
+      - pattern: $S.Use(extension.Introspection{})
+      - pattern: $S.Use(&extension.Introspection{})
+
+  - id: jgates.go.graphql-without-depth-limit
+    message: A GraphQL server is created without a depth, amount or complexity limit, so one query can ask for unbounded work. Add a complexity limit or a maximum depth.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: availability
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: handler.NewDefaultServer(...)
+          - pattern: handler.New(...)
+          - pattern: graphql.MustParseSchema(...)
+          - pattern: graphql.ParseSchema(...)
+      - pattern-not: graphql.MustParseSchema(..., graphql.MaxDepth(...), ...)
+      - pattern-not: graphql.ParseSchema(..., graphql.MaxDepth(...), ...)
+      - pattern-not-inside: |
+          $S := handler.NewDefaultServer(...)
+          ...
+          $S.Use(extension.FixedComplexityLimit(...))
+      - pattern-not-inside: |
+          $S := handler.New(...)
+          ...
+          $S.Use(extension.FixedComplexityLimit(...))
+      - pattern-not-inside: |
+          $S := handler.NewDefaultServer(...)
+          ...
+          $S.Use(&extension.ComplexityLimit{...})
+      - pattern-not-inside: |
+          $S := handler.New(...)
+          ...
+          $S.Use(&extension.ComplexityLimit{...})
+
+  - id: jgates.go.open-redirect
+    message: The redirect target comes from the incoming request, so an attacker can send users to another site. Redirect only to a fixed path or to a target found in an allow-list.
+    severity: ERROR
+    languages: [go]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-601"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V3.7.2"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.Header.Get(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.DefaultQuery(...)
+              - pattern: $R.PostForm(...)
+              - pattern: $R.DefaultPostForm(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.GetHeader(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.QueryParam(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.FormValue(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.Params(...)
+              - pattern: $R.FormValue(...)
+      - pattern: chi.URLParam($R, ...)
+    pattern-sinks:
+      - patterns:
+          - pattern: http.Redirect($W, $R2, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $C.Redirect($CODE, $P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $C.Redirect($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $C.Redirect($P, $CODE)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $W.Header().Set("Location", $P)
+          - focus-metavariable: $P
+
+  - id: jgates.go.client-ip-from-forwarded-header
+    message: The client address is read from a forwarding header that the client itself can set, so it can be forged. Use the connection address, or trust the header only behind a configured proxy.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-348"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.4", "V4.1.3"]
+    patterns:
+      - pattern-either:
+          - pattern: $X.Header.Get("$H")
+          - pattern: $X.Header.Values("$H")
+          - pattern: $X.GetHeader("$H")
+          - pattern: $X.Get("$H")
+          - pattern: $X.Header["$H"]
+      - metavariable-regex:
+          metavariable: $H
+          regex: (?i)^(x-forwarded-for|x-real-ip|x-client-ip|x-originating-ip|forwarded)$
+
+  - id: jgates.go.host-header-in-url
+    message: The request's Host header is used to build an absolute URL, and the client controls that header. Build links from a configured base URL.
+    severity: WARNING
+    languages: [go]
+    mode: taint
+    metadata:
+      category: authorization
+      cwe: "CWE-644"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.1.3"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern: $R.Host
+      - pattern: $C.Request.Host
+      - pattern: $C.Request().Host
+      - pattern: $C.Hostname()
+    pattern-sinks:
+      - patterns:
+          - pattern: fmt.Sprintf("$S", ..., $H, ...)
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^https?://
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: |
+              "$S" + $H
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^https?://$
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: 'url.URL{..., Host: $H, ...}'
+          - focus-metavariable: $H

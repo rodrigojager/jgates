@@ -1,0 +1,14 @@
+{
+  "files": ["web-protocol.go"],
+  "ruleIds": [
+    "jgates.go.security-headers-disabled",
+    "jgates.go.csp-unsafe-directive",
+    "jgates.go.websocket-without-tls",
+    "jgates.go.websocket-origin-not-checked",
+    "jgates.go.graphql-introspection-enabled",
+    "jgates.go.graphql-without-depth-limit",
+    "jgates.go.open-redirect",
+    "jgates.go.client-ip-from-forwarded-header",
+    "jgates.go.host-header-in-url"
+  ]
+}
