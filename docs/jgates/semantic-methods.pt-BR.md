@@ -75,3 +75,7 @@ jgates tools distribution
   afetados para `needs-validation`.
 - `property-reasoning`, `post-patch-validation` e `confirm-by-reproduction` podem propor testes de regressão. Eles só são aplicados por
   `jgates regressions incorporate <id> --approve`.
+- O registro de cobertura da auditoria de segurança alimenta o [mapa de cobertura ASVS](asvs-coverage.pt-BR.md): por
+  ele, um requisito só é examinado quando unidades do seu bloco de classe de ataque foram examinadas naquela execução,
+  sempre com a base "revisão do código por IA", contada à parte das verificações determinísticas. Uma unidade que um
+  modelo propôs como não aplicável nunca torna um requisito não aplicável.

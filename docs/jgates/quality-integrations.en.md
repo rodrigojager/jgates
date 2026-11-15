@@ -59,6 +59,10 @@ not covered.
 - Architecture: layer-boundaries, cycles, cross-module-effects, invariants.
 - Infrastructure: iac, ci-cd, deployment, images.
 
+The Security subdimensions are also the second way to read the [ASVS coverage map](asvs-coverage.en.md): each mapped
+requirement names its subdimensions, and the rules of the bundled Semgrep pack, the Gitleaks, ZAP and dependency checks
+feed the map only when they really ran. The map says what was examined, never that a project meets the standard.
+
 ## Limitations
 
 - A row marked `customer-setup-required` is not proven here; the matrix says so instead of hiding it.

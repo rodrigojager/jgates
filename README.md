@@ -155,6 +155,7 @@ JGates reads and runs tools over code that may not be trusted, and it has a loca
 - [Semantic gate](docs/jgates/semantic-gate.en.md)
 - [The two gates and their sequence](docs/jgates/gates.en.md), the [Semantic methods](docs/jgates/semantic-methods.en.md) and the [Semantic mascots](docs/jgates/semantic-mascots.en.md)
 - [Quality integrations and the capability matrix](docs/jgates/quality-integrations.en.md)
+- [The ASVS coverage map](docs/jgates/asvs-coverage.en.md): every OWASP ASVS 5.0.0 requirement in one of five states (`jgates coverage asvs`); it shows what was examined, never that a project meets the standard
 - [Project services](docs/jgates/services.en.md)
 - [Your own tools and images](docs/jgates/extension.en.md)
 - [Storage and cleanup](docs/jgates/storage.en.md)

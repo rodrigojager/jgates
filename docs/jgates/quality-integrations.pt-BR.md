@@ -60,6 +60,11 @@ selecionada aparece como não coberta.
 - Architecture: layer-boundaries, cycles, cross-module-effects, invariants.
 - Infrastructure: iac, ci-cd, deployment, images.
 
+As subdimensões de Security também são a segunda forma de ler o [mapa de cobertura ASVS](asvs-coverage.pt-BR.md): cada
+requisito mapeado nomeia as suas subdimensões, e as regras do pacote Semgrep que acompanha o JGates e as verificações do
+Gitleaks, do ZAP e de dependências só alimentam o mapa quando realmente rodaram. O mapa diz o que foi examinado, nunca
+que um projeto atende ao padrão.
+
 ## Limitações
 
 - Uma linha `customer-setup-required` não é provada aqui; a matriz diz isso em vez de esconder.

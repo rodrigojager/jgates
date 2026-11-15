@@ -73,3 +73,7 @@ jgates tools distribution
   `needs-validation`.
 - `property-reasoning`, `post-patch-validation` and `confirm-by-reproduction` may propose regression tests. They are applied only by
   `jgates regressions incorporate <id> --approve`.
+- The security audit's coverage ledger feeds the [ASVS coverage map](asvs-coverage.en.md): a requirement is examined by
+  it only when units of its attack-class block were examined in that run, always with the basis "AI review of the
+  source", counted apart from the deterministic checks. A unit that a model proposed as not applicable never makes a
+  requirement not applicable.
