@@ -1,0 +1,4 @@
+{
+  "files": ["src/encoding.rs"],
+  "ruleIds": ["jgates.rust.regex-from-request"]
+}

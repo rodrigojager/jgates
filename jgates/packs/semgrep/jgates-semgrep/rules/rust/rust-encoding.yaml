@@ -1,0 +1,61 @@
+# Encoding rules for Rust. Request sources: parameters of an async handler typed as axum or actix-web extractors
+# (Query, Path, Form, Json, with or without web::), as in rust-taint.yaml.
+# Sinks: the regex crate constructors (Regex, RegexBuilder, RegexSet, bytes::Regex).
+rules:
+  - id: jgates.rust.regex-from-request
+    message: Request data is compiled as a regular expression. Pass it through regex::escape before it becomes part of a pattern.
+    severity: WARNING
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.9", "V1.3.12"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: regex::escape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: Regex::new($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: regex::Regex::new($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: RegexBuilder::new($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: regex::RegexBuilder::new($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: regex::bytes::Regex::new($X)
+          - focus-metavariable: $X
