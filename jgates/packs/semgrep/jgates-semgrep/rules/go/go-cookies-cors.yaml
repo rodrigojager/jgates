@@ -1,0 +1,231 @@
+# Cookies, CORS, request forgery and sensitive data in URLs for Go.
+# Libraries covered: net/http (http.Cookie), gorilla/sessions (sessions.Options), gin (SetCookie, SetSameSite,
+# JSONP, headers), echo (JSONP, CSRF middleware config), fiber (fiber.Cookie, CSRF config, headers),
+# rs/cors (cors.Options), gin-contrib/cors (cors.Config), gorilla/csrf and gorilla/websocket (CheckOrigin).
+rules:
+  - id: jgates.go.cookie-without-secure
+    message: A cookie is written without the Secure attribute, so a browser may send it over plain HTTP. Set Secure to true (or a configuration value) on the cookie.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+    pattern-either:
+      - patterns:
+          - pattern: 'http.Cookie{...}'
+          - pattern-not: 'http.Cookie{..., Secure: $X, ...}'
+      - pattern: 'http.Cookie{..., Secure: false, ...}'
+      - patterns:
+          - pattern: 'fiber.Cookie{...}'
+          - pattern-not: 'fiber.Cookie{..., Secure: $X, ...}'
+      - pattern: 'fiber.Cookie{..., Secure: false, ...}'
+      - patterns:
+          - pattern: 'sessions.Options{...}'
+          - pattern-not: 'sessions.Options{..., Secure: $X, ...}'
+      - pattern: 'sessions.Options{..., Secure: false, ...}'
+      - pattern: $C.SetCookie($N, $V, $A, $P, $D, false, ...)
+
+  - id: jgates.go.cookie-without-httponly
+    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Set HttpOnly to true on cookies the browser code does not need.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+    pattern-either:
+      - patterns:
+          - pattern: 'http.Cookie{...}'
+          - pattern-not: 'http.Cookie{..., HttpOnly: $X, ...}'
+      - pattern: 'http.Cookie{..., HttpOnly: false, ...}'
+      - patterns:
+          - pattern: 'fiber.Cookie{...}'
+          - pattern-not: 'fiber.Cookie{..., HTTPOnly: $X, ...}'
+      - pattern: 'fiber.Cookie{..., HTTPOnly: false, ...}'
+      - patterns:
+          - pattern: 'sessions.Options{...}'
+          - pattern-not: 'sessions.Options{..., HttpOnly: $X, ...}'
+      - pattern: 'sessions.Options{..., HttpOnly: false, ...}'
+      - pattern: $C.SetCookie($N, $V, $A, $P, $D, $S, false)
+
+  - id: jgates.go.cookie-without-samesite
+    message: A cookie is written with SameSite set to None, or without SameSite where the library sends none, so it travels on cross-site requests. Set SameSite to Lax or Strict.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.2"]
+    pattern-either:
+      - patterns:
+          - pattern: 'http.Cookie{...}'
+          - pattern-not: 'http.Cookie{..., SameSite: $X, ...}'
+      - pattern: 'http.Cookie{..., SameSite: http.SameSiteNoneMode, ...}'
+      - patterns:
+          - pattern: 'fiber.Cookie{...}'
+          - pattern-not: 'fiber.Cookie{..., SameSite: $X, ...}'
+      - pattern: 'fiber.Cookie{..., SameSite: "None", ...}'
+      - patterns:
+          - pattern: 'sessions.Options{...}'
+          - pattern-not: 'sessions.Options{..., SameSite: $X, ...}'
+      - pattern: 'sessions.Options{..., SameSite: http.SameSiteNoneMode, ...}'
+      - pattern: $C.SetSameSite(http.SameSiteNoneMode)
+
+  - id: jgates.go.cookie-name-without-prefix
+    message: A cookie name starts with neither __Host- nor __Secure-, so the browser does not enforce the attributes the name promises. Use the __Host- prefix for session cookies.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.3", "V3.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: 'http.Cookie{..., Name: $N, ...}'
+          - pattern: 'fiber.Cookie{..., Name: $N, ...}'
+          - pattern: $C.SetCookie($N, ...)
+      - metavariable-regex:
+          metavariable: $N
+          regex: '^["`](?!__Host-|__Secure-)'
+
+  - id: jgates.go.cors-any-origin-with-credentials
+    message: CORS allows every origin together with credentials, so any site can read authenticated responses. List the trusted origins instead of using a wildcard.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-942"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - patterns:
+          - pattern: 'cors.Options{..., AllowedOrigins: []string{..., "*", ...}, ...}'
+          - pattern: 'cors.Options{..., AllowCredentials: true, ...}'
+      - patterns:
+          - pattern: 'cors.Config{..., AllowOrigins: []string{..., "*", ...}, ...}'
+          - pattern: 'cors.Config{..., AllowCredentials: true, ...}'
+      - patterns:
+          - pattern: 'cors.Config{..., AllowAllOrigins: true, ...}'
+          - pattern: 'cors.Config{..., AllowCredentials: true, ...}'
+      - patterns:
+          - pattern: $W.Header().Set("Access-Control-Allow-Origin", "*")
+          - pattern-inside: |
+              func $F(...) {
+                ...
+                $X.Header().Set("Access-Control-Allow-Credentials", "true")
+                ...
+              }
+
+  - id: jgates.go.cors-origin-reflected
+    mode: taint
+    message: The request's Origin header is copied into the allow-origin response header, so every site is trusted. Compare the origin with an allow-list and answer only for a listed one.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-sources:
+      - pattern: $R.Header.Get("Origin")
+      - pattern: $C.GetHeader("Origin")
+      - pattern: $C.Get("Origin")
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $W.Header().Set("Access-Control-Allow-Origin", $X)
+              - pattern: $W.Header().Add("Access-Control-Allow-Origin", $X)
+              - pattern: $C.Header("Access-Control-Allow-Origin", $X)
+              - pattern: $C.Set("Access-Control-Allow-Origin", $X)
+          - focus-metavariable: $X
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $O
+          - pattern-inside: |
+              if $COND {
+                ...
+              }
+
+  - id: jgates.go.cors-origin-reflected-allow-all
+    message: An origin check accepts every origin, so the allow-list is a no-op. Compare the origin with the trusted origins and reject the rest.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - pattern: 'AllowOriginFunc: func(...) bool { return true }'
+      - pattern: 'AllowOriginRequestFunc: func(...) bool { return true }'
+      - pattern: 'CheckOrigin: func(...) bool { return true }'
+
+  - id: jgates.go.csrf-protection-disabled
+    message: Request-forgery protection is bypassed for every request, so state-changing calls accept forged cross-site requests. Keep the middleware active and skip only a narrow, named route.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.1"]
+    pattern-either:
+      - pattern: csrf.UnsafeSkipCheck(...)
+      - pattern: 'Skipper: func(...) bool { return true }'
+      - pattern: 'Next: func(...) bool { return true }'
+
+  - id: jgates.go.jsonp-enabled
+    message: The response is JSONP, which lets any page run the endpoint as a script and read its data. Return plain JSON and use CORS for cross-origin reads.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern-either:
+      - pattern: $C.JSONP(...)
+      - pattern: fmt.Fprintf($W, "%s(%s)", $R.URL.Query().Get("callback"), ...)
+      - pattern: fmt.Fprintf($W, "%s(%s)", $R.FormValue("callback"), ...)
+      - pattern: fmt.Fprintf($W, "%s(%s)", $C.Query("callback"), ...)
+
+  - id: jgates.go.sensitive-query-parameter
+    message: A URL carries a password, secret or API key in its query string, where logs, history and referrers keep it. Send it in a header or the request body.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V14.2.1"]
+    pattern-either:
+      - patterns:
+          - pattern: '"$S"'
+          - metavariable-regex:
+              metavariable: $S
+              regex: '(?i)^["`]?[^"`\s]*[?&](password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)='
+      - patterns:
+          - pattern-either:
+              - pattern: $Q.Set($K, ...)
+              - pattern: $Q.Add($K, ...)
+          - pattern-inside: |
+              $Q := $U.Query()
+              ...
+          - metavariable-regex:
+              metavariable: $K
+              regex: '(?i)^["`]?(password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)["`]?$'
