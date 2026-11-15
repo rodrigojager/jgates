@@ -29,6 +29,7 @@
     "build:ui": "vite build --config ui/vite.config.ts",
     "typecheck:ui": "tsc -p ui/tsconfig.json --noEmit",
     "test": "node --import ./tests/setup/in-image.mjs --test tests/*.test.js",
+    "pack:check": "node scripts/pack-check.mjs",
     "setup:dev-tools": "node dev-tools/setup.mjs",
     "docs:compat": "node scripts/gen-compat-docs.mjs",
     "test:ui": "npm run build && playwright test --config tests/ui/playwright.config.ts",
