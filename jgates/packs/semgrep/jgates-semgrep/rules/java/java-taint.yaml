@@ -94,26 +94,36 @@ rules:
     pattern-sanitizers:
       - pattern: validateUrl(...)
     pattern-sinks:
-      - pattern: new URL($U)
-        focus-metavariable: $U
-      - pattern: new URI($U)
-        focus-metavariable: $U
-      - pattern: URI.create($U)
-        focus-metavariable: $U
-      - pattern: new HttpGet($U)
-        focus-metavariable: $U
-      - pattern: new HttpPost($U)
-        focus-metavariable: $U
-      - pattern: (RestTemplate $RT).getForObject($U, ...)
-        focus-metavariable: $U
-      - pattern: (RestTemplate $RT).getForEntity($U, ...)
-        focus-metavariable: $U
-      - pattern: (RestTemplate $RT).postForObject($U, ...)
-        focus-metavariable: $U
-      - pattern: (RestTemplate $RT).postForEntity($U, ...)
-        focus-metavariable: $U
-      - pattern: (RestTemplate $RT).exchange($U, ...)
-        focus-metavariable: $U
+      - patterns:
+          - pattern: new URL($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new URI($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: URI.create($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new HttpGet($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new HttpPost($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: (RestTemplate $RT).getForObject($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: (RestTemplate $RT).getForEntity($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: (RestTemplate $RT).postForObject($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: (RestTemplate $RT).postForEntity($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: (RestTemplate $RT).exchange($U, ...)
+          - focus-metavariable: $U
 
   - id: jgates.java.path-traversal
     message: A file path comes from the incoming request. Reduce it to a base name and check it stays under the intended folder.
@@ -208,24 +218,33 @@ rules:
       - pattern: FilenameUtils.getName(...)
       - pattern: sanitizeFileName(...)
     pattern-sinks:
-      - pattern: new File($U)
-        focus-metavariable: $U
-      - pattern: new File($D, $U)
-        focus-metavariable: $U
-      - pattern: new FileInputStream($U)
-        focus-metavariable: $U
-      - pattern: new FileReader($U)
-        focus-metavariable: $U
-      - pattern: new FileOutputStream($U)
-        focus-metavariable: $U
-      - pattern: Paths.get($U, ...)
-        focus-metavariable: $U
-      - pattern: Paths.get($D, $U, ...)
-        focus-metavariable: $U
-      - pattern: Path.of($U, ...)
-        focus-metavariable: $U
-      - pattern: Path.of($D, $U, ...)
-        focus-metavariable: $U
+      - patterns:
+          - pattern: new File($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new File($D, $U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new FileInputStream($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new FileReader($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new FileOutputStream($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Paths.get($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Paths.get($D, $U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Path.of($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Path.of($D, $U, ...)
+          - focus-metavariable: $U
 
   - id: jgates.java.reflected-xss
     message: Request data is written to the HTTP response as HTML. Escape it for HTML output first.
@@ -363,8 +382,9 @@ rules:
               $RET $M(...) {
                 ...
               }
-      - pattern: ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body($U)
-        focus-metavariable: $U
+      - patterns:
+          - pattern: ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body($U)
+          - focus-metavariable: $U
 
   - id: jgates.java.unsafe-deserialization
     message: Request data reaches a native or object-binding deserializer. Accept a data format such as JSON with a fixed type instead.
@@ -458,14 +478,18 @@ rules:
                 ...
               }
     pattern-sinks:
-      - pattern: new ObjectInputStream($U)
-        focus-metavariable: $U
-      - pattern: new XMLDecoder($U)
-        focus-metavariable: $U
-      - pattern: new XStream().fromXML($U)
-        focus-metavariable: $U
-      - pattern: new Yaml().load($U)
-        focus-metavariable: $U
+      - patterns:
+          - pattern: new ObjectInputStream($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new XMLDecoder($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new XStream().fromXML($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new Yaml().load($U)
+          - focus-metavariable: $U
       - patterns:
           - pattern: $Y.load($U)
           - pattern-inside: |

@@ -18,7 +18,7 @@ rules:
       - pattern-not: template.$T(html.EscapeString(...))
 
   - id: jgates.go.text-template-for-html
-    message: text/template does not escape HTML. Use html/template for any output sent to a browser.
+    message: A text/template template is executed into an HTTP response. text/template does not escape HTML; use html/template for any output sent to a browser.
     severity: ERROR
     languages: [go]
     metadata:
@@ -26,9 +26,60 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
-    pattern-either:
-      - pattern: import "text/template"
-      - pattern: import $A "text/template"
+    # Importing text/template is not a flaw (it renders configuration, mail and CLI output): only a template created by
+    # text/template and executed into an http.ResponseWriter is flagged. The package is followed through its import name.
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-inside: |
+                  import $PKG "text/template"
+                  ...
+              - pattern-either:
+                  - pattern: $PKG.$NEW(...).$EXEC($W, ...)
+                  - patterns:
+                      - pattern-either:
+                          - pattern-inside: |
+                              $T := $PKG.$NEW(...)
+                              ...
+                          - pattern-inside: |
+                              $T = $PKG.$NEW(...)
+                              ...
+                          - pattern-inside: |
+                              var $T = $PKG.$NEW(...)
+                              ...
+                      - pattern: $T.$EXEC($W, ...)
+          # Without an import name the package is "template"; a file that also names an html/template import is left out,
+          # since the bare name cannot tell the two apart.
+          - patterns:
+              - pattern-inside: |
+                  import "text/template"
+                  ...
+              - pattern-not-inside: |
+                  import $PKG "text/template"
+                  ...
+              - pattern-not-inside: |
+                  import $HTML "html/template"
+                  ...
+              - pattern-either:
+                  - pattern: template.$NEW(...).$EXEC($W, ...)
+                  - patterns:
+                      - pattern-either:
+                          - pattern-inside: |
+                              $T := template.$NEW(...)
+                              ...
+                          - pattern-inside: |
+                              $T = template.$NEW(...)
+                              ...
+                          - pattern-inside: |
+                              var $T = template.$NEW(...)
+                              ...
+                      - pattern: $T.$EXEC($W, ...)
+      - metavariable-regex:
+          metavariable: $EXEC
+          regex: ^(Execute|ExecuteTemplate)$
+      - metavariable-type:
+          metavariable: $W
+          type: http.ResponseWriter
 
   - id: jgates.go.request-written-to-response
     message: Request data is written to the response without HTML escaping. Escape it with html.EscapeString or render it with html/template.

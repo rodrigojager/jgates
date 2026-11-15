@@ -47,18 +47,21 @@ rules:
       - pattern: ammonia::clean(...)
       - pattern: escape_html(...)
     pattern-sinks:
-      - pattern: Html($X)
-        focus-metavariable: $X
-      - pattern: RawHtml($X)
-        focus-metavariable: $X
+      - patterns:
+          - pattern: Html($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: RawHtml($X)
+          - focus-metavariable: $X
       - patterns:
           - pattern: HttpResponse::Ok().content_type($CT).body($X)
           - metavariable-regex:
               metavariable: $CT
-              regex: 'text/html|TEXT_HTML'
+              regex: '.*(text/html|TEXT_HTML)'
           - focus-metavariable: $X
-      - pattern: HttpResponse::Ok().insert_header(ContentType::html()).body($X)
-        focus-metavariable: $X
+      - patterns:
+          - pattern: HttpResponse::Ok().insert_header(ContentType::html()).body($X)
+          - focus-metavariable: $X
 
   - id: jgates.rust.pre-escaped-non-literal
     message: PreEscaped marks markup as already safe. Passing a value that is not a literal bypasses escaping; escape it first or build the markup with the template macro.

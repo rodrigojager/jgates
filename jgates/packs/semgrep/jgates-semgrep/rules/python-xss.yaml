@@ -24,12 +24,15 @@ rules:
       - pattern: markupsafe.escape(...)
       - pattern: bleach.clean(...)
     pattern-sinks:
-      - pattern: HttpResponse($X, ...)
-        focus-metavariable: $X
-      - pattern: make_response($X, ...)
-        focus-metavariable: $X
-      - pattern: Response($X, ...)
-        focus-metavariable: $X
+      - patterns:
+          - pattern: HttpResponse($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: make_response($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Response($X, ...)
+          - focus-metavariable: $X
 
   - id: jgates.python.xss-template-autoescape-off
     message: A template environment is created with autoescaping switched off, so every value is written into the page as raw HTML. Keep autoescape on.
@@ -70,7 +73,9 @@ rules:
       - pattern: markupsafe.escape(...)
       - pattern: bleach.clean(...)
     pattern-sinks:
-      - pattern: Markup($X, ...)
-        focus-metavariable: $X
-      - pattern: mark_safe($X)
-        focus-metavariable: $X
+      - patterns:
+          - pattern: Markup($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: mark_safe($X)
+          - focus-metavariable: $X

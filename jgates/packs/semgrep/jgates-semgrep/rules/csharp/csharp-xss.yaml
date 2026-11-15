@@ -40,20 +40,27 @@ rules:
       - pattern: HttpUtility.HtmlEncode(...)
       - pattern: WebUtility.HtmlEncode(...)
     pattern-sinks:
-      - pattern: Response.Write($X)
-        focus-metavariable: $X
-      - pattern: $R.Response.Write($X)
-        focus-metavariable: $X
-      - pattern: Response.WriteAsync($X, ...)
-        focus-metavariable: $X
-      - pattern: $R.Response.WriteAsync($X, ...)
-        focus-metavariable: $X
-      - pattern: Html.Raw($X)
-        focus-metavariable: $X
-      - pattern: new HtmlString($X)
-        focus-metavariable: $X
-      - pattern: Content($X, "text/html", ...)
-        focus-metavariable: $X
+      - patterns:
+          - pattern: Response.Write($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $R.Response.Write($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Response.WriteAsync($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $R.Response.WriteAsync($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Html.Raw($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: new HtmlString($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Content($X, "text/html", ...)
+          - focus-metavariable: $X
 
   - id: jgates.csharp.raw-html-non-literal
     message: Markup is assembled from a concatenation or interpolation and then marked as safe. Encode each value before it is joined.
@@ -64,8 +71,22 @@ rules:
       cwe: "CWE-79"
       author: JGates
       subdimension: injection
-    pattern-either:
-      - pattern: Html.Raw("..." + $X)
-      - pattern: Html.Raw($"...{$X}...")
-      - pattern: new HtmlString("..." + $X)
-      - pattern: new HtmlString($"...{$X}...")
+    patterns:
+      - pattern-either:
+          - pattern: Html.Raw($Q)
+          - pattern: new HtmlString($Q)
+      # "a" + x + "b" nests as ("a" + x) + "b": the markup is searched for a literal joined to a value, at any depth, or
+      # for an interpolated string; a value that is a literal or is encoded first is not flagged.
+      - metavariable-pattern:
+          metavariable: $Q
+          patterns:
+            - pattern-either:
+                - pattern: '"..." + $X'
+                - pattern: $"...{$X}..."
+            - metavariable-pattern:
+                metavariable: $X
+                patterns:
+                  - pattern-not: '"..."'
+                  - pattern-not: HtmlEncoder.Default.Encode(...)
+                  - pattern-not: HttpUtility.HtmlEncode(...)
+                  - pattern-not: WebUtility.HtmlEncode(...)

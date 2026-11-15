@@ -16,16 +16,21 @@ rules:
     pattern-sanitizers:
       - pattern: validateUrl(...)
     pattern-sinks:
-      - pattern: fetch($URL, ...)
-        focus-metavariable: $URL
-      - pattern: axios.$M($URL, ...)
-        focus-metavariable: $URL
-      - pattern: axios($URL, ...)
-        focus-metavariable: $URL
-      - pattern: http.get($URL, ...)
-        focus-metavariable: $URL
-      - pattern: got($URL, ...)
-        focus-metavariable: $URL
+      - patterns:
+          - pattern: fetch($URL, ...)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: axios.$M($URL, ...)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: axios($URL, ...)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: http.get($URL, ...)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: got($URL, ...)
+          - focus-metavariable: $URL
 
   - id: jgates.js.path-traversal
     message: A file path comes from the incoming request. Reduce it with path.basename and check it stays under the intended folder.
@@ -44,17 +49,24 @@ rules:
     pattern-sanitizers:
       - pattern: path.basename(...)
     pattern-sinks:
-      - pattern: fs.readFile($P, ...)
-        focus-metavariable: $P
-      - pattern: fs.readFileSync($P, ...)
-        focus-metavariable: $P
-      - pattern: fs.createReadStream($P, ...)
-        focus-metavariable: $P
-      - pattern: fs.writeFile($P, ...)
-        focus-metavariable: $P
-      - pattern: fs.unlink($P, ...)
-        focus-metavariable: $P
-      - pattern: $RES.sendFile($P, ...)
-        focus-metavariable: $P
-      - pattern: path.join($BASE, $P, ...)
-        focus-metavariable: $P
+      - patterns:
+          - pattern: fs.readFile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.readFileSync($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.createReadStream($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.writeFile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.unlink($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $RES.sendFile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: path.join($BASE, $P, ...)
+          - focus-metavariable: $P

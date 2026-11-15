@@ -1,5 +1,6 @@
 # Rust cryptography rules for the RustCrypto hash and cipher crates (md5, sha1, des, rc4, blowfish), the openssl crate,
-# reqwest, native-tls and rustls, when the types are imported by their short names.
+# reqwest, native-tls and rustls, when the types are imported by their short names (the openssl digest and cipher
+# constructors also by their module path).
 rules:
   - id: jgates.rust.weak-hash
     message: MD2, MD4, MD5 and SHA-1 are broken for security use. Use SHA-256 or stronger, and an Argon2 or bcrypt crate for passwords.
@@ -22,6 +23,10 @@ rules:
       - pattern: Sha1::digest(...)
       - pattern: MessageDigest::md5()
       - pattern: MessageDigest::sha1()
+      - pattern: hash::MessageDigest::md5()
+      - pattern: hash::MessageDigest::sha1()
+      - pattern: openssl::hash::MessageDigest::md5()
+      - pattern: openssl::hash::MessageDigest::sha1()
 
   - id: jgates.rust.weak-cipher
     message: DES, 3DES, RC4, Blowfish and ECB mode are weak. Use AES-GCM or ChaCha20-Poly1305.
@@ -42,14 +47,15 @@ rules:
       - pattern: Rc4::new(...)
       - pattern: Blowfish::new(...)
       - pattern: Blowfish::new_from_slice(...)
-      - pattern: Cipher::des_cbc()
-      - pattern: Cipher::des_ede3()
-      - pattern: Cipher::des_ede3_cbc()
-      - pattern: Cipher::rc4()
-      - pattern: Cipher::bf_cbc()
-      - pattern: Cipher::aes_128_ecb()
-      - pattern: Cipher::aes_192_ecb()
-      - pattern: Cipher::aes_256_ecb()
+      # The openssl Cipher constructors, by the short name or the module path.
+      - patterns:
+          - pattern-either:
+              - pattern: Cipher::$MODE()
+              - pattern: symm::Cipher::$MODE()
+              - pattern: openssl::symm::Cipher::$MODE()
+          - metavariable-regex:
+              metavariable: $MODE
+              regex: ^(des_cbc|des_ede3|des_ede3_cbc|rc4|bf_cbc|aes_128_ecb|aes_192_ecb|aes_256_ecb)$
 
   - id: jgates.rust.tls-verification-disabled
     message: Certificate or host name verification is turned off. Keep verification on and trust a private CA explicitly if one is needed.

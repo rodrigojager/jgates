@@ -6,13 +6,27 @@ import (
 	htmltemplate "html/template"
 	"io"
 	"net/http"
-	// ruleid: jgates.go.text-template-for-html
-	"text/template"
-	// ruleid: jgates.go.text-template-for-html
+	"os"
 	tt "text/template"
-	// ok: jgates.go.text-template-for-html
 	"html/template"
 )
+
+var reportTemplate = tt.Must(tt.New("report").Parse("{{.}}\n"))
+
+func textTemplatePage(w http.ResponseWriter, r *http.Request) {
+	page := tt.Must(tt.New("page").Parse("<p>{{.}}</p>"))
+	// ruleid: jgates.go.text-template-for-html
+	page.Execute(w, r.FormValue("name"))
+	// ruleid: jgates.go.text-template-for-html
+	reportTemplate.Execute(w, r.FormValue("name"))
+	// ruleid: jgates.go.text-template-for-html
+	tt.Must(tt.New("x").Parse("<p>{{.}}</p>")).ExecuteTemplate(w, "x", r.FormValue("name"))
+	// ok: jgates.go.text-template-for-html
+	page.Execute(os.Stdout, "report")
+	safe := template.Must(template.New("page").Parse("<p>{{.}}</p>"))
+	// ok: jgates.go.text-template-for-html
+	safe.Execute(w, r.FormValue("name"))
+}
 
 func typedHTML(name string, safe string) {
 	// ruleid: jgates.go.unsafe-html-type

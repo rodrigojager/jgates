@@ -9,25 +9,26 @@ rules:
       cwe: "CWE-89"
       author: JGates
       subdimension: injection
-    pattern-either:
-      - pattern: new SqlCommand("..." + $X, ...)
-      - pattern: new SqlCommand($"...{$X}...", ...)
-      - pattern: $C.CommandText = "..." + $X;
-      - pattern: $C.CommandText = $"...{$X}...";
-      - pattern: $C.Query("..." + $X, ...)
-      - pattern: $C.Query($"...{$X}...", ...)
-      - pattern: $C.Query<$T>("..." + $X, ...)
-      - pattern: $C.Query<$T>($"...{$X}...", ...)
-      - pattern: $C.QueryAsync<$T>("..." + $X, ...)
-      - pattern: $C.QueryAsync<$T>($"...{$X}...", ...)
-      - pattern: $C.Execute("..." + $X, ...)
-      - pattern: $C.Execute($"...{$X}...", ...)
-      - pattern: $C.ExecuteAsync("..." + $X, ...)
-      - pattern: $C.ExecuteAsync($"...{$X}...", ...)
-      - pattern: $C.FromSqlRaw("..." + $X, ...)
-      - pattern: $C.FromSqlRaw($"...{$X}...", ...)
-      - pattern: $C.ExecuteSqlRaw("..." + $X, ...)
-      - pattern: $C.ExecuteSqlRaw($"...{$X}...", ...)
+    patterns:
+      - pattern-either:
+          - pattern: new SqlCommand($Q, ...)
+          - pattern: $C.CommandText = $Q;
+          - pattern: $C.Query($Q, ...)
+          - pattern: $C.Query<$T>($Q, ...)
+          - pattern: $C.QueryAsync<$T>($Q, ...)
+          - pattern: $C.Execute($Q, ...)
+          - pattern: $C.ExecuteAsync($Q, ...)
+          - pattern: $C.FromSqlRaw($Q, ...)
+          - pattern: $C.ExecuteSqlRaw($Q, ...)
+      # A concatenation "a" + x + "b" nests as ("a" + x) + "b": the statement text is searched for a literal joined to a
+      # value that is not a literal, at any depth, or for an interpolated string; joining two literals is not flagged.
+      - metavariable-pattern:
+          metavariable: $Q
+          patterns:
+            - pattern-either:
+                - pattern: '"..." + $X'
+                - pattern: $"...{$X}..."
+            - pattern-not: '"..." + "..."'
 
   - id: jgates.csharp.os-command-injection
     message: A process is started from a value that is not a literal. Start a fixed program and pass arguments as separate items.

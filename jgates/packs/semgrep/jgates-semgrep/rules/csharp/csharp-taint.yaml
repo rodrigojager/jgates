@@ -40,28 +40,39 @@ rules:
     pattern-sanitizers:
       - pattern: ValidateUrl(...)
     pattern-sinks:
-      - pattern: $C.GetAsync($U, ...)
-        focus-metavariable: $U
-      - pattern: $C.GetStringAsync($U, ...)
-        focus-metavariable: $U
-      - pattern: $C.GetStreamAsync($U, ...)
-        focus-metavariable: $U
-      - pattern: $C.GetByteArrayAsync($U, ...)
-        focus-metavariable: $U
-      - pattern: $C.PostAsync($U, ...)
-        focus-metavariable: $U
-      - pattern: $C.PutAsync($U, ...)
-        focus-metavariable: $U
-      - pattern: $C.DeleteAsync($U, ...)
-        focus-metavariable: $U
-      - pattern: WebRequest.Create($U)
-        focus-metavariable: $U
-      - pattern: WebRequest.CreateHttp($U)
-        focus-metavariable: $U
-      - pattern: $W.DownloadString($U, ...)
-        focus-metavariable: $U
-      - pattern: $W.DownloadData($U, ...)
-        focus-metavariable: $U
+      - patterns:
+          - pattern: $C.GetAsync($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $C.GetStringAsync($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $C.GetStreamAsync($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $C.GetByteArrayAsync($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $C.PostAsync($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $C.PutAsync($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $C.DeleteAsync($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: WebRequest.Create($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: WebRequest.CreateHttp($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $W.DownloadString($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $W.DownloadData($U, ...)
+          - focus-metavariable: $U
 
   - id: jgates.csharp.path-traversal
     message: A file path comes from the incoming request. Reduce it with Path.GetFileName and check it stays under the intended folder.
@@ -112,15 +123,21 @@ rules:
               metavariable: $M
               regex: ^(ReadAllText|ReadAllBytes|ReadAllLines|ReadLines|WriteAllText|WriteAllBytes|WriteAllLines|AppendAllText|Delete|Open|OpenRead|OpenWrite|OpenText|Create|Copy|Move)$
           - focus-metavariable: $PATH
-      - pattern: new FileStream($PATH, ...)
-        focus-metavariable: $PATH
-      - pattern: new StreamReader($PATH, ...)
-        focus-metavariable: $PATH
-      - pattern: new StreamWriter($PATH, ...)
-        focus-metavariable: $PATH
-      - pattern: Directory.Delete($PATH, ...)
-        focus-metavariable: $PATH
-      - pattern: Path.Combine($BASE, $PATH, ...)
-        focus-metavariable: $PATH
-      - pattern: PhysicalFile($PATH, ...)
-        focus-metavariable: $PATH
+      - patterns:
+          - pattern: new FileStream($PATH, ...)
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: new StreamReader($PATH, ...)
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: new StreamWriter($PATH, ...)
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: Directory.Delete($PATH, ...)
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: Path.Combine($BASE, $PATH, ...)
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: PhysicalFile($PATH, ...)
+          - focus-metavariable: $PATH

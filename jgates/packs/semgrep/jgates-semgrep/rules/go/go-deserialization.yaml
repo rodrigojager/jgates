@@ -145,5 +145,6 @@ rules:
     pattern-sanitizers:
       - pattern: validateBlob(...)
     pattern-sinks:
-      - pattern: gob.NewDecoder($P)
-        focus-metavariable: $P
+      - patterns:
+          - pattern: gob.NewDecoder($P)
+          - focus-metavariable: $P

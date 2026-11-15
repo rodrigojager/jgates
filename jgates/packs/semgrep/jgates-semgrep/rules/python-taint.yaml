@@ -19,12 +19,15 @@ rules:
     pattern-sanitizers:
       - pattern: validate_url(...)
     pattern-sinks:
-      - pattern: requests.$M($URL, ...)
-        focus-metavariable: $URL
-      - pattern: urllib.request.urlopen($URL, ...)
-        focus-metavariable: $URL
-      - pattern: httpx.$M($URL, ...)
-        focus-metavariable: $URL
+      - patterns:
+          - pattern: requests.$M($URL, ...)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: urllib.request.urlopen($URL, ...)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: httpx.$M($URL, ...)
+          - focus-metavariable: $URL
 
   - id: jgates.python.path-traversal
     message: A file path comes from the incoming request. Reduce it with a safe base-name helper and check it stays under the intended folder.
@@ -46,11 +49,15 @@ rules:
       - pattern: os.path.basename(...)
       - pattern: secure_filename(...)
     pattern-sinks:
-      - pattern: open($P, ...)
-        focus-metavariable: $P
-      - pattern: send_file($P, ...)
-        focus-metavariable: $P
-      - pattern: os.remove($P)
-        focus-metavariable: $P
-      - pattern: os.path.join($BASE, $P, ...)
-        focus-metavariable: $P
+      - patterns:
+          - pattern: open($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: send_file($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.remove($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.path.join($BASE, $P, ...)
+          - focus-metavariable: $P

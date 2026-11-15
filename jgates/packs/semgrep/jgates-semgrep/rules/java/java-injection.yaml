@@ -10,26 +10,28 @@ rules:
       cwe: "CWE-89"
       author: JGates
       subdimension: injection
-    pattern-either:
-      - pattern: $S.executeQuery("..." + $X)
-      - pattern: $S.executeUpdate("..." + $X)
-      - pattern: $S.execute("..." + $X)
-      - pattern: $S.addBatch("..." + $X)
-      - pattern: $C.prepareStatement("..." + $X, ...)
-      - pattern: $S.executeQuery(String.format(...))
-      - pattern: $S.executeUpdate(String.format(...))
-      - pattern: $S.execute(String.format(...))
-      - pattern: $EM.createQuery("..." + $X, ...)
-      - pattern: $EM.createNativeQuery("..." + $X, ...)
-      - pattern: $EM.createQuery(String.format(...), ...)
-      - pattern: $EM.createNativeQuery(String.format(...), ...)
-      - pattern: $JT.query("..." + $X, ...)
-      - pattern: $JT.queryForObject("..." + $X, ...)
-      - pattern: $JT.queryForList("..." + $X, ...)
-      - pattern: $JT.update("..." + $X, ...)
-      - pattern: $JT.execute("..." + $X)
-      - pattern: $JT.query(String.format(...), ...)
-      - pattern: $JT.update(String.format(...), ...)
+    patterns:
+      - pattern-either:
+          - pattern: $S.executeQuery($Q)
+          - pattern: $S.executeUpdate($Q)
+          - pattern: $S.execute($Q)
+          - pattern: $S.addBatch($Q)
+          - pattern: $C.prepareStatement($Q, ...)
+          - pattern: $EM.createQuery($Q, ...)
+          - pattern: $EM.createNativeQuery($Q, ...)
+          - pattern: $JT.query($Q, ...)
+          - pattern: $JT.queryForObject($Q, ...)
+          - pattern: $JT.queryForList($Q, ...)
+          - pattern: $JT.update($Q, ...)
+      # A concatenation "a" + x + "b" nests as ("a" + x) + "b": the statement text is searched for a literal joined to a
+      # value that is not a literal, at any depth; joining two literals is not flagged.
+      - metavariable-pattern:
+          metavariable: $Q
+          patterns:
+            - pattern-either:
+                - pattern: '"..." + $X'
+                - pattern: String.format(...)
+            - pattern-not: '"..." + "..."'
 
   - id: jgates.java.os-command-injection
     message: A command is started from a non-literal string. Pass the program and each argument as separate literal or validated items.

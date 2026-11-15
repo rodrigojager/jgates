@@ -47,6 +47,7 @@ rules:
               metavariable: $REQUEST
               regex: ^\$(request|req)$
     pattern-sinks:
-      - pattern: "unserialize($DATA, ...)"
-        focus-metavariable: $DATA
+      - patterns:
+          - pattern: "unserialize($DATA, ...)"
+          - focus-metavariable: $DATA
 

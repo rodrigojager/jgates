@@ -47,20 +47,27 @@ rules:
               metavariable: $REQUEST
               regex: ^\$(request|req)$
     pattern-sinks:
-      - pattern: "mysqli_query($CONNECTION, $SQL, ...)"
-        focus-metavariable: $SQL
-      - pattern: "$PDO->query($SQL, ...)"
-        focus-metavariable: $SQL
-      - pattern: "$PDO->exec($SQL)"
-        focus-metavariable: $SQL
-      - pattern: "DB::raw($SQL)"
-        focus-metavariable: $SQL
-      - pattern: "DB::whereRaw($SQL, ...)"
-        focus-metavariable: $SQL
-      - pattern: "$BUILDER->whereRaw($SQL, ...)"
-        focus-metavariable: $SQL
-      - pattern: "DB::select($SQL, ...)"
-        focus-metavariable: $SQL
+      - patterns:
+          - pattern: "mysqli_query($CONNECTION, $SQL, ...)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "$PDO->query($SQL, ...)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "$PDO->exec($SQL)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "DB::raw($SQL)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "DB::whereRaw($SQL, ...)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "$BUILDER->whereRaw($SQL, ...)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "DB::select($SQL, ...)"
+          - focus-metavariable: $SQL
 
   - id: jgates.php.os-command-injection
     message: Request data reaches a shell command. Select a fixed executable and pass validated arguments without a shell.
@@ -105,14 +112,18 @@ rules:
               metavariable: $REQUEST
               regex: ^\$(request|req)$
     pattern-sinks:
-      - pattern: "exec($COMMAND, ...)"
-        focus-metavariable: $COMMAND
-      - pattern: "system($COMMAND, ...)"
-        focus-metavariable: $COMMAND
-      - pattern: "shell_exec($COMMAND, ...)"
-        focus-metavariable: $COMMAND
-      - pattern: "passthru($COMMAND, ...)"
-        focus-metavariable: $COMMAND
+      - patterns:
+          - pattern: "exec($COMMAND, ...)"
+          - focus-metavariable: $COMMAND
+      - patterns:
+          - pattern: "system($COMMAND, ...)"
+          - focus-metavariable: $COMMAND
+      - patterns:
+          - pattern: "shell_exec($COMMAND, ...)"
+          - focus-metavariable: $COMMAND
+      - patterns:
+          - pattern: "passthru($COMMAND, ...)"
+          - focus-metavariable: $COMMAND
       - patterns:
           - pattern: proc_open($COMMAND, ...)
           - pattern-not: proc_open([...], ...)
@@ -162,14 +173,18 @@ rules:
               metavariable: $REQUEST
               regex: ^\$(request|req)$
     pattern-sinks:
-      - pattern: "eval($CODE)"
-        focus-metavariable: $CODE
-      - pattern: "assert($LEFT . $RIGHT, ...)"
-        focus-metavariable: $LEFT
-      - pattern: "assert($LEFT . $RIGHT, ...)"
-        focus-metavariable: $RIGHT
-      - pattern: "assert((string) $CODE, ...)"
-        focus-metavariable: $CODE
+      - patterns:
+          - pattern: "eval($CODE)"
+          - focus-metavariable: $CODE
+      - patterns:
+          - pattern: "assert($LEFT . $RIGHT, ...)"
+          - focus-metavariable: $LEFT
+      - patterns:
+          - pattern: "assert($LEFT . $RIGHT, ...)"
+          - focus-metavariable: $RIGHT
+      - patterns:
+          - pattern: "assert((string) $CODE, ...)"
+          - focus-metavariable: $CODE
 
   - id: jgates.php.preg-replace-eval
     message: The legacy preg_replace e modifier executes replacement text as PHP code. Use preg_replace_callback with a fixed callback.

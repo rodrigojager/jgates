@@ -39,5 +39,7 @@ public class XssSamples : Controller
         var f = new HtmlString("<br />");
         // ok: jgates.csharp.raw-html-non-literal
         var g = Html.Raw(HtmlEncoder.Default.Encode(title));
+        // ok: jgates.csharp.raw-html-non-literal
+        var h = Html.Raw("<h1>" + HtmlEncoder.Default.Encode(title) + "</h1>");
     }
 }

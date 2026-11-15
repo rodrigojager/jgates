@@ -48,14 +48,18 @@ rules:
               metavariable: $REQUEST
               regex: ^\$(request|req)$
     pattern-sinks:
-      - pattern: "include $PATH;"
-        focus-metavariable: $PATH
-      - pattern: "include_once $PATH;"
-        focus-metavariable: $PATH
-      - pattern: "require $PATH;"
-        focus-metavariable: $PATH
-      - pattern: "require_once $PATH;"
-        focus-metavariable: $PATH
+      - patterns:
+          - pattern: "include $PATH;"
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: "include_once $PATH;"
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: "require $PATH;"
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: "require_once $PATH;"
+          - focus-metavariable: $PATH
 
   - id: jgates.php.path-traversal
     message: Request data reaches a file path. Resolve an allow-listed file under an application-owned directory before opening it.
@@ -100,12 +104,15 @@ rules:
               metavariable: $REQUEST
               regex: ^\$(request|req)$
     pattern-sinks:
-      - pattern: "fopen($PATH, ...)"
-        focus-metavariable: $PATH
-      - pattern: "file_get_contents($PATH, ...)"
-        focus-metavariable: $PATH
-      - pattern: "readfile($PATH, ...)"
-        focus-metavariable: $PATH
+      - patterns:
+          - pattern: "fopen($PATH, ...)"
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: "file_get_contents($PATH, ...)"
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: "readfile($PATH, ...)"
+          - focus-metavariable: $PATH
 
   - id: jgates.php.ssrf
     message: Request data reaches a URL-capable fetch. Allow-list the scheme, host and resolved destination before fetching.
@@ -150,12 +157,15 @@ rules:
               metavariable: $REQUEST
               regex: ^\$(request|req)$
     pattern-sinks:
-      - pattern: "curl_init($URL)"
-        focus-metavariable: $URL
-      - pattern: "curl_setopt($HANDLE, CURLOPT_URL, $URL)"
-        focus-metavariable: $URL
-      - pattern: "file_get_contents($URL, ...)"
-        focus-metavariable: $URL
+      - patterns:
+          - pattern: "curl_init($URL)"
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: "curl_setopt($HANDLE, CURLOPT_URL, $URL)"
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: "file_get_contents($URL, ...)"
+          - focus-metavariable: $URL
       - patterns:
           - pattern: curl_setopt_array($HANDLE, [..., CURLOPT_URL => $URL, ...])
           - focus-metavariable: $URL

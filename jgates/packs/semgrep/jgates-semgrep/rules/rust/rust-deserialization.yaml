@@ -50,13 +50,18 @@ rules:
                   async fn $F(..., $P: &str, ...) { ... }
           - pattern: $P
     pattern-sinks:
-      - pattern: serde_pickle::from_slice($D, ...)
-        focus-metavariable: $D
-      - pattern: serde_pickle::from_slice::<$T>($D, ...)
-        focus-metavariable: $D
-      - pattern: serde_pickle::from_reader($D, ...)
-        focus-metavariable: $D
-      - pattern: rkyv::from_bytes_unchecked($D)
-        focus-metavariable: $D
-      - pattern: rkyv::from_bytes_unchecked::<$T>($D)
-        focus-metavariable: $D
+      - patterns:
+          - pattern: serde_pickle::from_slice($D, ...)
+          - focus-metavariable: $D
+      - patterns:
+          - pattern: serde_pickle::from_slice::<$T>($D, ...)
+          - focus-metavariable: $D
+      - patterns:
+          - pattern: serde_pickle::from_reader($D, ...)
+          - focus-metavariable: $D
+      - patterns:
+          - pattern: rkyv::from_bytes_unchecked($D)
+          - focus-metavariable: $D
+      - patterns:
+          - pattern: rkyv::from_bytes_unchecked::<$T>($D)
+          - focus-metavariable: $D

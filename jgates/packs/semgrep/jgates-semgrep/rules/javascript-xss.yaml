@@ -19,13 +19,17 @@ rules:
       - pattern: encodeURIComponent(...)
       - pattern: fs.readFileSync(...)
       - pattern: fs.readFile(...)
+      - pattern: $HASH.digest(...)
     pattern-sinks:
-      - pattern: $RES.send($X)
-        focus-metavariable: $X
-      - pattern: $RES.write($X)
-        focus-metavariable: $X
-      - pattern: $RES.end($X)
-        focus-metavariable: $X
+      - patterns:
+          - pattern: $RES.send($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $RES.write($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $RES.end($X)
+          - focus-metavariable: $X
 
   - id: jgates.js.xss-dom-html-write
     message: A non-literal value is written into the page as HTML. Use textContent, or sanitize the value with DOMPurify first.
@@ -42,13 +46,20 @@ rules:
           - pattern: $E.outerHTML = $X
           - pattern: document.write($X)
           - pattern: $E.insertAdjacentHTML($POS, $X)
+      # Every value inside the HTML is looked at: a concatenation or a template string is not a value of its own (nor
+      # is the + operator), so "<b>" + DOMPurify.sanitize(x) is clean and "<b>" + x is not.
       - metavariable-pattern:
           metavariable: $X
           patterns:
             - pattern: $V
-            - pattern-not: "..."
-            - pattern-not: DOMPurify.sanitize(...)
-            - pattern-not: escapeHtml(...)
+            - metavariable-regex:
+                metavariable: $V
+                regex: ^[^+]
+            - pattern-not: $A + $B
+            - pattern-not: "`...`"
+            - pattern-not-inside: '"..."'
+            - pattern-not-inside: DOMPurify.sanitize(...)
+            - pattern-not-inside: escapeHtml(...)
 
   - id: jgates.js.xss-react-dangerously-set-html
     message: dangerouslySetInnerHTML receives a non-literal value. Render the value as text, or sanitize it with DOMPurify first.
@@ -68,8 +79,13 @@ rules:
           metavariable: $X
           patterns:
             - pattern: $V
-            - pattern-not: "..."
-            - pattern-not: DOMPurify.sanitize(...)
+            - metavariable-regex:
+                metavariable: $V
+                regex: ^[^+]
+            - pattern-not: $A + $B
+            - pattern-not: "`...`"
+            - pattern-not-inside: '"..."'
+            - pattern-not-inside: DOMPurify.sanitize(...)
 
   - id: jgates.js.xss-template-autoescape-off
     message: A template engine is set up with escaping switched off, so every value is written into the page as raw HTML. Keep autoescaping on.

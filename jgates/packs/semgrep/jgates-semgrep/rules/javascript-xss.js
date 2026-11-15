@@ -16,6 +16,8 @@ function page(req, res) {
   res.send("<h1>" + escapeHtml(req.query.name) + "</h1>");
   // ok: jgates.js.xss-response-write
   res.send("<h1>Welcome</h1>");
+  // ok: jgates.js.xss-response-write
+  res.send(crypto.createHash("sha256").update(req.query.name).digest("hex"));
 }
 
 function widget(el, html, target) {
@@ -29,6 +31,10 @@ function widget(el, html, target) {
   el.innerHTML = "<b>fixed</b>";
   // ok: jgates.js.xss-dom-html-write
   el.innerHTML = DOMPurify.sanitize(html);
+  // ruleid: jgates.js.xss-dom-html-write
+  el.innerHTML = "<b>" + html + "</b>";
+  // ok: jgates.js.xss-dom-html-write
+  el.innerHTML = "<b>" + DOMPurify.sanitize(html) + "</b>";
   // ok: jgates.js.xss-dom-html-write
   el.textContent = html;
 }

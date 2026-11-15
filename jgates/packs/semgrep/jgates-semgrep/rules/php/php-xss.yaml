@@ -51,8 +51,10 @@ rules:
       - pattern: htmlspecialchars(...)
       - pattern: htmlentities(...)
     pattern-sinks:
-      - pattern: "echo $HTML;"
-        focus-metavariable: $HTML
-      - pattern: "print $HTML;"
-        focus-metavariable: $HTML
+      - patterns:
+          - pattern: "echo $HTML;"
+          - focus-metavariable: $HTML
+      - patterns:
+          - pattern: "print $HTML;"
+          - focus-metavariable: $HTML
 

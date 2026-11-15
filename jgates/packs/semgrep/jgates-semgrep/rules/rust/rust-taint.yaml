@@ -44,10 +44,12 @@ rules:
       - pattern: validate_url(...)
       - pattern: allowed_url(...)
     pattern-sinks:
-      - pattern: reqwest::get($U)
-        focus-metavariable: $U
-      - pattern: reqwest::blocking::get($U)
-        focus-metavariable: $U
+      - patterns:
+          - pattern: reqwest::get($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: reqwest::blocking::get($U)
+          - focus-metavariable: $U
       - patterns:
           - pattern-either:
               - pattern: $C.$M($U).send()
@@ -56,8 +58,9 @@ rules:
               metavariable: $M
               regex: '^(get|post|put|patch|delete|head)$'
           - focus-metavariable: $U
-      - pattern: Request::builder().uri($U)
-        focus-metavariable: $U
+      - patterns:
+          - pattern: Request::builder().uri($U)
+          - focus-metavariable: $U
 
   - id: jgates.rust.path-traversal
     message: A file path comes from the incoming request. Reduce it to a file name with a sanitizer and check it stays under the intended folder.
@@ -101,17 +104,24 @@ rules:
       - pattern: Path::new(...).file_name()
       - pattern: sanitize_filename::sanitize(...)
     pattern-sinks:
-      - pattern: std::fs::$F($P, ...)
-        focus-metavariable: $P
-      - pattern: fs::$F($P, ...)
-        focus-metavariable: $P
-      - pattern: tokio::fs::$F($P, ...)
-        focus-metavariable: $P
-      - pattern: File::open($P)
-        focus-metavariable: $P
-      - pattern: NamedFile::open($P)
-        focus-metavariable: $P
-      - pattern: NamedFile::open_async($P)
-        focus-metavariable: $P
-      - pattern: Path::new($B).join($P)
-        focus-metavariable: $P
+      - patterns:
+          - pattern: std::fs::$F($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs::$F($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: tokio::fs::$F($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: File::open($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: NamedFile::open($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: NamedFile::open_async($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: Path::new($B).join($P)
+          - focus-metavariable: $P

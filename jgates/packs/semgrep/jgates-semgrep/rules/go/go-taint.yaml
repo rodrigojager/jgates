@@ -140,22 +140,30 @@ rules:
     pattern-sanitizers:
       - pattern: validateURL(...)
     pattern-sinks:
-      - pattern: http.Get($P)
-        focus-metavariable: $P
-      - pattern: http.Head($P)
-        focus-metavariable: $P
-      - pattern: http.Post($P, ...)
-        focus-metavariable: $P
-      - pattern: http.PostForm($P, ...)
-        focus-metavariable: $P
-      - pattern: http.NewRequest($M, $P, ...)
-        focus-metavariable: $P
-      - pattern: http.NewRequestWithContext($C, $M, $P, ...)
-        focus-metavariable: $P
-      - pattern: http.DefaultClient.Get($P)
-        focus-metavariable: $P
-      - pattern: http.DefaultClient.Post($P, ...)
-        focus-metavariable: $P
+      - patterns:
+          - pattern: http.Get($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: http.Head($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: http.Post($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: http.PostForm($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: http.NewRequest($M, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: http.NewRequestWithContext($C, $M, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: http.DefaultClient.Get($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: http.DefaultClient.Post($P, ...)
+          - focus-metavariable: $P
 
   - id: jgates.go.path-traversal
     message: A file path comes from the incoming request. Reduce it to a base name and check it stays under the intended folder.
@@ -299,21 +307,30 @@ rules:
       - pattern: filepath.Base(...)
       - pattern: path.Base(...)
     pattern-sinks:
-      - pattern: os.Open($P)
-        focus-metavariable: $P
-      - pattern: os.OpenFile($P, ...)
-        focus-metavariable: $P
-      - pattern: os.ReadFile($P)
-        focus-metavariable: $P
-      - pattern: os.Create($P)
-        focus-metavariable: $P
-      - pattern: os.WriteFile($P, ...)
-        focus-metavariable: $P
-      - pattern: os.Remove($P)
-        focus-metavariable: $P
-      - pattern: os.RemoveAll($P)
-        focus-metavariable: $P
-      - pattern: ioutil.ReadFile($P)
-        focus-metavariable: $P
-      - pattern: http.ServeFile($W, $R2, $P)
-        focus-metavariable: $P
+      - patterns:
+          - pattern: os.Open($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.OpenFile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.ReadFile($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.Create($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.WriteFile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.Remove($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.RemoveAll($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: ioutil.ReadFile($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: http.ServeFile($W, $R2, $P)
+          - focus-metavariable: $P

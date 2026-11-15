@@ -21,16 +21,21 @@ rules:
           - pattern: '"...".to_string() + $X'
           - pattern-not: '"...".to_string() + "..."'
     pattern-sinks:
-      - pattern: sqlx::query($Q)
-        focus-metavariable: $Q
-      - pattern: sqlx::query_as($Q)
-        focus-metavariable: $Q
-      - pattern: sqlx::query_scalar($Q)
-        focus-metavariable: $Q
-      - pattern: diesel::sql_query($Q)
-        focus-metavariable: $Q
-      - pattern: sql_query($Q)
-        focus-metavariable: $Q
+      - patterns:
+          - pattern: sqlx::query($Q)
+          - focus-metavariable: $Q
+      - patterns:
+          - pattern: sqlx::query_as($Q)
+          - focus-metavariable: $Q
+      - patterns:
+          - pattern: sqlx::query_scalar($Q)
+          - focus-metavariable: $Q
+      - patterns:
+          - pattern: diesel::sql_query($Q)
+          - focus-metavariable: $Q
+      - patterns:
+          - pattern: sql_query($Q)
+          - focus-metavariable: $Q
       - patterns:
           - pattern: $C.$M($Q, ...)
           - metavariable-regex:
