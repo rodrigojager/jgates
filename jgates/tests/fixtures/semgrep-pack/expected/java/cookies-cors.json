@@ -1,0 +1,14 @@
+{
+  "files": ["CookiesCors.java"],
+  "ruleIds": [
+    "jgates.java.cookie-without-secure",
+    "jgates.java.cookie-without-httponly",
+    "jgates.java.cookie-without-samesite",
+    "jgates.java.cookie-name-without-prefix",
+    "jgates.java.cors-any-origin-with-credentials",
+    "jgates.java.cors-origin-reflected",
+    "jgates.java.jsonp-enabled",
+    "jgates.java.jsonp-enabled-callback",
+    "jgates.java.sensitive-query-parameter"
+  ]
+}
