@@ -1,0 +1,17 @@
+{
+  "files": ["CryptoParams.cs"],
+  "ruleIds": [
+    "jgates.csharp.weak-key-size",
+    "jgates.csharp.rsa-key-below-3072",
+    "jgates.csharp.static-iv-or-nonce",
+    "jgates.csharp.cipher-mode-without-authentication",
+    "jgates.csharp.weak-kdf-parameters",
+    "jgates.csharp.password-hash-with-fast-hash",
+    "jgates.csharp.timing-unsafe-comparison",
+    "jgates.csharp.weak-signature-hash",
+    "jgates.csharp.weak-dh-parameters",
+    "jgates.csharp.hardcoded-encryption-key",
+    "jgates.csharp.insecure-random-for-secret",
+    "jgates.csharp.uuid-as-secret-token"
+  ]
+}
