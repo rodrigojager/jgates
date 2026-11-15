@@ -329,6 +329,7 @@ O JGates lê e executa ferramentas sobre código que pode não ser confiável, e
 - [Semantic gate](docs/jgates/semantic-gate.pt-BR.md)
 - [Os dois gates e a sequência](docs/jgates/gates.pt-BR.md), os [métodos Semantic](docs/jgates/semantic-methods.pt-BR.md) e os [mascotes Semantic](docs/jgates/semantic-mascots.pt-BR.md)
 - [Integrações do Quality e a matriz de capacidades](docs/jgates/quality-integrations.pt-BR.md)
+- [O mapa de cobertura ASVS](docs/jgates/asvs-coverage.pt-BR.md): cada requisito do OWASP ASVS 5.0.0 em um de cinco estados (`jgates coverage asvs`); mostra o que foi examinado, nunca que um projeto atende ao padrão
 - [Serviços do projeto](docs/jgates/services.pt-BR.md)
 - [Suas próprias ferramentas e imagens](docs/jgates/extension.pt-BR.md)
 - [Armazenamento e limpeza](docs/jgates/storage.pt-BR.md)

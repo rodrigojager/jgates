@@ -49,7 +49,9 @@ function parityProblems(dir) {
     for (const key of Object.keys(pt)) if (!(key in en)) bad.push(`${path.relative(root, file)}: missing ${key}`);
     for (const key of Object.keys(en)) {
       if (key in pt && typeof en[key] === "string" && typeof pt[key] === "string") {
-        const params = (text) => [...text.matchAll(/\{(\w+)(?:,|\})/g)].map((m) => m[1]).sort().join(",");
+        // A brace right after an ICU plural selector (`=0 {none}`, `other {#}`) opens a branch body, not a placeholder.
+        const params = (text) =>
+          [...text.matchAll(/(?<!(?:=\d+|\b(?:zero|one|two|few|many|other))\s*)\{(\w+)(?:,|\})/g)].map((m) => m[1]).sort().join(",");
         if (params(en[key]) !== params(pt[key])) bad.push(`${path.relative(root, sibling)}: ${key} does not use the placeholders of the English text`);
       }
     }
@@ -109,6 +111,24 @@ test("V2-73 the parity scan fails on a key missing in one language", () => {
     const found = parityProblems(dir);
     assert.equal(found.length, 1, found.join("\n"));
     assert.match(found[0], /missing route_file_missing/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("V2-73 the placeholder scan reads ICU plural branches as text and still fails on a renamed placeholder", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-v2-73-"));
+  try {
+    const write = (en, pt) => {
+      fs.writeFileSync(path.join(dir, "m.en.json"), JSON.stringify({ k: en }));
+      fs.writeFileSync(path.join(dir, "m.pt-BR.json"), JSON.stringify({ k: pt }));
+    };
+    write("{count, plural, =0 {none} one {# item} other {#}}", "{count, plural, =0 {nenhuma} one {# item} other {#}}");
+    assert.deepEqual(parityProblems(dir), []);
+    write("{count, plural, =0 {none} other {# in {area}}}", "{count, plural, =0 {nenhuma} other {# em {zona}}}");
+    const found = parityProblems(dir);
+    assert.equal(found.length, 1, found.join("\n"));
+    assert.match(found[0], /k does not use the placeholders/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

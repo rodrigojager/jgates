@@ -537,7 +537,8 @@ export const SMOKE_GROUPS = [
   {
     id: "semgrep",
     caps: ["sast"],
-    covers: rowsOf("semgrep", ["sast"], ["python", "javascript", "typescript"]),
+    // The twin projects hold one folder per language of the pack, so the one run proves every row.
+    covers: rowsOf("semgrep", ["sast"], ["python", "javascript", "typescript", "go", "csharp", "rust", "java", "php"]),
     tools: tools("semgrep", "semgrep", ["sast"], "    rulePack: jgates\n"),
     bad: { copy: "semgrep-pack/vulnerable" },
     clean: { copy: "semgrep-pack/clean" },

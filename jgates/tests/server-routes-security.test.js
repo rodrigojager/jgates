@@ -50,6 +50,8 @@ const PARAM_SAMPLES = {
   name: "stdout.log",
   // A value source of the derived forms' pickers (/api/pickers/:source); anything else fails the route's enum.
   source: "project-file",
+  // A Semantic finding's candidate ID in its run (/api/semantic/runs/:id/reproduction/:candidate).
+  candidate: "C1",
   // `id` depends on the group: a job or run id, a profile, a template, an architecture rule.
   id: (route) => (route.path.startsWith("/api/runs/") ? JOB_ID : "standard"),
 };

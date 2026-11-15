@@ -250,7 +250,10 @@ for (const file of pages) {
       const screens = path.join(ROOT, "jgates", "ui", "src", "screens");
       const known = fs.readdirSync(screens).some((d) => {
         const index = path.join(screens, d, "index.tsx");
-        return fs.existsSync(index) && fs.readFileSync(index, "utf8").includes(`path: "${route.slice(1)}"`);
+        // A route written with a parameter (`#/semantic/results/<run>`) ends in "/" here and names a screen whose path
+        // goes on with that parameter (`/semantic/results/:id`).
+        const wanted = route.endsWith("/") ? `path: "${route.slice(1)}:` : `path: "${route.slice(1)}"`;
+        return fs.existsSync(index) && fs.readFileSync(index, "utf8").includes(wanted);
       });
       assert.ok(known, `${file}: the interface has no screen at ${route}`);
     }

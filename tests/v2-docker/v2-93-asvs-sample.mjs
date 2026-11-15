@@ -118,7 +118,7 @@ test("V2-93 (real engine): on a clone of the sample validated under Balanced, th
   assert.equal(map.runs.semantic.length, 0, "no Semantic run exists in the clone");
   assert.ok(map.runs.quality, "the map reads the run just made");
   assert.equal(map.totals.examinedAiOnly, 0, "nothing is examined by an AI review without a Semantic run");
-  assert.equal(map.source.licence, "CC-BY-SA-4.0");
+  assert.equal(map.source.licence, "CC BY-SA 4.0");
   assert.ok(map.statement.length > 0);
 
   // 3. Independent expectation: the reviewed mapping entries whose deterministic checks completed in this run.

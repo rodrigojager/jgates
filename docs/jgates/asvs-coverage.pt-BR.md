@@ -51,10 +51,10 @@ quando um alvo rodou.
 ## O comando
 
 ```bash
-jgates coverage asvs [--level 1|2|3] [--run <id>] [--semantic-run <id>] [--state <estado>] [--chapter <id>] [--subdimension <id>] [--deterministic-only] [--json]
+jgates coverage asvs [--level 1|2|3] [--run <id>] [--semantic-run <id>] [--state <state>] [--chapter <id>] [--subdimension <id>] [--deterministic-only] [--json]
 jgates coverage asvs level <1|2|3>
-jgates coverage asvs not-applicable <requisito|seção|capítulo> --reason "<texto>" [--preview] [--yes]
-jgates coverage asvs not-applicable <requisito|seção|capítulo> --remove
+jgates coverage asvs not-applicable <requirement|section|chapter> --reason "<text>" [--preview] [--yes]
+jgates coverage asvs not-applicable <requirement|section|chapter> --remove
 jgates coverage asvs undo <token>
 ```
 
