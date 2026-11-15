@@ -1,0 +1,18 @@
+{
+  "files": ["crypto-params.py"],
+  "ruleIds": [
+    "jgates.python.weak-key-size",
+    "jgates.python.rsa-key-below-3072",
+    "jgates.python.static-iv-or-nonce",
+    "jgates.python.cipher-mode-without-authentication",
+    "jgates.python.weak-cipher-mode",
+    "jgates.python.weak-kdf-parameters",
+    "jgates.python.password-hash-with-fast-hash",
+    "jgates.python.timing-unsafe-comparison",
+    "jgates.python.weak-signature-hash",
+    "jgates.python.weak-dh-parameters",
+    "jgates.python.hardcoded-encryption-key",
+    "jgates.python.insecure-random-for-secret",
+    "jgates.python.uuid-as-secret-token"
+  ]
+}

@@ -1,0 +1,456 @@
+# Python crypto-params: key sizes, IVs and nonces, cipher modes, key derivation parameters,
+# constant-time comparison, signature hashes, DH parameters, hardcoded keys and randomness for secrets.
+# Libraries covered: cryptography (hazmat), PyCryptodome (Crypto.*), paramiko, hashlib, hmac, bcrypt,
+# argon2-cffi, passlib, PyJWT, the standard library random and uuid modules.
+rules:
+  - id: jgates.python.weak-key-size
+    message: An RSA or DSA key under 2048 bits, or an elliptic curve under 224 bits, can be broken with modest resources. Generate RSA keys of at least 3072 bits (2048 at the least) and use curves such as P-256.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: rsa.generate_private_key(..., key_size=$N, ...)
+              - pattern: rsa.generate_private_key($E, $N, ...)
+              - pattern: dsa.generate_private_key(key_size=$N, ...)
+              - pattern: dsa.generate_private_key($N, ...)
+              - pattern: RSA.generate($N, ...)
+              - pattern: RSA.generate(bits=$N, ...)
+              - pattern: DSA.generate($N, ...)
+              - pattern: RSAKey.generate($N, ...)
+              - pattern: RSAKey.generate(bits=$N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+      - patterns:
+          - pattern-either:
+              - pattern: ec.generate_private_key(ec.$C(), ...)
+              - pattern: ec.generate_private_key(curve=ec.$C(), ...)
+              - pattern: ec.derive_private_key($V, ec.$C(), ...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: ^(SECP192R1|SECT163K1|SECT163R2)$
+
+  - id: jgates.python.rsa-key-below-3072
+    message: An RSA key of 2048 to 3071 bits is accepted today but is below the 3072 bits the standard recommends for new keys. Generate RSA keys of at least 3072 bits.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3"]
+    patterns:
+      - pattern-either:
+          - pattern: rsa.generate_private_key(..., key_size=$N, ...)
+          - pattern: rsa.generate_private_key($E, $N, ...)
+          - pattern: RSA.generate($N, ...)
+          - pattern: RSA.generate(bits=$N, ...)
+          - pattern: RSAKey.generate($N, ...)
+          - pattern: RSAKey.generate(bits=$N, ...)
+      - metavariable-comparison:
+          metavariable: $N
+          comparison: $N >= 2048 and $N < 3072
+
+  - id: jgates.python.static-iv-or-nonce
+    message: A literal, zeroed or constant IV or nonce is given to a cipher, so identical plaintexts give identical ciphertexts and a nonce reused with the same key breaks the cipher. Draw a fresh IV or nonce from os.urandom for every message, or let the library generate it.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-329"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.4"]
+    pattern-either:
+      - patterns:
+          - pattern: modes.$M($IV)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(CBC|CTR|CFB|CFB8|OFB|GCM)$
+          - metavariable-pattern:
+              metavariable: $IV
+              pattern-either:
+                - pattern: b"..."
+                - pattern: '"..."'
+                - pattern: b"..." * $N
+                - patterns:
+                    - pattern: bytes($N)
+                    - metavariable-regex:
+                        metavariable: $N
+                        regex: ^\d+$
+                - patterns:
+                    - pattern: bytearray($N)
+                    - metavariable-regex:
+                        metavariable: $N
+                        regex: ^\d+$
+      - patterns:
+          - pattern-either:
+              - pattern: AES.new($K, $MODE, $IV, ...)
+              - pattern: AES.new(..., iv=$IV, ...)
+              - pattern: AES.new(..., nonce=$IV, ...)
+              - pattern: ChaCha20.new(..., nonce=$IV, ...)
+              - pattern: Salsa20.new(..., nonce=$IV, ...)
+          - metavariable-pattern:
+              metavariable: $IV
+              pattern-either:
+                - pattern: b"..."
+                - pattern: '"..."'
+                - pattern: b"..." * $N
+                - patterns:
+                    - pattern: bytes($N)
+                    - metavariable-regex:
+                        metavariable: $N
+                        regex: ^\d+$
+                - patterns:
+                    - pattern: bytearray($N)
+                    - metavariable-regex:
+                        metavariable: $N
+                        regex: ^\d+$
+      - patterns:
+          - pattern-either:
+              - pattern: $C(...).encrypt($IV, ...)
+              - pattern: $C(...).decrypt($IV, ...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: ^(AESGCM|ChaCha20Poly1305|AESCCM|AESOCB3|AESGCMSIV|AESSIV)$
+          - metavariable-pattern:
+              metavariable: $IV
+              pattern-either:
+                - pattern: b"..."
+                - pattern: '"..."'
+                - pattern: b"..." * $N
+                - patterns:
+                    - pattern: bytes($N)
+                    - metavariable-regex:
+                        metavariable: $N
+                        regex: ^\d+$
+                - patterns:
+                    - pattern: bytearray($N)
+                    - metavariable-regex:
+                        metavariable: $N
+                        regex: ^\d+$
+      - patterns:
+          - pattern-either:
+              - pattern: $AEAD.encrypt($IV, ...)
+              - pattern: $AEAD.decrypt($IV, ...)
+          - pattern-inside: |
+              $AEAD = $C(...)
+              ...
+          - metavariable-regex:
+              metavariable: $C
+              regex: ^(AESGCM|ChaCha20Poly1305|AESCCM|AESOCB3|AESGCMSIV|AESSIV)$
+          - metavariable-pattern:
+              metavariable: $IV
+              pattern-either:
+                - pattern: b"..."
+                - pattern: '"..."'
+                - pattern: b"..." * $N
+                - patterns:
+                    - pattern: bytes($N)
+                    - metavariable-regex:
+                        metavariable: $N
+                        regex: ^\d+$
+                - patterns:
+                    - pattern: bytearray($N)
+                    - metavariable-regex:
+                        metavariable: $N
+                        regex: ^\d+$
+
+  - id: jgates.python.cipher-mode-without-authentication
+    message: CBC, CTR, CFB and OFB encrypt without authenticating the data, and the rule cannot see whether a MAC follows. Prefer an authenticated mode such as AES-GCM or ChaCha20-Poly1305, or add an HMAC over the ciphertext.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.3"]
+    pattern-either:
+      - patterns:
+          - pattern: modes.$M(...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(CBC|CTR|CFB|CFB8|OFB)$
+      - pattern: AES.MODE_CBC
+      - pattern: AES.MODE_CTR
+      - pattern: AES.MODE_CFB
+      - pattern: AES.MODE_OFB
+
+  - id: jgates.python.weak-cipher-mode
+    message: ECB leaks the structure of the plaintext, and RSA encryption with PKCS#1 v1.5 padding is open to padding-oracle attacks. Use AES-GCM, and RSA-OAEP for public-key encryption.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.1"]
+    pattern-either:
+      - pattern: modes.ECB()
+      - pattern: AES.MODE_ECB
+      - pattern: $K.encrypt($M, padding.PKCS1v15())
+      - pattern: $K.decrypt($C, padding.PKCS1v15())
+      - pattern: Crypto.Cipher.PKCS1_v1_5.new(...)
+
+  - id: jgates.python.weak-kdf-parameters
+    message: A password hashing or key derivation call uses a literal work factor under the floor (PBKDF2 under 100000 iterations, bcrypt cost under 10, scrypt N under 16384, Argon2 under 19 MiB of memory or under 2 passes). Raise the work factor to the current recommendation.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V11.4.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: hashlib.pbkdf2_hmac($H, $P, $S, $N, ...)
+              - pattern: hashlib.pbkdf2_hmac(..., iterations=$N, ...)
+              - pattern: PBKDF2HMAC(..., iterations=$N, ...)
+              - pattern: PBKDF2(..., count=$N, ...)
+              - pattern: pbkdf2_sha256.using(..., rounds=$N, ...)
+              - pattern: pbkdf2_sha512.using(..., rounds=$N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 100000
+      - patterns:
+          - pattern-either:
+              - pattern: bcrypt.gensalt(rounds=$N, ...)
+              - pattern: bcrypt.gensalt($N, ...)
+              - pattern: bcrypt.using(..., rounds=$N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 10
+      - patterns:
+          - pattern-either:
+              - pattern: hashlib.scrypt(..., n=$N, ...)
+              - pattern: Scrypt(..., n=$N, ...)
+              - pattern: scrypt(..., N=$N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 16384
+      - patterns:
+          - pattern-either:
+              - pattern: PasswordHasher(..., time_cost=$N, ...)
+              - pattern: argon2.PasswordHasher(..., time_cost=$N, ...)
+              - pattern: argon2.hash_password(..., time_cost=$N, ...)
+              - pattern: argon2.low_level.hash_secret(..., time_cost=$N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2
+      - patterns:
+          - pattern-either:
+              - pattern: PasswordHasher(..., memory_cost=$N, ...)
+              - pattern: argon2.PasswordHasher(..., memory_cost=$N, ...)
+              - pattern: argon2.hash_password(..., memory_cost=$N, ...)
+              - pattern: argon2.low_level.hash_secret(..., memory_cost=$N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 19456
+
+  - id: jgates.python.password-hash-with-fast-hash
+    message: A password is hashed with a plain, fast hash function, so a stolen database can be cracked at billions of guesses per second. Use a password hashing function such as bcrypt, scrypt or Argon2.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V6.5.2"]
+    patterns:
+      - pattern-either:
+          - pattern: hashlib.$H($X)
+          - pattern: hashlib.$H($X.encode(...))
+          - pattern: hashlib.$H($A + $X)
+          - pattern: hashlib.$H($X + $A)
+          - pattern: hashlib.$H(($A + $X).encode(...))
+          - pattern: hashlib.$H(($X + $A).encode(...))
+          - pattern: hashlib.new($N, $X)
+          - pattern: hashlib.new($N, $X.encode(...))
+          - pattern: |
+              $OBJ = hashlib.$H(...)
+              ...
+              $OBJ.update($X)
+          - pattern: |
+              $OBJ = hashlib.$H(...)
+              ...
+              $OBJ.update($X.encode(...))
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i)^[\w.]*(password|passwd|pwd|passphrase|senha)\w*$
+      - metavariable-regex:
+          metavariable: $H
+          regex: ^(md5|sha1|sha224|sha256|sha384|sha512|sha3_224|sha3_256|sha3_384|sha3_512|blake2b|blake2s)$
+
+  - id: jgates.python.timing-unsafe-comparison
+    message: A MAC, digest or signature is compared with == or !=, which stops at the first differing byte and leaks how much matched. Compare with hmac.compare_digest.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-208"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.4"]
+    patterns:
+      - pattern-either:
+          - pattern: $A.hexdigest() == $B
+          - pattern: $A.hexdigest() != $B
+          - pattern: $B == $A.hexdigest()
+          - pattern: $B != $A.hexdigest()
+          - pattern: $A.digest() == $B
+          - pattern: $A.digest() != $B
+          - pattern: $B == $A.digest()
+          - pattern: $B != $A.digest()
+          - patterns:
+              - pattern-either:
+                  - pattern: $X == $Y
+                  - pattern: $X != $Y
+              - metavariable-regex:
+                  metavariable: $X
+                  regex: (?i)^([\w.]*_)?(mac|hmac|digest|hexdigest|signature|sig)$
+              - pattern-not: $X == None
+              - pattern-not: $X != None
+              - pattern-not: $X == ""
+              - pattern-not: $X != ""
+              - pattern-not: $X == b""
+              - pattern-not: $X != b""
+              - metavariable-regex:
+                  metavariable: $Y
+                  regex: ^(?!None$|""$|''$|b""$|\d)
+
+  - id: jgates.python.weak-signature-hash
+    message: A signature or MAC is made or verified with MD5 or SHA-1, which are broken for this use. Use SHA-256 or stronger.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-328"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.3", "V11.6.1"]
+    pattern-either:
+      - pattern: hmac.new($K, $M, hashlib.md5)
+      - pattern: hmac.new($K, $M, hashlib.sha1)
+      - pattern: hmac.new($K, $M, "md5")
+      - pattern: hmac.new($K, $M, "sha1")
+      - pattern: hmac.new(..., digestmod=hashlib.md5)
+      - pattern: hmac.new(..., digestmod=hashlib.sha1)
+      - pattern: hmac.new(..., digestmod="md5")
+      - pattern: hmac.new(..., digestmod="sha1")
+      - pattern: hmac.digest($K, $M, "md5")
+      - pattern: hmac.digest($K, $M, "sha1")
+      - pattern: hmac.HMAC($K, hashes.MD5())
+      - pattern: hmac.HMAC($K, hashes.SHA1())
+      - pattern: $K.sign(..., hashes.MD5())
+      - pattern: $K.sign(..., hashes.SHA1())
+      - pattern: $K.verify(..., hashes.MD5())
+      - pattern: $K.verify(..., hashes.SHA1())
+      - pattern: ec.ECDSA(hashes.MD5())
+      - pattern: ec.ECDSA(hashes.SHA1())
+      - pattern: pkcs1_15.new($K).sign(MD5.new(...))
+      - pattern: pkcs1_15.new($K).sign(SHA1.new(...))
+      - pattern: pkcs1_15.new($K).verify(MD5.new(...), ...)
+      - pattern: pkcs1_15.new($K).verify(SHA1.new(...), ...)
+
+  - id: jgates.python.weak-dh-parameters
+    message: Diffie-Hellman parameters under 2048 bits can be broken with precomputation. Generate parameters of at least 2048 bits, or use an elliptic curve exchange such as X25519.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.6.2"]
+    patterns:
+      - pattern-either:
+          - pattern: dh.generate_parameters(..., key_size=$N, ...)
+          - pattern: dh.generate_parameters($G, $N, ...)
+      - metavariable-comparison:
+          metavariable: $N
+          comparison: $N < 2048
+
+  - id: jgates.python.hardcoded-encryption-key
+    message: A string literal is used as the key of a cipher, a MAC or a token signature, so anyone with the source holds the key. Load the key from a secret store or the environment, or generate it.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-321"
+      author: JGates
+      subdimension: secrets
+      asvs_requirements: ["V13.3.1"]
+    pattern-either:
+      - pattern: AES.new("...", ...)
+      - pattern: AES.new(b"...", ...)
+      - pattern: AES.new(key="...", ...)
+      - pattern: AES.new(key=b"...", ...)
+      - pattern: Fernet("...")
+      - pattern: Fernet(b"...")
+      - pattern: AESGCM("...")
+      - pattern: AESGCM(b"...")
+      - pattern: ChaCha20Poly1305(b"...")
+      - pattern: algorithms.AES(b"...")
+      - pattern: hmac.new("...", ...)
+      - pattern: hmac.new(b"...", ...)
+      - pattern: hmac.HMAC(b"...", ...)
+      - pattern: jwt.encode($P, "...", ...)
+      - pattern: jwt.encode($P, key="...", ...)
+      - patterns:
+          - pattern: jwt.decode($T, "...", ...)
+          - pattern-not: jwt.decode($T, "...BEGIN PUBLIC KEY...", ...)
+
+  - id: jgates.python.insecure-random-for-secret
+    message: The non-cryptographic random module feeds a value named like a token, secret, password, code, nonce, salt or key, and its output can be predicted. Use the secrets module (secrets.token_urlsafe, secrets.token_bytes, secrets.choice).
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-338"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1", "V7.2.3", "V6.5.3", "V6.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $X = <... random.$F(...) ...>
+          - pattern: $CALL(..., $X=<... random.$F(...) ...>, ...)
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i)^([\w.]*[_.])?(token|secret|password|passwd|pwd|passphrase|code|nonce|salt|key|otp|csrf|session_?id|api_?key|jwt)(_\w*)?$
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(random|randint|randrange|choice|choices|getrandbits|sample|randbytes|uniform)$
+
+  - id: jgates.python.uuid-as-secret-token
+    message: A UUID is used as a token, secret, nonce or similar value. UUIDs are identifiers, not a designed source of secrecy (uuid1 is predictable). Use secrets.token_urlsafe for secret values.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-330"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $X = <... uuid.$F(...) ...>
+          - pattern: $CALL(..., $X=<... uuid.$F(...) ...>, ...)
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i)^([\w.]*[_.])?(token|secret|api_?key|nonce|salt|otp|csrf|session_?id|jwt|reset_code|verification_code|activation_code)(_\w*)?$
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(uuid1|uuid4)$
