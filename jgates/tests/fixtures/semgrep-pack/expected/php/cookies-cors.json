@@ -1,0 +1,16 @@
+{
+  "files": ["cookies-cors.php"],
+  "ruleIds": [
+    "jgates.php.cookie-without-secure",
+    "jgates.php.cookie-without-httponly",
+    "jgates.php.cookie-without-samesite",
+    "jgates.php.cookie-name-without-prefix",
+    "jgates.php.cors-any-origin-with-credentials",
+    "jgates.php.cors-origin-reflected",
+    "jgates.php.cors-origin-reflected-allow-all",
+    "jgates.php.csrf-protection-disabled",
+    "jgates.php.jsonp-enabled",
+    "jgates.php.jsonp-enabled-callback",
+    "jgates.php.sensitive-query-parameter"
+  ]
+}
