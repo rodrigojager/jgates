@@ -1,0 +1,4 @@
+{
+  "files": ["src/configuration.rs"],
+  "ruleIds": ["jgates.rust.directory-listing-enabled"]
+}

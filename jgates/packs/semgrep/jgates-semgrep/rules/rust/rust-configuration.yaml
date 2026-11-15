@@ -1,0 +1,23 @@
+# Configuration rules for Rust. Covers the actix-files static file service (Files::new, plain or fully qualified).
+# Left out: debug mode, documentation/monitoring endpoints and version headers (no switch in the common frameworks),
+# mass assignment and serializer exposure (not made precise for serde and diesel).
+rules:
+  - id: jgates.rust.directory-listing-enabled
+    message: A static file service is configured to list directory contents, which shows visitors every file in the folder. Remove show_files_listing() and serve an index_file() or explicit routes instead.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: configuration
+      cwe: "CWE-548"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.3"]
+    patterns:
+      - pattern: $X.show_files_listing()
+      - metavariable-pattern:
+          metavariable: $X
+          pattern-either:
+            - pattern: Files::new(...)
+            - pattern: actix_files::Files::new(...)
+            - pattern: <... Files::new(...) ...>
+            - pattern: <... actix_files::Files::new(...) ...>
