@@ -1,0 +1,221 @@
+# Group configuration for JavaScript and TypeScript. Frameworks covered: Express and Connect (errorhandler,
+# serve-index, swagger-ui-express, express-status-monitor, the x-powered-by switch), Apollo Server and express-graphql
+# (debug and GraphiQL), Fastify (static listing), Mongoose and Sequelize (models). Taint sources are the request
+# objects of the existing taint file (req.query, req.body, req.params).
+rules:
+  - id: jgates.js.debug-mode-enabled
+    message: A developer error page or debug mode is switched on outside a development-only branch. Register it only when NODE_ENV is development, and answer with a generic error page otherwise.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-489"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.2"]
+    patterns:
+      - pattern-either:
+          - pattern: errorhandler(...)
+          - pattern: 'new ApolloServer({..., debug: true, ...})'
+          - pattern: 'graphqlHTTP({..., graphiql: true, ...})'
+          - pattern: '$APP.use("...", graphqlHTTP({..., graphiql: true, ...}))'
+      - pattern-not-inside: |
+          if (<... process.env.NODE_ENV ...>) {
+            ...
+          }
+      - pattern-not-inside: |
+          if (<... process.env.NODE_ENV ...>) {
+            ...
+          } else {
+            ...
+          }
+      - pattern-not-inside: |
+          <... process.env.NODE_ENV ...> && ...
+
+  - id: jgates.js.docs-or-monitoring-endpoint-exposed
+    message: API documentation or a monitoring dashboard is registered for every deployment. Register it only outside production, or put an authentication middleware in front of it.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $APP.use($P, swaggerUi.serve, ...)
+          - pattern: $APP.use(expressStatusMonitor(...))
+          - pattern: SwaggerModule.setup(...)
+      - pattern-not-inside: |
+          if (<... process.env.NODE_ENV ...>) {
+            ...
+          }
+      - pattern-not-inside: |
+          if (<... process.env.NODE_ENV ...>) {
+            ...
+          } else {
+            ...
+          }
+      - pattern-not-inside: |
+          <... process.env.NODE_ENV ...> && ...
+
+  - id: jgates.js.directory-listing-enabled
+    message: A static file handler lists directory contents. Remove serve-index (or set list to false) so only known files can be fetched.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-548"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.3"]
+    pattern: serveIndex(...)
+
+  - id: jgates.js.directory-listing-enabled-fastify
+    message: A static file handler lists directory contents. Remove the list option (or set it to false) so only known files can be fetched.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-548"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.3"]
+    patterns:
+      - pattern-either:
+          - pattern: '$F.register($PLUGIN, {..., list: true, ...})'
+          - pattern: '$F.register($PLUGIN, {..., list: {...}, ...})'
+      - metavariable-regex:
+          metavariable: $PLUGIN
+          regex: (?i).*static.*
+
+  - id: jgates.js.version-header-exposed
+    message: The X-Powered-By header names the framework. Disable it with app.disable("x-powered-by") or remove the header instead of setting it.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-497"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.6"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $RES.setHeader($H, ...)
+              - pattern: $RES.header($H, ...)
+              - pattern: $RES.set($H, ...)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["']x-powered-by["']$
+      - pattern: $APP.enable("x-powered-by")
+      - pattern: $APP.set("x-powered-by", true)
+      - pattern: 'helmet({..., hidePoweredBy: false, ...})'
+
+  - id: jgates.js.mass-assignment
+    message: A model is created or updated from the whole request body, so a caller can set any field (role, owner, flags). Copy only the allowed fields, for example with lodash pick or an explicit object.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-915"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.3"]
+    patterns:
+      - pattern-either:
+          - pattern: $M.create(req.body, ...)
+          - pattern: $M.create({..., ...req.body, ...}, ...)
+          - pattern: $M.build(req.body, ...)
+          - pattern: $M.bulkCreate(req.body, ...)
+          - pattern: $M.update(req.body, ...)
+          - pattern: $M.updateOne($F, req.body, ...)
+          - pattern: $M.findByIdAndUpdate($I, req.body, ...)
+          - pattern: $M.findOneAndUpdate($F, req.body, ...)
+          - pattern: new $M(req.body, ...)
+          - pattern: Object.assign($M, req.body, ...)
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(?!(Object|Array|Reflect|JSON|Date|Map|Set|URL|URLSearchParams|Error|Buffer|RegExp|Headers|FormData|Response|Request|Promise|Blob|String|Number|Boolean|Uint8Array|\{.*\})$)
+
+  - id: jgates.js.mass-assignment-schema-open
+    message: A model schema accepts fields it does not declare, so request data can store any field. Leave strict mode on and declare every field.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-915"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.3"]
+    pattern-either:
+      - pattern: 'new Schema($S, {..., strict: false, ...})'
+      - pattern: 'new mongoose.Schema($S, {..., strict: false, ...})'
+
+  - id: jgates.js.prototype-pollution
+    message: A property name taken from the incoming request is used to reach into an object and assign a value, so the name __proto__ can change every object of the process. Reject __proto__, constructor and prototype first, or use a Map or an object without a prototype.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1321"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.6"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+    pattern-sanitizers:
+      - pattern: safeKey(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $O[$A][$B] = $V
+          - focus-metavariable: $A
+          - pattern-not-inside: |
+              function $F(...) {
+                ...
+                <... "__proto__" ...>
+                ...
+              }
+          - pattern-not-inside: |
+              (...) => {
+                ...
+                <... "__proto__" ...>
+                ...
+              }
+
+  - id: jgates.js.prototype-pollution-recursive-merge
+    message: A recursive merge copies every key of its source, so a source holding __proto__ pollutes every object of the process. Skip __proto__, constructor and prototype in the loop, or merge into an object created with Object.create(null).
+    severity: ERROR
+    languages: [javascript, typescript]
+    patterns:
+      - pattern: $FN($X, $S[$K])
+      - pattern-inside: |
+          function $FN(...) {
+            ...
+          }
+      - pattern-inside: |
+          for (const $K in $S) {
+            ...
+          }
+      - pattern-not-inside: |
+          function $F(...) {
+            ...
+            <... "__proto__" ...>
+            ...
+          }
+      - pattern-not-inside: |
+          (...) => {
+            ...
+            <... "__proto__" ...>
+            ...
+          }
+    metadata:
+      category: injection
+      cwe: "CWE-1321"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.6"]

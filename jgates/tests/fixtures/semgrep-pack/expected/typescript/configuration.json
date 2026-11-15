@@ -1,0 +1,13 @@
+{
+  "files": ["configuration.ts"],
+  "ruleIds": [
+    "jgates.js.debug-mode-enabled",
+    "jgates.js.docs-or-monitoring-endpoint-exposed",
+    "jgates.js.directory-listing-enabled",
+    "jgates.js.version-header-exposed",
+    "jgates.js.mass-assignment",
+    "jgates.js.mass-assignment-schema-open",
+    "jgates.js.prototype-pollution",
+    "jgates.js.prototype-pollution-recursive-merge"
+  ]
+}
