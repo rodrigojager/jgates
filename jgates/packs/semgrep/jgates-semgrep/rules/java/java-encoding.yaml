@@ -1,0 +1,754 @@
+# Encoding rules for Java. Request sources: HttpServletRequest getters (parameters, headers, query string, path info,
+# request URI), Spring MVC parameters annotated @RequestParam, @PathVariable, @RequestBody or @RequestHeader, and JAX-RS
+# parameters annotated @QueryParam, @PathParam, @FormParam or @HeaderParam, as in java-taint.yaml. Sinks: java.util.regex
+# and String regex methods, String.format and printf-style calls, MessageFormat, Commons CSV, OpenCSV and POI cells,
+# spymemcached and XMemcached calls, URL and JSON string building; plus the double-decoding and Markdown rules.
+# The analysis stays inside one method.
+rules:
+  - id: jgates.java.regex-from-request
+    message: Request data is compiled or matched as a regular expression. Wrap it in Pattern.quote before it becomes part of a pattern.
+    severity: WARNING
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.9", "V1.3.12"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sanitizers:
+      - pattern: Pattern.quote(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: Pattern.compile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: Pattern.matches($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: (String $S).matches($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: (String $S).replaceAll($P, $R)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: (String $S).replaceFirst($P, $R)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: (String $S).split($P, ...)
+          - focus-metavariable: $P
+
+  - id: jgates.java.redos-nested-quantifier
+    message: This regular expression has a quantified group that itself ends in a quantifier, such as (x+)+. A crafted input makes the match time grow exponentially. Rewrite the group so the repeats cannot overlap, for example x+ alone.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.12"]
+    patterns:
+      - pattern-either:
+          - pattern: Pattern.compile($S, ...)
+          - pattern: Pattern.matches($S, ...)
+          - pattern: (String $X).matches($S)
+          - pattern: (String $X).replaceAll($S, $R)
+          - pattern: (String $X).replaceFirst($S, $R)
+          - pattern: (String $X).split($S, ...)
+      - metavariable-regex:
+          metavariable: $S
+          regex: '(?s)^.*\([^()]*[^\\()][+*]\??\)([+*]|\{\d+,\d*\}).*$'
+
+  - id: jgates.java.format-string-from-request
+    message: Request data is used as the format string of a formatting or printing call. Pass a constant format and give the request data as an argument, for example String.format("%s", value).
+    severity: ERROR
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-134"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.10"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sinks:
+      - patterns:
+          - pattern: String.format($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern-either:
+              - pattern: String.format(Locale.$L, $F, ...)
+              - pattern: String.format(new Locale(...), $F, ...)
+              - pattern: String.format((Locale $L), $F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $F.formatted(...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: MessageFormat.format($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: System.out.printf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: System.out.format($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: System.err.printf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: (PrintWriter $W).printf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: (PrintWriter $W).format($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: (Formatter $W).format($F, ...)
+          - focus-metavariable: $F
+
+  - id: jgates.java.csv-formula-injection
+    message: Request data is written as a spreadsheet or CSV field without a check on its first character, so a value starting with =, +, - or @ can run as a formula. Prefix such values with an apostrophe or reject them before writing.
+    severity: WARNING
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1236"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.10"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sanitizers:
+      - pattern: sanitizeCsvField(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: (CSVPrinter $W).printRecord(..., $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: (CSVPrinter $W).print($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: (CSVWriter $W).writeNext(new String[]{..., $P, ...})
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: (Cell $C).setCellValue($P)
+          - focus-metavariable: $P
+
+  - id: jgates.java.memcache-key-from-request
+    message: Request data is used as a memcache key. A key with spaces or control characters can inject protocol commands or collide with other keys; hash or strictly validate it first.
+    severity: WARNING
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.9"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sanitizers:
+      - pattern: DigestUtils.sha256Hex(...)
+      - pattern: validateCacheKey(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: (MemcachedClient $C).get($K)
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: (MemcachedClient $C).asyncGet($K)
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: (MemcachedClient $C).gets($K)
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: (MemcachedClient $C).set($K, ...)
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: (MemcachedClient $C).add($K, ...)
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: (MemcachedClient $C).replace($K, ...)
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: (MemcachedClient $C).delete($K)
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: (MemcachedClient $C).incr($K, ...)
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: (MemcachedClient $C).decr($K, ...)
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: (MemcachedClient $C).touch($K, ...)
+          - focus-metavariable: $K
+
+  - id: jgates.java.double-decoding
+    message: A value is URL-, HTML- or base64-decoded and then decoded again with the same decoder, so encoded input can slip past checks made after the first decode. Decode once and validate the result.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: injection
+      cwe: "CWE-174"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.1.1"]
+    pattern-either:
+      - pattern: URLDecoder.decode(URLDecoder.decode($X, ...), ...)
+      - pattern: |
+          String $A = URLDecoder.decode($X, ...);
+          ...
+          String $B = URLDecoder.decode($A, ...);
+      - pattern: StringEscapeUtils.unescapeHtml4(StringEscapeUtils.unescapeHtml4($X))
+      - pattern: HtmlUtils.htmlUnescape(HtmlUtils.htmlUnescape($X))
+      - pattern: |
+          String $A = HtmlUtils.htmlUnescape($X);
+          ...
+          String $B = HtmlUtils.htmlUnescape($A);
+      - pattern: Base64.getDecoder().decode(new String(Base64.getDecoder().decode($X)))
+      - pattern: |
+          String $A = new String(Base64.getDecoder().decode($X));
+          ...
+          byte[] $B = Base64.getDecoder().decode($A);
+
+  - id: jgates.java.url-parameter-unencoded
+    message: Request data is joined into the query or path of a URL without encoding. Use URLEncoder.encode, UriUtils.encode or UriComponentsBuilder to encode the value first.
+    severity: WARNING
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.2"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sanitizers:
+      - pattern: URLEncoder.encode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $A + $P
+          - metavariable-regex:
+              metavariable: $A
+              regex: '(?s)^".*(\?|://).*[=/]"$'
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: String.format($F, ..., $P, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '(?s)^".*(\?[^"]*=|[A-Za-z0-9_.-]/)%s'
+          - focus-metavariable: $P
+
+  - id: jgates.java.json-built-by-concatenation
+    message: Request data is joined into JSON or script text by string concatenation, so a quote or bracket in it changes the structure. Build the value with a serializer such as Jackson's writeValueAsString or Gson's toJson instead.
+    severity: WARNING
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.3"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sanitizers:
+      - pattern: JSONObject.quote(...)
+      - pattern: StringEscapeUtils.escapeJson(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $A + $P
+          - metavariable-regex:
+              metavariable: $A
+              regex: '(?s)^"(\s*[\{\[].*[:,\[]\s*(\\")?|.*<script[^<]*)"$'
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: String.format($F, ..., $P, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '(?s)^"(\s*[\{\[]|.*<script).*%s'
+          - focus-metavariable: $P
+
+  - id: jgates.java.markdown-raw-html-enabled
+    message: A Markdown renderer is set to pass raw HTML through. Turn on HTML escaping (escapeHtml(true) in commonmark, HtmlRenderer.ESCAPE_HTML in flexmark) or sanitize the output with an HTML sanitizer.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $B.escapeHtml(false)
+          - pattern: HtmlRenderer.builder().build()
+          - pattern: HtmlRenderer.builder().extensions($E).build()
+          - pattern: $O.set(HtmlRenderer.ESCAPE_HTML, false)
