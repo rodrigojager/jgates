@@ -17,5 +17,7 @@
   "semhist_follow": "Follow the run",
   "semhist_open_results": "Open the results",
   "semhist_separate_title": "A separate gate.",
-  "semhist_separate_body": "Semantic reviews never change a Quality result, and Quality history never lists them. Their decision is advisory."
+  "semhist_separate_body": "Semantic reviews never change a Quality result, and Quality history never lists them. Their decision is advisory.",
+  "semhist_reproduces": "Tried to reproduce findings of",
+  "semhist_reproduction_counts": "Reproduction: {confirmed} confirmed by execution, {attempted} attempted"
 }

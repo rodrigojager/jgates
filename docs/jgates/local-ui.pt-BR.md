@@ -120,6 +120,8 @@ A tela do resultado:
 - **Exportar JSON**, **Exportar SARIF** e **Copiar para o agente** (um resumo seguro para colar num agente; nada é enviado);
 - com o que a execução rodou (versão do JGates, imagem de ferramentas, idade dos dados de segurança, chaves das dependências, serviços).
 
+O resultado Semantic (`#/semantic/results/<execução>`) tem ações próprias: cada achado `needs-validation` de um método que lê o código tem **Tentar reproduzir**, e a lista tem **Tentar reproduzir todos (N)**. Antes, uma confirmação mostra quantos achados serão tentados, o máximo de chamadas ao modelo que pode gastar e que roda os testes do projeto em um contêiner sem rede; nada começa antes de **Confirmar e iniciar**. Depois, o achado mostra **Confirmado por execução**, com um link para a execução da reprodução e o teste com a saída mascarada, ou **Reprodução tentada** com o motivo, ainda precisando de validação. A ação fica desabilitada, com o motivo, quando nenhum executor de testes aceito roda o arquivo do achado, quando não há motor de contêineres pronto ou quando as dependências não estão preparadas (com **Preparar dependências**). Veja [o gate semântico](semantic-gate.pt-BR.md#tentar-reproduzir-um-achado).
+
 Uma verificação que não pode rodar diz por quê e o que fazer (veja os [códigos de motivo](troubleshooting.pt-BR.md#códigos-de-motivo)). O teste de mutação, por exemplo, não se aplica enquanto os testes do próprio projeto falham, e roda quando eles passam.
 
 ## Mascotes

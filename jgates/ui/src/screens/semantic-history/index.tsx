@@ -21,6 +21,7 @@ interface SemanticRunRow {
   model: string | null;
   reviewState: string | null;
   methods?: string[];
+  reproduction?: { reproduces: string | null; counts: { confirmed: number; attempted: number; none: number }; runs: string[] };
 }
 
 /** The Semantic history of the workspace: its own runs, apart from the Quality history. */
@@ -85,6 +86,16 @@ export default function SemanticHistoryScreen() {
                         {!running && !r.complete ? <Pill tone="gold">{t("semres_not_complete")}</Pill> : null}
                         {r.cancelRequested ? <Pill tone="gold">{t("semhist_cancel_requested")}</Pill> : null}
                       </div>
+                      {r.reproduction?.reproduces ? (
+                        <div className="small" data-testid="semhist-reproduces">
+                          {t("semhist_reproduces")} <a href={`#/semantic/results/${encodeURIComponent(r.reproduction.reproduces)}`}>{r.reproduction.reproduces}</a>
+                        </div>
+                      ) : null}
+                      {r.reproduction && r.reproduction.counts.confirmed + r.reproduction.counts.attempted > 0 ? (
+                        <div className="small muted" data-testid="semhist-reproduction">
+                          {t("semhist_reproduction_counts", { confirmed: r.reproduction.counts.confirmed, attempted: r.reproduction.counts.attempted })}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="small">{[r.provider, r.model].filter(Boolean).join(" · ") || "-"}</td>
                     <td>

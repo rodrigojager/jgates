@@ -9,7 +9,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { INVESTIGATION_RECORD, RESERVE_FRACTION, DEFAULT_CALLS } from "../../core/semantic-executor/index.js";
 import { projectSemanticMascots, type SemanticMascotSnapshot, type SemanticStageInput } from "../../core/semantic-mascots/index.js";
-import { SEMANTIC_RUN_ID_PATTERN, buildSemanticPlan, readSemanticRun, reproductionOf, resolveQualityRun, semanticMethodCatalog, type RunReproduction, type SemanticRunView } from "../../core/semantic/index.js";
+import { EXECUTION_FILE, INELIGIBLE_SEED_METHODS, runnerForSource } from "../../core/semantic-modules/reproduction/index.js";
+import { FINDING_ID_PATTERN, SEMANTIC_RUN_ID_PATTERN, buildSemanticPlan, readSemanticRun, reproductionOf, resolveQualityRun, semanticMethodCatalog, type RunReproduction, type SemanticRunView } from "../../core/semantic/index.js";
 import { SCOPE_LEDGER_FILE, SCOPE_RECORD_FILE, SEMANTIC_PURPOSES, SEMANTIC_RIGORS, type SemanticPurpose } from "../../core/semantic-scope/index.js";
 import { SEQUENCE_ID_PATTERN, readSequence } from "../../core/sequence/index.js";
 import type { RunResult } from "../../core/run/types.js";
@@ -23,6 +24,7 @@ const tSequence = translator("sequence");
 type Rec = Record<string, unknown>;
 
 const runParams = { type: "object", properties: { id: { type: "string", pattern: SEMANTIC_RUN_ID_PATTERN } }, required: ["id"], additionalProperties: false };
+const reproductionParams = { type: "object", properties: { id: { type: "string", pattern: SEMANTIC_RUN_ID_PATTERN }, candidate: { type: "string", pattern: FINDING_ID_PATTERN } }, required: ["id", "candidate"], additionalProperties: false };
 const sequenceParams = { type: "object", properties: { id: { type: "string", pattern: SEQUENCE_ID_PATTERN } }, required: ["id"], additionalProperties: false };
 
 const isRec = (v: unknown): v is Rec => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -129,7 +131,11 @@ export function semanticReportOf(view: SemanticRunView, reproduction: RunReprodu
     const recorded = typeof f.confirmation === "string" ? f.confirmation : "needs-validation";
     const candidateId = idAt(i);
     const link = candidateId ? (reproduction?.findings.find((r) => r.candidateId === candidateId) ?? null) : null;
+    const file = typeof f.path === "string" ? f.path : null;
+    // Whether a test runner of the container recipes runs the file (host-only: a name check, no engine call).
+    const runner = file ? runnerForSource(file) : null;
     return {
+      reproducible: runner === null ? { runner: null, code: "TEST_RUNNER_NOT_SUPPORTED" } : "runner" in runner ? { runner: runner.runner, code: null } : { runner: null, code: runner.code },
       severity: String(f.severity ?? "unknown"),
       // Shown as confirmed once a reproduction run confirmed it by execution; the stored run keeps what it recorded.
       confirmation: link?.state === "confirmed" ? "confirmed" : recorded,
@@ -192,6 +198,8 @@ export function semanticReportOf(view: SemanticRunView, reproduction: RunReprodu
      * reproduction runs, read from the runs that started from this one; for a reproduction run, the run it reproduces.
      */
     reproduction,
+    /** Whether the run's methods read source code, so its needs-validation findings can be reproduced (not a reproduction run itself). */
+    reproducible: (result?.semanticRun?.methods ?? []).length > 0 && (result?.semanticRun?.methods ?? []).every((m: string) => !INELIGIBLE_SEED_METHODS.has(m)),
     confirmation: byConfirmation,
     severity: bySeverity,
     usage: {
@@ -265,6 +273,49 @@ export const routes: RouteDefinition[] = [
     handler({ params, server }) {
       const view = semanticRunOr404(server, params.id as string);
       return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", runId: view.runId, reproduction: reproductionOf(server.home, server.workspace.id, view) } };
+    },
+  },
+  {
+    // The test and the masked output of the reproduction of one finding (its candidate ID in this run), read from the
+    // reproduction run that tried it: the reproducer file as the model wrote it, and what its execution printed. Both
+    // are shown as text only; nothing is executed or written.
+    method: "GET",
+    path: "/api/semantic/runs/:id/reproduction/:candidate",
+    params: reproductionParams,
+    handler({ params, server }) {
+      const view = semanticRunOr404(server, params.id as string);
+      const candidate = params.candidate as string;
+      const found = reproductionOf(server.home, server.workspace.id, view).findings.find((f) => f.candidateId === candidate) ?? null;
+      if (!found || !found.reproductionRunId) throw refuse(404, "RUN_NOT_FOUND", { runId: `${view.runId}/${candidate}` });
+      const reproRun = readSemanticRun(server.home, server.workspace.id, found.reproductionRunId);
+      const executions = list(readRunJson(reproRun?.dir ?? view.dir, EXECUTION_FILE)?.executions).filter(isRec);
+      const execution = [...executions].reverse().find((e) => isRec(e.finding) && e.finding.candidateId === candidate) ?? null;
+      const reproducer = isRec(execution?.reproducer) ? execution.reproducer : null;
+      const sha = typeof reproducer?.sha256 === "string" ? reproducer.sha256 : null;
+      let content: string | null = null;
+      const investigation = reproRun ? investigationOf(reproRun) : null;
+      for (const stage of list(investigation?.stages).filter(isRec)) {
+        for (const ctx of list(stage.contexts).filter(isRec)) {
+          const test = isRec(ctx.accepted) && isRec(ctx.accepted.test) ? ctx.accepted.test : null;
+          if (test && sha && test.sha256 === sha && typeof test.content === "string") content = test.content;
+        }
+      }
+      const run = isRec(execution?.run) ? execution.run : null;
+      return {
+        status: 200,
+        json: {
+          schemaVersion: 1,
+          status: "OK",
+          gate: "semantic",
+          runId: view.runId,
+          candidateId: candidate,
+          reproductionRunId: found.reproductionRunId,
+          state: found.state,
+          reason: found.reason,
+          test: reproducer ? { path: String(reproducer.path ?? ""), runner: String(reproducer.runner ?? ""), content } : null,
+          execution: run ? { executed: run.executed === true, outcome: String(run.outcome ?? ""), tests: isRec(run.tests) ? run.tests : null, exitCode: typeof run.exitCode === "number" ? run.exitCode : null, timedOut: run.timedOut === true, output: typeof run.output === "string" ? run.output : "", reason: typeof run.reason === "string" ? run.reason : null } : null,
+        },
+      };
     },
   },
   {

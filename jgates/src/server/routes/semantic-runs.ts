@@ -80,12 +80,26 @@ export const routes: RouteDefinition[] = [
     query: {
       type: "object",
       // methods: comma-separated method IDs (the purpose's methods when absent).
-      properties: { quality: { type: "string", pattern: QUALITY_REF }, methods: { type: "string", pattern: METHOD_LIST } },
+      // from, finding: the earlier run (and one finding) confirm-by-reproduction would start from: the plan then carries what it would cost.
+      properties: {
+        quality: { type: "string", pattern: QUALITY_REF },
+        methods: { type: "string", pattern: METHOD_LIST },
+        from: { type: "string", pattern: SEMANTIC_RUN_ID_PATTERN },
+        finding: { type: "string", pattern: FINDING_ID_PATTERN },
+      },
       additionalProperties: false,
     },
     handler({ query, server }) {
       const methods = typeof query.methods === "string" ? query.methods.split(",") : [];
-      const plan = buildSemanticPlan({ workspacePath: server.workspace.path, home: server.home, quality: query.quality ?? null, methods });
+      const from = typeof query.from === "string" ? query.from : null;
+      const finding = typeof query.finding === "string" ? query.finding : null;
+      const plan = buildSemanticPlan({
+        workspacePath: server.workspace.path,
+        home: server.home,
+        quality: query.quality ?? null,
+        methods,
+        ...(from || finding ? { reproduction: { from, findings: finding ? [finding] : [] } } : {}),
+      });
       return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", plan } };
     },
   },

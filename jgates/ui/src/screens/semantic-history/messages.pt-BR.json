@@ -17,5 +17,7 @@
   "semhist_follow": "Acompanhar a execução",
   "semhist_open_results": "Abrir os resultados",
   "semhist_separate_title": "Um gate separado.",
-  "semhist_separate_body": "Revisões semânticas nunca alteram um resultado de Qualidade, e o histórico de Qualidade nunca as lista. A decisão delas é consultiva."
+  "semhist_separate_body": "Revisões semânticas nunca alteram um resultado de Qualidade, e o histórico de Qualidade nunca as lista. A decisão delas é consultiva.",
+  "semhist_reproduces": "Tentou reproduzir achados de",
+  "semhist_reproduction_counts": "Reprodução: {confirmed} confirmados por execução, {attempted} tentados"
 }

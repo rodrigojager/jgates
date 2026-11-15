@@ -120,6 +120,8 @@ The result screen:
 - **Export JSON**, **Export SARIF** and **Copy for the agent** (a safe summary to paste into an agent; nothing is sent);
 - what the run used (JGates version, tools image, age of the security data, dependency keys, services).
 
+The Semantic result (`#/semantic/results/<run>`) has its own actions: each `needs-validation` finding of a method that reads source code has **Try to reproduce**, and the list has **Try to reproduce all (N)**. A confirmation first shows how many findings will be tried, the most model calls it may spend and that it runs the project's tests in a container without network; nothing starts before **Confirm and start**. Afterwards the finding shows **Confirmed by execution**, with a link to the reproduction run and the test with its masked output, or **Reproduction attempted** with the reason, still needing validation. The action is disabled, with the reason, when no supported test runner runs the finding's file, when there is no container engine ready, or when the dependencies are not prepared (with **Prepare dependencies**). See [the semantic gate](semantic-gate.en.md#trying-to-reproduce-a-finding).
+
 A check that cannot run says why and what to do (see the [reason codes](troubleshooting.en.md#reason-codes)). Mutation testing, for example, is not applicable while the project's own tests fail, and runs once they pass.
 
 ## Mascots
