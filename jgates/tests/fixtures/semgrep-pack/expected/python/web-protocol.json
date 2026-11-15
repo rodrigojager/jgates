@@ -1,0 +1,14 @@
+{
+  "files": ["web-protocol.py"],
+  "ruleIds": [
+    "jgates.python.security-headers-disabled",
+    "jgates.python.csp-unsafe-directive",
+    "jgates.python.websocket-without-tls",
+    "jgates.python.websocket-origin-not-checked",
+    "jgates.python.graphql-introspection-enabled",
+    "jgates.python.graphql-without-depth-limit",
+    "jgates.python.open-redirect",
+    "jgates.python.client-ip-from-forwarded-header",
+    "jgates.python.host-header-in-url"
+  ]
+}
