@@ -1,0 +1,218 @@
+# Errors, logging and availability for Java.
+# Libraries covered: SLF4J, Log4j 2, Logback, java.util.logging, commons-logging and System.out/System.err for the
+# logging rules (receivers named log, logger, LOG, LOGGER or ending in Logger or Log); HttpServletResponse, Spring
+# ResponseEntity and JAX-RS Response for the response rules; java.net.http.HttpClient, RestTemplate, Apache
+# HttpClient and HttpURLConnection for the timeout rule. Analysis stays inside one method.
+rules:
+  - id: jgates.java.sensitive-data-logged
+    message: A value named like a password, a secret, a token or an authorization header is passed to a logging call, so it ends up in the log files. Log an identifier or a masked form instead, or leave the value out.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $L.$M(..., $X, ...)
+          - pattern: $L.$M(..., $A + $X, ...)
+          - pattern: $L.$M(..., $X + $A, ...)
+          - pattern: $L.$M(..., $A + $X + $B, ...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: ^(System\.(out|err)|(\w+\.)*(log|logger|LOG|LOGGER|LOGGING|\w*Logger|\w*Log|\w*_LOG|\w*_LOGGER))$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(trace|debug|info|warn|error|fatal|severe|warning|config|fine|finer|finest|log|print|println|printf|format)$
+      - metavariable-regex:
+          metavariable: $X
+          regex: ^([A-Za-z_]\w*(\(\))?\.)*((?i:(\w*_)?(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(_\w*)?)|\w*(Password|Passwd|Passphrase|Senha|Secret|ApiKey|APIKey|PrivateKey|ClientSecret|Segredo|Token|JWT|Jwt|SessionID|SessionId|OTP|Otp|Nonce|Salt|CSRF|Csrf|ResetCode|VerificationCode|ActivationCode|SSN|CPF|CNPJ|CardNumber|CVV|IBAN|Authorization)([A-Z]\w*)?)(\(\))?$
+
+  - id: jgates.java.sensitive-data-logged-header
+    message: The Authorization header of the request is passed to a logging call, so the credential ends up in the log files. Log the request path or a request id instead.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $L.$M(..., $R.getHeader("Authorization"), ...)
+          - pattern: $L.$M(..., $R.getHeader(HttpHeaders.AUTHORIZATION), ...)
+          - pattern: $L.$M(..., $R.getFirst("Authorization"), ...)
+          - pattern: $L.$M(..., $A + $R.getHeader("Authorization"), ...)
+          - pattern: $L.$M(..., $A + $R.getHeader(HttpHeaders.AUTHORIZATION), ...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: ^(System\.(out|err)|(\w+\.)*(log|logger|LOG|LOGGER|LOGGING|\w*Logger|\w*Log|\w*_LOG|\w*_LOGGER))$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(trace|debug|info|warn|error|fatal|severe|warning|config|fine|finer|finest|log|print|println|printf|format)$
+
+  - id: jgates.java.stack-trace-in-response
+    message: A stack trace is written to the HTTP response, which tells the caller about the code and the server. Log the trace on the server and return a generic error message.
+    severity: ERROR
+    languages: [java]
+    mode: taint
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    pattern-sources:
+      - pattern: ExceptionUtils.getStackTrace(...)
+      - pattern: Throwables.getStackTraceAsString(...)
+      - pattern: $E.getStackTrace()
+      - patterns:
+          - pattern: $SW.toString()
+          - pattern-inside: |
+              $E.printStackTrace(new PrintWriter($SW));
+              ...
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: (HttpServletResponse $R).getWriter().println($X)
+              - pattern: (HttpServletResponse $R).getWriter().print($X)
+              - pattern: (HttpServletResponse $R).getWriter().write($X)
+              - pattern: (HttpServletResponse $R).getWriter().append($X)
+              - pattern: (HttpServletResponse $R).sendError($N, $X)
+              - pattern: (HttpServletResponse $R).getOutputStream().write($X)
+              - pattern: (HttpServletResponse $R).getOutputStream().println($X)
+              - pattern: ResponseEntity.$M(...).body($X)
+              - pattern: ResponseEntity.ok($X)
+              - pattern: new ResponseEntity<>($X, ...)
+              - pattern: new ResponseEntity<$T>($X, ...)
+              - pattern: Response.$M(...).entity($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern-either:
+              - pattern: $OUT.println($X)
+              - pattern: $OUT.print($X)
+              - pattern: $OUT.write($X)
+          - pattern-inside: |
+              PrintWriter $OUT = (HttpServletResponse $R).getWriter();
+              ...
+          - focus-metavariable: $X
+
+  - id: jgates.java.stack-trace-in-response-print
+    message: A stack trace is printed straight into the HTTP response, which tells the caller about the code and the server. Log the trace on the server and return a generic error message.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    pattern-either:
+      - pattern: $E.printStackTrace((HttpServletResponse $R).getWriter())
+      - pattern: $E.printStackTrace(new PrintWriter((HttpServletResponse $R).getWriter()))
+      - pattern: $E.printStackTrace(new PrintWriter((HttpServletResponse $R).getOutputStream()))
+      - pattern: $E.printStackTrace(new PrintStream((HttpServletResponse $R).getOutputStream()))
+      - pattern: $E.printStackTrace(new PrintWriter((HttpServletResponse $R).getWriter(), ...))
+
+  - id: jgates.java.error-detail-in-response
+    message: The message of an exception is written to the HTTP response, which can expose paths, queries and internals. Log the exception on the server and return a generic error message.
+    severity: INFO
+    languages: [java]
+    mode: taint
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $E.getMessage()
+              - pattern: $E.getLocalizedMessage()
+              - pattern: $E.toString()
+          - metavariable-regex:
+              metavariable: $E
+              regex: ^(e|ex|exc|err|error|t|th|throwable|exception|\w+Exception|\w+Ex|\w+Error|\w+Exc)$
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: (HttpServletResponse $R).getWriter().println($X)
+              - pattern: (HttpServletResponse $R).getWriter().print($X)
+              - pattern: (HttpServletResponse $R).getWriter().write($X)
+              - pattern: (HttpServletResponse $R).getWriter().append($X)
+              - pattern: (HttpServletResponse $R).sendError($N, $X)
+              - pattern: (HttpServletResponse $R).getOutputStream().write($X)
+              - pattern: (HttpServletResponse $R).getOutputStream().println($X)
+              - pattern: ResponseEntity.$M(...).body($X)
+              - pattern: ResponseEntity.ok($X)
+              - pattern: new ResponseEntity<>($X, ...)
+              - pattern: new ResponseEntity<$T>($X, ...)
+              - pattern: Response.$M(...).entity($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern-either:
+              - pattern: $OUT.println($X)
+              - pattern: $OUT.print($X)
+              - pattern: $OUT.write($X)
+          - pattern-inside: |
+              PrintWriter $OUT = (HttpServletResponse $R).getWriter();
+              ...
+          - focus-metavariable: $X
+
+  - id: jgates.java.swallowed-exception
+    message: An exception is caught and then dropped, with no log, no handling and no rethrow, so the failure goes unseen. Log it, handle it or rethrow it; a variable named ignored marks a deliberate choice.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: error-handling
+      cwe: "CWE-390"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.3.4", "V16.5.3"]
+    patterns:
+      - pattern: |
+          try {
+            ...
+          } catch ($T $E) {
+          }
+      - metavariable-regex:
+          metavariable: $E
+          regex: ^(?!(ignored|ignore|expected|unused|_)$).*
+
+  - id: jgates.java.http-client-without-timeout
+    message: An outbound HTTP client or connection is created with no timeout, and this library waits forever by default, so one slow server can hang the thread. Set a connect timeout and a read timeout.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: availability
+      cwe: "CWE-400"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.2", "V13.2.6", "V15.2.2"]
+    pattern-either:
+      - pattern: HttpClient.newHttpClient()
+      - pattern: new RestTemplate()
+      - pattern: HttpClients.createDefault()
+      - pattern: new DefaultHttpClient()
+      - patterns:
+          - pattern: HttpClient.newBuilder(). ... .build()
+          - pattern-not: HttpClient.newBuilder(). ... .connectTimeout(...). ... .build()
+      - patterns:
+          - pattern: HttpClientBuilder.create(). ... .build()
+          - pattern-not: HttpClientBuilder.create(). ... .setDefaultRequestConfig(...). ... .build()
+      - patterns:
+          - pattern: (HttpURLConnection) $U.openConnection()
+          - pattern-inside: |
+              $RET $M(...) {
+                ...
+              }
+          - pattern-not-inside: |
+              $RET $M(...) {
+                ...
+                $C.setReadTimeout(...);
+                ...
+              }

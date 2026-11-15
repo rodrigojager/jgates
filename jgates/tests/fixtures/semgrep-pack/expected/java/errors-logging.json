@@ -1,0 +1,12 @@
+{
+  "files": ["ErrorsLogging.java"],
+  "ruleIds": [
+    "jgates.java.sensitive-data-logged",
+    "jgates.java.sensitive-data-logged-header",
+    "jgates.java.stack-trace-in-response",
+    "jgates.java.stack-trace-in-response-print",
+    "jgates.java.error-detail-in-response",
+    "jgates.java.swallowed-exception",
+    "jgates.java.http-client-without-timeout"
+  ]
+}
