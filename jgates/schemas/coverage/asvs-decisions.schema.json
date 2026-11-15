@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/coverage/asvs-decisions/1.json",
+  "title": "JGates ASVS decisions of a project (.jgates/asvs.json)",
+  "description": "The project's own ASVS decisions: the version they are for, the chosen level (level 1 while the file does not say otherwise) and the requirements, sections or chapters recorded as not applicable, each with a reason and the date it was recorded. Applicability does not expire, so there is no end date. JGates writes it one entry at a time, with a preview and an undo, and never in governed mode; other keys a person adds are kept.",
+  "type": "object",
+  "properties": {
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "level": { "enum": [1, 2, 3] },
+    "notApplicable": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "reason", "recorded"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^V\\d{1,2}(\\.\\d+){0,2}$" },
+          "reason": { "type": "string", "minLength": 3, "maxLength": 300 },
+          "recorded": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+        }
+      }
+    }
+  }
+}
