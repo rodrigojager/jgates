@@ -32,12 +32,40 @@
     },
     {
       "requirement": "V8.2.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.permit-all-requests",
+          "covers": "A Django REST framework default permission list that contains AllowAny.",
+          "misses": "Only the global switch: whether each endpoint carries the right permission, and endpoints meant to be public, are not judged; other languages and frameworks have no rule.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.permit-all-requests",
+          "covers": "An ASP.NET Core default or fallback policy asserting true, and controller, default-route or Razor Pages mappings made anonymous.",
+          "misses": "Only the global switch: whether each endpoint carries the right permission, and endpoints meant to be public, are not judged; other languages and frameworks have no rule.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.permit-all-requests",
+          "covers": "Spring Security anyRequest or a catch-all path matcher given permitAll, and web security that ignores every request.",
+          "misses": "Only the global switch: whether each endpoint carries the right permission, and endpoints meant to be public, are not judged; other languages and frameworks have no rule.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.permit-all-requests",
+          "covers": "A Laravel Gate::before callback that always returns true.",
+          "misses": "Only the global switch: whether each endpoint carries the right permission, and endpoints meant to be public, are not judged; other languages and frameworks have no rule.",
+          "depth": "partial"
+        },
         {
           "unit": "semantic-ledger",
           "id": "ATTACK-CLASSES.md#Access control",
@@ -46,11 +74,7 @@
           "depth": "partial"
         }
       ],
-      "why": "The block examines whether each function is guarded by the right permission.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "The rules catch a global switch that lets every request through; the block reads whether each function is guarded by the right permission."
     },
     {
       "requirement": "V8.2.2",
@@ -106,14 +130,25 @@
     },
     {
       "requirement": "V8.2.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether sign-in and authorization decisions use environment attributes (time, place, address, device), at session start and during a session, as the application's documentation describes.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V8.3.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -125,27 +160,101 @@
           "covers": "A branch decided by an administrator flag read from a request argument or header.",
           "misses": "Other languages, other flag names and other ways of trusting caller input; it does not inspect front-end code.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.client-controlled-privilege",
+          "covers": "A role, admin flag or permission field assigned from data of the request in Express or Koa (body, query, params, headers, cookies).",
+          "misses": "Only these field names and assignments inside one function: other names, values that cross a function and trust placed in front-end code are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.client-controlled-privilege",
+          "covers": "A role, admin flag, scope or permission set from ASP.NET Core controller parameters or request members.",
+          "misses": "Only these field names and assignments inside one function: other names, values that cross a function and trust placed in front-end code are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.client-controlled-privilege",
+          "covers": "A role, admin flag, scope or permission set from net/http, gin, echo or fiber request data.",
+          "misses": "Only these field names and assignments inside one function: other names, values that cross a function and trust placed in front-end code are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.client-controlled-privilege",
+          "covers": "A role, admin flag or permission set from Spring MVC or JAX-RS parameters or servlet request getters.",
+          "misses": "Only these field names and assignments inside one function: other names, values that cross a function and trust placed in front-end code are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.client-controlled-privilege",
+          "covers": "A role, admin flag or permission assigned from request data, including Spatie permission calls.",
+          "misses": "Only these field names and assignments inside one function: other names, values that cross a function and trust placed in front-end code are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.client-controlled-privilege",
+          "covers": "A role, admin flag or permission set from axum or actix-web extractors.",
+          "misses": "Only these field names and assignments inside one function: other names, values that cross a function and trust placed in front-end code are not seen.",
+          "depth": "partial"
         }
       ],
-      "why": "A privilege decision taken from caller-supplied input is an authorization control the caller can manipulate.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "why": "A privilege decision taken from caller-supplied input is a control the caller can manipulate; the rules look for it in seven languages."
     },
     {
       "requirement": "V8.3.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "DATA-ISOLATION-AND-LIFECYCLE.md#Stale authorization and derived copy use",
+          "covers": "Role downgrades, membership removals and revocations that do not reach sessions, caches or jobs that keep authorizing.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not examine delay inside self-contained tokens.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether changes to the values that authorization depends on (roles, memberships, permissions) take effect at once or sit in tokens or caches that stay stale, and what compensates.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
     },
     {
       "requirement": "V8.3.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "PROTOCOLS-RPC-AND-MESSAGING.md#Peer identity to application-principal confusion",
+          "covers": "Channel or service identity used where the original caller's identity should decide.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It examines service-to-service identity, not every downstream call.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether access to an object is decided with the permissions of the original caller, passed to downstream calls, and not with those of an intermediate service account.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
     },
     {
       "requirement": "V8.4.1",

@@ -25,87 +25,394 @@
     },
     {
       "requirement": "V6.2.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.password-min-length-below-8",
+          "covers": "A password field whose validator (Joi, zod, yup, Mongoose or Sequelize options, express-validator, validator.js, class-validator or a hand-written length test) sets a literal minimum below 8.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.password-min-length-below-8",
+          "covers": "A password field in a Django form, model or validator, a DRF or marshmallow or pydantic schema, or a WTForms field with a literal minimum length below 8.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.password-min-length-below-8",
+          "covers": "A password length comparison, a DataAnnotations or FluentValidation minimum, or an Identity PasswordOptions length set below 8.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.password-min-length-below-8",
+          "covers": "A len or rune-count test, a validator or gin binding tag, or an ozzo rule on a password value that lets fewer than 8 characters through.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.password-min-length-below-8",
+          "covers": "A Bean Validation size, a Hibernate Validator length, a Passay length rule or a String length test on a password field with a literal minimum below 8.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.password-min-length-below-8",
+          "covers": "A Laravel validation rule or Password rule, a Symfony Length constraint or an strlen test on a password value with a literal minimum below 8.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.password-min-length-below-8",
+          "covers": "A length test or a validator-crate length attribute on a password value that accepts fewer than 8 characters.",
+          "misses": "Literal limits in the libraries named only: a limit held in a variable, a configuration file or the identity provider is not read, and the recommended longer minimum is not judged.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The minimum length of a password is set in validators with a literal number, which is what the rules read."
     },
     {
       "requirement": "V6.2.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the source gives a signed-in user a way to change the password, through routes, handlers or forms.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.2.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the password-change handler asks for the old password next to the new one and verifies the old one first.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.2.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether new passwords are compared with a list of very common passwords at registration and change, and whether that list is large and fits the length policy.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. The contents of a list kept in a service are not visible.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.2.5",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.password-composition-rule",
+          "covers": "Validators that demand upper-case, lower-case, digit or symbol classes: validator.js strong-password options, password-validator rules and look-ahead patterns on a password field.",
+          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen; Go has no rule. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.password-composition-rule",
+          "covers": "A regular expression built from look-ahead class requirements and applied to a password value, in re calls or in a WTForms Regexp on a PasswordField.",
+          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen; Go has no rule. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.password-composition-rule",
+          "covers": "ASP.NET Core Identity PasswordOptions switches that require digits, lower case, upper case or non-alphanumeric characters.",
+          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen; Go has no rule. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.password-composition-rule",
+          "covers": "Passay CharacterRule objects and Bean Validation patterns with look-ahead class requirements on a password field.",
+          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen; Go has no rule. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.password-composition-rule",
+          "covers": "The Laravel Password rule asking for mixed case, numbers or symbols, and rule strings with look-ahead patterns on password fields.",
+          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen; Go has no rule. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.password-composition-rule",
+          "covers": "A password-named line carrying a look-ahead character-class pattern.",
+          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen; Go has no rule. The finding is informational.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Composition rules are written as class switches or look-ahead patterns, which the rules recognize; the requirement forbids them."
     },
     {
       "requirement": "V6.2.6",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.password-field-not-masked",
+          "covers": "JSX inputs named like a password whose type is not password.",
+          "misses": "Fields named otherwise, a type set at run time, inputs built by components or by template files (which are not read) and native screens are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.html.password-field-not-masked",
+          "covers": "HTML input elements named or identified like a password that carry no masking type.",
+          "misses": "Fields named otherwise, a type set at run time, inputs built by components or by template files (which are not read) and native screens are not seen.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An input named like a password with no masking type shows what is typed, the case the rules look for in JSX and HTML."
     },
     {
       "requirement": "V6.2.7",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.password-paste-blocked",
+          "covers": "JSX password inputs with a paste handler that cancels the event or autocomplete switched off, and DOM or jQuery paste handlers that cancel the event.",
+          "misses": "Blocking done by a library wrapper, handlers attached in other ways and password inputs written in template files (which are not read) are not seen. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.html.password-paste-blocked",
+          "covers": "HTML password inputs with an onpaste handler that cancels the event or autocomplete switched off.",
+          "misses": "Blocking done by a library wrapper, handlers attached in other ways and password inputs written in template files (which are not read) are not seen. The finding is informational.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Cancelled paste and switched-off autocomplete on a password input are visible in JSX, HTML and DOM handlers."
     },
     {
       "requirement": "V6.2.8",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.password-transformed-before-verify",
+          "covers": "A value named like a password that is lower-cased, upper-cased, trimmed or cut before it reaches bcrypt, bcryptjs, argon2 or Node crypto hashing or comparison.",
+          "misses": "Taint stays inside one function: a transformation made in another function, in a framework layer or at the client is not followed, and a limit inside the hash function itself is not considered.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.password-transformed-before-verify",
+          "covers": "A value named like a password changed in case or length before bcrypt, hashlib, werkzeug or passlib hashing or checking.",
+          "misses": "Taint stays inside one function: a transformation made in another function, in a framework layer or at the client is not followed, and a limit inside the hash function itself is not considered.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.password-transformed-before-verify",
+          "covers": "A password transformed before BCrypt.Net or the Identity password hasher hashes or verifies it.",
+          "misses": "Taint stays inside one function: a transformation made in another function, in a framework layer or at the client is not followed, and a limit inside the hash function itself is not considered.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.password-transformed-before-verify",
+          "covers": "A password transformed before bcrypt, argon2, scrypt or pbkdf2 hashing or a constant-time comparison.",
+          "misses": "Taint stays inside one function: a transformation made in another function, in a framework layer or at the client is not followed, and a limit inside the hash function itself is not considered.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.password-transformed-before-verify",
+          "covers": "A password transformed before a Spring Security password encoder or jBCrypt hashes or matches it.",
+          "misses": "Taint stays inside one function: a transformation made in another function, in a framework layer or at the client is not followed, and a limit inside the hash function itself is not considered.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.password-transformed-before-verify",
+          "covers": "A password transformed before password_hash, password_verify or the Laravel Hash facade uses it.",
+          "misses": "Taint stays inside one function: a transformation made in another function, in a framework layer or at the client is not followed, and a limit inside the hash function itself is not considered.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.password-transformed-before-verify",
+          "covers": "A password transformed before the bcrypt, argon2 or password-hash crates use it.",
+          "misses": "Taint stays inside one function: a transformation made in another function, in a framework layer or at the client is not followed, and a limit inside the hash function itself is not considered.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A password changed in case or length before hashing or comparing is a visible data flow within a function."
     },
     {
       "requirement": "V6.2.9",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.password-max-length-below-64",
+          "covers": "A password validator in the same libraries that rejects passwords longer than a literal limit under 64.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.password-max-length-below-64",
+          "covers": "A password field or schema with a literal maximum length under 64.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.password-max-length-below-64",
+          "covers": "A MaxLength or StringLength attribute, a FluentValidation maximum or a length comparison on a password that caps it under 64.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.password-max-length-below-64",
+          "covers": "A len or rune-count test, a validator tag or an ozzo rule that rejects a password above a limit under 64.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.password-max-length-below-64",
+          "covers": "A Bean Validation size, a Hibernate length or a String length test that caps a password under 64.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.password-max-length-below-64",
+          "covers": "A Laravel max rule, a Symfony Length maximum or an strlen test that caps a password under 64.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.password-max-length-below-64",
+          "covers": "A length test or validator attribute that caps a password under 64.",
+          "misses": "Literal caps only; a database column width, a hashing step or a proxy that truncates or refuses long input, and a cap set in configuration, are not seen.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A literal cap under 64 on a password is a direct breach of the allowed length."
     },
     {
       "requirement": "V6.2.10",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the code forces periodic password expiry or rotation, or changes a password only when the user asks or a compromise is found.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.2.11",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether a list of context words (organization, product and similar names) is applied when a password is set.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. A list kept outside the source is not visible.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.2.12",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether new passwords are checked against known breached passwords, from a local set or a breach-lookup service, at registration and at change.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. A set kept in a service is not visible.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.3.1",
@@ -146,31 +453,82 @@
     },
     {
       "requirement": "V6.3.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#MFA enrollment and assurance downgrade",
+          "covers": "Whether fallback and recovery sign-in routes demand the same assurance as the main one.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not list the sign-in routes or compare them with the documentation.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether every sign-in route (web, API, mobile, administrative, legacy and recovery) goes through the same controls at the same strength, and whether an undocumented route exists.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
     },
     {
       "requirement": "V6.3.5",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the code sends users a notice about suspicious sign-in events: an unusual client or place, partial success, success after a long silence or after repeated failures.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. Whether mail or messages are delivered is not visible.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.3.6",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether e-mail serves as an authentication factor, alone or among others, through codes or links sent by mail that complete a sign-in.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.3.7",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether credential resets and changes of the username or e-mail send a notice to the user.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. Whether mail or messages are delivered is not visible.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.3.8",
@@ -181,17 +539,124 @@
     },
     {
       "requirement": "V6.4.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "cryptography",
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.insecure-random-for-secret",
+          "covers": "Math.random feeding a value named like a token, secret, password, code, nonce, salt or key, the case of an initial password or activation value.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; whether the initial secret follows the password policy, expires and is single use is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.insecure-random-for-secret",
+          "covers": "The random module feeding a value named like a token, secret, password, code, nonce, salt or key, the case of an initial password or activation value.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; whether the initial secret follows the password policy, expires and is single use is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.insecure-random-for-secret",
+          "covers": "System.Random feeding a value named like a token, secret, password, code, nonce, salt or key, the case of an initial password or activation value.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; whether the initial secret follows the password policy, expires and is single use is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.insecure-random-for-secret",
+          "covers": "Math/rand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of an initial password or activation value.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; whether the initial secret follows the password policy, expires and is single use is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.insecure-random-for-secret",
+          "covers": "Java.util.Random, Math.random or ThreadLocalRandom feeding a value named like a token, secret, password, code, nonce, salt or key, the case of an initial password or activation value.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; whether the initial secret follows the password policy, expires and is single use is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.insecure-random-for-secret",
+          "covers": "A non-cryptographic generator such as rand or mt_rand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of an initial password or activation value.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; whether the initial secret follows the password policy, expires and is single use is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.insecure-random-for-secret",
+          "covers": "SmallRng, seeded generators and fastrand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of an initial password or activation value.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; whether the initial secret follows the password policy, expires and is single use is not examined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A guessable generator feeding an initial password or activation value is the weak-randomness part of the requirement; expiry and single use need a reader."
     },
     {
       "requirement": "V6.4.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.secret-question-present",
+          "covers": "An object key, property, variable or form field named as a secret, security or recovery question or its answer.",
+          "misses": "Questions kept as stored data or under other names, and password hints, which the rule does not name, are not seen. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.secret-question-present",
+          "covers": "A class attribute or model or form field named as a secret or security question or its answer.",
+          "misses": "Questions kept as stored data or under other names, and password hints, which the rule does not name, are not seen. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.secret-question-present",
+          "covers": "A property, field or form entry named as a secret or security question or its answer.",
+          "misses": "Questions kept as stored data or under other names, and password hints, which the rule does not name, are not seen. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.secret-question-present",
+          "covers": "A struct field or form value named as a secret or security question or its answer.",
+          "misses": "Questions kept as stored data or under other names, and password hints, which the rule does not name, are not seen. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.secret-question-present",
+          "covers": "A field or request parameter named as a secret or security question or its answer.",
+          "misses": "Questions kept as stored data or under other names, and password hints, which the rule does not name, are not seen. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.secret-question-present",
+          "covers": "A variable, property or array key named as a secret or security question or its answer.",
+          "misses": "Questions kept as stored data or under other names, and password hints, which the rule does not name, are not seen. The finding is informational.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.secret-question-present",
+          "covers": "A struct field or string name given as a secret or security question or its answer.",
+          "misses": "Questions kept as stored data or under other names, and password hints, which the rule does not name, are not seen. The finding is informational.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A field or model named as a secret question is how knowledge-based recovery shows in code."
     },
     {
       "requirement": "V6.4.3",
@@ -238,10 +703,28 @@
     },
     {
       "requirement": "V6.4.6",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Password reset and broader recovery",
+          "covers": "Support and administrator recovery paths and whether they let someone other than the user end up knowing a credential.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not examine whether an administrator can set a password directly.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether an administrator can only start a password reset for a user and never choose or see the resulting password.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
     },
     {
       "requirement": "V6.5.1",
@@ -267,59 +750,253 @@
     },
     {
       "requirement": "V6.5.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization",
+        "cryptography"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether low-entropy lookup secrets (recovery or backup codes) are stored with a slow password hash and a random salt, or in clear text or with a fast hash.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. Hashes in a database that the repository only reads are not visible.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.5.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "cryptography",
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.insecure-random-for-secret",
+          "covers": "Math.random feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a one-time code, lookup secret or seed.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; where a seed comes from inside a library is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.insecure-random-for-secret",
+          "covers": "The random module feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a one-time code, lookup secret or seed.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; where a seed comes from inside a library is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.insecure-random-for-secret",
+          "covers": "System.Random feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a one-time code, lookup secret or seed.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; where a seed comes from inside a library is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.insecure-random-for-secret",
+          "covers": "Math/rand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a one-time code, lookup secret or seed.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; where a seed comes from inside a library is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.insecure-random-for-secret",
+          "covers": "Java.util.Random, Math.random or ThreadLocalRandom feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a one-time code, lookup secret or seed.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; where a seed comes from inside a library is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.insecure-random-for-secret",
+          "covers": "A non-cryptographic generator such as rand or mt_rand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a one-time code, lookup secret or seed.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; where a seed comes from inside a library is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.insecure-random-for-secret",
+          "covers": "SmallRng, seeded generators and fastrand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a one-time code, lookup secret or seed.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; where a seed comes from inside a library is not examined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A guessable generator feeding a code or seed named like a secret is the predictable-value case of the requirement."
     },
     {
       "requirement": "V6.5.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization",
+        "cryptography"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Password reset and broader recovery",
+          "covers": "Token and backup-code randomness in recovery flows.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not measure entropy or cover codes used at primary sign-in.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether lookup secrets and out-of-band codes are generated with enough random characters or digits, as the length is chosen in code.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
     },
     {
       "requirement": "V6.5.5",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.totp-window-too-wide",
+          "covers": "speakeasy, otplib or otpauth options with a step above 30 seconds or a window wider than one step each side.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.totp-window-too-wide",
+          "covers": "pyotp or django-otp devices with an interval above 30 seconds or a tolerance or valid window above one step.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.totp-window-too-wide",
+          "covers": "Otp.NET Totp objects with a step above 30 seconds or a verification window wider than one step.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.totp-window-too-wide",
+          "covers": "pquerna/otp options with a period above 30 seconds or a skew above one step.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.totp-window-too-wide",
+          "covers": "java-otp, samstevens totp or GoogleAuth settings with a step above 30 seconds or a window or discrepancy above one step.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.totp-window-too-wide",
+          "covers": "OTPHP, TwoFactorAuth or Google2FA settings with a period above 30 seconds or a window above one step.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.totp-window-too-wide",
+          "covers": "totp-rs and totp-lite settings with a step above 30 seconds or a skew above one step.",
+          "misses": "Literal values in the libraries named only: values from configuration or variables are not read, and the lifetime of out-of-band requests and codes, which has its own limit, is not examined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The step and window of a TOTP check are literals in the libraries' options, which the rules read; out-of-band lifetimes need a reader."
     },
     {
       "requirement": "V6.5.6",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#MFA enrollment and assurance downgrade",
+          "covers": "Disablement and replacement of a factor, and whether disabled or stale factors stop authorizing sessions.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not cover the loss of a physical device.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether a user or administrator can revoke an authentication factor (a lost token, key, device or code list) and whether a revoked factor stops being accepted.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
     },
     {
       "requirement": "V6.5.7",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether biometric verification is used only together with a second factor and never alone.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. Behaviour of the device's own biometric stack is not visible.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.5.8",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the time used to check TOTP codes comes from the server's own clock and not from a value the client sends.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "totp"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
     },
     {
       "requirement": "V6.6.1",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether SMS or voice one-time codes are sent only to numbers already verified, whether stronger methods are offered beside them, and whether users are told the risks.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.6.2",
@@ -345,17 +1022,46 @@
     },
     {
       "requirement": "V6.6.3",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Password reset and broader recovery",
+          "covers": "Rate and accounting controls on recovery tokens and codes.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. Recovery flows only, not codes used at primary sign-in.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the handlers that verify out-of-band codes limit the rate of attempts and count failures.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness."
     },
     {
       "requirement": "V6.6.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether push-based second-factor requests are rate limited per account and whether number matching is used.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. Limits applied by the push provider are not visible.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.7.1",
@@ -366,14 +1072,26 @@
     },
     {
       "requirement": "V6.7.2",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization",
+        "cryptography"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether challenge nonces of cryptographic authentication are random, long enough and unique per attempt, as chosen in code.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it."
     },
     {
       "requirement": "V6.8.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -387,15 +1105,17 @@
           "depth": "partial"
         }
       ],
-      "why": "Identity collision across providers is the spoofing path this requirement closes; the block examines it for linking and sign-in routes.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "applies": {
+        "technology": [
+          "oauth-client",
+          "saml"
+        ]
+      },
+      "why": "Identity collision across providers is the spoofing path this requirement closes; the block examines it for linking and sign-in routes. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
     },
     {
       "requirement": "V6.8.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -430,6 +1150,27 @@
           "depth": "partial"
         },
         {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jwt-signature-not-verified",
+          "covers": "jjwt parsing of unsigned content, auth0 JWT.decode and Nimbus PlainJWT.parse, which read claims without a signature check.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jwt-signature-not-verified",
+          "covers": "lcobucci Configuration with the unsecured signer and firebase/php-jwt payloads decoded by hand without verification.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.jwt-signature-not-verified",
+          "covers": "The jsonwebtoken dangerous and insecure decode functions, which skip signature verification.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
           "unit": "semantic-ledger",
           "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
           "covers": "Signature verification, pinned algorithm and key source, and decode-without-verify paths for JWTs.",
@@ -444,15 +1185,18 @@
           "depth": "partial"
         }
       ],
-      "why": "Each check looks for assertions that are accepted without a valid signature, for JWTs by rule and for JWT and SAML by reading.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "applies": {
+        "technology": [
+          "jwt",
+          "saml",
+          "oauth-client"
+        ]
+      },
+      "why": "Each check looks for assertions accepted without a valid signature: rules for tokens in seven languages, readings for tokens and SAML. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
     },
     {
       "requirement": "V6.8.3",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -466,18 +1210,43 @@
           "depth": "partial"
         }
       ],
-      "why": "Replay state of assertions is one of the items the block checks, matching the one-time processing this requirement asks for.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-14"
-      }
+      "applies": {
+        "technology": [
+          "saml"
+        ]
+      },
+      "why": "Replay state of assertions is one of the items the block checks, matching the one-time processing this requirement asks for. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
     },
     {
       "requirement": "V6.8.4",
-      "status": "unmapped",
+      "status": "pending",
       "evidence": "repository",
-      "subdimensions": [],
-      "checks": []
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Step-up binding and bypass",
+          "covers": "Whether an assurance target is bound to the session and checked on every route to the operation.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not read the strength claims an identity provider returns.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the application reads the strength, method or recency claims an identity provider returns (for OIDC, acr, amr and auth_time) before sensitive functions, and what it assumes when they are missing.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client",
+          "saml"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them."
     }
   ]
 }
