@@ -1,0 +1,360 @@
+# Original JGates rules: injection into interpreters other than SQL and the shell
+# (LDAP, XPath, template engines, XML entities, XSLT, LaTeX, mail headers).
+# Intra-procedural request sources: PHP superglobals, Laravel request() and
+# $request/$req input/query/post/cookie/file methods, Symfony $request/$req get()
+# and query/request/cookies/files/headers bags. Object sources intentionally require
+# the conventional request/req variable name. Only request-controlled $_SERVER keys
+# are sources. Libraries covered: ldap_* functions, SimpleXML and DOMXPath, Twig,
+# Blade, Smarty, libxml (DOMDocument, SimpleXML, XMLReader), XSLTProcessor, the
+# exec family with a TeX engine, and the mail() function.
+rules:
+  - id: jgates.php.ldap-injection
+    message: Request data is joined into an LDAP filter or base DN passed to a search. Escape each value with ldap_escape() using LDAP_ESCAPE_FILTER or LDAP_ESCAPE_DN.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-90"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.6"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: ldap_escape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: ldap_search($LINK, $BASE, $FILTER, ...)
+          - focus-metavariable: $FILTER
+      - patterns:
+          - pattern: ldap_search($LINK, $BASE, $FILTER, ...)
+          - focus-metavariable: $BASE
+      - patterns:
+          - pattern: ldap_list($LINK, $BASE, $FILTER, ...)
+          - focus-metavariable: $FILTER
+      - patterns:
+          - pattern: ldap_list($LINK, $BASE, $FILTER, ...)
+          - focus-metavariable: $BASE
+      - patterns:
+          - pattern: ldap_read($LINK, $BASE, $FILTER, ...)
+          - focus-metavariable: $FILTER
+      - patterns:
+          - pattern: ldap_read($LINK, $BASE, $FILTER, ...)
+          - focus-metavariable: $BASE
+
+  - id: jgates.php.xpath-injection
+    message: Request data is joined into an XPath expression that is evaluated. Keep the expression fixed and compare the value in PHP, or cast it to a number first.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-643"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.7"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: (int) $X
+      - pattern: (float) $X
+      - pattern: intval(...)
+      - pattern: floatval(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $XML->xpath($EXPR)
+          - focus-metavariable: $EXPR
+      - patterns:
+          - pattern: $XP->query($EXPR, ...)
+          - pattern-inside: |
+              $XP = new DOMXPath(...);
+              ...
+          - focus-metavariable: $EXPR
+      - patterns:
+          - pattern: $XP->evaluate($EXPR, ...)
+          - pattern-inside: |
+              $XP = new DOMXPath(...);
+              ...
+          - focus-metavariable: $EXPR
+
+  - id: jgates.php.template-from-request
+    message: Request data becomes the source of a template that is compiled or rendered, which runs attacker-controlled template code. Load a fixed template and pass the request value to it as data.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1336"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.7"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sinks:
+      - patterns:
+          - pattern: $TWIG->createTemplate($SRC, ...)
+          - focus-metavariable: $SRC
+      - patterns:
+          - pattern: Blade::render($SRC, ...)
+          - focus-metavariable: $SRC
+      - patterns:
+          - pattern: Blade::compileString($SRC)
+          - focus-metavariable: $SRC
+      - patterns:
+          - pattern: $SMARTY->fetch($SRC, ...)
+          - metavariable-regex:
+              metavariable: $SRC
+              regex: (?s)^["']string:.*
+          - focus-metavariable: $SRC
+      - patterns:
+          - pattern: $SMARTY->display($SRC, ...)
+          - metavariable-regex:
+              metavariable: $SRC
+              regex: (?s)^["']string:.*
+          - focus-metavariable: $SRC
+
+  - id: jgates.php.xml-external-entity
+    message: The XML parser is set to substitute entities or load external DTDs, so a document can read local files or reach the network. Leave entity substitution and DTD loading off, and pass LIBXML_NONET.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: xxe
+      cwe: "CWE-611"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.5.1"]
+    pattern-either:
+      - pattern: LIBXML_NOENT
+      - pattern: LIBXML_DTDLOAD
+      - pattern: libxml_disable_entity_loader(false)
+      - pattern: $READER->setParserProperty(XMLReader::SUBST_ENTITIES, true)
+      - pattern: $READER->setParserProperty(XMLReader::LOADDTD, true)
+
+  - id: jgates.php.xslt-from-request
+    message: A stylesheet loaded from request data is imported into an XSLT processor, which lets the sender run XSLT functions and read files. Import an application-owned stylesheet and pass request values as parameters.
+    severity: WARNING
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-91"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-propagators:
+      - pattern: $DOC->loadXML($FROM, ...)
+        from: $FROM
+        to: $DOC
+      - pattern: $DOC->load($FROM, ...)
+        from: $FROM
+        to: $DOC
+    pattern-sinks:
+      - patterns:
+          - pattern: $PROC->importStylesheet($SHEET)
+          - focus-metavariable: $SHEET
+
+  - id: jgates.php.latex-shell-escape
+    message: A TeX engine is started with shell escape enabled, so a document can run operating system commands. Run the engine without -shell-escape and with -no-shell-escape or -shell-restricted.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.8"]
+    patterns:
+      - pattern-either:
+          - pattern: exec($CMD, ...)
+          - pattern: shell_exec($CMD)
+          - pattern: system($CMD, ...)
+          - pattern: passthru($CMD, ...)
+          - pattern: popen($CMD, ...)
+          - pattern: proc_open($CMD, ...)
+      - metavariable-regex:
+          metavariable: $CMD
+          regex: (?s).*(tex|TeX|TEX).*
+      - metavariable-regex:
+          metavariable: $CMD
+          regex: (?s).*(?<![A-Za-z])-{1,2}(shell-escape|enable-write18).*
+
+  - id: jgates.php.mail-header-injection
+    message: Request data is placed in a mail recipient, subject or extra header of a message built as text, so line breaks can add headers or recipients. Strip CR and LF, validate addresses with filter_var(), or build the message with a mail library.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.11"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: filter_var(..., FILTER_VALIDATE_EMAIL)
+      - pattern: str_replace(["\r", "\n"], ..., ...)
+      - pattern: preg_replace("/[\r\n]+/", ..., ...)
+    pattern-sinks:
+      - patterns:
+          - pattern: mail($TO, $SUBJECT, $BODY, ...)
+          - focus-metavariable: $TO
+      - patterns:
+          - pattern: mail($TO, $SUBJECT, $BODY, ...)
+          - focus-metavariable: $SUBJECT
+      - patterns:
+          - pattern: mail($TO, $SUBJECT, $BODY, $HEADERS, ...)
+          - focus-metavariable: $HEADERS

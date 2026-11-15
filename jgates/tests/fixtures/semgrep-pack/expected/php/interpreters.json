@@ -1,0 +1,12 @@
+{
+  "files": ["interpreters.php"],
+  "ruleIds": [
+    "jgates.php.ldap-injection",
+    "jgates.php.xpath-injection",
+    "jgates.php.template-from-request",
+    "jgates.php.xml-external-entity",
+    "jgates.php.xslt-from-request",
+    "jgates.php.latex-shell-escape",
+    "jgates.php.mail-header-injection"
+  ]
+}
