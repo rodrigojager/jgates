@@ -1,0 +1,383 @@
+# C# file-handling rules: uploads, archive extraction, request size limits and download headers.
+# Libraries covered: ASP.NET Core (IFormFile parameters and Request.Form.Files, minimal API upload handlers,
+# Kestrel and form size limits, response headers), System.Web (HttpPostedFileBase, HttpPostedFile), System.IO.Compression
+# (ZipFile, ZipArchive), System.Formats.Tar (TarFile, TarReader), System.Net (HttpListener) and the string
+# parameters and request members that the taint rules of this language use as sources. The analysis stays inside one
+# method.
+rules:
+  - id: jgates.csharp.upload-client-filename-in-path
+    message: The file name the client sent with an upload is used in a path the file is written to. Reduce it to a base name with Path.GetFileName, or store the file under a name the server generates (Path.GetRandomFileName).
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.3.2"]
+    pattern-sources:
+      - patterns:
+          - pattern: $F.FileName
+          - pattern-either:
+              - pattern-inside: |
+                  $T $M(..., IFormFile $F, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  $T $M(..., HttpPostedFileBase $F, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  $T $M(..., HttpPostedFile $F, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  $APP.MapPost(..., (..., IFormFile $F, ...) => {
+                    ...
+                  });
+              - pattern-inside: |
+                  $APP.MapPost(..., async (..., IFormFile $F, ...) => {
+                    ...
+                  });
+              - pattern-inside: |
+                  foreach (IFormFile $F in ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  foreach (var $F in Request.Form.Files) {
+                    ...
+                  }
+              - pattern-inside: |
+                  $T $M(..., IFormFileCollection $FILES, ...) {
+                    ...
+                    foreach (var $F in $FILES) {
+                      ...
+                    }
+                    ...
+                  }
+      - pattern: Request.Form.Files[...].FileName
+      - pattern: Request.Form.Files.GetFile(...).FileName
+    pattern-sanitizers:
+      - pattern: Path.GetFileName(...)
+      - pattern: Path.GetExtension(...)
+      - pattern: Path.GetFileNameWithoutExtension(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: Path.Combine(..., $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: File.$M(..., $P, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(WriteAllText|WriteAllBytes|WriteAllLines|WriteAllTextAsync|WriteAllBytesAsync|AppendAllText|Create|Open|OpenWrite|Move|Copy)$
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: System.IO.File.$M(..., $P, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(WriteAllText|WriteAllBytes|WriteAllLines|WriteAllTextAsync|WriteAllBytesAsync|AppendAllText|Create|Open|OpenWrite|Move|Copy)$
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: new FileStream($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: new StreamWriter($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: Directory.CreateDirectory($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $U.SaveAs($P)
+          - focus-metavariable: $P
+
+  - id: jgates.csharp.archive-extraction-unchecked
+    message: An archive is extracted whole, or each entry is written to a path built from the entry's own name, with no check of the path or the size. Extract entry by entry, resolve each destination with Path.GetFullPath and require it to start with the target folder, skip links, and stop when the total size passes a limit.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: file-handling
+      cwe: "CWE-22"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.3", "V5.2.5", "V5.3.2"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: ZipFile.ExtractToDirectory(...)
+                  - pattern: $Z.ExtractToDirectory(...)
+                  - pattern: TarFile.ExtractToDirectory(...)
+                  - pattern: TarFile.ExtractToDirectoryAsync(...)
+              - pattern-not-inside: |
+                  $T $F(...) {
+                    ...
+                    if (<... $X.Length > $N ...>) {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  $T $F(...) {
+                    ...
+                    if (<... $X.Length >= $N ...>) {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  $T $F(...) {
+                    ...
+                    if (<... $N < $X.Length ...>) {
+                      ...
+                    }
+                    ...
+                  }
+          - patterns:
+              - pattern-inside: |
+                  foreach ($TY $E in $ARCH.Entries) {
+                    ...
+                  }
+              - pattern-either:
+                  - pattern: Path.Combine(..., $E.FullName, ...)
+                  - pattern: $E.ExtractToFile($E.FullName, ...)
+                  - pattern: new FileStream($E.FullName, ...)
+                  - pattern: File.Create($E.FullName)
+                  - pattern: Directory.CreateDirectory($E.FullName)
+              - pattern-not-inside: |
+                  foreach ($TY $E in $ARCH.Entries) {
+                    ...
+                    if (<... $X.StartsWith(...) ...>) {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  foreach ($TY $E in $ARCH.Entries) {
+                    ...
+                    if (<... $E.FullName.Contains("..") ...>) {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  foreach ($TY $E in $ARCH.Entries) {
+                    ...
+                    if (<... Path.GetRelativePath(...) ...>) {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  foreach ($TY $E in $ARCH.Entries) {
+                    ...
+                    if (<... Path.IsPathRooted(...) ...>) {
+                      ...
+                    }
+                    ...
+                  }
+          - patterns:
+              - pattern-inside: |
+                  while (($E = $RD.GetNextEntry()) != null) {
+                    ...
+                  }
+              - pattern-either:
+                  - pattern: Path.Combine(..., $E.Name, ...)
+                  - pattern: new FileStream($E.Name, ...)
+                  - pattern: File.Create($E.Name)
+                  - pattern: Directory.CreateDirectory($E.Name)
+                  - pattern: $E.ExtractToFile($E.Name, ...)
+              - pattern-not-inside: |
+                  while (($E = $RD.GetNextEntry()) != null) {
+                    ...
+                    if (<... $X.StartsWith(...) ...>) {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  while (($E = $RD.GetNextEntry()) != null) {
+                    ...
+                    if (<... $E.Name.Contains("..") ...>) {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  while (($E = $RD.GetNextEntry()) != null) {
+                    ...
+                    if (<... Path.GetRelativePath(...) ...>) {
+                      ...
+                    }
+                    ...
+                  }
+              - pattern-not-inside: |
+                  while (($E = $RD.GetNextEntry()) != null) {
+                    ...
+                    if (<... Path.IsPathRooted(...) ...>) {
+                      ...
+                    }
+                    ...
+                  }
+
+  - id: jgates.csharp.request-body-without-size-limit
+    message: A request size limit is removed or raised to the maximum, or a request body is read in full where the API sets no limit, so one request can use all the memory or disk of the server. Keep the default limit or set a limit that fits the endpoint, for example [RequestSizeLimit(10_000_000)] or a bounded read.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.1"]
+    pattern-either:
+      - pattern-regex: \bMaxRequestBodySize\s*=\s*(null|long\.MaxValue|int\.MaxValue)\b
+      - pattern-regex: \b(MultipartBodyLengthLimit|ValueLengthLimit|BufferBodyLengthLimit)\s*=\s*(long|int)\.MaxValue\b
+      - pattern-regex: \bDisableRequestSizeLimit(Attribute)?\b
+      - pattern-regex: \bRequestSizeLimit(Attribute)?\(\s*(long|int)\.MaxValue\s*\)
+      - patterns:
+          - pattern-either:
+              - pattern: new StreamReader($C.Request.InputStream, ...).ReadToEnd()
+              - pattern: new StreamReader($C.Request.InputStream, ...).ReadToEndAsync()
+              - pattern: $C.Request.InputStream.CopyTo(...)
+              - pattern: $C.Request.InputStream.CopyToAsync(...)
+          - pattern-either:
+              - pattern-inside: |
+                  $T $M(..., HttpListenerContext $C, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  $T $M(...) {
+                    ...
+                    HttpListenerContext $C = ...;
+                    ...
+                  }
+              - pattern-inside: |
+                  $T $M(...) {
+                    ...
+                    var $C = $L.GetContext();
+                    ...
+                  }
+              - pattern-inside: |
+                  $T $M(...) {
+                    ...
+                    var $C = await $L.GetContextAsync();
+                    ...
+                  }
+          - pattern-not-inside: |
+              $T $M(...) {
+                ...
+                if (<... $C.Request.ContentLength64 > $N ...>) {
+                  ...
+                }
+                ...
+              }
+
+  - id: jgates.csharp.upload-content-type-trusted
+    message: The content type the client declared for an upload is used as the type check, and the client can set it to anything. Read the first bytes of the file and compare them with the signature of the allowed formats instead.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: file-handling
+      cwe: "CWE-434"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.2"]
+    patterns:
+      - pattern-either:
+          - pattern: $F.ContentType == $X
+          - pattern: $F.ContentType != $X
+          - pattern: $X == $F.ContentType
+          - pattern: $X != $F.ContentType
+          - pattern: $F.ContentType.StartsWith(...)
+          - pattern: $F.ContentType.Equals(...)
+          - pattern: $F.ContentType.Contains(...)
+          - pattern: $ALLOWED.Contains($F.ContentType)
+          - pattern: $ALLOWED.Contains($F.ContentType, ...)
+      - pattern-either:
+          - pattern-inside: |
+              $T $M(..., IFormFile $F, ...) {
+                ...
+              }
+          - pattern-inside: |
+              $T $M(..., HttpPostedFileBase $F, ...) {
+                ...
+              }
+          - pattern-inside: |
+              $APP.MapPost(..., (..., IFormFile $F, ...) => {
+                ...
+              });
+          - pattern-inside: |
+              $APP.MapPost(..., async (..., IFormFile $F, ...) => {
+                ...
+              });
+          - pattern-inside: |
+              foreach (IFormFile $F in ...) {
+                ...
+              }
+
+  - id: jgates.csharp.content-disposition-from-request
+    message: Data from the incoming request is joined into a Content-Disposition header. Build the value with ContentDispositionHeaderValue or System.Net.Mime.ContentDisposition, which quote the file name, instead of concatenating it.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: file-handling
+      cwe: "CWE-113"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.4.1", "V5.4.2"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+      - pattern: $C.Request.Query[...]
+      - pattern: $C.Request.Form[...]
+      - pattern: $C.Request.Headers[...]
+    pattern-sanitizers:
+      - pattern: new ContentDispositionHeaderValue(...)
+      - pattern: new ContentDispositionHeaderValue(...) { ... }
+      - pattern: new ContentDisposition(...)
+      - pattern: new ContentDisposition { ... }
+      - pattern: Uri.EscapeDataString(...)
+      - pattern: WebUtility.UrlEncode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $R.Headers["Content-Disposition"] = $V;
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.Headers.Append("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.Headers.Add("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.AddHeader("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.AppendHeader("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.Headers.TryAddWithoutValidation("Content-Disposition", $V)
+          - focus-metavariable: $V
