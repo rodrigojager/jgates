@@ -1,0 +1,18 @@
+{
+  "files": ["cookies-cors.js"],
+  "ruleIds": [
+    "jgates.js.cookie-without-secure",
+    "jgates.js.cookie-without-httponly",
+    "jgates.js.cookie-without-samesite",
+    "jgates.js.cookie-name-without-prefix",
+    "jgates.js.cors-origin-reflected",
+    "jgates.js.cors-origin-reflected-cors-package",
+    "jgates.js.csrf-protection-disabled",
+    "jgates.js.jsonp-enabled",
+    "jgates.js.jsonp-enabled-express",
+    "jgates.js.sensitive-query-parameter",
+    "jgates.js.postmessage-wildcard-origin",
+    "jgates.js.sensitive-data-in-browser-storage",
+    "jgates.js.oauth-token-in-browser-storage"
+  ]
+}
