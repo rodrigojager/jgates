@@ -1,0 +1,11 @@
+{
+  "files": ["errors-logging.php"],
+  "ruleIds": [
+    "jgates.php.sensitive-data-logged",
+    "jgates.php.stack-trace-in-response",
+    "jgates.php.error-detail-in-response",
+    "jgates.php.swallowed-exception",
+    "jgates.php.http-client-without-timeout",
+    "jgates.php.outbound-request-follows-redirects"
+  ]
+}
