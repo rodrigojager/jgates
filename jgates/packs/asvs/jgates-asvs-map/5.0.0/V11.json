@@ -85,7 +85,7 @@
     },
     {
       "requirement": "V11.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -120,11 +120,15 @@
           "depth": "partial"
         }
       ],
-      "why": "These four rules flag the one insecure block mode the requirement names, ECB, at the literal call sites each models; the JavaScript, Python and Go rules do not look for ECB and are not named."
+      "why": "These four rules flag the one insecure block mode the requirement names, ECB, at the literal call sites each models; the JavaScript, Python and Go rules do not look for ECB and are not named.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V11.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -180,7 +184,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Each rule flags a cipher on a short list of well-known broken algorithms, which is use of a cipher outside the approved set; it cannot show that every cipher in use is approved."
+      "why": "Each rule flags a cipher on a short list of well-known broken algorithms, which is use of a cipher outside the approved set; it cannot show that every cipher in use is approved.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V11.3.3",
@@ -211,7 +219,7 @@
     },
     {
       "requirement": "V11.4.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -267,11 +275,15 @@
           "depth": "partial"
         }
       ],
-      "why": "MD5 and SHA-1 are the disallowed hash functions the requirement names, and each rule flags their use at the call sites it models; it does not tell a cryptographic use from a checksum."
+      "why": "MD5 and SHA-1 are the disallowed hash functions the requirement names, and each rule flags their use at the call sites it models; it does not tell a cryptographic use from a checksum.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V11.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -285,7 +297,11 @@
           "depth": "partial"
         }
       ],
-      "why": "For PHP the rule flags a password passed to MD5 or SHA-1, a storage choice the requirement rules out; it says nothing about the cost settings of an approved function."
+      "why": "For PHP the rule flags a password passed to MD5 or SHA-1, a storage choice the requirement rules out; it says nothing about the cost settings of an approved function.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V11.4.3",

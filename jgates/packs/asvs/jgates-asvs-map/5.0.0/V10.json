@@ -11,7 +11,7 @@
     },
     {
       "requirement": "V10.1.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -25,11 +25,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The block checks that callback values are tied to the session that began the flow."
+      "why": "The block checks that callback values are tied to the session that began the flow.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V10.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -43,7 +47,11 @@
           "depth": "partial"
         }
       ],
-      "why": "State and PKCE protection against forged callbacks is what the block checks."
+      "why": "State and PKCE protection against forged callbacks is what the block checks.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V10.2.2",
@@ -61,7 +69,7 @@
     },
     {
       "requirement": "V10.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -82,7 +90,11 @@
           "depth": "partial"
         }
       ],
-      "why": "A resource server reading tokens for another service is covered by the audience part of the block, plus the rule for .NET."
+      "why": "A resource server reading tokens for another service is covered by the audience part of the block, plus the rule for .NET.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V10.3.2",
@@ -114,7 +126,7 @@
     },
     {
       "requirement": "V10.4.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -128,7 +140,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The block names exact redirect URI validation for the authorization server role."
+      "why": "The block names exact redirect URI validation for the authorization server role.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V10.4.2",
@@ -160,7 +176,7 @@
     },
     {
       "requirement": "V10.4.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -174,7 +190,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The block includes PKCE enforcement and code binding, though not the rejection of the plain method specifically."
+      "why": "The block includes PKCE enforcement and code binding, though not the rejection of the plain method specifically.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V10.4.7",
@@ -248,7 +268,7 @@
     },
     {
       "requirement": "V10.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -262,7 +282,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Nonce validation of ID Tokens is named in the block."
+      "why": "Nonce validation of ID Tokens is named in the block.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V10.5.2",
@@ -280,7 +304,7 @@
     },
     {
       "requirement": "V10.5.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -294,7 +318,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Audience validation of ID Tokens is named in the block."
+      "why": "Audience validation of ID Tokens is named in the block.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V10.5.5",

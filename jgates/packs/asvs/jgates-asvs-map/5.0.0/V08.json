@@ -32,7 +32,7 @@
     },
     {
       "requirement": "V8.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -46,11 +46,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The block examines whether each function is guarded by the right permission."
+      "why": "The block examines whether each function is guarded by the right permission.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V8.2.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization",
@@ -72,11 +76,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Unbound object lookups are the direct reference weakness this requirement names, and both blocks look for them."
+      "why": "Unbound object lookups are the direct reference weakness this requirement names, and both blocks look for them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V8.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -86,11 +94,15 @@
           "unit": "semantic-ledger",
           "id": "ATTACK-CLASSES.md#Access control",
           "covers": "Request fields that override what the permission system meant to restrict.",
-          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "misses": "Fields a consumer may read but should not (the read side of field-level access); only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
           "depth": "partial"
         }
       ],
-      "why": "The block covers body fields that bypass restrictions, which is the property-level case; it does not model read restrictions in full."
+      "why": "The block covers body fields that bypass restrictions, which is the property-level case; it does not model read restrictions in full.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V8.2.4",
@@ -101,7 +113,7 @@
     },
     {
       "requirement": "V8.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -115,7 +127,11 @@
           "depth": "partial"
         }
       ],
-      "why": "A privilege decision taken from caller-supplied input is an authorization control the caller can manipulate."
+      "why": "A privilege decision taken from caller-supplied input is an authorization control the caller can manipulate.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V8.3.2",
@@ -133,7 +149,7 @@
     },
     {
       "requirement": "V8.4.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "tenant-isolation"
@@ -154,7 +170,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Both blocks look for places where one tenant's operation can reach another tenant's data."
+      "why": "Both blocks look for places where one tenant's operation can reach another tenant's data.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V8.4.2",

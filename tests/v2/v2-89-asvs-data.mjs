@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 //     at levels 1, 2 and 3;
 //   - the folder has the license, the notice and a record that passes `jgates tools distribution`; THIRD_PARTY_NOTICES.md
 //     names the folder, the commit and CC BY-SA 4.0;
-//   - the mapping has exactly one entry per requirement, none with a check;
+//   - the mapping has exactly one entry per requirement; an entry with checks is reviewed (none is left pending);
 //   - an entry naming an unknown rule, capability or attack class is refused; a `pending` entry counts for nothing;
 //   - no mapping string repeats a requirement's text; every pack rule is mapped or listed as unmapped with a reason.
 
@@ -34,6 +34,20 @@ const entryWith = (m, id, status, check) => {
   return m;
 };
 const rule = (over = {}) => ({ unit: "semgrep-rule", id: ruleId, covers: "a construct the rule matches", misses: "what it does not model", depth: "partial", ...over });
+/** The rule ids the entries of a mapping name. */
+const namedRules = (m) => new Set(m.entries.flatMap((e) => e.checks.filter((c) => c.unit === "semgrep-rule").map((c) => c.id)));
+/** The mapping without any check naming the rule (an entry left without a check goes back to unmapped). */
+const withoutRule = (m, id) => {
+  for (const e of m.entries) {
+    e.checks = e.checks.filter((c) => !(c.unit === "semgrep-rule" && c.id === id));
+    if (e.checks.length === 0 && e.status !== "unmapped") {
+      e.status = "unmapped";
+      delete e.why;
+      delete e.review;
+    }
+  }
+  return m;
+};
 
 test("V2-89: the data file is the release file, with 17 chapters, 80 sections, 345 requirements and 70, 253 and 345 rows at levels 1, 2 and 3", () => {
   const bytes = fs.readFileSync(DATA_FILE);
@@ -63,11 +77,18 @@ test("V2-89: the folder has its license, notice and record, passes `jgates tools
   assert.match(notices, /CC BY-SA 4\.0|CC-BY-SA-4\.0/);
 });
 
-test("V2-89: the mapping has exactly one entry per requirement, none with a check", () => {
+test("V2-89: the mapping has exactly one entry per requirement, and every entry that names a check is reviewed", () => {
   const m = mapping();
   assert.equal(m.files.length, 17);
   assert.deepEqual(m.entries.map((e) => e.requirement).sort(), data.requirements.map((r) => r.id).sort());
-  assert.ok(m.entries.every((e) => e.checks.length === 0 && e.status === "unmapped"));
+  for (const e of m.entries) {
+    if (e.checks.length === 0) assert.equal(e.status, "unmapped", e.requirement);
+    else {
+      assert.ok(e.status === "reviewed" || e.status === "owner-reviewed", `${e.requirement} is ${e.status}: no entry that names a check is left pending`);
+      assert.ok(e.review && /^\d{4}-\d{2}-\d{2}$/.test(e.review.date) && e.review.by.trim() !== "", `${e.requirement} records its review`);
+    }
+  }
+  assert.ok(m.entries.some((e) => e.checks.length > 0), "the mapping names checks");
   assert.deepEqual(asvs.validateMapping(m, data, context), []);
 });
 
@@ -92,9 +113,14 @@ test("V2-89: no mapping string repeats a requirement's text, and every pack rule
   for (const s of strings) assert.equal(asvs.repeatsRequirementText(s, texts), false);
   const quoted = entryWith(mapping(), "V1.2.4", "pending", rule({ covers: data.requirements.find((r) => r.id === "V1.2.4").text }));
   assert.match(asvs.validateMapping(quoted, data, context).join("\n"), /repeats a requirement text/);
+  // unmapped-rules.json lists exactly the pack rules no entry names, each with its reason.
+  const named = namedRules(m);
   const listed = new Set(m.unmappedRules.rules.map((r) => r.id));
-  for (const id of context.rules.keys()) assert.ok(listed.has(id), `${id} is listed`);
+  for (const id of context.rules.keys()) assert.ok(named.has(id) !== listed.has(id), `${id} is either named by an entry or listed, not both and not neither`);
   for (const r of m.unmappedRules.rules) assert.ok(r.reason.trim() !== "", `${r.id} has a reason`);
-  m.unmappedRules.rules.shift();
-  assert.match(asvs.validateMapping(m, data, context).join("\n"), /neither mapped nor listed/);
+  // A rule that loses its last entry and is not listed is refused.
+  const forgotten = withoutRule(mapping(), ruleId);
+  assert.match(asvs.validateMapping(forgotten, data, context).join("\n"), /neither mapped nor listed/);
+  forgotten.unmappedRules.rules.push({ id: ruleId, reason: "No requirement names it." });
+  assert.equal(asvs.validateMapping(forgotten, data, context).some((p) => p.includes("neither mapped nor listed")), false);
 });

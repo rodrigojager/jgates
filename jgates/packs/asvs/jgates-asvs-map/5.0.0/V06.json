@@ -116,7 +116,7 @@
     },
     {
       "requirement": "V6.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "secrets"
@@ -131,7 +131,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The default-credentials category looks for exactly the seeded administrator style accounts this requirement wants absent or disabled."
+      "why": "The default-credentials category looks for exactly the seeded administrator style accounts this requirement wants absent or disabled.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V6.3.3",
@@ -191,7 +195,7 @@
     },
     {
       "requirement": "V6.4.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -212,7 +216,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Both blocks examine whether the recovery path demands the same assurance as normal login, which is the point of this requirement."
+      "why": "Both blocks examine whether the recovery path demands the same assurance as normal login, which is the point of this requirement.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V6.4.4",
@@ -237,7 +245,7 @@
     },
     {
       "requirement": "V6.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -247,11 +255,15 @@
           "unit": "semantic-ledger",
           "id": "WEB-PROTOCOL-AND-AUTH.md#Step-up binding and bypass",
           "covers": "Whether a challenge is consumed on completion and cannot be replayed for another session or action.",
-          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "misses": "It examines step-up challenges only, not codes used at primary sign-in or lookup secrets in general; only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
           "depth": "partial"
         }
       ],
-      "why": "The step-up block checks one-time completion of a challenge, the property this requirement asks of one-time codes."
+      "why": "The step-up block checks one-time completion of a challenge, the property this requirement asks of one-time codes.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V6.5.2",
@@ -311,7 +323,7 @@
     },
     {
       "requirement": "V6.6.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -325,7 +337,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The block examines whether a challenge can be moved to another request, which is what binding to the original request prevents."
+      "why": "The block examines whether a challenge can be moved to another request, which is what binding to the original request prevents.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V6.6.3",
@@ -357,7 +373,7 @@
     },
     {
       "requirement": "V6.8.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -371,11 +387,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Identity collision across providers is the spoofing path this requirement closes; the block examines it for linking and sign-in routes."
+      "why": "Identity collision across providers is the spoofing path this requirement closes; the block examines it for linking and sign-in routes.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V6.8.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -405,7 +425,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.token-validation-disabled",
-          "covers": "A switch that turns off signing-key validation, or token validation that does not require signed tokens.",
+          "covers": "RequireSignedTokens set to false, which lets unsigned tokens through; the rule also flags ValidateIssuerSigningKey set to false, which leaves the signing key itself unchecked.",
           "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
           "depth": "partial"
         },
@@ -424,11 +444,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Each check looks for assertions that are accepted without a valid signature, for JWTs by rule and for JWT and SAML by reading."
+      "why": "Each check looks for assertions that are accepted without a valid signature, for JWTs by rule and for JWT and SAML by reading.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V6.8.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -442,7 +466,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Replay state of assertions is one of the items the block checks, matching the one-time processing this requirement asks for."
+      "why": "Replay state of assertions is one of the items the block checks, matching the one-time processing this requirement asks for.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V6.8.4",

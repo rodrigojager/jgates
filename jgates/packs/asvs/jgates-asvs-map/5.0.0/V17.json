@@ -81,7 +81,7 @@
     },
     {
       "requirement": "V17.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -93,7 +93,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block hunts malformed input that takes a shared service down, the failure this item describes for a signaling server."
+      "why": "The audit block hunts malformed input that takes a shared service down, the failure this item describes for a signaling server.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     }
   ]
 }

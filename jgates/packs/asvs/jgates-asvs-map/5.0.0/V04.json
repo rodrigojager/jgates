@@ -20,7 +20,7 @@
     },
     {
       "requirement": "V4.1.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "authorization"
@@ -34,7 +34,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit class examines exactly whether a client can supply values that the application takes from its own intermediary."
+      "why": "The audit class examines exactly whether a client can supply values that the application takes from its own intermediary.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V4.1.4",
@@ -54,7 +58,7 @@
     },
     {
       "requirement": "V4.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "injection"
@@ -68,7 +72,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit class is the request-smuggling analysis the requirement is about, limited to what can be read in the source."
+      "why": "The audit class is the request-smuggling analysis the requirement is about, limited to what can be read in the source.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V4.2.2",
@@ -80,7 +88,7 @@
     },
     {
       "requirement": "V4.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "injection"
@@ -94,11 +102,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit class includes connection-specific header handling across protocol versions, which is the subject of the requirement."
+      "why": "The audit class includes connection-specific header handling across protocol versions, which is the subject of the requirement.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V4.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "deployment",
       "subdimensions": [
         "injection"
@@ -112,7 +124,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit class covers control characters in header handling between components, which bears on this requirement."
+      "why": "The audit class covers control characters in header handling between components, which bears on this requirement.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V4.2.5",
@@ -148,7 +164,7 @@
     },
     {
       "requirement": "V4.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -162,7 +178,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit class examines the Origin check on the upgrade handshake, which the requirement asks for."
+      "why": "The audit class examines the Origin check on the upgrade handshake, which the requirement asks for.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V4.4.3",

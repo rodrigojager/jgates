@@ -60,7 +60,7 @@
     },
     {
       "requirement": "V15.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -72,7 +72,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block hunts exactly the namespace-confusion weakness this item is about, in the resolver configuration found in the repository."
+      "why": "The audit block hunts exactly the namespace-confusion weakness this item is about, in the resolver configuration found in the repository.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V15.2.5",
@@ -90,7 +94,7 @@
     },
     {
       "requirement": "V15.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -104,11 +108,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block asks the reader to follow redirect handling in outbound fetches, which is where an unwanted redirect-following setting shows up."
+      "why": "The audit block asks the reader to follow redirect handling in outbound fetches, which is where an unwanted redirect-following setting shows up.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V15.3.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -122,11 +130,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block asks whether a body field can change something the action was not meant to change, which is the mass-assignment weakness."
+      "why": "The audit block asks whether a body field can change something the action was not meant to change, which is the mass-assignment weakness.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V15.3.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -138,7 +150,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block treats forwarded-address headers as trust decisions and traces them to the security decision they feed, such as rate limiting."
+      "why": "The audit block treats forwarded-address headers as trust decisions and traces them to the security decision they feed, such as rate limiting.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V15.3.5",
@@ -149,7 +165,7 @@
     },
     {
       "requirement": "V15.3.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -163,7 +179,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block hunts prototype pollution in JavaScript directly."
+      "why": "The audit block hunts prototype pollution in JavaScript directly.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V15.3.7",
@@ -174,7 +194,7 @@
     },
     {
       "requirement": "V15.4.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -186,11 +206,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block looks for state shared between concurrent paths that lacks the guard, which is the weakness this item names."
+      "why": "The audit block looks for state shared between concurrent paths that lacks the guard, which is the weakness this item names.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V15.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -209,11 +233,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Both audit blocks name the gap between a check and its use as the thing to hunt."
+      "why": "Both audit blocks name the gap between a check and its use as the thing to hunt.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V15.4.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -225,11 +253,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block hunts deadlocks from lock ordering, which is the stuck-thread half of this item."
+      "why": "The audit block hunts deadlocks from lock ordering, which is the stuck-thread half of this item.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V15.4.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -241,7 +273,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block looks for starvation of shared workers, the failure this item guards against."
+      "why": "The audit block looks for starvation of shared workers, the failure this item guards against.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     }
   ]
 }

@@ -46,7 +46,7 @@
     },
     {
       "requirement": "V7.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -60,7 +60,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Rotation of the identifier at login and re-authentication is exactly what the block checks."
+      "why": "Rotation of the identifier at login and re-authentication is exactly what the block checks.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V7.3.1",
@@ -78,7 +82,7 @@
     },
     {
       "requirement": "V7.4.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -92,11 +96,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The block checks that ended sessions stop working, including token and cache copies."
+      "why": "The block checks that ended sessions stop working, including token and cache copies.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V7.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -110,7 +118,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Survival of sessions after an account disable is named in the block."
+      "why": "Survival of sessions after an account disable is named in the block.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V7.4.3",
@@ -135,7 +147,7 @@
     },
     {
       "requirement": "V7.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -156,7 +168,11 @@
           "depth": "partial"
         }
       ],
-      "why": "These blocks examine changes to email, phone and factors, and whether they demand fresh authentication."
+      "why": "These blocks examine changes to email, phone and factors, and whether they demand fresh authentication.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V7.5.2",
@@ -167,7 +183,7 @@
     },
     {
       "requirement": "V7.5.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -181,7 +197,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The block looks for routes that skip the extra verification before a sensitive operation."
+      "why": "The block looks for routes that skip the extra verification before a sensitive operation.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V7.6.1",

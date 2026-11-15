@@ -4,7 +4,7 @@
   "entries": [
     {
       "requirement": "V9.1.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -34,7 +34,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.token-validation-disabled",
-          "covers": "A switch that turns off signing-key validation, or token validation that does not require signed tokens.",
+          "covers": "RequireSignedTokens set to false, which lets unsigned tokens through; the rule also flags ValidateIssuerSigningKey set to false, which leaves the signing key itself unchecked.",
           "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
           "depth": "partial"
         },
@@ -46,11 +46,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Each check looks for token contents used without a verified signature, the case this requirement forbids."
+      "why": "Each check looks for token contents used without a verified signature, the case this requirement forbids.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V9.1.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -78,11 +82,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules catch the none algorithm where it is spelled out; the block checks the allowlist itself."
+      "why": "The rules catch the none algorithm where it is spelled out; the block checks the allowlist itself.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V9.1.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -96,11 +104,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The block names jku, x5u and kid handling, the trusted-source question of this requirement."
+      "why": "The block names jku, x5u and kid handling, the trusted-source question of this requirement.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V9.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -121,7 +133,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rule catches lifetime validation disabled in .NET and the block reads expiry and not-before handling elsewhere."
+      "why": "The rule catches lifetime validation disabled in .NET and the block reads expiry and not-before handling elsewhere.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V9.2.2",
@@ -132,7 +148,7 @@
     },
     {
       "requirement": "V9.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -153,7 +169,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rule catches audience validation disabled in .NET and the block reads audience handling elsewhere."
+      "why": "The rule catches audience validation disabled in .NET and the block reads audience handling elsewhere.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V9.2.4",

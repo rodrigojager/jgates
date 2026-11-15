@@ -50,7 +50,7 @@
     },
     {
       "requirement": "V13.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "secrets"
@@ -65,7 +65,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The default-credentials sweep looks for shipped logins and seeded accounts, the kind of default credential the requirement forbids for service authentication."
+      "why": "The default-credentials sweep looks for shipped logins and seeded accounts, the kind of default credential the requirement forbids for service authentication.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V13.2.4",
@@ -90,7 +94,7 @@
     },
     {
       "requirement": "V13.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "secrets"
@@ -104,7 +108,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The scanner finds secrets written into source, which is the single clause of this requirement that a repository check can examine; the rest needs the deployed secrets arrangement."
+      "why": "The scanner finds secrets written into source, which is the single clause of this requirement that a repository check can examine; the rest needs the deployed secrets arrangement.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V13.3.2",
@@ -142,7 +150,7 @@
     },
     {
       "requirement": "V13.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -155,7 +163,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The debug-features sweep looks for debug behaviour that is on by default and exposed, which is the production exposure the requirement is meant to prevent, as far as the source shows it."
+      "why": "The debug-features sweep looks for debug behaviour that is on by default and exposed, which is the production exposure the requirement is meant to prevent, as far as the source shows it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V13.4.3",

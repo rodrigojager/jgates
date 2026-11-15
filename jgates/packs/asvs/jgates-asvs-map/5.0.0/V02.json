@@ -46,7 +46,7 @@
     },
     {
       "requirement": "V2.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "business-logic"
@@ -60,7 +60,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The block names step skipping and state machine violations, which is the weakness of flows that accept steps out of order."
+      "why": "The block names step skipping and state machine violations, which is the weakness of flows that accept steps out of order.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V2.3.2",
@@ -71,7 +75,7 @@
     },
     {
       "requirement": "V2.3.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "business-logic"
@@ -85,11 +89,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The block asks what happens when a later step fails after an earlier one succeeded, which is what an all-or-nothing operation prevents."
+      "why": "The block asks what happens when a later step fails after an earlier one succeeded, which is what an all-or-nothing operation prevents.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V2.3.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "business-logic"
@@ -103,7 +111,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The block asks for race conditions on non-atomic check-then-act operations, which is how limited resources get double-booked."
+      "why": "The block asks for race conditions on non-atomic check-then-act operations, which is how limited resources get double-booked.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V2.3.5",

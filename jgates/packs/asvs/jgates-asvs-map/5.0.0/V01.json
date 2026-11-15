@@ -18,7 +18,7 @@
     },
     {
       "requirement": "V1.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -83,7 +83,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.text-template-for-html",
-          "covers": "Use of text/template, which does not escape HTML.",
+          "covers": "Any import of text/template, which does not escape HTML, whether or not its output reaches a browser.",
           "misses": "Output contexts other than the HTML response or page sinks each rule models (attributes in other APIs, CSS, XML, headers), values that reach the sink through code the rule cannot follow, and every framework or language the rules do not model.",
           "depth": "partial"
         },
@@ -144,7 +144,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag the places where request or non-literal data reaches HTML output with escaping absent or switched off, which is the failure of the encoding this requirement wants."
+      "why": "The rules flag the places where request or non-literal data reaches HTML output with escaping absent or switched off, which is the failure of the encoding this requirement wants.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.2.2",
@@ -162,7 +166,7 @@
     },
     {
       "requirement": "V1.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -225,11 +229,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag queries assembled from text instead of bound parameters, the construct this requirement asks the application to avoid."
+      "why": "The rules flag queries assembled from text instead of bound parameters, the construct this requirement asks the application to avoid.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.2.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -299,7 +307,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag commands built from non-literal values, the construct that opens the application to operating system command injection."
+      "why": "The rules flag commands built from non-literal values, the construct that opens the application to operating system command injection.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.2.6",
@@ -338,7 +350,7 @@
     },
     {
       "requirement": "V1.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -359,11 +371,15 @@
           "depth": "partial"
         }
       ],
-      "why": "Both rules report HTML written to the page from an unsanitized value, so a finding shows editor-style content that skips a sanitizer; they do not judge the quality of any sanitizer."
+      "why": "Both rules report HTML written to the page from an unsanitized value, so a finding shows editor-style content that skips a sanitizer; they do not judge the quality of any sanitizer.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -396,16 +412,13 @@
           "covers": "The legacy preg_replace e modifier that runs replacement text as code.",
           "misses": "Dynamic execution in languages without a rule (Go, C#, Java, Rust), expression languages such as SpEL, and indirect evaluation through other APIs.",
           "depth": "partial"
-        },
-        {
-          "unit": "semantic-ledger",
-          "id": "ATTACK-CLASSES.md#Injection",
-          "covers": "Dynamic code execution as a dangerous sink, read by a model.",
-          "misses": "Sampled reading.",
-          "depth": "partial"
         }
       ],
-      "why": "The rules flag eval and its equivalents applied to values that are not literals, which is the dynamic execution this requirement wants avoided."
+      "why": "The rules flag eval and its equivalents applied to values that are not literals, which is the dynamic execution this requirement wants avoided.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.3.3",
@@ -430,7 +443,7 @@
     },
     {
       "requirement": "V1.3.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -493,7 +506,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag outbound request URLs that come from the incoming request without an allow-list step, which is the gap this requirement closes."
+      "why": "The rules flag outbound request URLs that come from the incoming request without an allow-list step, which is the gap this requirement closes.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.3.7",
@@ -539,7 +556,7 @@
     },
     {
       "requirement": "V1.4.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -551,11 +568,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The block directs a model to hunt overflow defects, which is the outcome this requirement guards against, but nothing deterministic checks the practice itself."
+      "why": "The block directs a model to hunt overflow defects, which is the outcome this requirement guards against, but nothing deterministic checks the practice itself.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -567,11 +588,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The block directs a model to hunt integer overflow defects, the failure this requirement guards against, without a deterministic check."
+      "why": "The block directs a model to hunt integer overflow defects, the failure this requirement guards against, without a deterministic check.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.4.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -583,11 +608,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The block directs a model to hunt use-after-free defects, the failure this requirement guards against, without a deterministic check."
+      "why": "The block directs a model to hunt use-after-free defects, the failure this requirement guards against, without a deterministic check.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -608,11 +637,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag XML parsers left able to read DTDs or external entities, which is the unsafe feature this requirement wants disabled."
+      "why": "The rules flag XML parsers left able to read DTDs or external entities, which is the unsafe feature this requirement wants disabled.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.5.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -628,7 +661,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.unsafe-deserialization",
-          "covers": "pickle, marshal and shelve loading.",
+          "covers": "pickle, cPickle, marshal and dill loading calls.",
           "misses": "Formats and libraries the rules do not model, and whether the data being deserialized is trusted.",
           "depth": "partial"
         },
@@ -682,7 +715,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag deserializers known to rebuild arbitrary objects or run code from their input, the insecure mechanisms this requirement forbids on untrusted data."
+      "why": "The rules flag deserializers known to rebuild arbitrary objects or run code from their input, the insecure mechanisms this requirement forbids on untrusted data.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V1.5.3",

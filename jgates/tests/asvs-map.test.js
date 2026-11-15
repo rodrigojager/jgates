@@ -8,9 +8,10 @@ import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // The ASVS 5.0.0 data and the mapping pack, with no engine: the official release file is shipped unchanged (hash,
-// counts, levels), the loader groups it, the skeleton mapping has one entry per requirement and claims nothing, and
-// the gates refuse an entry that names an unknown rule, capability or attack class, count a pending entry for
-// nothing, refuse a string that repeats the official text, and make every pack rule mapped or listed with a reason.
+// counts, levels), the loader groups it, the mapping has one entry per requirement and every entry that names a check
+// was reviewed, and the gates refuse an entry that names an unknown rule, capability or attack class, count a pending
+// entry for nothing, refuse a string that repeats the official text, and make every pack rule mapped or listed with a
+// reason (the shipped list names exactly the rules no entry names).
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const JGATES = path.resolve(here, "..");
@@ -83,15 +84,20 @@ test("the loader filters by level and chapter, and drops the sections that end u
   assert.ok(tree.flatMap((c) => c.sections.flatMap((s) => s.requirements)).every((r) => r.level === 1));
 });
 
-test("the mapping has V01 to V17, exactly one entry per requirement, none with a check, and no gate problem", () => {
+test("the mapping has V01 to V17, exactly one entry per requirement, no pending entry with a check, and no gate problem", () => {
   const m = mapping();
   assert.equal(m.files.length, 17);
   assert.equal(m.entries.length, 345);
   assert.deepEqual(m.entries.map((e) => e.requirement).sort(), data.requirements.map((r) => r.id).sort());
   for (const e of m.entries) {
-    assert.deepEqual(e.checks, []);
-    assert.equal(e.status, "unmapped");
-    assert.deepEqual(asvs.countedChecks(e), []);
+    if (e.checks.length === 0) {
+      assert.equal(e.status, "unmapped", e.requirement);
+      assert.deepEqual(asvs.countedChecks(e), []);
+    } else {
+      assert.ok(e.status === "reviewed" || e.status === "owner-reviewed", `${e.requirement} is ${e.status}`);
+      assert.ok(e.review && e.review.by.trim() !== "" && /^\d{4}-\d{2}-\d{2}$/.test(e.review.date), `${e.requirement} records its review`);
+      assert.equal(asvs.countedChecks(e).length, e.checks.length);
+    }
   }
   assert.deepEqual(asvs.validateMapping(m, data, context), []);
 });
@@ -159,17 +165,34 @@ test("no mapping string repeats a requirement's text, and one that does is refus
 test("every pack rule is mapped or listed in unmapped-rules.json with a reason", () => {
   const m = mapping();
   assert.ok(context.rules.size > 0, "the pack has rules");
+  // The shipped list names exactly the rules no entry names.
+  const named = new Set(m.entries.flatMap((e) => e.checks.filter((c) => c.unit === "semgrep-rule").map((c) => c.id)));
   const listed = new Set(m.unmappedRules.rules.map((r) => r.id));
-  for (const id of context.rules.keys()) assert.ok(listed.has(id), `${id} is listed as unmapped`);
+  for (const id of context.rules.keys()) assert.ok(named.has(id) !== listed.has(id), `${id} is either named by an entry or listed, not both and not neither`);
   for (const r of m.unmappedRules.rules) assert.ok(r.reason.trim().length > 0, `${r.id} has a reason`);
-  const forgotten = mapping();
-  forgotten.unmappedRules.rules.shift();
+  // A rule no entry names and the list forgets is refused; listed without a reason it is refused too.
+  const withoutFirst = () => {
+    const out = mapping();
+    for (const e of out.entries) {
+      e.checks = e.checks.filter((c) => !(c.unit === "semgrep-rule" && c.id === firstRule[0]));
+      if (e.checks.length === 0 && e.status !== "unmapped") {
+        e.status = "unmapped";
+        delete e.why;
+        delete e.review;
+      }
+    }
+    out.unmappedRules.rules = out.unmappedRules.rules.filter((r) => r.id !== firstRule[0]);
+    return out;
+  };
+  const forgotten = withoutFirst();
   assert.match(asvs.validateMapping(forgotten, data, context).join("\n"), /neither mapped nor listed/);
-  const noReason = mapping();
-  noReason.unmappedRules.rules[0].reason = " ";
+  const noReason = withoutFirst();
+  noReason.unmappedRules.rules.push({ id: firstRule[0], reason: " " });
   assert.match(asvs.validateMapping(noReason, data, context).join("\n"), /has no reason/);
-  const mapped = withEntry(mapping(), "V1.1.1", "pending", [goodCheck()]);
-  mapped.unmappedRules.rules = mapped.unmappedRules.rules.filter((r) => r.id !== firstRule[0]);
+  const listedWithReason = withoutFirst();
+  listedWithReason.unmappedRules.rules.push({ id: firstRule[0], reason: "No requirement names it." });
+  assert.deepEqual(asvs.validateMapping(listedWithReason, data, context), []);
+  const mapped = withEntry(withoutFirst(), "V1.1.1", "pending", [goodCheck()]);
   assert.equal(asvs.validateMapping(mapped, data, context).some((p) => p.includes("neither mapped nor listed")), false, "a mapped rule needs no listing");
 });
 

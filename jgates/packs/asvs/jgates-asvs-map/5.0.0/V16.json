@@ -39,7 +39,7 @@
     },
     {
       "requirement": "V16.2.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "secrets",
@@ -61,7 +61,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Both audit blocks look for sensitive values reaching logs, the violation this item forbids."
+      "why": "Both audit blocks look for sensitive values reaching logs, the violation this item forbids.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V16.3.1",
@@ -93,7 +97,7 @@
     },
     {
       "requirement": "V16.4.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -107,7 +111,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The injection block lists log injection as a sink to trace, which is what this item asks to prevent."
+      "why": "The injection block lists log injection as a sink to trace, which is what this item asks to prevent.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V16.4.2",
@@ -125,7 +133,7 @@
     },
     {
       "requirement": "V16.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [],
       "checks": [
@@ -138,7 +146,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The debug-features category reports exactly internal detail returned to the caller in error responses."
+      "why": "The debug-features category reports exactly internal detail returned to the caller in error responses.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V16.5.2",

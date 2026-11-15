@@ -61,9 +61,9 @@ rules:
       subdimension: injection
     patterns:
       - pattern-either:
-          - pattern: <$C ... dangerouslySetInnerHTML={{__html: $X}} ... />
-          - pattern: <$C ... dangerouslySetInnerHTML={{__html: $X}} ...>...</$C>
-          - pattern: React.createElement($C, {..., dangerouslySetInnerHTML: {__html: $X}, ...}, ...)
+          - pattern: '<$C ... dangerouslySetInnerHTML={{__html: $X}} ... />'
+          - pattern: '<$C ... dangerouslySetInnerHTML={{__html: $X}} ...>...</$C>'
+          - pattern: 'React.createElement($C, {..., dangerouslySetInnerHTML: {__html: $X}, ...}, ...)'
       - metavariable-pattern:
           metavariable: $X
           patterns:
@@ -81,7 +81,7 @@ rules:
       author: JGates
       subdimension: injection
     pattern-either:
-      - pattern: Handlebars.compile($T, {..., noEscape: true, ...})
-      - pattern: nunjucks.configure(..., {..., autoescape: false, ...})
-      - pattern: new nunjucks.Environment($L, {..., autoescape: false, ...})
-      - pattern: ejs.render($T, $D, {..., escape: $F, ...})
+      - pattern: 'Handlebars.compile($T, {..., noEscape: true, ...})'
+      - pattern: 'nunjucks.configure(..., {..., autoescape: false, ...})'
+      - pattern: 'new nunjucks.Environment($L, {..., autoescape: false, ...})'
+      - pattern: 'ejs.render($T, $D, {..., escape: $F, ...})'

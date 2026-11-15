@@ -76,7 +76,7 @@
     },
     {
       "requirement": "V12.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -132,7 +132,11 @@
           "depth": "partial"
         }
       ],
-      "why": "A client that turns certificate verification off accepts any server certificate, which is the failure the requirement guards against; each rule flags the literal ways its language switches verification off."
+      "why": "A client that turns certificate verification off accepts any server certificate, which is the failure the requirement guards against; each rule flags the literal ways its language switches verification off.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
     },
     {
       "requirement": "V12.3.3",
