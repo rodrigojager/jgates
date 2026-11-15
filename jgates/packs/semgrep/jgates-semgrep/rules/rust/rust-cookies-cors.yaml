@@ -1,0 +1,265 @@
+# Cookies, CORS, request forgery and sensitive data in URLs for Rust.
+# Libraries covered: cookie (Cookie::build, Cookie::new and their setters, also through axum-extra and actix-web),
+# actix-session (SessionMiddleware builder), tower-sessions (SessionManagerLayer), tower-http (CorsLayer),
+# actix-cors (Cors), axum and actix-web headers, reqwest and url (query parameters).
+# Not written: csrf-protection-disabled (the Rust web frameworks have no common request-forgery switch to look for).
+rules:
+  - id: jgates.rust.cookie-without-secure
+    message: A cookie is written without the Secure attribute, so a browser may send it over plain HTTP. Call secure(true) on the cookie (or with_secure(true) on the session layer).
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+    pattern-either:
+      - pattern: $X.secure(false)
+      - pattern: $X.set_secure(false)
+      - pattern: $X.with_secure(false)
+      - pattern: $X.cookie_secure(false)
+      - patterns:
+          - pattern-either:
+              - pattern: Cookie::build(...)
+              - pattern: Cookie::new(...)
+          - pattern-not-inside: |
+              fn $F(...) {
+                ...
+                $X.secure(...);
+                ...
+              }
+          - pattern-not-inside: |
+              fn $F(...) {
+                ...
+                $X.set_secure(...);
+                ...
+              }
+          - pattern-not-inside: $X.secure(...)
+          - pattern-not-inside: $X.set_secure(...)
+
+  - id: jgates.rust.cookie-without-httponly
+    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Call http_only(true) on the cookie (or with_http_only(true) on the session layer).
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+    pattern-either:
+      - pattern: $X.http_only(false)
+      - pattern: $X.set_http_only(false)
+      - pattern: $X.with_http_only(false)
+      - pattern: $X.cookie_http_only(false)
+      - patterns:
+          - pattern-either:
+              - pattern: Cookie::build(...)
+              - pattern: Cookie::new(...)
+          - pattern-not-inside: |
+              fn $F(...) {
+                ...
+                $X.http_only(...);
+                ...
+              }
+          - pattern-not-inside: |
+              fn $F(...) {
+                ...
+                $X.set_http_only(...);
+                ...
+              }
+          - pattern-not-inside: $X.http_only(...)
+          - pattern-not-inside: $X.set_http_only(...)
+
+  - id: jgates.rust.cookie-without-samesite
+    message: A cookie is written with SameSite set to None, or without SameSite where the library sends none, so it travels on cross-site requests. Set SameSite to Lax or Strict.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.2"]
+    pattern-either:
+      - patterns:
+          - pattern: $X.$M($S)
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(same_site|set_same_site|with_same_site|cookie_same_site)$'
+          - metavariable-regex:
+              metavariable: $S
+              regex: 'SameSite::None\)?$'
+      - patterns:
+          - pattern-either:
+              - pattern: Cookie::build(...)
+              - pattern: Cookie::new(...)
+          - pattern-not-inside: |
+              fn $F(...) {
+                ...
+                $X.same_site(...);
+                ...
+              }
+          - pattern-not-inside: |
+              fn $F(...) {
+                ...
+                $X.set_same_site(...);
+                ...
+              }
+          - pattern-not-inside: $X.same_site(...)
+          - pattern-not-inside: $X.set_same_site(...)
+
+  - id: jgates.rust.cookie-name-without-prefix
+    message: A cookie name starts with neither __Host- nor __Secure-, so the browser does not enforce the attributes the name promises. Use the __Host- prefix for session cookies.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.3", "V3.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: Cookie::build(($N, ...))
+          - pattern: Cookie::build($N, ...)
+          - pattern: Cookie::new($N, ...)
+          - pattern: $X.cookie_name($N)
+          - pattern: $X.with_name($N)
+      - metavariable-regex:
+          metavariable: $N
+          regex: '^"(?!__Host-|__Secure-)'
+
+  - id: jgates.rust.cors-any-origin-with-credentials
+    message: CORS allows every origin together with credentials, so any site can read authenticated responses. List the trusted origins instead of allowing any origin.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: authorization
+      cwe: "CWE-942"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - patterns:
+          - pattern: $L.allow_credentials(true)
+          - metavariable-pattern:
+              metavariable: $L
+              pattern-either:
+                - pattern: $Y.allow_origin(Any)
+                - pattern: $Y.allow_origin(Any).$M(...)
+                - pattern: $Y.allow_origin(Any).$M(...).$N(...)
+      - patterns:
+          - pattern: $L.allow_origin(Any)
+          - metavariable-pattern:
+              metavariable: $L
+              pattern-either:
+                - pattern: $Y.allow_credentials(true)
+                - pattern: $Y.allow_credentials(true).$M(...)
+                - pattern: $Y.allow_credentials(true).$M(...).$N(...)
+      - patterns:
+          - pattern: $L.supports_credentials()
+          - metavariable-pattern:
+              metavariable: $L
+              pattern-either:
+                - pattern: $Y.allow_any_origin()
+                - pattern: $Y.allow_any_origin().$M(...)
+                - pattern: $Y.allow_any_origin().$M(...).$N(...)
+      - patterns:
+          - pattern: $L.allow_any_origin()
+          - metavariable-pattern:
+              metavariable: $L
+              pattern-either:
+                - pattern: $Y.supports_credentials()
+                - pattern: $Y.supports_credentials().$M(...)
+                - pattern: $Y.supports_credentials().$M(...).$N(...)
+
+  - id: jgates.rust.cors-origin-reflected
+    mode: taint
+    message: The request's Origin header is copied into the allow-origin response header, so every site is trusted. Compare the origin with an allow-list and answer only for a listed one.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-sources:
+      - pattern: $H.get("origin")
+      - pattern: $H.get("Origin")
+      - pattern: $H.get(ORIGIN)
+      - pattern: $H.get(header::ORIGIN)
+      - pattern: $H.get(http::header::ORIGIN)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $R.header("Access-Control-Allow-Origin", $X)
+              - pattern: $R.header("access-control-allow-origin", $X)
+              - pattern: $R.header(ACCESS_CONTROL_ALLOW_ORIGIN, $X)
+              - pattern: $R.header(header::ACCESS_CONTROL_ALLOW_ORIGIN, $X)
+              - pattern: $R.insert("access-control-allow-origin", $X)
+              - pattern: $R.insert(ACCESS_CONTROL_ALLOW_ORIGIN, $X)
+              - pattern: $R.insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, $X)
+              - pattern: $R.insert_header(("Access-Control-Allow-Origin", $X))
+              - pattern: $R.insert_header((header::ACCESS_CONTROL_ALLOW_ORIGIN, $X))
+          - focus-metavariable: $X
+    pattern-sanitizers:
+      - pattern: allowed_origin(...)
+      - pattern: trusted_origin(...)
+
+  - id: jgates.rust.cors-origin-reflected-allow-all
+    message: The CORS layer copies the request's Origin or accepts every origin through a check that always passes, so the allow-list is a no-op. List the trusted origins instead.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - pattern: $X.allow_origin(AllowOrigin::mirror_request())
+      - pattern: $X.allow_origin(AllowOrigin::predicate(|$A, $B| true))
+      - pattern: $X.allow_origin_fn(|$A, $B| true)
+      - pattern: CorsLayer::very_permissive()
+
+  - id: jgates.rust.jsonp-enabled
+    message: The response wraps the body in a callback name taken from the request, which makes it JSONP, so any page can run the endpoint as a script and read its data. Return plain JSON and use CORS for cross-origin reads.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern-either:
+      - pattern: format!("{}({})", $Q.callback, ...)
+      - pattern: format!("{}({});", $Q.callback, ...)
+      - pattern: format!("{}({})", $Q.jsonp, ...)
+
+  - id: jgates.rust.sensitive-query-parameter
+    message: A URL carries a password, secret or API key in its query string, where logs, history and referrers keep it. Send it in a header or the request body.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V14.2.1"]
+    pattern-either:
+      - patterns:
+          - pattern: '"$S"'
+          - metavariable-regex:
+              metavariable: $S
+              regex: '(?i)^"?[^"\s]*[?&](password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)='
+      - patterns:
+          - pattern-either:
+              - pattern: $U.append_pair($K, $V)
+              - pattern: $B.query(&[..., ($K, $V), ...])
+          - metavariable-regex:
+              metavariable: $K
+              regex: '(?i)^"(password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)"$'
