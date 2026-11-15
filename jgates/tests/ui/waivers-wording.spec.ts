@@ -204,7 +204,7 @@ for (const language of ["pt-BR", "en"] as const) {
         await expect(page.getByTestId("result-banner-title")).toHaveText(words.waivers);
 
         // The history row.
-        await page.goto(`${base}#/history`);
+        await page.goto(`${base}#/validations`);
         const decision = page.getByTestId("history-decision");
         await expect(decision).toHaveCount(1);
         await expect(decision).toHaveText(words.waivers);
@@ -229,7 +229,7 @@ for (const language of ["pt-BR", "en"] as const) {
       await page.goto(`${base}#/runs/${RUN_ID}`);
       await page.reload();
       await expect(page.getByTestId("result-banner-title")).toHaveText(words.plain);
-      await page.goto(`${base}#/history`);
+      await page.goto(`${base}#/validations`);
       await expect(page.getByTestId("history-decision")).toHaveAttribute("data-kind", "passed");
       await page.goto(`${base}#/overview`);
       await expect(page.getByTestId("last-run-decision")).toHaveAttribute("data-kind", "passed");

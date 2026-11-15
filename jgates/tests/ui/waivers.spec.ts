@@ -3,7 +3,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { MAIN, createFixture, openApp, startServer, type Fixture } from "./support";
+import { MAIN, createFixture, openApp, reloadPage, startServer, type Fixture } from "./support";
 
 // "Dispensar" on a finding of the result (V2 waivers, PLAN-waivers.md section 7). A stored run with findings of two checks:
 // every finding that is not waived has "Dispensar" / "Waive"; the dialog shows the finding, "Até quando?" with 30, 90 and
@@ -211,7 +211,7 @@ const card = (page: Page, rule: string): Locator => page.getByTestId("finding-ca
 
 async function openResult(page: Page, base: string): Promise<void> {
   await page.goto(`${base}#/validations/result/${RUN_ID}`);
-  await page.reload();
+  await reloadPage(page);
   await expect(page.getByTestId("finding-card")).toHaveCount(FINDINGS.length);
 }
 

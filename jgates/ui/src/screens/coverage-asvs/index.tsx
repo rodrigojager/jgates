@@ -208,8 +208,9 @@ export default function CoverageAsvsScreen() {
             <h2 id="asvs-header-title">{t("asvs_standard", { version: map.asvsVersion })}</h2>
             <div className="asvs-controls">
               <div role="group" aria-label={t("asvs_level_label")} className="asvs-levels" data-testid="asvs-levels">
+                {/* aria-disabled, not disabled, while a write runs: the pressed button keeps the keyboard focus. */}
                 {LEVELS.map((level) => (
-                  <button type="button" key={level} className="btn" aria-pressed={map.level === level} disabled={busy} data-testid={`asvs-level-${level}`} onClick={() => chooseLevel(level)}>
+                  <button type="button" key={level} className="btn" aria-pressed={map.level === level} aria-disabled={busy || undefined} data-testid={`asvs-level-${level}`} onClick={() => !busy && chooseLevel(level)}>
                     {t("asvs_level", { level })}
                   </button>
                 ))}

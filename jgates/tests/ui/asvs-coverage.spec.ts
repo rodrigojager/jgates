@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { MAIN, createFixture, openApp, startServer, type Fixture } from "./support";
+import { MAIN, createFixture, openApp, reloadPage, startServer, type Fixture } from "./support";
 
 // The ASVS coverage map (PLAN-asvs.md section 6, V2 slice AS10). Stored runs and a fixture mapping reach the five states;
 // the screen shows:
@@ -186,9 +186,14 @@ async function withProject(page: Page, language: "pt-BR" | "en", body: (ctx: { f
 async function tabTo(page: Page, target: Locator, max = 800): Promise<void> {
   await expect(target).toBeVisible();
   await expect(target).toBeEnabled();
+  // Backwards (Shift+Tab) when the target comes before the focused control: a long list (345 rows) lies between them otherwise.
+  const before = await target.evaluate((el) => {
+    const active = document.activeElement;
+    return active !== null && active !== document.body && (el.compareDocumentPosition(active) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+  });
   for (let i = 0; i < max; i++) {
     if (await target.evaluate((el) => el === document.activeElement)) return;
-    await page.keyboard.press("Tab");
+    await page.keyboard.press(before ? "Shift+Tab" : "Tab");
   }
   throw new Error(`the keyboard never reached ${await target.evaluate((el) => el.outerHTML.slice(0, 200))}`);
 }
@@ -220,7 +225,7 @@ const allRows = (page: Page): Locator => page.locator("li[data-state]");
 
 async function openMap(page: Page, url: string, text: Texts): Promise<void> {
   await page.goto(`${url}#/validations/coverage/asvs`);
-  await page.reload();
+  await reloadPage(page);
   await expect(page.getByRole("heading", { name: text.title, level: 1 })).toBeVisible();
   await expect(page.getByTestId("asvs-counters")).toBeVisible();
 }
@@ -392,7 +397,9 @@ for (const { text, width, height } of VARIANTS) {
       await expect(target.getByTestId("asvs-row-state")).toHaveText(text.states["not-applicable"]);
       await expect(target.getByTestId("asvs-row-reason")).toContainText("no such feature in this product");
       await expect(page.getByTestId("asvs-counter-not-applicable")).toHaveAttribute("data-count", "1");
-      await expect(page.getByTestId(`asvs-na-${ids.target}`)).toBeDisabled();
+      // The row's own decision: "Não se aplica" gives way to the action that takes the decision back.
+      await expect(page.getByTestId(`asvs-na-${ids.target}`)).toHaveCount(0);
+      await expect(target.getByTestId(`asvs-applicable-${ids.target}`)).toBeEnabled();
 
       await press(page, page.getByTestId("asvs-undo"));
       await expect(target).toHaveAttribute("data-state", "unsupported");

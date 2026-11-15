@@ -311,6 +311,21 @@ export async function openApp(page: import("@playwright/test").Page, server: UiS
   return page.url().split("#")[0] as string;
 }
 
+/**
+ * Reloads the page. On a first visit in a language other than the cached one the app reloads itself once (see
+ * syncLocaleWithPreferences); a reload of the test that meets that one is aborted, so it is asked again.
+ */
+export async function reloadPage(page: import("@playwright/test").Page): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await page.reload();
+      return;
+    } catch (error) {
+      if (attempt >= 3 || !String(error).includes("ERR_ABORTED")) throw error;
+    }
+  }
+}
+
 /** GET of a server route from the page (same origin, with the session cookie). */
 export async function pageGet<T = any>(page: import("@playwright/test").Page, route: string): Promise<T> {
   return page.evaluate(async (r) => (await fetch(r, { headers: { accept: "application/json" } })).json(), route) as Promise<T>;

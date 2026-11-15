@@ -104,12 +104,17 @@ export function Pill({ tone, children }: { tone?: "green" | "gold" | "red" | "bl
 }
 
 /**
- * Modal built on the native <dialog>: the focus trap and Escape come from the platform. The element that had focus when
+ * Modal built on the native <dialog>: the page behind it is inert and Escape comes from the platform; Tab and Shift+Tab
+ * wrap at the edges of the dialog so the focus never leaves it. The element that had focus when
  * the dialog opened gets it back when the dialog closes: a dialog that React unmounts leaves nothing for the platform
  * to restore, so the opener is remembered here.
  */
-export function Dialog({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+export function Dialog({ title, onClose, children, wide, keepOpen }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean; keepOpen?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // keepOpen (typed content that must not be lost): Escape does not close the dialog by itself, it only calls onClose,
+  // which asks first; if the platform closes it anyway, it is opened again.
+  const keep = useRef(false);
+  keep.current = keepOpen === true;
   // A dialog that brings its own Cancelar (or Fechar) has one way to cancel: the header's button steps aside.
   const [ownCancel, setOwnCancel] = useState(false);
   useEffect(() => {
@@ -140,8 +145,32 @@ export function Dialog({ title, onClose, children, wide }: { title: string; onCl
       const touch = () => {
         touched = true;
       };
+      // The platform keeps the page inert, but Tab past the last control leaves the document (to the browser's own UI):
+      // the dialog wraps it to the first control, and Shift+Tab before the first one to the last.
+      const TABBABLE = 'a[href], button:not(:disabled), input:not([type=hidden]):not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex], [contenteditable=""], [contenteditable=true]';
+      const tabbables = () =>
+        [...dialog.querySelectorAll<HTMLElement>(TABBABLE)].filter((el) => {
+          if (el.tabIndex < 0 || !visible(el)) return false;
+          // A radio group is one stop: its checked radio, or every radio when none is checked.
+          if (el instanceof HTMLInputElement && el.type === "radio" && !el.checked && el.name !== "") return !dialog.querySelector(`input[type=radio][name="${CSS.escape(el.name)}"]:checked`);
+          return true;
+        });
+      const wrapTab = (e: KeyboardEvent) => {
+        if (e.key !== "Tab" || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+        const list = tabbables();
+        const first = list[0];
+        const last = list[list.length - 1];
+        if (!first || !last) return;
+        const active = document.activeElement;
+        const inside = active instanceof Node && active !== dialog && dialog.contains(active);
+        const edge = e.shiftKey ? !inside || active === first : !inside || active === last;
+        if (!edge) return;
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      };
       dialog.addEventListener("keydown", touch);
       dialog.addEventListener("pointerdown", touch);
+      dialog.addEventListener("keydown", wrapTab);
       sync();
       // Content that arrives after the first paint (a form that loads its data) gets the focus too, for a moment.
       observer = new MutationObserver(sync);
@@ -156,7 +185,20 @@ export function Dialog({ title, onClose, children, wide }: { title: string; onCl
     };
   }, []);
   return (
-    <dialog ref={ref} aria-labelledby="dialog-title" className={wide ? "wide" : ""} onClose={onClose} onCancel={onClose}>
+    <dialog
+      ref={ref}
+      aria-labelledby="dialog-title"
+      className={wide ? "wide" : ""}
+      onClose={() => {
+        const dialog = ref.current;
+        if (keep.current && dialog && dialog.isConnected && !dialog.open) dialog.showModal();
+        onClose();
+      }}
+      onCancel={(e) => {
+        if (keep.current) e.preventDefault();
+        onClose();
+      }}
+    >
       <div className="dialog-body">
         <div className="between dialog-head">
           <h2 id="dialog-title" tabIndex={-1}>

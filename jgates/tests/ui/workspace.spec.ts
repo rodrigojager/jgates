@@ -194,7 +194,7 @@ test("Declarar componente offers languages, frameworks and folders as choices, k
 
     // A recognized language without tools says what that means.
     await language.selectOption("cpp");
-    await expect(dialog.getByTestId("language-notice")).toContainText("O JGates reconhece C++, mas ainda não tem ferramentas");
+    await expect(dialog.getByTestId("language-notice")).toContainText("O JGates reconhece C++, mas não tem stack para ela");
     await expect(framework.locator("option")).toHaveText(["Nenhum (usar o detectado)", "Outro…"]);
     // Outro… opens a free field with its own label and help.
     await language.selectOption({ label: "Outro…" });

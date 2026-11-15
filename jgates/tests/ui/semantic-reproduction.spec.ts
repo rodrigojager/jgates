@@ -160,6 +160,8 @@ for (const [language, width] of [["pt-BR", 1280], ["en", 375]] as const) {
   test(`${language} at ${width}px: each needs-validation finding offers the action, the cost is shown first and nothing starts before it is confirmed`, async ({ page }) => {
     await withReproduction(language, { withReproductionRun: false }, async ({ page, base, fixture }) => {
       await page.setViewportSize({ width, height: 900 });
+      // The stored earlier run already counts its own model calls: nothing here may add one.
+      const callsBefore = fixture.providerCalls();
       const started: string[] = [];
       await page.route("**/api/semantic/runs", async (route) => {
         if (route.request().method() !== "POST") return route.continue();
@@ -206,7 +208,7 @@ for (const [language, width] of [["pt-BR", 1280], ["en", 375]] as const) {
       await expect.poll(() => started.length).toBe(1);
       expect(JSON.parse(started[0] as string)).toEqual({ methods: ["confirm-by-reproduction"], reproduction: { from: EARLIER, finding: "C2" } });
       await expect.poll(() => new URL(page.url()).hash).toMatch(/^#\/semantic\/runs\/sem_/);
-      expect(fixture.providerCalls()).toBe(0);
+      expect(fixture.providerCalls()).toBe(callsBefore);
     }, page);
   });
 
@@ -264,7 +266,9 @@ test("with no container engine every finding shows the action disabled with the 
     expect(await serious(page, "no engine")).toEqual([]);
 
     state = { notReady: ["dependencies"] };
+    // The history screen is shown before the result opens again, so the result asks the environment state anew.
     await page.goto(`${base}#/semantic`);
+    await expect(page.locator(`tr[data-run="${EARLIER}"]`)).toBeVisible();
     await page.goto(`${base}#/semantic/results/${EARLIER}`);
     await expect(row(page, "C1").getByTestId("repro-blocked")).toContainText(words.deps);
     const prepare = row(page, "C1").getByRole("link", { name: words.prepare });

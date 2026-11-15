@@ -91,7 +91,7 @@ export function NotApplicableDialog({ target, revision, lang, onClose, onWritten
   };
 
   return (
-    <Dialog title={t("asvs_na_title", { id: target.id })} onClose={requestClose} wide>
+    <Dialog title={t("asvs_na_title", { id: target.id })} onClose={requestClose} wide keepOpen={dirty}>
       <div className="stack" data-testid="asvs-na-dialog">
         {confirmDiscard ? (
           <div className="notice warn" role="alert" data-testid="asvs-na-discard">
