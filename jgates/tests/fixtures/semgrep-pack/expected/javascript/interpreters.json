@@ -1,0 +1,4 @@
+{
+  "files": ["interpreters.js"],
+  "ruleIds": ["jgates.js.ldap-injection", "jgates.js.xpath-injection", "jgates.js.template-from-request", "jgates.js.xml-external-entity", "jgates.js.xslt-from-request", "jgates.js.latex-shell-escape", "jgates.js.mail-header-injection"]
+}
