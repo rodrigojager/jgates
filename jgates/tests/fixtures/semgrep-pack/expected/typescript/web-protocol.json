@@ -1,0 +1,16 @@
+{
+  "files": ["web-protocol.ts", "web-protocol.tsx"],
+  "ruleIds": [
+    "jgates.js.security-headers-disabled",
+    "jgates.js.csp-unsafe-directive",
+    "jgates.js.websocket-without-tls",
+    "jgates.js.websocket-origin-not-checked",
+    "jgates.js.graphql-introspection-enabled",
+    "jgates.js.graphql-without-depth-limit",
+    "jgates.js.open-redirect",
+    "jgates.js.client-ip-from-forwarded-header",
+    "jgates.js.host-header-in-url",
+    "jgates.js.external-script-without-integrity",
+    "jgates.js.deprecated-plugin-content"
+  ]
+}
