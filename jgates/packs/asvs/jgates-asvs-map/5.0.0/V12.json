@@ -5,85 +5,160 @@
     {
       "requirement": "V12.1.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.1.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.1.3",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.1.4",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.1.5",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.2.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.2.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.3.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.3.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.tls-verification-disabled",
+          "covers": "An options object that sets rejectUnauthorized to false",
+          "misses": "Verification switched off through environment variables or other HTTP libraries; a custom check that is too lax",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.tls-verification-disabled",
+          "covers": "requests calls with verify=False and ssl._create_unverified_context",
+          "misses": "Other HTTP clients; verification switched off through environment variables or a session attribute",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.tls-verification-disabled",
+          "covers": "tls.Config with InsecureSkipVerify set to true, and assignments of that field",
+          "misses": "A custom VerifyPeerCertificate that accepts everything; other ways of building the configuration",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.tls-verification-disabled",
+          "covers": "Server certificate validation callbacks that always accept, and the accept-any-certificate validator",
+          "misses": "Callbacks that are not literally true; other clients and platform settings",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.tls-verification-disabled",
+          "covers": "reqwest, openssl and rustls settings that accept invalid certificates or host names or install a custom verifier",
+          "misses": "Other TLS crates and wrappers; types not imported by their short names",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.tls-verification-disabled",
+          "covers": "Trust managers whose server check is empty, host name verifiers that always accept, and trust-all strategies",
+          "misses": "Trust-all logic written in other shapes; other libraries",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.tls-verification-disabled",
+          "covers": "cURL options that turn off peer or host verification",
+          "misses": "Other HTTP clients and stream contexts",
+          "depth": "partial"
+        }
+      ],
+      "why": "A client that turns certificate verification off accepts any server certificate, which is the failure the requirement guards against; each rule flags the literal ways its language switches verification off."
     },
     {
       "requirement": "V12.3.3",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.3.4",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V12.3.5",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     }
   ]

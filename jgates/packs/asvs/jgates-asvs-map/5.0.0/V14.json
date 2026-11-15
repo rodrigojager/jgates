@@ -5,92 +5,118 @@
     {
       "requirement": "V14.1.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "person",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.1.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "person",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.2.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.2.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.2.3",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.2.4",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "person",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.2.5",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.2.6",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.2.7",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "person",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.2.8",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.3.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.3.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     },
     {
       "requirement": "V14.3.3",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
       "checks": []
     }
   ]

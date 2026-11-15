@@ -5,147 +5,190 @@
     {
       "requirement": "V13.1.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.1.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.1.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "person",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.1.4",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "person",
+      "subdimensions": [
+        "secrets"
+      ],
       "checks": []
     },
     {
       "requirement": "V13.2.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "secrets"
+      ],
       "checks": []
     },
     {
       "requirement": "V13.2.2",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.2.3",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-method",
+          "id": "insecure-defaults",
+          "category": "default-credentials",
+          "covers": "A model reading the source for credential literals that a running deployment can sign in with, including accounts seeded on first start",
+          "misses": "Credentials set by deployment or infrastructure outside the repository; accounts of third-party services; any credential not written in source",
+          "depth": "partial"
+        }
+      ],
+      "why": "The default-credentials sweep looks for shipped logins and seeded accounts, the kind of default credential the requirement forbids for service authentication."
     },
     {
       "requirement": "V13.2.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.2.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.2.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "repository",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.3.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": [
+        {
+          "unit": "capability",
+          "id": "gitleaks#secrets",
+          "covers": "Secrets committed in the repository files, one part of keeping them out of source code",
+          "misses": "Whether a vault or hardware module is in place, how the secrets are issued, access-controlled and retired, and secrets that exist only inside packaged build output",
+          "depth": "partial"
+        }
+      ],
+      "why": "The scanner finds secrets written into source, which is the single clause of this requirement that a repository check can examine; the rest needs the deployed secrets arrangement."
     },
     {
       "requirement": "V13.3.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "secrets"
+      ],
       "checks": []
     },
     {
       "requirement": "V13.3.3",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "secrets"
+      ],
       "checks": []
     },
     {
       "requirement": "V13.3.4",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "secrets"
+      ],
       "checks": []
     },
     {
       "requirement": "V13.4.1",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.4.2",
-      "status": "unmapped",
-      "evidence": null,
+      "status": "pending",
+      "evidence": "repository",
       "subdimensions": [],
-      "checks": []
+      "checks": [
+        {
+          "unit": "semantic-method",
+          "id": "insecure-defaults",
+          "category": "debug-features",
+          "covers": "A model reading the source for debug and introspection features that default to on and reach a response, a port or a log a lower-privileged party can read",
+          "misses": "Debug settings applied only by deployment configuration or by components outside the repository; flags that default to off but are enabled in production",
+          "depth": "partial"
+        }
+      ],
+      "why": "The debug-features sweep looks for debug behaviour that is on by default and exposed, which is the production exposure the requirement is meant to prevent, as far as the source shows it."
     },
     {
       "requirement": "V13.4.3",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.4.4",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.4.5",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.4.6",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     },
     {
       "requirement": "V13.4.7",
       "status": "unmapped",
-      "evidence": null,
+      "evidence": "deployment",
       "subdimensions": [],
       "checks": []
     }

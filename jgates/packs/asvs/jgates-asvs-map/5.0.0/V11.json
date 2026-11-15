@@ -5,169 +5,358 @@
     {
       "requirement": "V11.1.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "person",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.1.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "person",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.1.3",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "person",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.1.4",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "person",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.2.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.2.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.2.3",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.2.4",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.2.5",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.3.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.weak-cipher",
+          "covers": "Assignment of the ECB cipher mode on a symmetric algorithm object",
+          "misses": "Modes chosen through a variable or configuration; padding schemes; other libraries",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.weak-cipher",
+          "covers": "Construction of an AES cipher in ECB mode through the openssl crate",
+          "misses": "ECB through crates other than openssl; padding schemes such as PKCS#1 v1.5",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.weak-cipher",
+          "covers": "Cipher.getInstance with a string literal naming AES in ECB mode",
+          "misses": "Cipher names built at run time or read from configuration; weak padding such as RSA PKCS#1 v1.5",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.weak-cipher",
+          "covers": "openssl_encrypt called with a cipher name that contains ecb",
+          "misses": "Cipher names held in variables or constants; weak padding schemes",
+          "depth": "partial"
+        }
+      ],
+      "why": "These four rules flag the one insecure block mode the requirement names, ECB, at the literal call sites each models; the JavaScript, Python and Go rules do not look for ECB and are not named."
     },
     {
       "requirement": "V11.3.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.weak-cipher",
+          "covers": "crypto.createCipheriv with a literal DES, RC4, Blowfish or RC2 algorithm, and any use of the legacy createCipher",
+          "misses": "Algorithms chosen through variables; a cipher outside the weak list that is still not approved; libraries other than node crypto",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.weak-cipher",
+          "covers": "DES, 3DES and ARC4 cipher objects created through the PyCrypto-style API",
+          "misses": "Other libraries and wrappers; ciphers outside the weak list that are still not approved",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.weak-cipher",
+          "covers": "des.NewCipher, des.NewTripleDESCipher and rc4.NewCipher calls",
+          "misses": "Ciphers outside the weak list that are still not approved; third-party wrappers",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.weak-cipher",
+          "covers": "DES, 3DES and RC2 objects and the ECB cipher mode",
+          "misses": "Algorithms created by name or configuration; other libraries; unapproved ciphers outside the weak list",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.weak-cipher",
+          "covers": "DES, 3DES, RC4 and Blowfish cipher construction and the openssl DES, RC4, Blowfish and AES-ECB ciphers",
+          "misses": "Crates not modeled; types not imported by their short names; unapproved ciphers outside the weak list",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.weak-cipher",
+          "covers": "Cipher.getInstance with a literal DES, 3DES, RC2, RC4 or AES-ECB transformation",
+          "misses": "Transformations built at run time; providers and other libraries; unapproved ciphers outside the weak list",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.weak-cipher",
+          "covers": "openssl_encrypt with an ECB cipher name",
+          "misses": "Only ECB is flagged; DES, RC4 and other weak ciphers are not",
+          "depth": "partial"
+        }
+      ],
+      "why": "Each rule flags a cipher on a short list of well-known broken algorithms, which is use of a cipher outside the approved set; it cannot show that every cipher in use is approved."
     },
     {
       "requirement": "V11.3.3",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.3.4",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.3.5",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.4.1",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.weak-hash",
+          "covers": "crypto.createHash called with a literal md5 or sha1",
+          "misses": "Algorithm names held in variables; other libraries; whether the use is cryptographic",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.weak-hash",
+          "covers": "hashlib md5 and sha1 constructors, directly or by name",
+          "misses": "Other libraries; whether the use is cryptographic (a checksum is flagged too)",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.weak-hash",
+          "covers": "md5 and sha1 New and Sum calls",
+          "misses": "Algorithms held in variables; other libraries; whether the use is cryptographic",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.weak-hash",
+          "covers": "MD5 and SHA-1 creation, static hashing and the legacy provider classes",
+          "misses": "Algorithms named through configuration; other libraries; whether the use is cryptographic",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.weak-hash",
+          "covers": "MD2, MD4, MD5 and SHA-1 digest construction in the RustCrypto and openssl crates",
+          "misses": "Crates not modeled; types not imported by their short names; whether the use is cryptographic",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.weak-hash",
+          "covers": "MessageDigest.getInstance with a literal MD2, MD5 or SHA-1, and the MD5 and SHA-1 helpers of commons-codec and Guava",
+          "misses": "Algorithm names built at run time; other libraries; whether the use is cryptographic",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.weak-hash",
+          "covers": "md5 or sha1 applied to an argument whose name suggests a password",
+          "misses": "Only password-like arguments are flagged, so MD5 or SHA-1 used for signatures, HMAC or key derivation is missed",
+          "depth": "partial"
+        }
+      ],
+      "why": "MD5 and SHA-1 are the disallowed hash functions the requirement names, and each rule flags their use at the call sites it models; it does not tell a cryptographic use from a checksum."
     },
     {
       "requirement": "V11.4.2",
-      "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
-      "checks": []
+      "status": "pending",
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.weak-hash",
+          "covers": "md5 or sha1 applied to an argument whose name suggests a password",
+          "misses": "Passwords hashed through other fast hashes, or with no hash at all; password-like names the pattern does not match; the cost settings of a good password hash; every other language",
+          "depth": "partial"
+        }
+      ],
+      "why": "For PHP the rule flags a password passed to MD5 or SHA-1, a storage choice the requirement rules out; it says nothing about the cost settings of an approved function."
     },
     {
       "requirement": "V11.4.3",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.4.4",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.5.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.5.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.6.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.6.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.7.1",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "deployment",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     },
     {
       "requirement": "V11.7.2",
       "status": "unmapped",
-      "evidence": null,
-      "subdimensions": [],
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography"
+      ],
       "checks": []
     }
   ]
