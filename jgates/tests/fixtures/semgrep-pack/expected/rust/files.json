@@ -1,0 +1,10 @@
+{
+  "files": ["src/files.rs"],
+  "ruleIds": [
+    "jgates.rust.upload-client-filename-in-path",
+    "jgates.rust.archive-extraction-unchecked",
+    "jgates.rust.request-body-without-size-limit",
+    "jgates.rust.upload-content-type-trusted",
+    "jgates.rust.content-disposition-from-request"
+  ]
+}
