@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Account</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-r4nd0m'">
+  <link rel="stylesheet" href="/static/site.css">
+  <script src="https://cdn.example.com/widgets.js" integrity="sha384-oqVuAfXRKap7fdgcCY5uykM6+R9GqQ8K/uxy9rx7HNQlGYl1kPzQho1wx4JwY8wC" crossorigin="anonymous"></script>
+</head>
+<body>
+  <h1>Sign in</h1>
+  <form action="/login" method="post">
+    <input type="text" name="username">
+    <input type="password" name="password" autocomplete="current-password">
+  </form>
+  <form action="/profile" method="post">
+    <input type="password" name="new_password" autocomplete="new-password">
+  </form>
+  <form action="https://pay.example.com/checkout" method="post">
+    <input type="text" name="card_holder">
+  </form>
+  <video src="/static/intro.mp4" controls></video>
+</body>
+</html>
