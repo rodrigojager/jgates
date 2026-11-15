@@ -110,5 +110,20 @@
   "semres_repro_reason_BUDGET": "o orçamento da execução acabou antes dele",
   "semres_repro_reason_REPRODUCER_INVALID": "o teste foi recusado pelas verificações",
   "semres_repro_reason_NOT_RUN": "a execução parou antes dele",
-  "semres_repro_reason_TEST_RUNNER_NOT_SUPPORTED": "nenhum executor de testes compatível roda este arquivo"
+  "semres_repro_reason_TEST_RUNNER_NOT_SUPPORTED": "nenhum executor de testes compatível roda este arquivo",
+  "semres_method_asvs-review": "Revisão ASVS",
+  "semres_asvsr_title": "Revisão ASVS: requisitos examinados e não examináveis",
+  "semres_asvsr_ai": "Esta é uma revisão do código por IA. Não é uma verificação determinística nem uma declaração de que um requisito está atendido; uma violação candidata é uma pista que precisa ser validada por uma pessoa.",
+  "semres_asvsr_examined": "Examinados",
+  "semres_asvsr_examined_hint": "A revisão leu o código para estes requisitos e respondeu com os arquivos e linhas que leu.",
+  "semres_asvsr_not_examinable": "Não examináveis",
+  "semres_asvsr_not_examinable_hint": "O código não consegue responder a estes requisitos; cada um diz o motivo.",
+  "semres_asvsr_reason_running-system": "diz respeito ao sistema em execução, que o código não mostra",
+  "semres_asvsr_reason_person": "diz respeito a uma pessoa ou a um processo",
+  "semres_asvsr_reason_outside-scope": "fora do escopo desta execução",
+  "semres_asvsr_outcome_finding": "violação candidata, precisa de validação",
+  "semres_asvsr_outcome_no-violation-found": "nenhuma violação encontrada",
+  "semres_asvsr_references": "referências: {count}",
+  "semres_asvsr_no_answers": "Esta execução não registrou respostas.",
+  "semres_asvsr_none": "nenhum"
 }

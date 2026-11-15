@@ -176,5 +176,9 @@
   "semprov_name_openrouter": "OpenRouter (API)",
   "semprov_choice": "{provider} · {model}",
   "semprov_state_local": "Local",
-  "semprov_api_count": "{count} options"
+  "semprov_api_count": "{count} options",
+  "semsetup_asvs_title": "ASVS review: what it reviews and what it costs",
+  "semsetup_asvs_count": "{count} requirements of ASVS {version}, level {level}, that no deterministic check examined in the Quality run {qualityRun}, in {units} chapters, with up to {calls} model calls.",
+  "semsetup_asvs_ai": "The answers are an AI review of the source, shown apart from the deterministic checks; its findings need validation.",
+  "semsetup_asvs_confirm": "I confirm this cost and want to start the ASVS review"
 }

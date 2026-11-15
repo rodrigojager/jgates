@@ -110,5 +110,20 @@
   "semres_repro_reason_BUDGET": "the budget of the run ended before it",
   "semres_repro_reason_REPRODUCER_INVALID": "the test was refused by the checks",
   "semres_repro_reason_NOT_RUN": "the run stopped before it",
-  "semres_repro_reason_TEST_RUNNER_NOT_SUPPORTED": "no supported test runner runs this file"
+  "semres_repro_reason_TEST_RUNNER_NOT_SUPPORTED": "no supported test runner runs this file",
+  "semres_method_asvs-review": "ASVS review",
+  "semres_asvsr_title": "ASVS review: requirements examined and not examinable",
+  "semres_asvsr_ai": "This is an AI review of the source. It is not a deterministic check and not a statement that a requirement is met; a candidate violation is a lead that needs validation by a person.",
+  "semres_asvsr_examined": "Examined",
+  "semres_asvsr_examined_hint": "The review read the source for these requirements and answered with the files and lines it read.",
+  "semres_asvsr_not_examinable": "Not examinable",
+  "semres_asvsr_not_examinable_hint": "The source cannot answer these requirements; each one says why.",
+  "semres_asvsr_reason_running-system": "concerns the running system, which the source does not show",
+  "semres_asvsr_reason_person": "concerns a person or a process",
+  "semres_asvsr_reason_outside-scope": "outside the scope of this run",
+  "semres_asvsr_outcome_finding": "candidate violation, needs validation",
+  "semres_asvsr_outcome_no-violation-found": "no violation found",
+  "semres_asvsr_references": "references: {count}",
+  "semres_asvsr_no_answers": "This run recorded no answers.",
+  "semres_asvsr_none": "none"
 }

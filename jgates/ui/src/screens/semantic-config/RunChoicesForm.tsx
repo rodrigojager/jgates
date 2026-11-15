@@ -22,8 +22,14 @@ export interface MethodApplicability {
 export const methodLabel = (m: { id: string; title?: string }): string => tOr(`semcfg_method_${m.id}`, m.title ?? m.id);
 
 /** The methods selector, the one choice of what to run: at least one; each checked one runs as its own semantic run. */
-export function MethodsField({ catalog, selected, onChange }: { catalog: SemanticMethodInfo[]; selected: string[]; onChange: (next: string[]) => void }) {
+export function MethodsField({ catalog, selected, onChange, latestQualityRun }: { catalog: SemanticMethodInfo[]; selected: string[]; onChange: (next: string[]) => void; latestQualityRun?: string | null }) {
   const toggle = (id: string, on: boolean) => onChange(on ? [...selected.filter((m) => m !== id), id] : selected.filter((m) => m !== id));
+  // Every method this build can run, selected at once (the ones already checked keep their order).
+  const selectable = catalog.filter((m) => m.available).map((m) => m.id);
+  const allSelected = selectable.length > 0 && selectable.every((id) => selected.includes(id));
+  const selectAll = () => onChange([...selected.filter((id) => catalog.some((m) => m.id === id)), ...selectable.filter((id) => !selected.includes(id))]);
+  // The ASVS review reviews what the latest Quality run's map left unexamined: without that run it cannot start.
+  const asvsWithoutQuality = selected.includes("asvs-review") && latestQualityRun === null;
   return (
     <fieldset className="stack" style={{ gap: 8, border: 0, padding: 0, margin: 0 }} data-testid="semcfg-methods" {...(selected.length === 0 ? { "aria-describedby": "semcfg-methods-error" } : {})}>
       <legend>
@@ -36,6 +42,19 @@ export function MethodsField({ catalog, selected, onChange }: { catalog: Semanti
       ) : (
         <p className="small muted">{t(selected.length === 1 ? "semcfg_methods_selected_one" : "semcfg_methods_selected", { count: selected.length })}</p>
       )}
+      <div className="row wrap" style={{ gap: 8 }}>
+        <button type="button" className="btn" data-testid="semcfg-select-all" onClick={selectAll} disabled={allSelected}>
+          {t("semcfg_methods_select_all")}
+        </button>
+        <button type="button" className="btn" data-testid="semcfg-select-none" onClick={() => onChange([])} disabled={selected.length === 0}>
+          {t("semcfg_methods_clear")}
+        </button>
+      </div>
+      {asvsWithoutQuality ? (
+        <div className="notice warn" role="status" data-testid="semcfg-asvs-no-quality">
+          {t("semcfg_asvs_no_quality")}
+        </div>
+      ) : null}
       {catalog.map((m) => (
         <label key={m.id} className="row" style={{ gap: 8, alignItems: "flex-start" }} data-method={m.id}>
           <input type="checkbox" value={m.id} checked={selected.includes(m.id)} disabled={!m.available && !selected.includes(m.id)} onChange={(e) => toggle(m.id, e.target.checked)} />
@@ -91,7 +110,7 @@ export function RunChoicesForm({ options, choices, onChange }: { options: Semant
   const rigor = options.rigors.find((r) => r.id === choices.rigor);
   return (
     <div className="stack">
-      {options.catalog ? <MethodsField catalog={options.catalog} selected={choices.methods} onChange={(methods) => set({ methods })} /> : null}
+      {options.catalog ? <MethodsField catalog={options.catalog} selected={choices.methods} onChange={(methods) => set({ methods })} latestQualityRun={options.latestQualityRun} /> : null}
       <fieldset className="stack" style={{ gap: 8, border: 0, padding: 0, margin: 0 }}>
         <legend>
           <strong>{t("semcfg_rigor")}</strong>

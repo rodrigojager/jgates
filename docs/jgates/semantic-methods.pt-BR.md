@@ -14,7 +14,7 @@ métodos vencem. Um método que precisa de uma entrada que a execução não tem
 código de motivo (`METHOD_NOT_APPLICABLE` e o código do próprio método), não gasta nenhuma chamada ao modelo e nunca
 aparece como favorável.
 
-## Os dez métodos
+## Os onze métodos
 
 | Método | Escolhido | O que faz |
 | --- | --- | --- |
@@ -28,6 +28,7 @@ aparece como favorável.
 | `post-patch-validation` | sob demanda | O reprodutor falha antes de um patch e passa depois? Quem executa é o host, não o modelo. Trabalho original do JGates. |
 | `supply-chain-assessment` | sob demanda | Interpreta os sinais de instalação e de procedência dos lockfiles. Trabalho original do JGates. |
 | `confirm-by-reproduction` | só quando você pede, depois de uma execução | Tenta reproduzir os achados `needs-validation` de uma execução anterior com um teste que roda em contêiner. Trabalho original do JGates. |
+| `asvs-review` | só quando você pede, depois de uma execução Quality | Uma revisão do código por IA contra os requisitos do ASVS que nenhuma verificação determinística examinou, uma resposta por requisito. Trabalho original do JGates. |
 
 ### Confirmar por reprodução
 
@@ -44,6 +45,21 @@ jgates semantic run --method confirm-by-reproduction --from <sem_...> [--finding
 - Um teste que reproduziu vira uma proposta de teste de regressão, aplicada só por `jgates regressions incorporate <id> --approve`.
 - Ele não se aplica, com um código de motivo e sem chamada ao modelo, quando não há motor de contêineres ou imagem de ferramentas, quando as dependências do componente do achado não estão preparadas (`jgates deps prepare`), quando nenhum executor aceito (pytest, `node:test`) roda o arquivo do achado (`TEST_RUNNER_NOT_SUPPORTED`; Jest, Vitest, `go test`, `cargo test` e `dotnet test` ainda não são aceitos) ou quando a execução anterior não tem achado `needs-validation`. A tela então mostra a ação desabilitada com o motivo.
 - Nunca faz parte do `jgates ci`, e a decisão de Qualidade fica intacta.
+
+### Revisão ASVS
+
+O décimo primeiro método lê o código contra os requisitos do OWASP ASVS que o mapa de cobertura da última execução Quality não mostra como examinados por uma verificação determinística e que você não registrou como não se aplicando. Nada o executa se você não pedir: nenhum perfil, modelo ou padrão o escolhe, e `jgates ci` nunca o executa. Escolha **Revisão ASVS** na lista de métodos das telas Semantic (dá para marcar pelo teclado, como os outros) ou no terminal:
+
+```bash
+jgates semantic plan --method asvs-review
+jgates semantic run --method asvs-review
+```
+
+- Antes de qualquer coisa começar, o plano diz quantos requisitos serão revisados (por capítulo do ASVS, um contexto novo cada), qual execução Quality o mapa usou para decidir isso e o máximo de chamadas ao modelo que ele pode gastar. A tela pede que você confirme esse custo antes de habilitar **Iniciar**.
+- Ele precisa de uma execução Quality concluída. Sem ela, não se aplica, com o motivo `ASVS_REVIEW_NO_QUALITY_RUN` e sem chamada ao modelo: valide o projeto primeiro. Também não se aplica, com um motivo, quando não sobra nada a revisar ou o mapa de cobertura não pode ser lido.
+- Para cada requisito o modelo responde **examinado** (os arquivos e linhas que leu, e se achou uma violação) ou **não examinável** com o motivo: diz respeito ao sistema em execução, a uma pessoa ou processo, ou está fora do escopo. O host recusa uma resposta "examinado" que cita um arquivo que o contexto não leu ou uma linha que o arquivo não tem; essa resposta não conta e o motivo fica nas lacunas da execução.
+- O resultado lista os requisitos examinados e os não examináveis, com os motivos, e diz que se trata de uma revisão do código por IA. Uma violação candidata é uma pista que continua `needs-validation` até uma pessoa validar.
+- O mapa ASVS conta uma resposta "examinado" à parte das verificações determinísticas, como revisão do código por IA, e só onde uma entrada de mapeamento revisada permite; "não examinável" não dá nada. Nunca é uma declaração de que um requisito está atendido.
 
 ## Fontes, versões fixadas e atribuição
 

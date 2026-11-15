@@ -2,6 +2,7 @@ import { Pill } from "../../components/common";
 import { formatDateTime } from "../../components/format";
 import { Icon } from "../../components/icons";
 import { formatLocale, t, tOr } from "../../i18n";
+import { AsvsReviewResults, type AsvsReviewReport } from "./AsvsReview";
 import { useReproduction, type ReproFinding, type ReproReport } from "./Reproduction";
 
 /** The report of GET /api/semantic/runs/:id/report (server/routes/semantic-views.ts). */
@@ -29,6 +30,8 @@ export interface SemanticReport {
   scope: { subjects: number; toExamine: number; covered: number; repositoryFiles: number; claim: string | null; completion: number | null; repositoryCoverage: number | null; inheritedCoverage: string | null };
   investigation: { basis: string | null; subjects: number; examined: number; notExamined: number; gaps: Array<Record<string, unknown>> } | null;
   findings: Array<{ severity: string; confirmation: string; category: string; message: string; path: string | null; line: number | null } & ReproFinding>;
+  /** The ASVS review's answers (null when the run did not run that method). */
+  asvsReview?: AsvsReviewReport | null;
   /** The run's methods read source code, so its needs-validation findings can be reproduced. */
   reproducible?: boolean;
   /** The reproduction state of the findings (and, for a reproduction run, the run it reproduces). */
@@ -119,6 +122,8 @@ export function SemanticResultsView({ report }: { report: SemanticReport }) {
           <UnitList id="semres-out" testId="semres-out" title={t("semres_out_of_scope")} hint={t("semres_out_of_scope_hint")} items={u.outOfScope} />
         </div>
       </section>
+
+      {report.asvsReview ? <AsvsReviewResults review={report.asvsReview} /> : null}
 
       <section className="card flat stack" aria-labelledby="semres-coverage">
         <h2 id="semres-coverage">{t("semres_coverage_title")}</h2>

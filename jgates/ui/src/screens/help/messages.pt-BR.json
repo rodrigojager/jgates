@@ -52,5 +52,7 @@
   "help_faq_governed_q": "O que muda no modo governado?",
   "help_faq_governed_a": "A política vem de fora do repositório e os campos governados aparecem bloqueados, com o motivo. A interface não afrouxa o que a política exige.",
   "help_keyboard_q": "Como usar só com o teclado?",
-  "help_keyboard_a": "Use Tab para navegar, Enter ou Espaço para ativar controles, Esc para fechar janelas e as setas para alternar abas. No editor, Tab insere dois espaços; Esc move o foco para fora do editor."
+  "help_keyboard_a": "Use Tab para navegar, Enter ou Espaço para ativar controles, Esc para fechar janelas e as setas para alternar abas. No editor, Tab insere dois espaços; Esc move o foco para fora do editor.",
+  "help_more_asvs_review": "Pede a uma IA que revise o código contra os requisitos do ASVS que nenhuma verificação determinística examinou. Precisa de uma validação concluída, mostra o número de requisitos e o custo antes de começar, e as respostas aparecem à parte, como revisão do código por IA.",
+  "help_cmd_asvs_review": "jgates semantic run --method asvs-review --cwd ./my-project"
 }

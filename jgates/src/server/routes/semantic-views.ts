@@ -95,6 +95,20 @@ export function semanticMascotsOf(view: SemanticRunView): SemanticMascotSnapshot
   return projectSemanticMascots({ stages: semanticStagesOf(view), runId: view.runId, running: view.lifecycle === "running", cancelled });
 }
 
+/**
+ * What an asvs-review run answered, from its requirements ledger (by requirement id only; never the official text): the
+ * requirements examined and those not examinable with their reason. Null when the run has no such ledger.
+ */
+function asvsReviewOf(view: SemanticRunView): Rec | null {
+  const methods: string[] = view.result?.semanticRun?.methods ?? [];
+  if (!methods.includes("asvs-review")) return null;
+  const ledger = readRunJson(view.dir, "evidence/asvs-review/requirements-ledger.json");
+  const answers = list(ledger?.requirements).filter(isRec);
+  const examined = answers.filter((a) => a.answer === "examined").map((a) => ({ id: String(a.id ?? ""), outcome: a.outcome === "finding" ? "finding" : "no-violation-found", references: list(a.references).length }));
+  const notExaminable = answers.filter((a) => a.answer === "not-examinable").map((a) => ({ id: String(a.id ?? ""), reason: typeof a.reason === "string" ? a.reason : null, detail: typeof a.detail === "string" ? a.detail : null }));
+  return { asvsVersion: typeof ledger?.asvsVersion === "string" ? ledger.asvsVersion : null, level: typeof ledger?.level === "number" ? ledger.level : null, hasLedger: ledger !== null, examined, notExaminable };
+}
+
 const count = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const ratio = (part: number, whole: number): number | null => (whole > 0 ? Math.min(1, part / whole) : null);
 
@@ -193,6 +207,8 @@ export function semanticReportOf(view: SemanticRunView, reproduction: RunReprodu
       ? { basis: coverage.basis ?? null, subjects: count(coverage.subjects), examined: count(coverage.examined), notExamined: count(coverage.notExamined), gaps: list(coverage.gaps).filter(isRec).slice(0, 200) }
       : null,
     findings,
+    /** The ASVS review's answers (null when the run did not run that method). */
+    asvsReview: asvsReviewOf(view),
     /**
      * The reproduction state of the run's findings (none, attempted with the reason, confirmed by execution) and the
      * reproduction runs, read from the runs that started from this one; for a reproduction run, the run it reproduces.

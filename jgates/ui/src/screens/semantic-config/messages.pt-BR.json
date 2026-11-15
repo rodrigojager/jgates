@@ -70,5 +70,10 @@
   "semcfg_reset": "Voltar aos padrões",
   "semcfg_provider_none": "Nenhum ainda",
   "semcfg_provider_change": "Trocar",
-  "semcfg_provider_choose": "Escolher o provedor"
+  "semcfg_provider_choose": "Escolher o provedor",
+  "semcfg_method_asvs-review": "Revisão ASVS",
+  "semcfg_method_asvs-review_hint": "uma revisão do código por IA contra os requisitos do ASVS que nenhuma verificação determinística examinou; precisa de uma execução Quality concluída e mostra o custo antes de começar",
+  "semcfg_methods_select_all": "Selecionar todos os métodos",
+  "semcfg_methods_clear": "Limpar a seleção",
+  "semcfg_asvs_no_quality": "A revisão ASVS não pode começar: ela revisa o que o mapa de cobertura da última execução Quality deixou sem examinar, e este workspace não tem uma execução Quality concluída. Valide o projeto primeiro."
 }

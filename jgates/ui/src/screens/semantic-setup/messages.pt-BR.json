@@ -176,5 +176,9 @@
   "semprov_name_openrouter": "OpenRouter (API)",
   "semprov_choice": "{provider} · {model}",
   "semprov_state_local": "Local",
-  "semprov_api_count": "{count} opções"
+  "semprov_api_count": "{count} opções",
+  "semsetup_asvs_title": "Revisão ASVS: o que ela revisa e quanto custa",
+  "semsetup_asvs_count": "{count} requisitos do ASVS {version}, nível {level}, que nenhuma verificação determinística examinou na execução Quality {qualityRun}, em {units} capítulos, com até {calls} chamadas ao modelo.",
+  "semsetup_asvs_ai": "As respostas são uma revisão do código por IA, mostradas à parte das verificações determinísticas; os achados precisam de validação.",
+  "semsetup_asvs_confirm": "Confirmo este custo e quero iniciar a revisão ASVS"
 }

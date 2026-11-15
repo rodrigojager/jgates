@@ -12,7 +12,7 @@ checkboxes, General review checked by default. `--purpose general-review` and `-
 for `--method general-review` and `--method security-audit`; with both, the methods win. A method that needs an input the run does not have (a patch, a lockfile) is reported `unavailable` with a reason code
 (`METHOD_NOT_APPLICABLE` and the method's own code), spends no model call and is never shown as favorable.
 
-## The ten methods
+## The eleven methods
 
 | Method | Selected | What it does |
 | --- | --- | --- |
@@ -26,6 +26,7 @@ for `--method general-review` and `--method security-audit`; with both, the meth
 | `post-patch-validation` | on request | Does the reproducer fail before a patch and pass after it? The host runs it, not the model. Original JGates work. |
 | `supply-chain-assessment` | on request | Interprets the install-time and provenance signals of the lockfiles. Original JGates work. |
 | `confirm-by-reproduction` | only when you ask, after a run | Tries to reproduce the `needs-validation` findings of an earlier run with a test that runs in a container. Original JGates work. |
+| `asvs-review` | only when you ask, after a Quality run | An AI review of the source against the ASVS requirements that no deterministic check examined, one answer per requirement. Original JGates work. |
 
 ### Confirm by reproduction
 
@@ -42,6 +43,21 @@ jgates semantic run --method confirm-by-reproduction --from <sem_...> [--finding
 - A test that reproduced becomes a regression test proposal, applied only by `jgates regressions incorporate <id> --approve`.
 - It is not applicable, with a reason code and no model call, when there is no container engine or tools image, when the dependencies of the finding's component are not prepared (`jgates deps prepare`), when no supported runner (pytest, `node:test`) runs the finding's file (`TEST_RUNNER_NOT_SUPPORTED`; Jest, Vitest, `go test`, `cargo test` and `dotnet test` are not supported yet) or when the earlier run has no `needs-validation` finding. The screen then shows the action disabled with the reason.
 - It is never part of `jgates ci`, and the Quality decision is untouched.
+
+### ASVS review
+
+The eleventh method reads the source against the OWASP ASVS requirements that the latest Quality run's coverage map does not show as examined by a deterministic check and that you did not record as not applicable. Nothing runs it unless you ask: no profile, template or default selects it, and `jgates ci` never runs it. Choose **ASVS review** in the method list of the Semantic screens (it can be ticked with the keyboard, like the others), or in the terminal:
+
+```bash
+jgates semantic plan --method asvs-review
+jgates semantic run --method asvs-review
+```
+
+- Before anything starts, the plan says how many requirements it will review (by ASVS chapter, one fresh context each), the Quality run whose map decided that, and the most model calls it may spend. The screen asks you to confirm that cost before **Start** is enabled.
+- It needs a finished Quality run. Without one it is not applicable, with the reason `ASVS_REVIEW_NO_QUALITY_RUN` and no model call: validate the project first. It is also not applicable, with a reason, when nothing is left to review or the coverage map cannot be read.
+- For each requirement the model answers **examined** (the files and lines it read, and whether it found a violation) or **not examinable** with the reason: it concerns the running system, it concerns a person or process, or it is outside the scope. The host rejects an examined answer that names a file the context did not read or a line the file does not have; that answer counts for nothing and its reason is kept in the run's gaps.
+- The result lists the requirements examined and those not examinable, with their reasons, and says that this is an AI review of the source. A candidate violation is a lead that stays `needs-validation` until a person validates it.
+- The ASVS map counts an examined answer apart from the deterministic checks, as an AI review of the source, and only where a reviewed mapping entry allows it; a not-examinable answer gives nothing. It is never a statement that a requirement is met.
 
 ## Sources, pins and attribution
 
