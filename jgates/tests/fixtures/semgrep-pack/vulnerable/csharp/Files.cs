@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,11 @@ using Microsoft.AspNetCore.Mvc;
 public class DocumentsController : Controller
 {
     private const string StoreDir = "/srv/documents";
+
+    public string ReadBody(HttpListenerContext context)
+    {
+        return new StreamReader(context.Request.InputStream).ReadToEnd();
+    }
 
     [HttpPost]
     [DisableRequestSizeLimit]

@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Mime;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,15 @@ using Microsoft.Net.Http.Headers;
 public class DocumentsController : Controller
 {
     private const string StoreDir = "/srv/documents";
+
+    public string ReadBody(HttpListenerContext context)
+    {
+        if (context.Request.ContentLength64 > 1_000_000)
+        {
+            throw new InvalidDataException("request too large");
+        }
+        return new StreamReader(context.Request.InputStream).ReadToEnd();
+    }
 
     [HttpPost]
     [RequestSizeLimit(10_000_000)]

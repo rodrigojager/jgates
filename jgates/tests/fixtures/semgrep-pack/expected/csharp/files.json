@@ -4,6 +4,7 @@
     "jgates.csharp.upload-client-filename-in-path",
     "jgates.csharp.archive-extraction-unchecked",
     "jgates.csharp.request-body-without-size-limit",
+    "jgates.csharp.request-body-without-size-limit-by-default",
     "jgates.csharp.upload-content-type-trusted",
     "jgates.csharp.content-disposition-from-request"
   ]

@@ -92,8 +92,8 @@ rules:
           - focus-metavariable: $P
 
   - id: jgates.csharp.archive-extraction-unchecked
-    message: An archive is extracted whole, or each entry is written to a path built from the entry's own name, with no check of the path or the size. Extract entry by entry, resolve each destination with Path.GetFullPath and require it to start with the target folder, skip links, and stop when the total size passes a limit.
-    severity: WARNING
+    message: An archive is extracted without a visible path or size check. Confirm where those protections are enforced, or extract entry by entry, resolve each destination with Path.GetFullPath and require it to stay within the target folder, skip links, and bound the total extracted size.
+    severity: INFO
     languages: [csharp]
     metadata:
       category: file-handling
@@ -101,6 +101,7 @@ rules:
       subdimension: injection
       author: JGates
       asvs_requirements: ["V5.2.3", "V5.3.2"]
+      class: review
     patterns:
       - pattern-either:
           - patterns:
@@ -221,7 +222,7 @@ rules:
                   }
 
   - id: jgates.csharp.request-body-without-size-limit
-    message: A request size limit is removed or raised to the maximum, or a request body is read in full where the API sets no limit, so one request can use all the memory or disk of the server. Keep the default limit or set a limit that fits the endpoint, for example [RequestSizeLimit(10_000_000)] or a bounded read.
+    message: A request size limit is explicitly removed or raised to the maximum, so one request can exhaust the server's memory or disk. Keep the default limit or set a finite limit that fits the endpoint.
     severity: WARNING
     languages: [csharp]
     metadata:
@@ -235,6 +236,19 @@ rules:
       - pattern-regex: \b(MultipartBodyLengthLimit|ValueLengthLimit|BufferBodyLengthLimit)\s*=\s*(long|int)\.MaxValue\b
       - pattern-regex: \bDisableRequestSizeLimit(Attribute)?\b
       - pattern-regex: \bRequestSizeLimit(Attribute)?\(\s*(long|int)\.MaxValue\s*\)
+
+  - id: jgates.csharp.request-body-without-size-limit-by-default
+    message: An HttpListener request body is read in full without a visible size check. If no upstream limit bounds it, one request can exhaust memory or disk; use a bounded read or confirm where the limit is enforced.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.1"]
+      class: review
+    pattern-either:
       - patterns:
           - pattern-either:
               - pattern: new StreamReader($C.Request.InputStream, ...).ReadToEnd()

@@ -143,6 +143,7 @@ public class UploadFixtures : Controller
     {
         builder.WebHost.ConfigureKestrel(o =>
         {
+            // ok: jgates.csharp.request-body-without-size-limit-by-default
             // ruleid: jgates.csharp.request-body-without-size-limit
             o.Limits.MaxRequestBodySize = null;
         });
@@ -160,8 +161,23 @@ public class UploadFixtures : Controller
 
     public void LimitBad4(HttpListenerContext ctx)
     {
-        // ruleid: jgates.csharp.request-body-without-size-limit
+        // ok: jgates.csharp.request-body-without-size-limit
+        // ruleid: jgates.csharp.request-body-without-size-limit-by-default
         var body = new StreamReader(ctx.Request.InputStream).ReadToEnd();
+    }
+
+    public async Task LimitBad5(HttpListenerContext ctx, Stream output)
+    {
+        // ok: jgates.csharp.request-body-without-size-limit
+        // ruleid: jgates.csharp.request-body-without-size-limit-by-default
+        await ctx.Request.InputStream.CopyToAsync(output);
+    }
+
+    public void ExplicitLimitOnly(FormOptions options)
+    {
+        // ok: jgates.csharp.request-body-without-size-limit-by-default
+        // ruleid: jgates.csharp.request-body-without-size-limit
+        options.ValueLengthLimit = int.MaxValue;
     }
 
     public void LimitOk1(WebApplicationBuilder builder)
@@ -183,8 +199,18 @@ public class UploadFixtures : Controller
         {
             return;
         }
-        // ok: jgates.csharp.request-body-without-size-limit
+        // ok: jgates.csharp.request-body-without-size-limit, jgates.csharp.request-body-without-size-limit-by-default
         var body = new StreamReader(ctx.Request.InputStream).ReadToEnd();
+    }
+
+    public async Task LimitOk4(HttpListenerContext ctx, Stream output)
+    {
+        if (ctx.Request.ContentLength64 > 1_000_000)
+        {
+            return;
+        }
+        // ok: jgates.csharp.request-body-without-size-limit-by-default
+        await ctx.Request.InputStream.CopyToAsync(output);
     }
 
     // ---- upload-content-type-trusted ----
