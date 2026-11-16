@@ -4,6 +4,61 @@
 # StatusCode, Problem), minimal APIs (Results.*) and HttpResponse.WriteAsync for the response rules.
 # The analysis stays inside one method.
 rules:
+  - id: jgates.csharp.outbound-request-follows-redirects
+    message: An outbound request uses an address from the incoming request with a default HttpClient, which follows redirects. Disable automatic redirects or confirm that every redirect destination is validated, not only the first host.
+    severity: INFO
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.2"]
+      class: review
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+      - pattern: Request.QueryString
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  var $C = new HttpClient();
+                  ...
+              - pattern-inside: |
+                  HttpClient $C = new HttpClient();
+                  ...
+              - pattern-inside: |
+                  $C = new HttpClient();
+                  ...
+          - pattern: $C.$METHOD($URL, ...)
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: ^(GetAsync|GetStringAsync|GetStreamAsync|GetByteArrayAsync|PostAsync|PutAsync|DeleteAsync)$
+          - focus-metavariable: $URL
+
   - id: jgates.csharp.sensitive-data-logged
     message: A value named like a password, a secret, a token or an authorization header is passed to a logging call, so it ends up in the log files. Log an identifier or a masked form instead, or leave the value out.
     severity: WARNING

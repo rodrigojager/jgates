@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -55,6 +56,13 @@ public class AccountController : Controller
     public void Cleanup()
     {
         try { Refresh(); } catch { }
+    }
+
+    public async Task Fetch()
+    {
+        var client = new HttpClient();
+        var target = ValidateUrl(Request.Query["url"].ToString());
+        await client.GetAsync(target);
     }
 
     private void Refresh() { }

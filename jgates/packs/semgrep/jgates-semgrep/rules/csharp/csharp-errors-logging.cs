@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -220,6 +221,45 @@ public class ErrorsLoggingFixtures : Controller
     {
         // ok: jgates.csharp.swallowed-exception
         try { Work(); } catch (Exception) { throw; }
+    }
+
+    public async Task RedirectBad1()
+    {
+        var client = new HttpClient();
+        var target = Request.Query["url"].ToString();
+        // ruleid: jgates.csharp.outbound-request-follows-redirects
+        await client.GetAsync(target);
+    }
+
+    public async Task RedirectBad2(string url)
+    {
+        var client = new HttpClient();
+        // ruleid: jgates.csharp.outbound-request-follows-redirects
+        await client.GetStringAsync(url);
+    }
+
+    public async Task RedirectOk1()
+    {
+        var handler = new HttpClientHandler { AllowAutoRedirect = false };
+        var client = new HttpClient(handler);
+        // ok: jgates.csharp.outbound-request-follows-redirects
+        await client.GetAsync(Request.Query["url"].ToString());
+    }
+
+    public async Task RedirectOk2(string url)
+    {
+        var handler = new HttpClientHandler();
+        handler.AllowAutoRedirect = false;
+        var client = new HttpClient(handler);
+        // ok: jgates.csharp.outbound-request-follows-redirects
+        await client.GetStringAsync(url);
+    }
+
+    public async Task RedirectOk3()
+    {
+        var client = new HttpClient();
+        // ok: jgates.csharp.outbound-request-follows-redirects
+        await client.GetAsync("https://service.example/status");
     }
 
     private void Work() { }
