@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"html"
 	htmltemplate "html/template"
+	htmltpl "html/template"
 	"io"
 	"net/http"
 	"os"
 	tt "text/template"
-	"html/template"
 )
 
 var reportTemplate = tt.Must(tt.New("report").Parse("{{.}}\n"))
@@ -23,24 +23,24 @@ func textTemplatePage(w http.ResponseWriter, r *http.Request) {
 	tt.Must(tt.New("x").Parse("<p>{{.}}</p>")).ExecuteTemplate(w, "x", r.FormValue("name"))
 	// ok: jgates.go.text-template-for-html
 	page.Execute(os.Stdout, "report")
-	safe := template.Must(template.New("page").Parse("<p>{{.}}</p>"))
+	safe := htmltpl.Must(htmltpl.New("page").Parse("<p>{{.}}</p>"))
 	// ok: jgates.go.text-template-for-html
 	safe.Execute(w, r.FormValue("name"))
 }
 
 func typedHTML(name string, safe string) {
 	// ruleid: jgates.go.unsafe-html-type
-	_ = template.HTML(name)
+	_ = htmltpl.HTML(name)
 	// ruleid: jgates.go.unsafe-html-type
-	_ = template.JS("var user = '" + name + "';")
+	_ = htmltpl.JS("var user = '" + name + "';")
 	// ruleid: jgates.go.unsafe-html-type
-	_ = template.URL(safe)
+	_ = htmltpl.URL(safe)
 	// ok: jgates.go.unsafe-html-type
-	_ = template.HTML("<b>fixed markup</b>")
+	_ = htmltpl.HTML("<b>fixed markup</b>")
 	// ok: jgates.go.unsafe-html-type
-	_ = template.HTML(policy.Sanitize(name))
+	_ = htmltpl.HTML(policy.Sanitize(name))
 	// ok: jgates.go.unsafe-html-type
-	_ = template.HTML(html.EscapeString(name))
+	_ = htmltpl.HTML(html.EscapeString(name))
 	// ok: jgates.go.unsafe-html-type
 	_ = htmltemplate.HTMLEscapeString(name)
 }
