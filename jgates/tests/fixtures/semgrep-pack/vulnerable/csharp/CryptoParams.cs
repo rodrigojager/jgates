@@ -36,6 +36,12 @@ public class CryptoParamsService
         return kdf.GetBytes(32);
     }
 
+    public byte[] DeriveKeyWithDefaults(string password, byte[] salt)
+    {
+        using var kdf = new Rfc2898DeriveBytes(password, salt);
+        return kdf.GetBytes(32);
+    }
+
     public byte[] StorePassword(string password)
     {
         return SHA256.HashData(Encoding.UTF8.GetBytes(password));

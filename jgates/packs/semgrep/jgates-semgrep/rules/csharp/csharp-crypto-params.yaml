@@ -134,7 +134,6 @@ rules:
           - metavariable-comparison:
               metavariable: $N
               comparison: $N < 100000
-      - pattern: new Rfc2898DeriveBytes($P, $S)
       - patterns:
           - pattern-either:
               - pattern: BCrypt.HashPassword($P, $N)
@@ -160,6 +159,19 @@ rules:
               comparison: $N < 100000
       - pattern-regex: \bnew\s+Argon2(id|i|d)\b[^;]*\bIterations\s*=\s*[01]\b
       - pattern-regex: \bnew\s+Argon2(id|i|d)\b[^;]*\bMemorySize\s*=\s*(\d{1,4}|1[0-8]\d{3})\b
+
+  - id: jgates.csharp.weak-kdf-parameters-by-default
+    message: Rfc2898DeriveBytes is created without an iteration count. This overload uses a low default work factor; set an explicit count of at least 600000 with SHA-256 or confirm that this derivation is not used to protect passwords.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V11.4.4"]
+      class: review
+    pattern: new Rfc2898DeriveBytes($P, $S)
 
   - id: jgates.csharp.password-hash-with-fast-hash
     message: A password is hashed with a plain, fast hash function, so a stolen hash can be guessed at billions per second. Use a password hashing function such as Rfc2898DeriveBytes.Pbkdf2, bcrypt or Argon2.

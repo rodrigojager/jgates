@@ -6,6 +6,7 @@
     "jgates.csharp.static-iv-or-nonce",
     "jgates.csharp.cipher-mode-without-authentication",
     "jgates.csharp.weak-kdf-parameters",
+    "jgates.csharp.weak-kdf-parameters-by-default",
     "jgates.csharp.password-hash-with-fast-hash",
     "jgates.csharp.timing-unsafe-comparison",
     "jgates.csharp.weak-signature-hash",

@@ -79,7 +79,7 @@ public class CryptoParamsSamples
         var a = new Rfc2898DeriveBytes(password, salt, 1000);
         // ruleid: jgates.csharp.weak-kdf-parameters
         var b = Rfc2898DeriveBytes.Pbkdf2(password, salt, 10000, HashAlgorithmName.SHA256, 32);
-        // ruleid: jgates.csharp.weak-kdf-parameters
+        // ruleid: jgates.csharp.weak-kdf-parameters-by-default
         var c = new Rfc2898DeriveBytes(password, salt);
         // ruleid: jgates.csharp.weak-kdf-parameters
         var d = BCrypt.Net.BCrypt.HashPassword(password, 4);
@@ -93,6 +93,18 @@ public class CryptoParamsSamples
         var h = BCrypt.Net.BCrypt.HashPassword(password, 12);
         // ok: jgates.csharp.weak-kdf-parameters
         var i = new Rfc2898DeriveBytes(password, salt, 600000, HashAlgorithmName.SHA256);
+    }
+
+    public void DefaultKdfSamples(string password, byte[] salt)
+    {
+        // ruleid: jgates.csharp.weak-kdf-parameters-by-default
+        using var omittedIterations = new Rfc2898DeriveBytes(password, salt);
+        // ruleid: jgates.csharp.weak-kdf-parameters
+        using var explicitWeakIterations = new Rfc2898DeriveBytes(password, salt, 1000);
+        // ok: jgates.csharp.weak-kdf-parameters-by-default
+        using var explicitIterations = new Rfc2898DeriveBytes(password, salt, 600000);
+        // ok: jgates.csharp.weak-kdf-parameters-by-default
+        using var explicitHash = new Rfc2898DeriveBytes(password, salt, 600000, HashAlgorithmName.SHA256);
     }
 
     public void PasswordHashSamples(string password, string userPassword, byte[] salt)
