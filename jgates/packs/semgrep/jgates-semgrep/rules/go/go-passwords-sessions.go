@@ -2,7 +2,9 @@ package fixtures
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
@@ -99,6 +101,41 @@ func ozzoMax(u *User) error {
 func ozzoMaxOk(u *User) error {
 	// ok: jgates.go.password-max-length-below-64
 	return validation.ValidateStruct(u, validation.Field(&u.Password, validation.Length(12, 128)))
+}
+
+func passwordHasUpper(password string) (bool, error) {
+	// ruleid: jgates.go.password-composition-rule
+	return regexp.MatchString("[A-Z]", password)
+}
+
+func passwordHasDigit(passphrase string) bool {
+	for _, char := range passphrase {
+		// ruleid: jgates.go.password-composition-rule
+		if unicode.IsDigit(char) {
+			return true
+		}
+	}
+	return false
+}
+
+func passwordLengthOnly(password string) (bool, error) {
+	// ok: jgates.go.password-composition-rule
+	return regexp.MatchString("^.{12,128}$", password)
+}
+
+func passwordPrintable(password string) bool {
+	for _, char := range password {
+		// ok: jgates.go.password-composition-rule
+		if !unicode.IsPrint(char) {
+			return false
+		}
+	}
+	return true
+}
+
+func usernameHasUpper(username string) (bool, error) {
+	// ok: jgates.go.password-composition-rule
+	return regexp.MatchString("[A-Z]", username)
 }
 
 func hashLowered(password string) ([]byte, error) {

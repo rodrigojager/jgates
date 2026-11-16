@@ -2,6 +2,7 @@ package app
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/pquerna/otp/totp"
@@ -20,6 +21,14 @@ type Account struct {
 
 func tooLong(password string) bool {
 	return len(password) > 20
+}
+
+func acceptsPassword(password string) bool {
+	if len(password) < 12 {
+		return false
+	}
+	hasUpper, _ := regexp.MatchString("[A-Z]", password)
+	return hasUpper
 }
 
 func hashPassword(password string) ([]byte, error) {

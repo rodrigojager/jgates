@@ -22,6 +22,13 @@ func withinLimit(password string) bool {
 	return len(password) <= 128
 }
 
+func acceptsPassword(password string) bool {
+	if len(password) < 12 {
+		return false
+	}
+	return true
+}
+
 func hashPassword(password string) ([]byte, error) {
 	return bcrypt.GenerateFromPassword([]byte(password), 12)
 }
