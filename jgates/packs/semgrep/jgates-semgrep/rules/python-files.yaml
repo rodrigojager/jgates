@@ -64,7 +64,7 @@ rules:
           - focus-metavariable: $P
 
   - id: jgates.python.archive-extraction-unchecked
-    message: An archive is extracted without checking where the entries land, what kind of entry they are, or how large they grow. Extract tar files with filter="data" (or pass a checked members list), and check the entry paths and the total size before extracting a zip file.
+    message: Archive extraction explicitly selects filter="fully_trusted", disabling tar entry protections. Use filter="data" or a filter that checks entry paths and types.
     severity: WARNING
     languages: [python]
     metadata:
@@ -73,7 +73,21 @@ rules:
       author: JGates
       subdimension: injection
       asvs_requirements: ["V5.2.3", "V5.2.5", "V5.3.2"]
+    pattern: $T.extractall(..., filter="fully_trusted", ...)
+
+  - id: jgates.python.archive-extraction-unchecked-by-default
+    message: An archive is extracted without a visible filter or member check. If the library default or another layer does not protect extraction, entries may escape the destination or exhaust resources; set filter="data" for tar files or confirm where entry paths, types and sizes are checked.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: file-handling
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.3", "V5.2.5", "V5.3.2"]
+      class: review
     patterns:
+      - pattern-not: $T.extractall(..., filter="fully_trusted", ...)
       - pattern-either:
           - patterns:
               - pattern: $T.extractall(...)
@@ -91,7 +105,6 @@ rules:
               - pattern: tarfile.open(...).extractall(...)
               - pattern-not: tarfile.open(...).extractall(..., filter=..., ...)
               - pattern-not: tarfile.open(...).extractall(..., members=..., ...)
-          - pattern: $T.extractall(..., filter="fully_trusted", ...)
           - patterns:
               - pattern: $T.extract($M, ...)
               - pattern-either:

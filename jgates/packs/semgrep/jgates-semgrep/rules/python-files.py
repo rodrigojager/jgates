@@ -49,23 +49,25 @@ def save_django(request):
 
 
 def unpack(path, dest):
-    # ruleid: jgates.python.archive-extraction-unchecked
+    # ruleid: jgates.python.archive-extraction-unchecked-by-default
     tarfile.open(path).extractall(dest)
     with tarfile.open(path) as tar:
-        # ruleid: jgates.python.archive-extraction-unchecked
+        # ruleid: jgates.python.archive-extraction-unchecked-by-default
         tar.extractall(dest)
     with tarfile.open(path) as tar:
         for member in tar:
-            # ruleid: jgates.python.archive-extraction-unchecked
+            # ruleid: jgates.python.archive-extraction-unchecked-by-default
             tar.extract(member, dest)
     with zipfile.ZipFile(path) as zf:
-        # ruleid: jgates.python.archive-extraction-unchecked
+        # ruleid: jgates.python.archive-extraction-unchecked-by-default
         zf.extractall(dest)
-    # ruleid: jgates.python.archive-extraction-unchecked
+    # ruleid: jgates.python.archive-extraction-unchecked-by-default
     shutil.unpack_archive(path, dest)
     with tarfile.open(path) as tar:
         # ruleid: jgates.python.archive-extraction-unchecked
         tar.extractall(dest, filter="fully_trusted")
+    # ruleid: jgates.python.archive-extraction-unchecked
+    tarfile.open(path).extractall(dest, filter="fully_trusted")
 
 
 def unpack_safely(path, dest):
@@ -80,9 +82,9 @@ def unpack_safely(path, dest):
         total = sum(info.file_size for info in zf.infolist())
         if total > 100_000_000:
             raise ValueError("archive too large")
-        # ok: jgates.python.archive-extraction-unchecked
+        # ok: jgates.python.archive-extraction-unchecked-by-default
         zf.extractall(dest)
-    # ok: jgates.python.archive-extraction-unchecked
+    # ok: jgates.python.archive-extraction-unchecked-by-default
     shutil.unpack_archive(path, dest, filter="data")
 
 

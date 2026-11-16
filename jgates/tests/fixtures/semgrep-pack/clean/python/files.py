@@ -27,6 +27,8 @@ def upload():
 def import_archive():
     with tarfile.open(fileobj=request.files["bundle"].stream) as tar:
         tar.extractall(UPLOAD_DIR, filter="data")
+    with tarfile.open(fileobj=request.files["trusted_bundle"].stream) as tar:
+        tar.extractall(UPLOAD_DIR, filter="data")
     return "imported"
 
 
