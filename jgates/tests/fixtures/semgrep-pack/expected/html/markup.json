@@ -4,9 +4,11 @@
     "jgates.html.external-script-without-integrity",
     "jgates.html.deprecated-plugin-content",
     "jgates.html.password-field-not-masked",
+    "jgates.html.password-field-not-masked-by-default",
     "jgates.html.password-paste-blocked",
     "jgates.html.csp-unsafe-directive",
     "jgates.html.cleartext-http-url",
-    "jgates.html.sensitive-query-parameter"
+    "jgates.html.sensitive-query-parameter",
+    "jgates.html.sensitive-query-parameter-by-default"
   ]
 }

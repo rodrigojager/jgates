@@ -49,9 +49,17 @@
     <input type="text" name="user">
     <input type="password" name="password">
   </form>
-  <!-- ruleid: jgates.html.sensitive-query-parameter -->
+  <!-- ruleid: jgates.html.sensitive-query-parameter-by-default -->
   <form action="/login">
     <input type="password" name="pwd">
+  </form>
+  <!-- ruleid: jgates.html.sensitive-query-parameter -->
+  <form method='GET' action="/reauth">
+    <input name="passphrase" type="password">
+  </form>
+  <!-- ruleid: jgates.html.sensitive-query-parameter-by-default -->
+  <form action="/reauth">
+    <input name="passphrase" type="password">
   </form>
   <!-- ok: jgates.html.sensitive-query-parameter -->
   <form action="/login" method="post">
@@ -61,18 +69,34 @@
   <form action="/search" method="get">
     <input type="text" name="q">
   </form>
+  <!-- ok: jgates.html.sensitive-query-parameter-by-default -->
+  <form action="/login" method="post">
+    <input type="password" name="password">
+  </form>
+  <!-- ok: jgates.html.sensitive-query-parameter-by-default -->
+  <form method="dialog">
+    <input type="password" name="passphrase">
+  </form>
 
   <form action="/signup" method="post">
     <!-- ruleid: jgates.html.password-field-not-masked -->
     <input type="text" name="password">
     <!-- ruleid: jgates.html.password-field-not-masked -->
+    <input id="user_passwd" type="text">
+    <!-- ruleid: jgates.html.password-field-not-masked-by-default -->
     <input id="user_passwd">
+    <!-- ruleid: jgates.html.password-field-not-masked-by-default -->
+    <input name="passphrase">
     <!-- ok: jgates.html.password-field-not-masked -->
     <input type="password" name="password">
     <!-- ok: jgates.html.password-field-not-masked -->
     <input type="checkbox" name="show_password">
     <!-- ok: jgates.html.password-field-not-masked -->
     <input type="text" name="username">
+    <!-- ok: jgates.html.password-field-not-masked-by-default -->
+    <input type="password" id="user_passwd">
+    <!-- ok: jgates.html.password-field-not-masked-by-default -->
+    <input type="password" name="passphrase">
     <!-- ruleid: jgates.html.password-paste-blocked -->
     <input type="password" name="pw" onpaste="return false">
     <!-- ruleid: jgates.html.password-paste-blocked -->

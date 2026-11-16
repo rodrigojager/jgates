@@ -15,6 +15,10 @@
   </form>
   <form action="/profile" method="post">
     <input type="password" name="new_password" autocomplete="new-password">
+    <input type="password" name="confirm_password">
+  </form>
+  <form action="/reauth" method="post">
+    <input type="password" name="password">
   </form>
   <form action="https://pay.example.com/checkout" method="post">
     <input type="text" name="card_holder">

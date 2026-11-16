@@ -44,7 +44,7 @@ rules:
           - pattern-regex: (?is)(application/x-shockwave-flash|application/x-silverlight|classid\s*=\s*["']?\s*clsid:|\.swf\b|\.xap\b|\.jar\b|application/x-java-applet)
 
   - id: jgates.html.password-field-not-masked
-    message: An input named like a password is not of type password, so what the user types is shown on screen. Use type="password".
+    message: An input named like a password explicitly uses an unmasked type, so what the user types is shown on screen. Use type="password".
     severity: WARNING
     languages: [html]
     metadata:
@@ -60,7 +60,28 @@ rules:
       - metavariable-regex:
           metavariable: $N
           regex: (?is).*(password|passwd|pwd|passphrase|senha)
+      - pattern-regex: (?i)\btype\s*=
       - pattern-not-regex: (?i)\btype\s*=\s*["']?\s*(password|hidden|submit|button|checkbox|radio|reset|image|file)\b
+
+  - id: jgates.html.password-field-not-masked-by-default
+    message: An input named like a password has no type attribute. The browser defaults to an unmasked text field unless another layer sets the type; use type="password" here or confirm where it is set.
+    severity: INFO
+    languages: [html]
+    metadata:
+      category: authentication
+      cwe: "CWE-549"
+      subdimension: authorization
+      author: JGates
+      asvs_requirements: ["V6.2.6"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: <input name="$N" ...>
+          - pattern: <input id="$N" ...>
+      - metavariable-regex:
+          metavariable: $N
+          regex: (?is).*(password|passwd|pwd|passphrase|senha)
+      - pattern-not-regex: (?i)\btype\s*=
 
   - id: jgates.html.password-paste-blocked
     message: A password field prevents pasting or switches autocomplete off, which keeps password managers from filling it and pushes users to weak, typed passwords. Allow paste and use autocomplete="current-password" or "new-password".
@@ -135,4 +156,17 @@ rules:
       subdimension: privacy
       author: JGates
       asvs_requirements: ["V14.2.1"]
-    pattern-regex: (?is)<form\b(?![^>]*\bmethod\s*=\s*["']?\s*(post|dialog)\b)[^>]*>(?:(?!</form>).)*?<input\b[^>]*\btype\s*=\s*["']?password\b
+    pattern-regex: (?is)<form\b(?=[^>]*\bmethod\s*=\s*["']?\s*get\b)[^>]*>(?:(?!</form>).)*?<input\b[^>]*\btype\s*=\s*["']?password\b
+
+  - id: jgates.html.sensitive-query-parameter-by-default
+    message: A form with a password field has no method attribute. The browser defaults to GET unless another layer sets the method, which can put the password in the address, history and logs; use method="post" here or confirm where it is set.
+    severity: INFO
+    languages: [html]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      subdimension: privacy
+      author: JGates
+      asvs_requirements: ["V14.2.1"]
+      class: review
+    pattern-regex: (?is)<form\b(?![^>]*\bmethod\s*=)[^>]*>(?:(?!</form>).)*?<input\b[^>]*\btype\s*=\s*["']?password\b
