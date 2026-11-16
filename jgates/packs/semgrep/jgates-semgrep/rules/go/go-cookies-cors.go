@@ -12,18 +12,26 @@ import (
 )
 
 func secureCases(w http.ResponseWriter) {
-	// ruleid: jgates.go.cookie-without-secure
+	// ruleid: jgates.go.cookie-without-secure-by-default
 	http.SetCookie(w, &http.Cookie{Name: "__Host-a", Value: "v", HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	// ruleid: jgates.go.cookie-without-secure
 	http.SetCookie(w, &http.Cookie{Name: "__Host-a", Value: "v", Secure: false, HttpOnly: true, SameSite: http.SameSiteLaxMode})
-	// ruleid: jgates.go.cookie-without-secure
+	// ruleid: jgates.go.cookie-without-secure-by-default
 	_ = fiber.Cookie{Name: "__Host-a", Value: "v", HTTPOnly: true, SameSite: "Lax"}
-	// ruleid: jgates.go.cookie-without-secure
+	// ruleid: jgates.go.cookie-without-secure-by-default
 	_ = sessions.Options{Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}
+	// ruleid: jgates.go.cookie-without-secure
+	_ = fiber.Cookie{Name: "__Host-a", Value: "v", Secure: false, HTTPOnly: true, SameSite: "Lax"}
+	// ruleid: jgates.go.cookie-without-secure
+	_ = sessions.Options{Path: "/", Secure: false, HttpOnly: true, SameSite: http.SameSiteLaxMode}
 	// ok: jgates.go.cookie-without-secure
 	http.SetCookie(w, &http.Cookie{Name: "__Host-a", Value: "v", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	// ok: jgates.go.cookie-without-secure
 	_ = fiber.Cookie{Name: "__Host-a", Value: "v", Secure: true, HTTPOnly: true, SameSite: "Lax"}
+	// ok: jgates.go.cookie-without-secure-by-default
+	http.SetCookie(w, &http.Cookie{Name: "__Host-b", Value: "v", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+	// ok: jgates.go.cookie-without-secure-by-default
+	_ = sessions.Options{Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode}
 }
 
 func ginSecureCases(c *gin.Context) {
@@ -34,18 +42,26 @@ func ginSecureCases(c *gin.Context) {
 }
 
 func httpOnlyCases(w http.ResponseWriter) {
-	// ruleid: jgates.go.cookie-without-httponly
+	// ruleid: jgates.go.cookie-without-httponly-by-default
 	http.SetCookie(w, &http.Cookie{Name: "__Host-a", Value: "v", Secure: true, SameSite: http.SameSiteLaxMode})
 	// ruleid: jgates.go.cookie-without-httponly
 	http.SetCookie(w, &http.Cookie{Name: "__Host-a", Value: "v", Secure: true, HttpOnly: false, SameSite: http.SameSiteLaxMode})
-	// ruleid: jgates.go.cookie-without-httponly
+	// ruleid: jgates.go.cookie-without-httponly-by-default
 	_ = fiber.Cookie{Name: "__Host-a", Value: "v", Secure: true, SameSite: "Lax"}
-	// ruleid: jgates.go.cookie-without-httponly
+	// ruleid: jgates.go.cookie-without-httponly-by-default
 	_ = sessions.Options{Path: "/", Secure: true, SameSite: http.SameSiteLaxMode}
+	// ruleid: jgates.go.cookie-without-httponly
+	_ = fiber.Cookie{Name: "__Host-a", Value: "v", Secure: true, HTTPOnly: false, SameSite: "Lax"}
+	// ruleid: jgates.go.cookie-without-httponly
+	_ = sessions.Options{Path: "/", Secure: true, HttpOnly: false, SameSite: http.SameSiteLaxMode}
 	// ok: jgates.go.cookie-without-httponly
 	http.SetCookie(w, &http.Cookie{Name: "__Host-a", Value: "v", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode})
 	// ok: jgates.go.cookie-without-httponly
 	_ = sessions.Options{Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode}
+	// ok: jgates.go.cookie-without-httponly-by-default
+	http.SetCookie(w, &http.Cookie{Name: "__Host-b", Value: "v", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+	// ok: jgates.go.cookie-without-httponly-by-default
+	_ = fiber.Cookie{Name: "__Host-b", Value: "v", Secure: true, HTTPOnly: true, SameSite: "Strict"}
 }
 
 func ginHttpOnlyCases(c *gin.Context) {

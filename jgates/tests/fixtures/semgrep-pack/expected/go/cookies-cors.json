@@ -1,4 +1,4 @@
 {
   "files": ["cookies-cors.go"],
-  "ruleIds": ["jgates.go.cookie-without-secure", "jgates.go.cookie-without-httponly", "jgates.go.cookie-without-samesite", "jgates.go.cookie-name-without-prefix", "jgates.go.cors-any-origin-with-credentials", "jgates.go.cors-origin-reflected", "jgates.go.cors-origin-reflected-allow-all", "jgates.go.csrf-protection-disabled", "jgates.go.jsonp-enabled", "jgates.go.sensitive-query-parameter"]
+  "ruleIds": ["jgates.go.cookie-without-secure", "jgates.go.cookie-without-secure-by-default", "jgates.go.cookie-without-httponly", "jgates.go.cookie-without-httponly-by-default", "jgates.go.cookie-without-samesite", "jgates.go.cookie-name-without-prefix", "jgates.go.cors-any-origin-with-credentials", "jgates.go.cors-origin-reflected", "jgates.go.cors-origin-reflected-allow-all", "jgates.go.csrf-protection-disabled", "jgates.go.jsonp-enabled", "jgates.go.sensitive-query-parameter"]
 }

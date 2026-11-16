@@ -4,7 +4,7 @@
 # rs/cors (cors.Options), gin-contrib/cors (cors.Config), gorilla/csrf and gorilla/websocket (CheckOrigin).
 rules:
   - id: jgates.go.cookie-without-secure
-    message: A cookie is written without the Secure attribute, so a browser may send it over plain HTTP. Set Secure to true (or a configuration value) on the cookie.
+    message: A cookie explicitly disables the Secure attribute, so a browser may send it over plain HTTP. Set Secure to true (or a configuration value) on the cookie.
     severity: WARNING
     languages: [go]
     metadata:
@@ -14,22 +14,35 @@ rules:
       subdimension: authorization
       asvs_requirements: ["V3.3.1"]
     pattern-either:
-      - patterns:
-          - pattern: 'http.Cookie{...}'
-          - pattern-not: 'http.Cookie{..., Secure: $X, ...}'
       - pattern: 'http.Cookie{..., Secure: false, ...}'
-      - patterns:
-          - pattern: 'fiber.Cookie{...}'
-          - pattern-not: 'fiber.Cookie{..., Secure: $X, ...}'
       - pattern: 'fiber.Cookie{..., Secure: false, ...}'
-      - patterns:
-          - pattern: 'sessions.Options{...}'
-          - pattern-not: 'sessions.Options{..., Secure: $X, ...}'
       - pattern: 'sessions.Options{..., Secure: false, ...}'
       - pattern: $C.SetCookie($N, $V, $A, $P, $D, false, ...)
 
+  - id: jgates.go.cookie-without-secure-by-default
+    message: A cookie is created without the Secure option. If nothing else adds it, the cookie can travel over plain HTTP; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern: 'http.Cookie{...}'
+          - pattern-not: 'http.Cookie{..., Secure: $X, ...}'
+      - patterns:
+          - pattern: 'fiber.Cookie{...}'
+          - pattern-not: 'fiber.Cookie{..., Secure: $X, ...}'
+      - patterns:
+          - pattern: 'sessions.Options{...}'
+          - pattern-not: 'sessions.Options{..., Secure: $X, ...}'
+
   - id: jgates.go.cookie-without-httponly
-    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Set HttpOnly to true on cookies the browser code does not need.
+    message: A cookie explicitly disables the HttpOnly attribute, so page scripts can read it. Set HttpOnly to true on cookies the browser code does not need.
     severity: WARNING
     languages: [go]
     metadata:
@@ -39,19 +52,32 @@ rules:
       subdimension: authorization
       asvs_requirements: ["V3.3.4"]
     pattern-either:
+      - pattern: 'http.Cookie{..., HttpOnly: false, ...}'
+      - pattern: 'fiber.Cookie{..., HTTPOnly: false, ...}'
+      - pattern: 'sessions.Options{..., HttpOnly: false, ...}'
+      - pattern: $C.SetCookie($N, $V, $A, $P, $D, $S, false)
+
+  - id: jgates.go.cookie-without-httponly-by-default
+    message: A cookie is created without the HttpOnly option. If nothing else adds it, page scripts can read the cookie; set the option here for cookies browser code does not need or confirm where it is set.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+      class: review
+    pattern-either:
       - patterns:
           - pattern: 'http.Cookie{...}'
           - pattern-not: 'http.Cookie{..., HttpOnly: $X, ...}'
-      - pattern: 'http.Cookie{..., HttpOnly: false, ...}'
       - patterns:
           - pattern: 'fiber.Cookie{...}'
           - pattern-not: 'fiber.Cookie{..., HTTPOnly: $X, ...}'
-      - pattern: 'fiber.Cookie{..., HTTPOnly: false, ...}'
       - patterns:
           - pattern: 'sessions.Options{...}'
           - pattern-not: 'sessions.Options{..., HttpOnly: $X, ...}'
-      - pattern: 'sessions.Options{..., HttpOnly: false, ...}'
-      - pattern: $C.SetCookie($N, $V, $A, $P, $D, $S, false)
 
   - id: jgates.go.cookie-without-samesite
     message: A cookie is written with SameSite set to None, or without SameSite where the library sends none, so it travels on cross-site requests. Set SameSite to Lax or Strict.

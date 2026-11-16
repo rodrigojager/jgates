@@ -11,6 +11,7 @@ import (
 
 func login(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{Name: "session", Value: token, Path: "/"})
+	http.SetCookie(w, &http.Cookie{Name: "__Host-legacy", Value: token, Path: "/", Secure: false, HttpOnly: false, SameSite: http.SameSiteLaxMode})
 }
 
 func corsConfig() cors.Config {
