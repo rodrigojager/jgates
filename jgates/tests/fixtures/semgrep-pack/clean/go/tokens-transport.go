@@ -18,6 +18,10 @@ func newTokenParser() *jwt.Parser {
 	return jwt.NewParser(jwt.WithExpirationRequired(), jwt.WithValidMethods([]string{"RS256"}))
 }
 
+func parseToken(raw string, keyFunc jwt.Keyfunc) (*jwt.Token, error) {
+	return jwt.Parse(raw, keyFunc, jwt.WithValidMethods([]string{"RS256"}), jwt.WithAudience("profile-service"))
+}
+
 func loginURL(conf *oauth2.Config, state string, verifier string) string {
 	return conf.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
 }

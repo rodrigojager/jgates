@@ -17,6 +17,10 @@ func newTokenParser() *jwt.Parser {
 	return jwt.NewParser(jwt.WithoutClaimsValidation())
 }
 
+func parseToken(raw string, keyFunc jwt.Keyfunc) (*jwt.Token, error) {
+	return jwt.Parse(raw, keyFunc, jwt.WithValidMethods([]string{"RS256"}))
+}
+
 func loginURL(conf *oauth2.Config) string {
 	return conf.AuthCodeURL("state")
 }

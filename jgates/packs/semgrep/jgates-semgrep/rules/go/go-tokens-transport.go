@@ -34,6 +34,7 @@ func expiryCases(tokenString string, keyFunc jwt.Keyfunc) {
 	// ok: jgates.go.jwt-expiry-not-validated
 	_ = &jwt.Parser{SkipClaimsValidation: false}
 	// ok: jgates.go.jwt-expiry-not-validated
+	// ruleid: jgates.go.jwt-audience-not-validated
 	jwt.Parse(tokenString, keyFunc, jwt.WithValidMethods([]string{"RS256"}))
 }
 
@@ -50,6 +51,17 @@ func oauthStateCases(conf *oauth2.Config, state string, verifier string) {
 	_ = conf.AuthCodeURL("", oauth2.S256ChallengeOption(verifier))
 	// ok: jgates.go.oauth-request-without-state
 	_ = "https://idp.example.com/authorize?client_id=abc&response_type=code&state=xyz"
+}
+
+func audienceCases(tokenString string, keyFunc jwt.Keyfunc, claims jwt.Claims, audience string) {
+	// ruleid: jgates.go.jwt-audience-not-validated
+	jwt.Parse(tokenString, keyFunc)
+	// ruleid: jgates.go.jwt-audience-not-validated
+	jwt.ParseWithClaims(tokenString, claims, keyFunc, jwt.WithExpirationRequired())
+	// ok: jgates.go.jwt-audience-not-validated
+	jwt.Parse(tokenString, keyFunc, jwt.WithAudience(audience))
+	// ok: jgates.go.jwt-audience-not-validated
+	jwt.ParseWithClaims(tokenString, claims, keyFunc, jwt.WithExpirationRequired(), jwt.WithAudience(audience), jwt.WithValidMethods([]string{"RS256"}))
 }
 
 func tlsVersionCases() {
