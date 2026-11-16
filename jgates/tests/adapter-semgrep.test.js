@@ -513,7 +513,8 @@ test("every rule of the bundled pack has its language prefix, its metadata and a
       assert.equal(families.get(rule.family).kind, kind, `${rule.id}: the family ${rule.family} has another category or CWE than ${families.get(rule.family).id}`);
     }
     assert.ok(rule.fixture, `${rule.file} has a fixture beside it`);
-    const fixture = fs.readFileSync(path.join(PACK_RULES, rule.fixture), "utf8");
+    // A rule file may have a fixture per extension (.js, .jsx, .ts): the cases of a rule may sit in any of them.
+    const fixture = rule.fixtures.map((f) => fs.readFileSync(path.join(PACK_RULES, f), "utf8")).join("\n");
     const id = rule.id.replace(/[.]/g, "\\.");
     assert.match(fixture, new RegExp(`ruleid:\\s*${id}(?![\\w.-])`), `${rule.id} has a ruleid: case`);
     assert.match(fixture, new RegExp(`\\bok:\\s*${id}(?![\\w.-])`), `${rule.id} has an ok: case`);
@@ -539,7 +540,9 @@ function checkTwin(language) {
   }
   assert.deepEqual([...new Set(bad.findings.map((f) => f.location.path))].sort(), [...expected.files].sort(), language);
   const clean = scanWithPack("clean", language);
-  assert.deepEqual(clean.findings.map((f) => f.ruleId), [], `${language} clean twin`);
+  // A signal rule records the technology a file uses (the scan here is parsed without the pack's signal map, so its results
+  // show up as findings): the clean twin has no finding of a check, as in checkGroupTwin.
+  assert.deepEqual(clean.findings.filter((f) => !isSignal(f)).map((f) => f.ruleId), [], `${language} clean twin`);
 }
 
 const SIGNAL_ID = /^jgates\.[a-z]+\.uses-([a-z0-9-]+)$/;

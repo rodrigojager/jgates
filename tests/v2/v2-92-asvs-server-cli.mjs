@@ -221,7 +221,7 @@ function setup(extraEnv = {}) {
   const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1", JGATES_ASVS_MAP_DIR: fixtureMapping(), JGATES_POLICY_DIR: "", JGATES_POLICY_SHA256: "", ...extraEnv };
   delete env.JGATES_PYTHON;
   const cli = (args, over = {}) => {
-    const r = spawnSync(process.execPath, [MAIN, ...args], { cwd: project, encoding: "utf8", env: { ...env, ...over }, input: "", timeout: 120_000 });
+    const r = spawnSync(process.execPath, [MAIN, ...args], { cwd: project, encoding: "utf8", env: { ...env, ...over }, input: "", timeout: 120_000, maxBuffer: 256 * 1024 * 1024 });
     return { code: r.status, out: r.stdout, err: r.stderr };
   };
   const json = (args, over) => {

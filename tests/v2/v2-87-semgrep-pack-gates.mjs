@@ -73,7 +73,8 @@ test("V2-87: every rule file has its fixture and every rule has its prefix, cate
       assert.equal(families.get(rule.family).kind, kind, `${rule.id}: the family ${rule.family} keeps its category and CWE (see ${families.get(rule.family).id})`);
     }
     assert.ok(rule.fixture, `${rule.id}: fixture`);
-    const fixture = fs.readFileSync(path.join(RULES, rule.fixture), "utf8");
+    // A rule file may have a fixture per extension (.js, .jsx, .ts): the cases of a rule may sit in any of them.
+    const fixture = rule.fixtures.map((f) => fs.readFileSync(path.join(RULES, f), "utf8")).join("\n");
     const id = rule.id.replace(/[.]/g, "\\.");
     assert.match(fixture, new RegExp(`ruleid:\\s*${id}(?![\\w.-])`), `${rule.id}: ruleid case`);
     assert.match(fixture, new RegExp(`\\bok:\\s*${id}(?![\\w.-])`), `${rule.id}: ok case`);

@@ -29,7 +29,8 @@ async fn run_tool() {
 }
 
 async fn fetch(Query(params): Query<Params>) -> String {
-    reqwest::get(validate_url(&params.url)).await.unwrap().text().await.unwrap()
+    let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(10)).build().unwrap();
+    client.get(validate_url(&params.url)).send().await.unwrap().text().await.unwrap()
 }
 
 async fn read_file(Query(params): Query<Params>) -> String {
@@ -51,7 +52,7 @@ async fn import(body: axum::body::Bytes) {
 fn fingerprint(data: &[u8]) {
     let _h = Sha256::digest(data);
     let _c = openssl::symm::Cipher::aes_256_gcm();
-    let _client = reqwest::Client::builder().build();
+    let _client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(10)).build();
 }
 
 #[tokio::main]

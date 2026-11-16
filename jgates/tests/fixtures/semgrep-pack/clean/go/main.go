@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -14,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -35,15 +37,16 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	db.Query("SELECT * FROM users WHERE name = ?", name)
 	sum := sha256.Sum256([]byte(name))
 	_ = sum
-	cipher, _ := aes.NewCipher([]byte("0123456789abcdef"))
+	key, _ := hex.DecodeString(os.Getenv("APP_ENCRYPTION_KEY"))
+	cipher, _ := aes.NewCipher(key)
 	_ = cipher
 }
 
 func fetchHandler(w http.ResponseWriter, r *http.Request) {
 	pool, _ := x509.SystemCertPool()
-	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}}}
+	client := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}}}
 	client.Get("https://example.com")
-	http.Get("https://api.example.com/status")
+	client.Get("https://api.example.com/status")
 }
 
 func fileHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,5 +74,5 @@ func tokenHandler(w http.ResponseWriter, r *http.Request) {
 
 func importHandler(w http.ResponseWriter, r *http.Request) {
 	var state map[string]string
-	json.NewDecoder(r.Body).Decode(&state)
+	json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&state)
 }

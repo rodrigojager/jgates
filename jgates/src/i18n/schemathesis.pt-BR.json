@@ -34,7 +34,7 @@
   "schemathesis_form_target": "URL do alvo",
   "schemathesis_form_target_help": "URL base da sua API, já em execução (local ou num ambiente descartável), por exemplo http://localhost:8000. O JGates não inicia a aplicação: deixe-a rodando antes da validação. O Schemathesis envia requisições geradas, inclusive inválidas: nunca aponte para produção.",
   "schemathesis_form_checks": "Verificações em cada resposta",
-  "schemathesis_form_checks_help": "O que é verificado em cada resposta. As quatro primeiras (o padrão) julgam a conformidade com a especificação.",
+  "schemathesis_form_checks_help": "O que é verificado em cada resposta. As quatro primeiras (o padrão) julgam se a resposta segue a especificação.",
   "schemathesis_form_check_not_a_server_error": "Sem erro de servidor (5xx)",
   "schemathesis_form_check_status_code_conformance": "Código de status documentado",
   "schemathesis_form_check_content_type_conformance": "Tipo de conteúdo documentado",

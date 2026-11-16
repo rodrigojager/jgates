@@ -41,6 +41,8 @@ export interface PackRule {
   file: string;
   /** The annotated fixture beside the rule file (same stem, not YAML), relative to the rules folder; null when missing. */
   fixture: string | null;
+  /** Every annotated fixture beside the rule file (a rule file may have one per extension: .js, .jsx, .ts...), relative to the rules folder. */
+  fixtures: string[];
   /** Every metadata key of the rule, for the checks that refuse unwanted ones. */
   metadataKeys: string[];
   /** The family name: the id without `jgates.<prefix>.`, the same in every language that has the family. */
@@ -95,6 +97,17 @@ export function packFixtureOf(rulesDir: string, file: string): string | null {
 
 const text = (value: unknown): string => (typeof value === "string" ? value : value === undefined || value === null ? "" : String(value));
 
+/** Every fixture beside a rule file: the same stem with any other extension (a rule file may have several). */
+export function packFixturesOf(rulesDir: string, file: string): string[] {
+  const dir = path.dirname(file);
+  const stem = path.basename(file).replace(/\.yaml$/, "");
+  return fs
+    .readdirSync(path.join(rulesDir, dir))
+    .filter((n) => n.startsWith(`${stem}.`) && !n.endsWith(".yaml"))
+    .sort()
+    .map((n) => (dir === "." ? n : `${dir}/${n}`));
+}
+
 /** Reads the pack index from the rule files of a rules folder. */
 export function buildPackIndex(rulesDir: string): PackIndex {
   const rules: PackRule[] = [];
@@ -113,6 +126,7 @@ export function buildPackIndex(rulesDir: string): PackIndex {
       continue;
     }
     const fixture = packFixtureOf(rulesDir, file);
+    const fixtures = packFixturesOf(rulesDir, file);
     for (const raw of list as Array<Record<string, unknown>>) {
       const meta = (raw.metadata && typeof raw.metadata === "object" ? raw.metadata : {}) as Record<string, unknown>;
       if (typeof raw.id !== "string" || raw.id === "") {
@@ -130,6 +144,7 @@ export function buildPackIndex(rulesDir: string): PackIndex {
         severity: text(raw.severity),
         file,
         fixture,
+        fixtures,
         metadataKeys: Object.keys(meta).sort(),
         family: raw.id.replace(/^jgates\.[^.]+\./, ""),
         asvsRequirements: Array.isArray(meta.asvs_requirements) ? meta.asvs_requirements.map(String) : [],

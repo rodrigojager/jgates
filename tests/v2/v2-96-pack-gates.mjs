@@ -92,7 +92,8 @@ test("V2-96: every rule of the bundled pack passes the gates", () => {
   assert.deepEqual(gateProblems(index.rules), []);
   for (const r of index.rules) {
     assert.ok(r.fixture, `${r.id}: a fixture beside the rule file`);
-    const fixture = fs.readFileSync(path.join(RULES, r.fixture), "utf8");
+    // A rule file may have a fixture per extension (.js, .jsx, .ts): the cases of a rule may sit in any of them.
+    const fixture = r.fixtures.map((f) => fs.readFileSync(path.join(RULES, f), "utf8")).join("\n");
     const id = r.id.replace(/[.]/g, "\\.");
     assert.match(fixture, new RegExp(`ruleid:\\s*${id}(?![\\w.-])`), `${r.id}: a match case`);
     assert.match(fixture, new RegExp(`\\bok:\\s*${id}(?![\\w.-])`), `${r.id}: a non-match case`);

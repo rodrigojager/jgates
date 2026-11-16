@@ -6,5 +6,5 @@ export function ping(host: string): void {
 }
 
 export function claims(token: string, secret: string): unknown {
-  return jwt.verify(token, secret, { algorithms: ["HS256"] });
+  return jwt.verify(token, secret, { algorithms: ["HS256"], audience: "orders-service" });
 }

@@ -39,8 +39,10 @@ const namedRules = (m) => new Set(m.entries.flatMap((e) => e.checks.filter((c) =
 /** The mapping without any check naming the rule (an entry left without a check goes back to unmapped). */
 const withoutRule = (m, id) => {
   for (const e of m.entries) {
+    const before = e.checks.length;
     e.checks = e.checks.filter((c) => !(c.unit === "semgrep-rule" && c.id === id));
-    if (e.checks.length === 0 && e.status !== "unmapped") {
+    // Only an entry that lost its last check goes back to unmapped (a reviewed entry with `applies` and no check stays).
+    if (before > 0 && e.checks.length === 0 && e.status !== "unmapped") {
       e.status = "unmapped";
       delete e.why;
       delete e.review;
@@ -82,8 +84,10 @@ test("V2-89: the mapping has exactly one entry per requirement, and every entry 
   assert.equal(m.files.length, 17);
   assert.deepEqual(m.entries.map((e) => e.requirement).sort(), data.requirements.map((r) => r.id).sort());
   for (const e of m.entries) {
-    if (e.checks.length === 0) assert.equal(e.status, "unmapped", e.requirement);
-    else {
+    if (e.checks.length === 0) {
+      // No check: unmapped, or a reviewed entry that only says which projects the requirement concerns (`applies`).
+      assert.ok(e.status === "unmapped" || ((e.status === "reviewed" || e.status === "owner-reviewed") && e.applies), `${e.requirement} has no check, so it is unmapped or a reviewed entry with applies`);
+    } else {
       assert.ok(e.status === "reviewed" || e.status === "owner-reviewed", `${e.requirement} is ${e.status}: no entry that names a check is left pending`);
       assert.ok(e.review && /^\d{4}-\d{2}-\d{2}$/.test(e.review.date) && e.review.by.trim() !== "", `${e.requirement} records its review`);
     }
@@ -93,15 +97,16 @@ test("V2-89: the mapping has exactly one entry per requirement, and every entry 
 });
 
 test("V2-89: an entry naming an unknown rule, capability or attack class is refused", () => {
-  const problems = (check) => asvs.validateMapping(entryWith(mapping(), "V1.1.1", "pending", check), data, context).join("\n");
-  assert.deepEqual(asvs.validateMapping(entryWith(mapping(), "V1.1.1", "pending", rule()), data, context), []);
+  // V1.5.3: no rule states it and no entry names the rule of the fixture beyond it, so replacing its entry unnames nothing.
+  const problems = (check) => asvs.validateMapping(entryWith(mapping(), "V1.5.3", "pending", check), data, context).join("\n");
+  assert.deepEqual(asvs.validateMapping(entryWith(mapping(), "V1.5.3", "pending", rule()), data, context), []);
   assert.match(problems(rule({ id: "jgates.python.no-such-rule" })), /unknown rule/);
   assert.match(problems(rule({ unit: "capability", id: "nothing#nowhere" })), /unknown capability/);
   assert.match(problems(rule({ unit: "semantic-ledger", id: "ATTACK-CLASSES.md#No such class" })), /unknown attack class/);
 });
 
 test("V2-89: a pending entry counts for nothing", () => {
-  const pending = entryWith(mapping(), "V1.1.1", "pending", rule()).entries.find((e) => e.requirement === "V1.1.1");
+  const pending = entryWith(mapping(), "V1.5.3", "pending", rule()).entries.find((e) => e.requirement === "V1.5.3");
   assert.deepEqual(asvs.countedChecks(pending), []);
   assert.equal(asvs.countedChecks({ ...pending, status: "reviewed" }).length, 1);
 });
@@ -115,7 +120,8 @@ test("V2-89: no mapping string repeats a requirement's text, and every pack rule
   assert.match(asvs.validateMapping(quoted, data, context).join("\n"), /repeats a requirement text/);
   // unmapped-rules.json lists exactly the pack rules no entry names, each with its reason.
   const named = namedRules(m);
-  const listed = new Set(m.unmappedRules.rules.map((r) => r.id));
+  // A whole-rule entry (no `requirement`) lists a rule no entry names; a per-pair refusal does not make the rule unmapped.
+  const listed = new Set(m.unmappedRules.rules.filter((r) => !r.requirement).map((r) => r.id));
   for (const id of context.rules.keys()) assert.ok(named.has(id) !== listed.has(id), `${id} is either named by an entry or listed, not both and not neither`);
   for (const r of m.unmappedRules.rules) assert.ok(r.reason.trim() !== "", `${r.id} has a reason`);
   // A rule that loses its last entry and is not listed is refused.

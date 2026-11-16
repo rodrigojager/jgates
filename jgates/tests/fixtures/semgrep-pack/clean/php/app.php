@@ -16,6 +16,7 @@ function handle_request($pdo, $connection) {
     include $page;
     readfile(__DIR__ . '/public/readme.txt');
     $handle = curl_init('https://api.example.com/status');
+    curl_setopt($handle, CURLOPT_TIMEOUT, 10);
     echo htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $passwordDigest = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $key = random_bytes(16);

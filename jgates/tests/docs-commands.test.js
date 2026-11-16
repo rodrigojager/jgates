@@ -58,6 +58,9 @@ const ENGINE_TOOLS_SUBCOMMANDS = new Set(["update-data", "prepare-codeql", "expo
 const NOT_EXECUTED = [
   (t) => t[0] === "ui",
   (t) => t[0] === "run",
+  // A Semantic run needs a configured provider and spends model calls: its pages are checked for the command, its flags
+  // and its subcommands (the other tests of this file), never executed.
+  (t) => t[0] === "semantic" && t[1] === "run",
   (t) => ["setup", "status", "deps", "clean", "uninstall"].includes(t[0]),
   (t) => t[0] === "tools" && t[1] === "prepare" && !t.includes("--dry-run"),
   (t) => t[0] === "tools" && ENGINE_TOOLS_SUBCOMMANDS.has(t[1]) && !(t[1] === "add-custom" && t.includes("--dry-run")),
