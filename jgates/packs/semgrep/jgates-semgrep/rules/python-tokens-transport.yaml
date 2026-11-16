@@ -89,7 +89,7 @@ rules:
               ...
 
   - id: jgates.python.jwt-audience-not-validated
-    message: The token's audience is not checked, so a token issued for another service is accepted here. Pass audience="<this service>" to the decode call and leave verify_aud on.
+    message: Token audience validation is explicitly switched off, so a token issued for another service can be accepted here. Leave verify_aud on and pass audience="<this service>" to the decode call.
     severity: WARNING
     languages: [python]
     metadata:
@@ -98,21 +98,34 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V9.2.3", "V10.3.1"]
+    pattern-either:
+      - pattern: 'jwt.decode(..., options={..., "verify_aud": False, ...}, ...)'
+      - pattern: jwt.decode(..., verify_aud=False, ...)
+
+  - id: jgates.python.jwt-audience-not-validated-by-default
+    message: No expected audience is visible in this token decode call. Pass audience="<this service>" or confirm where the decoded audience is checked against this service before the claims are trusted.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-287"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.3", "V10.3.1"]
+      class: review
     patterns:
-      - pattern-either:
-          - pattern: 'jwt.decode(..., options={..., "verify_aud": False, ...}, ...)'
-          - pattern: jwt.decode(..., verify_aud=False, ...)
-          - patterns:
-              - pattern: jwt.decode(..., algorithms=..., ...)
-              - pattern-not: jwt.decode(..., audience=..., ...)
-              - pattern-not: jwt.decode(..., aud=..., ...)
-              - pattern-not: jwt.decode(..., **$K)
-              - pattern-not: 'jwt.decode(..., options={..., "verify_signature": False, ...}, ...)'
-              - pattern-not: jwt.decode(..., verify=False, ...)
+      - pattern: jwt.decode(..., algorithms=..., ...)
+      - pattern-not: jwt.decode(..., audience=..., ...)
+      - pattern-not: jwt.decode(..., aud=..., ...)
+      - pattern-not: jwt.decode(..., **$K)
+      - pattern-not: 'jwt.decode(..., options={..., "verify_signature": False, ...}, ...)'
+      - pattern-not: jwt.decode(..., verify=False, ...)
+      - pattern-not: 'jwt.decode(..., options={..., "verify_aud": False, ...}, ...)'
+      - pattern-not: jwt.decode(..., verify_aud=False, ...)
 
   - id: jgates.python.oauth-request-without-state
-    message: An OAuth authorization URL is built by hand with neither a state value nor a PKCE code challenge, so the callback cannot be tied to this browser. Add a random state (or a code_challenge) and check it on return, or let the OAuth client library build the URL.
-    severity: WARNING
+    message: An OAuth authorization URL is built with no visible state value or PKCE code challenge. Add a random state (or a code_challenge) and check it on return, or confirm that the OAuth client adds and validates this binding elsewhere.
+    severity: INFO
     languages: [python]
     metadata:
       category: authorization
@@ -120,6 +133,7 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V10.2.1"]
+      class: review
     pattern-either:
       - pattern-regex: (?i)f?["'][^"'\n]*response_type=(?:code|token)(?![^"'\n]*(?:state=|code_challenge=))[^"'\n]*client_id=(?![^"'\n]*(?:state=|code_challenge=))[^"'\n]*["']
       - pattern-regex: (?i)f?["'][^"'\n]*client_id=(?![^"'\n]*(?:state=|code_challenge=))[^"'\n]*response_type=(?:code|token)(?![^"'\n]*(?:state=|code_challenge=))[^"'\n]*["']

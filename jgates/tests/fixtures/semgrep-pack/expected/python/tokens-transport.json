@@ -5,6 +5,7 @@
     "jgates.python.jwt-key-from-token-header",
     "jgates.python.jwt-expiry-not-validated",
     "jgates.python.jwt-audience-not-validated",
+    "jgates.python.jwt-audience-not-validated-by-default",
     "jgates.python.oauth-request-without-state",
     "jgates.python.tls-old-protocol-version",
     "jgates.python.tls-weak-cipher-suite",

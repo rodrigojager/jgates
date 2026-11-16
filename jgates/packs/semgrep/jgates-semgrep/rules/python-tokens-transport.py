@@ -57,11 +57,19 @@ def audience(token, key):
     # ruleid: jgates.python.jwt-audience-not-validated
     jwt.decode(token, key, algorithms=["RS256"], options={"verify_aud": False})
     # ruleid: jgates.python.jwt-audience-not-validated
+    jwt.decode(token, key, algorithms=["RS256"], verify_aud=False)
+    # ruleid: jgates.python.jwt-audience-not-validated-by-default
     jwt.decode(token, key, algorithms=["RS256"])
+    # ruleid: jgates.python.jwt-audience-not-validated-by-default
+    jwt.decode(token, key, algorithms=["ES256"], options={"verify_aud": True})
     # ok: jgates.python.jwt-audience-not-validated
     jwt.decode(token, key, algorithms=["RS256"], audience=AUDIENCE)
     # ok: jgates.python.jwt-audience-not-validated
     jwt.decode(token, key, algorithms=["RS256"], audience=["orders-api", "billing-api"])
+    # ok: jgates.python.jwt-audience-not-validated-by-default
+    jwt.decode(token, key, algorithms=["RS256"], audience=AUDIENCE, options={"verify_aud": True})
+    # ok: jgates.python.jwt-audience-not-validated-by-default
+    jwt.decode(token, key, algorithms=["ES256"], audience=["orders-api", "billing-api"])
 
 
 def authorize(client_id, redirect, state):

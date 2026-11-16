@@ -24,6 +24,10 @@ def read_expired(token, key):
 
 
 def read_any_audience(token, key):
+    return jwt.decode(token, key, algorithms=["RS256"], audience=AUDIENCE, options={"verify_aud": True})
+
+
+def read_without_expected_audience(token, key):
     return jwt.decode(token, key, algorithms=["RS256"], audience=AUDIENCE)
 
 
