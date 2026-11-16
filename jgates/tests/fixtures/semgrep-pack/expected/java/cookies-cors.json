@@ -2,7 +2,9 @@
   "files": ["CookiesCors.java"],
   "ruleIds": [
     "jgates.java.cookie-without-secure",
+    "jgates.java.cookie-without-secure-by-default",
     "jgates.java.cookie-without-httponly",
+    "jgates.java.cookie-without-httponly-by-default",
     "jgates.java.cookie-without-samesite",
     "jgates.java.cookie-name-without-prefix",
     "jgates.java.cors-any-origin-with-credentials",

@@ -17,6 +17,14 @@ class CookiesCors {
         resp.setHeader("Access-Control-Allow-Origin", origin);
     }
 
+    void explicitCookie(HttpServletResponse resp, String token) {
+        Cookie session = new Cookie("__Host-sid", token);
+        session.setSecure(false);
+        session.setHttpOnly(false);
+        session.setAttribute("SameSite", "Lax");
+        resp.addCookie(session);
+    }
+
     CorsConfiguration corsConfig() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);

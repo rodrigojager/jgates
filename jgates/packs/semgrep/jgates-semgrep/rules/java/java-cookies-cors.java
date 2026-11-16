@@ -23,7 +23,7 @@ public class CookieSamples {
     private static final Set<String> ALLOWED = Set.of("https://app.example.com");
 
     void secureMissing(HttpServletResponse resp) {
-        // ruleid: jgates.java.cookie-without-secure
+        // ruleid: jgates.java.cookie-without-secure-by-default
         Cookie c = new Cookie("__Host-sid", "v");
         c.setHttpOnly(true);
         c.setAttribute("SameSite", "Lax");
@@ -32,6 +32,7 @@ public class CookieSamples {
 
     void secureOff(HttpServletResponse resp) {
         Cookie c = new Cookie("__Host-sid", "v");
+        // ok: jgates.java.cookie-without-secure-by-default
         // ruleid: jgates.java.cookie-without-secure
         c.setSecure(false);
         c.setHttpOnly(true);
@@ -40,12 +41,12 @@ public class CookieSamples {
     }
 
     void secureInline(HttpServletResponse resp) {
-        // ruleid: jgates.java.cookie-without-secure, jgates.java.cookie-without-httponly, jgates.java.cookie-without-samesite
+        // ruleid: jgates.java.cookie-without-secure-by-default, jgates.java.cookie-without-httponly-by-default, jgates.java.cookie-without-samesite
         resp.addCookie(new Cookie("__Host-sid", "v"));
     }
 
     void secureSet(HttpServletResponse resp) {
-        // ok: jgates.java.cookie-without-secure
+        // ok: jgates.java.cookie-without-secure, jgates.java.cookie-without-secure-by-default
         Cookie c = new Cookie("__Host-sid", "v");
         c.setSecure(true);
         c.setHttpOnly(true);
@@ -54,11 +55,12 @@ public class CookieSamples {
     }
 
     void secureSpring() {
-        // ruleid: jgates.java.cookie-without-secure
+        // ruleid: jgates.java.cookie-without-secure-by-default
         ResponseCookie a = ResponseCookie.from("__Host-sid", "v").httpOnly(true).sameSite("Lax").build();
+        // ok: jgates.java.cookie-without-secure-by-default
         // ruleid: jgates.java.cookie-without-secure
         ResponseCookie b = ResponseCookie.from("__Host-sid", "v").secure(false).httpOnly(true).sameSite("Lax").build();
-        // ok: jgates.java.cookie-without-secure
+        // ok: jgates.java.cookie-without-secure, jgates.java.cookie-without-secure-by-default
         ResponseCookie c = ResponseCookie.from("__Host-sid", "v").secure(true).httpOnly(true).sameSite("Lax").build();
     }
 
@@ -70,7 +72,7 @@ public class CookieSamples {
     }
 
     void httpOnlyMissing(HttpServletResponse resp) {
-        // ruleid: jgates.java.cookie-without-httponly
+        // ruleid: jgates.java.cookie-without-httponly-by-default
         Cookie c = new Cookie("__Host-sid", "v");
         c.setSecure(true);
         c.setAttribute("SameSite", "Lax");
@@ -80,6 +82,7 @@ public class CookieSamples {
     void httpOnlyOff(HttpServletResponse resp) {
         Cookie c = new Cookie("__Host-sid", "v");
         c.setSecure(true);
+        // ok: jgates.java.cookie-without-httponly-by-default
         // ruleid: jgates.java.cookie-without-httponly
         c.setHttpOnly(false);
         c.setAttribute("SameSite", "Lax");
@@ -87,7 +90,7 @@ public class CookieSamples {
     }
 
     void httpOnlySet(HttpServletResponse resp) {
-        // ok: jgates.java.cookie-without-httponly
+        // ok: jgates.java.cookie-without-httponly, jgates.java.cookie-without-httponly-by-default
         Cookie c = new Cookie("__Host-sid", "v");
         c.setSecure(true);
         c.setHttpOnly(true);
@@ -96,11 +99,12 @@ public class CookieSamples {
     }
 
     void httpOnlySpring() {
-        // ruleid: jgates.java.cookie-without-httponly
+        // ruleid: jgates.java.cookie-without-httponly-by-default
         ResponseCookie a = ResponseCookie.from("__Host-sid", "v").secure(true).sameSite("Lax").build();
+        // ok: jgates.java.cookie-without-httponly-by-default
         // ruleid: jgates.java.cookie-without-httponly
         ResponseCookie b = ResponseCookie.from("__Host-sid", "v").secure(true).httpOnly(false).sameSite("Lax").build();
-        // ok: jgates.java.cookie-without-httponly
+        // ok: jgates.java.cookie-without-httponly, jgates.java.cookie-without-httponly-by-default
         ResponseCookie c = ResponseCookie.from("__Host-sid", "v").secure(true).httpOnly(true).sameSite("Lax").build();
     }
 

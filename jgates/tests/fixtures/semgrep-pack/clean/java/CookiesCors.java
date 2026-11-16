@@ -24,6 +24,14 @@ class CookiesCors {
         }
     }
 
+    void explicitCookie(HttpServletResponse resp, String token) {
+        Cookie session = new Cookie("__Host-sid", token);
+        session.setSecure(true);
+        session.setHttpOnly(true);
+        session.setAttribute("SameSite", "Lax");
+        resp.addCookie(session);
+    }
+
     CorsConfiguration corsConfig() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
