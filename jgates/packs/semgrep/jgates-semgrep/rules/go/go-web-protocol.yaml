@@ -308,10 +308,11 @@ rules:
           - focus-metavariable: $P
 
   - id: jgates.go.client-ip-from-forwarded-header
-    message: The client address is read from a forwarding header that the client itself can set, so it can be forged. Use the connection address, or trust the header only behind a configured proxy.
-    severity: WARNING
+    message: The client address is read from a forwarding header. If the request can bypass a trusted proxy or the proxy does not replace client-supplied values, the address can be forged; use the connection address or confirm that only trusted proxies can supply this header.
+    severity: INFO
     languages: [go]
     metadata:
+      class: review
       category: authorization
       cwe: "CWE-348"
       author: JGates
