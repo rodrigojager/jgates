@@ -8,6 +8,7 @@ const { fileTypeFromBuffer } = require("file-type");
 
 const UPLOAD_DIR = "/srv/uploads";
 const upload = multer({ dest: "/tmp/incoming", limits: { fileSize: 5 * 1024 * 1024 } });
+const memoryUpload = multer({ limits: { fileSize: 5 * 1024 * 1024 } });
 const ALLOWED = ["image/png", "image/jpeg"];
 
 async function saveAvatar(req, res) {
@@ -33,4 +34,4 @@ function download(req, res) {
   res.sendStatus(200);
 }
 
-module.exports = { upload, saveAvatar, importBackup, download };
+module.exports = { upload, memoryUpload, saveAvatar, importBackup, download };

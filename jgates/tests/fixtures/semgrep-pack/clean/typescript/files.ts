@@ -9,6 +9,7 @@ import type { Request, Response } from "express";
 
 const UPLOAD_DIR: string = "/srv/uploads";
 export const upload = multer({ dest: "/tmp/incoming", limits: { fileSize: 5 * 1024 * 1024 } });
+export const memoryUpload = multer({ limits: { fileSize: 5 * 1024 * 1024 } });
 const ALLOWED: string[] = ["image/png", "image/jpeg"];
 
 export async function saveAvatar(req: Request & { file: any }, res: Response): Promise<void> {

@@ -51,8 +51,8 @@ rules:
           - focus-metavariable: $P
 
   - id: jgates.js.archive-extraction-unchecked
-    message: An archive is extracted whole, or entry by entry under the entry's own name, with no check of the resulting path, the link type or the size. Check each entry (resolved path inside the target folder, no links, bounded size) before writing it, or pass a filter that does.
-    severity: WARNING
+    message: An archive is extracted without a visible check of the resulting path, link type or size. Check each entry (resolved path inside the target folder, no links, bounded size) before writing it, pass a filter that does, or confirm where these protections are enforced.
+    severity: INFO
     languages: [javascript, typescript]
     metadata:
       category: file-handling
@@ -60,6 +60,7 @@ rules:
       author: JGates
       subdimension: injection
       asvs_requirements: ["V5.2.5", "V5.3.2"]
+      class: review
     pattern-either:
       - patterns:
           - pattern: $Z.extractAllTo(...)
@@ -93,7 +94,7 @@ rules:
               })
 
   - id: jgates.js.request-body-without-size-limit
-    message: A request body or upload is read with no size limit (the option is missing where the library has no default, or set to Infinity). Set an explicit maximum (for example limits.fileSize or limit) so one request cannot exhaust memory or disk.
+    message: A request body or upload size limit is explicitly set to Infinity. Set a finite maximum (for example limits.fileSize or limit) so one request cannot exhaust memory or disk.
     severity: WARNING
     languages: [javascript, typescript]
     metadata:
@@ -103,18 +104,35 @@ rules:
       subdimension: injection
       asvs_requirements: ["V5.2.1"]
     pattern-either:
+      - pattern: 'multer({..., limits: {..., fileSize: Infinity, ...}, ...})'
+      - pattern: 'fileUpload({..., limits: {..., fileSize: Infinity, ...}, ...})'
+      - pattern: 'express.$M({..., limit: Infinity, ...})'
+      - pattern: 'bodyParser.$M({..., limit: Infinity, ...})'
+      - pattern: 'formidable({..., maxFileSize: Infinity, ...})'
+      - pattern: 'new formidable.IncomingForm({..., maxFileSize: Infinity, ...})'
+
+  - id: jgates.js.request-body-without-size-limit-by-default
+    message: An upload handler is created without a visible file size limit, and the library defaults to unlimited uploads. Set a finite limits.fileSize here or confirm where an upstream request size limit is enforced.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.1"]
+      class: review
+    pattern-either:
       - patterns:
           - pattern-either:
               - pattern: multer()
               - pattern: multer({...})
           - pattern-not: 'multer({..., limits: {..., fileSize: $S, ...}, ...})'
-      - pattern: 'multer({..., limits: {..., fileSize: Infinity, ...}, ...})'
       - patterns:
           - pattern-either:
               - pattern: fileUpload()
               - pattern: fileUpload({...})
           - pattern-not: 'fileUpload({..., limits: {..., fileSize: $S, ...}, ...})'
-      - pattern: 'fileUpload({..., limits: {..., fileSize: Infinity, ...}, ...})'
       - patterns:
           - pattern-either:
               - pattern: busboy({...})
@@ -123,10 +141,6 @@ rules:
           - pattern-not: 'busboy({..., limits: {..., fileSize: $S, ...}, ...})'
           - pattern-not: 'Busboy({..., limits: {..., fileSize: $S, ...}, ...})'
           - pattern-not: 'new Busboy({..., limits: {..., fileSize: $S, ...}, ...})'
-      - pattern: 'express.$M({..., limit: Infinity, ...})'
-      - pattern: 'bodyParser.$M({..., limit: Infinity, ...})'
-      - pattern: 'formidable({..., maxFileSize: Infinity, ...})'
-      - pattern: 'new formidable.IncomingForm({..., maxFileSize: Infinity, ...})'
 
   - id: jgates.js.upload-content-type-trusted
     message: The content type the client declared for an upload (mimetype) is used as the type check. The client controls that value; inspect the file's own bytes (for example with the file-type package) and compare the detected type.

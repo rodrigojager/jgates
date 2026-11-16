@@ -5,6 +5,7 @@ const tar = require("tar");
 
 const UPLOAD_DIR = "/srv/uploads";
 const upload = multer({ dest: "/tmp/incoming" });
+const memoryUpload = multer({ limits: { fileSize: Infinity } });
 const ALLOWED = ["image/png", "image/jpeg"];
 
 function saveAvatar(req, res) {
@@ -25,4 +26,4 @@ function download(req, res) {
   res.sendStatus(200);
 }
 
-module.exports = { upload, saveAvatar, importBackup, download };
+module.exports = { upload, memoryUpload, saveAvatar, importBackup, download };

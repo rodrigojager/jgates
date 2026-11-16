@@ -6,6 +6,7 @@ import type { Request, Response } from "express";
 
 const UPLOAD_DIR: string = "/srv/uploads";
 export const upload = multer({ dest: "/tmp/incoming" });
+export const memoryUpload = multer({ limits: { fileSize: Infinity } });
 const ALLOWED: string[] = ["image/png", "image/jpeg"];
 
 export function saveAvatar(req: Request & { file: any }, res: Response): void {

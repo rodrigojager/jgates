@@ -65,15 +65,15 @@ function unpack(zipPath, dir, input, entryStream) {
 }
 
 function configureUploads(app) {
-  // ruleid: jgates.js.request-body-without-size-limit
+  // ruleid: jgates.js.request-body-without-size-limit-by-default
   const a = multer({ dest: "uploads/" });
-  // ruleid: jgates.js.request-body-without-size-limit
+  // ruleid: jgates.js.request-body-without-size-limit-by-default
   const b = multer();
-  // ruleid: jgates.js.request-body-without-size-limit
+  // ruleid: jgates.js.request-body-without-size-limit-by-default
   app.use(fileUpload());
-  // ruleid: jgates.js.request-body-without-size-limit
+  // ruleid: jgates.js.request-body-without-size-limit-by-default
   app.use(fileUpload({ createParentPath: true }));
-  // ruleid: jgates.js.request-body-without-size-limit
+  // ruleid: jgates.js.request-body-without-size-limit-by-default
   const bb = new Busboy({ headers: app.headers });
   // ruleid: jgates.js.request-body-without-size-limit
   app.use(express.json({ limit: Infinity }));
@@ -83,9 +83,13 @@ function configureUploads(app) {
   const form = formidable({ maxFileSize: Infinity });
   // ruleid: jgates.js.request-body-without-size-limit
   const c = multer({ limits: { fileSize: Infinity } });
+  // ruleid: jgates.js.request-body-without-size-limit
+  app.use(fileUpload({ limits: { fileSize: Infinity } }));
   // ok: jgates.js.request-body-without-size-limit
+  // ok: jgates.js.request-body-without-size-limit-by-default
   const d = multer({ dest: "uploads/", limits: { fileSize: 5 * 1024 * 1024 } });
   // ok: jgates.js.request-body-without-size-limit
+  // ok: jgates.js.request-body-without-size-limit-by-default
   app.use(fileUpload({ limits: { fileSize: 5 * 1024 * 1024 }, abortOnLimit: true }));
   // ok: jgates.js.request-body-without-size-limit
   const bb2 = Busboy({ headers: app.headers, limits: { fileSize: 1024 * 1024 } });
