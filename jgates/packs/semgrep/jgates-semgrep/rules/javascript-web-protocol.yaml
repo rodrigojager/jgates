@@ -220,10 +220,11 @@ rules:
           - focus-metavariable: $U
 
   - id: jgates.js.client-ip-from-forwarded-header
-    message: The client address is read from a forwarding header that any client can set, so it can be faked. Configure the proxy chain (trust proxy) and read req.ip, or take the address from the connection.
-    severity: WARNING
+    message: The client address is read from a forwarding header whose trust boundary is not visible here. Confirm that only trusted proxies can reach the application and overwrite this header, or configure the trusted proxy chain and read req.ip, or use the connection address.
+    severity: INFO
     languages: [javascript, typescript]
     metadata:
+      class: review
       category: authorization
       cwe: "CWE-348"
       author: JGates

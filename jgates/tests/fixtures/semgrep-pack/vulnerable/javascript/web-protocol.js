@@ -40,7 +40,7 @@ app.get("/whoami", (req, res) => {
 
 // host-header-in-url
 app.post("/forgot", (req, res) => {
-  const link = "https://" + req.headers.host + "/reset?token=" + req.body.token;
+  const link = "https://" + req.headers.host + "/reset?token=" + encodeURIComponent(req.body.token);
   res.json({ link });
 });
 

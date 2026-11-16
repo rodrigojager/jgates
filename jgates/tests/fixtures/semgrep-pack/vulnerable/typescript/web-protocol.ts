@@ -44,6 +44,6 @@ app.get("/whoami", (req: Request, res: Response): void => {
 
 // host-header-in-url
 app.post("/forgot", (req: Request, res: Response): void => {
-  const link: string = `https://${req.get("host")}/reset?token=${req.body.token}`;
+  const link: string = `https://${req.get("host")}/reset?token=${encodeURIComponent(req.body.token)}`;
   res.json({ link });
 });
