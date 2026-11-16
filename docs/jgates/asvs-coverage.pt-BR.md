@@ -86,9 +86,9 @@ do índice do pacote e do mapeamento revisado, e não dizem nada sobre um projet
 
 | Nível | Requisitos | Qualquer | Python | JavaScript | Go | C# | Rust | Java | PHP | HTML | Configuração |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 70 | 55 | 34 | 35 | 29 | 33 | 27 | 35 | 31 | 4 | 4 |
-| 2 | 253 | 165 | 91 | 93 | 81 | 87 | 70 | 91 | 79 | 6 | 15 |
-| 3 | 345 | 200 | 101 | 102 | 87 | 94 | 75 | 99 | 85 | 7 | 16 |
+| 1 | 70 | 41 | 34 | 35 | 29 | 33 | 27 | 35 | 31 | 4 | 4 |
+| 2 | 253 | 107 | 91 | 93 | 81 | 87 | 70 | 91 | 79 | 6 | 15 |
+| 3 | 345 | 120 | 101 | 102 | 87 | 94 | 75 | 99 | 85 | 7 | 16 |
 
 Os demais requisitos estão sem suporte, aguardam um sistema implantado ou uma pessoa, ou são examinados só por uma revisão
 por IA.
