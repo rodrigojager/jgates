@@ -1,4 +1,4 @@
 {
   "files": ["src/errors-logging.rs"],
-  "ruleIds": ["jgates.rust.sensitive-data-logged", "jgates.rust.http-client-without-timeout"]
+  "ruleIds": ["jgates.rust.sensitive-data-logged", "jgates.rust.http-client-without-timeout", "jgates.rust.error-detail-in-response", "jgates.rust.swallowed-exception", "jgates.rust.outbound-request-follows-redirects"]
 }
