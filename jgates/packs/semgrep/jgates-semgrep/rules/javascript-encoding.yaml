@@ -1,8 +1,166 @@
 # Group encoding for JavaScript and TypeScript.
 # Sources: Express-style req.query / req.body / req.params / req.headers / req.cookies, and Koa-style ctx.query / ctx.request.body.
-# Sinks: RegExp construction, util.format / console printing / sprintf-js, Markdown renderer options (markdown-it,
+# Sinks: RegExp construction, Papa Parse CSV output, Memcached keys, repeated decodes, URL/JSON construction,
+# util.format / console printing / sprintf-js, Markdown renderer options (markdown-it,
 # Remarkable, marked, remark-rehype).
 rules:
+  - id: jgates.js.csv-formula-injection
+    message: Incoming request data is written as a CSV field without formula escaping. Spreadsheet applications can execute values starting with =, +, -, @ or control characters as formulas; enable Papa Parse escapeFormulae or prefix the field with a single quote.
+    severity: WARNING
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1236"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.10"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+      - pattern: ctx.query
+      - pattern: ctx.request.body
+    pattern-sanitizers:
+      - pattern: |
+          "'" + $X
+    pattern-sinks:
+      - patterns:
+          - pattern: Papa.unparse($DATA, ...)
+          - pattern-not: 'Papa.unparse($DATA, {..., escapeFormulae: true, ...})'
+          - focus-metavariable: $DATA
+
+  - id: jgates.js.memcache-key-from-request
+    message: Incoming request data is used as a Memcached key. Spaces or control characters can change the text protocol command or select another entry; hash the key or restrict it to a safe character set first.
+    severity: WARNING
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.9"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+      - pattern: ctx.query
+      - pattern: ctx.request.body
+    pattern-sanitizers:
+      - pattern: crypto.createHash(...).update(...).digest("hex")
+    pattern-sinks:
+      - patterns:
+          - pattern-inside: |
+              $C = new Memcached(...);
+              ...
+          - pattern: $C.$METHOD($KEY, ...)
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: ^(get|gets|getMulti|set|add|replace|del|incr|decr|touch|append|prepend|cas)$
+          - focus-metavariable: $KEY
+
+  - id: jgates.js.double-decoding
+    message: A URL, HTML or base64 decode is applied to the result of the same decode. Decoding twice can reveal characters hidden from validation after the first decode; decode once, then validate.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: injection
+      cwe: "CWE-174"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.1.1"]
+    pattern-either:
+      - pattern: decodeURIComponent(decodeURIComponent($X))
+      - pattern: decodeURI(decodeURI($X))
+      - pattern: atob(atob($X))
+      - pattern: he.decode(he.decode($X))
+      - pattern: |
+          $A = decodeURIComponent($X);
+          ...
+          $B = decodeURIComponent($A);
+
+  - id: jgates.js.url-parameter-unencoded
+    message: Incoming request data is joined into URL text without visible component encoding. If no other layer encodes it, delimiters can change the query or path; use encodeURIComponent or URLSearchParams, or confirm where encoding occurs.
+    severity: INFO
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.2"]
+      class: review
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+      - pattern: ctx.query
+      - pattern: ctx.request.body
+    pattern-sanitizers:
+      - pattern: encodeURIComponent(...)
+      - pattern: new URLSearchParams(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: '"$BASE" + $VALUE'
+          - metavariable-regex:
+              metavariable: $BASE
+              regex: ^https?://.*[/?=&]$
+          - focus-metavariable: $VALUE
+      - patterns:
+          - pattern: $TEXT
+          - metavariable-pattern:
+              metavariable: $TEXT
+              pattern: '`...${$VALUE}...`'
+          - metavariable-regex:
+              metavariable: $TEXT
+              regex: ^`https?://
+
+  - id: jgates.js.json-built-by-concatenation
+    message: Incoming request data is joined into JSON text without a visible serializer. If nothing else escapes it, quotes or braces can change the document; build an object and use JSON.stringify, or confirm where serialization occurs.
+    severity: INFO
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.3"]
+      class: review
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+      - pattern: ctx.query
+      - pattern: ctx.request.body
+    pattern-sanitizers:
+      - pattern: JSON.stringify(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: '"$PREFIX" + $VALUE'
+          - metavariable-regex:
+              metavariable: $PREFIX
+              regex: '^\s*[\[{].*[:\[,]'
+          - focus-metavariable: $VALUE
+      - patterns:
+          - pattern: $TEXT
+          - metavariable-pattern:
+              metavariable: $TEXT
+              pattern: '`...${$VALUE}...`'
+          - metavariable-regex:
+              metavariable: $TEXT
+              regex: '^`\s*[\[{]'
+
   - id: jgates.js.regex-from-request
     message: A regular expression is built from data of the incoming request. A crafted value can change the pattern or make it run for a very long time; escape it first (for example with lodash escapeRegExp) or match with a plain string function.
     severity: WARNING

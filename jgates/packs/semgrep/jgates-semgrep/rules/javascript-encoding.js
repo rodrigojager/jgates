@@ -5,6 +5,75 @@ const markdownit = require("markdown-it");
 const MarkdownIt = require("markdown-it");
 const { Remarkable } = require("remarkable");
 const { marked } = require("marked");
+const Papa = require("papaparse");
+const Memcached = require("memcached");
+const crypto = require("crypto");
+
+function exportCsv(req, ctx) {
+  // ruleid: jgates.js.csv-formula-injection
+  Papa.unparse([[req.query.name]]);
+  // ruleid: jgates.js.csv-formula-injection
+  Papa.unparse([{ name: ctx.request.body.name }], { header: true });
+  // ok: jgates.js.csv-formula-injection
+  Papa.unparse([[req.query.name]], { escapeFormulae: true });
+  // ok: jgates.js.csv-formula-injection
+  Papa.unparse([["'" + req.body.name]]);
+}
+
+function cache(req, ctx) {
+  const client = new Memcached("localhost:11211");
+  // ruleid: jgates.js.memcache-key-from-request
+  client.get(req.query.key, callback);
+  // ruleid: jgates.js.memcache-key-from-request
+  client.set(ctx.query.key, "value", 60, callback);
+  // ok: jgates.js.memcache-key-from-request
+  client.get(crypto.createHash("sha256").update(req.query.key).digest("hex"), callback);
+  // ok: jgates.js.memcache-key-from-request
+  client.set("fixed-key", req.body.value, 60, callback);
+}
+
+function decode(value) {
+  // ruleid: jgates.js.double-decoding
+  const a = decodeURIComponent(decodeURIComponent(value));
+  // ruleid: jgates.js.double-decoding
+  const b = atob(atob(value));
+  // ok: jgates.js.double-decoding
+  const c = decodeURIComponent(value);
+  // ok: jgates.js.double-decoding
+  const d = atob(value);
+  return [a, b, c, d];
+}
+
+function buildUrls(req, ctx) {
+  // ruleid: jgates.js.url-parameter-unencoded
+  const a = "https://example.com/?q=" + req.query.term + "&page=1";
+  // ruleid: jgates.js.url-parameter-unencoded
+  const b = `https://example.com/users/${ctx.query.name}`;
+  // ok: jgates.js.url-parameter-unencoded
+  const c = "https://example.com/?q=" + encodeURIComponent(req.query.term);
+  // ok: jgates.js.url-parameter-unencoded
+  const d = `https://example.com/users/${encodeURIComponent(ctx.query.name)}`;
+  // ok: jgates.js.url-parameter-unencoded
+  const e = "https://example.com/?" + new URLSearchParams({ q: req.query.term }).toString();
+  const publicBaseUrl = process.env.PUBLIC_BASE_URL;
+  // ok: jgates.js.url-parameter-unencoded
+  const f = `${publicBaseUrl}/reset?token=${encodeURIComponent(req.body.token)}`;
+  // ok: jgates.js.url-parameter-unencoded
+  const g = publicBaseUrl + "/reset?token=" + encodeURIComponent(req.body.token);
+  return [a, b, c, d, e, f, g];
+}
+
+function buildJson(req, ctx) {
+  // ruleid: jgates.js.json-built-by-concatenation
+  const a = '{"name":"' + req.body.name + '"}';
+  // ruleid: jgates.js.json-built-by-concatenation
+  const b = `{"name":"${ctx.query.name}"}`;
+  // ok: jgates.js.json-built-by-concatenation
+  const c = JSON.stringify({ name: req.body.name });
+  // ok: jgates.js.json-built-by-concatenation
+  const d = '{"name":' + JSON.stringify(ctx.query.name) + '}';
+  return [a, b, c, d];
+}
 
 function search(req, res) {
   // ruleid: jgates.js.regex-from-request
