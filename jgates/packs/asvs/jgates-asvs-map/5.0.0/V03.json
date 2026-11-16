@@ -78,12 +78,61 @@
     },
     {
       "requirement": "V3.3.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cookie-without-secure-by-default",
+          "covers": "Points at set_cookie calls without a secure keyword, excluding keyword expansion and positional forms that can supply Secure.",
+          "misses": "Protection may exist in framework settings, a proxy or a helper the rule cannot see. It does not inspect cookie prefixes or runtime flags.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cookie-without-secure-by-default",
+          "covers": "Points at cookie, Cookies.set and cookie.serialize calls without a secure option, and literal document.cookie writes without a Secure attribute.",
+          "misses": "Protection may exist in defaults or a proxy the rule cannot see. Session middleware omissions, unlisted writers and dynamic cookie strings are missed; deletion-like literals are excluded.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cookie-without-secure-by-default",
+          "covers": "Points at http.Cookie, fiber.Cookie and sessions.Options literals without a Secure field.",
+          "misses": "Protection may exist in later assignments, middleware or a proxy the rule cannot see. Other constructors and cookie prefixes are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cookie-without-secure-by-default",
+          "covers": "Points at CookieOptions without a Secure initializer or same-method assignment, and two-argument Cookies.Append calls.",
+          "misses": "Protection may exist in global cookie policy or a proxy the rule cannot see. A same-method assignment need not belong to the matched options object; other writers are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cookie-without-secure-by-default",
+          "covers": "Points at Cookie::build and Cookie::new without secure or set_secure visible in the enclosing call or matched function.",
+          "misses": "Protection may exist in a session layer or a helper the rule cannot see. An unrelated same-function setter can silence the rule; other builders and long chains are not modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cookie-without-secure-by-default",
+          "covers": "Points at new Cookie without a same-method setSecure, inline addCookie(new Cookie), and ResponseCookie builders without secure.",
+          "misses": "Protection may exist in a container policy, serializer or proxy the rule cannot see. Other construction forms and setters outside the method are not modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cookie-without-secure-by-default",
+          "covers": "Points at setcookie and session_set_cookie_params forms omitting Secure and literal Set-Cookie header writes without Secure.",
+          "misses": "Protection may exist in session configuration or a proxy the rule cannot see. Dynamic option arrays, named Secure arguments and some deletion calls are excluded; unlisted writers are missed.",
+          "depth": "partial"
+        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.config.cookie-without-secure",
@@ -94,7 +143,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.cookie-without-secure",
-          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in C#, for the libraries named in the header of its rule file.",
+          "covers": "CookieOptions Secure set to false, or a cookie SecurePolicy explicitly set to CookieSecurePolicy.None.",
           "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -108,7 +157,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.cookie-without-secure",
-          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in Go, for the libraries named in the header of its rule file.",
+          "covers": "http.Cookie, fiber.Cookie or sessions.Options with Secure explicitly false, or SetCookie with a false Secure argument.",
           "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -122,7 +171,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.cookie-without-secure",
-          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in Java, for the libraries named in the header of its rule file.",
+          "covers": "setSecure(false), setUseSecureCookie(false), or a ResponseCookie builder with secure(false).",
           "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -136,7 +185,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.cookie-without-secure",
-          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "covers": "The named cookie writers and session middleware with secure explicitly set to false.",
           "misses": "A session-middleware cookie option left unset, where the default is off, is not seen. A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -150,7 +199,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.cookie-without-secure",
-          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in PHP, for the libraries named in the header of its rule file.",
+          "covers": "The named cookie writers or session cookie parameters with Secure explicitly false, and session.cookie_secure explicitly disabled through ini_set.",
           "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -164,7 +213,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.cookie-without-secure",
-          "covers": "Cookie writes that omit the Secure attribute or pass false, and framework cookie settings set to false, in Python, for the libraries named in the header of its rule file.",
+          "covers": "set_cookie with secure=False and the named session or CSRF cookie settings explicitly set to False.",
           "misses": "A framework cookie setting left unset, where the default is off, is not seen. A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -178,7 +227,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.cookie-without-secure",
-          "covers": "Cookie writes and session-cookie settings that leave the Secure attribute off or unset, in Rust, for the libraries named in the header of its rule file.",
+          "covers": "Calls to secure, set_secure, with_secure or cookie_secure with the literal false.",
           "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -200,7 +249,7 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules look at the Secure attribute and the name prefix of cookies written in code or configuration; the ZAP passive alert looks at the same attribute on cookies a reached page sets.",
+      "why": "The explicit rules flag disabled Secure settings and the prefix rules inspect literal names; the ZAP alert looks at cookies on reached pages. Review checks only point at omitted options and never examine this requirement.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -208,7 +257,7 @@
     },
     {
       "requirement": "V3.3.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -252,15 +301,15 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.cookie-without-samesite",
-          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in Python, for the libraries named in the header of its rule file.",
-          "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "covers": "set_cookie with SameSite None or omitted, and the named session or CSRF SameSite settings explicitly None; an informational finding in Python.",
+          "misses": "Keyword expansions and positional calls that can supply SameSite are excluded. Defaults, settings outside the matched code, proxy adjustments and whether Lax or Strict fits the cookie are not determined.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.cookie-without-samesite",
-          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in Rust, for the libraries named in the header of its rule file.",
-          "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "covers": "The named SameSite setters with SameSite::None, or Cookie::build and Cookie::new without a recognized same_site or set_same_site call; an informational finding in Rust.",
+          "misses": "An unrelated same-function setter can silence the omission branch. Other builders, external session defaults, proxy adjustments and whether Lax or Strict fits the cookie are not determined.",
           "depth": "partial"
         },
         {
@@ -348,12 +397,61 @@
     },
     {
       "requirement": "V3.3.4",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.cookie-without-httponly-by-default",
+          "covers": "Points at set_cookie calls without an httponly keyword, excluding keyword expansion and positional forms that can supply HttpOnly.",
+          "misses": "Protection may exist in framework settings or a helper the rule cannot see. It does not determine whether scripts need the value or whether it is exposed through another channel.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.cookie-without-httponly-by-default",
+          "covers": "Points at cookie and cookie.serialize calls without an httpOnly option.",
+          "misses": "Protection may exist in defaults or a helper the rule cannot see. Other writers and session middleware omissions are missed; the need for script access is not determined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.cookie-without-httponly-by-default",
+          "covers": "Points at http.Cookie, fiber.Cookie and sessions.Options literals without their HttpOnly or HTTPOnly field.",
+          "misses": "Protection may exist in later assignments or middleware the rule cannot see. Other constructors and exposure of the value outside cookies are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.cookie-without-httponly-by-default",
+          "covers": "Points at CookieOptions without an HttpOnly initializer or same-method assignment, and two-argument Cookies.Append calls.",
+          "misses": "Protection may exist in global cookie policy or a helper the rule cannot see. An unrelated same-method assignment can silence the rule; script-access intent is not determined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.cookie-without-httponly-by-default",
+          "covers": "Points at Cookie::build and Cookie::new without http_only or set_http_only visible in the enclosing call or matched function.",
+          "misses": "Protection may exist in a session layer or helper the rule cannot see. An unrelated same-function setter can silence the rule; other builders and alternative exposures are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.cookie-without-httponly-by-default",
+          "covers": "Points at new Cookie without a same-method setHttpOnly, inline addCookie(new Cookie), and ResponseCookie builders without httpOnly.",
+          "misses": "Protection may exist in a container policy or serializer the rule cannot see. Other construction forms and setters outside the method are not modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.cookie-without-httponly-by-default",
+          "covers": "Points at setcookie and session_set_cookie_params forms omitting HttpOnly and literal Set-Cookie header writes without HttpOnly.",
+          "misses": "Protection may exist in session configuration or a proxy the rule cannot see. Dynamic option arrays and named HttpOnly arguments are excluded; script-access intent and other exposure channels are not determined.",
+          "depth": "partial"
+        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.config.cookie-without-httponly",
@@ -364,49 +462,49 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.cookie-without-httponly",
-          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in C#, for the libraries named in the header of its rule file.",
+          "covers": "CookieOptions HttpOnly set to false, or HttpOnly explicitly set to HttpOnlyPolicy.None.",
           "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.cookie-without-httponly",
-          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in Go, for the libraries named in the header of its rule file.",
+          "covers": "http.Cookie, fiber.Cookie or sessions.Options with HttpOnly or HTTPOnly explicitly false, or SetCookie with a false HttpOnly argument.",
           "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.cookie-without-httponly",
-          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in Java, for the libraries named in the header of its rule file.",
+          "covers": "setHttpOnly(false), setUseHttpOnlyCookie(false), or a ResponseCookie builder with httpOnly(false).",
           "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.cookie-without-httponly",
-          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "covers": "Object properties named httponly, case-insensitively, explicitly set to false; the pattern is not restricted to cookie APIs.",
           "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.cookie-without-httponly",
-          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in PHP, for the libraries named in the header of its rule file.",
+          "covers": "The named cookie writers or session cookie parameters with HttpOnly explicitly false, and session.cookie_httponly explicitly disabled through ini_set.",
           "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.cookie-without-httponly",
-          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in Python, for the libraries named in the header of its rule file.",
+          "covers": "set_cookie with httponly=False and the named session or CSRF cookie settings explicitly set to False.",
           "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.cookie-without-httponly",
-          "covers": "Cookie writes and session-cookie settings that leave HttpOnly off or unset, in Rust, for the libraries named in the header of its rule file.",
+          "covers": "Calls to http_only, set_http_only, with_http_only or cookie_http_only with the literal false.",
           "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -421,7 +519,7 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules look at the HttpOnly attribute of cookies written in code or configuration; the ZAP alert reports it on cookies a reached page sets.",
+      "why": "The explicit rules flag disabled HttpOnly settings; the ZAP alert reports the attribute on reached cookies. Review checks only point at omitted options and never examine this requirement or decide whether script access is intended.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -1000,12 +1098,19 @@
     },
     {
       "requirement": "V3.5.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.csrf-protection-disabled",
+          "covers": "Points at async Actix post, put or delete route handlers without a visible verify_token_pair call.",
+          "misses": "Protection may exist in middleware or upstream code the rule cannot see. Other verbs, frameworks, token helpers and whether the endpoint uses ambient browser credentials are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.csrf-protection-disabled",
@@ -1063,7 +1168,7 @@
           "depth": "partial"
         }
       ],
-      "why": "Each rule examines whether state-changing requests from another site are checked, by looking for the protection being switched off or skipped, which is the control the requirement asks for when preflight is not relied on.",
+      "why": "The blocking rules flag request-forgery defenses explicitly disabled or skipped; the semantic check reads browser-authenticated mutation paths. The Rust Review check only points at handlers without a visible token helper and never examines the requirement.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -1347,7 +1452,7 @@
     },
     {
       "requirement": "V3.7.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization",
@@ -1371,8 +1476,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.open-redirect",
-          "covers": "A redirect whose target comes from the incoming request, without a fixed or local destination, in Java, for the libraries named in the header of its rule file.",
-          "misses": "Whether a validation the rule does not recognize really compares against an allowlist of hosts, redirects built across functions, and navigation done in browser code, which a separate check examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "covers": "The named servlet request getters or Spring and JAX-RS annotated parameters flowing to sendRedirect, Location headers, Spring redirect strings or RedirectView, and the named JAX-RS URI redirect builders.",
+          "misses": "validateRedirect calls and contains-based guards are accepted without establishing a host allowlist. Cross-function redirects, browser navigation, other frameworks and unlisted URI construction forms are missed.",
           "depth": "partial"
         },
         {

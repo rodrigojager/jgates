@@ -11,7 +11,7 @@
     },
     {
       "requirement": "V5.2.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "hardening",
@@ -21,8 +21,36 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.request-body-without-size-limit",
-          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "covers": "Infinity explicitly supplied as the upload file-size or parser body limit to the named JavaScript middleware and formidable constructors.",
           "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.request-body-without-size-limit-by-default",
+          "covers": "Points at multer, fileUpload or busboy construction without a limits.fileSize option.",
+          "misses": "Protection may exist in upstream middleware or a proxy the rule cannot see. Parser defaults with built-in limits are not flagged; configured budgets are not judged adequate. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.request-body-without-size-limit-by-default",
+          "covers": "Points at the named HttpListenerContext InputStream full reads or copies without a same-method ContentLength64 upper-bound comparison.",
+          "misses": "Protection may exist in an upstream limit the rule cannot see. It does not model ASP.NET bounded defaults; a visible comparison need not reject oversize bodies or bound chunked transfers. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.request-body-without-size-limit-by-default",
+          "covers": "Points at MultipartConfig without maxFileSize, and the named servlet InputStream full reads without a recognized content-length comparison in the method.",
+          "misses": "Protection may exist in server or proxy configuration the rule cannot see. A comparison need not enforce a bound, chunked transfers and other read APIs are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.request-body-without-size-limit-by-default",
+          "covers": "Points at hyper::body::to_bytes without an inline Limited::new or http_body_util::Limited::new wrapper.",
+          "misses": "Protection may exist in a previously bounded body or upstream layer the rule cannot see. Other collectors and framework APIs are not modeled. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
@@ -35,21 +63,21 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.request-body-without-size-limit",
-          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "covers": "MaxRequestBodySize explicitly null or at the named integer maximum, multipart or buffer limits at that maximum, and DisableRequestSizeLimit or maximum-valued RequestSizeLimit attributes.",
           "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.request-body-without-size-limit",
-          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
-          "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
+          "covers": "Points at the named net/http and Gin request body reads, decoders and multipart helpers without a prior visible http.MaxBytesReader assignment.",
+          "misses": "Protection may exist in middleware or a proxy the rule cannot see. Multipart parsing memory thresholds do not establish a total upload bound; unlisted APIs and whether a chosen budget fits the endpoint are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.request-body-without-size-limit",
-          "covers": "A request size limit removed or raised to the maximum, a multipart handler declared without a limit, or a request body read in full where the API has no default limit.",
+          "covers": "setFileSizeMax or setSizeMax explicitly called with -1 or -1L.",
           "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
           "depth": "partial"
         },
@@ -63,12 +91,12 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.request-body-without-size-limit",
-          "covers": "A request body limit disabled or raised to the largest value, or a body read in full with no limit.",
+          "covers": "DefaultBodyLimit disabled, or the named body limit, to_bytes length argument, PayloadConfig or limit call explicitly set to usize::MAX.",
           "misses": "Limits enforced by a proxy, gateway or server configuration outside the code, limits set in a framework configuration file, and whether the limit chosen fits the endpoint.",
           "depth": "partial"
         }
       ],
-      "why": "A body read in full, or a limit removed or raised to the maximum, leaves the size of what is accepted unbounded in the code.",
+      "why": "Blocking checks flag explicit removal of a body or upload size bound. Review checks only point at reads or upload handlers without a recognized local bound and never examine the requirement; upstream limits may protect them.",
       "applies": {
         "technology": [
           "file-upload"
@@ -150,7 +178,7 @@
     },
     {
       "requirement": "V5.2.3",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -158,30 +186,30 @@
       "checks": [
         {
           "unit": "semgrep-rule",
-          "id": "jgates.python.archive-extraction-unchecked",
-          "covers": "A zip archive extracted whole with no inspection of its entries in sight (no entry listing, so no size or entry-count check).",
-          "misses": "Tar archives (the rule accepts a filter, which checks paths and links, not sizes), a loop that inspects the entries for something other than their sizes, limits held in a wrapper or a library option, and decompressors that are not archives (gzip streams, office documents).",
+          "id": "jgates.python.archive-extraction-unchecked-by-default",
+          "covers": "Points at ZipFile.extractall without a members argument or visible infolist inspection, including direct constructor calls.",
+          "misses": "Protection may exist in a wrapper or upstream validation the rule cannot see. Tar filters address paths and links, not expansion budgets; other matched extraction branches do not establish missing size checks. An infolist read can silence this branch without checking sizes or counts. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.archive-extraction-unchecked",
-          "covers": "An archive extracted whole to a directory with no comparison of a length in sight.",
-          "misses": "Entry-by-entry extraction (the rule checks only the destination path there, never sizes or entry counts), a length compared against something other than the archive size, limits held in a wrapper or a library option, and decompressors that are not archives.",
+          "covers": "Points at the named whole-archive ExtractToDirectory calls without a recognized same-method Length comparison.",
+          "misses": "Protection may exist in a wrapper or library the rule cannot see. Entry-by-entry branches check paths, not sizes or counts; an unrelated Length comparison can silence the whole-archive branch. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.archive-extraction-unchecked",
-          "covers": "A zip archive extracted whole with no comparison of a length in sight.",
-          "misses": "Entry-by-entry extraction (the rule checks only the destination path there, never sizes or entry counts), a length compared against something other than the archive size, limits held in a wrapper or a library option, and decompressors that are not archives.",
+          "covers": "Points at ZipFile.extractAll without a recognized same-method length comparison.",
+          "misses": "Protection may exist in a wrapper or library the rule cannot see. Entry-path branches do not inspect sizes or counts; an unrelated length comparison can silence this branch. Other decompressors are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.archive-extraction-unchecked",
-          "covers": "An archive unpacked whole, or an entry written out, with no read of an entry size or a size cap in sight.",
-          "misses": "The entry count is never looked at, a size read for another purpose silences the rule, limits held in a wrapper or a library option, and decompressors that are not archives.",
+          "covers": "Points at unpack or extract on the named archive constructors without a recognized size read or take-based cap in the matched function.",
+          "misses": "Protection may exist in a wrapper or library the rule cannot see. Entry count is not inspected; unrelated size reads can silence this branch, and entry-path branches do not inspect sizes. Other decompressors are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
@@ -192,7 +220,7 @@
           "depth": "partial"
         }
       ],
-      "why": "Where an extraction call shows no sign of reading entry sizes (zip in Python, whole-archive calls in Java and C#, Rust), no size limit can have been applied before it; the rules for JavaScript, Go and PHP never look at sizes and are not tied to this requirement.",
+      "why": "Review checks only point at extraction without locally recognized size evidence and never examine this requirement or establish that expansion is unbounded. The semantic check reads expansion budgets. The Python explicit fully_trusted filter check concerns paths and links, not expansion limits, and is not mapped here.",
       "applies": {
         "technology": [
           "archives"
@@ -239,7 +267,7 @@
     },
     {
       "requirement": "V5.2.5",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -248,19 +276,26 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.archive-extraction-unchecked",
-          "covers": "A tar archive extracted with no filter argument, the argument that carries the refusal of link entries in JavaScript.",
-          "misses": "A filter that does not refuse links, zip libraries (extraction through them is flagged for its missing path guard, not for links), archives rejected at upload by another component, and libraries the rule does not model. A silent result does not show links were refused.",
+          "covers": "Points at tar.x or tar.extract without a filter option, where a filter could reject link entries.",
+          "misses": "Protection may exist in library defaults or another layer the rule cannot see. A filter need not reject links; the zip branches do not inspect link policy, and upload rejection is not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.archive-extraction-unchecked-by-default",
+          "covers": "Points at the named tar extraction calls without a filter, or shutil.unpack_archive without a filter, where filtering could reject unsafe links.",
+          "misses": "Protection may exist in runtime defaults or a wrapper the rule cannot see. Zip branches do not inspect link types; a supplied filter need not reject links, and rejecting archives before upload is not modeled. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.archive-extraction-unchecked",
-          "covers": "A tar archive extracted with no filter argument, or with the fully_trusted filter, the argument that carries the refusal of link entries in Python.",
+          "covers": "An extractall call explicitly selecting filter=\"fully_trusted\", disabling the tar filter's link restrictions.",
           "misses": "A filter that does not refuse links (the tar filter or one the project wrote), zip archives, archives rejected at upload by another component, and libraries the rule does not model. A silent result does not show links were refused.",
           "depth": "partial"
         }
       ],
-      "why": "Only the tar extraction calls of Python and JavaScript expose a filter argument that refuses link entries, so a call without one is the one place these rules can see links; the rules of the other languages look at paths only.",
+      "why": "The Python explicit check flags fully_trusted extraction. Python and JavaScript Review checks only point at extraction without a locally visible filter and never examine the requirement or establish that library defaults allow unsafe links.",
       "applies": {
         "technology": [
           "archives"
@@ -307,7 +342,7 @@
     },
     {
       "requirement": "V5.3.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -428,54 +463,61 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.archive-extraction-unchecked",
-          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
-          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "covers": "Points at AdmZip whole extraction, tar extraction without a filter, unzipper.Extract, or entry callbacks writing entry-derived paths without a recognized startsWith guard.",
+          "misses": "Protection may exist in library defaults, filters or a wrapper the rule cannot see. A visible guard need not enforce containment; unlisted formats and cross-function checks are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.archive-extraction-unchecked",
-          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
-          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "covers": "An extractall call explicitly selecting filter=\"fully_trusted\", disabling the tar filter's path restrictions.",
+          "misses": "Extraction without a filter belongs to the Review half. The receiver is not type constrained; separately validated members and destination containment in a wrapper are not established by this match.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.archive-extraction-unchecked-by-default",
+          "covers": "Points at the named tar extraction calls without a filter, ZipFile.extractall without visible member inspection, and shutil.unpack_archive without a filter.",
+          "misses": "Protection may exist in runtime defaults, archive library path normalization or a wrapper the rule cannot see. A members argument, filter or infolist read need not establish containment; unlisted extraction APIs are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.archive-extraction-unchecked",
-          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
-          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "covers": "Points at whole-archive ExtractToDirectory calls without recognized Length comparisons, or zip and tar entry loops building or writing entry-derived paths without recognized path guards.",
+          "misses": "Protection may exist in library defaults or a wrapper the rule cannot see. A length comparison is not containment and can silence whole extraction; visible path tests need not reject escape. Unlisted APIs are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.archive-extraction-unchecked",
-          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
-          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "covers": "Points at zip entry range loops or tar Next loops joining or writing entry names without the named HasPrefix, IsLocal, Contains or Rel guard idioms.",
+          "misses": "Protection may exist in a helper or wrapper the rule cannot see. A visible guard need not reject unsafe paths; link policies, whole-extraction helpers and unlisted loops are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.archive-extraction-unchecked",
-          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
-          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "covers": "Points at the named archive-entry types used in path or file constructors without recognized startsWith or name containment tests, and ZipFile.extractAll without a length comparison.",
+          "misses": "Protection may exist in library defaults or a wrapper the rule cannot see. A length comparison is not containment and can silence whole extraction; visible path tests need not reject escape. Unlisted APIs are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.archive-extraction-unchecked",
-          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
-          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "covers": "Points at extractTo calls and file writes using getNameIndex-derived names without the recognized strict CSV filename allowlist.",
+          "misses": "Protection may exist in library defaults or a wrapper the rule cannot see. Only the named CSV preg_match allowlist exception is recognized; other validators, library options and extraction APIs are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.archive-extraction-unchecked",
-          "covers": "An archive extracted whole, or entry by entry under the entry's own name, with none of the guards of the idiom in sight, so a name in the archive can leave the target folder.",
-          "misses": "Guards that live in a wrapper or a library option, destination paths checked by another function, and archive formats or libraries the rule does not model.",
+          "covers": "Points at the named archive path/name uses without recognized containment tests, or unpack and extract calls on the named constructors without recognized size evidence.",
+          "misses": "Protection may exist in library defaults or a wrapper the rule cannot see. Size evidence is not path containment; unrelated size reads or path tests can silence branches. Unlisted APIs and cross-function checks are missed. This Review check never examines the requirement.",
           "depth": "partial"
         }
       ],
-      "why": "Path traversal rules gain the upload file name and the archive entry name as sources of a path.",
+      "why": "Blocking path and upload-name checks inspect request-derived paths; the Python explicit archive check flags fully_trusted extraction. Archive Review checks only point at extraction or entry-name use without locally recognized guards and never examine the requirement or establish escape from the destination.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
