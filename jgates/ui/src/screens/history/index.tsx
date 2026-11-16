@@ -31,7 +31,7 @@ export interface RunRow {
   profile: string | null;
   scope: string | null;
   commit: string | null;
-  findings: { total: number; active: number; blocking: number };
+  findings: { total: number; active: number; blocking: number; informational?: number; review?: number };
   severities: string[];
   categories: string[];
   components: string[];
@@ -215,7 +215,10 @@ export default function HistoryScreen() {
                     </div>
                   </td>
                   <td data-label={t("history_col_profile")}>{r.profile ?? "-"}</td>
-                  <td data-label={t("history_col_findings")}>{t("history_findings", { active: r.findings.active, blocking: r.findings.blocking })}</td>
+                  <td data-label={t("history_col_findings")}>
+                    <div>{t("history_findings_classes", { blocking: r.findings.blocking, informational: r.findings.informational ?? 0 })}</div>
+                    <div data-testid="history-review-count">{t("history_review_count", { count: r.findings.review ?? 0 })}</div>
+                  </td>
                   <td className="muted" data-label={t("history_col_duration")}>{formatDuration(r.durationMs)}</td>
                   <td data-label={t("history_col_actions")}>
                     <div className="history-actions">

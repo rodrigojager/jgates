@@ -1,4 +1,13 @@
 {
+  "vres_banner_review": "and {count} to review",
+  "vres_other_findings": "Blocking and waived findings",
+  "vres_review_title": "To review ({count})",
+  "vres_review_list": "To review",
+  "vres_review_lead": "These findings do not block the validation: look at each and mark it as reviewed.",
+  "vres_review_pill": "Review",
+  "vres_reviewed": "Reviewed",
+  "vres_reviewed_until": "Reviewed until {date}",
+  "vres_review_action": "Mark as reviewed",
   "vres_asvs_link": "ASVS coverage map for this validation",
   "vres_title": "Result",
   "vres_title_page": "Validation details",

@@ -8,7 +8,7 @@ import { ErrorNotice, Pill } from "../../components/common";
 import { Icon, type IconName } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
-import { WaiveBlock, WaiveProvider, WaiveSummary } from "./waive";
+import { WaiveBlock, WaiveProvider, WaiveSummary, useReviewedFindings } from "./waive";
 import "./result-cards.css";
 
 type Tone = "green" | "gold" | "red" | "blue";
@@ -58,9 +58,12 @@ export function approvedWithWaiversText(approval: Approval): string {
 }
 
 /** A finding a tool reported as informational: it is shown and counted, never blocks and is never waived. */
-export const isInformationalFinding = (f: any): boolean => f.informational === true && f.blocking !== true && f.waived !== true;
+export const isInformationalFinding = (f: any): boolean => f.informational === true && f.review !== true && f.blocking !== true && f.waived !== true;
+export const isReviewFinding = (f: any): boolean => f.review === true && f.blocking !== true && f.waived !== true;
 
 function Banner({ result, crashed, onShowWaived }: { result: any; crashed: boolean; onShowWaived?: () => void }) {
+  const findings = useReviewedFindings(result.findings ?? []);
+  const review = findings.filter(isReviewFinding).length;
   const runDisabled: any[] = (result.disabled ?? []).filter((d: any) => d.origin === "run");
   const blocking = result.blockingViolations ?? 0;
   const partial = result.partial === true || result.decision === "cancelled";
@@ -108,7 +111,8 @@ function Banner({ result, crashed, onShowWaived }: { result: any; crashed: boole
       <div className="grow stack" style={{ gap: 6 }}>
         <strong data-testid="result-banner-title">
           {title}
-          {informational > 0 ? <span data-testid="result-banner-informational">{` ${t("vres_banner_informational", { count: informational })}`}</span> : null}
+           {informational > 0 ? <span data-testid="result-banner-informational">{` ${t("vres_banner_informational", { count: informational })}`}</span> : null}
+           {review > 0 ? <span data-testid="result-banner-review">{` ${t("vres_banner_review", { count: review })}`}</span> : null}
         </strong>
         <p>{text}</p>
         {kind === "passed-waivers" && onShowWaived ? (
@@ -323,7 +327,8 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
         </Pill>
         {f.blocking ? <Pill tone="red">{t("vres_blocking")}</Pill> : null}
         {informational ? <Pill tone="blue">{t("vres_informational_pill")}</Pill> : null}
-        {f.waived ? <Pill tone="blue">{t("vres_waived")}</Pill> : null}
+        {isReviewFinding(f) ? <Pill tone="blue">{t("vres_review_pill")}</Pill> : null}
+        {f.waived ? <Pill tone="blue">{t(f.review === true ? "vres_reviewed" : "vres_waived")}</Pill> : null}
         {f.baselineState ? <Pill>{f.baselineState === "new" ? t("vres_baseline_new") : t("vres_baseline_unchanged")}</Pill> : null}
       </div>
       <p className="res-finding-message" data-testid="finding-message">{f.message}</p>
@@ -370,7 +375,7 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
       </dl>
       {f.waived ? (
         <p className="small" data-testid="finding-waiver">
-          <strong>{t("vres_waived")}</strong>
+          <strong>{t(f.review === true ? "vres_reviewed" : "vres_waived")}</strong>
           {f.waiverSource ? ` · ${tOr(`vres_waiver_source_${f.waiverSource}`, String(f.waiverSource))}` : ""}
           {f.waiverReason ? ` · ${t("vres_waiver_reason", { reason: String(f.waiverReason) })}` : ""}
           {f.waiverExpires ? ` · ${t("vres_waiver_until", { date: String(f.waiverExpires) })}` : ` · ${t("vres_waiver_no_date")}`}
@@ -420,7 +425,7 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
 }
 
 function Findings({ result, domainFilter, onClear, waivedOnly, onWaivedOnly }: { result: any; domainFilter: { domain: string; ids: string[] } | null; onClear: () => void; waivedOnly: boolean; onWaivedOnly: (on: boolean) => void }) {
-  const findings: any[] = result.findings ?? [];
+  const findings = useReviewedFindings(result.findings ?? []);
   const [severity, setSeverity] = useState("");
   const [category, setCategory] = useState("");
   const [component, setComponent] = useState("");
@@ -438,8 +443,9 @@ function Findings({ result, domainFilter, onClear, waivedOnly, onWaivedOnly }: {
       (!component || String(f.component ?? "") === component) &&
       (!tool || String(f.origin ?? f.tool) === tool),
   );
-  const blockingShown = shown.filter((f) => !isInformationalFinding(f));
+  const blockingShown = shown.filter((f) => !isInformationalFinding(f) && !isReviewFinding(f));
   const informationalShown = shown.filter(isInformationalFinding);
+  const reviewShown = shown.filter(isReviewFinding);
   return (
     <section className="stack" aria-labelledby="vres-findings">
       <h3 id="vres-findings">{t("vres_findings")}</h3>
@@ -510,11 +516,14 @@ function Findings({ result, domainFilter, onClear, waivedOnly, onWaivedOnly }: {
       ) : (
         <>
           {blockingShown.length > 0 ? (
+            <section className="stack">
+            <h4>{t("vres_other_findings")}</h4>
             <ul className="res-cards" aria-label={t("vres_findings")} data-testid="finding-cards">
               {blockingShown.map((f, i) => (
                 <FindingCard key={`${f.fingerprint ?? f.ruleId}:${i}`} f={f} workspacePath={result.workspace?.path} />
               ))}
             </ul>
+            </section>
           ) : null}
           {informationalShown.length > 0 ? (
             <section className="stack" aria-labelledby="vres-informational" data-testid="informational-findings">
@@ -522,6 +531,17 @@ function Findings({ result, domainFilter, onClear, waivedOnly, onWaivedOnly }: {
               <p className="muted small">{t("vres_informational_lead")}</p>
               <ul className="res-cards" aria-label={t("vres_informational_list")} data-testid="informational-cards">
                 {informationalShown.map((f, i) => (
+                  <FindingCard key={`${f.fingerprint ?? f.ruleId}:${i}`} f={f} workspacePath={result.workspace?.path} />
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          {reviewShown.length > 0 ? (
+            <section className="stack" aria-labelledby="vres-review" data-testid="review-findings">
+              <h4 id="vres-review">{t("vres_review_title", { count: reviewShown.length })}</h4>
+              <p className="muted small">{t("vres_review_lead")}</p>
+              <ul className="res-cards" aria-label={t("vres_review_list")} data-testid="review-cards">
+                {reviewShown.map((f, i) => (
                   <FindingCard key={`${f.fingerprint ?? f.ruleId}:${i}`} f={f} workspacePath={result.workspace?.path} />
                 ))}
               </ul>

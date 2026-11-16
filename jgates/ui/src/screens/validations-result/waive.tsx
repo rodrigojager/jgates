@@ -61,6 +61,15 @@ interface WaiveApi {
 const WaiveContext = createContext<WaiveApi | null>(null);
 const useWaive = (): WaiveApi | null => useContext(WaiveContext);
 
+/** Reflect reviews made here without rewriting the historical result. Undo restores the stored occurrence. */
+export function useReviewedFindings(findings: any[]): any[] {
+  const waive = useWaive();
+  return findings.map((f) => {
+    const added = f.review === true ? waive?.addedOf(f) : null;
+    return added ? { ...f, waived: true, waiverExpires: added.until } : f;
+  });
+}
+
 const pad = (n: number): string => String(n).padStart(2, "0");
 const dateKey = (d: Date): string => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 export const todayKey = (): string => dateKey(new Date());
@@ -225,7 +234,7 @@ export function WaiveBlock({ f }: { f: any }) {
     return (
       <div className="stack" style={{ gap: 6 }} data-testid="waive-state" data-state="added">
         <p className="small">
-          <strong>{t("vres_waive_added_until", { date: added.until })}</strong> · {t("vres_waive_counts_next")}
+          <strong>{t(f.review === true ? "vres_reviewed_until" : "vres_waive_added_until", { date: added.until })}</strong> · {t("vres_waive_counts_next")}
         </p>
         <div className="row wrap">
           <button type="button" className="btn" disabled={waive.busy} onClick={() => asked(waive.undoAdd(f))} data-testid="waive-undo">
@@ -269,7 +278,7 @@ export function WaiveBlock({ f }: { f: any }) {
     <div className="stack" style={{ gap: 6 }}>
       <div className="row wrap">
         <button type="button" className="btn" disabled={governed !== null} onClick={() => setOpen(true)} data-testid="waive-button">
-          {t("vres_waive")}
+          {t(f.review === true ? "vres_review_action" : "vres_waive")}
         </button>
         {governed ? (
           <span className="small muted" data-testid="waive-blocked">
@@ -378,7 +387,7 @@ function WaiveDialog({ f, onClose }: { f: any; onClose: () => void }) {
   };
 
   return (
-    <Dialog title={t("vres_waive_title")} onClose={requestClose} wide>
+    <Dialog title={t(f.review === true ? "vres_review_action" : "vres_waive_title")} onClose={requestClose} wide>
       <div className="stack" data-testid="waive-dialog" ref={root}>
         {confirmDiscard ? (
           <div className="notice warn" role="alert" data-testid="waive-discard">
@@ -493,7 +502,7 @@ function WaiveDialog({ f, onClose }: { f: any; onClose: () => void }) {
         {saveError ? <ErrorNotice error={saveError} /> : null}
         <div className="row wrap">
           <button type="button" className="btn primary" disabled={!valid || saving || loadingPreview || previewError !== null} onClick={submit} data-testid="waive-save">
-            {t("vres_waive")}
+            {t(f.review === true ? "vres_review_action" : "vres_waive")}
           </button>
           <button type="button" className="btn" onClick={requestClose} data-testid="waive-cancel">
             {t("cancel")}

@@ -1,4 +1,8 @@
 {
+  "history_informational_heading": "Informational findings",
+  "history_findings_classes": "{blocking} blocking · {informational} informational",
+  "history_review_count": "{count} to review",
+  "history_review_heading": "To review",
   "history_nav": "History",
   "history_title": "Every validation tells a story.",
   "history_lead": "Results tied to the code, the profile and the rules used, for this workspace only.",

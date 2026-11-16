@@ -1,4 +1,13 @@
 {
+  "vres_banner_review": "e {count} para revisar",
+  "vres_other_findings": "Achados bloqueantes e dispensados",
+  "vres_review_title": "Para revisar ({count})",
+  "vres_review_list": "Para revisar",
+  "vres_review_lead": "Estes achados não bloqueiam a validação: examine cada um e marque como revisado.",
+  "vres_review_pill": "Revisar",
+  "vres_reviewed": "Revisado",
+  "vres_reviewed_until": "Revisado até {date}",
+  "vres_review_action": "Marcar como revisado",
   "vres_asvs_link": "Mapa de cobertura ASVS desta validação",
   "vres_title": "Resultado",
   "vres_title_page": "Detalhes da validação",

@@ -78,10 +78,21 @@ function storedResult(fixture: Fixture, runId = RUN_ID, findings: unknown[] = FI
 // Findings of the pack: one that blocks (with the requirement ids its rule was written for) and two informational ones.
 const MIXED_RUN = "run_20261112T110000Z_bbbbbbbb";
 const INFO_ONLY_RUN = "run_20261112T120000Z_cccccccc";
+const REVIEW_BASE_RUN = "run_20261110T100000Z_dddddddd";
 const BLOCKING_PACK = finding({ fingerprint: "p1", stageId: "semgrep#pack", tool: "semgrep", ruleId: "jgates.python.weak-hash", message: "Weak hash for a password", asvsRequirements: ["V11.4.2"], location: { path: "app/auth.py", line: 12 } });
 const INFO_PACK = [
   finding({ fingerprint: "i1", stageId: "semgrep#pack", tool: "semgrep", ruleId: "jgates.python.policy-min-length", normalizedSeverity: "info", severity: "info", blocking: false, informational: true, message: "Password length policy not found", asvsRequirements: ["V3.3.1", "V6.2.1"], location: { path: "app/policy.py", line: 3 } }),
   finding({ fingerprint: "i2", stageId: "semgrep#pack", tool: "semgrep", ruleId: "jgates.js.policy-session", normalizedSeverity: "info", severity: "info", blocking: false, informational: true, message: "Session timeout policy not found", location: { path: "web/session.js", line: 9 } }),
+];
+const reviewFinding = (digit: string, ruleId: string) => finding({
+  fingerprint: `jgf1:${digit.repeat(64)}`, stageId: "semgrep#pack", tool: "semgrep", ruleId,
+  normalizedSeverity: "info", severity: "info", blocking: false, review: true,
+  message: "The library default needs a review of the surrounding protection.",
+  asvsRequirements: ["V3.3.1"], location: { path: "demo/mod.py", line: 1 },
+});
+const REVIEW_PACK = [
+  reviewFinding("a", "jgates.python.session-by-default"),
+  reviewFinding("b", "jgates.python.xml-by-default"),
 ];
 const OLDER = { startedAt: "2026-11-11T10:00:00.000Z", finishedAt: "2026-11-11T10:00:09.000Z" };
 const PACK_STAGE =[{ id: "semgrep#pack", label: "Semgrep", adapter: "semgrep", state: "completed", findings: 3 }];
@@ -96,7 +107,8 @@ async function writeStoredRun(fixture: Fixture) {
   // Two more stored runs with a pack stage: blocking plus informational findings, and informational findings only.
   for (const extra of [
     // Older than the main run, so the overview and the history still lead with it.
-    { id: MIXED_RUN, findings: [BLOCKING_PACK, ...INFO_PACK], over: { ...OLDER, stages: PACK_STAGE, decision: "failed", blockingViolations: 1 } },
+    { id: MIXED_RUN, findings: [BLOCKING_PACK, ...INFO_PACK, ...REVIEW_PACK], over: { ...OLDER, stages: PACK_STAGE, decision: "failed", blockingViolations: 1 } },
+    { id: REVIEW_BASE_RUN, findings: [BLOCKING_PACK, ...INFO_PACK, REVIEW_PACK[0], reviewFinding("c", "jgates.python.cookie-by-default")], over: { startedAt: "2026-11-10T10:00:00.000Z", stages: PACK_STAGE, decision: "failed", blockingViolations: 1 } },
     { id: INFO_ONLY_RUN, findings: INFO_PACK, over: { ...OLDER, stages: PACK_STAGE, decision: "passed", complete: true, exitCode: 0, blockingViolations: 0 } },
   ]) {
     const extraDir = path.join(fixture.home, "workspaces", await workspaceIdOf(fixture), "runs", extra.id);
@@ -309,6 +321,91 @@ for (const language of ["pt-BR", "en"] as const) {
       await expect(page.getByTestId("informational-findings").getByTestId("finding-card")).toHaveCount(2);
     });
   });
+}
+
+for (const language of ["pt-BR", "en"] as const) {
+  for (const width of [1280, 375]) {
+    for (const theme of ["light", "dark"] as const) {
+      test(`Review findings are separate and can be marked as reviewed (${language}, ${width} px, ${theme}, keyboard only)`, async ({ page }) => {
+        await withServer(page, async ({ fixture, base }) => {
+          setLanguage(fixture, language);
+          const prefs = path.join(fixture.home, "preferences.json");
+          fs.writeFileSync(prefs, JSON.stringify({ ...JSON.parse(fs.readFileSync(prefs, "utf8")), theme }));
+          const en = language === "en";
+          await page.setViewportSize({ width, height: 900 });
+          await page.goto(`${base}#/validations/result/${MIXED_RUN}`);
+          await page.reload();
+          await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+          await expect(page.getByTestId("result-banner-informational")).toContainText("2");
+          await expect(page.getByTestId("result-banner-review")).toHaveText(en ? "and 2 to review" : "e 2 para revisar");
+          await expect(page.getByTestId("result-banner")).toContainText(en ? "1 point to take care of before approving." : "1 ponto para cuidar antes de aprovar.");
+          await expect(page.getByRole("heading", { name: en ? "Blocking and waived findings" : "Achados bloqueantes e dispensados", exact: true })).toBeVisible();
+          await expect(page.getByRole("heading", { name: en ? "Informational findings (2)" : "Achados informativos (2)", exact: true })).toBeVisible();
+          const section = page.getByTestId("review-findings");
+          await expect(section.getByRole("heading")).toHaveText(en ? "To review (2)" : "Para revisar (2)");
+          await expect(section.getByTestId("finding-card")).toHaveCount(2);
+          await expect(section.getByRole("button", { name: en ? "Waive" : "Dispensar", exact: true })).toHaveCount(0);
+          await expect(section.getByTestId("finding-requirement").first()).toHaveAttribute("href", "#/validations/coverage/asvs?requirement=V3.3.1");
+          expect(await page.evaluate(() => !!(document.querySelector('[data-testid="informational-findings"]')!.compareDocumentPosition(document.querySelector('[data-testid="review-findings"]')!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+          const action = en ? "Mark as reviewed" : "Marcar como revisado";
+          await press(page, section.getByRole("button", { name: action }).first());
+          const dialog = page.getByRole("dialog");
+          await expect(dialog.getByRole("heading", { name: action, exact: true })).toBeVisible();
+          await page.keyboard.press("Escape");
+          await expect(dialog).toHaveCount(0);
+          await press(page, section.getByRole("button", { name: action }).first());
+          await press(page, dialog.getByTestId("waive-preset-90"));
+          await dialog.getByTestId("waive-reason").focus();
+          await page.keyboard.insertText("Protection confirmed in the surrounding application");
+          await expect(dialog.getByTestId("waive-entry-diff")).toContainText(REVIEW_PACK[0].ruleId);
+          await noSidewaysScroll(page, "review dialog");
+          await press(page, dialog.getByTestId("waive-save"));
+          await expect(dialog).toHaveCount(0);
+          await expect(section.getByTestId("finding-card")).toHaveCount(1);
+          await expect(page.getByTestId("result-banner-review")).toContainText("1");
+          const reviewed = page.getByTestId("finding-cards").getByTestId("finding-card").filter({ has: page.getByTestId("finding-rule").filter({ hasText: REVIEW_PACK[0].ruleId }) });
+          await expect(reviewed).toContainText(en ? "Reviewed" : "Revisado");
+          await expect(reviewed.getByTestId("waive-undo")).toBeVisible();
+          await noSidewaysScroll(page, "reviewed finding");
+          expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+          // Undo returns the occurrence to its own heading and count without changing the stored run.
+          await press(page, reviewed.getByTestId("waive-undo"));
+          await expect(section.getByTestId("finding-card")).toHaveCount(2);
+          await page.goto(`${base}#/validations/result/${INFO_ONLY_RUN}`);
+          await expect(page.getByTestId("informational-findings")).toBeVisible();
+          await expect(page.getByTestId("review-findings")).toHaveCount(0);
+          await expect(page.getByTestId("result-banner-review")).toHaveCount(0);
+        });
+      });
+    }
+
+    test(`history counts and compares Review findings apart (${language}, ${width} px, keyboard only)`, async ({ page }) => {
+      await withServer(page, async ({ fixture, base }) => {
+        setLanguage(fixture, language);
+        const en = language === "en";
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(`${base}#/validations`);
+        await page.reload();
+        const head = page.locator(`tr[data-run="${MIXED_RUN}"]`);
+        await expect(head.getByTestId("history-review-count")).toHaveText(en ? "2 to review" : "2 para revisar");
+        await press(page, head.getByRole("checkbox"), "Space");
+        await press(page, page.locator(`tr[data-run="${REVIEW_BASE_RUN}"]`).getByRole("checkbox"), "Space");
+        await press(page, page.getByRole("button", { name: en ? "Compare the two chosen" : "Comparar as duas escolhidas" }));
+        const panel = page.getByTestId("history-compare-review");
+        await expect(panel.getByRole("heading", { name: en ? "To review" : "Para revisar", exact: true })).toBeVisible();
+        for (const [kind, rule] of [["new", REVIEW_PACK[1].ruleId], ["kept", REVIEW_PACK[0].ruleId], ["resolved", "jgates.python.cookie-by-default"]]) {
+          const group = panel.locator(`[data-compare="${kind}-review"]`);
+          await expect(group.locator("li")).toHaveCount(1);
+          await expect(group.locator("li")).toContainText(rule);
+          await expect(group.locator(".pill").first()).toHaveText("1");
+          await expect(page.locator(`[data-compare="${kind}"]`)).not.toContainText(rule);
+          await expect(page.locator(`[data-compare="${kind}-informational"]`)).not.toContainText(rule);
+        }
+        await noSidewaysScroll(page, "history Review comparison");
+        expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+      });
+    });
+  }
 }
 
 for (const width of [1280, 375]) {
