@@ -177,3 +177,47 @@ rules:
           - pattern: axios.request({...})
       - pattern-not: 'axios.$M(..., {..., timeout: $T, ...})'
       - pattern-not: 'axios({..., timeout: $T, ...})'
+
+  - id: jgates.js.outbound-request-follows-redirects
+    message: An outbound request uses an address from the incoming request without a redirect policy here; fetch and axios follow redirects by default. Disable redirects or confirm that every redirect destination is validated, not only the first host.
+    severity: INFO
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.2"]
+      class: review
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: fetch($URL)
+              - pattern: fetch($URL, {...})
+          - pattern-not: 'fetch($URL, {..., redirect: $POLICY, ...})'
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern-either:
+              - pattern: axios.$METHOD($URL)
+              - pattern: axios.$METHOD($URL, {...})
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: ^(get|delete|head|options)$
+          - pattern-not: 'axios.$METHOD($URL, {..., maxRedirects: $LIMIT, ...})'
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern-either:
+              - pattern: axios.$METHOD($URL, $BODY)
+              - pattern: axios.$METHOD($URL, $BODY, {...})
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: ^(post|put|patch)$
+          - pattern-not: 'axios.$METHOD($URL, $BODY, {..., maxRedirects: $LIMIT, ...})'
+          - focus-metavariable: $URL

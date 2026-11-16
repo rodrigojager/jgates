@@ -6,6 +6,7 @@
     "jgates.js.stack-trace-in-response-koa",
     "jgates.js.error-detail-in-response",
     "jgates.js.swallowed-exception",
-    "jgates.js.http-client-without-timeout"
+    "jgates.js.http-client-without-timeout",
+    "jgates.js.outbound-request-follows-redirects"
   ]
 }

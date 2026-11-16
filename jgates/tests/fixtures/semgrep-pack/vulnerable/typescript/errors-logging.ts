@@ -5,6 +5,12 @@ import Koa from "koa";
 const app = express();
 const koa = new Koa();
 
+app.get("/remote-report", async (req: Request, res: Response): Promise<void> => {
+  const url: string = validateUrl(req.query.url);
+  const report = await axios.get(url, { timeout: 5000 });
+  res.json(report.data);
+});
+
 app.post("/login", async (req: Request, res: Response): Promise<void> => {
   const password: string = loadCredential(req);
   console.info("login attempt with " + password);

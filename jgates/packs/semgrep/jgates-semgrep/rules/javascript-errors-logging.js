@@ -148,3 +148,23 @@ async function outbound(url, body) {
   // ok: jgates.js.http-client-without-timeout
   await client.get(url);
 }
+
+async function redirectPolicy(req) {
+  // ruleid: jgates.js.outbound-request-follows-redirects
+  await fetch(req.query.url);
+  const url = req.body.url;
+  // ruleid: jgates.js.outbound-request-follows-redirects
+  await axios.get(url, { timeout: 5000 });
+  // ruleid: jgates.js.outbound-request-follows-redirects
+  await axios.post(url, { report: true }, { timeout: 5000 });
+  // ok: jgates.js.outbound-request-follows-redirects
+  await fetch(req.query.url, { redirect: "error" });
+  // ok: jgates.js.outbound-request-follows-redirects
+  await fetch(req.query.url, { redirect: "manual" });
+  // ok: jgates.js.outbound-request-follows-redirects
+  await axios.get(url, { timeout: 5000, maxRedirects: 0 });
+  // ok: jgates.js.outbound-request-follows-redirects
+  await axios.post(url, { report: true }, { timeout: 5000, maxRedirects: 0 });
+  // ok: jgates.js.outbound-request-follows-redirects
+  await fetch("https://reports.example.com/daily");
+}

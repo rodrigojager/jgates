@@ -6,6 +6,12 @@ const app = express();
 const koa = new Koa();
 const logger: Console = console;
 
+app.get("/remote-report", async (req: Request, res: Response): Promise<void> => {
+  const url: string = validateUrl(req.query.url);
+  const report = await axios.get(url, { timeout: 5000, maxRedirects: 0 });
+  res.json(report.data);
+});
+
 app.post("/login", async (req: Request, res: Response): Promise<void> => {
   const userId: string = String(req.body.userId);
   logger.info("login attempt for " + userId);
