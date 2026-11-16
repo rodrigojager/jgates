@@ -83,10 +83,11 @@ rules:
       - pattern: $P.acceptExpiresAt(Long.MAX_VALUE)
 
   - id: jgates.java.jwt-audience-not-validated
-    message: A token verifier is built without asking for an audience, so a token issued for another service is accepted. Ask for it, for example JWT.require(algorithm).withAudience("api").build() or Jwts.parser().requireAudience("api").
-    severity: WARNING
+    message: A token verifier is built without a visible audience requirement. If no other validator checks the intended audience, a token issued for another service may be accepted; add withAudience("api") or requireAudience("api"), or confirm where the audience is checked before accepting the token.
+    severity: INFO
     languages: [java]
     metadata:
+      class: review
       category: authorization
       cwe: "CWE-287"
       author: JGates
@@ -97,10 +98,11 @@ rules:
       - pattern-regex: '(?s)Jwts\.parser(?:Builder)?\(\)(?:(?!requireAudience)[^;])*?\.build\(\)'
 
   - id: jgates.java.oauth-request-without-state
-    message: An authorization request URL is built in code with neither a state nor a code challenge, so the callback cannot be tied to the request that started it. Add a random state value and a PKCE code_challenge, or use the framework's OAuth client.
-    severity: WARNING
+    message: An authorization request URL is built with neither a visible state nor a code challenge. If no OAuth client adds and validates request binding, the callback may not be tied to the initiating session; use a framework OAuth client that provides this protection, or add an unpredictable session-bound state checked at the callback and PKCE with its verifier checked at token exchange.
+    severity: INFO
     languages: [java]
     metadata:
+      class: review
       category: authorization
       cwe: "CWE-352"
       author: JGates
