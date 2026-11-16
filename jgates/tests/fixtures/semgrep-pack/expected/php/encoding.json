@@ -5,6 +5,13 @@
   "ruleIds": [
     "jgates.php.regex-from-request",
     "jgates.php.redos-nested-quantifier",
-    "jgates.php.format-string-from-request"
+    "jgates.php.format-string-from-request",
+    "jgates.php.csv-formula-injection",
+    "jgates.php.memcache-key-from-request",
+    "jgates.php.double-decoding",
+    "jgates.php.markdown-raw-html-enabled",
+    "jgates.php.markdown-raw-html-enabled-by-default",
+    "jgates.php.url-parameter-unencoded",
+    "jgates.php.json-built-by-concatenation"
   ]
 }
