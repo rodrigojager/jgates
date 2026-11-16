@@ -17,8 +17,17 @@ pub async fn open_feed() {
     let _ = connect_async("wss://chat.example.com/feed").await;
 }
 
+pub async fn accept_feed(stream: TcpStream) {
+    let _ = tokio_tungstenite::accept_hdr_async(stream, |req: &Request, response: Response| {
+        if req.headers().get("origin").and_then(|v| v.to_str().ok()) != Some("https://app.example.com") {
+            return Err(ErrorResponse::new(Some("Origin rejected".to_owned())));
+        }
+        Ok(response)
+    }).await;
+}
+
 pub fn build_schema(q: Query, m: EmptyMutation, s: EmptySubscription) {
-    let _ = Schema::build(q, m, s).limit_depth(10).limit_complexity(200).finish();
+    let _ = Schema::build(q, m, s).limit_depth(10).limit_complexity(200).disable_introspection().finish();
 }
 
 pub async fn go(q: web::Query<Next>) -> HttpResponse {

@@ -17,6 +17,10 @@ pub async fn open_feed() {
     let _ = connect_async("ws://chat.example.com/feed").await;
 }
 
+pub async fn accept_feed(stream: TcpStream) {
+    let _ = tokio_tungstenite::accept_async(stream).await;
+}
+
 pub fn build_schema(q: Query, m: EmptyMutation, s: EmptySubscription) {
     let _ = Schema::build(q, m, s).finish();
 }

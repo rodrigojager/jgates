@@ -4,6 +4,8 @@
     "jgates.rust.security-headers-disabled",
     "jgates.rust.csp-unsafe-directive",
     "jgates.rust.websocket-without-tls",
+    "jgates.rust.websocket-origin-not-checked",
+    "jgates.rust.graphql-introspection-enabled",
     "jgates.rust.graphql-without-depth-limit",
     "jgates.rust.open-redirect",
     "jgates.rust.client-ip-from-forwarded-header",

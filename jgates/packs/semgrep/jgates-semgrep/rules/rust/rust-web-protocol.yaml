@@ -66,6 +66,43 @@ rules:
           metavariable: $U
           regex: '^"?ws://(?!(localhost|127\.|\[::1\]))'
 
+  - id: jgates.rust.websocket-origin-not-checked
+    message: A tungstenite server accepts a WebSocket handshake without an Origin validation callback in sight. If a trusted upstream does not validate browser origins, use accept_hdr or accept_hdr_async with a callback that rejects origins outside an allow-list; otherwise confirm where that validation occurs.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: authorization
+      cwe: "CWE-1385"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.4.2"]
+      class: review
+    pattern-either:
+      - pattern: tungstenite::accept(...)
+      - pattern: tungstenite::accept_with_config(...)
+      - pattern: tokio_tungstenite::accept_async(...)
+      - pattern: tokio_tungstenite::accept_async_with_config(...)
+
+  - id: jgates.rust.graphql-introspection-enabled
+    message: An async-graphql schema is finished without disabling introspection in sight, so the default can expose its schema to callers. Disable introspection before finish() outside development, or confirm that schema discovery is intended and access is restricted elsewhere.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.2"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: Schema::build(...).finish()
+          - pattern: Schema::build(...).$A(...).finish()
+          - pattern: Schema::build(...).$A(...).$B(...).finish()
+          - pattern: Schema::build(...).$A(...).$B(...).$C(...).finish()
+          - pattern: Schema::build(...).$A(...).$B(...).$C(...).$D(...).finish()
+      - pattern-not-regex: 'disable_introspection'
+
   - id: jgates.rust.graphql-without-depth-limit
     message: An async-graphql schema is finished without a depth or complexity limit, so one request can ask for a very deep or costly query. Add limit_depth(...) and limit_complexity(...) before finish().
     severity: INFO
@@ -147,8 +184,8 @@ rules:
           - focus-metavariable: $U
 
   - id: jgates.rust.client-ip-from-forwarded-header
-    message: The client address is read from a forwarding header the client can set, so it can be forged. Use the peer address of the connection, or trust the header only behind a proxy that overwrites it.
-    severity: WARNING
+    message: The client address is read from forwarding headers, whose trust depends on the deployment. Use the peer address, or confirm that only trusted proxies can reach the application and that they strip client-supplied forwarding headers and overwrite them with verified addresses.
+    severity: INFO
     languages: [rust]
     metadata:
       category: authorization
@@ -156,6 +193,7 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V15.3.4", "V4.1.3"]
+      class: review
     pattern-either:
       - patterns:
           - pattern-either:

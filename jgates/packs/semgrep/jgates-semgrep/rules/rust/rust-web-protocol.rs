@@ -55,13 +55,45 @@ async fn dial() {
 // graphql-without-depth-limit
 fn graphql_schemas(q: Query, m: EmptyMutation, s: EmptySubscription) {
     // ruleid: jgates.rust.graphql-without-depth-limit
-    let _a = Schema::build(q, m, s).finish();
+    let _a = Schema::build(q, m, s).disable_introspection().finish();
     // ruleid: jgates.rust.graphql-without-depth-limit
-    let _b = Schema::build(q, m, s).data(1).finish();
+    let _b = Schema::build(q, m, s).data(1).disable_introspection().finish();
     // ok: jgates.rust.graphql-without-depth-limit
-    let _c = Schema::build(q, m, s).limit_depth(10).finish();
+    let _c = Schema::build(q, m, s).limit_depth(10).disable_introspection().finish();
     // ok: jgates.rust.graphql-without-depth-limit
-    let _d = Schema::build(q, m, s).data(1).limit_complexity(200).finish();
+    let _d = Schema::build(q, m, s).data(1).limit_complexity(200).disable_introspection().finish();
+}
+
+async fn websocket_servers(stream: TcpStream) {
+    // ruleid: jgates.rust.websocket-origin-not-checked
+    let _a = tokio_tungstenite::accept_async(stream).await;
+    // ruleid: jgates.rust.websocket-origin-not-checked
+    let _b = tungstenite::accept(stream);
+    // ok: jgates.rust.websocket-origin-not-checked
+    let _c = tokio_tungstenite::accept_hdr_async(stream, |req: &Request, response: Response| {
+        if req.headers().get("origin").and_then(|v| v.to_str().ok()) != Some("https://app.example.com") {
+            return Err(ErrorResponse::new(Some("Origin rejected".to_owned())));
+        }
+        Ok(response)
+    }).await;
+    // ok: jgates.rust.websocket-origin-not-checked
+    let _d = tungstenite::accept_hdr(stream, |req: &Request, response: Response| {
+        if req.headers().get("origin").and_then(|v| v.to_str().ok()) != Some("https://app.example.com") {
+            return Err(ErrorResponse::new(Some("Origin rejected".to_owned())));
+        }
+        Ok(response)
+    });
+}
+
+fn introspection_schemas(q: Query, m: EmptyMutation, s: EmptySubscription) {
+    // ruleid: jgates.rust.graphql-introspection-enabled
+    let _a = Schema::build(q, m, s).limit_depth(10).finish();
+    // ruleid: jgates.rust.graphql-introspection-enabled
+    let _b = Schema::build(q, m, s).limit_complexity(200).finish();
+    // ok: jgates.rust.graphql-introspection-enabled
+    let _c = Schema::build(q, m, s).limit_depth(10).disable_introspection().finish();
+    // ok: jgates.rust.graphql-introspection-enabled
+    let _d = Schema::build(q, m, s).disable_introspection().limit_complexity(200).finish();
 }
 
 // open-redirect
