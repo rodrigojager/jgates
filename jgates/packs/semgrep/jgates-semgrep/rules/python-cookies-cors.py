@@ -14,29 +14,37 @@ ALLOWED = {"https://app.example.com"}
 
 
 def secure_cookies(resp):
-    # ruleid: jgates.python.cookie-without-secure
+    # ruleid: jgates.python.cookie-without-secure-by-default
     resp.set_cookie("__Host-sid", "v", httponly=True, samesite="Lax")
+    # ruleid: jgates.python.cookie-without-secure-by-default
+    resp.set_cookie(key="__Host-sid", value="v", httponly=True, samesite="Lax")
     # ruleid: jgates.python.cookie-without-secure
     resp.set_cookie("__Host-sid", "v", secure=False, httponly=True, samesite="Lax")
     # ruleid: jgates.python.cookie-without-secure
     app.config["SESSION_COOKIE_SECURE"] = False
     # ruleid: jgates.python.cookie-without-secure
     SESSION_COOKIE_SECURE = False
-    # ok: jgates.python.cookie-without-secure
+    # ok: jgates.python.cookie-without-secure, jgates.python.cookie-without-secure-by-default
     resp.set_cookie("__Host-sid", "v", secure=True, httponly=True, samesite="Lax")
+    # ok: jgates.python.cookie-without-secure-by-default
+    resp.set_cookie("__Host-sid", "v", secure=True, httponly=True, samesite="Strict")
     # ok: jgates.python.cookie-without-secure
     app.config["SESSION_COOKIE_SECURE"] = True
 
 
 def httponly_cookies(resp):
-    # ruleid: jgates.python.cookie-without-httponly
+    # ruleid: jgates.python.cookie-without-httponly-by-default
     resp.set_cookie("__Host-sid", "v", secure=True, samesite="Lax")
+    # ruleid: jgates.python.cookie-without-httponly-by-default
+    resp.set_cookie(key="__Host-sid", value="v", secure=True, samesite="Lax")
     # ruleid: jgates.python.cookie-without-httponly
     resp.set_cookie("__Host-sid", "v", secure=True, httponly=False, samesite="Lax")
     # ruleid: jgates.python.cookie-without-httponly
     SESSION_COOKIE_HTTPONLY = False
-    # ok: jgates.python.cookie-without-httponly
+    # ok: jgates.python.cookie-without-httponly, jgates.python.cookie-without-httponly-by-default
     resp.set_cookie("__Host-sid", "v", secure=True, httponly=True, samesite="Lax")
+    # ok: jgates.python.cookie-without-httponly-by-default
+    resp.set_cookie("__Host-sid", "v", secure=True, httponly=True, samesite="Strict")
     # ok: jgates.python.cookie-without-httponly
     SESSION_COOKIE_HTTPONLY = True
 

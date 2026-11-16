@@ -16,6 +16,7 @@ api.add_middleware(CORSMiddleware, allow_origin_regex=r"https://.*\.example\.com
 def login():
     resp = make_response("ok")
     resp.set_cookie("__Host-sid", "token-value", secure=True, httponly=True, samesite="Lax")
+    resp.set_cookie("__Host-default", "token-value", secure=True, httponly=True, samesite="Lax")
     return resp
 
 

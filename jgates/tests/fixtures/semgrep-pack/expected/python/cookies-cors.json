@@ -1,4 +1,4 @@
 {
   "files": ["cookies-cors.py"],
-  "ruleIds": ["jgates.python.cookie-without-secure", "jgates.python.cookie-without-httponly", "jgates.python.cookie-without-samesite", "jgates.python.cookie-name-without-prefix", "jgates.python.cors-any-origin-with-credentials", "jgates.python.cors-origin-reflected", "jgates.python.cors-origin-reflected-any-regex", "jgates.python.jsonp-enabled", "jgates.python.sensitive-query-parameter", "jgates.python.xss-response-write"]
+  "ruleIds": ["jgates.python.cookie-without-secure", "jgates.python.cookie-without-secure-by-default", "jgates.python.cookie-without-httponly", "jgates.python.cookie-without-httponly-by-default", "jgates.python.cookie-without-samesite", "jgates.python.cookie-name-without-prefix", "jgates.python.cors-any-origin-with-credentials", "jgates.python.cors-origin-reflected", "jgates.python.cors-origin-reflected-any-regex", "jgates.python.jsonp-enabled", "jgates.python.sensitive-query-parameter", "jgates.python.xss-response-write"]
 }

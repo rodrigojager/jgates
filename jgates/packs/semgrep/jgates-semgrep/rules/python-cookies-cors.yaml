@@ -4,7 +4,7 @@
 # request.headers / request.META (Flask, Django) and request.args / request.GET (callback names).
 rules:
   - id: jgates.python.cookie-without-secure
-    message: A cookie is written without the Secure attribute, so the browser also sends it over plain HTTP. Pass secure=True to set_cookie, or set the framework's cookie setting to True.
+    message: The Secure option is explicitly disabled for a cookie, so the browser also sends it over plain HTTP. Pass secure=True to set_cookie, or set the framework's cookie setting to True.
     severity: WARNING
     languages: [python]
     metadata:
@@ -15,11 +15,6 @@ rules:
       asvs_requirements: ["V3.3.1"]
     pattern-either:
       - pattern: $R.set_cookie(..., secure=False, ...)
-      - patterns:
-          - pattern: $R.set_cookie(...)
-          - pattern-not: $R.set_cookie(..., secure=$ANY, ...)
-          - pattern-not: $R.set_cookie(..., **$K)
-          - pattern-not: $R.set_cookie($A1, $A2, $A3, $A4, $A5, $A6, $A7, ...)
       - pattern: $C.SESSION_COOKIE_SECURE = False
       - pattern: $C.CSRF_COOKIE_SECURE = False
       - pattern: SESSION_COOKIE_SECURE = False
@@ -27,8 +22,25 @@ rules:
       - pattern: $C["SESSION_COOKIE_SECURE"] = False
       - pattern: $C.update(..., SESSION_COOKIE_SECURE=False, ...)
 
+  - id: jgates.python.cookie-without-secure-by-default
+    message: A cookie is set without the Secure option. If nothing else adds it, the cookie can travel over plain HTTP; set secure=True here or confirm where it is set.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+      class: review
+    patterns:
+      - pattern: $R.set_cookie(...)
+      - pattern-not: $R.set_cookie(..., secure=$ANY, ...)
+      - pattern-not: $R.set_cookie(..., **$K)
+      - pattern-not: $R.set_cookie($A1, $A2, $A3, $A4, $A5, $A6, $A7, ...)
+
   - id: jgates.python.cookie-without-httponly
-    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Pass httponly=True to set_cookie, or set the framework's cookie setting to True.
+    message: The HttpOnly option is explicitly disabled for a cookie, so page scripts can read it. Pass httponly=True to set_cookie, or set the framework's cookie setting to True.
     severity: WARNING
     languages: [python]
     metadata:
@@ -39,16 +51,28 @@ rules:
       asvs_requirements: ["V3.3.4"]
     pattern-either:
       - pattern: $R.set_cookie(..., httponly=False, ...)
-      - patterns:
-          - pattern: $R.set_cookie(...)
-          - pattern-not: $R.set_cookie(..., httponly=$ANY, ...)
-          - pattern-not: $R.set_cookie(..., **$K)
-          - pattern-not: $R.set_cookie($A1, $A2, $A3, $A4, $A5, $A6, $A7, $A8, ...)
       - pattern: $C.SESSION_COOKIE_HTTPONLY = False
       - pattern: SESSION_COOKIE_HTTPONLY = False
       - pattern: CSRF_COOKIE_HTTPONLY = False
       - pattern: $C["SESSION_COOKIE_HTTPONLY"] = False
       - pattern: $C.update(..., SESSION_COOKIE_HTTPONLY=False, ...)
+
+  - id: jgates.python.cookie-without-httponly-by-default
+    message: A cookie is set without the HttpOnly option. If nothing else adds it, page scripts can read the cookie; set httponly=True here or confirm where it is set.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+      class: review
+    patterns:
+      - pattern: $R.set_cookie(...)
+      - pattern-not: $R.set_cookie(..., httponly=$ANY, ...)
+      - pattern-not: $R.set_cookie(..., **$K)
+      - pattern-not: $R.set_cookie($A1, $A2, $A3, $A4, $A5, $A6, $A7, $A8, ...)
 
   - id: jgates.python.cookie-without-samesite
     message: A cookie is written with SameSite set to None, or without it where the API sends none, so the browser attaches it to cross-site requests. Pass samesite="Lax" or "Strict".
