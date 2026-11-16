@@ -196,12 +196,13 @@ rules:
               }
 
   - id: jgates.php.outbound-request-follows-redirects
-    message: Request data selects the address of an outbound request and redirects are followed (the default of Guzzle and Laravel Http), so the first host can send the server to another one. Set 'allow_redirects' => false or validate each hop.
-    severity: WARNING
+    message: Request data selects an outbound address without a visible redirect restriction; Guzzle and Laravel Http follow redirects by default, so the first host may send the server to another one. Disable redirects here or confirm that client configuration disables them or that each hop is validated against allowed destinations.
+    severity: INFO
     languages: [php]
     mode: taint
     metadata:
       category: ssrf
+      class: review
       cwe: "CWE-918"
       author: JGates
       subdimension: injection
