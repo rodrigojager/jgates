@@ -134,7 +134,7 @@
     },
     {
       "requirement": "V7.2.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -169,10 +169,10 @@
           "depth": "partial"
         }
       ],
-      "why": "The Review rules point at login-like session writes without visible renewal and never examine the requirement. The Semantic block separately reads session rotation and invalidation.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+    "why": "The Review rules point at login-like session writes without visible renewal and never examine the requirement. The Semantic block separately reads session rotation and invalidation.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
       }
     },
     {

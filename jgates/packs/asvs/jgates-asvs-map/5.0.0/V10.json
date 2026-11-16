@@ -59,7 +59,7 @@
     },
     {
       "requirement": "V10.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -127,10 +127,10 @@
           "oauth-client"
         ]
       },
-      "why": "The Review rules point at authorization requests with no visible binding and never examine the requirement. The Semantic block separately reads PKCE and session-bound state handling. Technology applicability is a suggestion, not a decision for the user.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+    "why": "The Review rules point at authorization requests with no visible binding and never examine the requirement. The Semantic block separately reads PKCE and session-bound state handling. Technology applicability is a suggestion, not a decision for the user.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
       }
     },
     {
@@ -196,7 +196,7 @@
     },
     {
       "requirement": "V10.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -205,7 +205,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.jwt-audience-not-validated-by-default",
-          "covers": "Points at PyJWT decode calls with algorithms but no audience or aud argument, excluding keyword expansion and explicit validation-disable cases; token purpose is not inferred.",
+          "covers": "Points at PyJWT decode calls with algorithms but no audience or aud argument, excluding keyword expansion and the matched explicit signature/audience-disable forms; token purpose is not inferred.",
           "misses": "Audience protection may exist in later claim checks where the rule cannot see it. Expected audience correctness and introspection are not modeled. This Review check never examines the requirement.",
           "depth": "partial"
         },
@@ -219,8 +219,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.jwt-audience-not-validated",
-          "covers": "Points at SignedWith validation without inline PermittedFor, or Firebase JWT decode assignments in functions without the matched strict aud rejection condition; token purpose is not inferred.",
-          "misses": "Audience protection may exist in separately assembled constraints or other claim checks where the rule cannot see it. Expected audience correctness and introspection are not modeled. This Review check never examines the requirement.",
+          "covers": "Points at SignedWith validation without inline PermittedFor, or Firebase JWT decode assignments in functions without the matched strict aud inequality condition; token purpose is not inferred.",
+          "misses": "Audience protection may exist in separately assembled constraints or other claim checks where the rule cannot see it. The exclusion only recognizes an inequality condition, not effective rejection; expected audience correctness and introspection are not modeled. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
@@ -273,10 +273,10 @@
           "oauth-authorization-server"
         ]
       },
-      "why": "Blocking rules match explicit audience-validation disablement; Review checks only point at missing local settings and never examine the requirement. Neither infers that a JWT is an access token. The Semantic block separately reads access-token audience handling. Technology applicability is a suggestion, not a decision for the user.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+    "why": "Blocking rules match explicit audience-validation disablement; Review checks only point at missing local settings and never examine the requirement. Neither infers that a JWT is an access token. The Semantic block separately reads access-token audience handling. Technology applicability is a suggestion, not a decision for the user.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
       }
     },
     {

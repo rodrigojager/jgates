@@ -155,7 +155,7 @@
     },
     {
       "requirement": "V6.2.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -171,55 +171,55 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.password-composition-rule",
-          "covers": "Validators that demand upper-case, lower-case, digit or symbol classes: validator.js strong-password options, password-validator rules and look-ahead patterns on a password field.",
-          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen by this check. The finding is informational.",
+          "covers": "Positive strong-password character-class options, has().uppercase/lowercase/digits/symbols chains, and matched look-ahead patterns on password-named fields.",
+          "misses": "Receiver types, use of the result to enforce a policy, and the meaning of arbitrary look-aheads are not established. Class requirements coded as loops or helpers, external identity-provider policies and character-rejection rules are not seen. The finding is informational.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.password-composition-rule",
-          "covers": "A regular expression built from look-ahead class requirements and applied to a password value, in re calls or in a WTForms Regexp on a PasswordField.",
-          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen by this check. The finding is informational.",
+          "covers": "Matched look-ahead regex text in re calls on password-named values or attributes, or in Regexp validators inside PasswordField.",
+          "misses": "The meaning of arbitrary look-aheads and whether the result enforces a policy are not established. Class requirements coded as loops or helpers, external identity-provider policies and character-rejection rules are not seen. The finding is informational.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.password-composition-rule",
           "covers": "ASP.NET Core Identity PasswordOptions switches that require digits, lower case, upper case or non-alphanumeric characters.",
-          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen by this check. The finding is informational.",
+          "misses": "Receiver types and use of the configured options at runtime are not established. Class requirements coded as loops or helpers, external identity-provider policies and character-rejection rules are not seen. The finding is informational.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.password-composition-rule",
-          "covers": "Passay CharacterRule objects and Bean Validation patterns with look-ahead class requirements on a password field.",
-          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen by this check. The finding is informational.",
+          "covers": "CharacterRule constructor calls and matched Bean Validation look-ahead regex annotations on password-named fields.",
+          "misses": "Constructor type resolution, actual use in a password policy and the meaning of arbitrary look-aheads are not established. Class requirements coded as loops or helpers, external identity-provider policies and character-rejection rules are not seen. The finding is informational.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.password-composition-rule",
-          "covers": "The Laravel Password rule asking for mixed case, numbers or symbols, and rule strings with look-ahead patterns on password fields.",
-          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen by this check. The finding is informational.",
+          "covers": "Password builder chains asking for mixed case, letters, numbers or symbols; password-named regex rule strings and form constraints; and matched preg_match look-ahead or individual class tests on password-named values.",
+          "misses": "A class test need not enforce a composition policy; actual enforcement and the meaning of arbitrary look-aheads are not established. Class requirements coded as loops or helpers, external identity-provider policies and character-rejection rules are not seen. The finding is informational.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.password-composition-rule",
           "covers": "A password-named line carrying a look-ahead character-class pattern.",
-          "misses": "Class requirements coded as loops or helper functions, policies kept by an external identity provider, and rules that reject particular characters are not seen by this check. The finding is informational.",
+          "misses": "This line-based match does not establish that the regex is compiled, supported by the chosen library or used to enforce a password policy. Class requirements coded as loops or helpers, external identity-provider policies and character-rejection rules are not seen. The finding is informational.",
           "depth": "partial"
         }
       ],
-      "why": "The informational checks recognize explicit composition policies. The Go Review check only points at character-class tests for a person to inspect and never examines the requirement.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+    "why": "The informational checks recognize syntax associated with composition policies, with the enforcement limitations stated per check. The Go Review check only points at character-class tests for a person to inspect and never examines the requirement.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
       }
     },
     {
       "requirement": "V6.2.6",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -242,7 +242,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.password-field-not-masked",
-          "covers": "JSX inputs named or identified like a password, and named components, with an explicit literal type other than password or the excluded non-password controls.",
+          "covers": "JSX inputs with a password-like name or id, and components with a password-like name attribute, with an explicit literal type other than password or the excluded non-password controls.",
           "misses": "Other field names, dynamic types, component internals and native screens are not modeled. Omitted types belong to the Review half; intentional show/hide controls are not distinguished from other explicit unmasked types.",
           "depth": "partial"
         },
@@ -254,10 +254,10 @@
           "depth": "partial"
         }
       ],
-      "why": "The blocking halves match explicit unmasked types. The Review halves point at missing type attributes, where later code may supply masking; they never examine the requirement.",
-      "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+    "why": "The blocking halves match explicit unmasked types. The Review halves point at missing type attributes, where later code may supply masking; they never examine the requirement.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
       }
     },
     {
