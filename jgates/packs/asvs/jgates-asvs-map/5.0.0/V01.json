@@ -4,7 +4,7 @@
   "entries": [
     {
       "requirement": "V1.1.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -36,6 +36,27 @@
           "id": "jgates.java.double-decoding",
           "covers": "A value decoded (URL, HTML or base64) and then passed through the same decoder a second time in the same code path.",
           "misses": "Decoding spread over two functions or files, a second decode done by a library the rule does not model, other encodings, and whether the decode happens before or after the validation step.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.double-decoding",
+          "covers": "Nested decodeURIComponent, decodeURI, atob or he.decode calls using the same decoder, and a decodeURIComponent result decoded again in a local assignment sequence.",
+          "misses": "Other decoder APIs, mixed decoders, decoding across helper boundaries, whether encoded input was expected, and the order of decoding relative to validation.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.double-decoding",
+          "covers": "Nested urlencoding::decode, html_escape::decode_html_entities or base64::decode calls, and a local sequence decoding a urlencoding result again.",
+          "misses": "Other decoder APIs and result-handling forms, mixed decoders, helper boundaries, whether encoded input was expected, and the order relative to validation.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.double-decoding",
+          "covers": "Nested calls to the same urldecode, rawurldecode, HTML entity, HTML special-character or base64 decoder, and urldecode called again on a locally assigned decoded value.",
+          "misses": "Other decoder APIs, mixed decoders, helper boundaries, whether encoded input was expected, and the order relative to validation.",
           "depth": "partial"
         }
       ],
@@ -210,7 +231,7 @@
     },
     {
       "requirement": "V1.2.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -243,9 +264,30 @@
           "covers": "Request data joined by string building into a URL written as a literal that holds a query or a scheme, with no encoding function applied.",
           "misses": "The scheme check of the finished URL, URL builders and HTTP clients the rule does not model, values that cross a function before the join, and encodings other than URL encoding, and URLs that do not start as a string literal.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.url-parameter-unencoded",
+          "covers": "Points at Express/Koa request data concatenated after an absolute HTTP(S) literal ending in a URL delimiter, or interpolated in an HTTP(S) template literal, without a modeled encodeURIComponent or URLSearchParams sanitizer.",
+          "misses": "Encoding or validation may exist where the rule cannot see it. Relative URLs, helper flows, other sources and safe-protocol validation are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.url-parameter-unencoded",
+          "covers": "Points at modeled axum/actix request extractor data in format! arguments whose literal starts with HTTP(S), contains a query/path separator and a placeholder, without urlencoding::encode.",
+          "misses": "Encoding or validation may exist where the rule cannot see it. Other URL builders, relative URLs, helper flows, other request sources and safe-protocol validation are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.url-parameter-unencoded",
+          "covers": "Points at modeled PHP superglobal or Laravel/Symfony request data concatenated after an HTTP(S) URL literal containing a query/path delimiter, without rawurlencode, urlencode or http_build_query.",
+          "misses": "Encoding or validation may exist where the rule cannot see it. Relative URLs, helper flows, other URL builders and sources, and safe-protocol validation are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
         }
       ],
-      "why": "A URL built from request data without an encoding call is the construct this requirement is about when the URL is assembled dynamically.",
+      "why": "Existing checks flag URL string building; the additional Review checks only point at encoding not visible in modeled URL construction and never make the requirement examined.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -253,7 +295,7 @@
     },
     {
       "requirement": "V1.2.3",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -286,9 +328,30 @@
           "covers": "Request data joined by string building into JSON or script text instead of going through the language's serializer.",
           "misses": "Script or JSON built through template engines or helper functions, values that cross a function before the join, and output contexts other than the JSON and script shapes the rule models.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.json-built-by-concatenation",
+          "covers": "Points at Express/Koa request data joined after a JSON-like object/array prefix or interpolated in a template literal starting with an object/array opener, without JSON.stringify.",
+          "misses": "Serialization or escaping may exist where the rule cannot see it. Other JavaScript construction, helper flows and other request sources are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.json-built-by-concatenation",
+          "covers": "Points at modeled axum/actix request extractor data formatted into an object-shaped JSON string with a quoted placeholder, without serde_json::to_string or serde_json::json!.",
+          "misses": "Serialization or escaping may exist where the rule cannot see it. Array-only output, other format shapes, JavaScript code generation, helper flows and other sources are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.json-built-by-concatenation",
+          "covers": "Points at modeled PHP superglobal or Laravel/Symfony request data concatenated after an object-key/value or array-opening JSON prefix without json_encode.",
+          "misses": "Serialization or escaping may exist where the rule cannot see it. Other JavaScript construction, helper flows, other request sources and other JSON-building APIs are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
         }
       ],
-      "why": "JSON or script text assembled by joining strings lets a value change its structure, which is the injection this requirement describes.",
+      "why": "Existing checks flag JSON or script string building; the additional Review checks only point at serialization not visible in modeled JSON construction and never make the requirement examined.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -716,7 +779,7 @@
     },
     {
       "requirement": "V1.2.10",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -748,6 +811,27 @@
           "id": "jgates.java.csv-formula-injection",
           "covers": "Request data written as a field of a CSV writer or a spreadsheet cell with no check of its first character.",
           "misses": "Spreadsheet libraries the rule does not model, exports built by string joining, values that cross a function before the writer, stored data written to the export, and the quoting rules of the CSV format itself.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.csv-formula-injection",
+          "covers": "Express/Koa request data reaching Papa.unparse data without escapeFormulae: true, excluding values prefixed with a single quote.",
+          "misses": "Other CSV/spreadsheet writers, stored data, helper flows, other sources, custom formula validation, and RFC 4180 quoting are not checked.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.csv-formula-injection",
+          "covers": "Modeled axum/actix request extractor data reaching write_record, write_field or serialize on a locally constructed csv::Writer, excluding format! values prefixed with a single quote.",
+          "misses": "Other writer construction forms, other spreadsheet formats and request sources, stored data, helper flows, custom validation, and RFC 4180 quoting are not checked.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.csv-formula-injection",
+          "covers": "Modeled PHP superglobal or Laravel/Symfony request data reaching fputcsv fields without a single-quote prefix.",
+          "misses": "Other CSV/spreadsheet writers, stored data, helper flows, other sources, custom formula validation, and RFC 4180 quoting are not checked.",
           "depth": "partial"
         }
       ],
@@ -896,7 +980,7 @@
     },
     {
       "requirement": "V1.3.5",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -919,22 +1003,22 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.markdown-raw-html-enabled",
-          "covers": "A Markdown renderer configured, or left at a default, so that raw HTML in the text passes through to its output.",
-          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, whether the text rendered comes from a user, and other scriptable content such as BBCode or CSS.",
+          "covers": "Points at non-literal Markdown.ToHtml, Markdig.Markdown.ToHtml or CommonMarkConverter.Convert calls without an enclosing Sanitize call.",
+          "misses": "Protection may exist where the rule cannot see it, including a configured pipeline or later sanitizer. Other overloads and libraries, input trust, and other scriptable content are not checked. This Review check never makes the requirement examined.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.markdown-raw-html-enabled",
-          "covers": "A Markdown renderer configured, or left at a default, so that raw HTML in the text passes through to its output.",
-          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, whether the text rendered comes from a user, and other scriptable content such as BBCode or CSS.",
+          "covers": "An explicit WithUnsafe() call enabling raw HTML, outside an enclosing Sanitize or SanitizeBytes call.",
+          "misses": "Renderers left at their default, sanitizer calls elsewhere, whether the option reaches a renderer with untrusted input, other libraries, and non-Markdown scriptable content.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.markdown-raw-html-enabled",
-          "covers": "A Markdown renderer configured, or left at a default, so that raw HTML in the text passes through to its output.",
-          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, whether the text rendered comes from a user, and other scriptable content such as BBCode or CSS.",
+          "covers": "An explicit escapeHtml(false) call or set(HtmlRenderer.ESCAPE_HTML, false) call disabling HTML escaping.",
+          "misses": "Renderers left at their default, sanitizers applied elsewhere, whether the configuration reaches a renderer with untrusted input, other libraries, and non-Markdown scriptable content.",
           "depth": "partial"
         },
         {
@@ -971,9 +1055,51 @@
           "covers": "A stylesheet that comes from the incoming request loaded into an XSLT processor.",
           "misses": "Stylesheets assembled from stored data, processors the rule does not model, and the secure-processing options of the processor when the stylesheet is fixed.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.markdown-raw-html-enabled-by-default",
+          "covers": "Points at blackfriday Run, MarkdownCommon or MarkdownBasic calls and markdown.ToHTML calls without an enclosing Sanitize or SanitizeBytes call.",
+          "misses": "Protection may exist where the rule cannot see it, including sanitization after rendering. Other renderers, input trust and non-Markdown content are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.markdown-raw-html-enabled-by-default",
+          "covers": "Points at HtmlRenderer.builder().build() and builder().extensions(...).build() without a visible escaping option.",
+          "misses": "Protection may exist where the rule cannot see it, including sanitization of the output. Other builder chains, libraries, input trust and non-Markdown content are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.markdown-raw-html-enabled",
+          "covers": "An explicit assignment of true to render.unsafe_ or render.r#unsafe, the Comrak unsafe-rendering option shape.",
+          "misses": "Renderers left at their default, options built in other forms, other libraries, input trust and output sanitization are not checked.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.markdown-raw-html-enabled-by-default",
+          "covers": "Points at pulldown_cmark::html::push_html with no modeled ammonia::clean call for its output in the same function.",
+          "misses": "Protection may exist where the rule cannot see it, including event filtering or sanitization in another function. Other libraries, input trust and non-Markdown content are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.markdown-raw-html-enabled",
+          "covers": "An explicit html_input => allow option in League CommonMark converter/environment construction, or setSafeMode(false) on a locally constructed Parsedown object.",
+          "misses": "Renderers left at their default, other configuration forms or libraries, input trust and subsequent output sanitization are not checked.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.markdown-raw-html-enabled-by-default",
+          "covers": "Points at text() on Parsedown constructed in the same function, without a visible setSafeMode(true/false) call or modeled HTMLPurifier sanitization of its output.",
+          "misses": "Protection may exist where the rule cannot see it, including sanitization elsewhere. Other construction scopes, libraries, input trust and non-Markdown content are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
         }
       ],
-      "why": "Markdown rendered with raw HTML allowed, and a stylesheet taken from a request, are the two forms of scriptable user content these rules can see.",
+      "why": "Explicit Markdown options and request-supplied XSLT remain partial checks. Review checks point at Markdown calls with protection not visible locally; they never make the requirement examined.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -1150,7 +1276,7 @@
     },
     {
       "requirement": "V1.3.9",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -1182,6 +1308,27 @@
           "id": "jgates.java.memcache-key-from-request",
           "covers": "Request data used as a memcache key.",
           "misses": "Memcache clients the rule does not model, keys that cross a function before use, the validation or hashing a project applies in a helper, and the value stored under the key.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.memcache-key-from-request",
+          "covers": "Express/Koa request data used as a key in modeled operations on a locally constructed Memcached client, excluding crypto.createHash(...).update(...).digest(\"hex\") results.",
+          "misses": "Other clients and sources, helper flows, custom key validation, stored data and protocol behavior of a particular client version are not checked.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.memcache-key-from-request",
+          "covers": "Modeled axum/actix request extractor data used as a key in modeled operations on a locally connected memcache::Client, excluding blake3::hash results.",
+          "misses": "Other client construction forms and sources, helper flows, custom key validation, stored data and protocol behavior of a particular client version are not checked.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.memcache-key-from-request",
+          "covers": "Modeled PHP superglobal or Laravel/Symfony request data used as a key in modeled operations on a locally constructed Memcache or Memcached client, excluding hash(\"sha256\", ...) and rawurlencode results.",
+          "misses": "Other clients and sources, helper flows, custom key validation, stored data and protocol behavior of a particular client version are not checked.",
           "depth": "partial"
         }
       ],
@@ -1265,7 +1412,7 @@
     },
     {
       "requirement": "V1.3.11",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -1305,9 +1452,24 @@
           "covers": "Request data placed in a header (recipient, subject, extra headers) of a mail message built as text.",
           "misses": "Mail libraries that reject line breaks themselves, IMAP commands, values that cross a function before the message is built, and body content.",
           "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.mail-header-injection",
+          "covers": "Points at servlet or modeled Spring request data reaching addHeader/setHeader values on MimeMessage or Message, without the modeled chained CR/LF replacement.",
+          "misses": "Protection may exist where the rule cannot see it, including validation before a helper or library rejection of line breaks. Typed recipient/subject setters, other mail APIs, IMAP, bodies and cross-function flows are not checked. This Review check never makes the requirement examined.",
+          "depth": "partial"
         }
       ],
-      "why": "Request data placed in a header of a mail message built as text is the mail injection this requirement names.",
+      "why": "Existing rules flag request data in mail headers; the Java Review check only points at generic header setters for inspection and never makes the requirement examined.",
+      "notes": [
+        {
+          "language": "csharp",
+          "kind": "protected-by-library",
+          "family": "mail-header-injection",
+          "why": "System.Net.Mail and MimeKit reject line breaks in structured header values, protecting those header APIs against CR/LF injection. This is a library property, not a JGates check or a claim about raw MIME text or bypass APIs."
+        }
+      ],
       "applies": {
         "technology": [
           "mail"
@@ -1476,7 +1638,7 @@
     },
     {
       "requirement": "V1.5.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -1519,6 +1681,14 @@
         }
       ],
       "why": "Each rule flags an XML parser configured to process DTDs or resolve external entities, or a factory created without turning DTDs off, the permissive configuration this requirement rules out.",
+      "notes": [
+        {
+          "language": "rust",
+          "kind": "protected-by-library",
+          "family": "xml-external-entity",
+          "why": "Common Rust XML libraries quick-xml, roxmltree and xml-rs do not fetch external entities or external DTDs themselves. This is a library property, not a JGates check of application-supplied resolvers or other XML libraries."
+        }
+      ],
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
