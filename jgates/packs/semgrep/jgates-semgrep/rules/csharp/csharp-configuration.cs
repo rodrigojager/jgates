@@ -89,6 +89,35 @@ public class ConfigurationSamples : Controller
         Response.Headers.Remove("X-Powered-By");
     }
 
+    // serializer-exposes-all-fields
+    public IActionResult Details(AppDbContext db, int id)
+    {
+        var user = db.Users.Find(id);
+        // ruleid: jgates.csharp.serializer-exposes-all-fields
+        return Ok(user);
+    }
+
+    public async Task<IActionResult> DetailsJson(AppDbContext db, int id)
+    {
+        var user = await db.Users.FindAsync(id);
+        // ruleid: jgates.csharp.serializer-exposes-all-fields
+        return Json(user);
+    }
+
+    public IActionResult PublicDetails(AppDbContext db, int id)
+    {
+        var user = db.Users.Find(id);
+        // ok: jgates.csharp.serializer-exposes-all-fields
+        return Ok(new { user.Name, user.Email });
+    }
+
+    public async Task<IActionResult> PublicDetailsJson(AppDbContext db, int id)
+    {
+        var user = await db.Users.FindAsync(id);
+        // ok: jgates.csharp.serializer-exposes-all-fields
+        return Json(new UserResponse { Name = user.Name, Email = user.Email });
+    }
+
     // mass-assignment
     public async Task<IActionResult> Edit(User user, UserDto dto)
     {

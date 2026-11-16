@@ -20,6 +20,12 @@ public class SettingsController : Controller
         kestrel.AddServerHeader = false;
     }
 
+    public IActionResult Details(AppDbContext db, int id)
+    {
+        var user = db.Users.Find(id);
+        return Ok(new { user.Name, user.Email });
+    }
+
     public async Task<IActionResult> Edit(User user)
     {
         await TryUpdateModelAsync(user, "", u => u.Name, u => u.Email);

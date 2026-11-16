@@ -1,8 +1,7 @@
 # Group configuration for C#. Libraries covered: ASP.NET Core (developer exception page, environment name, MVC
 # error detail policy, SignalR detailed errors, static files and directory browsing, Kestrel server header, response
 # headers, model binding), Swashbuckle and NSwag documentation middleware, MiniProfiler, prometheus-net, OpenTelemetry
-# Prometheus exporter and the Hangfire dashboard. Not written: serializer-exposes-all-fields (C# has no declaration
-# that outputs every field of a model, so no precise pattern exists).
+# Prometheus exporter and the Hangfire dashboard; controller responses containing a whole database model.
 rules:
   - id: jgates.csharp.debug-mode-enabled
     message: The framework debug mode is switched on outside a development-only branch (developer exception page, a forced Development environment, or detailed errors sent to clients), which exposes stack traces and internals. Keep it inside an environment check such as env.IsDevelopment(), and use a generic error handler in production.
@@ -111,8 +110,8 @@ rules:
                   regex: .*\d+\.\d+.*
 
   - id: jgates.csharp.mass-assignment
-    message: A model is updated from the whole request (TryUpdateModelAsync or UpdateModel without a list of allowed properties), so a client can set fields it should not, such as roles or ownership. Bind to a DTO with only the editable fields, or pass the allowed property expressions to TryUpdateModelAsync.
-    severity: WARNING
+    message: A model is updated from the whole request without a visible list of allowed properties. Confirm that the bound type or binding configuration exposes only editable fields; otherwise use a dedicated input DTO or pass the allowed property expressions to TryUpdateModelAsync.
+    severity: INFO
     languages: [csharp]
     metadata:
       category: authorization
@@ -120,6 +119,7 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V15.3.3"]
+      class: review
     patterns:
       - pattern-either:
           - pattern: $C.TryUpdateModelAsync($M)
@@ -130,3 +130,32 @@ rules:
           - pattern: TryUpdateModel($M)
           - pattern: $C.UpdateModel($M)
           - pattern: UpdateModel($M)
+
+  - id: jgates.csharp.serializer-exposes-all-fields
+    message: A whole database model is returned through a controller serializer without a visible response projection. Confirm that a dedicated response type or serializer configuration excludes private and newly added fields; otherwise return an explicit projection containing only public response fields.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-213"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.1"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              {
+                ...
+                var $MODEL = $DB.$SET.Find(...);
+                ...
+              }
+          - pattern-inside: |
+              {
+                ...
+                var $MODEL = await $DB.$SET.FindAsync(...);
+                ...
+              }
+      - pattern-either:
+          - pattern: return Ok($MODEL);
+          - pattern: return Json($MODEL);

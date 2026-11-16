@@ -5,6 +5,7 @@
     "jgates.csharp.docs-or-monitoring-endpoint-exposed",
     "jgates.csharp.directory-listing-enabled",
     "jgates.csharp.version-header-exposed",
-    "jgates.csharp.mass-assignment"
+    "jgates.csharp.mass-assignment",
+    "jgates.csharp.serializer-exposes-all-fields"
   ]
 }
