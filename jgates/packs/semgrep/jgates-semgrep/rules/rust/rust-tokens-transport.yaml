@@ -122,8 +122,8 @@ rules:
     pattern: $V.validate_aud = false
 
   - id: jgates.rust.oauth-request-without-state
-    message: An OAuth authorization URL is built with neither a state nor a code challenge, so the callback cannot be tied to the request that started it. Add a random state and a PKCE code_challenge (the oauth2 crate does both).
-    severity: WARNING
+    message: An OAuth authorization URL is built with neither a state nor a code challenge visible in the URL. If another layer does not add and validate request binding, the callback may not be tied to the initiating request; add and validate a random state and PKCE or confirm where equivalent protection is enforced.
+    severity: INFO
     languages: [rust]
     metadata:
       category: authorization
@@ -131,6 +131,7 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V10.2.1"]
+      class: review
     patterns:
       - pattern-either:
           - pattern: format!("$S", ...)
