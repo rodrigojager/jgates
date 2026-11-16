@@ -14,6 +14,8 @@
     "jgates.php.weak-hash",
     "jgates.php.weak-cipher",
     "jgates.php.tls-verification-disabled",
-    "jgates.php.unsafe-deserialization"
+    "jgates.php.unsafe-deserialization",
+    "jgates.php.hardcoded-encryption-key",
+    "jgates.php.http-client-without-timeout"
   ]
 }

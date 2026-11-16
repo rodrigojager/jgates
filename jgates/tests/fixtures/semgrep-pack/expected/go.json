@@ -12,6 +12,7 @@
     "jgates.go.weak-cipher",
     "jgates.go.tls-verification-disabled",
     "jgates.go.jwt-signature-not-verified",
-    "jgates.go.unsafe-deserialization"
+    "jgates.go.unsafe-deserialization",
+    "jgates.go.http-client-without-timeout"
   ]
 }

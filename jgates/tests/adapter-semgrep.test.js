@@ -352,6 +352,8 @@ const PACK_SEVERITIES = PACK_LISTS.severities;
 const twinLanguages = () => fs.readdirSync(path.join(PACK_FIXTURES, "expected")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort();
 
 function localSemgrep() {
+  // JGATES_SEMGREP_ENGINE=image proves the pack on the Semgrep of the tools image, whatever local Semgrep exists.
+  if (process.env.JGATES_SEMGREP_ENGINE === "image") return null;
   const candidates = [process.env.JGATES_SEMGREP, path.join(VENV_BIN, process.platform === "win32" ? "semgrep.exe" : "semgrep")].filter(Boolean);
   for (const c of candidates) if (fs.existsSync(c)) return c;
   const probe = spawnSync(process.platform === "win32" ? "where" : "which", ["semgrep"], { encoding: "utf8" });

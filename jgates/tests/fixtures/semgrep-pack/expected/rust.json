@@ -11,6 +11,7 @@
     "jgates.rust.unsafe-deserialization",
     "jgates.rust.weak-hash",
     "jgates.rust.weak-cipher",
-    "jgates.rust.tls-verification-disabled"
+    "jgates.rust.tls-verification-disabled",
+    "jgates.rust.http-client-without-timeout"
   ]
 }
