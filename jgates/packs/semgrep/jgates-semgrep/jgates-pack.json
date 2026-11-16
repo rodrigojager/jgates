@@ -10,10 +10,13 @@
   "spdx": "MIT",
   "notices": ["LICENSE", "NOTICE.md"],
   "modifications": "Original JGates work. No rule is copied or adapted from another rule collection.",
+  "languages": ["javascript", "python", "go", "csharp", "rust", "java", "php", "html", "config"],
+  "groups": ["interpreters", "encoding", "cookies-cors", "web-protocol", "files", "passwords-sessions", "tokens-transport", "crypto-params", "errors-logging", "configuration", "signals"],
   "engine": {
     "name": "semgrep",
     "version": "1.184.0",
     "minimum": "1.100.0",
+    "verified": "1.184.0",
     "spdx": "LGPL-2.1-only",
     "role": "customer-supplied scanner; not part of this pack"
   },

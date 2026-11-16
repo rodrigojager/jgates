@@ -29,7 +29,7 @@ registro legal, e o lugar onde a ferramenta roda é sempre a imagem de ferrament
 
 | Integração | Capacidade | De onde vem | Stacks e observações |
 | --- | --- | --- | --- |
-| Semgrep com o pacote de regras do JGates | `sast` | O Semgrep está na imagem de ferramentas; o pacote é distribuído | `tools.<id>.rulePack: jgates` seleciona o pacote (`jgates/packs/semgrep/jgates-semgrep`, regras originais do JGates, MIT). O pacote tem regras originais para oito linguagens (JavaScript, TypeScript, Python, Go, C#, Rust, Java e PHP), incluindo XSS, e cada uma é validada pelos gêmeos vulnerável e limpo da sua linguagem. Java e PHP não têm stack no JGates: para elas isto é só SAST (sem lint, verificação de tipos, testes nem preparo de dependências; os dados de avisos offline não cobrem Maven nem Composer; arquivos de template não são varridos), e no perfil Essencial o SAST fica desligado. O plano nomeia as linguagens que o pacote cobre e as do projeto que ele não tem; o resultado registra quantos arquivos de cada linguagem foram varridos. O modo dentro da imagem mantém a cópia antiga do pacote que está na imagem até ela ser reconstruída. As regras oficiais do registro do Semgrep nunca são distribuídas e não estão na imagem. |
+| Semgrep com o pacote de regras do JGates | `sast` | O Semgrep está na imagem de ferramentas; o pacote é distribuído | `tools.<id>.rulePack: jgates` seleciona o pacote (`jgates/packs/semgrep/jgates-semgrep`, regras originais do JGates, MIT). O pacote tem regras originais para oito linguagens (JavaScript, TypeScript, Python, Go, C#, Rust, Java e PHP) e para arquivos HTML e de configuração (veja abaixo), incluindo XSS, e cada uma é validada pelos gêmeos vulnerável e limpo da sua linguagem. Java e PHP não têm stack no JGates: para elas isto é só SAST (sem lint, verificação de tipos, testes nem preparo de dependências; os dados de avisos offline não cobrem Maven nem Composer; arquivos de template não são varridos), e no perfil Essencial o SAST fica desligado. O plano nomeia as linguagens que o pacote cobre e as do projeto que ele não tem; o resultado registra quantos arquivos de cada linguagem foram varridos. O modo dentro da imagem mantém a cópia antiga do pacote que está na imagem até ela ser reconstruída. As regras oficiais do registro do Semgrep nunca são distribuídas e não estão na imagem. |
 | zizmor | `ci-cd` | Na imagem de ferramentas | Audita workflows do GitHub Actions. |
 | oasdiff | `api-compatibility` | Na imagem de ferramentas | Precisa de um arquivo OpenAPI 3 e de uma referência git ou arquivo como base. Sem extração de contrato a partir do código. |
 | Verificação de build | `typecheck` | Na imagem de ferramentas; vale a versão do próprio projeto | Validado para TypeScript, Python, Go, Rust e C#; JavaScript, F# e Visual Basic não são suportados. O template `typescript-tsc` ativa em qualquer `tsconfig.json`. |
@@ -46,6 +46,31 @@ registro legal, e o lugar onde a ferramenta roda é sempre a imagem de ferrament
 Para uma ferramenta que você mesmo prepara, o adaptador, as versões suportadas, os links oficiais e uma verificação de
 prontidão já vêm prontos; o `jgates status` e o plano informam o que falta. Nada é baixado enquanto uma execução está em
 andamento. Para uma ferramenta ou linguagem que não está na tabela, veja [suas próprias ferramentas](extension.pt-BR.md).
+
+## O pacote de regras: grupos e tipos de arquivo
+
+O pacote Semgrep do JGates tem regras originais, chamadas `jgates.<tipo>.<nome>`, para **nove tipos de arquivo**: Python,
+JavaScript (também TypeScript), Go, C#, Rust, Java, PHP, arquivos HTML (`.html`, `.htm`) e arquivos de configuração
+(ajustes de servidor, de framework e de aplicação, como `.conf`, `.properties`, `.ini`, `.htaccess`, `web.config`,
+`application.yml` e `appsettings.json`). Templates (Jinja, Blade, Razor, EJS, templates do Go, arquivos Vue) não são
+lidos. Os arquivos de regras de um tipo de arquivo se dividem em **onze grupos**: interpreters, encoding, cookies-cors,
+web-protocol, files, passwords-sessions, tokens-transport, crypto-params, errors-logging, configuration e signals. Os
+arquivos anteriores (injection, taint, XSS, crypto-auth e deserialization) continuam como eram; os arquivos HTML têm um
+grupo de marcação e os arquivos de configuração têm um grupo de servidor e um de framework. As bibliotecas que cada
+família cobre estão no cabeçalho do seu arquivo de regras.
+
+- **O que bloqueia.** Uma regra de severidade `ERROR` ou `WARNING` é uma vulnerabilidade, precisa ou heurística, e bloqueia
+  nos rigores Balanced e Strict como todo achado bloqueante. As novas regras bloqueantes valem de imediato.
+- **O que não bloqueia.** Uma regra de severidade `INFO` enuncia uma política do padrão que muitos projetos sólidos não
+  seguem. O resultado dela é um **achado informativo**: aparece, é contado à parte, é rotulado "não bloqueia a validação"
+  e nunca pode ser dispensado.
+- **Sinais.** O grupo `signals` tem regras minúsculas (`jgates.<tipo>.uses-<etiqueta>`) que só registram que uma varredura
+  viu uma tecnologia (GraphQL, WebSocket, JWT, XML, e-mail e semelhantes). Os resultados delas nunca são achados; o [mapa
+  de cobertura ASVS](asvs-coverage.pt-BR.md) as usa para sugerir "não se aplica".
+- **Requisitos.** Cada regra nomeia os requisitos do ASVS para os quais foi escrita. É uma declaração de intenção: só o
+  mapeamento revisado faz uma verificação contar no mapa.
+- **Motor.** As regras foram escritas para o Semgrep 1.100 ou mais novo e verificadas por último com o Semgrep 1.184.0 (a
+  versão da imagem de ferramentas).
 
 ## Subdimensões do Quality
 

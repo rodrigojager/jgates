@@ -28,7 +28,7 @@ the tools image.
 
 | Integration | Capability | Where it comes from | Stacks and notes |
 | --- | --- | --- | --- |
-| Semgrep with the JGates rule pack | `sast` | Semgrep is in the tools image; the pack is shipped | `tools.<id>.rulePack: jgates` selects the pack (`jgates/packs/semgrep/jgates-semgrep`, original JGates rules, MIT). The pack has original rules for eight languages (JavaScript, TypeScript, Python, Go, C#, Rust, Java and PHP), including XSS, and each is validated by the vulnerable and clean twins of its language. Java and PHP have no stack in JGates: for them this is SAST only (no lint, type check, tests or dependency preparation; the offline advisory data does not cover Maven or Composer; template files are not scanned), and under the Essential profile SAST is off. The plan names the languages the pack covers and the languages of the project it lacks; the result records how many files of each language were scanned. In-image mode keeps the image's older copy of the pack until the image is rebuilt. The official Semgrep registry rules are never shipped and are not in the image. |
+| Semgrep with the JGates rule pack | `sast` | Semgrep is in the tools image; the pack is shipped | `tools.<id>.rulePack: jgates` selects the pack (`jgates/packs/semgrep/jgates-semgrep`, original JGates rules, MIT). The pack has original rules for eight languages (JavaScript, TypeScript, Python, Go, C#, Rust, Java and PHP) and for HTML and configuration files (see below), including XSS, and each is validated by the vulnerable and clean twins of its language. Java and PHP have no stack in JGates: for them this is SAST only (no lint, type check, tests or dependency preparation; the offline advisory data does not cover Maven or Composer; template files are not scanned), and under the Essential profile SAST is off. The plan names the languages the pack covers and the languages of the project it lacks; the result records how many files of each language were scanned. In-image mode keeps the image's older copy of the pack until the image is rebuilt. The official Semgrep registry rules are never shipped and are not in the image. |
 | zizmor | `ci-cd` | In the tools image | Audits GitHub Actions workflows. |
 | oasdiff | `api-compatibility` | In the tools image | Needs an OpenAPI 3 file and a git ref or file as the reference. No code-first contract extraction. |
 | Build check | `typecheck` | In the tools image; the project's own version wins | Validated for TypeScript, Python, Go, Rust and C#; JavaScript, F# and Visual Basic are unsupported. The `typescript-tsc` template activates on any `tsconfig.json`. |
@@ -45,6 +45,30 @@ the tools image.
 For a tool you prepare yourself the adapter, the supported versions, the official links and a readiness check are built
 in; `jgates status` and the plan report what is missing. Nothing is downloaded while a run is in progress. For a tool or a
 language that is not in the table, see [your own tools](extension.en.md).
+
+## The rule pack: groups and kinds of file
+
+The JGates Semgrep pack holds original rules, named `jgates.<kind>.<name>`, for **nine kinds of file**: Python, JavaScript
+(also TypeScript), Go, C#, Rust, Java, PHP, HTML files (`.html`, `.htm`) and configuration files (server, framework and
+application settings such as `.conf`, `.properties`, `.ini`, `.htaccess`, `web.config`, `application.yml` and
+`appsettings.json`). Templates (Jinja, Blade, Razor, EJS, Go templates, Vue files) are not read. The rule files of a kind
+of file are split into **eleven groups**: interpreters, encoding, cookies-cors, web-protocol, files, passwords-sessions,
+tokens-transport, crypto-params, errors-logging, configuration and signals. The earlier files (injection, taint, XSS,
+crypto-auth and deserialization) are kept as they were; HTML files have a markup group and configuration files have a
+server group and a framework group. The libraries each family covers are in the header of its rule file.
+
+- **What blocks.** A rule of severity `ERROR` or `WARNING` is a vulnerability, precise or heuristic, and blocks under the
+  Balanced and Strict rigors as every blocking finding does. New blocking rules apply at once.
+- **What does not block.** A rule of severity `INFO` states a policy of the standard that many sound projects do not
+  follow. Its result is an **informational finding**: shown, counted apart, labelled "does not block the validation", and
+  never waivable.
+- **Signals.** The `signals` group holds tiny rules (`jgates.<kind>.uses-<tag>`) that only record that a scan saw a
+  technology (GraphQL, WebSocket, JWT, XML, mail and the like). Their results are never findings; the [ASVS
+  coverage map](asvs-coverage.en.md) uses them to suggest "not applicable".
+- **Requirements.** Each rule names the ASVS requirements it was written for. That is a statement of intent: only the
+  reviewed mapping makes a check count in the map.
+- **Engine.** The rules are written for Semgrep 1.100 or later and were last verified with Semgrep 1.184.0 (the version
+  in the tools image).
 
 ## Quality subdimensions
 

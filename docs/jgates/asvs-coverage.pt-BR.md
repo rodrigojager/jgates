@@ -67,12 +67,77 @@ examinadas naquela execução. O `insecure-defaults` alimenta a configuração, 
 requisitos de dependências, o Gitleaks alimenta segredos, e o ZAP e o Schemathesis alimentam requisitos de execução
 quando um alvo rodou.
 
+## O que o pacote examina, por tipo de arquivo
+
+O pacote Semgrep que acompanha o JGates tem 636 verificações originais para nove tipos de arquivo: Python, JavaScript
+(que também atende o TypeScript), Go, C#, Rust, Java, PHP, arquivos HTML e arquivos de configuração. Uma verificação
+pertence a um tipo de arquivo e só aparece para um projeto que tem arquivos desse tipo: um projeto sem Rust nunca vê uma
+verificação de Rust, e um requisito cujas verificações são todas de tipos que o projeto não tem continua sem suporte para
+ele, com o motivo nomeando os tipos. Templates (Jinja, Blade, Razor, EJS, templates do Go, arquivos Vue) não são lidos.
+
+Quase toda verificação é **parcial**: ela vê um jeito de violar um requisito, nas bibliotecas que modela, e a sua linha diz
+o que ela deixa de fora. Um requisito com uma verificação determinística é, portanto, examinado em parte, nunca provado.
+
+A tabela conta os requisitos de cada nível que têm pelo menos uma verificação determinística revisada, pelo tipo de
+arquivo da verificação. Um requisito conta numa coluna quando uma entrada de mapeamento revisada o liga a uma verificação
+do pacote desse tipo; a coluna "Qualquer" conta os requisitos com uma verificação revisada de qualquer tipo determinístico,
+do pacote ou de uma ferramenta. Os níveis são cumulativos (o nível 2 inclui o nível 1). Os números são calculados a partir
+do índice do pacote e do mapeamento revisado, e não dizem nada sobre um projeto atender ou não a um requisito.
+
+| Nível | Requisitos | Qualquer | Python | JavaScript | Go | C# | Rust | Java | PHP | HTML | Configuração |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 70 | 55 | 34 | 35 | 29 | 33 | 27 | 35 | 31 | 4 | 4 |
+| 2 | 253 | 165 | 91 | 93 | 81 | 87 | 70 | 91 | 79 | 6 | 15 |
+| 3 | 345 | 200 | 101 | 102 | 87 | 94 | 75 | 99 | 85 | 7 | 16 |
+
+Os demais requisitos estão sem suporte, aguardam um sistema implantado ou uma pessoa, ou são examinados só por uma revisão
+por IA.
+
+## Achados informativos
+
+Algumas verificações do pacote enunciam uma política do padrão que muitos projetos sólidos não seguem (por exemplo uma
+política de senha que impõe classes de caracteres, ou uma pergunta secreta para recuperação). Os resultados delas são
+**achados informativos**: aparecem no resultado, no relatório e no mapa sob um título próprio, cada um com as palavras "não
+bloqueia a validação". São contados à parte dos achados que bloqueiam, no resultado, na comparação com a linha de base e no
+mapa (uma verificação aberta mostra dois números, bloqueantes e informativos); nunca mudam um veredito e não podem ser
+dispensados, porque não há o que dispensar. As verificações que procuram uma vulnerabilidade, precisa ou heurística, são as
+que bloqueiam.
+
+Um achado que vem de uma verificação do pacote nomeia os requisitos para os quais ela foi escrita ("ASVS V3.3.1"), com
+link para a linha correspondente do mapa. É um rótulo de intenção: a frase ao lado nunca diz que o requisito está ou não
+atendido.
+
+## Sugestões de "não se aplica"
+
+Quando uma varredura **não encontra nenhum sinal de uma tecnologia** neste projeto (nenhum código de GraphQL, WebSocket,
+WebRTC, OAuth, JWT, SAML, TOTP, LDAP, XML, e-mail, template, envio de arquivos, arquivos compactados ou DOM do navegador),
+o mapa **sugere** que os requisitos dessa tecnologia podem não se aplicar. Uma sugestão aparece na linha, na seção ou no
+capítulo, com o motivo em palavras ("nenhum sinal de WebSocket neste projeto"), e o filtro "com sugestão" as lista. Ela vem
+de pequenas regras de sinal do pacote que registram o que uma varredura viu; elas nunca são achados. Uma sugestão exige
+que todo tipo de arquivo que a varredura cobriu tenha sido procurado pelo sinal, então um projeto com arquivos de
+configuração ou HTML pode não receber nenhuma para uma tecnologia até esses tipos serem cobertos. Ela some quando uma
+varredura posterior encontra a tecnologia.
+
+Uma sugestão nunca é uma decisão. Só você registra "não se aplica": confirme com
+`jgates coverage asvs not-applicable <id> --from-suggestion` ou na tela, com prévia e desfazer como qualquer outra entrada.
+O JGates nunca escreve uma sozinho e nunca no modo governado.
+
+## A unidade de revisão por IA
+
+Um requisito que nenhuma verificação determinística examina pode ser revisado pelo método opcional `asvs-review` (veja [os
+métodos do Semantic](semantic-methods.pt-BR.md)). As respostas dele são o tipo de unidade `semantic-requirement`. O mapa
+mostra esse requisito como examinado por uma **revisão ASVS do código por IA**, sempre assim rotulada, contada à parte das
+verificações determinísticas em todos os totais, e só onde uma entrada de mapeamento revisada permite. Uma resposta "não
+examinável" não dá nada, e a revisão nunca é uma declaração de que um requisito está atendido. Com
+`--deterministic-only` ela fica de fora.
+
 ## O comando
 
 ```bash
-jgates coverage asvs [--level 1|2|3] [--run <id>] [--semantic-run <id>] [--state <state>] [--chapter <id>] [--subdimension <id>] [--deterministic-only] [--json]
+jgates coverage asvs [--level 1|2|3] [--run <id>] [--semantic-run <id>] [--state <state>] [--chapter <id>] [--subdimension <id>] [--with-suggestion] [--deterministic-only] [--json]
 jgates coverage asvs level <1|2|3>
 jgates coverage asvs not-applicable <requirement|section|chapter> --reason "<text>" [--preview] [--yes]
+jgates coverage asvs not-applicable <requirement|section|chapter> --from-suggestion [--reason "<text>"] [--preview] [--yes]
 jgates coverage asvs not-applicable <requirement|section|chapter> --remove
 jgates coverage asvs undo <token>
 ```
@@ -81,7 +146,7 @@ jgates coverage asvs undo <token>
   naquela chamada, sem mudar a escolha do projeto (o nível 1 tem 70 requisitos, o 2 tem 253, o 3 tem 345). `--run` e
   `--semantic-run` nomeiam as execuções a ler; por padrão lê a última execução concluída do Quality e a última de cada
   método do Semantic, e avisa quando elas analisaram revisões diferentes. `--deterministic-only` deixa de fora as
-  unidades do Semantic. `--state`, `--chapter` e `--subdimension` filtram as linhas.
+  unidades do Semantic. `--state`, `--chapter`, `--subdimension` e `--with-suggestion` filtram as linhas; a saída imprime as sugestões.
 - Sai com 0 sempre que conseguiu montar o mapa, e nunca com um código que signifique que o projeto reprova no padrão.
 - `level`, `not-applicable` e `undo` escrevem no projeto. Cada um mostra a entrada e a mudança antes e pergunta;
   `--preview` não escreve nada, `--yes` escreve sem perguntar, `--json` nunca pergunta. Cada escrita imprime um token de

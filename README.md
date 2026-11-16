@@ -155,7 +155,7 @@ JGates reads and runs tools over code that may not be trusted, and it has a loca
 - [Semantic gate](docs/jgates/semantic-gate.en.md)
 - [The two gates and their sequence](docs/jgates/gates.en.md), the [Semantic methods](docs/jgates/semantic-methods.en.md) and the [Semantic mascots](docs/jgates/semantic-mascots.en.md)
 - [Quality integrations and the capability matrix](docs/jgates/quality-integrations.en.md)
-- [The ASVS coverage map](docs/jgates/asvs-coverage.en.md): every OWASP ASVS 5.0.0 requirement in one of five states (`jgates coverage asvs`); it shows what was examined, never that a project meets the standard
+- [The ASVS coverage map](docs/jgates/asvs-coverage.en.md): every OWASP ASVS 5.0.0 requirement in one of five states (`jgates coverage asvs`); it shows what was examined, never that a project meets the standard. A bundled pack of original Semgrep rules for nine kinds of file (JavaScript/TypeScript, Python, Go, C#, Rust, Java, PHP, HTML and configuration files) feeds it with deterministic checks; policy rules appear as informational findings that do not block the validation, the map suggests "not applicable" when a scan finds no sign of a technology, and the opt-in ASVS review adds an AI review, counted apart
 - [Project services](docs/jgates/services.en.md)
 - [Your own tools and images](docs/jgates/extension.en.md)
 - [Storage and cleanup](docs/jgates/storage.en.md)
@@ -329,7 +329,7 @@ O JGates lê e executa ferramentas sobre código que pode não ser confiável, e
 - [Semantic gate](docs/jgates/semantic-gate.pt-BR.md)
 - [Os dois gates e a sequência](docs/jgates/gates.pt-BR.md), os [métodos Semantic](docs/jgates/semantic-methods.pt-BR.md) e os [mascotes Semantic](docs/jgates/semantic-mascots.pt-BR.md)
 - [Integrações do Quality e a matriz de capacidades](docs/jgates/quality-integrations.pt-BR.md)
-- [O mapa de cobertura ASVS](docs/jgates/asvs-coverage.pt-BR.md): cada requisito do OWASP ASVS 5.0.0 em um de cinco estados (`jgates coverage asvs`); mostra o que foi examinado, nunca que um projeto atende ao padrão
+- [O mapa de cobertura ASVS](docs/jgates/asvs-coverage.pt-BR.md): cada requisito do OWASP ASVS 5.0.0 em um de cinco estados (`jgates coverage asvs`); mostra o que foi examinado, nunca que um projeto atende ao padrão. Um pacote de regras originais do Semgrep para nove tipos de arquivo (JavaScript/TypeScript, Python, Go, C#, Rust, Java, PHP, HTML e arquivos de configuração) o alimenta com verificações determinísticas; regras de política aparecem como achados informativos que não bloqueiam a validação, o mapa sugere "não se aplica" quando uma varredura não encontra nenhum sinal de uma tecnologia, e a revisão ASVS, opcional, acrescenta uma revisão por IA, contada à parte
 - [Serviços do projeto](docs/jgates/services.pt-BR.md)
 - [Suas próprias ferramentas e imagens](docs/jgates/extension.pt-BR.md)
 - [Armazenamento e limpeza](docs/jgates/storage.pt-BR.md)

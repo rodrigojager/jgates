@@ -65,12 +65,72 @@ the basis "AI review of the source" and only for blocks whose units were examine
 feeds configuration, the dependency checks feed the dependency requirements, Gitleaks feeds secrets, and ZAP and
 Schemathesis feed runtime requirements when a target ran.
 
+## What the pack examines, by kind of file
+
+The bundled Semgrep pack has 636 original checks for nine kinds of file: Python, JavaScript (which also serves
+TypeScript), Go, C#, Rust, Java, PHP, HTML files and configuration files. A check belongs to one kind of file and is shown
+only to a project that has files of that kind: a project with no Rust never sees a Rust check, and a requirement whose
+checks are all of kinds the project lacks stays unsupported for it, with the reason naming the kinds. Templates (Jinja,
+Blade, Razor, EJS, Go templates, Vue files) are not read.
+
+Almost every check is **partial**: it sees one way of breaking a requirement, in the libraries it models, and its row
+says what it misses. A requirement with a deterministic check is therefore examined in part, never proved.
+
+The table counts the requirements of each level that have at least one reviewed deterministic check, by the kind of
+file of the check. A requirement counts in a column when a reviewed mapping entry ties it to a pack check of that kind;
+the "any" column counts the requirements with a reviewed check of any deterministic kind, the pack's or a tool's. The
+levels are cumulative (level 2 includes level 1). The numbers are computed from the pack index and the reviewed
+mapping, and say nothing about whether a project meets a requirement.
+
+| Level | Requirements | Any | Python | JavaScript | Go | C# | Rust | Java | PHP | HTML | Config |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 70 | 55 | 34 | 35 | 29 | 33 | 27 | 35 | 31 | 4 | 4 |
+| 2 | 253 | 165 | 91 | 93 | 81 | 87 | 70 | 91 | 79 | 6 | 15 |
+| 3 | 345 | 200 | 101 | 102 | 87 | 94 | 75 | 99 | 85 | 7 | 16 |
+
+The remaining requirements are unsupported, await a deployed system or a person, or are examined only by an AI review.
+
+## Informational findings
+
+Some checks of the pack state a policy of the standard that many sound projects do not follow (for example a password policy that forces
+character classes, or a secret question for recovery). Their results are **informational findings**: shown in the result, the report
+and the map under their own heading, each with the words "does not block the validation". They are counted apart from
+the blocking findings in the result, in the baseline comparison and in the map (an opened check shows two numbers, blocking
+and informational), they never change a verdict, and they cannot be waived, because there is nothing to waive. The checks
+that look for a vulnerability, precise or heuristic, are the ones that block.
+
+A finding that comes from a pack check names the requirements the check was written for ("ASVS V3.3.1"), linked to that
+row of the map. This is a label of intent: the sentence beside it never says the requirement is or is not met.
+
+## Suggestions of "not applicable"
+
+When a scan finds **no sign of a technology** in this project (no GraphQL, WebSocket, WebRTC, OAuth, JWT, SAML, TOTP,
+LDAP, XML, mail, template, file-upload, archive or browser-DOM code), the map **suggests** that the requirements about
+that technology may not apply. A suggestion appears on the row, the section or the chapter, with the reason in words
+("no sign of WebSocket in this project"), and the filter "with a suggestion" lists them. It comes from small signal rules
+of the pack that record what a scan saw; they are never findings. A suggestion needs every kind of file the scan
+covered to have been checked for the sign, so a project with configuration or HTML files may get none for a technology
+until those kinds are covered. It disappears when a later scan finds the technology.
+
+A suggestion is never a decision. Only you record "not applicable": confirm it with
+`jgates coverage asvs not-applicable <id> --from-suggestion` or on the screen, with a preview and an undo like any other
+entry. JGates never writes one by itself and never in governed mode.
+
+## The AI review unit
+
+A requirement that no deterministic check examines can be reviewed by the opt-in `asvs-review` method (see [the Semantic
+methods](semantic-methods.en.md)). Its answers are the unit kind `semantic-requirement`. The map shows such a requirement
+as examined by an **AI review of the source**, always labelled so, counted apart from the deterministic checks in every
+total, and only where a reviewed mapping entry allows it. A "not examinable" answer gives nothing, and the review is never
+a statement that a requirement is met. With `--deterministic-only` it is left out.
+
 ## The command
 
 ```bash
-jgates coverage asvs [--level 1|2|3] [--run <id>] [--semantic-run <id>] [--state <state>] [--chapter <id>] [--subdimension <id>] [--deterministic-only] [--json]
+jgates coverage asvs [--level 1|2|3] [--run <id>] [--semantic-run <id>] [--state <state>] [--chapter <id>] [--subdimension <id>] [--with-suggestion] [--deterministic-only] [--json]
 jgates coverage asvs level <1|2|3>
 jgates coverage asvs not-applicable <requirement|section|chapter> --reason "<text>" [--preview] [--yes]
+jgates coverage asvs not-applicable <requirement|section|chapter> --from-suggestion [--reason "<text>"] [--preview] [--yes]
 jgates coverage asvs not-applicable <requirement|section|chapter> --remove
 jgates coverage asvs undo <token>
 ```
@@ -79,7 +139,7 @@ jgates coverage asvs undo <token>
   that call without changing the project's choice (level 1 has 70 requirements, level 2 has 253, level 3 has 345).
   `--run` and `--semantic-run` name the runs to read; by default it reads the last finished Quality run and the last
   finished run of each Semantic method, and warns when they analyzed different revisions. `--deterministic-only` leaves
-  the Semantic units out. `--state`, `--chapter` and `--subdimension` filter the rows.
+  the Semantic units out. `--state`, `--chapter`, `--subdimension` and `--with-suggestion` filter the rows; the output prints the suggestions.
 - It exits 0 whenever it could build the map, and never with a code that means the project fails the standard.
 - `level`, `not-applicable` and `undo` write the project. Each shows the entry and the change first and asks;
   `--preview` writes nothing, `--yes` writes without asking, `--json` never asks. Each write prints an undo token, and

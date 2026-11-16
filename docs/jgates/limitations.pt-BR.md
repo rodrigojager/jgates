@@ -38,7 +38,8 @@ O JGates reconhece Java e PHP, mas não tem stack para elas. O que roda num proj
 
 - não há template de componente, lint, verificação de tipos, testes, cobertura, teste de mutação nem preparo de dependências;
 - os dados de avisos offline cobrem só npm, PyPI, Go, crates.io e NuGet; por isso dependências vulneráveis de Maven ou Composer só são achadas pelo que o Trivy lê;
-- arquivos de template (Jinja, Blade, Razor, EJS, templates do Go) não são varridos;
+- arquivos de template (Jinja, Blade, Razor, EJS, templates do Go, arquivos Vue) não são varridos, e o pacote lê arquivos HTML e de configuração só nos formatos que as suas regras nomeiam;
+- uma regra do pacote segue um valor só dentro de uma função: um valor que passa entre funções ou arquivos não é seguido, e cada família modela as bibliotecas nomeadas no cabeçalho do seu arquivo de regras, então a maioria das verificações vê um jeito de violar um requisito (são parciais, e o mapa ASVS diz o que cada uma deixa de fora);
 - uma linguagem para a qual o pacote não tem regra (Kotlin, Ruby e outras) aparece no plano como limitação da etapa do Semgrep, e o resultado registra quantos arquivos de cada linguagem a varredura cobriu.
 
 O modo dentro da imagem (o JGates rodando dentro da imagem de ferramentas, como num contêiner de CI) usa a cópia do pacote que está na imagem: ela continua com o pacote antigo, menor, até a imagem ser reconstruída. Um run iniciado no host usa sempre o pacote do JGates instalado.

@@ -38,7 +38,8 @@ JGates recognizes Java and PHP but has no stack for them. What runs on a Java or
 
 - no component template, lint, type check, tests, coverage, mutation testing or dependency preparation;
 - the offline advisory data covers npm, PyPI, Go, crates.io and NuGet only, so vulnerable Maven or Composer dependencies are found only by what Trivy reads;
-- template files (Jinja, Blade, Razor, EJS, Go templates) are not scanned;
+- template files (Jinja, Blade, Razor, EJS, Go templates, Vue files) are not scanned, and the pack reads HTML and configuration files only in the formats its rules name;
+- a pack rule follows a value only inside one function: a value that crosses functions or files is not followed, and each family models the libraries named in its rule file's header, so most checks see one way of breaking a requirement (they are partial, and the ASVS map says what each misses);
 - a language the pack has no rule for (Kotlin, Ruby and others) is named in the plan as a limitation of the Semgrep step, and the result records how many files of each language the scan covered.
 
 In-image mode (JGates running inside the tools image, as in a CI container) uses the copy of the pack that sits in the image: it keeps the older, smaller pack until the image is rebuilt. A run started from the host always uses the pack of the installed JGates.

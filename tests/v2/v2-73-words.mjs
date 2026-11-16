@@ -168,6 +168,48 @@ test("V2-73 no message of the core, the server or the UI has a parenthesized plu
   }
 });
 
+// The words of the ASVS coverage change (glossary: informational finding, suggestion, hardening, ASVS review). Each
+// must exist in the catalogues of its language; the forbidden claims of the map must exist in none.
+const ASVS_WORDS = {
+  en: [/informational finding/i, /does not block the validation/i, /\bsuggestion\b/i, /no sign of/i, /\bhardening\b/i, /ASVS review/i],
+  "pt-BR": [/achado informativo/i, /não bloqueia a validação/i, /\bsugest(ão|ões)\b/i, /nenhum sinal de/i, /\bendurecimento\b/i, /revisão ASVS/i],
+};
+const FORBIDDEN_CLAIMS = { en: /\b(compliant|conformant|certified)\b/i, "pt-BR": /\b(conformidade|certificad[oa]s?)\b/i };
+
+function catalogueText(locale) {
+  const parts = [];
+  for (const file of messageFiles(CORE_DIR).concat(messageFiles(UI_DIR))) {
+    if (!file.endsWith(`.${locale}.json`)) continue;
+    for (const value of Object.values(JSON.parse(fs.readFileSync(file, "utf8")))) if (typeof value === "string") parts.push(value);
+  }
+  return parts;
+}
+
+test("V2-73 the words of the ASVS coverage exist in both languages and no message claims conformance, certification or a percentage", () => {
+  for (const locale of ["en", "pt-BR"]) {
+    const strings = catalogueText(locale);
+    const all = strings.join("\n");
+    for (const word of ASVS_WORDS[locale]) assert.match(all, word, `${locale}: no message carries ${word}`);
+    const claims = strings.filter((s) => FORBIDDEN_CLAIMS[locale].test(s) && !/\b(never|nunca)\b/i.test(s));
+    assert.deepEqual(claims.map((s) => s.slice(0, 90)), [], `${locale}: a message claims conformance or certification`);
+  }
+  // The ASVS coverage catalogue never shows a percentage.
+  for (const locale of ["en", "pt-BR"]) {
+    const file = path.join(CORE_DIR, `coverage.${locale}.json`);
+    const withPercent = Object.entries(JSON.parse(fs.readFileSync(file, "utf8"))).filter(([, v]) => typeof v === "string" && /\d\s?%/.test(v));
+    assert.deepEqual(withPercent.map(([k]) => k), [], `${locale}: a coverage message shows a percentage`);
+  }
+});
+
+test("V2-73 the forbidden claims are caught when planted", () => {
+  assert.ok(FORBIDDEN_CLAIMS.en.test("The project is compliant."));
+  assert.ok(FORBIDDEN_CLAIMS.en.test("conformant"));
+  assert.ok(FORBIDDEN_CLAIMS.en.test("certified"));
+  assert.ok(FORBIDDEN_CLAIMS["pt-BR"].test("Em conformidade com o padrão."));
+  assert.ok(FORBIDDEN_CLAIMS["pt-BR"].test("projeto certificado"));
+  assert.ok(!FORBIDDEN_CLAIMS.en.test("This map shows what was examined."));
+});
+
 test("V2-73 the built-in profiles, templates, categories, capabilities and adapters resolve through the catalogues in both languages", async () => {
   const { listBuiltinTemplates, listBuiltinProfiles, builtinProfileBody } = await load("builtin/index.js");
   const { builtinTemplateText, createCoreCatalog, localizedAdapterName } = await load("core/catalog/index.js");

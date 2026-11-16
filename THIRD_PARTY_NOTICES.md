@@ -121,9 +121,12 @@ LGPLv3 or MPL), by `quality-gate/scripts/build-codespell-pt-br.py`; keep that no
 travel with it; provenance in `jgates-pack.json`). No rule is copied from another collection, and the official
 Semgrep registry rules are never bundled. Semgrep itself (LGPL-2.1) is customer-supplied.
 
-The pack has rules for eight languages (JavaScript/TypeScript, Python, Go, C#, Rust, Java and PHP) and for the classes
-injection (SQL, command, XSS, XXE), SSRF, path traversal, weak cryptography and TLS, insecure deserialization and
-authorization (token and CSRF settings). It was last verified with Semgrep 1.184.0.
+The pack has rules for nine kinds of file (JavaScript/TypeScript, Python, Go, C#, Rust, Java, PHP, HTML files and
+configuration files) in eleven groups (interpreters, encoding, cookies-cors, web-protocol, files, passwords-sessions,
+tokens-transport, crypto-params, errors-logging, configuration and signals, besides the earlier injection, taint, XSS,
+crypto-auth and deserialization files), for the classes injection (SQL, command, XSS, XXE), SSRF, path traversal, weak
+cryptography and TLS, insecure deserialization, authorization, passwords and sessions, cookies and CORS, file handling,
+error handling and configuration. It was last verified with Semgrep 1.184.0.
 
 ## Quality integrations added in V2
 
