@@ -62,8 +62,8 @@ rules:
       - pattern: "{..., ignoreExp: true, ...}"
 
   - id: jgates.js.jwt-audience-not-validated
-    message: A token is verified without asking for its audience, so a token issued for another service is accepted. Pass the audience option with the value this service expects.
-    severity: WARNING
+    message: A token is verified without a visible audience option. If no other layer checks the intended recipient, a token issued for another service may be accepted; pass the audience this service expects or confirm where it is checked.
+    severity: INFO
     languages: [javascript, typescript]
     metadata:
       category: authorization
@@ -71,6 +71,7 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V9.2.3", "V10.3.1"]
+      class: review
     patterns:
       - pattern-either:
           - pattern: jwt.verify($T, $K)
@@ -89,8 +90,8 @@ rules:
           $J.verify($T, $K, {..., audience: $A, ...}, ...)
 
   - id: jgates.js.oauth-request-without-state
-    message: An OAuth authorization request is built with neither a state nor a code challenge, so the callback cannot be tied to the request that started it. Add a random state and a PKCE code challenge, and check both on return.
-    severity: WARNING
+    message: An OAuth authorization request is built without a visible state or PKCE code challenge. If no other layer binds the callback to the initiating request, it may be vulnerable to request forgery; add and validate a random state or correctly implemented PKCE, or confirm where that protection is supplied.
+    severity: INFO
     languages: [javascript, typescript]
     metadata:
       category: authorization
@@ -98,6 +99,7 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V10.2.1"]
+      class: review
     pattern-either:
       - patterns:
           - pattern: 'new URLSearchParams({..., response_type: $R, ...})'
