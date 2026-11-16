@@ -174,8 +174,8 @@ rules:
           - focus-metavariable: $U
 
   - id: jgates.php.client-ip-from-forwarded-header
-    message: The client address is read from a forwarding header that the client itself can set, so it can be forged. Use the connection address (REMOTE_ADDR or the framework's trusted-proxy aware ip()), with the trusted proxies configured.
-    severity: WARNING
+    message: The client address is read directly from a forwarding header. Confirm that only trusted proxies can reach the application and that they replace client-supplied forwarding headers; otherwise use REMOTE_ADDR or the framework's client-IP API with trusted proxies configured.
+    severity: INFO
     languages: [php]
     metadata:
       category: authorization
@@ -183,6 +183,7 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V15.3.4", "V4.1.3"]
+      class: review
     pattern-either:
       - patterns:
           - pattern: $_SERVER[$H]
@@ -242,3 +243,59 @@ rules:
               metavariable: $S
               regex: (?i)^["']https?://.*
           - focus-metavariable: $H
+
+  - id: jgates.php.websocket-origin-not-checked
+    message: A Ratchet WebSocket server is created without an OriginCheck wrapper visible here. Confirm that an upstream handler enforces an origin allow-list, or wrap the WsServer in OriginCheck with the allowed hosts before serving it.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: authorization
+      cwe: "CWE-1385"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.4.2"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: new Ratchet\WebSocket\WsServer(...)
+          - pattern: new WsServer(...)
+      - pattern-not-inside: new Ratchet\Http\OriginCheck(...)
+      - pattern-not-inside: new OriginCheck(...)
+
+  - id: jgates.php.graphql-introspection-enabled
+    message: A webonyx GraphQL server is created without DisableIntrospection visible in its configuration. If schema discovery is not intended for this endpoint, include DisableIntrospection in validationRules or confirm that an equivalent restriction is registered elsewhere.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.2"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: new GraphQL\Server\StandardServer([...])
+          - pattern: new StandardServer([...])
+      - pattern-not: new $SERVER(<... new GraphQL\Validator\Rules\DisableIntrospection(...) ...>)
+      - pattern-not: new $SERVER(<... new DisableIntrospection(...) ...>)
+
+  - id: jgates.php.graphql-without-depth-limit
+    message: A webonyx GraphQL server is created without QueryDepth or QueryComplexity visible in its configuration. Add a positive depth or complexity limit to validationRules, or confirm that an equivalent query budget is enforced elsewhere.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: availability
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.1"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: new GraphQL\Server\StandardServer([...])
+          - pattern: new StandardServer([...])
+      - pattern-not: new $SERVER(<... new GraphQL\Validator\Rules\QueryDepth(...) ...>)
+      - pattern-not: new $SERVER(<... new QueryDepth(...) ...>)
+      - pattern-not: new $SERVER(<... new GraphQL\Validator\Rules\QueryComplexity(...) ...>)
+      - pattern-not: new $SERVER(<... new QueryComplexity(...) ...>)

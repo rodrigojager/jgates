@@ -15,6 +15,22 @@ class PortalController
         return new WebSocket\Client("wss://feed.example.com/stream");
     }
 
+    public function chatHandler(\Ratchet\MessageComponentInterface $chat)
+    {
+        return new Ratchet\Http\OriginCheck(new Ratchet\WebSocket\WsServer($chat), ['portal.example.com']);
+    }
+
+    public function graphqlEndpoint($schema)
+    {
+        return new GraphQL\Server\StandardServer([
+            'schema' => $schema,
+            'validationRules' => array_merge(GraphQL\Validator\DocumentValidator::allRules(), [
+                new GraphQL\Validator\Rules\DisableIntrospection(),
+                new GraphQL\Validator\Rules\QueryDepth(10),
+            ]),
+        ]);
+    }
+
     public function afterLogin($allowedTargets)
     {
         $next = $_GET['next'];

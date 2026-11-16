@@ -14,6 +14,16 @@ class PortalController
         return new WebSocket\Client("ws://feed.example.com/stream");
     }
 
+    public function chatHandler(\Ratchet\MessageComponentInterface $chat)
+    {
+        return new Ratchet\WebSocket\WsServer($chat);
+    }
+
+    public function graphqlEndpoint($schema)
+    {
+        return new GraphQL\Server\StandardServer(['schema' => $schema]);
+    }
+
     public function afterLogin()
     {
         $next = $_GET['next'];

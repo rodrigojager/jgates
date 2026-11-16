@@ -1,6 +1,13 @@
 <?php
 
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Ratchet\WebSocket\WsServer;
+use Ratchet\Http\OriginCheck;
+use GraphQL\Server\StandardServer;
+use GraphQL\Validator\DocumentValidator;
+use GraphQL\Validator\Rules\DisableIntrospection;
+use GraphQL\Validator\Rules\QueryDepth;
+use GraphQL\Validator\Rules\QueryComplexity;
 
 // ---- security-headers-disabled ----
 function headers_cases($response, $symfonyResponse)
@@ -174,4 +181,37 @@ function host_cases($request)
     $safe2 = "https://" . $configuredHost . "/confirm";
     // ok: jgates.php.host-header-in-url
     $safe3 = sprintf('https://%s/verify', APP_HOST);
+}
+
+// ---- websocket-origin-not-checked ----
+// $chat implements Ratchet\MessageComponentInterface.
+function serve_chat($chat, $otherChat)
+{
+    // ruleid: jgates.php.websocket-origin-not-checked
+    $server = new Ratchet\WebSocket\WsServer($chat);
+    // ruleid: jgates.php.websocket-origin-not-checked
+    $otherServer = new WsServer($otherChat);
+    // ok: jgates.php.websocket-origin-not-checked
+    $checked = new OriginCheck(new WsServer($chat), ['chat.example.com']);
+    // ok: jgates.php.websocket-origin-not-checked
+    $checkedOther = new Ratchet\Http\OriginCheck(new Ratchet\WebSocket\WsServer($otherChat), ['portal.example.com']);
+}
+
+// ---- graphql-introspection-enabled / graphql-without-depth-limit ----
+function graphql_defaults($schema)
+{
+    // ruleid: jgates.php.graphql-introspection-enabled, jgates.php.graphql-without-depth-limit
+    $server = new GraphQL\Server\StandardServer(['schema' => $schema]);
+    // ruleid: jgates.php.graphql-introspection-enabled
+    $introspection = new StandardServer(['schema' => $schema, 'validationRules' => array_merge(DocumentValidator::allRules(), [new QueryDepth(10)])]);
+    // ruleid: jgates.php.graphql-without-depth-limit
+    $unbounded = new StandardServer(['schema' => $schema, 'validationRules' => array_merge(DocumentValidator::allRules(), [new DisableIntrospection()])]);
+    // ok: jgates.php.graphql-introspection-enabled, jgates.php.graphql-without-depth-limit
+    $bounded = new StandardServer(['schema' => $schema, 'validationRules' => array_merge(DocumentValidator::allRules(), [new DisableIntrospection(), new QueryDepth(10)])]);
+    // ok: jgates.php.graphql-introspection-enabled, jgates.php.graphql-without-depth-limit
+    $costBounded = new GraphQL\Server\StandardServer(['schema' => $schema, 'validationRules' => array_merge(DocumentValidator::allRules(), [new GraphQL\Validator\Rules\DisableIntrospection(), new GraphQL\Validator\Rules\QueryComplexity(100)])]);
+    // ok: jgates.php.graphql-without-depth-limit
+    $depthLimited = new StandardServer(['schema' => $schema, 'validationRules' => array_merge(DocumentValidator::allRules(), [new DisableIntrospection(), new QueryDepth(15)])]);
+    // ok: jgates.php.graphql-without-depth-limit
+    $costLimited = new StandardServer(['schema' => $schema, 'validationRules' => array_merge(DocumentValidator::allRules(), [new DisableIntrospection(), new QueryComplexity(200)])]);
 }
