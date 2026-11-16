@@ -241,6 +241,12 @@ function gatesStep() {
     const keys = Object.keys(meta).sort();
     for (const key of LISTS.forbiddenMetadata) if (keys.includes(key)) problems.push(`${where}: metadata key ${key} is typical of registry rules`);
     const isSignal = typeof meta.signal === "string" && meta.signal !== "";
+    if (Object.hasOwn(meta, "class")) {
+      if (meta.class !== "review") problems.push(`${where}: class must be review`);
+      if (rule.severity !== "INFO") problems.push(`${where}: a Review rule must have severity INFO`);
+      if (isSignal) problems.push(`${where}: a signal rule cannot have class`);
+    }
+    if (id.endsWith("-by-default") && meta.class !== "review") problems.push(`${where}: a -by-default rule must have class: review`);
     if (group === "signals" && !isSignal) problems.push(`${where}: a signals file holds only signal rules (metadata.signal)`);
     if (group !== "signals" && isSignal) problems.push(`${where}: a signal rule belongs in the ${language}-signals file`);
     if (isSignal) {
@@ -252,7 +258,7 @@ function gatesStep() {
       if (!LISTS.categories.includes(meta.category)) problems.push(`${where}: category ${meta.category} is not in the closed list`);
       if (!/^CWE-\d+$/.test(String(meta.cwe ?? ""))) problems.push(`${where}: cwe must look like CWE-79`);
       if (!LISTS.subdimensions.includes(meta.subdimension)) problems.push(`${where}: subdimension ${meta.subdimension} is not in the closed list`);
-      if (JSON.stringify(keys) !== JSON.stringify([...LISTS.ruleMetadata].sort())) problems.push(`${where}: metadata keys must be exactly ${LISTS.ruleMetadata.join(", ")}, found ${keys.join(", ")}`);
+      if (JSON.stringify(keys.filter((key) => !LISTS.optionalRuleMetadata.includes(key))) !== JSON.stringify([...LISTS.ruleMetadata].sort())) problems.push(`${where}: metadata keys must be ${LISTS.ruleMetadata.join(", ")} with optional ${LISTS.optionalRuleMetadata.join(", ")}, found ${keys.join(", ")}`);
       const reqs = Array.isArray(meta.asvs_requirements) ? meta.asvs_requirements.map(String) : [];
       if (reqs.length === 0) problems.push(`${where}: asvs_requirements is empty or missing`);
       for (const req of reqs) if (!asvsIds.has(req)) problems.push(`${where}: ${req} is not a requirement of ASVS 5.0.0`);

@@ -106,6 +106,8 @@ export interface ResultFinding {
   blockingReason?: BlockingReason;
   /** The tool reported it as informational (it never blocks and cannot be waived); shown and counted apart. */
   informational?: boolean;
+  /** A finding to review: never blocking and mutually exclusive with informational. */
+  review?: boolean;
   waived: boolean;
   waiverReason?: string;
   /** Fingerprint the tool or the sidecar gave (kept so old waiver files still match). */

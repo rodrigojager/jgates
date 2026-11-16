@@ -98,9 +98,10 @@ function languagesWithoutPackRules(input: ExternalPlanInput, packLanguages: read
  * For the bundled pack folders a run's arguments select: rule id to the requirement ids the rule was written for (the
  * checks), and rule id to the tag of a signal rule (the signals). Both absent without the pack.
  */
-function packRulesOfArgs(args: readonly string[]): { rules?: Map<string, readonly string[]>; signals?: Map<string, string> } {
+function packRulesOfArgs(args: readonly string[]): { rules?: Map<string, readonly string[]>; signals?: Map<string, string>; reviewRules?: Set<string> } {
   let rules: Map<string, readonly string[]> | undefined;
   let signals: Map<string, string> | undefined;
+  let reviewRules: Set<string> | undefined;
   for (let i = 0; i < args.length - 1; i += 1) {
     if (args[i] !== "--config") continue;
     const value = path.resolve(args[i + 1] as string);
@@ -109,13 +110,15 @@ function packRulesOfArgs(args: readonly string[]): { rules?: Map<string, readonl
       if (!dir || path.resolve(dir) !== value) continue;
       rules ??= new Map();
       signals ??= new Map();
+      reviewRules ??= new Set();
       for (const rule of buildPackIndex(dir).rules) {
         if (rule.signal === null) rules.set(rule.id, rule.asvsRequirements);
         else signals.set(rule.id, rule.signal);
+        if (rule.signal === null && rule.class === "review") reviewRules.add(rule.id);
       }
     }
   }
-  return { ...(rules ? { rules } : {}), ...(signals ? { signals } : {}) };
+  return { ...(rules ? { rules } : {}), ...(signals ? { signals } : {}), ...(reviewRules ? { reviewRules } : {}) };
 }
 
 /** The pack the instance selects in its settings, if any. */
@@ -346,7 +349,7 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
   }
   // Semgrep prints the paths it was given: /workspace/... in the step container, the host paths inside the image.
   const view = (p: string): string => stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, p);
-  const parsed = parseSemgrepOutput(json, { stageId: items[0]?.id as string, version, workspace: view(context.workspacePath), cwd: view(cwd), ...(pack.rules ? { packRules: pack.rules } : {}), ...(pack.signals ? { packSignals: pack.signals } : {}) });
+  const parsed = parseSemgrepOutput(json, { stageId: items[0]?.id as string, version, workspace: view(context.workspacePath), cwd: view(cwd), ...(pack.rules ? { packRules: pack.rules } : {}), ...(pack.signals ? { packSignals: pack.signals } : {}), ...(pack.reviewRules ? { packReviewRules: pack.reviewRules } : {}) });
   if (!parsed.ok || result.truncated) {
     const detail = result.truncated ? "output truncated" : (parsed.problem ?? "");
     return { ...base, stages: items.map((i) => stageFor(i, "completed", t("semgrep_invalid_output", { detail }), { interpreted: false, nativeStatus: "exit 0" })), findings: [] };

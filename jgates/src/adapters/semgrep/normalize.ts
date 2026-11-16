@@ -72,6 +72,16 @@ function packSignalOf(ruleId: string, packSignals: ReadonlyMap<string, string> |
   return undefined;
 }
 
+/** Whether the id (possibly prefixed by Semgrep's folder names) names a Review check selected from the pack. */
+function packReviewOf(ruleId: string, rules: ReadonlySet<string> | undefined): boolean {
+  if (!rules) return false;
+  if (rules.has(ruleId)) return true;
+  for (let at = ruleId.indexOf("."); at >= 0; at = ruleId.indexOf(".", at + 1)) {
+    if (rules.has(ruleId.slice(at + 1))) return true;
+  }
+  return false;
+}
+
 export function parseSemgrepOutput(
   text: string,
   opts: {
@@ -83,6 +93,8 @@ export function parseSemgrepOutput(
     packRules?: ReadonlyMap<string, readonly string[]>;
     /** The signal rules of the bundled pack in the run (rule id to its tag); absent without the pack. */
     packSignals?: ReadonlyMap<string, string>;
+    /** Review check ids selected from the bundled pack; absent without the pack. */
+    packReviewRules?: ReadonlySet<string>;
   },
 ): SemgrepParse {
   let doc: unknown;
@@ -133,6 +145,7 @@ export function parseSemgrepOutput(
     const file = relativeTo(roots, opts.cwd, entry.path);
     const native = typeof entry.extra.severity === "string" ? entry.extra.severity.toUpperCase() : "WARNING";
     const level = SEVERITY[native] ?? { normalized: "medium" as const, blocking: true };
+    const review = packReviewOf(entry.check_id, opts.packReviewRules);
     const asvsRequirements = packRequirementsOf(entry.check_id, opts.packRules);
     findings.push({
       stageId: opts.stageId,
@@ -146,10 +159,10 @@ export function parseSemgrepOutput(
       location: { path: file, ...(line !== undefined ? { line } : {}), ...(column !== undefined ? { column } : {}) },
       fingerprint: contentHash({ tool: "semgrep", rule: entry.check_id, file, line: line ?? null, column: column ?? null, message: entry.extra.message }),
       origin: "semgrep",
-      blocking: level.blocking,
-      ...(level.blocking ? { blockingReason: "blocking-tool" as const } : {}),
-      // INFO is an informational finding (a policy of the standard, not a vulnerability): it never blocks.
-      ...(native === "INFO" ? { informational: true } : {}),
+      blocking: !review && level.blocking,
+      ...(!review && level.blocking ? { blockingReason: "blocking-tool" as const } : {}),
+      // Review checks never block, regardless of the scanner's severity, and are not informational.
+      ...(review ? { review: true } : native === "INFO" ? { informational: true } : {}),
       waived: false,
       ...(asvsRequirements ? { asvsRequirements } : {}),
     });

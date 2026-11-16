@@ -18,6 +18,7 @@ export interface PackLists {
   signalTags: string[];
   forbiddenMetadata: string[];
   ruleMetadata: string[];
+  optionalRuleMetadata: string[];
   signalMetadata: string[];
 }
 
@@ -37,6 +38,8 @@ export interface PackRule {
   subdimension: string;
   author: string;
   severity: string;
+  /** Review checks are non-blocking and distinct from informational checks; absent on ordinary checks. */
+  class?: string;
   /** The rule file, relative to the rules folder, with forward slashes. */
   file: string;
   /** The annotated fixture beside the rule file (same stem, not YAML), relative to the rules folder; null when missing. */
@@ -142,6 +145,7 @@ export function buildPackIndex(rulesDir: string): PackIndex {
         subdimension: text(meta.subdimension),
         author: text(meta.author),
         severity: text(raw.severity),
+        ...(Object.hasOwn(meta, "class") ? { class: text(meta.class) } : {}),
         file,
         fixture,
         fixtures,

@@ -41,6 +41,12 @@ function gateProblems(rules) {
     else if (!rule.id.startsWith(`jgates.${prefix}.`)) problems.push(`${rule.id}: prefix of ${rule.language}`);
     if (!LISTS.severities.includes(rule.severity)) problems.push(`${rule.id}: severity ${rule.severity}`);
     if (rule.author !== "JGates") problems.push(`${rule.id}: author`);
+    if (rule.metadataKeys.includes("class")) {
+      if (rule.class !== "review") problems.push(`${rule.id}: class must be review`);
+      if (rule.severity !== "INFO") problems.push(`${rule.id}: a Review rule is INFO`);
+      if (rule.signal !== null) problems.push(`${rule.id}: a signal rule cannot have class`);
+    }
+    if (rule.id.endsWith("-by-default") && rule.class !== "review") problems.push(`${rule.id}: -by-default requires class: review`);
     for (const key of LISTS.forbiddenMetadata) if (rule.metadataKeys.includes(key)) problems.push(`${rule.id}: forbidden key ${key}`);
     if (rule.signal !== null) {
       if (!LISTS.signalTags.includes(rule.signal)) problems.push(`${rule.id}: signal ${rule.signal} is not in the closed list`);
@@ -51,7 +57,7 @@ function gateProblems(rules) {
     if (!LISTS.categories.includes(rule.category)) problems.push(`${rule.id}: category ${rule.category}`);
     if (!/^CWE-\d+$/.test(rule.cwe)) problems.push(`${rule.id}: CWE ${rule.cwe}`);
     if (!LISTS.subdimensions.includes(rule.subdimension)) problems.push(`${rule.id}: subdimension ${rule.subdimension}`);
-    if (JSON.stringify(rule.metadataKeys) !== JSON.stringify([...LISTS.ruleMetadata].sort())) problems.push(`${rule.id}: metadata keys ${rule.metadataKeys.join(",")}`);
+    if (JSON.stringify(rule.metadataKeys.filter((key) => !LISTS.optionalRuleMetadata.includes(key))) !== JSON.stringify([...LISTS.ruleMetadata].sort())) problems.push(`${rule.id}: metadata keys ${rule.metadataKeys.join(",")}`);
     if (rule.asvsRequirements.length === 0) problems.push(`${rule.id}: no asvs_requirements`);
     for (const req of rule.asvsRequirements) if (!REQUIREMENTS.has(req)) problems.push(`${rule.id}: ${req} is not a requirement of the vendored data`);
     const kind = `${rule.category} ${rule.cwe}`;
@@ -122,6 +128,22 @@ test("V2-96: a signal rule is INFO with signal and author only, the tag from the
   assert.match(gateProblems([signal({ severity: "WARNING" })]).join("\n"), /a signal rule is INFO/);
   assert.match(gateProblems([signal({ metadataKeys: ["author", "category", "signal"] })]).join("\n"), /signal and author only/);
   assert.match(gateProblems([signal({ metadataKeys: ["signal"] })]).join("\n"), /signal and author only/);
+});
+
+test("V2-96: Review is optional on checks, INFO only, never on signals, and required by -by-default", () => {
+  const metadataKeys = [...rule().metadataKeys, "class"].sort();
+  const review = rule({ class: "review", severity: "INFO", metadataKeys });
+  assert.deepEqual(gateProblems([review]), []);
+  for (const [invalid, message] of [
+    [{ ...review, severity: "WARNING" }, /Review rule is INFO/],
+    [{ ...review, class: "unknown" }, /class must be review/],
+    [signal({ class: "review", metadataKeys: ["author", "class", "signal"] }), /signal rule cannot have class/],
+    [rule({ id: "jgates.go.sample-by-default" }), /-by-default requires class: review/],
+  ]) {
+    const problems = gateProblems([invalid]).join("\n");
+    assert.ok(problems.includes(invalid.id), problems);
+    assert.match(problems, message);
+  }
 });
 
 test("V2-96: the index reads signal rules and a rule file under rules/html/ or rules/config/, and records the signal pairs", () => {

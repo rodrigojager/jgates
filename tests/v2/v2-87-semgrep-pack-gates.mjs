@@ -56,6 +56,12 @@ test("V2-87: every rule file has its fixture and every rule has its prefix, cate
     assert.ok(rule.id.startsWith(`jgates.${prefix}.`), `${rule.id}: prefix of ${rule.language}`);
     assert.ok(LISTS.severities.includes(rule.severity), `${rule.id}: severity ${rule.severity}`);
     assert.equal(rule.author, "JGates", `${rule.id}: author`);
+    if (rule.metadataKeys.includes("class")) {
+      assert.equal(rule.class, "review", `${rule.id}: class must be review`);
+      assert.equal(rule.severity, "INFO", `${rule.id}: Review is INFO`);
+      assert.equal(rule.signal, null, `${rule.id}: Review is not a signal`);
+    }
+    if (rule.id.endsWith("-by-default")) assert.equal(rule.class, "review", `${rule.id}: -by-default requires class: review`);
     for (const key of FORBIDDEN) assert.ok(!rule.metadataKeys.includes(key), `${rule.id}: ${key}`);
     if (rule.signal !== null) {
       assert.ok(LISTS.signalTags.includes(rule.signal), `${rule.id}: signal`);
@@ -65,7 +71,7 @@ test("V2-87: every rule file has its fixture and every rule has its prefix, cate
       assert.ok(CATEGORIES.includes(rule.category), `${rule.id}: category`);
       assert.match(rule.cwe, /^CWE-\d+$/, `${rule.id}: CWE`);
       assert.ok(SUBDIMENSIONS.includes(rule.subdimension), `${rule.id}: subdimension`);
-      assert.deepEqual(rule.metadataKeys, [...LISTS.ruleMetadata].sort(), `${rule.id}: the metadata keys of a rule`);
+      assert.deepEqual(rule.metadataKeys.filter((key) => !LISTS.optionalRuleMetadata.includes(key)), [...LISTS.ruleMetadata].sort(), `${rule.id}: the metadata keys of a rule`);
       assert.ok(rule.asvsRequirements.length > 0, `${rule.id}: asvs_requirements`);
       for (const req of rule.asvsRequirements) assert.ok(REQUIREMENTS.has(req), `${rule.id}: ${req} exists in the vendored data`);
       const kind = `${rule.category} ${rule.cwe}`;

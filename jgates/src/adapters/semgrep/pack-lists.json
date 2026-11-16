@@ -54,5 +54,6 @@
   ],
   "forbiddenMetadata": ["source-rule-url", "shortlink", "license", "technology", "references", "source", "impact", "likelihood", "confidence", "vulnerability_class", "owasp", "cwe2021-top25", "cwe2022-top25", "subcategory"],
   "ruleMetadata": ["category", "cwe", "subdimension", "author", "asvs_requirements"],
+  "optionalRuleMetadata": ["class"],
   "signalMetadata": ["signal", "author"]
 }

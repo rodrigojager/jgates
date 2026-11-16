@@ -494,6 +494,12 @@ test("every rule of the bundled pack has its language prefix, its metadata and a
     assert.ok(rule.id.startsWith(`jgates.${prefixes[rule.language]}.`), `${rule.id} carries the prefix of ${rule.language}`);
     assert.ok(PACK_SEVERITIES.includes(rule.severity), `${rule.id}: severity ${rule.severity}`);
     assert.equal(rule.author, "JGates", `${rule.id}: author`);
+    if (rule.metadataKeys.includes("class")) {
+      assert.equal(rule.class, "review", `${rule.id}: class must be review`);
+      assert.equal(rule.severity, "INFO", `${rule.id}: Review is INFO`);
+      assert.equal(rule.signal, null, `${rule.id}: Review is not a signal`);
+    }
+    if (rule.id.endsWith("-by-default")) assert.equal(rule.class, "review", `${rule.id}: -by-default requires class: review`);
     for (const key of FORBIDDEN_METADATA) assert.ok(!rule.metadataKeys.includes(key), `${rule.id}: metadata key ${key} is typical of registry rules`);
     if (rule.signal !== null) {
       // A signal rule is a record of the scan, never a finding: INFO, `signal` from the closed list, `author`, nothing else.
@@ -505,7 +511,7 @@ test("every rule of the bundled pack has its language prefix, its metadata and a
       assert.ok(PACK_CATEGORIES.includes(rule.category), `${rule.id}: category ${rule.category}`);
       assert.match(rule.cwe, /^CWE-\d+$/, `${rule.id}: CWE`);
       assert.ok(SECURITY_SUBDIMENSIONS.includes(rule.subdimension), `${rule.id}: subdimension ${rule.subdimension}`);
-      assert.deepEqual(rule.metadataKeys, [...PACK_LISTS.ruleMetadata].sort(), `${rule.id}: only the metadata keys of a rule`);
+      assert.deepEqual(rule.metadataKeys.filter((key) => !PACK_LISTS.optionalRuleMetadata.includes(key)), [...PACK_LISTS.ruleMetadata].sort(), `${rule.id}: only the metadata keys of a rule`);
       assert.ok(rule.asvsRequirements.length > 0, `${rule.id}: asvs_requirements`);
       for (const req of rule.asvsRequirements) assert.ok(ASVS_IDS.has(req), `${rule.id}: ${req} is a requirement of the vendored data`);
       assert.equal(new Set(rule.asvsRequirements).size, rule.asvsRequirements.length, `${rule.id}: a requirement once`);

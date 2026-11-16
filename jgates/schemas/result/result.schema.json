@@ -1116,6 +1116,10 @@
             "legacy-verdict"
           ]
         },
+        "review": {
+          "type": "boolean",
+          "description": "A finding to review: it never blocks the validation and excludes informational. Shown and counted apart."
+        },
         "informational": {
           "type": "boolean",
           "description": "The tool reported the finding as informational: it never blocks the validation and cannot be waived. Shown and counted apart."
