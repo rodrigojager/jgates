@@ -177,5 +177,39 @@ def outbound(url, session_headers):
     other.get(url, timeout=10)
 
 
+def outbound_redirects():
+    target = request.args.get("url")
+    # ruleid: jgates.python.outbound-request-follows-redirects
+    requests.get(target, timeout=10)
+    # ruleid: jgates.python.outbound-request-follows-redirects
+    requests.post(url=request.form["url"], json={"sync": True}, timeout=10)
+    # ruleid: jgates.python.outbound-request-follows-redirects
+    requests.request("GET", target, timeout=10)
+    # ok: jgates.python.outbound-request-follows-redirects
+    requests.get(target, allow_redirects=False, timeout=10)
+    # ok: jgates.python.outbound-request-follows-redirects
+    requests.post(url=request.form["url"], allow_redirects=False, timeout=10)
+    # ok: jgates.python.outbound-request-follows-redirects
+    requests.request("GET", target, allow_redirects=False, timeout=10)
+    # HEAD does not follow redirects by default.
+    # ok: jgates.python.outbound-request-follows-redirects
+    requests.head(target, timeout=10)
+    # ok: jgates.python.outbound-request-follows-redirects
+    requests.get("https://partner.example.org/data", timeout=10)
+    # Explicit settings and options supplied elsewhere are not default observations.
+    # ok: jgates.python.outbound-request-follows-redirects
+    requests.get(target, allow_redirects=True, timeout=10)
+    options = {"allow_redirects": False}
+    # ok: jgates.python.outbound-request-follows-redirects
+    requests.get(target, timeout=10, **options)
+
+    # Initial-host validation alone does not validate redirect destinations.
+    validated_target = validate_url(request.args["url"])
+    # ruleid: jgates.python.outbound-request-follows-redirects
+    requests.get(validated_target, timeout=10)
+    # ok: jgates.python.outbound-request-follows-redirects
+    requests.get(validated_target, allow_redirects=False, timeout=10)
+
+
 def run():
     return None

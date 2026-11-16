@@ -25,6 +25,9 @@ def sync():
         notify(payload)
     except Exception:
         return jsonify({"trace": traceback.format_exc()})
+    # Validate the initial host; redirect destinations still need protection.
+    target = validate_url(request.args["url"])
+    requests.get(target, timeout=10)
     return jsonify(payload)
 
 

@@ -26,6 +26,9 @@ def sync():
     except Exception:
         logger.exception("notify failed")
         return jsonify({"error": "internal error"}), 500
+    # Validate the initial host and do not follow redirects to other hosts.
+    target = validate_url(request.args["url"])
+    requests.get(target, allow_redirects=False, timeout=10)
     return jsonify(payload)
 
 

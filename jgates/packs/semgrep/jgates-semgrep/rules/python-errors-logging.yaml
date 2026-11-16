@@ -182,6 +182,52 @@ rules:
           with suppress(Exception):
               ...
 
+  - id: jgates.python.outbound-request-follows-redirects
+    message: An address from the incoming request is passed to Requests without a redirect option, which follows redirects by default for this call. If no other protection validates each hop, the first host can redirect the server to another address; set allow_redirects=False here or confirm where each destination is checked.
+    severity: INFO
+    languages: [python]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.2"]
+      class: review
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.data
+      - pattern: request.cookies.get(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: requests.$M($URL, ...)
+              - pattern: requests.$M(..., url=$URL, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|post|put|patch|delete|options)$
+          - pattern-not: requests.$M(..., allow_redirects=$SETTING, ...)
+          - pattern-not: requests.$M(..., **$KWARGS)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern-either:
+              - pattern: requests.request($METHOD, $URL, ...)
+              - pattern: requests.request(..., url=$URL, ...)
+          - pattern-not: requests.request(..., allow_redirects=$SETTING, ...)
+          - pattern-not: requests.request(..., **$KWARGS)
+          - focus-metavariable: $URL
+
   - id: jgates.python.http-client-without-timeout
     message: An outbound HTTP call is made with no timeout, and this library waits forever by default, so one slow server can hang the worker. Pass a timeout (timeout=10, or a connect and read pair).
     severity: INFO
