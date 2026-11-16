@@ -411,8 +411,8 @@ rules:
           - focus-metavariable: $P
 
   - id: jgates.csharp.markdown-raw-html-enabled
-    message: A Markdown renderer converts non-constant text with raw HTML allowed, and its output is not run through an HTML sanitizer. Build a Markdig pipeline with DisableHtml(), or sanitize the result with an HTML sanitizer.
-    severity: WARNING
+    message: A Markdown renderer converts non-constant text without a visible raw-HTML restriction or enclosing sanitizer. If the text is untrusted and no later step sanitizes the output, raw HTML can reach the page; use a Markdig pipeline with DisableHtml(), sanitize the result, or confirm that the input is trusted or the output is sanitized elsewhere.
+    severity: INFO
     languages: [csharp]
     metadata:
       category: injection
@@ -420,6 +420,7 @@ rules:
       author: JGates
       subdimension: injection
       asvs_requirements: ["V1.3.5"]
+      class: review
     patterns:
       - pattern-either:
           - pattern: Markdown.ToHtml($X)
