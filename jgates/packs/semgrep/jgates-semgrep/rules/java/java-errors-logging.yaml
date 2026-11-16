@@ -4,6 +4,35 @@
 # ResponseEntity and JAX-RS Response for the response rules; java.net.http.HttpClient, RestTemplate, Apache
 # HttpClient and HttpURLConnection for the timeout rule. Analysis stays inside one method.
 rules:
+  - id: jgates.java.outbound-request-follows-redirects
+    message: An HttpURLConnection to an address from the incoming request is used without a redirect setting, so it follows redirects by default. If nothing else validates each hop, the first host can redirect the server to another address; set setInstanceFollowRedirects(false) here or confirm where each destination is checked.
+    severity: INFO
+    languages: [java]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.2"]
+      class: review
+    pattern-sources:
+      - pattern: (HttpServletRequest $R).getParameter(...)
+      - pattern: (HttpServletRequest $R).getHeader(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $C.getInputStream()
+              - pattern: $C.getResponseCode()
+              - pattern: $C.connect()
+          - pattern-inside: |
+              HttpURLConnection $C = ...;
+              ...
+          - pattern-not-inside: |
+              $C.setInstanceFollowRedirects(...);
+              ...
+          - focus-metavariable: $C
+
   - id: jgates.java.sensitive-data-logged
     message: A value named like a password, a secret, a token or an authorization header is passed to a logging call, so it ends up in the log files. Log an identifier or a masked form instead, or leave the value out.
     severity: WARNING

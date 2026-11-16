@@ -1,6 +1,7 @@
 {
   "files": ["ErrorsLogging.java"],
   "ruleIds": [
+    "jgates.java.outbound-request-follows-redirects",
     "jgates.java.sensitive-data-logged",
     "jgates.java.sensitive-data-logged-header",
     "jgates.java.stack-trace-in-response",

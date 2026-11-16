@@ -17,6 +17,42 @@ import org.springframework.web.client.RestTemplate;
 class ErrorsLoggingFixture {
     private static final Logger log = null;
 
+    void redirectDefault(HttpServletRequest request) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(request.getParameter("destination")).openConnection();
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        // ruleid: jgates.java.outbound-request-follows-redirects
+        connection.getInputStream();
+    }
+
+    void redirectHeader(HttpServletRequest request) throws Exception {
+        URL destination = new URL(request.getHeader("X-Destination"));
+        HttpURLConnection connection = (HttpURLConnection) destination.openConnection();
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        // ruleid: jgates.java.outbound-request-follows-redirects
+        connection.getResponseCode();
+    }
+
+    void redirectDisabled(HttpServletRequest request) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(request.getParameter("destination")).openConnection();
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        connection.setInstanceFollowRedirects(false);
+        // ok: jgates.java.outbound-request-follows-redirects
+        connection.getInputStream();
+    }
+
+    void redirectHeaderDisabled(HttpServletRequest request) throws Exception {
+        URL destination = new URL(request.getHeader("X-Destination"));
+        HttpURLConnection connection = (HttpURLConnection) destination.openConnection();
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        connection.setInstanceFollowRedirects(false);
+        // ok: jgates.java.outbound-request-follows-redirects
+        connection.getResponseCode();
+    }
+
     void sensitiveDataLogged(String password, String apiKey, String username, User user, Logger logger) {
         // ruleid: jgates.java.sensitive-data-logged
         log.info("login {}", password);
