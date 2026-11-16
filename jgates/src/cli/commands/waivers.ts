@@ -70,7 +70,8 @@ function viewText(w: WaiverView): string {
   const matched = w.matched === null ? "" : w.matched ? `  ${t("waivers_text_matched", { count: w.matchedFindings })}` : `  ${t("waivers_text_unmatched")}`;
   const cause = w.cause ? ` (${t(`waivers_text_cause_${w.cause === "line-changed" ? "line_changed" : "count_changed"}`)})` : "";
   const until = w.expires ? t("waivers_text_until", { date: w.expires }) : t("waivers_text_no_date");
-  return `${w.id}  ${t(`waivers_text_state_${w.state}`)}${cause}  ${where(w)}  ${until}  "${w.reason ?? ""}"${matched}`;
+  const reviewed = w.reviewed ? `  [${t("waivers_text_reviewed", { count: w.reviewed })}]` : "";
+  return `${w.id}  ${t(`waivers_text_state_${w.state}`)}${cause}  ${where(w)}  ${until}  "${w.reason ?? ""}"${matched}${reviewed}`;
 }
 
 export const command: CommandModule = {

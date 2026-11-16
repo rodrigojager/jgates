@@ -675,6 +675,9 @@
           "type": "integer",
           "minimum": 0
         },
+        "newReview": { "type": "integer", "minimum": 0 },
+        "keptReview": { "type": "integer", "minimum": 0 },
+        "resolvedReview": { "type": "integer", "minimum": 0 },
         "newInformational": {
           "type": "integer",
           "minimum": 0
@@ -1826,8 +1829,8 @@
       "required": ["count", "findings", "applied", "unmatched", "stale", "expired"],
       "description": "What the waivers did in the run. A waiver never changes the state of a check and the decision keeps its meaning; count above zero on a passed run reads as approved with waivers.",
       "properties": {
-        "count": { "type": "integer", "minimum": 0, "description": "How many waivers applied to at least one finding." },
-        "findings": { "type": "integer", "minimum": 0, "description": "How many findings they waived." },
+        "count": { "type": "integer", "minimum": 0, "description": "How many waivers applied to at least one non-Review finding; reviewed findings alone preserve plain approval." },
+        "findings": { "type": "integer", "minimum": 0, "description": "How many non-Review findings they waived. Reviewed findings remain listed in applied." },
         "applied": { "type": "array", "items": { "$ref": "#/$defs/waiverRecord" } },
         "unmatched": { "type": "array", "items": { "$ref": "#/$defs/waiverRecord" }, "description": "Live waivers that waived nothing." },
         "stale": { "type": "array", "items": { "$ref": "#/$defs/waiverRecord" }, "description": "Waivers that cannot be matched safely (the flagged line or the number of findings of the file changed); they do not apply." },
@@ -1862,6 +1865,7 @@
         "created": { "type": "string" },
         "expires": { "type": "string" },
         "findings": { "type": "integer", "minimum": 0, "description": "How many findings of the run it waived." },
+        "reviewed": { "type": "integer", "minimum": 0, "description": "Of these findings, how many were marked as reviewed; excluded from approval wording." },
         "cause": { "enum": ["line-changed", "count-changed"], "description": "Stale waivers: why." }
       }
     },

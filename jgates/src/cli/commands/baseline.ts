@@ -70,8 +70,10 @@ export const command: CommandModule = {
     const cmp = compareWithBaseline(base, now);
     const codes = cmp.warnings.map((w) => w.code).join(", ");
     const informational = { new: cmp.newInformational ?? 0, resolved: cmp.resolvedInformational ?? 0, kept: cmp.keptInformational ?? 0 };
-    let line = t("baseline_compare_line", { new: cmp.new, resolved: cmp.resolved.length - informational.resolved, kept: cmp.kept });
+    const review = { new: cmp.newReview ?? 0, resolved: cmp.resolvedReview ?? 0, kept: cmp.keptReview ?? 0 };
+    let line = t("baseline_compare_line", { new: cmp.new, resolved: cmp.resolved.length - informational.resolved - review.resolved, kept: cmp.kept });
     if (informational.new + informational.resolved + informational.kept > 0) line += "\n" + t("baseline_compare_informational", informational);
+    if (review.new + review.resolved + review.kept > 0) line += "\n" + t("baseline_compare_review", review);
     if (!cmp.comparable) line += "\n" + t("baseline_not_comparable", { codes });
     return say({ runId, comparison: cmp }, line);
   },

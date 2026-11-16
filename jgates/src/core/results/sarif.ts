@@ -8,7 +8,7 @@ export const SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json";
 
 function levelOf(f: ResultFinding): "error" | "warning" | "note" {
   // An informational finding (it does not block) is a note; the level of every other finding follows its severity.
-  if (isInformational(f)) return "note";
+  if (isInformational(f) || f.review === true) return "note";
   switch (f.normalizedSeverity) {
     case "critical":
     case "high":
@@ -54,7 +54,7 @@ export function toSarif(result: Pick<RunResult, "findings" | "version" | "runId"
       : {}),
     ...(f.fingerprint ? { partialFingerprints: { [`jgates/v${f.fingerprintVersion ?? 1}`]: f.fingerprint } } : {}),
     ...(f.waived ? { suppressions: [{ kind: "external", justification: f.waiverReason ?? "waived" }] } : {}),
-    properties: { severity: f.severity, normalizedSeverity: f.normalizedSeverity, blocking: f.blocking, ...(isInformational(f) ? { informational: true } : {}), ...(f.asvsRequirements?.length ? { asvsRequirements: f.asvsRequirements } : {}), ...(f.origin === OWN_TOOL_ORIGIN ? { ownTool: true, origin: f.origin } : {}), ...(f.baselineState ? { baselineState: f.baselineState } : {}) },
+    properties: { severity: f.severity, normalizedSeverity: f.normalizedSeverity, blocking: f.blocking, ...(isInformational(f) ? { informational: true } : {}), ...(f.review === true ? { review: true } : {}), ...(f.asvsRequirements?.length ? { asvsRequirements: f.asvsRequirements } : {}), ...(f.origin === OWN_TOOL_ORIGIN ? { ownTool: true, origin: f.origin } : {}), ...(f.baselineState ? { baselineState: f.baselineState } : {}) },
   }));
   return {
     $schema: SARIF_SCHEMA,

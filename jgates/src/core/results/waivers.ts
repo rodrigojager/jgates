@@ -250,15 +250,17 @@ export interface WaiverRecordEntry {
   expires?: string;
   /** How many findings of this run it waived (0 for the entries that did not apply). */
   findings: number;
+  /** Findings marked as reviewed, included in findings but excluded from approval wording. */
+  reviewed?: number;
   /** Stale entries: why. */
   cause?: StaleCause;
 }
 
 /** $.waivers of a result: what the waivers did in this run. */
 export interface ResultWaivers {
-  /** How many waivers applied to at least one finding. */
+  /** How many waivers dismissed at least one non-Review finding (approval wording). */
   count: number;
-  /** How many findings they waived. */
+  /** How many non-Review findings they waived; reviewed findings remain listed in applied. */
   findings: number;
   applied: WaiverRecordEntry[];
   /** Live waivers that waived nothing (nothing matched, or an earlier waiver took the findings). */
@@ -298,6 +300,7 @@ function recordEntry(waiver: Waiver, waived: ResultFinding[], cause?: StaleCause
     ...(waiver.created ? { created: waiver.created } : {}),
     ...(waiver.expires ? { expires: waiver.expires } : {}),
     findings: waived.length,
+    ...(waived.some((f) => f.review === true) ? { reviewed: waived.filter((f) => f.review === true).length } : {}),
     ...(cause ? { cause } : {}),
   };
 }
@@ -357,8 +360,8 @@ export function applyWaivers(
       else record.unmatched.push(recordEntry(s.waiver, []));
     }
   }
-  record.count = record.applied.length;
-  record.findings = record.applied.reduce((n, e) => n + e.findings, 0);
+  record.count = record.applied.filter((e) => e.findings > (e.reviewed ?? 0)).length;
+  record.findings = record.applied.reduce((n, e) => n + e.findings - (e.reviewed ?? 0), 0);
   return { findings: out, stages: outStages, record };
 }
 

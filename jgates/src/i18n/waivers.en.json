@@ -1,4 +1,5 @@
 {
+  "waivers_text_reviewed": "{count} reviewed",
   "waivers_description": "Waivers of the project (.jgates/waivers.json): list them, waive a finding of the last validation until a date with a reason, or remove a waiver.",
   "waivers_option_cwd": "Project folder (default: the current folder).",
   "waivers_option_finding": "add: fingerprint of the finding to waive, as shown in the text result (12 digits after jgf1: or any unique prefix); may repeat.",

@@ -168,6 +168,10 @@ export interface BaselineComparison {
   newInformational?: number;
   keptInformational?: number;
   resolvedInformational?: number;
+  /** Open Review findings, counted apart from blocking and informational findings. */
+  newReview?: number;
+  keptReview?: number;
+  resolvedReview?: number;
   /** `line` is the baseline finding's line, when it had one. */
   resolved: Array<{ fingerprint: string; ruleId: string; tool?: string; path?: string; line?: number }>;
   /** How the findings were matched: by anchor, by fingerprint v1, or both (groups of each kind). Information only. */

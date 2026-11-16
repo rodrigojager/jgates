@@ -217,6 +217,8 @@ export interface WaiverView {
   matched: boolean | null;
   /** How many findings of the last validation it matched. */
   matchedFindings: number;
+  /** Matches of Review findings, shown as reviewed rather than dismissed blocking findings. */
+  reviewed?: number;
 }
 
 export interface WaiverListing {
@@ -250,6 +252,7 @@ export function listWaivers(read: WaiverFileRead, result: Pick<RunResult, "findi
       ...(s.cause ? { cause: s.cause } : {}),
       matched: result ? s.matched > 0 : null,
       matchedFindings: s.matched,
+      ...(s.matches.some((at) => result?.findings[at]?.review === true) ? { reviewed: s.matches.filter((at) => result?.findings[at]?.review === true).length } : {}),
     };
   });
   return { file: read.file, exists: read.exists, revision: read.revision, ...(read.problem ? { problem: read.problem } : {}), runId, waivers };

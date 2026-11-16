@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { listRuns, markRun, type RunInfo } from "../../core/artifacts/index.js";
 import { discoverWorkspace } from "../../core/discovery/index.js";
-import { approvalWording, approvalWordingParams, assignFingerprints, compareWithBaseline } from "../../core/results/index.js";
+import { approvalWording, approvalWordingParams, assignFingerprints, compareWithBaseline, isInformational, isReview, matchFindings } from "../../core/results/index.js";
 import type { ResultFinding, RunResult } from "../../core/run/types.js";
 import { translator } from "../../i18n/index.js";
 import { HttpError } from "../http.js";
@@ -75,7 +75,7 @@ function summary(run: RunInfo, result: RunResult | null, componentOf: (file: str
     scope: result?.selection?.scope ?? null,
     commit: result?.analyzed?.snapshot?.commit ?? null,
     policyHash: hashes?.policy ?? null,
-    findings: { total: findings.length, active: active.length, blocking: findings.filter((f) => f.blocking).length },
+    findings: { total: findings.length, active: active.length, blocking: findings.filter((f) => f.blocking).length, informational: findings.filter(isInformational).length, review: findings.filter(isReview).length },
     severities: distinct(active.map((f) => f.normalizedSeverity)),
     categories: distinct(active.map((f) => f.category)),
     components: distinct(active.map((f) => componentOf(f.location?.path))),
@@ -98,6 +98,8 @@ const brief = (f: ResultFinding) => ({
   path: f.location?.path ?? null,
   line: f.location?.line ?? null,
   blocking: f.blocking,
+  ...(f.review === true ? { review: true } : {}),
+  ...(isInformational(f) ? { informational: true } : {}),
 });
 
 export const routes: RouteDefinition[] = [
@@ -149,11 +151,12 @@ export const routes: RouteDefinition[] = [
       const before = { ...(base as RunResult), findings: assignFingerprints((base as RunResult).findings ?? []) };
       const after = { ...(head as RunResult), findings: assignFingerprints((head as RunResult).findings ?? []) };
       const cmp = compareWithBaseline(before, after);
-      const known = new Set(before.findings.map((f) => f.fingerprint));
-      const present = new Set(after.findings.map((f) => f.fingerprint));
-      const added = after.findings.filter((f) => !known.has(f.fingerprint));
-      const kept = after.findings.filter((f) => known.has(f.fingerprint));
-      const resolved = before.findings.filter((f) => !present.has(f.fingerprint));
+      const matched = matchFindings(before.findings, after.findings);
+      const added = after.findings.filter((_, i) => !matched.keptFlags[i]);
+      const kept = after.findings.filter((_, i) => matched.keptFlags[i]);
+      const resolved = matched.resolved;
+      const blockingSide = (f: ResultFinding) => !isInformational(f) && f.review !== true;
+      const split = (list: ResultFinding[], predicate: (f: ResultFinding) => boolean) => list.filter(predicate).slice(0, LIST_CAP).map(brief);
       return {
         status: 200,
         json: {
@@ -163,10 +166,20 @@ export const routes: RouteDefinition[] = [
           head: headRun.runId,
           comparable: cmp.comparable,
           warnings: cmp.warnings,
-          counts: { new: added.length, resolved: resolved.length, kept: kept.length },
-          new: added.slice(0, LIST_CAP).map(brief),
-          resolved: resolved.slice(0, LIST_CAP).map(brief),
-          kept: kept.slice(0, LIST_CAP).map(brief),
+          counts: {
+            new: cmp.new, resolved: resolved.filter(blockingSide).length, kept: cmp.kept,
+            newInformational: cmp.newInformational, keptInformational: cmp.keptInformational, resolvedInformational: cmp.resolvedInformational,
+            newReview: cmp.newReview, keptReview: cmp.keptReview, resolvedReview: cmp.resolvedReview,
+          },
+          new: split(added, blockingSide),
+          resolved: split(resolved, blockingSide),
+          kept: split(kept, blockingSide),
+          newInformational: split(added, isInformational),
+          keptInformational: split(kept, isInformational),
+          resolvedInformational: split(resolved, isInformational),
+          newReview: split(added, isReview),
+          keptReview: split(kept, isReview),
+          resolvedReview: split(resolved, isReview),
         },
       };
     },

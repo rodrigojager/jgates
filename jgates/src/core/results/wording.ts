@@ -26,7 +26,7 @@ export function approvalWording(result: WordingSource): ApprovalWording {
   if (result.waivers) {
     return result.waivers.count > 0 ? { kind: "with-waivers", waivers: result.waivers.count, findings: result.waivers.findings } : none;
   }
-  const waived = (result.findings ?? []).filter((f) => f.waived === true);
+  const waived = (result.findings ?? []).filter((f) => f.waived === true && f.review !== true);
   if (waived.length === 0) return none;
   const ids = new Set(waived.map((f) => f.waiverId ?? f.waiverReason ?? "waiver"));
   return { kind: "with-waivers", waivers: ids.size, findings: waived.length };
@@ -44,6 +44,16 @@ export function isInformational(f: Pick<ResultFinding, "blocking" | "waived" | "
 /** How many informational findings a result has. */
 export function informationalCount(result: Pick<RunResult, "findings">): number {
   return (result.findings ?? []).filter(isInformational).length;
+}
+
+/** An open finding to review, distinct from informational findings and never blocking. */
+export function isReview(f: Pick<ResultFinding, "blocking" | "waived" | "review">): boolean {
+  return f.review === true && f.blocking !== true && f.waived !== true;
+}
+
+/** How many findings still need a person's review. */
+export function reviewCount(result: Pick<RunResult, "findings">): number {
+  return (result.findings ?? []).filter(isReview).length;
 }
 
 /** The message key and parameters of the wording in a catalog that holds the `*_passed` and `*_passed_waivers` keys. */

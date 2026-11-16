@@ -1,4 +1,5 @@
 {
+  "waivers_text_reviewed": "{count, plural, one {# revisado} other {# revisados}}",
   "waivers_description": "Dispensas do projeto (.jgates/waivers.json): lista, dispensa um achado da última validação até uma data com um motivo, ou remove uma dispensa.",
   "waivers_option_cwd": "Pasta do projeto (padrão: a pasta atual).",
   "waivers_option_finding": "add: impressão digital do achado a dispensar, como no resultado em texto (12 dígitos depois de jgf1: ou qualquer prefixo único); pode repetir.",

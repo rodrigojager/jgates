@@ -2,7 +2,7 @@
 // kept. A different policy, rules or scope (or a reduced or partial run) is reported as a warning and the comparison
 // is flagged not comparable: the lists are still there, but they must not be read as a like-for-like diff.
 import type { BaselineComparison, ResultFinding, RunResult } from "../run/types.js";
-import { isInformational } from "./wording.js";
+import { isInformational, isReview } from "./wording.js";
 
 type Warning = BaselineComparison["warnings"][number];
 
@@ -34,9 +34,13 @@ export function compareWithBaseline(
   const m = matchFindings(baseline.findings ?? [], current.findings);
   // Informational findings (they do not block) are counted apart: `new` and `kept` hold the blocking side only.
   const keptInformational = m.keptFlags.filter((flag, i) => flag && isInformational(current.findings[i]!)).length;
-  const kept = m.keptFlags.filter(Boolean).length - keptInformational;
+  const blockingSide = (f: ResultFinding): boolean => !isInformational(f) && f.review !== true;
+  const kept = m.keptFlags.filter((flag, i) => flag && blockingSide(current.findings[i]!)).length;
   const informationalNow = current.findings.filter(isInformational).length;
   const resolvedInformational = m.resolved.filter(isInformational).length;
+  const keptReview = m.keptFlags.filter((flag, i) => flag && isReview(current.findings[i]!)).length;
+  const reviewNow = current.findings.filter(isReview).length;
+  const resolvedReview = m.resolved.filter(isReview).length;
   const resolved = m.resolved.map((f) => ({
     fingerprint: f.fingerprint!,
     ruleId: f.ruleId,
@@ -48,11 +52,14 @@ export function compareWithBaseline(
     runId: baseline.runId,
     comparable: warnings.length === 0,
     warnings,
-    new: current.findings.length - informationalNow - kept,
+    new: current.findings.filter(blockingSide).length - kept,
     kept,
     newInformational: informationalNow - keptInformational,
     keptInformational,
     resolvedInformational,
+    newReview: reviewNow - keptReview,
+    keptReview,
+    resolvedReview,
     resolved,
     matchedBy: m.matchedBy,
   };

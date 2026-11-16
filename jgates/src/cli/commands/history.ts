@@ -6,6 +6,8 @@ import { translator } from "../../i18n/index.js";
 import { resolveHome } from "../../core/home/index.js";
 import { workspaceId } from "../../core/ids/index.js";
 import { listRuns, markRun } from "../../core/artifacts/index.js";
+import { informationalCount, reviewCount } from "../../core/results/index.js";
+import type { RunResult } from "../../core/run/types.js";
 
 const t = translator("history");
 
@@ -42,13 +44,22 @@ export const command: CommandModule = {
     const id = workspaceId(dir);
     const runs = listRuns(home, id)
       .slice(0, limit)
-      .map((r) => ({ runId: r.runId, workspaceId: r.workspaceId, startedAt: r.startedAt, decision: r.decision, partial: r.partial || r.reduced, reduced: r.reduced, bytes: r.bytes, baseline: r.marks.baseline, preserved: r.marks.preserved, dir: r.dir }));
+      .map((r) => {
+        let result: RunResult | null = null;
+        try { result = JSON.parse(fs.readFileSync(path.join(r.dir, "result.json"), "utf8")) as RunResult; } catch { /* An unfinished run has no final result. */ }
+        const findings = {
+          blocking: (result?.findings ?? []).filter((f) => f.blocking).length,
+          informational: informationalCount({ findings: result?.findings ?? [] }),
+          review: reviewCount({ findings: result?.findings ?? [] }),
+        };
+        return { runId: r.runId, workspaceId: r.workspaceId, startedAt: r.startedAt, decision: r.decision, partial: r.partial || r.reduced, reduced: r.reduced, bytes: r.bytes, baseline: r.marks.baseline, preserved: r.marks.preserved, dir: r.dir, findings };
+      });
     if (ctx.json) {
       writeJson(ctx, { schemaVersion: 1, status: "OK", tool: "jgates", version: ctx.version, workspace: { id, path: dir }, runs });
       return 0;
     }
     if (runs.length === 0) ctx.stdout(t("history_empty") + "\n");
-    for (const r of runs) ctx.stdout(`${r.runId}  ${r.startedAt ?? "-"}  ${r.decision ?? "-"}${r.partial ? "  [" + t("history_partial_tag") + "]" : ""}${r.baseline ? "  [" + t("history_baseline_tag") + "]" : ""}${r.preserved ? "  [" + t("history_preserved_tag") + "]" : ""}\n`);
+    for (const r of runs) ctx.stdout(`${r.runId}  ${r.startedAt ?? "-"}  ${r.decision ?? "-"}  ${t("history_findings_counts", r.findings)}${r.partial ? "  [" + t("history_partial_tag") + "]" : ""}${r.baseline ? "  [" + t("history_baseline_tag") + "]" : ""}${r.preserved ? "  [" + t("history_preserved_tag") + "]" : ""}\n`);
     return 0;
   },
 };
