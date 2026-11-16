@@ -78,7 +78,7 @@
     },
     {
       "requirement": "V3.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -143,7 +143,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.cookie-without-secure",
-          "covers": "CookieOptions Secure set to false, or a cookie SecurePolicy explicitly set to CookieSecurePolicy.None.",
+          "covers": "CookieOptions Secure set to false, any matched Secure property assignment to false, or SecurePolicy or Secure explicitly set to CookieSecurePolicy.None.",
           "misses": "A Secure flag added by a proxy or a framework default, cookies written through a helper in another function, and the cookie-name prefix, which the prefix rule looks at. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -252,12 +252,12 @@
       "why": "The explicit rules flag disabled Secure settings and the prefix rules inspect literal names; the ZAP alert looks at cookies on reached pages. Review checks only point at omitted options and never examine this requirement.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
       "requirement": "V3.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -266,35 +266,35 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.cookie-without-samesite",
-          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in C#, for the libraries named in the header of its rule file.",
+          "covers": "CookieOptions with SameSite omitted, None or Unspecified, matched SameSite assignments to None or Unspecified, two-argument Cookies.Append and MinimumSameSitePolicy set to None; an informational finding in C#.",
           "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.cookie-without-samesite",
-          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in Go, for the libraries named in the header of its rule file.",
+          "covers": "http.Cookie, fiber.Cookie or sessions.Options literals with SameSite omitted or explicitly None, and SetSameSite(http.SameSiteNoneMode); an informational finding in Go.",
           "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.cookie-without-samesite",
-          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in Java, for the libraries named in the header of its rule file.",
+          "covers": "The named Cookie constructions without same-method SameSite assignment, None or null setters, and ResponseCookie builders omitting sameSite or setting it to None; an informational finding in Java.",
           "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.cookie-without-samesite",
-          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "covers": "The named cookie calls omitting sameSite, object properties named sameSite set to None or false, and literal document.cookie writes without SameSite; an informational finding in JavaScript and TypeScript.",
           "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.cookie-without-samesite",
-          "covers": "Cookie writes that use SameSite None, or none where the library sends no default; an informational finding, in PHP, for the libraries named in the header of its rule file.",
+          "covers": "The named setcookie, session cookie parameters and literal Set-Cookie header forms omitting SameSite, and the named setters, options and session setting using None, empty or null values; an informational finding in PHP.",
           "misses": "Which of Lax or Strict fits the cookie's purpose, which only a person can judge, and cookies written through a helper elsewhere or adjusted by a proxy. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -328,7 +328,7 @@
       "why": "The rules look at the SameSite value of cookies written in code; the ZAP alerts report cookies seen without it or with None.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -397,7 +397,7 @@
     },
     {
       "requirement": "V3.3.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -462,7 +462,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.cookie-without-httponly",
-          "covers": "CookieOptions HttpOnly set to false, or HttpOnly explicitly set to HttpOnlyPolicy.None.",
+          "covers": "CookieOptions HttpOnly set to false, any matched HttpOnly property assignment to false, or HttpOnly explicitly set to HttpOnlyPolicy.None.",
           "misses": "Whether the value is meant for page scripts, a flag added by a proxy or a framework default, and whether the same value also reaches the browser by another route. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -522,7 +522,7 @@
       "why": "The explicit rules flag disabled HttpOnly settings; the ZAP alert reports the attribute on reached cookies. Review checks only point at omitted options and never examine this requirement or decide whether script access is intended.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -1098,7 +1098,7 @@
     },
     {
       "requirement": "V3.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -1142,21 +1142,21 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.csrf-protection-disabled",
-          "covers": "Request-forgery protection switched off or told to skip every request, in Go, for the libraries named in the header of its rule file.",
+          "covers": "csrf.UnsafeSkipCheck calls, or Skipper and Next callbacks that unconditionally return true in the matched Go configuration.",
           "misses": "Applications where the protection was never added, token-authenticated endpoints where disabling is intended, and defenses that rely on origin or same-site checks the rule does not see. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.csrf-protection-disabled",
-          "covers": "Request-forgery protection switched off or told to skip every request, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "covers": "lusca with csrf false, csurf or doubleCsrf options skipping POST, or doubleCsrf callbacks unconditionally skipping protection in JavaScript and TypeScript.",
           "misses": "Applications where the protection was never added, token-authenticated endpoints where disabling is intended, and defenses that rely on origin or same-site checks the rule does not see. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.csrf-protection-disabled",
-          "covers": "Request-forgery protection switched off or told to skip every request, in PHP, for the libraries named in the header of its rule file.",
+          "covers": "The named Laravel middleware exclusions or wildcard exception lists, and csrf_protection set to false in PHP array options.",
           "misses": "Applications where the protection was never added, token-authenticated endpoints where disabling is intended, and defenses that rely on origin or same-site checks the rule does not see. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
           "depth": "partial"
         },
@@ -1171,7 +1171,7 @@
       "why": "The blocking rules flag request-forgery defenses explicitly disabled or skipped; the semantic check reads browser-authenticated mutation paths. The Rust Review check only points at handlers without a visible token helper and never examines the requirement.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -1452,7 +1452,7 @@
     },
     {
       "requirement": "V3.7.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization",
@@ -1483,8 +1483,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.open-redirect",
-          "covers": "A redirect whose target comes from the incoming request, without a fixed or local destination, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
-          "misses": "Whether a validation the rule does not recognize really compares against an allowlist of hosts, redirects built across functions, and navigation done in browser code, which a separate check examines. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "covers": "The named request fields or location.search and location.hash flowing to redirect calls, Location headers, window.location assignments or location.assign and location.replace in JavaScript and TypeScript.",
+          "misses": "safeRedirect, sanitizeRedirect, encodeURIComponent and the recognized fixed-local-prefix construction are accepted without proving a hostname allowlist. Cross-function flows, unlisted request sources and navigation sinks are missed.",
           "depth": "partial"
         },
         {
@@ -1516,10 +1516,10 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag server-side redirects steered by the request, and the audit block covers navigation done in browser code, which together are the two halves of the requirement.",
+      "why": "The rules flag request-steered redirects in their named sinks (including browser navigation in JavaScript); the audit block reads browser navigation destination policy. These partial checks do not establish a complete hostname allowlist.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {

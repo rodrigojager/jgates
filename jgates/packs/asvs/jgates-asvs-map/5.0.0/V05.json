@@ -11,7 +11,7 @@
     },
     {
       "requirement": "V5.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening",
@@ -104,7 +104,7 @@
       },
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -178,7 +178,7 @@
     },
     {
       "requirement": "V5.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -216,7 +216,7 @@
           "unit": "semantic-ledger",
           "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Decompression and representation amplification",
           "covers": "A model reading of whether limits are checked after every expansion of an archive or compressed file.",
-          "misses": "It finds missing limits in the paths the model read and cannot show every archive path is bounded.",
+          "misses": "Sampled source reading cannot show every archive path is bounded. The block does not explicitly require both a pre-decompression file-count check and an uncompressed-size check; limits after expansion do not establish the required checks before decompression.",
           "depth": "partial"
         }
       ],
@@ -228,7 +228,7 @@
       },
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -267,7 +267,7 @@
     },
     {
       "requirement": "V5.2.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -291,7 +291,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.python.archive-extraction-unchecked",
           "covers": "An extractall call explicitly selecting filter=\"fully_trusted\", disabling the tar filter's link restrictions.",
-          "misses": "A filter that does not refuse links (the tar filter or one the project wrote), zip archives, archives rejected at upload by another component, and libraries the rule does not model. A silent result does not show links were refused.",
+          "misses": "The extractall receiver is not type constrained. Separate member validation, rejection before upload, the business need for symlinks and an allowlist of link targets are not established. Other filters, zip archives and unlisted extraction APIs are missed; silence does not show links were refused.",
           "depth": "partial"
         }
       ],
@@ -303,7 +303,7 @@
       },
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -342,7 +342,7 @@
     },
     {
       "requirement": "V5.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -428,8 +428,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.upload-client-filename-in-path",
-          "covers": "The file name the client sent with an upload used in the path the file is written to.",
-          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "covers": "The named upload FileName sources flowing into Path.Combine, the named File methods, stream constructors, Directory.CreateDirectory or SaveAs.",
+          "misses": "The File-method branch accepts the tainted value at any argument position, not only a path. Recognized name and extension helpers are accepted without proving destination containment. Cross-function validation, unlisted APIs and traversal from other sources are missed.",
           "depth": "partial"
         },
         {
@@ -442,8 +442,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.upload-client-filename-in-path",
-          "covers": "The file name the client sent with an upload used in the path the file is written to.",
-          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "covers": "MultipartFile.getOriginalFilename, Part.getSubmittedFileName or FileItem.getName flowing to the named file, path or output-stream constructors and Path.resolve.",
+          "misses": "Constructing a path does not establish a write. Recognized FilenameUtils and sanitizeFileName helpers are accepted without proving containment. Cross-function validation, unlisted APIs and traversal from other sources are missed.",
           "depth": "partial"
         },
         {
@@ -456,8 +456,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.upload-client-filename-in-path",
-          "covers": "The file name the client sent with an upload used in the path the file is written to.",
-          "misses": "Names reduced to a base name in another function, stored names the project derives itself, and traversal that comes from other fields than the upload name.",
+          "covers": "The named filename getters inside the modeled async Multipart functions flowing to fs calls, File::create, File::open, open or join.",
+          "misses": "Some sinks construct a path or read rather than write, and generic fs function names and receivers are not type constrained. Recognized filename helpers do not prove containment; cross-function validation, other multipart forms and traversal from other sources are missed.",
           "depth": "partial"
         },
         {
@@ -505,8 +505,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.archive-extraction-unchecked",
-          "covers": "Points at extractTo calls and file writes using getNameIndex-derived names without the recognized strict CSV filename allowlist.",
-          "misses": "Protection may exist in library defaults or a wrapper the rule cannot see. Only the named CSV preg_match allowlist exception is recognized; other validators, library options and extraction APIs are missed. This Review check never examines the requirement.",
+          "covers": "Points at one-argument extractTo calls, and file writes using getNameIndex-derived names outside the recognized strict CSV filename allowlist.",
+          "misses": "Protection may exist in library defaults or a wrapper the rule cannot see. The CSV preg_match exception applies only to the entry-write branch, not extractTo; multi-argument extraction calls and other validators or APIs are missed. This Review check never examines the requirement.",
           "depth": "partial"
         },
         {
@@ -520,7 +520,7 @@
       "why": "Blocking path and upload-name checks inspect request-derived paths; the Python explicit archive check flags fully_trusted extraction. Archive Review checks only point at extraction or entry-name use without locally recognized guards and never examine the requirement or establish escape from the destination.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
