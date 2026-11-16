@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"gorm.io/gorm"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	echoSwagger "github.com/swaggo/echo-swagger"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -18,6 +19,63 @@ import (
 
 // ruleid: jgates.go.docs-or-monitoring-endpoint-exposed
 import _ "net/http/pprof"
+
+type configurationAccount struct {
+	Name string
+	Admin bool
+}
+
+func bindSavedAccount(c *gin.Context, db *gorm.DB) {
+	var account configurationAccount
+	// ruleid: jgates.go.mass-assignment
+	c.ShouldBindJSON(&account)
+	db.Save(&account)
+}
+
+func bindCreatedAccount(c *gin.Context, db *gorm.DB) {
+	var account configurationAccount
+	// ruleid: jgates.go.mass-assignment
+	c.BindJSON(&account)
+	db.Create(&account)
+}
+
+func bindSavedInput(c *gin.Context, db *gorm.DB) {
+	var input struct { Name string }
+	// ok: jgates.go.mass-assignment
+	c.ShouldBindJSON(&input)
+	account := configurationAccount{Name: input.Name}
+	db.Save(&account)
+}
+
+func bindCreatedInput(c *gin.Context, db *gorm.DB) {
+	var input struct { Name string }
+	// ok: jgates.go.mass-assignment
+	c.BindJSON(&input)
+	account := configurationAccount{Name: input.Name}
+	db.Create(&account)
+}
+
+func respondAccount(c *gin.Context, db *gorm.DB) {
+	var account configurationAccount
+	db.First(&account, 1)
+	// ruleid: jgates.go.serializer-exposes-all-fields
+	c.JSON(http.StatusOK, account)
+	// ok: jgates.go.serializer-exposes-all-fields
+	c.JSON(http.StatusOK, gin.H{"name": account.Name})
+}
+
+func respondAccounts(c *gin.Context, db *gorm.DB) {
+	var accounts []configurationAccount
+	db.Find(&accounts)
+	// ruleid: jgates.go.serializer-exposes-all-fields
+	c.JSON(http.StatusOK, accounts)
+	names := []string{}
+	for _, account := range accounts {
+		names = append(names, account.Name)
+	}
+	// ok: jgates.go.serializer-exposes-all-fields
+	c.JSON(http.StatusOK, names)
+}
 
 // debug-mode-enabled
 func debugModes() {

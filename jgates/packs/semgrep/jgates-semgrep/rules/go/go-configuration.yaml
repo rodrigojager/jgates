@@ -2,6 +2,62 @@
 # gin, echo, fiber, gorilla/mux, prometheus promhttp, swaggo (gin-swagger, echo-swagger, http-swagger),
 # gin-contrib/pprof, fiber's pprof and monitor middleware.
 rules:
+  - id: jgates.go.mass-assignment
+    message: A request body is bound directly into an object saved through GORM. If no input allowlist or binding exclusions protect model fields, callers may change privileged fields; bind a dedicated input type and copy accepted fields, or confirm the model's field restrictions.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-915"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.3"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: $C.ShouldBindJSON(&$MODEL)
+          - pattern: $C.BindJSON(&$MODEL)
+      - pattern-either:
+          - pattern-inside: |
+              func $F(...) {
+                ...
+                $DB.Save(&$MODEL)
+                ...
+              }
+          - pattern-inside: |
+              func $F(...) {
+                ...
+                $DB.Create(&$MODEL)
+                ...
+              }
+
+  - id: jgates.go.serializer-exposes-all-fields
+    message: An object loaded through GORM is returned directly as JSON. Unless its serialization tags restrict fields, all exported fields may reach the client; return an explicit response DTO or confirm the model's serialization exclusions.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-213"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.1"]
+      class: review
+    patterns:
+      - pattern: $C.JSON($STATUS, $MODEL)
+      - pattern-either:
+          - pattern-inside: |
+              func $F(...) {
+                ...
+                $DB.First(&$MODEL, ...)
+                ...
+              }
+          - pattern-inside: |
+              func $F(...) {
+                ...
+                $DB.Find(&$MODEL, ...)
+                ...
+              }
+
   - id: jgates.go.debug-mode-enabled
     message: The framework debug mode is switched on outside a development-only branch, which prints routes, errors and stack traces to clients or logs. Use gin.ReleaseMode, or leave Debug off, and enable it only inside a check of the environment.
     severity: WARNING
