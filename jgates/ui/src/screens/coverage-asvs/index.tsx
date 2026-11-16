@@ -32,6 +32,7 @@ const key = (state: string): string => state.replace(/-/g, "_");
 
 interface Check {
   id: string;
+  class?: "review";
   category?: string;
   unit: string;
   covers: string;
@@ -45,9 +46,10 @@ interface Check {
   runId: string | null;
   reused: boolean;
   openFindings: number | null;
-  /** The open findings as two numbers that are never added: those that block and the informational ones. */
+  /** Three independent counts, never added together. */
   openBlocking?: number | null;
   openInformational?: number | null;
+  openReview?: number | null;
   language?: string;
   /** False for a rule of a language the project lacks: not shown and not counted. */
   relevant: boolean;
@@ -73,6 +75,7 @@ export interface Row {
   basis: string | null;
   evidence: string;
   checks: Check[];
+  notes?: Array<{ language: string; kind: "protected-by-library" | "not-applicable-to-language"; family: string; why: string; label: string }>;
   decision: { id: string; reason: string; recorded: string; scope: "requirement" | "section" | "chapter" } | null;
   suggestion?: Suggestion;
 }
@@ -410,12 +413,15 @@ function NaButton({ id, label, kind, governed, busy, onOpen }: { id: string; lab
 }
 
 function CheckItem({ c }: { c: Check }) {
-  const blocking = c.openBlocking ?? c.openFindings;
+  // Older answers have only openFindings; it must never turn Review findings into blockers.
+  const blocking = c.openBlocking ?? (c.class === "review" ? 0 : c.openFindings);
   const informational = c.openInformational ?? 0;
+  const review = c.openReview ?? 0;
   const blockingText = t("asvs_check_open_blocking", { count: blocking ?? 0 });
   return (
     <li className="asvs-check" data-testid="asvs-check" data-status={c.status} data-unit={c.unit}>
       <strong>{c.category ? `${c.id} (${c.category})` : c.id}</strong> · <span>{tOr(`asvs_check_status_${key(c.status)}`, c.status)}</span>
+      {c.class === "review" ? <> · <span className="pill" data-testid="asvs-check-review-label">{t("asvs_check_review_label")}</span></> : null}
       <p className="small">{c.reason}</p>
       <dl className="kv small">
         <dt>{t("asvs_check_covers")}</dt>
@@ -446,6 +452,10 @@ function CheckItem({ c }: { c: Check }) {
               {" · "}
               <span data-testid="asvs-check-informational" data-count={informational}>
                 {t("asvs_check_open_informational", { count: informational })}
+              </span>
+              {" · "}
+              <span data-testid="asvs-check-review" data-count={review}>
+                {t("asvs_check_open_review", { count: review })}
               </span>
             </dd>
           </>
@@ -533,6 +543,16 @@ function RequirementRow({ row, governed, busy, onNotApplicable, onRemove, focuse
       <p className="small" data-testid="asvs-row-reason">
         {row.reason}
       </p>
+      {row.notes?.length ? (
+        <ul className="asvs-plain-list small" data-testid="asvs-row-notes">
+          {row.notes.map((note) => (
+            <li key={`${note.language}:${note.family}`} data-testid="asvs-language-note">
+              <strong>{t(`asvs_note_${key(note.kind)}`)}</strong>{" "}
+              <span lang="en">{note.why}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {row.suggestion && !sharedSuggestion ? (
         <div className="asvs-suggestion row wrap" data-testid={`asvs-suggestion-${row.id}`}>
           <p className="small grow" style={{ margin: 0 }}>

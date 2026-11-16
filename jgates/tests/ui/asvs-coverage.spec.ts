@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { MAIN, createFixture, openApp, reloadPage, startServer, type Fixture } from "./support";
+import type { AsvsMap } from "../../ui/src/screens/coverage-asvs";
 
 // The ASVS coverage map (PLAN-asvs.md section 6, V2 slice AS10). Stored runs and a fixture mapping reach the five states;
 // the screen shows:
@@ -267,6 +268,92 @@ const VARIANTS: Array<{ text: Texts; width: number; height: number }> = [
   { text: PT, width: 1280, height: 900 },
   { text: EN, width: 375, height: 800 },
 ];
+
+// Stored map answers isolate the screen contract from pack contents. In particular this does not
+// invent a rule for an omitted family or claim that a Review-only requirement was examined.
+for (const text of [PT, EN]) {
+  for (const width of [1280, 375]) {
+    for (const colorScheme of ["light", "dark"] as const) {
+      test(`Review checks and language notes stay separate (${text.language}, ${width} px, ${colorScheme}, keyboard)`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.emulateMedia({ colorScheme });
+        await withProject(page, text.language, async ({ base: url, ids }) => {
+          const response = await page.request.get(new URL(`/api/coverage/asvs?lang=${text.language}`, url).href);
+          expect(response.ok()).toBe(true);
+          const stored = await response.json() as AsvsMap;
+          const mixed = stored.requirements.find((r) => r.id === ids.examined)!;
+          const only = stored.requirements.find((r) => r.id === ids.unsupported)!;
+          const template = mixed.checks[0]!;
+          const review = {
+            ...template, id: "fixture.review-check", unit: "semgrep-rule", basis: "deterministic",
+            class: "review" as const, status: "ran", ran: true, relevant: true, runId: RUN_ID,
+            openFindings: 7, openBlocking: 0, openInformational: 0, openReview: 7,
+          };
+          mixed.checks = [{ ...template, unit: "semgrep-rule", basis: "deterministic", openFindings: 5, openBlocking: 2, openInformational: 3, openReview: 0 }, review];
+          mixed.notes = [];
+          only.checks = [review];
+          only.state = "unsupported";
+          only.code = "UNSUPPORTED_REVIEW_ONLY";
+          only.basis = null;
+          only.reason = text.language === "pt-BR"
+            ? "Só há verificações para revisar; nenhuma examina este requisito."
+            : "Only checks to review are available; none examines this requirement.";
+          only.notes = [
+            { language: "rust", kind: "protected-by-library", family: "xml-external-entity", label: "not a UI label",
+              why: "The XML libraries commonly used in Rust resolve no external entity." },
+            { language: "rust", kind: "not-applicable-to-language", family: "prototype-pollution", label: "not a UI label",
+              why: "Rust has no JavaScript prototype chain." },
+          ];
+          await page.route("**/api/coverage/asvs?*", (route) => route.fulfill({ json: stored }));
+          await openMap(page, url, text);
+
+          const mixedRow = row(page, ids.examined);
+          const onlyRow = row(page, ids.unsupported);
+          await expect(mixedRow.getByTestId("asvs-row-notes")).toHaveCount(0);
+          await expect(row(page, ids.unexamined).getByTestId("asvs-row-notes")).toHaveCount(0);
+          await expect(onlyRow).toHaveAttribute("data-state", "unsupported");
+          await expect(onlyRow.getByTestId("asvs-row-state")).toHaveText(text.states.unsupported);
+          await expect(onlyRow.getByTestId("asvs-row-reason")).toHaveText(only.reason);
+          const labels = text.language === "pt-BR"
+            ? ["Protegido pela própria biblioteca (não verificado pelo JGates)", "Não se aplica a esta linguagem"]
+            : ["Protected by the library itself (not checked by JGates)", "Not applicable to this language"];
+          const notes = onlyRow.getByTestId("asvs-language-note");
+          await expect(notes).toHaveCount(2);
+          for (let i = 0; i < 2; i++) {
+            await expect(notes.nth(i).locator("strong")).toHaveText(labels[i]!);
+            await expect(notes.nth(i).locator('[lang="en"]')).toHaveText(only.notes[i]!.why);
+          }
+          // Notes follow the reason, without changing the row's state or requiring an open panel.
+          expect(await onlyRow.getByTestId("asvs-row-reason").evaluate((el) =>
+            Boolean(el.nextElementSibling?.matches('[data-testid="asvs-row-notes"]')))).toBe(true);
+
+          await press(page, page.getByTestId(`asvs-toggle-${ids.examined}`));
+          await expect(page.getByTestId(`asvs-toggle-${ids.examined}`)).toBeFocused();
+          const checks = mixedRow.getByTestId("asvs-check");
+          await expect(checks).toHaveCount(2);
+          await expect(checks.nth(0).getByTestId("asvs-check-review-label")).toHaveCount(0);
+          for (const [index, counts] of [[0, [2, 3, 0]], [1, [0, 0, 7]]] as const) {
+            for (const [i, kind] of ["blocking", "informational", "review"].entries()) {
+              await expect(checks.nth(index).getByTestId(`asvs-check-${kind}`)).toHaveAttribute("data-count", String(counts[i]));
+            }
+          }
+          const reviewLabel = text.language === "pt-BR" ? "para revisar" : "to review";
+          await expect(checks.nth(1).getByTestId("asvs-check-review-label")).toHaveText(reviewLabel);
+          await expect(checks.nth(1).getByTestId("asvs-check-review")).toContainText(`7 ${reviewLabel}`);
+          await press(page, page.getByTestId(`asvs-toggle-${ids.unsupported}`), "Space");
+          await expect(onlyRow.getByTestId("asvs-check-review-label")).toHaveText(reviewLabel);
+          await expect(onlyRow.getByTestId("asvs-check-blocking")).toHaveAttribute("data-count", "0");
+          await expect(onlyRow.getByTestId("asvs-check-informational")).toHaveAttribute("data-count", "0");
+          await expect(onlyRow.getByTestId("asvs-check-review")).toHaveAttribute("data-count", "7");
+          await noSidewaysScroll(page);
+          await axeClean(page, '[data-testid="asvs-screen"]');
+          await press(page, page.getByTestId(`asvs-toggle-${ids.unsupported}`));
+          await expect(page.getByTestId(`asvs-detail-${ids.unsupported}`)).toHaveCount(0);
+        });
+      });
+    }
+  }
+}
 
 for (const { text, width, height } of VARIANTS) {
   test(`the map: five counters that filter, a row of each state with its reason, the checks of an opened row, the English text and the attribution (${text.language}, ${width} px, keyboard only)`, async ({ page }) => {
