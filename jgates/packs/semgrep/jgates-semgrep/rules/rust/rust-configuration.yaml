@@ -1,7 +1,59 @@
 # Configuration rules for Rust. Covers the actix-files static file service (Files::new, plain or fully qualified).
 # Left out: debug mode, documentation/monitoring endpoints and version headers (no switch in the common frameworks),
-# mass assignment and serializer exposure (not made precise for serde and diesel).
+# Review checks cover whole-body Diesel inserts and whole-model JSON responses.
 rules:
+  - id: jgates.rust.mass-assignment
+    message: A JSON request body is passed directly to a Diesel insert. If the input model has no field restrictions, callers may set privileged fields; copy accepted fields into a dedicated insert model or confirm the input model's allowlist.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: authorization
+      cwe: "CWE-915"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.3"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              fn $F(..., $BODY: web::Json<$T>, ...) -> $RET {
+                ...
+              }
+          - pattern-inside: |
+              fn $F(..., $BODY: actix_web::web::Json<$T>, ...) -> $RET {
+                ...
+              }
+      - pattern-either:
+          - pattern: diesel::insert_into(...).values(&$BODY.into_inner())
+          - pattern: insert_into(...).values(&$BODY.into_inner())
+
+  - id: jgates.rust.serializer-exposes-all-fields
+    message: A model loaded through Diesel is returned directly as JSON. Unless serialization exclusions restrict its fields, internal fields may reach the client; return an explicit response DTO or confirm the model's serialization exclusions.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-213"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.1"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              fn $F(...) -> $RET {
+                ...
+                let $MODEL = $QUERY.first::<$T>($CONN)?;
+                ...
+              }
+          - pattern-inside: |
+              fn $F(...) -> $RET {
+                ...
+                let $MODEL = $QUERY.load::<$T>($CONN)?;
+                ...
+              }
+      - pattern: HttpResponse::Ok().json($MODEL)
+
   - id: jgates.rust.directory-listing-enabled
     message: A static file service is configured to list directory contents, which shows visitors every file in the folder. Remove show_files_listing() and serve an index_file() or explicit routes instead.
     severity: WARNING
