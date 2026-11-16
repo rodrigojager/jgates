@@ -134,7 +134,7 @@
     },
     {
       "requirement": "V7.2.4",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -143,22 +143,22 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.session-id-not-regenerated",
-          "covers": "An Express-style handler that writes a user or logged-in flag into req.session without a session regenerate call in the same function.",
-          "misses": "Only the three languages above, and only the login step: re-authentication, the end of the old token and frameworks that renew the identifier themselves (which the rule cannot tell from a missing call) are not seen.",
+          "covers": "Points at an identity-like req.session assignment with no regenerate call visible in the enclosing function or callback.",
+          "misses": "Renewal protection may exist in middleware or helpers where the rule cannot see it. Re-authentication and termination of the previous token are not established; this Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.session-id-not-regenerated",
-          "covers": "A method that stores an identity-like attribute in the HttpSession without changeSessionId or invalidate in the same method.",
-          "misses": "Only the three languages above, and only the login step: re-authentication, the end of the old token and frameworks that renew the identifier themselves (which the rule cannot tell from a missing call) are not seen.",
+          "covers": "Points at a method storing an identity-like HttpSession attribute without a visible changeSessionId or invalidate call.",
+          "misses": "Renewal protection may exist in filters or authentication frameworks where the rule cannot see it. Re-authentication and termination of the previous token are not established; this Review check never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.session-id-not-regenerated",
-          "covers": "A $_SESSION write of an identity-like key after a password_verify or Hash::check test, with no session_regenerate_id in the function.",
-          "misses": "Only the three languages above, and only the login step: re-authentication, the end of the old token and frameworks that renew the identifier themselves (which the rule cannot tell from a missing call) are not seen.",
+          "covers": "Points at an identity-like $_SESSION assignment inside a password_verify or Hash::check condition with no visible session_regenerate_id in the checked scope.",
+          "misses": "Renewal protection may exist in framework login helpers where the rule cannot see it. Re-authentication and termination of the previous token are not established; this Review check never examines the requirement.",
           "depth": "partial"
         },
         {
@@ -169,7 +169,7 @@
           "depth": "partial"
         }
       ],
-      "why": "Renewal of the identifier at login is what the rules look for where renewal is a call, and what the block reads in the rest of the code.",
+      "why": "The Review rules point at login-like session writes without visible renewal and never examine the requirement. The Semantic block separately reads session rotation and invalidation.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
