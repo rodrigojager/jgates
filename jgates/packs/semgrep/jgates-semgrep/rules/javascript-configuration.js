@@ -188,4 +188,34 @@ function flatCopy(target, source) {
   return target;
 }
 
+// ---- serializer-exposes-all-fields
+async function modelResponses(res, User, id) {
+  const created = await User.create({ name: "Alice" });
+  // ruleid: jgates.js.serializer-exposes-all-fields
+  res.json(created);
+  const found = await User.findById(id);
+  // ruleid: jgates.js.serializer-exposes-all-fields
+  res.send(found);
+  // ok: jgates.js.serializer-exposes-all-fields
+  res.json({ id: created.id, name: created.name });
+  // ok: jgates.js.serializer-exposes-all-fields
+  res.send({ id: found.id, name: found.name });
+}
+
+// ---- loose-comparison-of-secret
+function compareSecrets(input, storedToken, user, password) {
+  // ruleid: jgates.js.loose-comparison-of-secret
+  const tokenMatches = input == storedToken;
+  // ruleid: jgates.js.loose-comparison-of-secret
+  const passwordDiffers = user.password != password;
+  // ok: jgates.js.loose-comparison-of-secret
+  const strictToken = input === storedToken;
+  // ok: jgates.js.loose-comparison-of-secret
+  const strictPassword = user.password !== password;
+  // ok: jgates.js.loose-comparison-of-secret
+  const missing = storedToken == null;
+  // ok: jgates.js.loose-comparison-of-secret
+  const sameLength = storedToken.length == input.length;
+}
+
 module.exports = { debugMode, docs, listing, massAssignment, schemas, pollute, deepMerge };

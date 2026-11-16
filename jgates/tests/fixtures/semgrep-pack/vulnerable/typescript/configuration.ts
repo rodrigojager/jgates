@@ -39,4 +39,7 @@ export function mergeDeep(target: any, source: any): any {
 }
 
 const settings: Record<string, Record<string, unknown>> = {};
+function matchesToken(input: string, storedToken: string): boolean {
+  return input == storedToken;
+}
 export { app, profileSchema };

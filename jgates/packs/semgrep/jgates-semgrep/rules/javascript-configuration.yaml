@@ -3,6 +3,66 @@
 # (debug and GraphiQL), Fastify (static listing), Mongoose and Sequelize (models). Taint sources are the request
 # objects of the existing taint file (req.query, req.body, req.params).
 rules:
+  - id: jgates.js.serializer-exposes-all-fields
+    message: A whole model object is sent as the response body without a visible field allowlist. Confirm that the model serializer excludes private fields, or return an explicit object containing only the fields the client needs.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-213"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.1"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              const $MODEL = await $M.create(...);
+              ...
+          - pattern-inside: |
+              const $MODEL = await $M.findById($ID);
+              ...
+          - pattern-inside: |
+              const $MODEL = await $M.findOne($FILTER);
+              ...
+      - pattern-either:
+          - pattern: $RES.json($MODEL)
+          - pattern: $RES.send($MODEL)
+          - pattern: $RES.json($MODEL.toJSON())
+          - pattern: $RES.json($MODEL.toObject())
+      - metavariable-regex:
+          metavariable: $RES
+          regex: ^(res|response)$
+
+  - id: jgates.js.loose-comparison-of-secret
+    message: A hash, token, password or other secret is compared with == or !=. Two strings are not coerced, but other operand types can be; confirm both types or use strict equality. This check does not assess comparison timing.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: authentication
+      cwe: "CWE-697"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.5"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: $SECRET == $OTHER
+          - pattern: $SECRET != $OTHER
+          - pattern: $OTHER == $SECRET
+          - pattern: $OTHER != $SECRET
+      - metavariable-regex:
+          metavariable: $SECRET
+          regex: (?i)^(?:[a-z_$][\w$]*\.)*[\w$]*(?:password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo|token|jwt|session_id|sessionid|otp|nonce|salt|csrf|reset_code|verification_code|activation_code|hash|hmac|signature|digest)[\w$]*$
+      - pattern-not: $X == null
+      - pattern-not: $X != null
+      - pattern-not: null == $X
+      - pattern-not: null != $X
+      - pattern-not: $X == undefined
+      - pattern-not: $X != undefined
+      - pattern-not: undefined == $X
+      - pattern-not: undefined != $X
+
   - id: jgates.js.debug-mode-enabled
     message: A developer error page or debug mode is switched on outside a development-only branch. Register it only when NODE_ENV is development, and answer with a generic error page otherwise.
     severity: WARNING

@@ -8,6 +8,8 @@
     "jgates.js.mass-assignment",
     "jgates.js.mass-assignment-schema-open",
     "jgates.js.prototype-pollution",
-    "jgates.js.prototype-pollution-recursive-merge"
+    "jgates.js.prototype-pollution-recursive-merge",
+    "jgates.js.serializer-exposes-all-fields",
+    "jgates.js.loose-comparison-of-secret"
   ]
 }

@@ -39,4 +39,7 @@ function mergeDeep(target, source) {
 }
 
 const settings = {};
+function matchesToken(input, storedToken) {
+  return input == storedToken;
+}
 module.exports = { app, mergeDeep, profileSchema };

@@ -17,7 +17,7 @@ const profileSchema = new Schema({ name: String }, { strict: true });
 
 app.post("/users", async (req, res) => {
   const user = await User.create({ name: req.body.name, email: req.body.email });
-  res.json(user);
+  res.json({ id: user.id, name: user.name });
 });
 
 app.post("/settings/:section", (req, res) => {
@@ -38,4 +38,7 @@ function mergeDeep(target, source) {
 }
 
 const settings = { preferences: {} };
+function matchesToken(input, storedToken) {
+  return input === storedToken;
+}
 module.exports = { app, mergeDeep, profileSchema };
