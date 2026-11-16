@@ -7,11 +7,13 @@ class SessionController
     public function remember(string $token): void
     {
         setcookie('__Host-remember', $token, ['httponly' => true, 'samesite' => 'Lax']);
+        setcookie('__Host-remember-explicit', $token, ['secure' => false, 'httponly' => true, 'samesite' => 'Lax']);
     }
 
     public function preferences(string $theme): void
     {
         setcookie('__Host-theme', $theme, ['secure' => true, 'samesite' => 'Lax']);
+        setcookie('__Host-theme-explicit', $theme, ['secure' => true, 'httponly' => false, 'samesite' => 'Lax']);
     }
 
     public function language(string $lang): void

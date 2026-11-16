@@ -5,7 +5,7 @@
 # Guzzle query options. The analysis stays inside one function or one file.
 rules:
   - id: jgates.php.cookie-without-secure
-    message: A cookie is written without the Secure attribute, so a browser may send it over plain HTTP. Pass the options array to setcookie() with 'secure' => true (or the Secure flag in the Set-Cookie header).
+    message: The cookie Secure protection is explicitly disabled, so a browser may send the cookie over plain HTTP. Set the Secure option to true.
     severity: WARNING
     languages: [php]
     metadata:
@@ -15,12 +15,37 @@ rules:
       subdimension: authorization
       asvs_requirements: ["V3.3.1"]
     pattern-either:
+      - pattern: setcookie($N, $V, [..., 'secure' => false, ...])
+      - pattern: setcookie($N, $V, [..., "secure" => false, ...])
+      - pattern: setcookie($N, $V, $E, $P, $D, false, ...)
+      - pattern: session_set_cookie_params([..., 'secure' => false, ...])
+      - pattern: session_set_cookie_params([..., "secure" => false, ...])
+      - pattern: session_set_cookie_params($L, $P, $D, false, ...)
+      - patterns:
+          - pattern: ini_set("session.cookie_secure", $V)
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?i)^["']?(0|false|off|no|)["']?$
+      - pattern: new Cookie($N, $V, $E, $P, $D, false, ...)
+      - pattern: $C->withSecure(false)
+      - pattern: cookie($N, $V, $M, $P, $D, false, ...)
+
+  - id: jgates.php.cookie-without-secure-by-default
+    message: A cookie is set without the Secure option. If no other configuration adds it, the cookie can travel over plain HTTP; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+      class: review
+    pattern-either:
       - patterns:
           - pattern: setcookie($N, $V, [...])
           - pattern-not: setcookie($N, $V, [..., 'secure' => $S, ...])
           - pattern-not: setcookie($N, $V, [..., "secure" => $S, ...])
-      - pattern: setcookie($N, $V, [..., 'secure' => false, ...])
-      - pattern: setcookie($N, $V, [..., "secure" => false, ...])
       - patterns:
           - pattern-either:
               - pattern: setcookie($N, $V)
@@ -31,23 +56,11 @@ rules:
           - pattern-not: setcookie($N, $V, [...])
           - pattern-not-regex: '(?i)\bsecure:'
           - pattern-not-regex: (?i)\$\w*(opt|param)\w*\s*\)
-      - pattern: setcookie($N, $V, $E, $P, $D, false, ...)
       - patterns:
           - pattern: session_set_cookie_params([...])
           - pattern-not: session_set_cookie_params([..., 'secure' => $S, ...])
           - pattern-not: session_set_cookie_params([..., "secure" => $S, ...])
-      - pattern: session_set_cookie_params([..., 'secure' => false, ...])
-      - pattern: session_set_cookie_params([..., "secure" => false, ...])
-      - pattern: session_set_cookie_params($L, $P, $D, false, ...)
       - pattern: session_set_cookie_params($L, $P, $D)
-      - patterns:
-          - pattern: ini_set("session.cookie_secure", $V)
-          - metavariable-regex:
-              metavariable: $V
-              regex: (?i)^["']?(0|false|off|no|)["']?$
-      - pattern: new Cookie($N, $V, $E, $P, $D, false, ...)
-      - pattern: $C->withSecure(false)
-      - pattern: cookie($N, $V, $M, $P, $D, false, ...)
       - patterns:
           - pattern: header($H, ...)
           - metavariable-regex:
@@ -55,7 +68,7 @@ rules:
               regex: (?is)^["']set-cookie:(?!.*;\s*secure\b).*
 
   - id: jgates.php.cookie-without-httponly
-    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Pass the options array to setcookie() with 'httponly' => true (or the HttpOnly flag in the Set-Cookie header) when the browser code does not need it.
+    message: The cookie HttpOnly protection is explicitly disabled, so page scripts can read the cookie. Set the HttpOnly option to true when browser code does not need the cookie.
     severity: WARNING
     languages: [php]
     metadata:
@@ -65,12 +78,37 @@ rules:
       subdimension: authorization
       asvs_requirements: ["V3.3.4"]
     pattern-either:
+      - pattern: setcookie($N, $V, [..., 'httponly' => false, ...])
+      - pattern: setcookie($N, $V, [..., "httponly" => false, ...])
+      - pattern: setcookie($N, $V, $E, $P, $D, $S, false)
+      - pattern: session_set_cookie_params([..., 'httponly' => false, ...])
+      - pattern: session_set_cookie_params([..., "httponly" => false, ...])
+      - pattern: session_set_cookie_params($L, $P, $D, $S, false)
+      - patterns:
+          - pattern: ini_set("session.cookie_httponly", $V)
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?i)^["']?(0|false|off|no|)["']?$
+      - pattern: new Cookie($N, $V, $E, $P, $D, $S, false, ...)
+      - pattern: $C->withHttpOnly(false)
+      - pattern: cookie($N, $V, $M, $P, $D, $S, false, ...)
+
+  - id: jgates.php.cookie-without-httponly-by-default
+    message: A cookie is set without the HttpOnly option. If no other configuration adds it, page scripts can read the cookie; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+      class: review
+    pattern-either:
       - patterns:
           - pattern: setcookie($N, $V, [...])
           - pattern-not: setcookie($N, $V, [..., 'httponly' => $S, ...])
           - pattern-not: setcookie($N, $V, [..., "httponly" => $S, ...])
-      - pattern: setcookie($N, $V, [..., 'httponly' => false, ...])
-      - pattern: setcookie($N, $V, [..., "httponly" => false, ...])
       - patterns:
           - pattern-either:
               - pattern: setcookie($N, $V)
@@ -82,23 +120,11 @@ rules:
           - pattern-not: setcookie($N, $V, [...])
           - pattern-not-regex: '(?i)\bhttponly:'
           - pattern-not-regex: (?i)\$\w*(opt|param)\w*\s*\)
-      - pattern: setcookie($N, $V, $E, $P, $D, $S, false)
       - patterns:
           - pattern: session_set_cookie_params([...])
           - pattern-not: session_set_cookie_params([..., 'httponly' => $S, ...])
           - pattern-not: session_set_cookie_params([..., "httponly" => $S, ...])
-      - pattern: session_set_cookie_params([..., 'httponly' => false, ...])
-      - pattern: session_set_cookie_params([..., "httponly" => false, ...])
-      - pattern: session_set_cookie_params($L, $P, $D, $S, false)
       - pattern: session_set_cookie_params($L, $P, $D, $S)
-      - patterns:
-          - pattern: ini_set("session.cookie_httponly", $V)
-          - metavariable-regex:
-              metavariable: $V
-              regex: (?i)^["']?(0|false|off|no|)["']?$
-      - pattern: new Cookie($N, $V, $E, $P, $D, $S, false, ...)
-      - pattern: $C->withHttpOnly(false)
-      - pattern: cookie($N, $V, $M, $P, $D, $S, false, ...)
       - patterns:
           - pattern: header($H, ...)
           - metavariable-regex:

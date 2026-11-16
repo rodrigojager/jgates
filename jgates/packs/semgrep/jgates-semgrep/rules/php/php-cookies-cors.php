@@ -6,13 +6,13 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 // ---- cookie-without-secure ----
 function secure_cases($v)
 {
-    // ruleid: jgates.php.cookie-without-secure
+    // ruleid: jgates.php.cookie-without-secure-by-default
     setcookie('__Host-a', $v, ['httponly' => true, 'samesite' => 'Lax']);
     // ruleid: jgates.php.cookie-without-secure
     setcookie('__Host-a', $v, ['secure' => false, 'httponly' => true, 'samesite' => 'Lax']);
     // ruleid: jgates.php.cookie-without-secure
     ini_set('session.cookie_secure', '0');
-    // ruleid: jgates.php.cookie-without-secure
+    // ruleid: jgates.php.cookie-without-secure-by-default
     header('Set-Cookie: __Host-s=1; Path=/; HttpOnly; SameSite=Lax');
     // ruleid: jgates.php.cookie-without-secure
     $c = new Cookie('__Host-a', $v, 0, '/', null, false, true, false, 'lax');
@@ -28,12 +28,16 @@ function secure_cases($v)
     header('Set-Cookie: __Host-s=1; Path=/; Secure; HttpOnly; SameSite=Lax');
     // ok: jgates.php.cookie-without-secure
     setcookie('__Host-a', '', time() - 3600);
+    // ok: jgates.php.cookie-without-secure-by-default
+    setcookie('__Host-safe', $v, ['secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
+    // ok: jgates.php.cookie-without-secure-by-default
+    session_set_cookie_params(['secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
 }
 
 // ---- cookie-without-httponly ----
 function httponly_cases($v)
 {
-    // ruleid: jgates.php.cookie-without-httponly
+    // ruleid: jgates.php.cookie-without-httponly-by-default
     setcookie('__Host-b', $v, ['secure' => true, 'samesite' => 'Lax']);
     // ruleid: jgates.php.cookie-without-httponly
     setcookie('__Host-b', $v, ['secure' => true, 'httponly' => false, 'samesite' => 'Lax']);
@@ -41,13 +45,17 @@ function httponly_cases($v)
     ini_set('session.cookie_httponly', '0');
     // ruleid: jgates.php.cookie-without-httponly, jgates.php.cookie-without-samesite
     setcookie('__Host-b', $v, time() + 3600, '/', '', true, false);
-    // ruleid: jgates.php.cookie-without-httponly
+    // ruleid: jgates.php.cookie-without-httponly-by-default
     header('Set-Cookie: __Host-s=1; Path=/; Secure; SameSite=Lax');
     // ok: jgates.php.cookie-without-httponly
     setcookie('__Host-b', $v, ['secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
     // ok: jgates.php.cookie-without-httponly
     ini_set('session.cookie_httponly', '1');
     // ok: jgates.php.cookie-without-httponly
+    session_set_cookie_params(['secure' => true, 'httponly' => true, 'samesite' => 'Strict']);
+    // ok: jgates.php.cookie-without-httponly-by-default
+    setcookie('__Host-safe', $v, ['secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
+    // ok: jgates.php.cookie-without-httponly-by-default
     session_set_cookie_params(['secure' => true, 'httponly' => true, 'samesite' => 'Strict']);
 }
 

@@ -2,7 +2,9 @@
   "files": ["cookies-cors.php"],
   "ruleIds": [
     "jgates.php.cookie-without-secure",
+    "jgates.php.cookie-without-secure-by-default",
     "jgates.php.cookie-without-httponly",
+    "jgates.php.cookie-without-httponly-by-default",
     "jgates.php.cookie-without-samesite",
     "jgates.php.cookie-name-without-prefix",
     "jgates.php.cors-any-origin-with-credentials",
