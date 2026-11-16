@@ -216,13 +216,24 @@ func payloadHandler(w http.ResponseWriter, r *http.Request) {
 // markdown-raw-html-enabled
 
 func renderMarkdown(src []byte) []byte {
-	// ruleid: jgates.go.markdown-raw-html-enabled
+	// ruleid: jgates.go.markdown-raw-html-enabled-by-default
 	return blackfriday.Run(src)
+}
+
+func renderMarkdownBasic(src []byte) []byte {
+	// ruleid: jgates.go.markdown-raw-html-enabled-by-default
+	return blackfriday.MarkdownBasic(src)
 }
 
 func newRenderer() goldmark.Markdown {
 	// ruleid: jgates.go.markdown-raw-html-enabled
 	return goldmark.New(goldmark.WithRendererOptions(ghtml.WithUnsafe()))
+}
+
+func unsafeRendererOption() {
+	// ruleid: jgates.go.markdown-raw-html-enabled
+	option := ghtml.WithUnsafe()
+	_ = goldmark.New(goldmark.WithRendererOptions(option))
 }
 
 func newRendererSafe() goldmark.Markdown {
@@ -232,5 +243,11 @@ func newRendererSafe() goldmark.Markdown {
 
 func renderMarkdownSafe(src []byte) []byte {
 	// ok: jgates.go.markdown-raw-html-enabled
+	// ok: jgates.go.markdown-raw-html-enabled-by-default
 	return bluemonday.UGCPolicy().SanitizeBytes(blackfriday.Run(src))
+}
+
+func renderMarkdownBasicSafe(src []byte) []byte {
+	// ok: jgates.go.markdown-raw-html-enabled-by-default
+	return bluemonday.UGCPolicy().SanitizeBytes(blackfriday.MarkdownBasic(src))
 }

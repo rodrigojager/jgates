@@ -8,6 +8,7 @@
     "jgates.go.double-decoding",
     "jgates.go.url-parameter-unencoded",
     "jgates.go.json-built-by-concatenation",
-    "jgates.go.markdown-raw-html-enabled"
+    "jgates.go.markdown-raw-html-enabled",
+    "jgates.go.markdown-raw-html-enabled-by-default"
   ]
 }

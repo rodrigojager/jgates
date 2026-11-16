@@ -10,6 +10,8 @@ import (
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/russross/blackfriday/v2"
+	"github.com/yuin/goldmark"
+	ghtml "github.com/yuin/goldmark/renderer/html"
 )
 
 var cache *memcache.Client
@@ -51,6 +53,10 @@ func buildPayload(w http.ResponseWriter, r *http.Request) {
 
 func renderNote(src []byte) []byte {
 	return blackfriday.Run(src)
+}
+
+func noteRenderer() goldmark.Markdown {
+	return goldmark.New(goldmark.WithRendererOptions(ghtml.WithUnsafe()))
 }
 
 var _ = url.QueryEscape

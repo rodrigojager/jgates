@@ -1009,7 +1009,7 @@ rules:
               regex: ^base64\.\w+$
 
   - id: jgates.go.markdown-raw-html-enabled
-    message: A Markdown renderer is set to pass raw HTML through, or its output is not run through an HTML sanitizer. Leave raw HTML off (goldmark's default) or sanitize the result with bluemonday.
+    message: A Markdown renderer explicitly enables raw HTML with WithUnsafe(). Leave raw HTML off (goldmark's default) or sanitize the result with bluemonday.
     severity: WARNING
     languages: [go]
     metadata:
@@ -1019,8 +1019,23 @@ rules:
       subdimension: injection
       asvs_requirements: ["V1.3.5"]
     patterns:
+      - pattern: $X.WithUnsafe()
+      - pattern-not-inside: $P.SanitizeBytes(...)
+      - pattern-not-inside: $P.Sanitize(...)
+
+  - id: jgates.go.markdown-raw-html-enabled-by-default
+    message: A Markdown renderer's output is not visibly passed through an HTML sanitizer. If nothing else sanitizes the output, raw HTML can reach the page; sanitize it with bluemonday or confirm where sanitization happens.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+      class: review
+    patterns:
       - pattern-either:
-          - pattern: $X.WithUnsafe()
           - pattern: blackfriday.Run(...)
           - pattern: blackfriday.MarkdownCommon(...)
           - pattern: blackfriday.MarkdownBasic(...)
