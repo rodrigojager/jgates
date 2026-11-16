@@ -5,6 +5,102 @@
 # Laravel Http facade.
 # TLS rules read constants and literals only; an old protocol or weak cipher chosen at run time is not seen.
 rules:
+  - id: jgates.php.jwt-key-from-token-header
+    message: A token header supplies a path or URL from which a verification key is loaded. If no trusted key allowlist constrains it, the sender may select the verification key; resolve key ids only against a configured trusted key set.
+    severity: INFO
+    languages: [php]
+    metadata:
+      class: review
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.3"]
+    mode: taint
+    pattern-sources:
+      - pattern: $H['jku']
+      - pattern: $H['x5u']
+      - pattern: $H['kid']
+      - pattern: $H->jku
+      - pattern: $H->x5u
+      - pattern: $H->kid
+    pattern-sinks:
+      - patterns:
+          - pattern: file_get_contents($PATH, ...)
+          - focus-metavariable: $PATH
+      - patterns:
+          - pattern: fopen($PATH, ...)
+          - focus-metavariable: $PATH
+
+  - id: jgates.php.jwt-expiry-not-validated
+    message: Signed token validation has no visible time constraint. If no other validator checks expiration and validity times, an expired token may be accepted; add LooseValidAt or StrictValidAt with a trusted clock, or confirm where time claims are checked.
+    severity: INFO
+    languages: [php]
+    metadata:
+      class: review
+      category: authorization
+      cwe: "CWE-613"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $V->validate($T, ..., new SignedWith(...), ...)
+          - pattern: $V->validate($T, ..., new \Lcobucci\JWT\Validation\Constraint\SignedWith(...), ...)
+      - pattern-not: $V->validate($T, ..., new LooseValidAt(...), ...)
+      - pattern-not: $V->validate($T, ..., new StrictValidAt(...), ...)
+      - pattern-not: $V->validate($T, ..., new \Lcobucci\JWT\Validation\Constraint\LooseValidAt(...), ...)
+      - pattern-not: $V->validate($T, ..., new \Lcobucci\JWT\Validation\Constraint\StrictValidAt(...), ...)
+
+  - id: jgates.php.jwt-audience-not-validated
+    message: Token validation has no visible audience check. If no other check binds the token to this service, a token for another service may be accepted; add a PermittedFor constraint or compare the verified audience to the configured audience before accepting the token.
+    severity: INFO
+    languages: [php]
+    metadata:
+      class: review
+      category: authorization
+      cwe: "CWE-287"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.3", "V10.3.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $V->validate($T, ..., new SignedWith(...), ...)
+              - pattern: $V->validate($T, ..., new \Lcobucci\JWT\Validation\Constraint\SignedWith(...), ...)
+          - pattern-not: $V->validate($T, ..., new PermittedFor(...), ...)
+          - pattern-not: $V->validate($T, ..., new \Lcobucci\JWT\Validation\Constraint\PermittedFor(...), ...)
+      - patterns:
+          - pattern-either:
+              - pattern: $CLAIMS = JWT::decode(...);
+              - pattern: $CLAIMS = \Firebase\JWT\JWT::decode(...);
+          - pattern-inside: |
+              function $F(...) { ... }
+          - pattern-not-inside: |
+              function $F(...) {
+                ...
+                if ($CLAIMS->aud !== $AUDIENCE) { ... }
+                ...
+              }
+
+  - id: jgates.php.oauth-request-without-state
+    message: An OAuth authorization query is built without a visible state or code challenge. If no client adds and validates request binding, the callback may not belong to the initiating session; use the OAuth client's state handling or add unpredictable session-bound state and PKCE.
+    severity: INFO
+    languages: [php]
+    metadata:
+      class: review
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V10.2.1"]
+    patterns:
+      - pattern-either:
+          - pattern: http_build_query([..., 'response_type' => $TYPE, ..., 'client_id' => $CLIENT, ...], ...)
+          - pattern: http_build_query([..., 'client_id' => $CLIENT, ..., 'response_type' => $TYPE, ...], ...)
+      - pattern-not: http_build_query([..., 'state' => $STATE, ...], ...)
+      - pattern-not: http_build_query([..., 'code_challenge' => $CHALLENGE, ...], ...)
+
   - id: jgates.php.jwt-signature-not-verified
     message: The token is read without verifying its signature, so anyone can forge its claims. Parse and validate it with a signed configuration and a SignedWith constraint, or use JWT::decode with the verification key.
     severity: ERROR

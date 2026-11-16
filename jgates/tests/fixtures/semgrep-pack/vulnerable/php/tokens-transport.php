@@ -19,3 +19,12 @@ function fetch_profile($url) {
     curl_setopt($ch, CURLOPT_URL, 'http://profiles.example.com/api/me');
     return curl_exec($ch);
 }
+
+function validate_session($validator, $token, $signer, $key, $header) {
+    $selectedKey = file_get_contents($header['jku']);
+    return $validator->validate($token, new SignedWith($signer, $key));
+}
+
+function authorize_session($clientId) {
+    return 'https://issuer.example/authorize?' . http_build_query(['response_type' => 'code', 'client_id' => $clientId]);
+}

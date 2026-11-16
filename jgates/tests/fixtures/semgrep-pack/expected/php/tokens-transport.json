@@ -3,6 +3,10 @@
     "tokens-transport.php"
   ],
   "ruleIds": [
+    "jgates.php.jwt-key-from-token-header",
+    "jgates.php.jwt-expiry-not-validated",
+    "jgates.php.jwt-audience-not-validated",
+    "jgates.php.oauth-request-without-state",
     "jgates.php.jwt-signature-not-verified",
     "jgates.php.jwt-algorithm-not-restricted",
     "jgates.php.jwt-algorithm-not-restricted-header",

@@ -13,8 +13,61 @@ function signature_cases($jwt, $secret, $config) {
     $b = JWT::jsonDecode(JWT::urlsafeB64Decode(explode('.', $jwt)[1]));
     // ok: jgates.php.jwt-signature-not-verified
     $c = JWT::decode($jwt, new Key($secret, 'HS256'));
+    if ($c->aud !== 'api') { throw new RuntimeException('Audience mismatch'); }
     // ok: jgates.php.jwt-signature-not-verified
     $d = Configuration::forSymmetricSigner(new Signer\Hmac\Sha256(), $secret);
+}
+
+function key_location_cases($header, $headerObject, $trustedKeys) {
+    // ruleid: jgates.php.jwt-key-from-token-header
+    $remote = file_get_contents($header['jku']);
+    // ruleid: jgates.php.jwt-key-from-token-header
+    $local = fopen('/keys/' . $headerObject->kid, 'r');
+    // ok: jgates.php.jwt-key-from-token-header
+    $fixed = file_get_contents('https://issuer.example/keys');
+    // ok: jgates.php.jwt-key-from-token-header
+    $selected = $trustedKeys[$header['kid']];
+}
+
+function time_constraint_cases($validator, $token, $signer, $key, $clock) {
+    // ruleid: jgates.php.jwt-expiry-not-validated
+    $validator->validate($token, new SignedWith($signer, $key), new PermittedFor('api'));
+    // ruleid: jgates.php.jwt-expiry-not-validated
+    $validator->validate($token, new \Lcobucci\JWT\Validation\Constraint\SignedWith($signer, $key), new PermittedFor('api'));
+    // ok: jgates.php.jwt-expiry-not-validated
+    $validator->validate($token, new SignedWith($signer, $key), new LooseValidAt($clock), new PermittedFor('api'));
+    // ok: jgates.php.jwt-expiry-not-validated
+    $validator->validate($token, new SignedWith($signer, $key), new \Lcobucci\JWT\Validation\Constraint\StrictValidAt($clock), new PermittedFor('api'));
+}
+
+function audience_constraint_cases($validator, $token, $signer, $key, $clock) {
+    // ruleid: jgates.php.jwt-audience-not-validated
+    $validator->validate($token, new SignedWith($signer, $key), new LooseValidAt($clock));
+    // ruleid: jgates.php.jwt-audience-not-validated
+    $claims = JWT::decode($token, new Key($key, 'RS256'));
+    // ok: jgates.php.jwt-audience-not-validated
+    $validator->validate($token, new SignedWith($signer, $key), new LooseValidAt($clock), new PermittedFor('api'));
+}
+
+function verified_firebase_audience($token, $key) {
+    // ok: jgates.php.jwt-audience-not-validated
+    $claims = \Firebase\JWT\JWT::decode($token, new Key($key, 'RS256'));
+    if ($claims->aud !== 'api') { throw new RuntimeException('Audience mismatch'); }
+    return $claims;
+}
+
+function authorization_query_cases($clientId, $state, $challenge, $provider) {
+    // ruleid: jgates.php.oauth-request-without-state
+    $url = 'https://issuer.example/authorize?' . http_build_query(['response_type' => 'code', 'client_id' => $clientId]);
+    // ruleid: jgates.php.oauth-request-without-state
+    $query = http_build_query(['client_id' => $clientId, 'response_type' => 'code', 'scope' => 'profile'], '', '&');
+    // ok: jgates.php.oauth-request-without-state
+    $bound = http_build_query(['response_type' => 'code', 'client_id' => $clientId, 'state' => $state]);
+    // ok: jgates.php.oauth-request-without-state
+    $pkce = http_build_query(['response_type' => 'code', 'client_id' => $clientId, 'code_challenge' => $challenge, 'code_challenge_method' => 'S256']);
+    // League generates state by default; callers must retain and check getState() on callback.
+    // ok: jgates.php.oauth-request-without-state
+    $managed = $provider->getAuthorizationUrl();
 }
 
 function algorithm_cases($jwt, $key, $header) {
