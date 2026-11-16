@@ -63,8 +63,10 @@ test("V2-74: the doctor and the quality strip are where the plan puts them", () 
   // The strip holds its room while it loads and its states are not pills.
   const strip = read("components", "QualityMascotStrip.tsx");
   assert.match(strip, /quality-mascots-reserved/);
+  // The state is drawn by the shared MascotStatus (its class is mascot-strip-status, styled in mascot-strip.css).
+  const shared = read("components", "mascot-strip.css");
+  assert.match(shared, /\.mascot-strip-status \{[^}]*border: 0; padding: 0/);
   const css = read("components", "quality-mascots.css");
-  assert.match(css, /\.quality-mascot-status \{[^}]*border: 0; padding: 0/);
   assert.match(css, /--qm-room/);
 });
 
