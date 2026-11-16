@@ -191,21 +191,6 @@ async function queryParameters(url, http, key, secret) {
   const sql = "UPDATE users SET password=? WHERE id=?";
 }
 
-function messages(frame, worker, msg) {
-  // ruleid: jgates.js.postmessage-wildcard-origin
-  window.postMessage(msg, "*");
-  // ruleid: jgates.js.postmessage-wildcard-origin
-  frame.contentWindow.postMessage(msg, "*");
-  // ruleid: jgates.js.postmessage-wildcard-origin
-  window.parent.postMessage(msg, "*", []);
-  // ok: jgates.js.postmessage-wildcard-origin
-  frame.contentWindow.postMessage(msg, "https://widget.example.com");
-  // ok: jgates.js.postmessage-wildcard-origin
-  window.parent.postMessage(msg, window.location.origin);
-  // ok: jgates.js.postmessage-wildcard-origin
-  worker.postMessage(msg);
-}
-
 function storage(pw, ssn, card, key, token, refresh) {
   // ruleid: jgates.js.sensitive-data-in-browser-storage
   localStorage.setItem("password", pw);

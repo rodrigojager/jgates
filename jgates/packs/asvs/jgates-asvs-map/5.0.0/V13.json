@@ -48,7 +48,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Service-to-service authentication is a design property that the source shows only in part; the review method reads the code that calls other backend components for shared or unchanging credentials."
+      "why": "Service-to-service authentication is a design property that the source shows only in part; the review method reads the code that calls other backend components for shared or unchanging credentials.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V13.2.2",
@@ -145,7 +149,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rule flags HTTP clients created without any timeout, one of the connection behaviors the documentation of a service sets; pool limits and retries are not examined."
+      "why": "The rule flags HTTP clients created without any timeout, one of the connection behaviors the documentation of a service sets; pool limits and retries are not examined.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V13.3.1",
@@ -226,7 +234,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Secret scanners and the rules for literal keys check that secrets stay out of the source and the history; whether a vault is used and how secrets are issued is not shown by the repository."
+      "why": "Secret scanners and the rules for literal keys check that secrets stay out of the source and the history; whether a vault is used and how secrets are issued is not shown by the repository.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V13.3.2",
@@ -328,7 +340,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The debug switch rules flag configuration that turns debug features on in code and files; the earlier review of debug defaults stays and covers what a model can read."
+      "why": "The debug switch rules flag configuration that turns debug features on in code and files; the earlier review of debug defaults stays and covers what a model can read.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V13.4.3",
@@ -406,7 +422,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules read file server settings that list directories; the ZAP alerts listed show a listing on a running target, which is where it really matters."
+      "why": "The rules read file server settings that list directories; the ZAP alerts listed show a listing on a running target, which is where it really matters.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V13.4.4",
@@ -424,7 +444,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rule reads web server settings that allow the TRACE method; whether a running server answers it is shown only by a deployed system."
+      "why": "The rule reads web server settings that allow the TRACE method; whether a running server answers it is shown only by a deployed system.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V13.4.5",
@@ -484,7 +508,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag documentation and monitoring endpoints mounted or opened in code and configuration; whether they are reachable and intended is a deployment question."
+      "why": "The rules flag documentation and monitoring endpoints mounted or opened in code and configuration; whether they are reachable and intended is a deployment question.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V13.4.6",
@@ -556,7 +584,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules read settings that put framework or server versions in headers; the ZAP alerts listed show the headers a running target really sends."
+      "why": "The rules read settings that put framework or server versions in headers; the ZAP alerts listed show the headers a running target really sends.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V13.4.7",

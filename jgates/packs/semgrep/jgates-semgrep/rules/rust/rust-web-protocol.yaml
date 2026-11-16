@@ -11,7 +11,7 @@ rules:
       cwe: "CWE-693"
       author: JGates
       subdimension: hardening
-      asvs_requirements: ["V3.4.1", "V3.4.3", "V3.4.4", "V3.4.6"]
+      asvs_requirements: ["V3.4.1", "V3.4.4"]
     pattern-either:
       - pattern: Shield::new()
       - pattern: $S.disable::<$H>()

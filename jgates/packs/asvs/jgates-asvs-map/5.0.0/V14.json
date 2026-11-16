@@ -85,7 +85,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Sensitive parameter names in URLs and password fields sent by GET are the repository signs of a secret in the query string; what a deployed system puts in URLs is not seen."
+      "why": "Sensitive parameter names in URLs and password fields sent by GET are the repository signs of a secret in the query string; what a deployed system puts in URLs is not seen.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V14.2.2",
@@ -112,7 +116,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Whether data counts as sensitive and whether a recipient is untrusted needs reading the code in context, so the review method examines it."
+      "why": "Whether data counts as sensitive and whether a recipient is untrusted needs reading the code in context, so the review method examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V14.2.4",
@@ -148,7 +156,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Minimum exposure of sensitive data depends on what each function needs, which no pattern can judge, so the review method reads the code."
+      "why": "Minimum exposure of sensitive data depends on what each function needs, which no pattern can judge, so the review method reads the code.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V14.2.7",
@@ -180,6 +192,10 @@
         "technology": [
           "file-upload"
         ]
+      },
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
       }
     },
     {
@@ -203,6 +219,10 @@
         "technology": [
           "browser-dom"
         ]
+      },
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
       }
     },
     {
@@ -226,7 +246,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No repository check can show the absence of a header; the ZAP alerts listed report responses of a running target that lack anti-caching directives."
+      "why": "No repository check can show the absence of a header; the ZAP alerts listed report responses of a running target that lack anti-caching directives.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V14.3.3",
@@ -249,6 +273,10 @@
         "technology": [
           "browser-dom"
         ]
+      },
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
       }
     }
   ]

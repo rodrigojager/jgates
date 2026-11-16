@@ -81,7 +81,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules read the protocol versions a program or a server configuration file enables; the versions a deployed endpoint accepts and prefers are shown only by a deployed system."
+      "why": "The rules read the protocol versions a program or a server configuration file enables; the versions a deployed endpoint accepts and prefers are shown only by a deployed system.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V12.1.2",
@@ -148,7 +152,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules read the cipher lists a program or a server configuration file sets; the suites a deployed endpoint accepts, their order and forward secrecy are shown only by a deployed system."
+      "why": "The rules read the cipher lists a program or a server configuration file sets; the suites a deployed endpoint accepts, their order and forward secrecy are shown only by a deployed system.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V12.1.3",
@@ -194,7 +202,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Server code that asks for a client certificate and then accepts any of them uses the identity of an untrusted certificate; the rules flag the literal ways that is written."
+      "why": "Server code that asks for a client certificate and then accepts any of them uses the identity of an untrusted certificate; the rules flag the literal ways that is written.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V12.1.4",
@@ -279,7 +291,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Literal plain-text URLs in client code and in HTML are the repository sign of external connections that do not use TLS; whether a deployed service answers or falls back to plain text is shown only by a deployed system."
+      "why": "Literal plain-text URLs in client code and in HTML are the repository sign of external connections that do not use TLS; whether a deployed service answers or falls back to plain text is shown only by a deployed system.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V12.2.2",
@@ -364,7 +380,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Literal plain-text URLs in client code are the repository sign of outbound connections that skip TLS; connections of other protocols and what a deployed system does are not seen."
+      "why": "Literal plain-text URLs in client code are the repository sign of outbound connections that skip TLS; connections of other protocols and what a deployed system does are not seen.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V12.3.2",
@@ -488,7 +508,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Literal plain-text URLs in client code are the repository sign of calls between internal services that skip TLS; what a deployed mesh does is not seen."
+      "why": "Literal plain-text URLs in client code are the repository sign of calls between internal services that skip TLS; what a deployed mesh does is not seen.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V12.3.4",

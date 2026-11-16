@@ -31,10 +31,6 @@ async function loadItems(key: string): Promise<unknown> {
   return response.json();
 }
 
-function notifyParent(message: unknown): void {
-  window.parent.postMessage(message, "*");
-}
-
 function remember(password: string, accessToken: string): void {
   localStorage.setItem("password", password);
   sessionStorage.setItem("access_token", accessToken);

@@ -280,22 +280,6 @@ rules:
               metavariable: $K
               regex: (?i)^["'`]?[\w.-]*(password|passwd|pwd|passphrase|senha|secret|api[_-]?key|private[_-]?key|segredo)[\w.-]*["'`]?$
 
-  - id: jgates.js.postmessage-wildcard-origin
-    message: postMessage is sent to the target origin "*", so any page that holds the window receives the message. Name the exact origin of the receiver.
-    severity: ERROR
-    languages: [javascript, typescript]
-    metadata:
-      category: authorization
-      cwe: "CWE-345"
-      author: JGates
-      subdimension: authorization
-      asvs_requirements: ["V3.5.5"]
-    pattern-either:
-      - pattern: $W.postMessage($M, "*", ...)
-      - pattern: $W.postMessage($M, '*', ...)
-      - pattern: postMessage($M, "*", ...)
-      - pattern: '$W.postMessage($M, {..., targetOrigin: "*", ...}, ...)'
-
   - id: jgates.js.sensitive-data-in-browser-storage
     message: A password, secret, card or identity number is written to browser storage, where any script of the page can read it and it outlives the session. Keep it on the server, or hold it in memory only as long as it is needed.
     severity: WARNING

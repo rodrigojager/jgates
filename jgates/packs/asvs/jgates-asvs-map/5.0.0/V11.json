@@ -163,7 +163,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The key size rules measure the strength of the keys a program generates with literal sizes; the entry never claims every primitive reaches the strength required."
+      "why": "The key size rules measure the strength of the keys a program generates with literal sizes; the entry never claims every primitive reaches the strength required.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.2.4",
@@ -223,7 +227,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The comparison rules look for ordinary equality on a MAC, digest or signature value, the most common short-circuit leak; they do not show that other operations are constant time."
+      "why": "The comparison rules look for ordinary equality on a MAC, digest or signature value, the most common short-circuit leak; they do not show that other operations are constant time.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.2.5",
@@ -241,7 +249,11 @@
           "depth": "partial"
         }
       ],
-      "why": "No pattern can tell a safe error path from an unsafe one, so the review method reads the source for it; it is judged from code only."
+      "why": "No pattern can tell a safe error path from an unsafe one, so the review method reads the source for it; it is judged from code only.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.3.1",
@@ -301,7 +313,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The ECB and PKCS#1 v1.5 rules cover the insecure block mode and padding at the literal call sites each language models; the four earlier rules and the three added ones together name every language that has one."
+      "why": "The ECB and PKCS#1 v1.5 rules cover the insecure block mode and padding at the literal call sites each language models; the four earlier rules and the three added ones together name every language that has one.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.3.2",
@@ -425,7 +441,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Unauthenticated modes (CBC, CTR, CFB, OFB) are the situation where data can be changed unnoticed unless a MAC is added; the rules report the mode and leave the MAC question open, hence an informational finding."
+      "why": "Unauthenticated modes (CBC, CTR, CFB, OFB) are the situation where data can be changed unnoticed unless a MAC is added; the rules report the mode and leave the MAC question open, hence an informational finding.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.3.4",
@@ -485,7 +505,11 @@
           "depth": "partial"
         }
       ],
-      "why": "A literal or zero-filled IV or nonce is repeated for every message, the clearest breach of the single-use rule that code shows."
+      "why": "A literal or zero-filled IV or nonce is repeated for every message, the clearest breach of the single-use rule that code shows.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.3.5",
@@ -503,7 +527,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The order of encryption and MAC is a property of the flow of several calls, which no pattern in the pack reads, so the review method examines it."
+      "why": "The order of encryption and MAC is a property of the flow of several calls, which no pattern in the pack reads, so the review method examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.4.1",
@@ -683,7 +711,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Fast general purpose hashes applied to a password and work factors below the safe floor are the two storage choices the rules flag; the PHP weak-hash rule from the earlier review stays."
+      "why": "Fast general purpose hashes applied to a password and work factors below the safe floor are the two storage choices the rules flag; the PHP weak-hash rule from the earlier review stays.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.4.3",
@@ -743,7 +775,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag MD5 and SHA-1 in signatures and MACs, hashes whose collision resistance is broken; they do not measure the output length of other hashes."
+      "why": "The rules flag MD5 and SHA-1 in signatures and MACs, hashes whose collision resistance is broken; they do not measure the output length of other hashes.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.4.4",
@@ -803,7 +839,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The work-factor rules flag key derivation calls whose literal parameters are below the safe floor; they do not choose the function."
+      "why": "The work-factor rules flag key derivation calls whose literal parameters are below the safe floor; they do not choose the function.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.5.1",
@@ -912,7 +952,11 @@
           "depth": "partial"
         }
       ],
-      "why": "Predictable generators and UUIDs feeding values named like secrets are the two ways code shows a non-guessable value being made badly; a secure generator of adequate length is not proved."
+      "why": "Predictable generators and UUIDs feeding values named like secrets are the two ways code shows a non-guessable value being made badly; a secure generator of adequate length is not proved.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.5.2",
@@ -1030,7 +1074,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rules flag short keys and MD5 or SHA-1 signing, two parts of approved key generation and signature algorithms that code shows; weak seeding and modes are not examined."
+      "why": "The rules flag short keys and MD5 or SHA-1 signing, two parts of approved key generation and signature algorithms that code shows; weak seeding and modes are not examined.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.6.2",
@@ -1076,7 +1124,11 @@
           "depth": "partial"
         }
       ],
-      "why": "The rule flags small Diffie-Hellman parameters where a language exposes them as literals; key exchange negotiated by a TLS stack is configuration, not read here."
+      "why": "The rule flags small Diffie-Hellman parameters where a language exposes them as literals; key exchange negotiated by a TLS stack is configuration, not read here.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
     },
     {
       "requirement": "V11.7.1",

@@ -31,10 +31,6 @@ async function loadItems(key) {
   return response.json();
 }
 
-function notifyParent(message) {
-  window.parent.postMessage(message, "*");
-}
-
 function remember(password, accessToken) {
   localStorage.setItem("password", password);
   sessionStorage.setItem("access_token", accessToken);

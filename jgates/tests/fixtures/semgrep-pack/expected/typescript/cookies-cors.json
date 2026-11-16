@@ -11,7 +11,6 @@
     "jgates.js.jsonp-enabled",
     "jgates.js.jsonp-enabled-express",
     "jgates.js.sensitive-query-parameter",
-    "jgates.js.postmessage-wildcard-origin",
     "jgates.js.sensitive-data-in-browser-storage",
     "jgates.js.oauth-token-in-browser-storage"
   ]

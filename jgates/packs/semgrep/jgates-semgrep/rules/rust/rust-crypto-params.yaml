@@ -210,7 +210,7 @@ rules:
       cwe: "CWE-916"
       author: JGates
       subdimension: cryptography
-      asvs_requirements: ["V11.4.2", "V6.5.2"]
+      asvs_requirements: ["V11.4.2"]
     patterns:
       - pattern-either:
           - patterns:

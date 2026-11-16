@@ -91,7 +91,7 @@ test("the mapping has V01 to V17, exactly one entry per requirement, no pending 
   assert.deepEqual(m.entries.map((e) => e.requirement).sort(), data.requirements.map((r) => r.id).sort());
   for (const e of m.entries) {
     if (e.checks.length === 0) {
-      assert.equal(e.status, "unmapped", e.requirement);
+      assert.ok(e.status === "unmapped" || ((e.status === "reviewed" || e.status === "owner-reviewed") && e.applies), `${e.requirement} has no check, so it is unmapped or a reviewed entry with applies`);
       assert.deepEqual(asvs.countedChecks(e), []);
     } else {
       assert.ok(e.status === "reviewed" || e.status === "owner-reviewed", `${e.requirement} is ${e.status}`);
@@ -119,9 +119,9 @@ test("the chapter files and the unmapped-rules file validate against their schem
 });
 
 test("an entry naming an unknown rule, capability or attack class is refused; a sound one is accepted", () => {
-  const sound = withEntry(mapping(), "V1.1.1", "pending", [goodCheck()]);
+  const sound = withEntry(mapping(), "V1.5.3", "pending", [goodCheck()]);
   assert.deepEqual(asvs.validateMapping(sound, data, context), []);
-  const bad = (check, subdimensions) => asvs.validateMapping(withEntry(mapping(), "V1.1.1", "pending", [check], subdimensions), data, context);
+  const bad = (check, subdimensions) => asvs.validateMapping(withEntry(mapping(), "V1.5.3", "pending", [check], subdimensions), data, context);
   assert.match(bad(goodCheck({ id: "jgates.python.no-such-rule" })).join("\n"), /unknown rule jgates\.python\.no-such-rule/);
   assert.match(bad(goodCheck({ unit: "capability", id: "nothing#nowhere" })).join("\n"), /unknown capability nothing#nowhere/);
   assert.match(bad(goodCheck({ unit: "semantic-ledger", id: "ATTACK-CLASSES.md#No such class" })).join("\n"), /unknown attack class/);
@@ -167,15 +167,16 @@ test("every pack rule is mapped or listed in unmapped-rules.json with a reason",
   assert.ok(context.rules.size > 0, "the pack has rules");
   // The shipped list names exactly the rules no entry names.
   const named = new Set(m.entries.flatMap((e) => e.checks.filter((c) => c.unit === "semgrep-rule").map((c) => c.id)));
-  const listed = new Set(m.unmappedRules.rules.map((r) => r.id));
+  const listed = new Set(m.unmappedRules.rules.filter((r) => !r.requirement).map((r) => r.id));
   for (const id of context.rules.keys()) assert.ok(named.has(id) !== listed.has(id), `${id} is either named by an entry or listed, not both and not neither`);
   for (const r of m.unmappedRules.rules) assert.ok(r.reason.trim().length > 0, `${r.id} has a reason`);
   // A rule no entry names and the list forgets is refused; listed without a reason it is refused too.
   const withoutFirst = () => {
     const out = mapping();
     for (const e of out.entries) {
+      const before = e.checks.length;
       e.checks = e.checks.filter((c) => !(c.unit === "semgrep-rule" && c.id === firstRule[0]));
-      if (e.checks.length === 0 && e.status !== "unmapped") {
+      if (before > 0 && e.checks.length === 0 && e.status !== "unmapped") {
         e.status = "unmapped";
         delete e.why;
         delete e.review;
@@ -192,7 +193,7 @@ test("every pack rule is mapped or listed in unmapped-rules.json with a reason",
   const listedWithReason = withoutFirst();
   listedWithReason.unmappedRules.rules.push({ id: firstRule[0], reason: "No requirement names it." });
   assert.deepEqual(asvs.validateMapping(listedWithReason, data, context), []);
-  const mapped = withEntry(withoutFirst(), "V1.1.1", "pending", [goodCheck()]);
+  const mapped = withEntry(withoutFirst(), "V1.5.3", "pending", [goodCheck()]);
   assert.equal(asvs.validateMapping(mapped, data, context).some((p) => p.includes("neither mapped nor listed")), false, "a mapped rule needs no listing");
 });
 

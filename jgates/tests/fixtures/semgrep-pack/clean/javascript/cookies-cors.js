@@ -35,10 +35,6 @@ async function loadItems(key) {
   return response.json();
 }
 
-function notifyParent(message) {
-  window.parent.postMessage(message, "https://app.example.com");
-}
-
 function remember(theme) {
   localStorage.setItem("theme", theme);
   sessionStorage.setItem("last_view", "feed");
