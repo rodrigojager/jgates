@@ -135,8 +135,31 @@ async fn read_all(body: Body) -> Bytes {
 }
 
 async fn read_hyper(body: hyper::Body) -> Bytes {
-    // ruleid: jgates.rust.request-body-without-size-limit
+    // ruleid: jgates.rust.request-body-without-size-limit-by-default
     hyper::body::to_bytes(body).await.unwrap()
+}
+
+async fn read_hyper_response(request: hyper::Request<hyper::Body>) -> Bytes {
+    // ruleid: jgates.rust.request-body-without-size-limit-by-default
+    hyper::body::to_bytes(request.into_body()).await.unwrap()
+}
+
+async fn read_hyper_limited(body: hyper::Body) {
+    // ok: jgates.rust.request-body-without-size-limit-by-default
+    let a = hyper::body::to_bytes(Limited::new(body, 4096)).await;
+    // ok: jgates.rust.request-body-without-size-limit-by-default
+    let b = hyper::body::to_bytes(http_body_util::Limited::new(body, 8192)).await;
+    drop((a, b));
+}
+
+fn explicit_limits_are_not_defaults() {
+    // ok: jgates.rust.request-body-without-size-limit-by-default
+    // ruleid: jgates.rust.request-body-without-size-limit
+    let a = DefaultBodyLimit::disable();
+    // ok: jgates.rust.request-body-without-size-limit-by-default
+    // ruleid: jgates.rust.request-body-without-size-limit
+    let b = web::PayloadConfig::new(usize::MAX);
+    drop((a, b));
 }
 
 async fn routes_limited(body: Body) {

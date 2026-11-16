@@ -6,6 +6,10 @@ pub fn limits() -> DefaultBodyLimit {
     DefaultBodyLimit::disable()
 }
 
+pub async fn read_body(body: hyper::Body) -> Bytes {
+    hyper::body::to_bytes(body).await.unwrap()
+}
+
 pub async fn upload(mut multipart: Multipart) {
     while let Some(field) = multipart.next_field().await.unwrap() {
         let name = field.file_name().unwrap().to_string();

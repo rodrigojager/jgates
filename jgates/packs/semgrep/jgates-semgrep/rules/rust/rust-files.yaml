@@ -61,8 +61,8 @@ rules:
           - focus-metavariable: $P
 
   - id: jgates.rust.archive-extraction-unchecked
-    message: An archive is extracted whole, or each entry is written to a path built from the entry's own name, with no check of the path, the link type or the size. Use the zip crate's enclosed_name, tar's unpack_in, reject absolute or ".." names, skip links and cap the total size.
-    severity: WARNING
+    message: An archive is extracted without a visible path or size check. Confirm that extraction confines entries to the destination, rejects unsafe links and caps the total size, or enforce those checks here with enclosed_name, unpack_in and size limits.
+    severity: INFO
     languages: [rust]
     metadata:
       category: file-handling
@@ -70,6 +70,7 @@ rules:
       subdimension: injection
       author: JGates
       asvs_requirements: ["V5.2.3", "V5.3.2"]
+      class: review
     patterns:
       - pattern-either:
           - patterns:
@@ -153,10 +154,22 @@ rules:
           - pattern: web::PayloadConfig::new(usize::MAX)
           - pattern: PayloadConfig::new(usize::MAX)
           - pattern: $C.limit(usize::MAX)
-          - patterns:
-              - pattern: hyper::body::to_bytes($B)
-              - pattern-not: hyper::body::to_bytes(Limited::new(...))
-              - pattern-not: hyper::body::to_bytes(http_body_util::Limited::new(...))
+
+  - id: jgates.rust.request-body-without-size-limit-by-default
+    message: A Hyper request body is collected without a visible size limit. If an upstream layer does not enforce a fixed limit, a request can exhaust server memory; wrap the body in http_body_util::Limited or confirm where the limit is enforced.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.1"]
+      class: review
+    patterns:
+      - pattern: hyper::body::to_bytes($B)
+      - pattern-not: hyper::body::to_bytes(Limited::new(...))
+      - pattern-not: hyper::body::to_bytes(http_body_util::Limited::new(...))
 
   - id: jgates.rust.upload-content-type-trusted
     message: The content type the client declared for an upload is used as the type check, and the client can set it to anything. Detect the type from the file content, for example with infer::get on the bytes, and compare that instead.
