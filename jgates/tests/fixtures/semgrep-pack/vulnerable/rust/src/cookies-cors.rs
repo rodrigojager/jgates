@@ -1,9 +1,19 @@
 use axum::http::HeaderMap;
-use cookie::Cookie;
+use cookie::{Cookie, SameSite};
 use tower_http::cors::{Any, CorsLayer};
 
 fn session_cookie(value: String) -> Cookie<'static> {
     Cookie::build(("sid", value)).path("/").build()
+}
+
+fn explicitly_insecure_cookie(value: String) -> Cookie<'static> {
+    Cookie::build(("__Host-sid", value)).secure(false).http_only(false).same_site(SameSite::Strict).build()
+}
+
+#[post("/account")]
+async fn update_account(form: Form<Account>) -> HttpResponse {
+    save_account(form);
+    HttpResponse::Ok().finish()
 }
 
 fn cors() -> CorsLayer {

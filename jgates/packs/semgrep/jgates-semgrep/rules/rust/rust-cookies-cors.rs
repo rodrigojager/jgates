@@ -6,12 +6,13 @@ use tower_http::cors::{Any, AllowOrigin, CorsLayer};
 use tower_sessions::SessionManagerLayer;
 
 fn good_builder(value: String) -> Cookie<'static> {
-    // ok: jgates.rust.cookie-without-secure, jgates.rust.cookie-without-httponly, jgates.rust.cookie-without-samesite, jgates.rust.cookie-name-without-prefix
+    // ok: jgates.rust.cookie-without-httponly
+    // ok: jgates.rust.cookie-without-secure-by-default, jgates.rust.cookie-without-secure, jgates.rust.cookie-without-httponly, jgates.rust.cookie-without-httponly-by-default, jgates.rust.cookie-without-samesite, jgates.rust.cookie-name-without-prefix
     Cookie::build(("__Host-sid", value)).path("/").secure(true).http_only(true).same_site(SameSite::Strict).build()
 }
 
 fn good_setters(value: String) -> Cookie<'static> {
-    // ok: jgates.rust.cookie-without-httponly, jgates.rust.cookie-without-secure, jgates.rust.cookie-without-samesite, jgates.rust.cookie-name-without-prefix
+    // ok: jgates.rust.cookie-without-httponly-by-default, jgates.rust.cookie-without-httponly, jgates.rust.cookie-without-secure, jgates.rust.cookie-without-secure-by-default, jgates.rust.cookie-without-samesite, jgates.rust.cookie-name-without-prefix
     let mut c = Cookie::new("__Secure-sid", value);
     c.set_secure(true);
     c.set_http_only(true);
@@ -20,22 +21,25 @@ fn good_setters(value: String) -> Cookie<'static> {
 }
 
 fn bad_builder_default(value: String) -> Cookie<'static> {
-    // ruleid: jgates.rust.cookie-without-secure, jgates.rust.cookie-without-httponly, jgates.rust.cookie-without-samesite, jgates.rust.cookie-name-without-prefix
+    // ok: jgates.rust.cookie-without-secure, jgates.rust.cookie-without-httponly
+    // ruleid: jgates.rust.cookie-without-secure-by-default, jgates.rust.cookie-without-httponly-by-default, jgates.rust.cookie-without-samesite, jgates.rust.cookie-name-without-prefix
     Cookie::build(("sid", value)).path("/").build()
 }
 
 fn bad_new_default(value: String) -> Cookie<'static> {
-    // ruleid: jgates.rust.cookie-without-httponly, jgates.rust.cookie-without-secure, jgates.rust.cookie-without-samesite, jgates.rust.cookie-name-without-prefix
+    // ok: jgates.rust.cookie-without-secure, jgates.rust.cookie-without-httponly
+    // ruleid: jgates.rust.cookie-without-httponly-by-default, jgates.rust.cookie-without-secure-by-default, jgates.rust.cookie-without-samesite, jgates.rust.cookie-name-without-prefix
     Cookie::new("session", value)
 }
 
 fn bad_explicit_off(value: String) -> Cookie<'static> {
+    // ok: jgates.rust.cookie-without-secure-by-default, jgates.rust.cookie-without-httponly-by-default
     // ruleid: jgates.rust.cookie-without-secure, jgates.rust.cookie-without-httponly, jgates.rust.cookie-without-samesite
     Cookie::build(("__Host-sid", value)).secure(false).http_only(false).same_site(SameSite::None).build()
 }
 
 fn bad_setters_off(value: String) -> Cookie<'static> {
-    // ok: jgates.rust.cookie-name-without-prefix
+    // ok: jgates.rust.cookie-name-without-prefix, jgates.rust.cookie-without-secure-by-default, jgates.rust.cookie-without-httponly-by-default
     let mut c = Cookie::new("__Host-sid", value);
     // ruleid: jgates.rust.cookie-without-secure
     c.set_secure(false);
@@ -162,4 +166,34 @@ fn urls_good(client: Client, mut url: Url, key: String) {
     url.query_pairs_mut().append_pair("page", &key);
     // ok: jgates.rust.sensitive-query-parameter
     let _c = client.get("https://example.com/data").header("X-Api-Key", key.as_str());
+}
+
+// ruleid: jgates.rust.csrf-protection-disabled
+#[post("/account")]
+async fn update_account(form: Form<Account>) -> HttpResponse {
+    save_account(form);
+    HttpResponse::Ok().finish()
+}
+
+// ruleid: jgates.rust.csrf-protection-disabled
+#[put("/profile")]
+async fn update_profile(form: Form<Profile>) -> HttpResponse {
+    save_profile(form);
+    HttpResponse::Ok().finish()
+}
+
+// ok: jgates.rust.csrf-protection-disabled
+#[post("/account")]
+async fn protected_account(form: Form<Account>, csrf: Protector, token: Token, cookie: Token) -> Result<HttpResponse, Error> {
+    csrf.verify_token_pair(&token, &cookie)?;
+    save_account(form);
+    Ok(HttpResponse::Ok().finish())
+}
+
+// ok: jgates.rust.csrf-protection-disabled
+#[put("/profile")]
+async fn protected_profile(form: Form<Profile>, csrf: Protector, token: Token, cookie: Token) -> Result<HttpResponse, Error> {
+    csrf.verify_token_pair(&token, &cookie)?;
+    save_profile(form);
+    Ok(HttpResponse::Ok().finish())
 }

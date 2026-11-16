@@ -2,10 +2,9 @@
 # Libraries covered: cookie (Cookie::build, Cookie::new and their setters, also through axum-extra and actix-web),
 # actix-session (SessionMiddleware builder), tower-sessions (SessionManagerLayer), tower-http (CorsLayer),
 # actix-cors (Cors), axum and actix-web headers, reqwest and url (query parameters).
-# Not written: csrf-protection-disabled (the Rust web frameworks have no common request-forgery switch to look for).
 rules:
   - id: jgates.rust.cookie-without-secure
-    message: A cookie is written without the Secure attribute, so a browser may send it over plain HTTP. Call secure(true) on the cookie (or with_secure(true) on the session layer).
+    message: The cookie's Secure attribute is explicitly disabled, so a browser may send it over plain HTTP. Enable Secure on the cookie or session layer.
     severity: WARNING
     languages: [rust]
     metadata:
@@ -19,7 +18,18 @@ rules:
       - pattern: $X.set_secure(false)
       - pattern: $X.with_secure(false)
       - pattern: $X.cookie_secure(false)
-      - patterns:
+  - id: jgates.rust.cookie-without-secure-by-default
+    message: A cookie is created without a visible Secure option. If nothing else adds it, the cookie can travel over plain HTTP; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+      class: review
+    patterns:
           - pattern-either:
               - pattern: Cookie::build(...)
               - pattern: Cookie::new(...)
@@ -39,7 +49,7 @@ rules:
           - pattern-not-inside: $X.set_secure(...)
 
   - id: jgates.rust.cookie-without-httponly
-    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Call http_only(true) on the cookie (or with_http_only(true) on the session layer).
+    message: The cookie's HttpOnly attribute is explicitly disabled, so page scripts can read it. Enable HttpOnly on the cookie or session layer.
     severity: WARNING
     languages: [rust]
     metadata:
@@ -53,7 +63,18 @@ rules:
       - pattern: $X.set_http_only(false)
       - pattern: $X.with_http_only(false)
       - pattern: $X.cookie_http_only(false)
-      - patterns:
+  - id: jgates.rust.cookie-without-httponly-by-default
+    message: A cookie is created without a visible HttpOnly option. If nothing else adds it, page scripts can read the cookie; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+      class: review
+    patterns:
           - pattern-either:
               - pattern: Cookie::build(...)
               - pattern: Cookie::new(...)
@@ -71,6 +92,41 @@ rules:
               }
           - pattern-not-inside: $X.http_only(...)
           - pattern-not-inside: $X.set_http_only(...)
+
+  - id: jgates.rust.csrf-protection-disabled
+    message: A state-changing Actix route has no visible request-forgery token verification. Confirm that middleware protects browser sessions, or verify the token before changing state.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.1"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: |
+              #[post(...)]
+              async fn $F(...) -> $RET { ... }
+          - pattern: |
+              #[put(...)]
+              async fn $F(...) -> $RET { ... }
+          - pattern: |
+              #[delete(...)]
+              async fn $F(...) -> $RET { ... }
+      - pattern-not: |
+          async fn $F(...) -> $RET {
+            ...
+            $C.verify_token_pair(...);
+            ...
+          }
+      - pattern-not: |
+          async fn $F(...) -> $RET {
+            ...
+            $C.verify_token_pair(...)?;
+            ...
+          }
 
   - id: jgates.rust.cookie-without-samesite
     message: A cookie is written with SameSite set to None, or without SameSite where the library sends none, so it travels on cross-site requests. Set SameSite to Lax or Strict.

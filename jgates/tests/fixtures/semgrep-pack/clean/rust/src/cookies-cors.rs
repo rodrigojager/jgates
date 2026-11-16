@@ -17,6 +17,17 @@ fn cors() -> CorsLayer {
         .allow_credentials(true)
 }
 
+fn explicitly_secure_cookie(value: String) -> Cookie<'static> {
+    Cookie::build(("__Host-sid", value)).secure(true).http_only(true).same_site(SameSite::Strict).build()
+}
+
+#[post("/account")]
+async fn update_account(form: Form<Account>, csrf: Protector, token: Token, cookie: Token) -> Result<HttpResponse, Error> {
+    csrf.verify_token_pair(&token, &cookie)?;
+    save_account(form);
+    Ok(HttpResponse::Ok().finish())
+}
+
 async fn echo_origin(headers: HeaderMap, resp: Builder) -> Response {
     let origin = headers.get("origin").unwrap();
     let origin = allowed_origin(origin);
