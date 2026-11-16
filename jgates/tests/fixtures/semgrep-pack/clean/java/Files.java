@@ -7,6 +7,7 @@ import java.util.zip.ZipInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.http.ContentDisposition;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.springframework.web.multipart.MultipartFile;
 
 class Files {
@@ -30,6 +31,10 @@ class Files {
 
     byte[] readBody(HttpServletRequest req) throws IOException {
         return req.getInputStream().readNBytes(1_000_000);
+    }
+
+    void configureUpload(ServletFileUpload upload) {
+        upload.setFileSizeMax(5_000_000L);
     }
 
     boolean isImage(MultipartFile file) throws IOException {

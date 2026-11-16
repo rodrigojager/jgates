@@ -55,8 +55,8 @@ rules:
           - focus-metavariable: $U
 
   - id: jgates.java.archive-extraction-unchecked
-    message: An archive is extracted whole, or each entry is written to a path built from the entry's own name, with no check of the path or the size. Extract entry by entry, resolve each destination with normalize() or getCanonicalPath() and require it to start with the target folder, skip links, and stop when the total size passes a limit.
-    severity: WARNING
+    message: An archive is extracted whole or an entry destination uses the entry's name without a visible path or size check. Confirm that the library or another layer confines destinations to the target folder, rejects links and limits expanded size, or enforce those protections during entry-by-entry extraction.
+    severity: INFO
     languages: [java]
     metadata:
       category: file-handling
@@ -64,6 +64,7 @@ rules:
       subdimension: injection
       author: JGates
       asvs_requirements: ["V5.2.3", "V5.3.2"]
+      class: review
     patterns:
       - pattern-either:
           - patterns:
@@ -114,7 +115,7 @@ rules:
                   }
 
   - id: jgates.java.request-body-without-size-limit
-    message: A request size limit is removed, a multipart handler is declared without one, or a request body is read in full where the API sets no limit, so one request can use all the memory or disk of the server. Set a limit that fits the endpoint, for example @MultipartConfig(maxFileSize = ...), setFileSizeMax with a positive value, or a bounded read such as readNBytes.
+    message: A request upload size limit is explicitly disabled with -1, allowing one request to consume excessive memory or disk. Set a positive file and request size limit that fits the endpoint.
     severity: WARNING
     languages: [java]
     metadata:
@@ -124,11 +125,24 @@ rules:
       author: JGates
       asvs_requirements: ["V5.2.1"]
     pattern-either:
-      - pattern-regex: '@MultipartConfig\b(?!\s*\([^)]*\bmaxFileSize)'
       - pattern: $U.setFileSizeMax(-1)
       - pattern: $U.setFileSizeMax(-1L)
       - pattern: $U.setSizeMax(-1)
       - pattern: $U.setSizeMax(-1L)
+
+  - id: jgates.java.request-body-without-size-limit-by-default
+    message: A multipart handler has no visible file size limit, or a request body is read in full without a visible size check. Set a positive multipart limit or use a bounded read, or confirm that a server, proxy or middleware enforces an appropriate limit before this code runs.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.1"]
+      class: review
+    pattern-either:
+      - pattern-regex: '@MultipartConfig\b(?!\s*\([^)]*\bmaxFileSize)'
       - patterns:
           - pattern-either:
               - pattern: (HttpServletRequest $R).getInputStream().readAllBytes()

@@ -117,21 +117,26 @@ class FilesFixture {
     }
 
     // ---- request-body-without-size-limit ----
-    // ruleid: jgates.java.request-body-without-size-limit
+    // ok: jgates.java.request-body-without-size-limit
+    // ruleid: jgates.java.request-body-without-size-limit-by-default
     @MultipartConfig
     class UnboundedUploadServlet {}
 
-    // ruleid: jgates.java.request-body-without-size-limit
+    // ok: jgates.java.request-body-without-size-limit
+    // ruleid: jgates.java.request-body-without-size-limit-by-default
     @MultipartConfig(location = "/tmp", fileSizeThreshold = 1024)
     class UnboundedUploadServletTwo {}
 
     // ok: jgates.java.request-body-without-size-limit
+    // ok: jgates.java.request-body-without-size-limit-by-default
     @MultipartConfig(maxFileSize = 5_000_000, maxRequestSize = 6_000_000)
     class BoundedUploadServlet {}
 
     void commonsUpload(ServletFileUpload upload) {
+        // ok: jgates.java.request-body-without-size-limit-by-default
         // ruleid: jgates.java.request-body-without-size-limit
         upload.setFileSizeMax(-1);
+        // ok: jgates.java.request-body-without-size-limit-by-default
         // ruleid: jgates.java.request-body-without-size-limit
         upload.setSizeMax(-1L);
         // ok: jgates.java.request-body-without-size-limit
@@ -141,17 +146,18 @@ class FilesFixture {
     }
 
     byte[] readBody(HttpServletRequest req) throws IOException {
-        // ruleid: jgates.java.request-body-without-size-limit
+        // ruleid: jgates.java.request-body-without-size-limit-by-default
         return req.getInputStream().readAllBytes();
     }
 
     byte[] readBodyIo(HttpServletRequest req) throws IOException {
-        // ruleid: jgates.java.request-body-without-size-limit
+        // ruleid: jgates.java.request-body-without-size-limit-by-default
         return IOUtils.toByteArray(req.getInputStream());
     }
 
     byte[] readBodyBounded(HttpServletRequest req) throws IOException {
         // ok: jgates.java.request-body-without-size-limit
+        // ok: jgates.java.request-body-without-size-limit-by-default
         return req.getInputStream().readNBytes(1_000_000);
     }
 
@@ -160,6 +166,7 @@ class FilesFixture {
             throw new IOException("body too large");
         }
         // ok: jgates.java.request-body-without-size-limit
+        // ok: jgates.java.request-body-without-size-limit-by-default
         return req.getInputStream().readAllBytes();
     }
 
