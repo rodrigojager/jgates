@@ -1,4 +1,25 @@
 <?php
+function dh_parameter_cases($configuredBits) {
+    // ruleid: jgates.php.weak-dh-parameters, jgates.php.weak-key-size
+    $a = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_DH, 'private_key_bits' => 1024]);
+    // ruleid: jgates.php.weak-dh-parameters, jgates.php.weak-key-size
+    $b = openssl_pkey_new(array("private_key_bits" => 512, "private_key_type" => OPENSSL_KEYTYPE_DH));
+    // ok: jgates.php.weak-dh-parameters
+    // ruleid: jgates.php.rsa-key-below-3072
+    $c = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_DH, 'private_key_bits' => 2048]);
+    // ok: jgates.php.weak-dh-parameters
+    $d = openssl_pkey_new(['private_key_bits' => 3072, 'private_key_type' => OPENSSL_KEYTYPE_DH]);
+    // ok: jgates.php.weak-dh-parameters
+    $e = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_DH, 'private_key_bits' => $configuredBits]);
+    $bits = 1024;
+    // ok: jgates.php.weak-dh-parameters
+    // ruleid: jgates.php.weak-key-size
+    $f = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_DH, 'private_key_bits' => $bits]);
+    // ok: jgates.php.weak-dh-parameters
+    // ruleid: jgates.php.weak-key-size
+    $g = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_RSA, 'private_key_bits' => 1024]);
+}
+
 function key_size_cases($path) {
     // ruleid: jgates.php.weak-key-size
     $a = openssl_pkey_new(['private_key_bits' => 1024, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);

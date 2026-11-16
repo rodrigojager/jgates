@@ -4,6 +4,11 @@ use Ramsey\Uuid\Uuid;
 
 class VaultCrypto
 {
+    public function newExchangeKey()
+    {
+        return openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_DH, 'private_key_bits' => 3072]);
+    }
+
     public function newSigningKey()
     {
         return openssl_pkey_new(['private_key_bits' => 4096, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);

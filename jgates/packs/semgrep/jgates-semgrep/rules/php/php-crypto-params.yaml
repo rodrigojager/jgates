@@ -5,6 +5,29 @@
 # libsodium (sodium_crypto_*), phpseclib (RSA::createKey), firebase/php-jwt (JWT::encode, Key) and ramsey/uuid
 # (Uuid::uuid4). The analysis stays inside one function or one file.
 rules:
+  - id: jgates.php.weak-dh-parameters
+    message: Diffie-Hellman parameters under 2048 bits can be broken with precomputation. Generate parameters of at least 2048 bits, or use an elliptic curve exchange such as X25519.
+    severity: ERROR
+    languages: [php]
+    options:
+      constant_propagation: false
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.6.2"]
+    patterns:
+      - pattern-either:
+          - pattern: openssl_pkey_new([..., "private_key_type" => OPENSSL_KEYTYPE_DH, ..., "private_key_bits" => $N, ...])
+          - pattern: openssl_pkey_new([..., "private_key_bits" => $N, ..., "private_key_type" => OPENSSL_KEYTYPE_DH, ...])
+      - metavariable-regex:
+          metavariable: $N
+          regex: ^[0-9]+$
+      - metavariable-comparison:
+          metavariable: $N
+          comparison: $N < 2048
+
   - id: jgates.php.weak-key-size
     message: An RSA or DSA key is generated with fewer than 2048 bits, or an elliptic curve under 224 bits is chosen, so the key can be broken with modest resources. Generate RSA keys with at least 3072 bits (2048 at the very least) and use prime256v1 or a larger curve.
     severity: ERROR

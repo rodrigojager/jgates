@@ -1,6 +1,7 @@
 {
   "files": ["crypto-params.php"],
   "ruleIds": [
+    "jgates.php.weak-dh-parameters",
     "jgates.php.weak-key-size",
     "jgates.php.rsa-key-below-3072",
     "jgates.php.static-iv-or-nonce",
