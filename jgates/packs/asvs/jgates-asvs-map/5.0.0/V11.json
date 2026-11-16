@@ -599,12 +599,19 @@
     },
     {
       "requirement": "V11.4.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.weak-kdf-parameters-by-default",
+          "covers": "Points at the two-argument Rfc2898DeriveBytes constructor with an omitted iteration count, whose overload uses a low default work factor.",
+          "misses": "The protection or a non-password purpose may exist where the rule cannot see it; downstream processing and application-specific cost requirements are not established. Other overloads and libraries are outside this Review prompt, which never examines the requirement.",
+          "depth": "partial"
+        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.password-hash-with-fast-hash",
@@ -657,7 +664,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-kdf-parameters",
-          "covers": "Rfc2898DeriveBytes without or under 100000 iterations, BCrypt cost, Scrypt, ASP.NET password hasher iteration count and Argon2 parameters below the floor",
+          "covers": "Explicit PBKDF2 or ASP.NET password-hasher iteration counts under 100000, BCrypt cost under 10, ScryptEncoder N under 16384, and Argon2 iterations under 2 or memory below 19 MiB",
           "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts",
           "depth": "partial"
         },
@@ -711,7 +718,7 @@
           "depth": "partial"
         }
       ],
-      "why": "Fast general purpose hashes applied to a password and work factors below the safe floor are the two storage choices the rules flag; the PHP weak-hash rule from the earlier review stays.",
+      "why": "Fast general purpose hashes applied to a password and explicit work factors below the floor remain partial checks. The C# constructor with an omitted iteration count is a separate Review prompt and never examines this requirement; its password-storage purpose must be confirmed.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -783,12 +790,19 @@
     },
     {
       "requirement": "V11.4.4",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.weak-kdf-parameters-by-default",
+          "covers": "Points at the two-argument Rfc2898DeriveBytes constructor with an omitted iteration count, whose overload uses a low default work factor.",
+          "misses": "The protection or a different derivation purpose may exist where the rule cannot see it; downstream processing, algorithm suitability and deployment-specific work factors are not established. Other overloads and libraries are outside this Review prompt, which never examines the requirement.",
+          "depth": "partial"
+        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.weak-kdf-parameters",
@@ -813,7 +827,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-kdf-parameters",
-          "covers": "Rfc2898DeriveBytes without or under 100000 iterations, BCrypt cost, Scrypt, ASP.NET password hasher iteration count and Argon2 parameters below the floor",
+          "covers": "Explicit PBKDF2 or ASP.NET password-hasher iteration counts under 100000, BCrypt cost under 10, ScryptEncoder N under 16384, and Argon2 iterations under 2 or memory below 19 MiB",
           "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts; bcrypt cost is reported too, although bcrypt is a password hash and not a function that derives a key",
           "depth": "partial"
         },
@@ -839,7 +853,7 @@
           "depth": "partial"
         }
       ],
-      "why": "The work-factor rules flag key derivation calls whose literal parameters are below the safe floor; they do not choose the function.",
+      "why": "The explicit work-factor rules flag parameters below the floor, not the choice or purpose of the function. The C# omitted-count constructor is a separate Review prompt, never an examination of this requirement.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -1082,7 +1096,7 @@
     },
     {
       "requirement": "V11.6.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -1118,13 +1132,28 @@
         },
         {
           "unit": "semgrep-rule",
+          "id": "jgates.php.weak-dh-parameters",
+          "covers": "openssl_pkey_new with OPENSSL_KEYTYPE_DH and a decimal literal private_key_bits below 2048, in either modeled key order",
+          "misses": "Nonliteral sizes, configuration arrays built elsewhere, imported DH parameters, elliptic-curve exchange and the groups negotiated by a deployed TLS stack.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
           "id": "jgates.rust.weak-dh-parameters",
           "covers": "Openssl Dh parameter generation with a size under 2048 bits and the fixed 1024-bit parameters",
           "misses": "Sizes held in variables or configuration; elliptic curve key exchange parameters; the standard groups beyond the weak list; the key exchange algorithms a TLS stack negotiates (that is configuration of the server)",
           "depth": "partial"
         }
       ],
-      "why": "The rule flags small Diffie-Hellman parameters where a language exposes them as literals; key exchange negotiated by a TLS stack is configuration, not read here.",
+      "notes": [
+        {
+          "language": "go",
+          "kind": "not-applicable-to-language",
+          "family": "weak-dh-parameters",
+          "why": "The Go standard library exposes no finite-field Diffie-Hellman parameter generator to configure. This note does not cover third-party implementations or the key exchange negotiated by a TLS stack."
+        }
+      ],
+      "why": "The rules flag small Diffie-Hellman parameters where a language exposes them as literals; key exchange negotiated by a TLS stack is configuration, not read here. The Go note is not a check and contributes no examination evidence.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"

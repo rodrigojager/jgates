@@ -22,7 +22,7 @@
     },
     {
       "requirement": "V14.2.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "privacy"
@@ -80,12 +80,19 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.html.sensitive-query-parameter",
-          "covers": "Forms that send a password field with the GET method",
-          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies",
+          "covers": "HTML forms with an explicit method=get attribute and a password-type input before the closing form tag",
+          "misses": "Forms with no method attribute (the separate Review half), script-controlled submission, sensitive fields of other types, dynamically built markup, and what a deployed system logs or leaks.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.html.sensitive-query-parameter-by-default",
+          "covers": "Points at HTML forms with a password-type input and no method attribute, where browser-default GET can put the password in the query string.",
+          "misses": "The protection may exist where the rule cannot see it, such as script setting the method or intercepting submission; other sensitive field types, dynamic markup and deployed URL handling are not modeled. This Review prompt never examines the requirement.",
           "depth": "partial"
         }
       ],
-      "why": "Sensitive parameter names in URLs and password fields sent by GET are the repository signs of a secret in the query string; what a deployed system puts in URLs is not seen.",
+      "why": "Sensitive parameter names in URLs and password forms with explicit GET remain partial checks. A form with an omitted method is only a Review prompt, never examination evidence; its actual submission handling needs confirmation.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"

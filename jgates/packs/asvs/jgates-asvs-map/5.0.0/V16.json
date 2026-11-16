@@ -226,12 +226,19 @@
     },
     {
       "requirement": "V16.3.4",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.swallowed-exception",
+          "covers": "Empty explicit Err(_) match arms and if let Err(_) blocks, where the local handler contains no logging or handling.",
+          "misses": "Deliberate let _ = and .ok() discards, nonempty handlers, wrappers and failures represented without Result. It does not establish that the error is unexpected or security-sensitive, nor whether another layer logs it; this is informational.",
+          "depth": "partial"
+        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.swallowed-exception",
@@ -275,7 +282,7 @@
           "depth": "partial"
         }
       ],
-      "why": "An error that is caught and dropped is never logged, which is the direct opposite of this item. The rules see the empty handler, not a handler that logs poorly or a security failure that never throws.",
+      "why": "The rules flag local error-dropping shapes, not whether every security-control failure is logged. The Rust informational check sees only empty explicit Err handlers; deliberate let _ = and .ok() discards stay outside.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -319,7 +326,7 @@
     },
     {
       "requirement": "V16.5.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -433,6 +440,13 @@
         },
         {
           "unit": "semgrep-rule",
+          "id": "jgates.rust.error-detail-in-response",
+          "covers": "An Err-bound error's to_string() written directly to an actix HttpResponse body or an axum-style StatusCode tuple within the modeled match arm.",
+          "misses": "Other handlers, extractors and response APIs, messages transformed or passed through helpers, runtime debug pages and whether the error string actually contains sensitive data. This is informational, not a Review absence check.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
           "id": "jgates.config.stack-trace-in-response",
           "covers": "Framework configuration files that switch error detail on for the client (display_errors, custom errors mode, include-stacktrace and the like).",
           "misses": "Settings passed by environment variable or command line, and values that differ between environments.",
@@ -450,7 +464,15 @@
           "depth": "partial"
         }
       ],
-      "why": "The method category and the rules find error detail written into responses in source and in framework configuration; the ZAP check finds what the running pages return. The ZAP identifiers are the alert references of the report (the pluginid of ZAP's application error disclosure and debug error message rules, whose alert reference is not suffixed), matched exactly against the stage's findings.",
+      "notes": [
+        {
+          "language": "rust",
+          "kind": "not-applicable-to-language",
+          "family": "stack-trace-in-response",
+          "why": "Rust error values do not carry an automatically rendered stack trace that a handler returns by default. Explicit backtrace capture, panic/debug middleware and library-specific diagnostic wrappers are outside this note; error messages can still disclose internals."
+        }
+      ],
+      "why": "The method category and the rules find error detail written into responses in source and in framework configuration; the Rust rule adds direct Err message responses, not a stack-trace check. The language note is not examination evidence. The ZAP check finds what the running pages return; its identifiers are the exact passive alert references for application error disclosure and debug messages.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -515,12 +537,19 @@
     },
     {
       "requirement": "V16.5.3",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.swallowed-exception",
+          "covers": "Empty explicit Err(_) match arms and if let Err(_) blocks that drop an error locally without handling it.",
+          "misses": "Deliberate let _ = and .ok() discards, nonempty but unsafe handlers, wrappers and fail-open paths without Result. It does not establish the subsequent transaction outcome or whether another layer handles the failure; this is informational.",
+          "depth": "partial"
+        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.swallowed-exception",
@@ -564,7 +593,7 @@
           "depth": "partial"
         }
       ],
-      "why": "A dropped error is the simplest way a flow goes on after a failed check, and the rules mark only the empty handler. Fail-open logic that raises no error, and what the code does after a validation fails, stay outside what a pattern shows.",
+      "why": "The rules flag local error-dropping shapes that may allow processing to continue, not whether a transaction actually fails open. The Rust informational rule sees only empty explicit Err handlers. Fail-open logic without an error and the handling of validation failures remain outside.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"

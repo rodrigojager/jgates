@@ -160,7 +160,7 @@
     },
     {
       "requirement": "V12.1.3",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -202,7 +202,7 @@
           "depth": "partial"
         }
       ],
-      "why": "Server code that asks for a client certificate and then accepts any of them uses the identity of an untrusted certificate; the rules flag the literal ways that is written.",
+      "why": "The existing checks flag explicit client-certificate verification bypasses in their modeled server APIs. Rust remains a gap: OpenSSL PEER requests and verifies a certificate, NONE does not request one, and an accepts-all callback is an explicit bypass, not an absent protection suitable for Review. No Rust mTLS rule was added, so none is counted or described as examining this requirement.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"

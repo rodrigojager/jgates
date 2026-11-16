@@ -202,12 +202,40 @@
     },
     {
       "requirement": "V15.3.1",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.serializer-exposes-all-fields",
+          "covers": "Points at a model returned through res/response json or send, including toJSON/toObject, after await create, findById or findOne in the same sequence.",
+          "misses": "Serialization exclusions or a safe model type may protect fields where the rule cannot see them; other query and response forms, helpers and cross-function flows are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.serializer-exposes-all-fields",
+          "covers": "Points at an object returned by a JSON response call in a function containing a GORM-style First or Find load into that object.",
+          "misses": "Serialization tags or a dedicated response type may protect fields where the rule cannot see them; other loading and response forms and cross-function flows are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.serializer-exposes-all-fields",
+          "covers": "Points at return Ok(model) or Json(model) in a block that loads the model through Find or awaited FindAsync.",
+          "misses": "Serializer configuration, model exclusions or a safe response type may protect fields where the rule cannot see them; other query and response forms and cross-function flows are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.serializer-exposes-all-fields",
+          "covers": "Points at HttpResponse::Ok().json(model) in a function with a first or load query using ? to obtain that model.",
+          "misses": "Serde exclusions or a safe response type may protect fields where the rule cannot see them; other extraction, loading and response forms are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.serializer-exposes-all-fields",
@@ -230,7 +258,7 @@
           "depth": "partial"
         }
       ],
-      "why": "Returning every field of a data object is the exact shape of returning more than the caller needs. The rules find the declared-all form only, so the check is partial.",
+      "why": "Existing declared-all serializers remain partial checks. The JavaScript, Go, C# and Rust rules only point at whole-model responses whose exclusions need confirmation; these Review checks never examine the requirement or prove that private fields are returned.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -238,7 +266,7 @@
     },
     {
       "requirement": "V15.3.2",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -254,12 +282,54 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.outbound-request-follows-redirects",
-          "covers": "PHP outbound requests whose address comes from request data while redirect following is left on, the default of Guzzle and the Laravel HTTP client.",
-          "misses": "Calls to fixed addresses that follow redirects, other PHP HTTP clients, addresses that reach the call through another function, and every other language.",
+          "covers": "Points at request-derived URLs reaching Guzzle/client-named request or verb calls or Laravel Http verb calls without a literal allow_redirects=false option.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them, such as shared client configuration; fixed URLs, other clients and cross-function flows are not modeled. Intended redirect functionality needs confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.outbound-request-follows-redirects",
+          "covers": "Points at Flask/Django-style request data reaching Requests get, post, put, patch, delete, options or request URL arguments without an allow_redirects argument or expanded keyword arguments.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them; HEAD, sessions, other clients, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.outbound-request-follows-redirects",
+          "covers": "Points at Express-style request data reaching fetch without a redirect option or axios verb calls without maxRedirects in the modeled literal options.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them, including shared axios configuration; other clients, dynamic option forms, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.outbound-request-follows-redirects",
+          "covers": "Points at net/http request inputs reaching http Get, Head, Post or PostForm, or matching calls on a locally constructed http.Client with no visible CheckRedirect field or assignment.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them, including a changed DefaultClient; other clients, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.outbound-request-follows-redirects",
+          "covers": "Points at modeled request inputs or public string parameters reaching URL arguments of GetAsync, GetStringAsync, GetStreamAsync, GetByteArrayAsync, PostAsync, PutAsync or DeleteAsync on a locally constructed parameterless HttpClient.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them; public string parameters need not be request-controlled. Injected clients, custom handlers, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.outbound-request-follows-redirects",
+          "covers": "Points at modeled actix/axum Query or Json inputs reaching reqwest get or blocking get, or verb calls on a client built with ? or unwrap from a reqwest builder lacking redirect().",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them; other extractor signatures, builders, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.outbound-request-follows-redirects",
+          "covers": "Points at servlet parameters or headers tainting a typed HttpURLConnection used through getInputStream, getResponseCode or connect without a visible setInstanceFollowRedirects call.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them, including a global redirect setting; other clients, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
           "depth": "partial"
         }
       ],
-      "why": "The audit block follows redirect handling in fetches, and the rule marks the PHP case where the address is caller-chosen and redirects stay enabled.",
+      "why": "The audit block reads redirect handling. The seven language rules only point at request-influenced outbound calls with no modeled local redirect restriction; these Review checks never examine the requirement, and do not decide whether redirects are intended.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -267,7 +337,7 @@
     },
     {
       "requirement": "V15.3.3",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -304,8 +374,22 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.mass-assignment",
-          "covers": "TryUpdateModelAsync or UpdateModel used without a list of allowed properties.",
-          "misses": "Entities bound as action parameters, DTOs that carry sensitive fields, and binder attributes declared on the model.",
+          "covers": "Points at TryUpdateModelAsync(model[, literal prefix]), TryUpdateModel(model) or UpdateModel(model) without property allowlist arguments in the modeled calls.",
+          "misses": "Binding restrictions or a safe input type may protect fields where the rule cannot see them; entities bound as action parameters, other overloads and sensitive DTO fields are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.mass-assignment",
+          "covers": "Points at ShouldBindJSON or BindJSON into an object in a function that also passes that object to Save or Create.",
+          "misses": "A dedicated input type, binding exclusions or an allowlist may protect fields where the rule cannot see them; other binding and persistence calls, cross-function flows and action-specific permissions are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.mass-assignment",
+          "covers": "Points at a web::Json or actix_web::web::Json handler input passed directly through into_inner to a Diesel-style insert_into(...).values(&...) call.",
+          "misses": "A dedicated input type or field restrictions may protect fields where the rule cannot see them; other extractors, updates, binding shapes and cross-function flows are not modeled. This Review prompt never examines the requirement.",
           "depth": "partial"
         },
         {
@@ -323,7 +407,7 @@
           "depth": "partial"
         }
       ],
-      "why": "The audit block asks whether a body field can change what the action did not mean to change, and the rules name the construct that binds the whole request to a model, in six languages.",
+      "why": "The audit block and existing explicit patterns address request fields reaching models. C#, Go and Rust rules only point at binding and persistence shapes whose field restrictions need confirmation; these Review checks never examine the requirement.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -331,7 +415,7 @@
     },
     {
       "requirement": "V15.3.4",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -347,54 +431,54 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.client-ip-from-forwarded-header",
-          "covers": "The client address read straight from a forwarding header in JavaScript and TypeScript handlers.",
-          "misses": "A permissive trust-proxy setting that lets the framework's own address follow a forged header, the address passing through a helper, and the proxy chain itself.",
+          "covers": "Points at headers indexing or get, header and getHeader calls for the modeled forwarding-header names in JavaScript and TypeScript.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish how the value is used. Framework trust-proxy settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.client-ip-from-forwarded-header",
-          "covers": "The client address read straight from a forwarding header in Python request handlers.",
-          "misses": "A trusted-proxy middleware set to accept the header from any sender, the address passing through a helper, and the proxy chain itself.",
+          "covers": "Points at headers, META or environ indexing and get calls for the modeled forwarded-for, real-IP and Forwarded names.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish how the value is used. Middleware settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.client-ip-from-forwarded-header",
-          "covers": "The client address read straight from a forwarding header in C# handlers.",
-          "misses": "Forwarded-headers middleware that accepts the header from any sender, the address passing through a helper, and the proxy chain itself.",
+          "covers": "Points at Headers indexing, TryGetValue, GetCommaSeparatedValues or ContainsKey for modeled forwarding-header names, including presence tests that do not consume the value.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish use as an address. Middleware settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.client-ip-from-forwarded-header",
-          "covers": "The client address read straight from a forwarding header in Go handlers.",
-          "misses": "A router set to trust every proxy (the default of some frameworks), the address passing through a helper, and the proxy chain itself.",
+          "covers": "Points at Header.Get, Header.Values, Header indexing, GetHeader or Get calls for the modeled forwarding-header names.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish the receiver's type or how the value is used. Router trust settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.client-ip-from-forwarded-header",
-          "covers": "The client address read straight from a forwarding header in Java handlers.",
-          "misses": "A container or filter that rewrites the address from the header for any sender, the address passing through a helper, and the proxy chain itself.",
+          "covers": "Points at getHeader, getHeaders, getFirst or getHeaderString calls and modeled Spring RequestHeader or JAX-RS HeaderParam parameters for forwarding-header names.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish how the value is used. Container settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.client-ip-from-forwarded-header",
-          "covers": "The client address read straight from a forwarding header in PHP code.",
-          "misses": "Trusted proxies set to accept any sender in the framework, the address passing through a helper, and the proxy chain itself.",
+          "covers": "Points at modeled forwarding-header keys in $_SERVER, header/getHeader APIs, getallheaders or apache_request_headers indexing.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish how the value is used. Framework trust settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.client-ip-from-forwarded-header",
-          "covers": "The client address read straight from a forwarding header in Rust handlers.",
-          "misses": "A framework helper that trusts the header on its own (only one actix call is modeled), the address passing through a helper, and the proxy chain itself.",
+          "covers": "Points at get or get_all calls for modeled forwarding-header names and at actix-style connection_info().realip_remote_addr().",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; generic get receivers need not be HTTP headers and the rule does not establish use in a security decision. Other helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
           "depth": "partial"
         }
       ],
-      "why": "The audit block treats forwarded-address headers as trust decisions, and the rules mark the read of such a header as the client address in each language, which is the part of the item a pattern can see.",
+      "why": "The audit block reads forwarded-header trust. The seven language rules only point at header-access shapes whose trusted-proxy boundary is not visible; they do not prove use in a security decision or an untrusted deployment. These Review checks never examine the requirement.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
@@ -402,12 +486,19 @@
     },
     {
       "requirement": "V15.3.5",
-      "status": "reviewed",
+      "status": "pending",
       "evidence": "repository",
       "subdimensions": [
         "injection"
       ],
       "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.loose-comparison-of-secret",
+          "covers": "Points at == or != comparisons with a secret-named identifier or member, excluding comparisons with null or undefined.",
+          "misses": "Operand type guarantees may exist where the rule cannot see them; two strings are not coerced. Other names, strict comparisons, comparator calls and timing safety are not assessed. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.loose-comparison-of-secret",
@@ -416,7 +507,7 @@
           "depth": "partial"
         }
       ],
-      "why": "Type juggling in a comparison is the named weakness, and PHP is where the language makes it the default behaviour of the equality operator. Other languages need their own rules and stay outside.",
+      "why": "The PHP rule addresses type-juggling equality on secret-like values. The JavaScript rule only points at loose comparisons whose operand types need confirmation; it is Review and never examines the requirement or assesses timing safety.",
       "review": {
         "by": "independent review context",
         "date": "2026-11-15"
