@@ -4,7 +4,7 @@
   "entries": [
     {
       "requirement": "V1.1.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -27,8 +27,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.double-decoding",
-          "covers": "A value decoded (URL, HTML or base64) and then passed through the same decoder a second time in the same code path.",
-          "misses": "Decoding spread over two functions or files, a second decode done by a library the rule does not model, other encodings, and whether the decode happens before or after the validation step.",
+          "covers": "Nested or locally repeated html.UnescapeString calls, locally repeated url.QueryUnescape or url.PathUnescape calls, and a local sequence of two base64 encoding DecodeString calls with a string conversion between them.",
+          "misses": "Other decoder APIs and assignment forms, helper boundaries, whether encoded input was expected, and the order relative to validation. The base64 branch does not require the two encoding variants to be identical.",
           "depth": "partial"
         },
         {
@@ -63,7 +63,7 @@
       "why": "A second pass of the same decoder over a value is the shape of decoding more than once, which these rules look for in each language they cover.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -231,7 +231,7 @@
     },
     {
       "requirement": "V1.2.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -247,8 +247,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.url-parameter-unencoded",
-          "covers": "Request data joined by string building into a URL written as a literal that holds a query or a scheme, with no encoding function applied.",
-          "misses": "The scheme check of the finished URL, URL builders and HTTP clients the rule does not model, values that cross a function before the join, and encodings other than URL encoding, and URLs that do not start as a string literal.",
+          "covers": "Modeled Request properties, public-method string parameters or minimal-route string parameters concatenated after a URL-shaped literal ending in '=' or '/', or inserted into a modeled string.Format URL shape, without Uri.EscapeDataString, WebUtility.UrlEncode or HttpUtility.UrlEncode.",
+          "misses": "A public-method parameter is not necessarily request-controlled. Safe-protocol validation, other URL builders and format shapes, helper flows and custom validation or encoding are not checked.",
           "depth": "partial"
         },
         {
@@ -290,12 +290,12 @@
       "why": "Existing checks flag URL string building; the additional Review checks only point at encoding not visible in modeled URL construction and never make the requirement examined.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
       "requirement": "V1.2.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -311,8 +311,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.json-built-by-concatenation",
-          "covers": "Request data joined by string building into JSON or script text instead of going through the language's serializer.",
-          "misses": "Script or JSON built through template engines or helper functions, values that cross a function before the join, and output contexts other than the JSON and script shapes the rule models.",
+          "covers": "Modeled Request properties, public-method string parameters or minimal-route string parameters concatenated after a JSON-like prefix, or inserted into object/script-shaped string.Format text, without the modeled JSON serializers or JavaScriptStringEncode.",
+          "misses": "A public-method parameter is not necessarily request-controlled. Other template or format shapes, helper flows, custom escaping and other output contexts are not checked.",
           "depth": "partial"
         },
         {
@@ -354,7 +354,7 @@
       "why": "Existing checks flag JSON or script string building; the additional Review checks only point at serialization not visible in modeled JSON construction and never make the requirement examined.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -779,7 +779,7 @@
     },
     {
       "requirement": "V1.2.10",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -788,29 +788,29 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.csv-formula-injection",
-          "covers": "Request data written as a field of a CSV writer with no check of its first character.",
-          "misses": "Spreadsheet formats (XLS, XLSX, ODF), exports built by string joining, values that cross a function before the writer, stored data written to the export, and the quoting rules of the CSV format itself.",
+          "covers": "Modeled Flask/Django request data reaching writerow or writerows on a locally constructed csv.writer or csv.DictWriter, excluding single-quote prefixes and lstrip(\"=+-@\") results.",
+          "misses": "The rule does not inspect the first character or validate custom guards. Its lstrip exclusion is not proof of the required single-quote escaping, including tab/null handling. Other spreadsheet formats, helper flows, stored data and RFC 4180 quoting are not checked.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.csv-formula-injection",
-          "covers": "Request data written as a field of a CSV writer with no check of its first character.",
-          "misses": "Spreadsheet formats (XLS, XLSX, ODF), exports built by string joining, values that cross a function before the writer, stored data written to the export, and the quoting rules of the CSV format itself.",
+          "covers": "Modeled Request properties, public-method string parameters or minimal-route string parameters reaching modeled WriteField calls, excluding SanitizeCsvField and EscapeCsvField results.",
+          "misses": "A public-method parameter is not necessarily request-controlled. The rule trusts named helpers without inspecting their bodies and does not inspect the first character, custom guards, other spreadsheet formats, stored data, helper flows or RFC 4180 quoting.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.csv-formula-injection",
-          "covers": "Request data written as a field of a CSV writer or a spreadsheet cell with no check of its first character.",
-          "misses": "Spreadsheet libraries the rule does not model, exports built by string joining, values that cross a function before the writer, stored data written to the export, and the quoting rules of the CSV format itself.",
+          "covers": "Modeled Go web request data reaching a csv.Writer Write string-slice element or a SetCellValue value argument, excluding sanitizeCSVField and escapeCSVField results.",
+          "misses": "The rule does not inspect the first character or the bodies of its named helpers. SetCellValue is matched by call shape without proving the library or formula interpretation. Other writers, custom guards, stored data, helper flows and RFC 4180 quoting are not checked.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.csv-formula-injection",
-          "covers": "Request data written as a field of a CSV writer or a spreadsheet cell with no check of its first character.",
-          "misses": "Spreadsheet libraries the rule does not model, exports built by string joining, values that cross a function before the writer, stored data written to the export, and the quoting rules of the CSV format itself.",
+          "covers": "Modeled servlet/Spring/JAX-RS request data reaching CSVPrinter printRecord/print, CSVWriter writeNext string-array elements or Cell.setCellValue, excluding sanitizeCsvField results.",
+          "misses": "The rule does not inspect the first character or its named helper's body, and a setCellValue match does not prove formula interpretation by a spreadsheet. Other writers, custom guards, stored data, helper flows and RFC 4180 quoting are not checked.",
           "depth": "partial"
         },
         {
@@ -835,10 +835,10 @@
           "depth": "partial"
         }
       ],
-      "why": "Writing request data as a spreadsheet field with no check of its first character is the formula-injection exposure of an export.",
+      "why": "These partial checks trace modeled input to CSV or spreadsheet-writing call shapes and exclude specific escaping helpers; they do not prove the first-character escaping or RFC 4180 quoting required for every export.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -980,7 +980,7 @@
     },
     {
       "requirement": "V1.3.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -989,15 +989,15 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.js.markdown-raw-html-enabled",
-          "covers": "A Markdown renderer configured, or left at a default, so that raw HTML in the text passes through to its output.",
-          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, whether the text rendered comes from a user, and other scriptable content such as BBCode or CSS.",
+          "covers": "Explicit html: true in modeled markdown-it or Remarkable constructors, allowDangerousHtml: true in remarkRehype, or sanitize: false in marked.setOptions/use.",
+          "misses": "Renderer defaults, other configuration shapes or libraries, version-specific option semantics, later sanitization, whether input is untrusted, and non-Markdown scriptable content are not checked.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.markdown-raw-html-enabled",
-          "covers": "A Markdown renderer configured, or left at a default, so that raw HTML in the text passes through to its output.",
-          "misses": "Markdown libraries the rule does not model, sanitizers applied elsewhere in the request path, whether the text rendered comes from a user, and other scriptable content such as BBCode or CSS.",
+          "covers": "Explicit html: True in modeled MarkdownIt options, escape=False in mistune constructors, safe_mode=False in markdown2 calls, or the cmarkgfm CMARK_OPT_UNSAFE option.",
+          "misses": "Renderer defaults, other configuration shapes or libraries, later sanitization, whether input is untrusted, and non-Markdown scriptable content are not checked.",
           "depth": "partial"
         },
         {
@@ -1102,7 +1102,7 @@
       "why": "Explicit Markdown options and request-supplied XSLT remain partial checks. Review checks point at Markdown calls with protection not visible locally; they never make the requirement examined.",
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -1276,7 +1276,7 @@
     },
     {
       "requirement": "V1.3.9",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -1292,8 +1292,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.memcache-key-from-request",
-          "covers": "Request data used as a memcache key.",
-          "misses": "Memcache clients the rule does not model, keys that cross a function before use, the validation or hashing a project applies in a helper, and the value stored under the key.",
+          "covers": "Modeled Request properties, public-method string parameters or minimal-route string parameters in key arguments of modeled IMemcachedClient or MemcachedClient operations, excluding Convert.ToHexString or ValidateCacheKey results.",
+          "misses": "A public-method parameter is not necessarily request-controlled. The rule does not inspect helper bodies, custom key validation, protocol behavior of a client version, other clients, helper flows or the stored value.",
           "depth": "partial"
         },
         {
@@ -1340,7 +1340,7 @@
       },
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -1412,7 +1412,7 @@
     },
     {
       "requirement": "V1.3.11",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -1449,8 +1449,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.rust.mail-header-injection",
-          "covers": "Request data placed in a header (recipient, subject, extra headers) of a mail message built as text.",
-          "misses": "Mail libraries that reject line breaks themselves, IMAP commands, values that cross a function before the message is built, and body content.",
+          "covers": "Modeled axum/actix request extractor data in a format! argument when the format literal starts with To, Cc, Bcc, From, Subject, Reply-To or Sender followed by a colon, excluding strip_crlf or strip_newlines results.",
+          "misses": "The rule does not locate the tainted argument's placeholder within the header rather than the body. Other format shapes, mail APIs, IMAP, custom guards and cross-function flows are not checked.",
           "depth": "partial"
         },
         {
@@ -1467,7 +1467,7 @@
           "language": "csharp",
           "kind": "protected-by-library",
           "family": "mail-header-injection",
-          "why": "System.Net.Mail and MimeKit reject line breaks in structured header values, protecting those header APIs against CR/LF injection. This is a library property, not a JGates check or a claim about raw MIME text or bypass APIs."
+          "why": "System.Net.Mail.MailMessage.Subject rejects values containing CR or LF before storing the subject. This scoped library protection is not a JGates check and makes no claim about other header APIs, MimeKit, raw MIME text or IMAP."
         }
       ],
       "applies": {
@@ -1477,7 +1477,7 @@
       },
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
@@ -1638,7 +1638,7 @@
     },
     {
       "requirement": "V1.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -1675,8 +1675,8 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.php.xml-external-entity",
-          "covers": "An XML parser explicitly configured so that DTDs or external entities are resolved.",
-          "misses": "Parsers configured in another function or by a shared factory, parsers left at a library default that resolves entities, libraries the rule does not model, and parser behaviour that depends on the library version.",
+          "covers": "Occurrences of LIBXML_NOENT or LIBXML_DTDLOAD, libxml_disable_entity_loader(false), and XMLReader-shaped calls setting SUBST_ENTITIES or LOADDTD to true.",
+          "misses": "A constant occurrence alone does not prove it is used by a parser. Other settings, indirect configuration, defaults, custom resolvers and version-dependent parser behavior are not checked.",
           "depth": "partial"
         }
       ],
@@ -1686,12 +1686,12 @@
           "language": "rust",
           "kind": "protected-by-library",
           "family": "xml-external-entity",
-          "why": "Common Rust XML libraries quick-xml, roxmltree and xml-rs do not fetch external entities or external DTDs themselves. This is a library property, not a JGates check of application-supplied resolvers or other XML libraries."
+          "why": "roxmltree 0.21.2 defaults to allow_dtd: false and no external entity resolver. This scoped library default is not a JGates check of changed parsing options, application-supplied resolvers, quick-xml, xml-rs or other XML libraries."
         }
       ],
       "review": {
         "by": "independent review context",
-        "date": "2026-11-15"
+        "date": "2026-11-16"
       }
     },
     {
