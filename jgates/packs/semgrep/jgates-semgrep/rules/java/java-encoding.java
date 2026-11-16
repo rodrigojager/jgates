@@ -193,15 +193,22 @@ class EncodingFixture {
 
     // ---- markdown-raw-html-enabled ----
     void markdown() {
-        // ruleid: jgates.java.markdown-raw-html-enabled
+        // ruleid: jgates.java.markdown-raw-html-enabled-by-default
         HtmlRenderer a = HtmlRenderer.builder().build();
         // ruleid: jgates.java.markdown-raw-html-enabled
         HtmlRenderer b = HtmlRenderer.builder().escapeHtml(false).build();
-        // ruleid: jgates.java.markdown-raw-html-enabled
+        // ruleid: jgates.java.markdown-raw-html-enabled-by-default
         HtmlRenderer c = HtmlRenderer.builder().extensions(java.util.List.of()).build();
         // ok: jgates.java.markdown-raw-html-enabled
         HtmlRenderer d = HtmlRenderer.builder().escapeHtml(true).build();
         // ok: jgates.java.markdown-raw-html-enabled
         HtmlRenderer e = HtmlRenderer.builder().extensions(java.util.List.of()).escapeHtml(true).build();
+        // ok: jgates.java.markdown-raw-html-enabled-by-default
+        HtmlRenderer safeDefault = HtmlRenderer.builder().escapeHtml(true).build();
+        // ok: jgates.java.markdown-raw-html-enabled-by-default
+        HtmlRenderer safeExtensions = HtmlRenderer.builder().extensions(java.util.List.of()).escapeHtml(true).build();
+        // ruleid: jgates.java.markdown-raw-html-enabled
+        HtmlRenderer f = HtmlRenderer.builder().extensions(java.util.List.of()).escapeHtml(false).build();
     }
+
 }

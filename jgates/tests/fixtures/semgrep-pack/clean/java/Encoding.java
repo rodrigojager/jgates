@@ -58,4 +58,8 @@ class Encoding {
     HtmlRenderer renderer() {
         return HtmlRenderer.builder().escapeHtml(true).build();
     }
+
+    HtmlRenderer configuredRenderer() {
+        return HtmlRenderer.builder().escapeHtml(true).build();
+    }
 }

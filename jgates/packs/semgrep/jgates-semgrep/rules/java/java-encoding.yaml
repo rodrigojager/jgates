@@ -749,6 +749,22 @@ rules:
     patterns:
       - pattern-either:
           - pattern: $B.escapeHtml(false)
+          - pattern: $O.set(HtmlRenderer.ESCAPE_HTML, false)
+
+  - id: jgates.java.markdown-raw-html-enabled-by-default
+    message: A Markdown renderer is built without a visible HTML-escaping option. Raw HTML passes through by default; enable HTML escaping here or confirm that the rendered output is sanitized before use.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+      class: review
+    patterns:
+      - pattern-either:
           - pattern: HtmlRenderer.builder().build()
           - pattern: HtmlRenderer.builder().extensions($E).build()
-          - pattern: $O.set(HtmlRenderer.ESCAPE_HTML, false)
+      - pattern-not: HtmlRenderer.builder().escapeHtml(false).build()
+      - pattern-not: HtmlRenderer.builder().extensions($E).escapeHtml(false).build()
