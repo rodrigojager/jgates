@@ -22,7 +22,7 @@
     },
     {
       "requirement": "V14.2.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "privacy"
@@ -45,7 +45,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.go.sensitive-query-parameter",
-          "covers": "URL strings and url.Values that carry a password, secret or API key parameter name",
+          "covers": "URL-like strings with a modeled sensitive parameter name, and Set or Add on a variable obtained from a Query() call with that name",
           "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
           "depth": "partial"
         },
@@ -81,21 +81,21 @@
           "unit": "semgrep-rule",
           "id": "jgates.html.sensitive-query-parameter",
           "covers": "HTML forms with an explicit method=get attribute and a password-type input before the closing form tag",
-          "misses": "Forms with no method attribute (the separate Review half), script-controlled submission, sensitive fields of other types, dynamically built markup, and what a deployed system logs or leaks.",
+          "misses": "Forms with no method attribute (the separate Review half), script-controlled submission, submitter formmethod overrides, disabled or unnamed password inputs, sensitive fields of other types, dynamically built markup, and what a deployed system logs or leaks; the regex does not establish that the password input is a successful submitted control.",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.html.sensitive-query-parameter-by-default",
           "covers": "Points at HTML forms with a password-type input and no method attribute, where browser-default GET can put the password in the query string.",
-          "misses": "The protection may exist where the rule cannot see it, such as script setting the method or intercepting submission; other sensitive field types, dynamic markup and deployed URL handling are not modeled. This Review prompt never examines the requirement.",
+          "misses": "The protection may exist where the rule cannot see it, such as script setting the method, intercepting submission or a submitter formmethod override; disabled or unnamed inputs need not submit a password. Other sensitive field types, dynamic markup and deployed URL handling are not modeled. This Review prompt never examines the requirement.",
           "depth": "partial"
         }
       ],
       "why": "Sensitive parameter names in URLs and password forms with explicit GET remain partial checks. A form with an omitted method is only a Review prompt, never examination evidence; its actual submission handling needs confirmation.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {

@@ -202,7 +202,7 @@
     },
     {
       "requirement": "V15.3.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -239,7 +239,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.serializer-exposes-all-fields",
-          "covers": "Python serializers or model forms declared to output every field of a model, so a column added later is returned unreviewed.",
+          "covers": "ModelSerializer or HyperlinkedModelSerializer classes with fields = \"__all__\", declaring every model field for serialization.",
           "misses": "Handlers that return a model object directly, serializers whose field list is built dynamically, and fields that are listed but should not be.",
           "depth": "partial"
         },
@@ -260,13 +260,13 @@
       ],
       "why": "Existing declared-all serializers remain partial checks. The JavaScript, Go, C# and Rust rules only point at whole-model responses whose exclusions need confirmation; these Review checks never examine the requirement or prove that private fields are returned.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {
       "requirement": "V15.3.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -331,13 +331,13 @@
       ],
       "why": "The audit block reads redirect handling. The seven language rules only point at request-influenced outbound calls with no modeled local redirect restriction; these Review checks never examine the requirement, and do not decide whether redirects are intended.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {
       "requirement": "V15.3.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -409,13 +409,13 @@
       ],
       "why": "The audit block and existing explicit patterns address request fields reaching models. C#, Go and Rust rules only point at binding and persistence shapes whose field restrictions need confirmation; these Review checks never examine the requirement.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {
       "requirement": "V15.3.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "authorization"
@@ -480,13 +480,13 @@
       ],
       "why": "The audit block reads forwarded-header trust. The seven language rules only point at header-access shapes whose trusted-proxy boundary is not visible; they do not prove use in a security decision or an untrusted deployment. These Review checks never examine the requirement.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {
       "requirement": "V15.3.5",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "injection"
@@ -509,8 +509,8 @@
       ],
       "why": "The PHP rule addresses type-juggling equality on secret-like values. The JavaScript rule only points at loose comparisons whose operand types need confirmation; it is Review and never examines the requirement or assesses timing safety.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {

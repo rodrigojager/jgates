@@ -226,7 +226,7 @@
     },
     {
       "requirement": "V16.3.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -284,8 +284,8 @@
       ],
       "why": "The rules flag local error-dropping shapes, not whether every security-control failure is logged. The Rust informational check sees only empty explicit Err handlers; deliberate let _ = and .ok() discards stay outside.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {
@@ -326,7 +326,7 @@
     },
     {
       "requirement": "V16.5.1",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -365,7 +365,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.python.stack-trace-in-response",
           "covers": "Python tracebacks or formatted exception traces written into an HTTP response.",
-          "misses": "Traces placed in a variable first, a debug mode that renders them, and other response APIs.",
+          "misses": "Cross-function trace flows, a debug mode that renders traces, and response APIs outside the modeled sinks; local variable propagation is modeled by this taint rule.",
           "depth": "partial"
         },
         {
@@ -379,7 +379,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.csharp.stack-trace-in-response",
           "covers": "An exception's stack trace written into the HTTP response.",
-          "misses": "Traces placed in a variable first, the developer exception page enabled by configuration, and other response APIs.",
+          "misses": "Cross-function trace flows, the developer exception page enabled by configuration, and response APIs outside the modeled sinks; local variable propagation is modeled by this taint rule.",
           "depth": "partial"
         },
         {
@@ -393,7 +393,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.go.stack-trace-in-response",
           "covers": "A stack trace written to an HTTP response writer.",
-          "misses": "Traces placed in a variable first, and response paths of frameworks the rule does not model.",
+          "misses": "Cross-function trace flows and response paths outside the modeled sinks; local variable propagation is modeled by this taint rule, and writer-like names do not establish an HTTP writer type.",
           "depth": "partial"
         },
         {
@@ -407,7 +407,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.java.stack-trace-in-response",
           "covers": "A stack trace written through the servlet response, Spring or JAX-RS response objects.",
-          "misses": "Traces put into a variable first, and the container's own error page.",
+          "misses": "Cross-function trace flows, response APIs outside the modeled sinks and the container's own error page; local variable propagation is modeled by this taint rule.",
           "depth": "partial"
         },
         {
@@ -449,7 +449,7 @@
           "unit": "semgrep-rule",
           "id": "jgates.config.stack-trace-in-response",
           "covers": "Framework configuration files that switch error detail on for the client (display_errors, custom errors mode, include-stacktrace and the like).",
-          "misses": "Settings passed by environment variable or command line, and values that differ between environments.",
+          "misses": "Settings passed by environment variable or command line and values that differ between environments; display_errors=stderr is also matched even though it directs errors to stderr rather than the client.",
           "depth": "partial"
         },
         {
@@ -469,13 +469,13 @@
           "language": "rust",
           "kind": "not-applicable-to-language",
           "family": "stack-trace-in-response",
-          "why": "Rust error values do not carry an automatically rendered stack trace that a handler returns by default. Explicit backtrace capture, panic/debug middleware and library-specific diagnostic wrappers are outside this note; error messages can still disclose internals."
+          "why": "Rust's standard Error trait does not require a captured backtrace or automatically render one in an HTTP response. Custom Display/Debug implementations, explicit backtrace capture, panic/debug middleware and diagnostic wrappers can expose traces and are outside this note; error messages can still disclose internals."
         }
       ],
       "why": "The method category and the rules find error detail written into responses in source and in framework configuration; the Rust rule adds direct Err message responses, not a stack-trace check. The language note is not examination evidence. The ZAP check finds what the running pages return; its identifiers are the exact passive alert references for application error disclosure and debug messages.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {
@@ -537,7 +537,7 @@
     },
     {
       "requirement": "V16.5.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "hardening"
@@ -595,8 +595,8 @@
       ],
       "why": "The rules flag local error-dropping shapes that may allow processing to continue, not whether a transaction actually fails open. The Rust informational rule sees only empty explicit Err handlers. Fail-open logic without an error and the handling of validation failures remain outside.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {

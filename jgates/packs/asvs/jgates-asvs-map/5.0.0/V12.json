@@ -160,7 +160,7 @@
     },
     {
       "requirement": "V12.1.3",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -176,7 +176,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.python.mtls-client-certificate-not-verified",
-          "covers": "PyOpenSSL set_verify with a callback that always returns true",
+          "covers": "set_verify calls with a literal lambda returning True or 1, the PyOpenSSL accepts-all callback shape",
           "misses": "Validation that is present but too lax; client certificate checks done in a proxy or at the identity layer; whether the identity of a certificate is used for authorization in a sound way; servers in the other languages of the pack are not modeled",
           "depth": "partial"
         },
@@ -204,8 +204,8 @@
       ],
       "why": "The existing checks flag explicit client-certificate verification bypasses in their modeled server APIs. Rust remains a gap: OpenSSL PEER requests and verifies a certificate, NONE does not request one, and an accepts-all callback is an explicit bypass, not an absent protection suitable for Review. No Rust mTLS rule was added, so none is counted or described as examining this requirement.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {

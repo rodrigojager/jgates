@@ -599,7 +599,7 @@
     },
     {
       "requirement": "V11.4.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -664,14 +664,14 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-kdf-parameters",
-          "covers": "Explicit PBKDF2 or ASP.NET password-hasher iteration counts under 100000, BCrypt cost under 10, ScryptEncoder N under 16384, and Argon2 iterations under 2 or memory below 19 MiB",
+          "covers": "Explicit PBKDF2 iteration counts under 100000, IterationCount assignments or PasswordHasherOptions initializers under 100000, BCrypt cost under 10, ScryptEncoder N under 16384, and regex-matched Argon2 initializers with Iterations 0 or 1 or decimal MemorySize below 19000 KiB",
           "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts",
           "depth": "partial"
         },
         {
           "unit": "semgrep-rule",
           "id": "jgates.java.password-hash-with-fast-hash",
-          "covers": "MessageDigest, commons-codec DigestUtils and Guava hashing applied to a password-named value",
+          "covers": "Digest or update calls on receivers whose names do not contain mac, bcrypt, argon, scrypt or pbkdf, plus modeled commons-codec DigestUtils and Guava hashing calls, applied to a password-named value",
           "misses": "Passwords under names the pattern does not match; values that cross a function; hashes that include a salt added elsewhere; passwords stored with no hash at all; the cost settings of an approved function; a fast hash taken for another purpose than storing a password (a reset token, a check against a list of breached passwords, a pre-hash before a slow function) is reported too",
           "depth": "partial"
         },
@@ -720,8 +720,8 @@
       ],
       "why": "Fast general purpose hashes applied to a password and explicit work factors below the floor remain partial checks. The C# constructor with an omitted iteration count is a separate Review prompt and never examines this requirement; its password-storage purpose must be confirmed.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {
@@ -790,7 +790,7 @@
     },
     {
       "requirement": "V11.4.4",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -827,7 +827,7 @@
         {
           "unit": "semgrep-rule",
           "id": "jgates.csharp.weak-kdf-parameters",
-          "covers": "Explicit PBKDF2 or ASP.NET password-hasher iteration counts under 100000, BCrypt cost under 10, ScryptEncoder N under 16384, and Argon2 iterations under 2 or memory below 19 MiB",
+          "covers": "Explicit PBKDF2 iteration counts under 100000, IterationCount assignments or PasswordHasherOptions initializers under 100000, BCrypt cost under 10, ScryptEncoder N under 16384, and regex-matched Argon2 initializers with Iterations 0 or 1 or decimal MemorySize below 19000 KiB",
           "misses": "Work factors held in variables or configuration; other libraries; the choice of function itself when it is not one of those listed; whether the settings balance cost and speed for the deployed hardware; an Argon2 time cost of 1 is reported even when the memory setting is large, a combination that some guidance accepts; bcrypt cost is reported too, although bcrypt is a password hash and not a function that derives a key",
           "depth": "partial"
         },
@@ -855,8 +855,8 @@
       ],
       "why": "The explicit work-factor rules flag parameters below the floor, not the choice or purpose of the function. The C# omitted-count constructor is a separate Review prompt, never an examination of this requirement.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {
@@ -1096,7 +1096,7 @@
     },
     {
       "requirement": "V11.6.2",
-      "status": "pending",
+      "status": "reviewed",
       "evidence": "repository",
       "subdimensions": [
         "cryptography"
@@ -1155,8 +1155,8 @@
       ],
       "why": "The rules flag small Diffie-Hellman parameters where a language exposes them as literals; key exchange negotiated by a TLS stack is configuration, not read here. The Go note is not a check and contributes no examination evidence.",
       "review": {
-        "by": "independent review context",
-        "date": "2026-11-15"
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
       }
     },
     {
