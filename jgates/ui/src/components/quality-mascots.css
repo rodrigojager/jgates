@@ -1,6 +1,6 @@
 /* The Quality strip on top of the shared look (mascot-strip.css): one canvas behind the six mascots, the room it holds
    while it loads, the coverage of each subdimension and the details of each category. */
-.quality-mascots { position: relative; isolation: isolate; padding: 8px 0 16px; min-height: var(--qm-room, 552px); }
+.quality-mascots { position: relative; isolation: isolate; padding: 8px 0 16px; min-height: var(--qm-room, 589px); }
 /* The room of a strip that is still loading: the same height the strip will have, so nothing below it moves. */
 .quality-mascots.reserved { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--line) 35%, transparent), transparent); background-size: 200% 100%; border-radius: var(--radius); animation: qm-wait 1.6s ease-in-out infinite; }
 @keyframes qm-wait { from { background-position: 100% 0; } to { background-position: -100% 0; } }
@@ -13,5 +13,5 @@
 .quality-mascot-details { font: inherit; font-size: 11px; color: inherit; background: transparent; border: 0; text-decoration: underline; cursor: pointer; padding: 5px; }
 .quality-mascot-details:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .quality-mascot-evidence { padding-top: 16px; }
-@media (max-width: 1050px) { .quality-mascots { --qm-room: 990px; } }
-@media (max-width: 520px) { .quality-mascots { --qm-room: 1420px; } }
+@media (max-width: 1050px) { .quality-mascots { --qm-room: 1026px; } }
+@media (max-width: 520px) { .quality-mascots { --qm-room: 1422px; } }

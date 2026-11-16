@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { MAIN, createGateFixture, openApp, startGateServer, type GateFixture } from "./support";
+import { MAIN, createGateFixture, openApp, reloadPage, startGateServer, type GateFixture } from "./support";
 
 // The ASVS review (method asvs-review) in the Semantic screens: it is in the method list and selectable by keyboard, the
 // list can select every method at once, the preview shows how many requirements will be reviewed and asks for the cost
@@ -112,6 +112,8 @@ async function serious(page: Page, label: string): Promise<string[]> {
 /** The Choices step of the setup screen, by keyboard: the scope step first, then "Next". */
 async function openChoices(page: Page, base: string, words: (typeof TEXT)[keyof typeof TEXT]): Promise<void> {
   await page.goto(`${base}#/semantic/setup`);
+  // The first visit in a language other than the cached one reloads the app once: settle that reload first.
+  await reloadPage(page);
   const next = page.getByRole("button", { name: words.next, exact: true });
   await expect(next).toBeVisible();
   await next.focus();
@@ -243,6 +245,7 @@ for (const [language, width] of [["pt-BR", 1280], ["en", 375]] as const) {
     await withApp(language, async ({ page, base }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`${base}#/semantic/results/${RUN}`);
+      await reloadPage(page);
       await expect(page.getByTestId("semantic-results")).toBeVisible();
       const section = page.getByTestId("semres-asvsr");
       await expect(section).toBeVisible();
@@ -269,6 +272,7 @@ test("the Help screen and the history name the ASVS review in both languages", a
   for (const language of ["pt-BR", "en"] as const) {
     await withApp(language, async ({ page, base }) => {
       await page.goto(`${base}#/help`);
+      await reloadPage(page);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expect(page.getByText(`jgates semantic run --method ${METHOD}`)).toBeVisible();
       await page.goto(`${base}#/semantic`);

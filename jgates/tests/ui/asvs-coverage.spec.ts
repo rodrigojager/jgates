@@ -523,7 +523,7 @@ test("the Quality result, the Semantic result and the overview link to the map, 
       ["#/overview", "#/validations/coverage/asvs"],
     ] as const) {
       await page.goto(`${url}${route}`);
-      await page.reload();
+      await reloadPage(page);
       const link = page.getByTestId("asvs-link");
       await expect(link).toBeVisible();
       await expect(link).toHaveAttribute("href", href);
@@ -589,7 +589,12 @@ const SUGGEST: Record<"pt-BR" | "en", SuggestionTexts> = {
 /** Patches the map's answer: a suggestion on one row, one shared by a whole section, split counts and two more checks on an examined row. */
 async function patchMap(page: Page, ids: Ids, s: SuggestionTexts): Promise<void> {
   await page.route(/\/api\/coverage\/asvs\?/, async (route) => {
-    const response = await route.fetch();
+    // The server filters by `withSuggestion` itself, before the suggestions added here exist: ask it for the whole map and
+    // apply the filter after the patch.
+    const requested = new URL(route.request().url());
+    const withSuggestion = requested.searchParams.get("withSuggestion") === "true";
+    requested.searchParams.delete("withSuggestion");
+    const response = await route.fetch({ url: requested.toString() });
     const body = await response.json();
     const rowOf = (id: string) => body.requirements.find((r: { id: string }) => r.id === id);
     const target = rowOf(ids.target);
@@ -602,12 +607,14 @@ async function patchMap(page: Page, ids: Ids, s: SuggestionTexts): Promise<void>
     }
     const examined = rowOf(ids.examined);
     if (examined && examined.checks.length > 0) {
-      const first = examined.checks[0];
-      Object.assign(first, { language: "html", openFindings: 5, openBlocking: 2, openInformational: 3, ran: true, status: "ran", relevant: true });
-      examined.checks.push({ ...first, unit: "semantic-requirement", id: "asvs-review", basis: "ai-source-review", language: undefined, openFindings: 0, openBlocking: 0, openInformational: 0 });
-      examined.checks.push({ ...first, unit: "semgrep-rule", id: "config-rule", basis: "deterministic", language: "config", openFindings: 0, openBlocking: 0, openInformational: 0 });
+      // The row may carry only an AI review of the source: the numbers go on deterministic checks added here, listed first,
+      // and the existing checks are left as they are.
+      const base = { ...examined.checks[0], ran: true, status: "ran", relevant: true };
+      examined.checks.unshift({ ...base, unit: "semgrep-rule", id: "html-rule", basis: "deterministic", language: "html", openFindings: 5, openBlocking: 2, openInformational: 3 });
+      examined.checks.push({ ...base, unit: "semantic-requirement", id: "asvs-review", basis: "ai-source-review", language: undefined, openFindings: 0, openBlocking: 0, openInformational: 0 });
+      examined.checks.push({ ...base, unit: "semgrep-rule", id: "config-rule", basis: "deterministic", language: "config", openFindings: 0, openBlocking: 0, openInformational: 0 });
     }
-    if (new URL(route.request().url()).searchParams.get("withSuggestion") === "true") body.requirements = body.requirements.filter((r: { suggestion?: unknown }) => r.suggestion !== undefined);
+    if (withSuggestion) body.requirements = body.requirements.filter((r: { suggestion?: unknown }) => r.suggestion !== undefined);
     await route.fulfill({ response, json: body });
   });
 }

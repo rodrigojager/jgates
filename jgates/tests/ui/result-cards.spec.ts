@@ -287,6 +287,9 @@ for (const language of ["pt-BR", "en"] as const) {
         // The keyboard opens the link; the address carries the requirement.
         await press(page, labels.first());
         await expect(page).toHaveURL(/requirement=V3\.3\.1/);
+        // The map is loaded on demand: axe looks at it only once its screen is there.
+        await expect(page.getByTestId("asvs-screen")).toBeVisible();
+        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
         const axe = await new AxeBuilder({ page }).analyze();
         expect(axe.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
