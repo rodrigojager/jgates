@@ -55,6 +55,20 @@ function archive_cases($path, $dir)
         // ok: jgates.php.archive-extraction-unchecked
         file_put_contents($dir . '/' . $i . '.bin', $zip->getFromIndex($i));
     }
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $entry = $zip->getNameIndex($i);
+        if (preg_match('/\A[a-zA-Z0-9_-]+\.csv\z/', $entry) === 1) {
+            // ok: jgates.php.archive-extraction-unchecked
+            file_put_contents($dir . '/' . $entry, $zip->getFromIndex($i));
+        }
+    }
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $name = $zip->getNameIndex($i);
+        if (preg_match('/\A[a-zA-Z0-9_-]+\.csv\z/', $name) === 1) {
+            // ok: jgates.php.archive-extraction-unchecked
+            $output = fopen($dir . '/' . $name, 'wb');
+        }
+    }
 }
 
 // ---- request-body-without-size-limit ----

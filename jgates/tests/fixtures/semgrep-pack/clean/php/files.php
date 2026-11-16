@@ -11,7 +11,23 @@ class DocumentController
     {
         $zip = new ZipArchive();
         $zip->open($archive);
-        $zip->extractTo($dir, ['report.csv', 'summary.csv']);
+        if ($zip->numFiles > 100) {
+            throw new RuntimeException('Too many archive entries');
+        }
+        $totalSize = 0;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $stat = $zip->statIndex($i);
+            $totalSize += $stat['size'];
+            if ($totalSize > 10485760) {
+                throw new RuntimeException('Archive exceeds expanded size limit');
+            }
+        }
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entry = $zip->getNameIndex($i);
+            if (preg_match('/\A[a-zA-Z0-9_-]+\.csv\z/', $entry) === 1) {
+                file_put_contents($dir . '/' . $entry, $zip->getFromIndex($i));
+            }
+        }
     }
 
     public function configure(): void
