@@ -7,6 +7,7 @@
     "jgates.go.stack-trace-in-response",
     "jgates.go.error-detail-in-response",
     "jgates.go.swallowed-exception",
-    "jgates.go.http-client-without-timeout"
+    "jgates.go.http-client-without-timeout",
+    "jgates.go.outbound-request-follows-redirects"
   ]
 }

@@ -137,4 +137,39 @@ func outbound(u string) {
 	_ = other
 }
 
+// --- outbound-request-follows-redirects ---
+
+func redirectDefaults(w http.ResponseWriter, r *http.Request) {
+	target := r.URL.Query().Get("url")
+	// ruleid: jgates.go.outbound-request-follows-redirects, jgates.go.http-client-without-timeout
+	http.Get(target)
+	client := &http.Client{Timeout: 10 * time.Second}
+	// ruleid: jgates.go.outbound-request-follows-redirects
+	client.Get(target)
+	valueClient := http.Client{Timeout: 10 * time.Second}
+	// ruleid: jgates.go.outbound-request-follows-redirects
+	valueClient.Head(r.FormValue("url"))
+}
+
+func redirectPolicy(w http.ResponseWriter, r *http.Request) {
+	target := r.URL.Query().Get("url")
+	client := &http.Client{Timeout: 10 * time.Second, CheckRedirect: rejectRedirect}
+	// ok: jgates.go.outbound-request-follows-redirects
+	client.Get(target)
+	valueClient := http.Client{Timeout: 10 * time.Second, CheckRedirect: rejectRedirect}
+	// ok: jgates.go.outbound-request-follows-redirects
+	valueClient.Head(r.FormValue("url"))
+	assigned := &http.Client{Timeout: 10 * time.Second}
+	assigned.CheckRedirect = rejectRedirect
+	// ok: jgates.go.outbound-request-follows-redirects
+	assigned.Get(target)
+	defaults := &http.Client{Timeout: 10 * time.Second}
+	// ok: jgates.go.outbound-request-follows-redirects
+	defaults.Get("https://rates.example.com/latest")
+}
+
+func rejectRedirect(req *http.Request, via []*http.Request) error {
+	return http.ErrUseLastResponse
+}
+
 func work() error { return nil }

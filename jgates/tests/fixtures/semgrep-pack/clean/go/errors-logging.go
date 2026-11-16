@@ -42,6 +42,17 @@ func fetchRates(url string) {
 	client.Get(url)
 }
 
+func fetchDestination(w http.ResponseWriter, r *http.Request) {
+	destination := r.URL.Query().Get("url")
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	client.Get(destination)
+}
+
 func authenticate(user string, password string) error { return nil }
 
 func removeTemp() error { return nil }

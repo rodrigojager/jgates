@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime/debug"
+	"time"
 )
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +36,12 @@ func cleanup() error {
 
 func fetchRates(url string) {
 	http.Get(url)
+}
+
+func fetchDestination(w http.ResponseWriter, r *http.Request) {
+	destination := r.URL.Query().Get("url")
+	client := &http.Client{Timeout: 10 * time.Second}
+	client.Get(destination)
 }
 
 func authenticate(user string, password string) error { return nil }

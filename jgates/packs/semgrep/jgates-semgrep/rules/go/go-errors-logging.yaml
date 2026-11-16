@@ -204,6 +204,59 @@ rules:
           metavariable: $E
           regex: ^(err|e|\w+Err|\w+_err|err\w*)$
 
+  - id: jgates.go.outbound-request-follows-redirects
+    message: An address from the incoming request is passed to an HTTP client without a visible redirect policy, so redirects are followed by default. If no other protection validates each hop, the first host can redirect the server to another address; set CheckRedirect to reject redirects or confirm where each destination is checked.
+    severity: INFO
+    languages: [go]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.2"]
+      class: review
+    pattern-sources:
+      - patterns:
+          - pattern-inside: |
+              func $F(..., $R *http.Request, ...) {
+                ...
+              }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.Header.Get(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: http.$M($URL, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Get|Head|Post|PostForm)$
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: $CLIENT.$M($URL, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Get|Head|Post|PostForm)$
+          - pattern-either:
+              - pattern-inside: |
+                  $CLIENT := &http.Client{...}
+                  ...
+              - pattern-inside: |
+                  $CLIENT := http.Client{...}
+                  ...
+          - pattern-not-inside: |
+              $CLIENT := &http.Client{..., CheckRedirect: $POLICY, ...}
+              ...
+          - pattern-not-inside: |
+              $CLIENT := http.Client{..., CheckRedirect: $POLICY, ...}
+              ...
+          - pattern-not-inside: |
+              $CLIENT.CheckRedirect = $POLICY
+              ...
+          - focus-metavariable: $URL
+
   - id: jgates.go.http-client-without-timeout
     message: An outbound HTTP call is made with no timeout, and this library waits forever by default, so one slow server can hang the goroutine. Use an http.Client with a Timeout, or a request with a context deadline.
     severity: INFO
