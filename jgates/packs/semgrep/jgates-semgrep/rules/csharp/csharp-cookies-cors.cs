@@ -14,17 +14,17 @@ public class CookieSamples : Controller
 
     public void SecureOption()
     {
-        // ruleid: jgates.csharp.cookie-without-secure
+        // ruleid: jgates.csharp.cookie-without-secure-by-default
         var a = new CookieOptions { HttpOnly = true, SameSite = SameSiteMode.Strict };
         // ruleid: jgates.csharp.cookie-without-secure
         var b = new CookieOptions { Secure = false, HttpOnly = true, SameSite = SameSiteMode.Strict };
-        // ok: jgates.csharp.cookie-without-secure
+        // ok: jgates.csharp.cookie-without-secure-by-default
         var c = new CookieOptions { Secure = true, HttpOnly = true, SameSite = SameSiteMode.Strict };
     }
 
     public void SecureSetLater()
     {
-        // ok: jgates.csharp.cookie-without-secure
+        // ok: jgates.csharp.cookie-without-secure-by-default
         var o = new CookieOptions { HttpOnly = true, SameSite = SameSiteMode.Strict };
         o.Secure = true;
     }
@@ -45,17 +45,17 @@ public class CookieSamples : Controller
 
     public void HttpOnlyOption()
     {
-        // ruleid: jgates.csharp.cookie-without-httponly
+        // ruleid: jgates.csharp.cookie-without-httponly-by-default
         var a = new CookieOptions { Secure = true, SameSite = SameSiteMode.Strict };
         // ruleid: jgates.csharp.cookie-without-httponly
         var b = new CookieOptions { Secure = true, HttpOnly = false, SameSite = SameSiteMode.Strict };
-        // ok: jgates.csharp.cookie-without-httponly
+        // ok: jgates.csharp.cookie-without-httponly-by-default
         var c = new CookieOptions { Secure = true, HttpOnly = true, SameSite = SameSiteMode.Strict };
     }
 
     public void HttpOnlySetLater()
     {
-        // ok: jgates.csharp.cookie-without-httponly
+        // ok: jgates.csharp.cookie-without-httponly-by-default
         var o = new CookieOptions { Secure = true, SameSite = SameSiteMode.Strict };
         o.HttpOnly = true;
     }
@@ -107,11 +107,11 @@ public class CookieSamples : Controller
 
     public void AppendWithoutOptions(string token)
     {
-        // ruleid: jgates.csharp.cookie-without-secure, jgates.csharp.cookie-without-httponly, jgates.csharp.cookie-without-samesite, jgates.csharp.cookie-name-without-prefix
+        // ruleid: jgates.csharp.cookie-without-secure-by-default, jgates.csharp.cookie-without-httponly-by-default, jgates.csharp.cookie-without-samesite, jgates.csharp.cookie-name-without-prefix
         Response.Cookies.Append("sid", token);
-        // ruleid: jgates.csharp.cookie-without-secure, jgates.csharp.cookie-without-httponly, jgates.csharp.cookie-without-samesite, jgates.csharp.cookie-name-without-prefix
+        // ruleid: jgates.csharp.cookie-without-secure-by-default, jgates.csharp.cookie-without-httponly-by-default, jgates.csharp.cookie-without-samesite, jgates.csharp.cookie-name-without-prefix
         HttpContext.Response.Cookies.Append("theme", "dark");
-        // ok: jgates.csharp.cookie-without-secure, jgates.csharp.cookie-without-httponly, jgates.csharp.cookie-without-samesite, jgates.csharp.cookie-name-without-prefix
+        // ok: jgates.csharp.cookie-without-secure, jgates.csharp.cookie-without-secure-by-default, jgates.csharp.cookie-without-httponly, jgates.csharp.cookie-without-httponly-by-default, jgates.csharp.cookie-without-samesite, jgates.csharp.cookie-name-without-prefix
         Response.Cookies.Append("__Host-sid", token, Safe);
     }
 

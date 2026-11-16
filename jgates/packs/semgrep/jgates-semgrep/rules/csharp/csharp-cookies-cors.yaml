@@ -5,7 +5,7 @@
 # (HttpCookie, UriBuilder). The analysis stays inside one method.
 rules:
   - id: jgates.csharp.cookie-without-secure
-    message: A cookie is written without the Secure attribute, so a browser may send it over plain HTTP. Set Secure to true (or CookieSecurePolicy.Always) on the cookie.
+    message: The cookie's Secure protection is explicitly disabled, so a browser may send it over plain HTTP. Set Secure to true (or CookieSecurePolicy.Always) on the cookie.
     severity: WARNING
     languages: [csharp]
     metadata:
@@ -14,6 +14,23 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V3.3.1"]
+    pattern-either:
+      - pattern: new CookieOptions { ..., Secure = false, ... }
+      - pattern: $O.Secure = false;
+      - pattern-regex: \bSecurePolicy\s*=\s*CookieSecurePolicy\.None\b
+      - pattern-regex: \bSecure\s*=\s*CookieSecurePolicy\.None\b
+
+  - id: jgates.csharp.cookie-without-secure-by-default
+    message: A cookie is created without the Secure option. If nothing else adds it, the cookie can travel over plain HTTP; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+      class: review
     pattern-either:
       - patterns:
           - pattern-either:
@@ -26,14 +43,10 @@ rules:
                 $O.Secure = $V;
                 ...
               }
-      - pattern: new CookieOptions { ..., Secure = false, ... }
-      - pattern: $O.Secure = false;
       - pattern: $R.Cookies.Append($N, $V)
-      - pattern-regex: \bSecurePolicy\s*=\s*CookieSecurePolicy\.None\b
-      - pattern-regex: \bSecure\s*=\s*CookieSecurePolicy\.None\b
 
   - id: jgates.csharp.cookie-without-httponly
-    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Set HttpOnly to true on cookies the browser code does not need.
+    message: The cookie's HttpOnly protection is explicitly disabled, so page scripts can read it. Set HttpOnly to true on cookies the browser code does not need.
     severity: WARNING
     languages: [csharp]
     metadata:
@@ -42,6 +55,22 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V3.3.4"]
+    pattern-either:
+      - pattern: new CookieOptions { ..., HttpOnly = false, ... }
+      - pattern: $O.HttpOnly = false;
+      - pattern-regex: \bHttpOnly\s*=\s*HttpOnlyPolicy\.None\b
+
+  - id: jgates.csharp.cookie-without-httponly-by-default
+    message: A cookie is created without the HttpOnly option. If nothing else adds it, page scripts can read the cookie; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+      class: review
     pattern-either:
       - patterns:
           - pattern-either:
@@ -54,10 +83,7 @@ rules:
                 $O.HttpOnly = $V;
                 ...
               }
-      - pattern: new CookieOptions { ..., HttpOnly = false, ... }
-      - pattern: $O.HttpOnly = false;
       - pattern: $R.Cookies.Append($N, $V)
-      - pattern-regex: \bHttpOnly\s*=\s*HttpOnlyPolicy\.None\b
 
   - id: jgates.csharp.cookie-without-samesite
     message: A cookie is written with SameSite set to None or Unspecified, or without SameSite where the framework sends none, so it travels on cross-site requests. Set SameSite to Lax or Strict.

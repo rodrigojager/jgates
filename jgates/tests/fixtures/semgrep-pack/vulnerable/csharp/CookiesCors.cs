@@ -15,7 +15,7 @@ public class SessionController : Controller
 
     public IActionResult Theme()
     {
-        Response.Cookies.Append("theme", "dark", new CookieOptions { Secure = true, HttpOnly = true, SameSite = SameSiteMode.Strict });
+        Response.Cookies.Append("theme", "dark", new CookieOptions { Secure = false, HttpOnly = false, SameSite = SameSiteMode.Strict });
         return Ok();
     }
 
