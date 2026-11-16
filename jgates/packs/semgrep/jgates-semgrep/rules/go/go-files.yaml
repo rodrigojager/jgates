@@ -83,8 +83,8 @@ rules:
           - focus-metavariable: $P
 
   - id: jgates.go.archive-extraction-unchecked
-    message: An archive entry is written to a path built from the entry's own name, and the loop never checks that the path stays under the target folder. Reject names that are absolute or contain "..", check the resolved path against the target folder, and skip links and oversized entries.
-    severity: WARNING
+    message: An archive entry's name is used as an extraction path without a visible containment check in the loop. If no other layer validates it, the entry may escape the target folder; reject unsafe names and links and verify the resolved path stays inside the target folder, or confirm where equivalent protection is applied.
+    severity: INFO
     languages: [go]
     metadata:
       category: file-handling
@@ -92,6 +92,7 @@ rules:
       subdimension: injection
       author: JGates
       asvs_requirements: ["V5.3.2"]
+      class: review
     patterns:
       - pattern-either:
           - patterns:
@@ -192,8 +193,8 @@ rules:
                   }
 
   - id: jgates.go.request-body-without-size-limit
-    message: The request body is read in full with no size limit, so one request can use all the memory or disk of the server. Wrap the body with http.MaxBytesReader before reading it.
-    severity: WARNING
+    message: The request body is read or parsed without a visible size limit in this handler. If no middleware or proxy enforces a suitable limit, a request may exhaust server resources; wrap the body with http.MaxBytesReader before reading it, or confirm where the limit is enforced.
+    severity: INFO
     languages: [go]
     metadata:
       category: file-handling
@@ -201,6 +202,7 @@ rules:
       subdimension: injection
       author: JGates
       asvs_requirements: ["V5.2.1"]
+      class: review
     patterns:
       - pattern-either:
           - patterns:
