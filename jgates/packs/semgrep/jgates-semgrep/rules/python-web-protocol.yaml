@@ -204,10 +204,11 @@ rules:
           - focus-metavariable: $U
 
   - id: jgates.python.client-ip-from-forwarded-header
-    message: The client address is read from a forwarding header that the client can set, so it can be spoofed. Use the connection address, or configure the trusted proxy so the framework fills it in.
-    severity: WARNING
+    message: The client address is read from a forwarding header. If the deployment does not restrict requests to trusted proxies that overwrite this header, clients can spoof it; use the connection address or confirm that this proxy protection is enforced.
+    severity: INFO
     languages: [python]
     metadata:
+      class: review
       category: authorization
       cwe: "CWE-348"
       subdimension: authorization
