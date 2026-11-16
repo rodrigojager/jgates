@@ -73,7 +73,9 @@ function publicRun<T extends { time: number }>(run: T): Omit<T, "time"> {
   return rest;
 }
 
-export const routes: RouteDefinition[] = [
+/** The grace period is injectable so forced cancellation can be exercised without a 15-second wait. */
+export function semanticRunRoutes({ cancelGraceMs = CANCEL_GRACE_MS } = {}): RouteDefinition[] {
+  return [
   {
     method: "GET",
     path: "/api/semantic/plan",
@@ -256,6 +258,11 @@ export const routes: RouteDefinition[] = [
       if (outcome.status === "not-found" && !child) throw fail(404, "RUN_NOT_FOUND", { runId: id });
       if (outcome.status === "not-active") throw fail(409, "RUN_NOT_ACTIVE", { runId: id });
       if (child) {
+        // Wait for exit before settling: SIGKILL is asynchronous and the last heartbeat can still be live until then.
+        const settle = (): void => {
+          requestSemanticCancel(server.home, server.workspace.id, id, { reason: "cancel requested (local server)" });
+        };
+        child.once("exit", settle);
         // The run stops by itself on the request; a child that does not is stopped (only that child: it is ours).
         const hard = setTimeout(() => {
           if (child.exitCode === null && child.signalCode === null) {
@@ -266,11 +273,15 @@ export const routes: RouteDefinition[] = [
               // Already gone.
             }
           }
-        }, outcome.status === "not-found" ? 0 : CANCEL_GRACE_MS);
+        }, outcome.status === "not-found" ? 0 : cancelGraceMs);
+        child.once("exit", () => clearTimeout(hard));
         hard.unref();
       }
       server.log(`semantic run ${id} cancel requested`);
       return { status: 202, json: { schemaVersion: 1, status: "OK", gate: "semantic", runId: id, cancel: outcome.status === "not-found" ? "requested" : outcome.status, message: t("semantic_cancel_requested", { runId: id }) } };
     },
   },
-];
+  ];
+}
+
+export const routes: RouteDefinition[] = semanticRunRoutes();
