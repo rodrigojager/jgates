@@ -5,8 +5,8 @@
 //
 // Order of the decision for a requirement (PLAN-asvs.md section 5):
 //   1. the user recorded "not applicable" (the requirement, its section or its chapter): not applicable;
-//   2. a mapped, reviewed check ran to completion in the runs read: examined (deterministic, or AI review only);
-//   3. a mapped, reviewed check could run on this project and none ran: unexamined, with the reason of each check;
+//   2. a mapped, reviewed check that is not Review ran to completion: examined (deterministic, or AI review only);
+//   3. a mapped, reviewed check that is not Review could run and none ran: unexamined;
 //   4. the entry says the evidence is a deployed system or a person: awaiting evidence;
 //   5. otherwise: unsupported (no reviewed check mapped, or the mapped checks exist only for other stacks). A rule of a
 //      language the project is known to lack is not relevant to it (`relevant: false`): the screen and the text leave it
@@ -25,7 +25,7 @@ import { findSemanticRun, listSemanticRuns } from "../../semantic/store.js";
 import { translator, type Params } from "../../../i18n/index.js";
 import { labelOf } from "../../discovery/vocabulary.js";
 import { asvsTree, loadAsvs, ASVS_LEVELS, AsvsDataError, type AsvsData, type AsvsLevel, type AsvsRequirement, type AsvsSource } from "./index.js";
-import { ASVS_REVIEW_METHOD, asvsMapDir, countedApplies, countedChecks, loadMapping, AsvsMappingError, MAPPING_SUBDIMENSIONS, type AsvsMapping, type MappingCheck, type MappingEntry, type MappingStatus } from "./mapping.js";
+import { ASVS_REVIEW_METHOD, asvsMapDir, countedApplies, countedChecks, countedNotes, loadMapping, AsvsMappingError, MAPPING_SUBDIMENSIONS, type AsvsMapping, type MappingCheck, type MappingEntry, type MappingNote, type MappingStatus } from "./mapping.js";
 import { sameSuggestion, suggestionFor, type AsvsSuggestion } from "./suggestions.js";
 import {
   collectCheckUnits,
@@ -55,6 +55,8 @@ export type AsvsCheckStatus = "ran" | "not-run" | "unsupported" | "excluded";
 export interface AsvsCheckRow {
   unit: MappingCheck["unit"];
   id: string;
+  /** Only for Review checks; the pack index, never the mapping, supplies the class. */
+  class?: "review";
   category?: string;
   covers: string;
   misses: string;
@@ -77,9 +79,10 @@ export interface AsvsCheckRow {
   findingRules?: string[];
   /** Findings of this check left open (not waived) in the run that ran it; null when they cannot be told apart. */
   openFindings: number | null;
-  /** The same findings as two numbers that are never added into one: those that block, and the informational ones. */
+  /** Three independent counts: blocking, informational and to review. */
   openBlocking: number | null;
   openInformational: number | null;
+  openReview: number | null;
   /**
    * False when the check cannot bear on this project at all: a rule of a language the project is known to lack
    * (LANGUAGE_ABSENT). Such a check stays in the JSON but the screen and the text leave it out and count nothing for it.
@@ -105,6 +108,7 @@ export interface AsvsRequirementRow {
   /** The status of the mapping entry (`none` when the pack has no entry). */
   review: MappingStatus | "none";
   checks: AsvsCheckRow[];
+  notes: Array<MappingNote & { label: string }>;
   /** The user's decision that makes it not applicable, when there is one. */
   decision: (NotApplicableEntry & { scope: "requirement" | "section" | "chapter" }) | null;
   /** A proposed "not applicable" decision (unsupported, unexamined or awaiting evidence only); absent when there is none. */
@@ -303,12 +307,13 @@ const checkMessage = (code: string, params: Params): string => {
 /** A completed unit first, else the one of the newest run (the list is in run order: Quality, then Semantic newest first). */
 const pick = (units: CheckUnit[]): CheckUnit | undefined => units.find((u) => u.state === "completed") ?? units[0];
 
-/** The open findings of a check as two numbers that are never added into one: blocking and informational (INFO rules). */
-function openSplitOf(check: MappingCheck, unit: CheckUnit, ctx: Context): { blocking: number; informational: number } | null {
+/** Review wins over informational even for a malformed historical finding carrying both flags. */
+function openSplitOf(check: MappingCheck, unit: CheckUnit, ctx: Context): { blocking: number; informational: number; review: number } | null {
   const all = openFindingsOf(check, unit, ctx, () => true);
   if (all === null) return null;
-  const informational = openFindingsOf(check, unit, ctx, (f) => f.informational === true) ?? 0;
-  return { blocking: all - informational, informational };
+  const review = openFindingsOf(check, unit, ctx, (f) => f.review === true) ?? 0;
+  const informational = openFindingsOf(check, unit, ctx, (f) => f.review !== true && f.informational === true) ?? 0;
+  return { blocking: all - informational - review, informational, review };
 }
 
 function openFindingsOf(check: MappingCheck, unit: CheckUnit, ctx: Context, keep: (f: Record<string, unknown>) => boolean = () => true): number | null {
@@ -435,6 +440,7 @@ function evaluateCheck(check: MappingCheck, requirement: string, ctx: Context): 
   return {
     unit: check.unit,
     id: check.id,
+    ...(check.unit === "semgrep-rule" && ctx.rules.get(check.id)?.class === "review" ? { class: "review" as const } : {}),
     ...(check.category !== undefined ? { category: check.category } : {}),
     covers: check.covers,
     misses: check.misses,
@@ -452,6 +458,7 @@ function evaluateCheck(check: MappingCheck, requirement: string, ctx: Context): 
     openFindings: ran && e.unit ? openFindingsOf(check, e.unit, ctx) : null,
     openBlocking: split ? split.blocking : null,
     openInformational: split ? split.informational : null,
+    openReview: split ? split.review : null,
     relevant: e.code !== "LANGUAGE_ABSENT",
   };
 }
@@ -489,17 +496,21 @@ function decideState(requirement: AsvsRequirement, entry: MappingEntry | undefin
     subdimensions: entry?.subdimensions ?? [],
     review: entry?.status ?? ("none" as const),
     checks,
+    notes: entry ? countedNotes(entry)
+      .filter((n) => ctx.languages === null || hasPackLanguage(ctx.languages, n.language))
+      .map((n) => ({ ...n, label: t(`coverage_note_${n.kind.replace(/-/g, "_")}`) })) : [],
     decision: na ? { ...na, scope: na.id === requirement.id ? ("requirement" as const) : na.id === requirement.section ? ("section" as const) : ("chapter" as const) } : null,
   };
   if (na) return { ...base, state: "not-applicable", code: "NOT_APPLICABLE_RECORDED", reason: t("coverage_reason_not_applicable", { target: na.id, reason: na.reason, recorded: na.recorded || "-" }), basis: null };
-  const ran = checks.filter((c) => c.ran);
+  const examining = checks.filter((c) => c.class !== "review");
+  const ran = examining.filter((c) => c.ran);
   if (ran.length > 0) {
     const deterministic = ran.filter((c) => c.basis === "deterministic");
     const names = ran.map(checkName).join(", ");
     if (deterministic.length > 0) return { ...base, state: "examined", code: "EXAMINED", reason: t("coverage_reason_examined", { checks: names }), basis: "deterministic" };
     return { ...base, state: "examined", code: "EXAMINED_AI_ONLY", reason: t("coverage_reason_examined_ai", { checks: names }), basis: "ai-source-review" };
   }
-  const couldRun = checks.filter((c) => c.status === "not-run" || c.status === "excluded");
+  const couldRun = examining.filter((c) => c.status === "not-run" || c.status === "excluded");
   if (couldRun.length > 0) {
     const details = couldRun.map((c) => `${checkName(c)}: ${c.reason}`).join("; ");
     return { ...base, state: "unexamined", code: "UNEXAMINED", reason: t("coverage_reason_unexamined", { details }), basis: null };
@@ -511,6 +522,7 @@ function decideState(requirement: AsvsRequirement, entry: MappingEntry | undefin
   const relevant = checks.filter((c) => c.relevant);
   if (relevant.length > 0) {
     const details = relevant.map((c) => `${checkName(c)}: ${c.reason}`).join("; ");
+    if (relevant.every((c) => c.class === "review")) return { ...base, state: "unsupported", code: "UNSUPPORTED_REVIEW_ONLY", reason: t("coverage_reason_unsupported_review_only", { details }), basis: null };
     // Every relevant check is an AI review that answered "not examinable from the source": say that, not "other stacks".
     if (relevant.every((c) => c.code === "NOT_EXAMINABLE")) return { ...base, state: "unsupported", code: "UNSUPPORTED_NOT_EXAMINABLE", reason: t("coverage_reason_unsupported_not_examinable", { details }), basis: null };
     return { ...base, state: "unsupported", code: "UNSUPPORTED_OTHER_STACKS", reason: t("coverage_reason_unsupported_other_stacks", { details }), basis: null };

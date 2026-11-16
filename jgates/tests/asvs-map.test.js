@@ -91,7 +91,7 @@ test("the mapping has V01 to V17, exactly one entry per requirement, no pending 
   assert.deepEqual(m.entries.map((e) => e.requirement).sort(), data.requirements.map((r) => r.id).sort());
   for (const e of m.entries) {
     if (e.checks.length === 0) {
-      assert.ok(e.status === "unmapped" || ((e.status === "reviewed" || e.status === "owner-reviewed") && e.applies), `${e.requirement} has no check, so it is unmapped or a reviewed entry with applies`);
+      assert.ok(e.status === "unmapped" || ((e.status === "reviewed" || e.status === "owner-reviewed") && (e.applies || e.notes?.length)), `${e.requirement} has no check, so it is unmapped or a reviewed entry with applies or notes`);
       assert.deepEqual(asvs.countedChecks(e), []);
     } else {
       assert.ok(e.status === "reviewed" || e.status === "owner-reviewed", `${e.requirement} is ${e.status}`);

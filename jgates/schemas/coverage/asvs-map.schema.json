@@ -30,6 +30,7 @@
         },
         "checks": { "type": "array", "items": { "$ref": "#/$defs/check" } },
         "applies": { "$ref": "#/$defs/applies" },
+        "notes": { "type": "array", "items": { "$ref": "#/$defs/note" } },
         "why": { "type": "string", "minLength": 1 },
         "review": {
           "type": "object",
@@ -44,15 +45,27 @@
       "allOf": [
         {
           "if": { "properties": { "status": { "const": "unmapped" } } },
-          "then": { "properties": { "checks": { "type": "array", "maxItems": 0 } }, "not": { "properties": { "applies": true }, "required": ["applies"] } },
+          "then": { "properties": { "checks": { "type": "array", "maxItems": 0 }, "notes": { "type": "array", "maxItems": 0 } }, "not": { "properties": { "applies": true }, "required": ["applies"] } },
           "else": {
             "properties": { "why": { "type": "string", "minLength": 1 } },
             "required": ["why"],
             "description": "A pending or reviewed entry names at least one check, or says which projects the requirement concerns (applies), or both.",
-            "anyOf": [{ "properties": { "checks": { "type": "array", "minItems": 1 } } }, { "properties": { "applies": true }, "required": ["applies"] }]
+            "anyOf": [{ "properties": { "checks": { "type": "array", "minItems": 1 } } }, { "properties": { "applies": true }, "required": ["applies"] }, { "properties": { "notes": { "type": "array", "minItems": 1 } }, "required": ["notes"] }]
           }
         }
       ]
+    },
+    "note": {
+      "description": "Reviewed language information, never a check or a user's not-applicable decision. Language and family pairs must be distinct (enforced by the loader).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "kind", "family", "why"],
+      "properties": {
+        "language": { "enum": ["javascript", "python", "go", "csharp", "rust", "java", "php", "html", "config"] },
+        "kind": { "enum": ["protected-by-library", "not-applicable-to-language"] },
+        "family": { "type": "string", "pattern": "\\S" },
+        "why": { "type": "string", "pattern": "\\S" }
+      }
     },
     "check": {
       "type": "object",

@@ -160,10 +160,11 @@
     "check": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["unit", "id", "covers", "misses", "depth", "basis", "status", "ran", "code", "reason", "detail", "runId", "reused", "openFindings", "relevant"],
+      "required": ["unit", "id", "covers", "misses", "depth", "basis", "status", "ran", "code", "reason", "detail", "runId", "reused", "openFindings", "openBlocking", "openInformational", "openReview", "relevant"],
       "properties": {
         "unit": { "enum": ["semgrep-rule", "capability", "semantic-ledger", "semantic-method", "semantic-requirement"] },
         "id": { "type": "string", "minLength": 1 },
+        "class": { "const": "review", "description": "Only on a semgrep-rule check classified as Review by the pack index. Never makes a requirement examined." },
         "category": { "type": "string" },
         "findingRules": {
           "description": "capability: the tool's own rule or alert ids the check stands for; only the stage's findings of those ids are its open findings.",
@@ -185,6 +186,7 @@
         "openFindings": { "type": ["integer", "null"], "minimum": 0 },
         "openBlocking": { "type": ["integer", "null"], "minimum": 0, "description": "Open findings that block the validation; never added to openInformational." },
         "openInformational": { "type": ["integer", "null"], "minimum": 0, "description": "Open informational findings: shown and counted, they do not block the validation." },
+        "openReview": { "type": ["integer", "null"], "minimum": 0, "description": "Open Review findings, excluding waived (reviewed) occurrences; never added to blocking or informational counts." },
         "relevant": { "type": "boolean", "description": "False when the check cannot bear on this project: a rule of a language the project is known to lack (code LANGUAGE_ABSENT). The screen and the text output leave such a check out and count nothing for it." }
       }
     },
@@ -207,6 +209,7 @@
         "subdimensions": { "type": "array", "items": { "type": "string" } },
         "review": { "enum": ["unmapped", "pending", "reviewed", "owner-reviewed", "none"] },
         "checks": { "type": "array", "items": { "$ref": "#/$defs/check" } },
+        "notes": { "type": "array", "items": { "$ref": "#/$defs/note" } },
         "decision": {
           "anyOf": [
             { "type": "null" },
@@ -224,6 +227,18 @@
           ]
         },
         "suggestion": { "$ref": "#/$defs/suggestion" }
+      }
+    },
+    "note": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "kind", "family", "why", "label"],
+      "properties": {
+        "language": { "enum": ["javascript", "python", "go", "csharp", "rust", "java", "php", "html", "config"] },
+        "kind": { "enum": ["protected-by-library", "not-applicable-to-language"] },
+        "family": { "type": "string", "pattern": "\\S" },
+        "why": { "type": "string", "pattern": "\\S" },
+        "label": { "type": "string", "minLength": 1 }
       }
     },
     "suggestion": {

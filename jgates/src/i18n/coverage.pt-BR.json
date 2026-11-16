@@ -1,4 +1,9 @@
 {
+  "coverage_text_review": "Para revisar",
+  "coverage_text_open_split": "Achados abertos: {blocking} bloqueantes, {informational} informativos, {review} para revisar",
+  "coverage_reason_unsupported_review_only": "só há verificações Revisar mapeadas: elas apontam locais para uma pessoa analisar e não examinam o requisito. {details}",
+  "coverage_note_protected_by_library": "Protegido pela própria biblioteca (não verificado pelo JGates)",
+  "coverage_note_not_applicable_to_language": "Não se aplica a esta linguagem",
   "coverage_description": "Mapa de cobertura ASVS do projeto: cada requisito do OWASP ASVS de um nível como examinado, não examinado, sem suporte, não se aplica ou aguardando evidência, com o motivo e as verificações por trás. Mostra o que foi examinado, não se o projeto atende ao padrão.",
   "coverage_option_cwd": "Pasta do projeto (padrão: a pasta atual).",
   "coverage_option_level": "asvs: o nível a mostrar (1, 2 ou 3) sem mudar a escolha do projeto.",

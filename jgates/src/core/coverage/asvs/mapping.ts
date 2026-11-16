@@ -78,8 +78,43 @@ export interface MappingEntry {
   checks: MappingCheck[];
   /** Which projects the requirement concerns; reviewed like a check, and counted only on a reviewed entry. */
   applies?: MappingApplies;
+  notes?: MappingNote[];
   why?: string;
   review?: { by: string; date: string };
+}
+
+export const NOTE_KINDS = ["protected-by-library", "not-applicable-to-language"] as const;
+export interface MappingNote {
+  language: string;
+  kind: (typeof NOTE_KINDS)[number];
+  family: string;
+  why: string;
+}
+
+/** Notes describe the language, not evidence that the project meets a requirement. */
+export function notesProblems(notes: unknown): string[] {
+  if (!Array.isArray(notes)) return ["notes must be an array"];
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const value of notes) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      problems.push("note must be an object");
+      continue;
+    }
+    const n = value as Record<string, unknown>;
+    if (typeof n.language !== "string" || !Object.hasOwn(PACK_LISTS.languages, n.language)) problems.push(`note has unknown language ${String(n.language)}`);
+    if (!(NOTE_KINDS as readonly unknown[]).includes(n.kind)) problems.push(`note has unknown kind ${String(n.kind)}`);
+    for (const field of ["family", "why"]) if (typeof n[field] !== "string" || !(n[field] as string).trim()) problems.push(`note has empty ${field}`);
+    for (const field of Object.keys(n)) if (!["language", "kind", "family", "why"].includes(field)) problems.push(`note has unknown field ${field}`);
+    const key = JSON.stringify([n.language, n.family]);
+    if (seen.has(key)) problems.push(`duplicate note for ${String(n.language)} and ${String(n.family)}`);
+    seen.add(key);
+  }
+  return problems;
+}
+
+export function countedNotes(entry: MappingEntry): MappingNote[] {
+  return entry.status === "reviewed" || entry.status === "owner-reviewed" ? entry.notes ?? [] : [];
 }
 
 /** One chapter file of the pack. */
@@ -137,7 +172,13 @@ export function loadMapping(version: string = "5.0.0", dir: string = asvsMapDir(
   const ids = chapters ?? Array.from({ length: 17 }, (_, i) => `V${i + 1}`);
   const files = ids.map((chapter) => {
     const file = `${chapterFileStem(chapter)}.json`;
-    return { ...(readJson(file) as MappingChapterFile), file };
+    const doc = readJson(file) as MappingChapterFile;
+    for (const entry of doc.entries ?? []) {
+      if (entry.notes === undefined) continue;
+      const problems = notesProblems(entry.notes);
+      if (problems.length) throw new AsvsMappingError(`${file} ${entry.requirement}: ${problems.join("; ")}`);
+    }
+    return { ...doc, file };
   });
   return { version, files, entries: files.flatMap((f) => f.entries ?? []), unmappedRules: readJson(UNMAPPED_RULES_FILE) as UnmappedRulesFile };
 }
@@ -310,11 +351,13 @@ export function validateMapping(mapping: AsvsMapping, data: AsvsData, context: M
       if (!(MAPPING_STATUSES as readonly string[]).includes(entry.status)) problems.push(`${where}: unknown status ${String(entry.status)}`);
       if (entry.status === "unmapped" && entry.checks.length > 0) problems.push(`${where}: unmapped but has checks`);
       if (entry.status === "unmapped" && entry.applies !== undefined) problems.push(`${where}: unmapped but has applies`);
+      if (entry.status === "unmapped" && (entry.notes?.length ?? 0) > 0) problems.push(`${where}: unmapped but has notes`);
       // An entry may say only which projects the requirement concerns (applies), with no check: it is reviewed all the same.
-      if (entry.status !== "unmapped" && entry.checks.length === 0 && entry.applies === undefined) problems.push(`${where}: ${String(entry.status)} without a check`);
-      if ((entry.checks.length > 0 || entry.applies !== undefined) && (typeof entry.why !== "string" || entry.why.trim() === "")) problems.push(`${where}: checks without a why`);
+      if (entry.status !== "unmapped" && entry.checks.length === 0 && entry.applies === undefined && !(entry.notes?.length)) problems.push(`${where}: ${String(entry.status)} without a check`);
+      if ((entry.checks.length > 0 || entry.applies !== undefined || (entry.notes?.length ?? 0) > 0) && (typeof entry.why !== "string" || entry.why.trim() === "")) problems.push(`${where}: checks without a why`);
       for (const check of entry.checks) for (const p of checkProblems(check, context, entry.subdimensions ?? [], entry.evidence)) problems.push(`${where}: ${p}`);
       if (entry.applies !== undefined) for (const p of appliesProblems(entry.applies)) problems.push(`${where}: ${p}`);
+      if (entry.notes !== undefined) for (const p of notesProblems(entry.notes)) problems.push(`${where}: ${p}`);
       for (const sub of entry.subdimensions ?? []) if (!(MAPPING_SUBDIMENSIONS as readonly string[]).includes(sub)) problems.push(`${where}: unknown subdimension ${sub}`);
     }
   }

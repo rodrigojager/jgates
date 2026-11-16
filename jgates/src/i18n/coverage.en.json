@@ -1,4 +1,9 @@
 {
+  "coverage_text_review": "To review",
+  "coverage_text_open_split": "Open findings: {blocking} blocking, {informational} informational, {review} to review",
+  "coverage_reason_unsupported_review_only": "only Review checks are mapped: they point at places for a person to look and do not examine the requirement. {details}",
+  "coverage_note_protected_by_library": "Protected by the library itself (not checked by JGates)",
+  "coverage_note_not_applicable_to_language": "Not applicable to this language",
   "coverage_description": "ASVS coverage map of the project: every OWASP ASVS requirement of a level as examined, unexamined, unsupported, not applicable or awaiting evidence, with the reason and the checks behind it. It shows what was examined, not whether the project meets the standard.",
   "coverage_option_cwd": "Project folder (default: the current folder).",
   "coverage_option_level": "asvs: the level to show (1, 2 or 3) without changing the project's choice.",

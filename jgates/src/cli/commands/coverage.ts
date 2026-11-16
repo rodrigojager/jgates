@@ -77,7 +77,7 @@ function paramsOf(refusal: AsvsDecisionRefusal | AsvsMapRefusal): Record<string,
 
 const stateKey = (state: string): string => `coverage_state_${state.replace(/-/g, "_")}`;
 
-function mapText(ctx: CommandContext, map: AsvsMapAnswer): void {
+export function mapText(ctx: CommandContext, map: AsvsMapAnswer): void {
   const out = (line = ""): void => ctx.stdout(`${line}\n`);
   out(t("coverage_text_title", { version: map.asvsVersion, level: map.level }) + ` (${t(`coverage_text_level_${map.levelSource}`)})`);
   out(map.statement);
@@ -137,13 +137,14 @@ function rowText(out: (line?: string) => void, row: AsvsRequirementRow): void {
   out(`  ${row.id}  L${row.level}  ${t(stateKey(row.state))}: ${row.reason}`);
   out(`      ${row.text}`);
   if (row.suggestion) out(`      ${t("coverage_text_row_suggestion", { reason: row.suggestion.reason })}`);
+  for (const note of row.notes) out(`      ${note.language} — ${note.label}: ${note.why}`);
   // A check of a language the project lacks bears on nothing here: it stays in the JSON only.
   for (const c of row.checks.filter((check) => check.relevant)) {
     const name = c.category ? `${c.id} (${c.category})` : c.id;
-    out(`      - ${name}: ${c.reason}`);
+    out(`      - ${name}${c.class === "review" ? ` [${t("coverage_text_review")}]` : ""}: ${c.reason}`);
     if (c.ran) {
       out(`        ${t("coverage_text_check_covers", { covers: c.covers, misses: c.misses, depth: t(`coverage_text_depth_${c.depth}`), basis: t(`coverage_basis_${c.basis.replace(/-/g, "_")}`) })}`);
-      if (c.openFindings !== null) out(`        ${t("coverage_text_open_findings", { count: c.openFindings })}`);
+      if (c.openFindings !== null) out(`        ${t("coverage_text_open_split", { blocking: c.openBlocking ?? 0, informational: c.openInformational ?? 0, review: c.openReview ?? 0 })}`);
     }
   }
 }
