@@ -201,10 +201,11 @@ rules:
           - focus-metavariable: $U
 
   - id: jgates.csharp.client-ip-from-forwarded-header
-    message: The client address is read from a forwarding header that the client itself can set, so it can be forged. Use the connection address (with the forwarded headers middleware configured for known proxies).
-    severity: WARNING
+    message: A forwarding header is read as a client address without a trusted-proxy boundary visible here. Confirm that a trusted proxy strips client-supplied values and sets this header, or use the connection address with forwarded headers middleware restricted to known proxies.
+    severity: INFO
     languages: [csharp]
     metadata:
+      class: review
       category: authorization
       cwe: "CWE-348"
       author: JGates
