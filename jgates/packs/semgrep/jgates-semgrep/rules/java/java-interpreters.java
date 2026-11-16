@@ -12,8 +12,28 @@ import javax.xml.xpath.XPath;
 import java.io.File;
 import java.io.StringReader;
 import java.util.List;
+import jakarta.mail.Message;
+import jakarta.mail.internet.MimeMessage;
 
 class InterpretersFixture {
+    void mailHeaders(HttpServletRequest req, MimeMessage message, Message generic) throws Exception {
+        String subject = req.getParameter("subject");
+        // ruleid: jgates.java.mail-header-injection
+        message.setHeader("Subject", subject);
+        // ruleid: jgates.java.mail-header-injection
+        generic.addHeader("Reply-To", req.getHeader("X-Reply-To"));
+        // ok: jgates.java.mail-header-injection
+        message.setHeader("Subject", subject.replace('\r', ' ').replace('\n', ' '));
+        // ok: jgates.java.mail-header-injection
+        generic.addHeader("Reply-To", req.getHeader("X-Reply-To").replace('\r', ' ').replace('\n', ' '));
+        // ok: jgates.java.mail-header-injection
+        message.setHeader("Subject", "Account notification");
+        // ok: jgates.java.mail-header-injection
+        message.setSubject(subject);
+        // ok: jgates.java.mail-header-injection
+        message.setText(req.getParameter("body"));
+    }
+
     void ldap(HttpServletRequest req, DirContext ctx, LdapTemplate template, SearchControls controls) throws Exception {
         String user = req.getParameter("user");
         // ruleid: jgates.java.ldap-injection

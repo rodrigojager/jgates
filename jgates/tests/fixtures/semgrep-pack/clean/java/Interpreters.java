@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.StringReader;
+import jakarta.mail.internet.MimeMessage;
 import javax.naming.Context;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.SearchControls;
@@ -10,6 +11,11 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 
 class Interpreters {
+    void prepareMail(HttpServletRequest request, MimeMessage message) throws Exception {
+        String subject = request.getParameter("subject");
+        message.setHeader("Subject", subject.replace('\r', ' ').replace('\n', ' '));
+    }
+
     Object findUser(HttpServletRequest request, DirContext ctx, SearchControls controls) throws Exception {
         String uid = request.getParameter("uid");
         return ctx.search("ou=people,dc=example,dc=com", "(uid={0})", new Object[] {uid}, controls);

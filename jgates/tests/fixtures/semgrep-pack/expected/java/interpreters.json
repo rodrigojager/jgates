@@ -1,6 +1,7 @@
 {
   "files": ["Interpreters.java"],
   "ruleIds": [
+    "jgates.java.mail-header-injection",
     "jgates.java.ldap-injection",
     "jgates.java.xpath-injection",
     "jgates.java.template-from-request",
