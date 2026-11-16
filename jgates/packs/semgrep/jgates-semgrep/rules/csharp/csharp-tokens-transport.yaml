@@ -33,10 +33,11 @@ rules:
       - pattern: $T.Header.TryGetValue("jwk", ...)
 
   - id: jgates.csharp.oauth-request-without-state
-    message: An OAuth authorization URL is built with neither a state nor a code challenge, so the callback cannot be tied to the request that started it. Pass a random per-request state and a PKCE code challenge, and check both on return.
-    severity: WARNING
+    message: An OAuth authorization URL is built without a visible state or PKCE code challenge. If no OAuth library or later step adds and validates request-bound protection, the callback may not be tied to the request that started it; add a random per-request state and a PKCE code challenge with callback validation, or confirm where equivalent protection is enforced.
+    severity: INFO
     languages: [csharp]
     metadata:
+      class: review
       category: authorization
       cwe: "CWE-352"
       author: JGates
