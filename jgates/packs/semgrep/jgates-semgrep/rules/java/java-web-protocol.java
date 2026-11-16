@@ -11,6 +11,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 import graphql.GraphQL;
 import graphql.analysis.MaxQueryDepthInstrumentation;
+import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLCodeRegistry;
+import graphql.schema.visibility.NoIntrospectionGraphqlFieldVisibility;
 import okhttp3.Request;
 import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -123,15 +126,33 @@ class WebProtocolFixture {
 
     // ---- graphql-without-depth-limit ----
     GraphQL graphqlServers(Object schema) {
-        // ruleid: jgates.java.graphql-without-depth-limit
+        // ruleid: jgates.java.graphql-without-depth-limit, jgates.java.graphql-introspection-enabled
         GraphQL a = GraphQL.newGraphQL(schema).build();
         // ruleid: jgates.java.graphql-without-depth-limit
         GraphQlSource b = GraphQlSource.schemaResourceBuilder().schemaResources(schema).build();
         // ok: jgates.java.graphql-without-depth-limit
+        // ruleid: jgates.java.graphql-introspection-enabled
         GraphQL c = GraphQL.newGraphQL(schema).instrumentation(new MaxQueryDepthInstrumentation(10)).build();
         // ok: jgates.java.graphql-without-depth-limit
         GraphQlSource d = GraphQlSource.schemaResourceBuilder().schemaResources(schema).instrumentation(java.util.List.of(new MaxQueryDepthInstrumentation(8))).build();
         return a;
+    }
+
+    // ---- graphql-introspection-enabled ----
+    GraphQL restrictedGraphql(Object queryType) {
+        GraphQLSchema schema = GraphQLSchema.newSchema().query(queryType)
+            .codeRegistry(GraphQLCodeRegistry.newCodeRegistry()
+                .fieldVisibility(NoIntrospectionGraphqlFieldVisibility.NO_INTROSPECTION_FIELD_VISIBILITY).build()).build();
+        // ok: jgates.java.graphql-introspection-enabled
+        return GraphQL.newGraphQL(schema).instrumentation(new MaxQueryDepthInstrumentation(10)).build();
+    }
+
+    GraphQL restrictedExistingSchema(GraphQLSchema existing) {
+        GraphQLSchema restricted = GraphQLSchema.newSchema(existing)
+            .codeRegistry(GraphQLCodeRegistry.newCodeRegistry(existing.getCodeRegistry())
+                .fieldVisibility(NoIntrospectionGraphqlFieldVisibility.NO_INTROSPECTION_FIELD_VISIBILITY).build()).build();
+        // ok: jgates.java.graphql-introspection-enabled
+        return GraphQL.newGraphQL(restricted).instrumentation(new MaxQueryDepthInstrumentation(8)).build();
     }
 
     // ---- open-redirect ----

@@ -6,6 +6,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import graphql.GraphQL;
 import graphql.analysis.MaxQueryDepthInstrumentation;
+import graphql.schema.GraphQLSchema;
+import graphql.schema.GraphQLCodeRegistry;
+import graphql.schema.visibility.NoIntrospectionGraphqlFieldVisibility;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 public class WebProtocol {
@@ -27,7 +30,10 @@ public class WebProtocol {
         registry.addHandler(handler, "/ws").setAllowedOrigins("https://app.example.com");
     }
 
-    GraphQL createGraphql(Object schema) {
+    GraphQL createGraphql(Object queryType) {
+        GraphQLSchema schema = GraphQLSchema.newSchema().query(queryType)
+            .codeRegistry(GraphQLCodeRegistry.newCodeRegistry()
+                .fieldVisibility(NoIntrospectionGraphqlFieldVisibility.NO_INTROSPECTION_FIELD_VISIBILITY).build()).build();
         return GraphQL.newGraphQL(schema).instrumentation(new MaxQueryDepthInstrumentation(10)).build();
     }
 

@@ -135,6 +135,26 @@ rules:
       - pattern-not: GraphQlSource.schemaResourceBuilder(). ... .instrumentation(...). ... .build()
       - pattern-not: GraphQlSource.builder(...). ... .instrumentation(...). ... .build()
 
+  - id: jgates.java.graphql-introspection-enabled
+    message: A graphql-java server is built without a visible schema introspection restriction; introspection is enabled by default. Restrict schema field visibility with NoIntrospectionGraphqlFieldVisibility, or confirm that access controls elsewhere intentionally limit who can explore the schema.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.2"]
+      class: review
+    patterns:
+      - pattern: GraphQL.newGraphQL($SCHEMA). ... .build()
+      - pattern-not-inside: |
+          $RET $M(...) {
+            ...
+            GraphQLSchema $SCHEMA = GraphQLSchema.newSchema(...). ... .codeRegistry(GraphQLCodeRegistry.newCodeRegistry(...). ... .fieldVisibility(NoIntrospectionGraphqlFieldVisibility.NO_INTROSPECTION_FIELD_VISIBILITY). ... .build()). ... .build();
+            ...
+          }
+
   - id: jgates.java.open-redirect
     message: The redirect target comes from the incoming request, so an attacker can send users to another site. Redirect only to a target found in an allow-list, or to a path you build yourself.
     severity: ERROR
@@ -264,8 +284,8 @@ rules:
           - focus-metavariable: $U
 
   - id: jgates.java.client-ip-from-forwarded-header
-    message: The client address is read from a forwarding header that the client itself can set, so it can be forged. Use the connection address (getRemoteAddr), with the container's forwarded-header handling configured for known proxies.
-    severity: WARNING
+    message: A forwarding header is read as a client address; its trustworthiness depends on the proxy configuration. Confirm that only known proxies can reach the application and that they strip and replace client-supplied forwarding headers, or use getRemoteAddr with trusted-proxy handling configured in the container.
+    severity: INFO
     languages: [java]
     metadata:
       category: authorization
@@ -273,6 +293,7 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V15.3.4", "V4.1.3"]
+      class: review
     patterns:
       - pattern-either:
           - pattern: $R.getHeader("$H")

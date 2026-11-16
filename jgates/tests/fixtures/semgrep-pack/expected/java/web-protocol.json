@@ -6,6 +6,7 @@
     "jgates.java.websocket-without-tls",
     "jgates.java.websocket-origin-not-checked",
     "jgates.java.graphql-without-depth-limit",
+    "jgates.java.graphql-introspection-enabled",
     "jgates.java.open-redirect",
     "jgates.java.client-ip-from-forwarded-header",
     "jgates.java.host-header-in-url"
