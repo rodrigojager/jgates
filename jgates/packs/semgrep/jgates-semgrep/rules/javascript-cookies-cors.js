@@ -10,20 +10,26 @@ const allowed = ["https://app.example.com"];
 const allowedSet = new Set(allowed);
 
 function secureAttribute(res, token, value) {
+  // ok: jgates.js.cookie-without-secure-by-default
   // ruleid: jgates.js.cookie-without-secure
   res.cookie("__Host-sid", token, { secure: false, httpOnly: true, sameSite: "lax" });
-  // ruleid: jgates.js.cookie-without-secure
+  // ok: jgates.js.cookie-without-secure
+  // ruleid: jgates.js.cookie-without-secure-by-default
   res.cookie("__Host-sid", token, { httpOnly: true, sameSite: "lax" });
+  // ok: jgates.js.cookie-without-secure-by-default
   // ruleid: jgates.js.cookie-without-secure
   Cookies.set("__Host-pref", value, { secure: false, sameSite: "lax" });
-  // ruleid: jgates.js.cookie-without-secure
+  // ok: jgates.js.cookie-without-secure
+  // ruleid: jgates.js.cookie-without-secure-by-default
   document.cookie = "__Host-pref=1; path=/; SameSite=Lax";
   // ruleid: jgates.js.cookie-without-secure
   session({ secret: "x", cookie: { secure: false, httpOnly: true, sameSite: "lax" } });
+  // ok: jgates.js.cookie-without-secure-by-default
   // ok: jgates.js.cookie-without-secure
   res.cookie("__Host-sid", token, { secure: true, httpOnly: true, sameSite: "lax" });
   // ok: jgates.js.cookie-without-secure
   Cookies.set("__Host-pref", value, { secure: true, sameSite: "lax" });
+  // ok: jgates.js.cookie-without-secure-by-default
   // ok: jgates.js.cookie-without-secure
   document.cookie = "__Host-pref=1; path=/; Secure; SameSite=Lax";
   // ok: jgates.js.cookie-without-secure
@@ -31,16 +37,22 @@ function secureAttribute(res, token, value) {
 }
 
 function httpOnlyAttribute(res, token) {
+  // ok: jgates.js.cookie-without-httponly-by-default
   // ruleid: jgates.js.cookie-without-httponly
   res.cookie("__Host-sid", token, { secure: true, httpOnly: false, sameSite: "lax" });
-  // ruleid: jgates.js.cookie-without-httponly
+  // ok: jgates.js.cookie-without-httponly
+  // ruleid: jgates.js.cookie-without-httponly-by-default
   res.cookie("__Host-sid", token, { secure: true, sameSite: "lax" });
-  // ruleid: jgates.js.cookie-without-httponly
+  // ok: jgates.js.cookie-without-httponly
+  // ruleid: jgates.js.cookie-without-httponly-by-default
   cookie.serialize("__Host-sid", token, { secure: true, sameSite: "lax" });
+  // ok: jgates.js.cookie-without-httponly-by-default
   // ruleid: jgates.js.cookie-without-httponly
   session({ secret: "x", cookie: { httpOnly: false, secure: true, sameSite: "lax" } });
+  // ok: jgates.js.cookie-without-httponly-by-default
   // ok: jgates.js.cookie-without-httponly
   res.cookie("__Host-sid", token, { secure: true, httpOnly: true, sameSite: "lax" });
+  // ok: jgates.js.cookie-without-httponly-by-default
   // ok: jgates.js.cookie-without-httponly
   cookie.serialize("__Host-sid", token, { secure: true, httpOnly: true, sameSite: "lax" });
 }

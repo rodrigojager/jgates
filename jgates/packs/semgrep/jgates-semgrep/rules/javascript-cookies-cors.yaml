@@ -5,7 +5,7 @@
 # Sources of the taint rules: the Origin request header (Express, Koa, Fetch API) and the query of the request.
 rules:
   - id: jgates.js.cookie-without-secure
-    message: A cookie is written without the Secure attribute, so the browser also sends it over plain HTTP. Pass secure true to the cookie options, or add the Secure attribute to the cookie string.
+    message: The Secure option is explicitly disabled for a cookie, so the browser also sends it over plain HTTP. Set secure to true.
     severity: WARNING
     languages: [javascript, typescript]
     metadata:
@@ -14,6 +14,26 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V3.3.1"]
+    pattern-either:
+      - pattern: '$RES.cookie($N, $V, {..., secure: false, ...})'
+      - pattern: 'Cookies.set($N, $V, {..., secure: false, ...})'
+      - pattern: '$CTX.cookies.set($N, $V, {..., secure: false, ...})'
+      - pattern: 'cookies().set($N, $V, {..., secure: false, ...})'
+      - pattern: 'cookie.serialize($N, $V, {..., secure: false, ...})'
+      - pattern: 'session({..., cookie: {..., secure: false, ...}, ...})'
+      - pattern: 'cookieSession({..., secure: false, ...})'
+
+  - id: jgates.js.cookie-without-secure-by-default
+    message: A cookie is written without a visible Secure option or attribute. If nothing else adds it, the browser can send the cookie over plain HTTP; set it here or confirm where it is set.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+      class: review
     pattern-either:
       - patterns:
           - pattern-either:
@@ -24,13 +44,6 @@ rules:
               - pattern: cookie.serialize($N, $V)
               - pattern: cookie.serialize($N, $V, {...})
           - pattern-not: '$F($N, $V, {..., secure: $S, ...})'
-      - pattern: '$RES.cookie($N, $V, {..., secure: false, ...})'
-      - pattern: 'Cookies.set($N, $V, {..., secure: false, ...})'
-      - pattern: '$CTX.cookies.set($N, $V, {..., secure: false, ...})'
-      - pattern: 'cookies().set($N, $V, {..., secure: false, ...})'
-      - pattern: 'cookie.serialize($N, $V, {..., secure: false, ...})'
-      - pattern: 'session({..., cookie: {..., secure: false, ...}, ...})'
-      - pattern: 'cookieSession({..., secure: false, ...})'
       - patterns:
           - pattern: document.cookie = $S
           - metavariable-regex:
@@ -38,7 +51,7 @@ rules:
               regex: (?is)^["'`](?!.*(;\s*secure|1970|max-age=0))
 
   - id: jgates.js.cookie-without-httponly
-    message: A cookie is written without the HttpOnly attribute, so page scripts can read it. Pass httpOnly true to the cookie options.
+    message: The HttpOnly option is explicitly disabled, so page scripts can read the cookie. Set httpOnly to true.
     severity: WARNING
     languages: [javascript, typescript]
     metadata:
@@ -47,6 +60,23 @@ rules:
       author: JGates
       subdimension: authorization
       asvs_requirements: ["V3.3.4"]
+    patterns:
+      - pattern: '{..., $K: false, ...}'
+      - metavariable-regex:
+          metavariable: $K
+          regex: (?i)^httponly$
+
+  - id: jgates.js.cookie-without-httponly-by-default
+    message: A cookie is written without a visible HttpOnly option. If nothing else adds it, page scripts can read the cookie; set httpOnly to true here or confirm where it is set.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+      class: review
     pattern-either:
       - patterns:
           - pattern-either:
@@ -55,11 +85,6 @@ rules:
               - pattern: cookie.serialize($N, $V)
               - pattern: cookie.serialize($N, $V, {...})
           - pattern-not: '$F($N, $V, {..., httpOnly: $S, ...})'
-      - patterns:
-          - pattern: '{..., $K: false, ...}'
-          - metavariable-regex:
-              metavariable: $K
-              regex: (?i)^httponly$
 
   - id: jgates.js.cookie-without-samesite
     message: A cookie is written with SameSite set to None, or without it where the API sends none, so the browser attaches it to cross-site requests. Pass sameSite "lax" or "strict".

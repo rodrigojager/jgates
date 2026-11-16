@@ -11,6 +11,8 @@ app.post("/login", (req: Request, res: Response): void => {
   const token: string = String(req.body.sessionRef);
   res.cookie("__Host-secure-off", token, { secure: false, httpOnly: true, sameSite: "lax" });
   res.cookie("__Host-script-readable", token, { secure: true, httpOnly: false, sameSite: "lax" });
+  res.cookie("__Host-secure-default", token, { httpOnly: true, sameSite: "lax" });
+  res.cookie("__Host-script-default", token, { secure: true, sameSite: "lax" });
   res.cookie("__Host-cross-site", token, { secure: true, httpOnly: true, sameSite: "none" });
   res.cookie("sid", token, { secure: true, httpOnly: true, sameSite: "lax" });
   res.setHeader("Access-Control-Allow-Origin", req.headers.origin as string);
