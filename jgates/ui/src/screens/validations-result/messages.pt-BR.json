@@ -174,7 +174,7 @@
   "vres_informational_note": "Este achado não bloqueia a validação.",
   "vres_requirements_intro": "A regra foi escrita para:",
   "vres_requirement_label": "ASVS {id}",
-  "vres_requirement_open": "Abrir o requisito {id} no mapa de cobertura ASVS",
+  "vres_requirement_open": "ASVS {id}: abrir o requisito no mapa de cobertura",
   "vres_waived": "Dispensado",
   "vres_baseline_new": "Novo",
   "vres_baseline_unchanged": "Já estava no baseline",

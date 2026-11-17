@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import fs from "node:fs";
 import path from "node:path";
-import { REPO, createFixture, createGateFixture, openApp, startGateServer, startServer, type Fixture } from "./support";
+import { REPO, createFixture, createGateFixture, openApp, simulateHostDisk, startGateServer, startServer, type Fixture } from "./support";
 
 // The gate and the target are chosen, not typed, and what will not run is a list of items with buttons (V2-71):
 //   - the wizard's review (step 6) starts with the gate (Quality, Semantic, both: Semantic disabled with its reason and
@@ -112,6 +112,7 @@ function containerFixture(language: "pt-BR" | "en", wizard: boolean): Fixture {
   fixture.env.JGATES_CONTAINER_RUNTIME = runtime;
   fixture.env.JGATES_TOOLS_IMAGE = PINNED;
   fixture.env.JGATES_NO_CACHE = "1";
+  simulateHostDisk(fixture);
   fs.writeFileSync(path.join(fixture.home, "preferences.json"), `${JSON.stringify({ schemaVersion: 1, theme: "system", language }, null, 2)}\n`, { mode: 0o600 });
   return fixture;
 }

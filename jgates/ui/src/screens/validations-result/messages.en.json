@@ -174,7 +174,7 @@
   "vres_informational_note": "This finding does not block the validation.",
   "vres_requirements_intro": "The rule was written for:",
   "vres_requirement_label": "ASVS {id}",
-  "vres_requirement_open": "Open requirement {id} in the ASVS coverage map",
+  "vres_requirement_open": "ASVS {id}: open the requirement in the coverage map",
   "vres_waived": "Waived",
   "vres_baseline_new": "New",
   "vres_baseline_unchanged": "Already in the baseline",
