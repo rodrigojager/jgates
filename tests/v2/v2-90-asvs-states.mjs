@@ -89,11 +89,17 @@ const capabilityRow = matrix.buildMatrix().rows.find((r) => r.state === "validat
 assert.ok(capabilityRow, "a capability with a validated row for any stack");
 const CAPABILITY = `${capabilityRow.adapter}#${capabilityRow.capability}`;
 const packRules = semgrep.buildPackIndex(RULES).rules;
-const jsRule = packRules.find((r) => r.language === "javascript");
-const goRule = packRules.find((r) => r.language === "go");
-const rustRule = packRules.find((r) => r.language === "rust");
-const csRule = packRules.find((r) => r.language === "csharp");
-assert.ok(jsRule && goRule && rustRule && csRule, "the pack has a JavaScript, a Go, a Rust and a C# rule");
+// These fixture rows prove when deterministic checks examine a requirement. The
+// first rule in a language can now be Review, which intentionally never examines
+// one. Select explicit blocking checks instead of weakening the state assertions;
+// Review-only and mixed rows have their separate behavioural proof in V2-103.
+const blockingRule = (language) => packRules.find((r) =>
+  r.language === language && r.signal === null && r.class !== "review" && ["ERROR", "WARNING"].includes(r.severity));
+const jsRule = blockingRule("javascript");
+const goRule = blockingRule("go");
+const rustRule = blockingRule("rust");
+const csRule = blockingRule("csharp");
+assert.ok(jsRule && goRule && rustRule && csRule, "the pack has a blocking JavaScript, Go, Rust and C# check");
 
 const check = (unit, id, extra = {}) => ({ unit, id, covers: "a construct this check flags", misses: "what it does not model", depth: "partial", ...extra });
 const why = "It bears on the requirement for a reason of its own.";

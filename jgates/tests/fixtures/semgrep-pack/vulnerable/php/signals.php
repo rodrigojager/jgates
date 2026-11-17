@@ -22,6 +22,10 @@ function serve($request, $settings, $loader)
     $client = new GenericProvider([]);
     $server = new AuthorizationServer();
     $token = JWT::decode($request->bearer, $settings['key']);
+    // This twin proves technology signals, not an unchecked token audience.
+    if ($token->aud !== $settings['audience']) {
+        throw new \RuntimeException('Audience mismatch');
+    }
     $auth = new Auth($settings);
     $otp = TOTP::generate();
     $link = ldap_connect('ldap://directory.example');
