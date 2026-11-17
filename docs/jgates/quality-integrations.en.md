@@ -57,11 +57,23 @@ tokens-transport, crypto-params, errors-logging, configuration and signals. The 
 crypto-auth and deserialization) are kept as they were; HTML files have a markup group and configuration files have a
 server group and a framework group. The libraries each family covers are in the header of its rule file.
 
-- **What blocks.** A rule of severity `ERROR` or `WARNING` is a vulnerability, precise or heuristic, and blocks under the
-  Balanced and Strict rigors as every blocking finding does. New blocking rules apply at once.
-- **What does not block.** A rule of severity `INFO` states a policy of the standard that many sound projects do not
+- **Four classes.** The pack has 711 checks: 277 `ERROR`, 229 `WARNING`, 116 ordinary `INFO` and 89 **Review**.
+  Its other 113 rules are signals, not findings (824 rules in total).
+- **What blocks.** `ERROR` and `WARNING` describe risk explicit in the matched code, for example TLS certificate
+  verification switched off, and block under the Balanced and Strict rigors as every blocking finding does.
+  Review points at a protection not visible where the rule looks when risky behaviour is the library's default,
+  for example an outbound request with no visible redirect restriction.
+- **Informational.** An ordinary `INFO` check states a policy of the standard that many sound projects do not
   follow. Its result is an **informational finding**: shown, counted apart, labelled "does not block the validation", and
   never waivable.
+- **Review.** A Review rule uses `severity: INFO` and `metadata.class: review`, but its finding is not informational.
+  It appears under **To review**, counted separately from blocking and informational findings in results, history and
+  comparisons. It never blocks in any profile, rigor or mode, never changes the exit code and never examines an ASVS
+  requirement. It asks a person to inspect the occurrence; it does not establish a vulnerability.
+  **Mark as reviewed** records your reason and end date as a per-occurrence project waiver in `.jgates/waivers.json`
+  (`jgates waivers add` in the CLI). It removes that occurrence from To review and lists it as reviewed with the waivers;
+  Review alone never produces "approved with N waivers". Expired or stale waivers, and `jgates run --no-waivers`,
+  put the occurrence back under To review.
 - **Signals.** The `signals` group holds tiny rules (`jgates.<kind>.uses-<tag>`) that only record that a scan saw a
   technology (GraphQL, WebSocket, JWT, XML, mail and the like). Their results are never findings; the [ASVS
   coverage map](asvs-coverage.en.md) uses them to suggest "not applicable".

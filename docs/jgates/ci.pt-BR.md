@@ -99,6 +99,15 @@ Alguns resultados dependem de código que o projeto controla, então não são c
 
 As supressões escritas no código (comentários que silenciam um achado) viram a etapa `jgates-ci.suppressions`, então aparecem no resultado em vez de sumir. Relatórios de cobertura que chegam dentro do commit são recusados, porque foi o projeto que os forneceu.
 
+## Achados Revisar e códigos de saída
+
+O pacote Semgrep tem quatro classes: `ERROR`, `WARNING`, `INFO` comum e **Revisar**.
+Achados Revisar aparecem em **Para revisar**, separados dos bloqueantes e informativos. Nunca bloqueiam
+nem mudam o código de saída, inclusive no CI governado, em qualquer perfil e rigor. **Marcar como revisado** é
+uma ação de dispensa por ocorrência, não aprovação de um requisito ASVS, e Revisar sozinho nunca produz
+"aprovado com N dispensas". O CI governado continua aceitando só as dispensas da política fixada, nunca as do projeto.
+Veja [integrações do Quality](quality-integrations.pt-BR.md) e [o mapa ASVS](asvs-coverage.pt-BR.md).
+
 ## Proteger o pipeline
 
 A política só protege se o job que a executa não puder ser removido nem editado pelo projeto.

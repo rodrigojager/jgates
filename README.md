@@ -93,6 +93,11 @@ jgates run
 
 Runs and drafts live in a data folder outside the project (`~/.local/state/jgates` on Linux; `JGATES_HOME` changes the folder), and the tools, the copy of the project and its dependencies live in labeled volumes of the engine. To see the history and export a result, use `jgates history` and `jgates report`. To free space or remove everything JGates created, use `jgates clean` and `jgates uninstall` (see [storage and cleanup](docs/jgates/storage.en.md)). The complete walkthrough is in [getting started](docs/jgates/getting-started.en.md).
 
+The bundled Semgrep pack has four classes: `ERROR`, `WARNING`, ordinary `INFO` (informational findings that do not block
+the validation) and **Review**. Review findings appear under **To review**, counted separately, never block or change
+the exit code, and never make an ASVS requirement examined. **Mark as reviewed** records a per-occurrence project waiver;
+Review alone never produces "approved with N waivers". See [Quality integrations](docs/jgates/quality-integrations.en.md).
+
 ### In CI
 
 On your own computer you edit everything: `jgates.yml`, profiles, templates and waivers. In CI the rules do not come from the project being analyzed: `jgates ci` reads the rules from a policy repository, pinned by a hash (`JGATES_POLICY_SHA256`), and analyzes the commit in a clean copy.
@@ -266,6 +271,12 @@ jgates run
 - `run` executa o plano e grava o resultado e a decisão. O código de saída diz a decisão: 0 aprovado, 1 reprovado, 2 incompleto (algo exigido não pôde ser provado; nunca vira aprovado), 3 uso ou configuração inválidos, 4 erro interno, 130 cancelado. Quando um run não consegue começar porque o motor ou a imagem de ferramentas não está pronto, o resultado é incompleto e nomeia o motivo com a ação dele (por exemplo `jgates setup`); nada é instalado na sua máquina. Num terminal, o run mostra cores e uma linha viva com o tempo da etapa em andamento; `--plain` imprime uma linha por etapa (e uma por minuto enquanto uma etapa longa trabalha), para agentes e logs. Ele termina com o arquivo a ler para corrigir: `agent-context.md`, na pasta do run (o mesmo resumo do botão "Copiar para o agente" da interface), com o `result.json` ao lado.
 
 Os runs e os rascunhos ficam numa pasta de dados fora do projeto (`~/.local/state/jgates` no Linux; `JGATES_HOME` muda a pasta), e as ferramentas, a cópia do projeto e as dependências dele ficam em volumes com rótulo do motor. Para ver o histórico e exportar um resultado, use `jgates history` e `jgates report`. Para liberar espaço ou remover tudo o que o JGates criou, use `jgates clean` e `jgates uninstall` (veja [armazenamento e limpeza](docs/jgates/storage.pt-BR.md)). O passo a passo completo está em [primeiros passos](docs/jgates/getting-started.pt-BR.md).
+
+O pacote Semgrep tem quatro classes: `ERROR`, `WARNING`, `INFO` comum (achados informativos que não bloqueiam
+a validação) e **Revisar**. Achados Revisar aparecem em **Para revisar**, contados separadamente, nunca bloqueiam nem
+mudam o código de saída e nunca tornam um requisito ASVS examinado. **Marcar como revisado** registra uma dispensa
+por ocorrência no projeto; Revisar sozinho nunca produz "aprovado com N dispensas".
+Veja [integrações do Quality](docs/jgates/quality-integrations.pt-BR.md).
 
 ### No CI
 

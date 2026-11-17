@@ -10,9 +10,9 @@ projeto atende ao padrão."
 
 | Estado | O que significa | Por que um requisito está nele |
 |---|---|---|
-| examinado | Pelo menos uma verificação que o mapeamento liga ao requisito rodou até o fim nas execuções que o mapa lê | A verificação procurou violações de parte do requisito. A linha nomeia a verificação, o que ela cobre, o que ela deixa de fora e quantos achados dela estão abertos |
-| não examinado | Uma verificação mapeada poderia rodar neste projeto e não rodou | Foi desligada, não foi selecionada, falhou, estourou o tempo, foi bloqueada, ou não há execução Semantic do seu método. A linha dá o motivo de cada verificação; uma execução anterior ao registro das linguagens varridas diz "valide de novo" |
-| sem suporte | Nenhuma verificação do JGates está mapeada ao requisito, ou as verificações mapeadas existem só para outras stacks | Sem mapeamento significa sem suporte: nada é deduzido do nome de uma ferramenta, de um número CWE ou de uma subdimensão |
+| examinado | Pelo menos uma verificação contada que não é Revisar, mapeada ao requisito, rodou até o fim nas execuções que o mapa lê | A verificação procurou violações de parte do requisito. A linha nomeia a verificação, o que ela cobre, o que ela deixa de fora e quantos achados dela estão abertos |
+| não examinado | Uma verificação mapeada que não é Revisar poderia rodar neste projeto e não rodou | Foi desligada, não foi selecionada, falhou, estourou o tempo, foi bloqueada, ou não há execução Semantic do seu método. A linha dá o motivo de cada verificação; uma execução anterior ao registro das linguagens varridas diz "valide de novo" |
+| sem suporte | Nenhuma verificação do JGates está mapeada, as verificações existem só para outras stacks, ou as únicas relevantes são Revisar | Verificações só Revisar apontam lugares para uma pessoa olhar; não examinam o requisito. Nada é deduzido do nome de uma ferramenta, de um número CWE ou de uma subdimensão |
 | não se aplica | Você registrou que ele não se aplica, com um motivo | Só a sua decisão faz isso; a proposta de um modelo nunca faz |
 | aguardando evidência | Não dá para estabelecer a partir do repositório: precisa de um sistema implantado ou de uma pessoa (um documento, um processo, uma configuração operacional), e nenhuma verificação está mapeada | O mapeamento diz que tipo de evidência ele espera |
 
@@ -69,29 +69,35 @@ quando um alvo rodou.
 
 ## O que o pacote examina, por tipo de arquivo
 
-O pacote Semgrep que acompanha o JGates tem 636 verificações originais para nove tipos de arquivo: Python, JavaScript
+O pacote Semgrep que acompanha o JGates tem 711 verificações originais (incluindo 89 Revisar) e 113 sinais para nove tipos de arquivo: Python, JavaScript
 (que também atende o TypeScript), Go, C#, Rust, Java, PHP, arquivos HTML e arquivos de configuração. Uma verificação
 pertence a um tipo de arquivo e só aparece para um projeto que tem arquivos desse tipo: um projeto sem Rust nunca vê uma
 verificação de Rust, e um requisito cujas verificações são todas de tipos que o projeto não tem continua sem suporte para
 ele, com o motivo nomeando os tipos. Templates (Jinja, Blade, Razor, EJS, templates do Go, arquivos Vue) não são lidos.
 
 Quase toda verificação é **parcial**: ela vê um jeito de violar um requisito, nas bibliotecas que modela, e a sua linha diz
-o que ela deixa de fora. Um requisito com uma verificação determinística é, portanto, examinado em parte, nunca provado.
+o que ela deixa de fora. Um requisito cuja verificação determinística contada, que não é Revisar, de fato rodou é,
+portanto, examinado em parte, nunca provado. Uma verificação Revisar nunca examina um requisito.
 
-A tabela conta os requisitos de cada nível que têm pelo menos uma verificação determinística revisada, pelo tipo de
+A tabela conta os requisitos de cada nível que têm pelo menos uma **verificação determinística revisada que não é Revisar**, pelo tipo de
 arquivo da verificação. Um requisito conta numa coluna quando uma entrada de mapeamento revisada o liga a uma verificação
 do pacote desse tipo; a coluna "Qualquer" conta os requisitos com uma verificação revisada de qualquer tipo determinístico,
 do pacote ou de uma ferramenta. Os níveis são cumulativos (o nível 2 inclui o nível 1). Os números são calculados a partir
-do índice do pacote e do mapeamento revisado, e não dizem nada sobre um projeto atender ou não a um requisito.
+do índice do pacote e do mapeamento revisado (somente entradas reviewed ou owner-reviewed). Verificações Revisar,
+sinais e notas de linguagem ficam de fora. São contagens do inventário do mapeamento, não requisitos examinados por uma
+execução real do projeto nem evidência de que um requisito foi atendido.
 
 | Nível | Requisitos | Qualquer | Python | JavaScript | Go | C# | Rust | Java | PHP | HTML | Configuração |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 70 | 41 | 34 | 35 | 29 | 33 | 27 | 35 | 31 | 4 | 4 |
-| 2 | 253 | 107 | 91 | 93 | 81 | 87 | 70 | 91 | 79 | 6 | 15 |
-| 3 | 345 | 120 | 101 | 102 | 87 | 94 | 75 | 99 | 85 | 7 | 16 |
+| 1 | 70 | 40 | 34 | 34 | 28 | 33 | 27 | 34 | 30 | 4 | 4 |
+| 2 | 253 | 102 | 88 | 90 | 78 | 83 | 73 | 85 | 78 | 6 | 15 |
+| 3 | 345 | 115 | 98 | 99 | 84 | 90 | 79 | 93 | 86 | 7 | 16 |
 
-Os demais requisitos estão sem suporte, aguardam um sistema implantado ou uma pessoa, ou são examinados só por uma revisão
-por IA.
+As colunas por tipo contam só verificações Semgrep daquele tipo exato do índice; capacidades entram só em Qualquer.
+Nos níveis 1 / 2 / 3, Qualquer tem 1 / 5 / 5 requisitos só Revisar, 19 / 84 / 115 candidatos só IA e
+10 / 62 / 110 sem nenhum. Essas categorias são exclusivas, nessa ordem após as determinísticas que não são Revisar:
+só Revisar pode ter candidatos IA; só IA não tem nenhum dos dois tipos de verificação determinística. "Sem nenhum"
+não significa "não se aplica", e um candidato IA não prova aplicabilidade a uma linguagem nem execução.
 
 ## Achados informativos
 
@@ -99,9 +105,22 @@ Algumas verificações do pacote enunciam uma política do padrão que muitos pr
 política de senha que impõe classes de caracteres, ou uma pergunta secreta para recuperação). Os resultados delas são
 **achados informativos**: aparecem no resultado, no relatório e no mapa sob um título próprio, cada um com as palavras "não
 bloqueia a validação". São contados à parte dos achados que bloqueiam, no resultado, na comparação com a linha de base e no
-mapa (uma verificação aberta mostra dois números, bloqueantes e informativos); nunca mudam um veredito e não podem ser
-dispensados, porque não há o que dispensar. As verificações que procuram uma vulnerabilidade, precisa ou heurística, são as
-que bloqueiam.
+mapa. Uma verificação aberta mostra três contagens separadas: bloqueantes, informativos e para revisar. Achados
+informativos nunca mudam um veredito e não podem ser dispensados.
+
+## Verificações Revisar e notas de linguagem
+
+As quatro classes do pacote são `ERROR`, `WARNING`, `INFO` comum e **Revisar**. Achados Revisar aparecem em **Para revisar**,
+nunca bloqueiam nem mudam o código de saída, e permitem **Marcar como revisado** (veja [integrações do Quality](quality-integrations.pt-BR.md)).
+**Uma verificação Revisar nunca torna um requisito examinado**, mesmo se rodou sem achados ou foi marcada como revisada.
+Se as únicas verificações relevantes são Revisar, a linha fica sem suporte com `UNSUPPORTED_REVIEW_ONLY`, nomeia essas
+verificações e diz se rodaram. Outra verificação contada que não é Revisar pode examinar a linha; as Revisar continuam visíveis.
+
+Uma **nota de linguagem** é uma afirmação revisada, não uma verificação do projeto. As quatro notas descrevem XML em Rust
+e e-mail em C# como **Protegido pela própria biblioteca (não verificado pelo JGates)**, e parâmetros DH fracos em Go e
+stack traces em Rust como **Não se aplica a esta linguagem**. A linha mostra a explicação quando a linguagem está presente
+(ou as linguagens do projeto ainda são desconhecidas). Notas nunca mudam estados, totais, sugestões ou a base de examinado,
+e nunca são o seu "não se aplica" registrado.
 
 Um achado que vem de uma verificação do pacote nomeia os requisitos para os quais ela foi escrita ("ASVS V3.3.1"), com
 link para a linha correspondente do mapa. É um rótulo de intenção: a frase ao lado nunca diz que o requisito está ou não

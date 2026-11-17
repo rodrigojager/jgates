@@ -20,7 +20,7 @@ This page gathers what JGates does not do yet, what was not tested and the contr
 - **macOS.** No test ran on a real Mac. The compatibility matrix shows "not tested on a real machine" in the macOS column for every adapter. The data folder path on macOS (`~/Library/Application Support/jgates`) exists in the code and is covered by a unit test only.
 - **Windows.** The automatic suite runs on Linux. On one Windows 10 machine with Docker Desktop, the first-run flow was checked by hand: the global install from the `npm pack` tarball (with `jgates` on the `Path`), `init`, `plan`, `run` and `ui`. The suite itself still has failures of its own on Windows (paths compared with a different letter case, checks that need POSIX: `0600` permissions, cancellation by process group, symlinks); the tests that depend on Windows are marked and skip elsewhere, with the reason. The `winget` command of the Docker recipe was not run. Before relying on JGates on another Windows machine, run the suite there (`node scripts/smoke-install.mjs` repeats the installation proof).
 - **Engines other than Docker.** The checks use the Docker command line. Rancher Desktop and Podman Desktop are expected to work through their `docker` command or `JGATES_CONTAINER_RUNTIME`, but only Docker was exercised.
-- **Screen reader.** Accessibility was checked with axe (WCAG 2.2 AA, no critical or serious violation in the light, dark and system themes), with the keyboard and with reduced motion. No real screen reader was used.
+- **Screen reader and new Review screens.** Earlier accessibility checks used axe (WCAG 2.2 AA, no critical or serious violation in the light, dark and system themes), the keyboard and reduced motion. No real screen reader was used. The new Review controls have passed UI typechecks only; real keyboard/Esc, theme, language, responsive and axe verification is still pending.
 - **Direct installation from GitHub.** `npm install --prefix <folder> git+https://github.com/rodrigojager/jgates` and `npm install git+https://github.com/rodrigojager/jgates` inside a project were checked by hand with a local clone (`git+file://`, npm 11), including in a folder with a space in its path: `jgates --version` worked. They are not in the automatic suite, and the download from GitHub itself was not exercised. The path the suite tests is the `npm pack` tarball (see [getting started](getting-started.en.md)).
 - **The tools image is not published yet.** Until it is, the pin file holds the local image `jgates-tools:dev`; `jgates tools export` and `import` move an image between machines.
 
@@ -43,6 +43,33 @@ JGates recognizes Java and PHP but has no stack for them. What runs on a Java or
 - a language the pack has no rule for (Kotlin, Ruby and others) is named in the plan as a limitation of the Semgrep step, and the result records how many files of each language the scan covered.
 
 In-image mode (JGates running inside the tools image, as in a CI container) uses the copy of the pack that sits in the image: it keeps the older, smaller pack until the image is rebuilt. A run started from the host always uses the pack of the installed JGates.
+
+## Review and language-note limits
+
+The pack's four classes are `ERROR`, `WARNING`, ordinary `INFO` and **Review**. Review findings are shown as **To review**,
+never block in any profile or mode, never change the exit code and never examine an ASVS requirement.
+Review detects a protection not visible locally, not a demonstrated vulnerability: it can miss risky code and flag
+sound code more often than a blocking rule. Protections may be elsewhere, and the library or its configuration may
+differ from the model. **Mark as reviewed** records a per-occurrence waiver, not a security approval; Review alone
+never changes the result to "approved with N waivers".
+
+A language note is a reviewed statement about a library or language, not a check of the project. Neither
+"Protected by the library itself (not checked by JGates)" nor "Not applicable to this language" changes an ASVS state,
+counts as examined or records your "not applicable". See [the map](asvs-coverage.en.md).
+
+### Go template mixed-import detection gap
+
+`jgates.go.text-template-for-html` misses a bare `import "text/template"` beside a named `html/template` import,
+such as `import htmltpl "html/template"`. Its bare-import branch explicitly excludes files containing a named
+HTML-template import. Local attempts to remove or narrow that exclusion detected the unsafe calls but also
+incorrectly flagged safe `htmltpl` templates executed into an HTTP response. The rule therefore remains blocking
+and unchanged; this mixed-import shape is a documented detection gap, not a fixed detection.
+
+### Rust client-certificate verification gap
+
+There is no `jgates.rust.mtls-client-certificate-not-verified` rule. In the modeled OpenSSL API, PEER requests and
+verifies the certificate, NONE does not request one, and an accepts-all verification callback is an explicit bypass,
+not absent-protection Review. No executable check or examined coverage is claimed for this planned omission.
 
 ## Semantic gate
 

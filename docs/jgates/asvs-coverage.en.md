@@ -10,9 +10,9 @@ standard."
 
 | State | What it means | Why a requirement is in it |
 |---|---|---|
-| examined | At least one check that the mapping ties to the requirement ran to completion in the runs the map reads | The check looked for violations of part of the requirement. The row names the check, what it covers, what it misses and how many of its findings are open |
-| unexamined | A mapped check could run on this project and did not | It was switched off, not selected, failed, timed out, was blocked, or there is no Semantic run of its method. The row gives the reason of each check; a run made before the scanned-languages record existed says "validate again" |
-| unsupported | No JGates check is mapped to the requirement, or the mapped checks exist only for other stacks | Unmapped means unsupported: nothing is inferred from a tool name, a CWE number or a subdimension |
+| examined | At least one counted non-Review check mapped to the requirement ran to completion in the runs the map reads | The check looked for violations of part of the requirement. The row names the check, what it covers, what it misses and how many of its findings are open |
+| unexamined | A mapped non-Review check could run on this project and did not | It was switched off, not selected, failed, timed out, was blocked, or there is no Semantic run of its method. The row gives the reason of each check; a run made before the scanned-languages record existed says "validate again" |
+| unsupported | No JGates check is mapped, the checks exist only for other stacks, or the only relevant checks are Review | Review-only checks point at places for a person to look; they do not examine the requirement. Nothing is inferred from a tool name, a CWE number or a subdimension |
 | not applicable | You recorded that it does not apply, with a reason | Only your decision does this; a model's proposal never does |
 | awaiting evidence | It cannot be established from the repository: it needs a deployed system or a person (a document, a process, an operational setting), and no check is mapped | The mapping says which kind of evidence it awaits |
 
@@ -67,37 +67,56 @@ Schemathesis feed runtime requirements when a target ran.
 
 ## What the pack examines, by kind of file
 
-The bundled Semgrep pack has 636 original checks for nine kinds of file: Python, JavaScript (which also serves
+The bundled Semgrep pack has 711 original checks (including 89 Review checks) and 113 signals for nine kinds of file: Python, JavaScript (which also serves
 TypeScript), Go, C#, Rust, Java, PHP, HTML files and configuration files. A check belongs to one kind of file and is shown
 only to a project that has files of that kind: a project with no Rust never sees a Rust check, and a requirement whose
 checks are all of kinds the project lacks stays unsupported for it, with the reason naming the kinds. Templates (Jinja,
 Blade, Razor, EJS, Go templates, Vue files) are not read.
 
 Almost every check is **partial**: it sees one way of breaking a requirement, in the libraries it models, and its row
-says what it misses. A requirement with a deterministic check is therefore examined in part, never proved.
+says what it misses. A requirement whose counted non-Review deterministic check actually ran is therefore examined in
+part, never proved. A Review check never examines a requirement.
 
-The table counts the requirements of each level that have at least one reviewed deterministic check, by the kind of
+The table counts the requirements of each level that have at least one reviewed **non-Review deterministic check**, by the kind of
 file of the check. A requirement counts in a column when a reviewed mapping entry ties it to a pack check of that kind;
 the "any" column counts the requirements with a reviewed check of any deterministic kind, the pack's or a tool's. The
 levels are cumulative (level 2 includes level 1). The numbers are computed from the pack index and the reviewed
-mapping, and say nothing about whether a project meets a requirement.
+mapping (reviewed or owner-reviewed entries only). Review checks, signals and language notes are excluded. These are
+mapping inventory counts, not requirements examined by a real project run and not evidence that a requirement is met.
 
 | Level | Requirements | Any | Python | JavaScript | Go | C# | Rust | Java | PHP | HTML | Config |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 70 | 41 | 34 | 35 | 29 | 33 | 27 | 35 | 31 | 4 | 4 |
-| 2 | 253 | 107 | 91 | 93 | 81 | 87 | 70 | 91 | 79 | 6 | 15 |
-| 3 | 345 | 120 | 101 | 102 | 87 | 94 | 75 | 99 | 85 | 7 | 16 |
+| 1 | 70 | 40 | 34 | 34 | 28 | 33 | 27 | 34 | 30 | 4 | 4 |
+| 2 | 253 | 102 | 88 | 90 | 78 | 83 | 73 | 85 | 78 | 6 | 15 |
+| 3 | 345 | 115 | 98 | 99 | 84 | 90 | 79 | 93 | 86 | 7 | 16 |
 
-The remaining requirements are unsupported, await a deployed system or a person, or are examined only by an AI review.
+File-kind columns count only Semgrep checks of that exact indexed kind; capability checks are included only in Any.
+For levels 1 / 2 / 3, Any has 1 / 5 / 5 Review-only requirements, 19 / 84 / 115 AI-only candidates and
+10 / 62 / 110 with none. These categories are exclusive, in that order after non-Review deterministic checks:
+Review-only may also have AI candidates; AI-only has neither kind of deterministic check. "None" does not mean
+"not applicable", and an AI candidate does not prove applicability to a language or execution.
 
 ## Informational findings
 
 Some checks of the pack state a policy of the standard that many sound projects do not follow (for example a password policy that forces
 character classes, or a secret question for recovery). Their results are **informational findings**: shown in the result, the report
 and the map under their own heading, each with the words "does not block the validation". They are counted apart from
-the blocking findings in the result, in the baseline comparison and in the map (an opened check shows two numbers, blocking
-and informational), they never change a verdict, and they cannot be waived, because there is nothing to waive. The checks
-that look for a vulnerability, precise or heuristic, are the ones that block.
+the blocking findings in the result, in the baseline comparison and in the map. An opened check shows three separate
+counts: blocking, informational and to review. Informational findings never change a verdict and cannot be waived.
+
+## Review checks and language notes
+
+The four pack classes are `ERROR`, `WARNING`, ordinary `INFO` and **Review**. Review findings appear under **To review**,
+never block or change the exit code, and can be marked with **Mark as reviewed** (see [Quality integrations](quality-integrations.en.md)).
+**A Review check never makes a requirement examined**, even when it ran without findings or was marked as reviewed.
+If the only relevant checks are Review, the row is unsupported with `UNSUPPORTED_REVIEW_ONLY`, names those checks and
+says whether they ran. Another counted non-Review check may examine the row; its Review checks remain visible.
+
+A **language note** is a reviewed statement, not a check of the project. The four notes describe Rust XML and C# mail
+as **Protected by the library itself (not checked by JGates)**, and Go weak-DH parameters and Rust stack traces as
+**Not applicable to this language**. The row shows the explanation when that language is present (or the project's
+languages are not yet known). Notes never change states, totals, suggestions or the examined basis, and are never your
+recorded "not applicable".
 
 A finding that comes from a pack check names the requirements the check was written for ("ASVS V3.3.1"), linked to that
 row of the map. This is a label of intent: the sentence beside it never says the requirement is or is not met.

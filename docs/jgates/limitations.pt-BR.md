@@ -20,7 +20,7 @@ Esta página reúne o que o JGates ainda não faz, o que não foi testado e os c
 - **macOS.** Nenhum teste rodou num Mac real. A matriz de compatibilidade mostra "não testado em máquina real" na coluna do macOS para todos os adaptadores. O caminho da pasta de dados no macOS (`~/Library/Application Support/jgates`) existe no código e é coberto só por um teste unitário.
 - **Windows.** A suíte automática roda no Linux. Numa máquina com Windows 10 e Docker Desktop, o fluxo do primeiro uso foi conferido à mão: a instalação global a partir do tarball do `npm pack` (com o `jgates` no `Path`), `init`, `plan`, `run` e `ui`. A própria suíte ainda tem falhas próprias no Windows (caminhos comparados com caixa de letras diferente, verificações que exigem POSIX: permissões `0600`, cancelamento por grupo de processos, links simbólicos); os testes que dependem do Windows estão marcados e pulam fora dele, com o motivo. O comando `winget` da receita do Docker não foi executado. Antes de confiar no JGates em outra máquina Windows, rode a suíte lá (o `node scripts/smoke-install.mjs` repete a prova de instalação).
 - **Motores que não são o Docker.** As verificações usam a linha de comando do Docker. Espera-se que o Rancher Desktop e o Podman Desktop funcionem pelo comando `docker` deles ou por `JGATES_CONTAINER_RUNTIME`, mas só o Docker foi exercitado.
-- **Leitor de tela.** A acessibilidade foi conferida com o axe (WCAG 2.2 AA, nenhuma violação crítica ou séria nos temas claro, escuro e do sistema), com o teclado e com movimento reduzido. Nenhum leitor de tela real foi usado.
+- **Leitor de tela e novas telas Revisar.** As verificações anteriores de acessibilidade usaram axe (WCAG 2.2 AA, nenhuma violação crítica ou séria nos temas claro, escuro e do sistema), teclado e movimento reduzido. Nenhum leitor de tela real foi usado. Os novos controles Revisar passaram só pela verificação de tipos da interface; a verificação real de teclado/Esc, tema, idioma, responsividade e axe continua pendente.
 - **Instalação direta do GitHub.** `npm install --prefix <pasta> git+https://github.com/rodrigojager/jgates` e `npm install git+https://github.com/rodrigojager/jgates` dentro de um projeto foram conferidos à mão com um clone local (`git+file://`, npm 11), inclusive numa pasta com espaço no caminho: `jgates --version` funcionou. Não estão na suíte automática, e o download do próprio GitHub não foi exercitado. O caminho que a suíte testa é o tarball do `npm pack` (veja [primeiros passos](getting-started.pt-BR.md)).
 - **A imagem de ferramentas ainda não foi publicada.** Até lá, o arquivo de pin guarda a imagem local `jgates-tools:dev`; o `jgates tools export` e o `import` levam uma imagem entre máquinas.
 
@@ -43,6 +43,33 @@ O JGates reconhece Java e PHP, mas não tem stack para elas. O que roda num proj
 - uma linguagem para a qual o pacote não tem regra (Kotlin, Ruby e outras) aparece no plano como limitação da etapa do Semgrep, e o resultado registra quantos arquivos de cada linguagem a varredura cobriu.
 
 O modo dentro da imagem (o JGates rodando dentro da imagem de ferramentas, como num contêiner de CI) usa a cópia do pacote que está na imagem: ela continua com o pacote antigo, menor, até a imagem ser reconstruída. Um run iniciado no host usa sempre o pacote do JGates instalado.
+
+## Limites de Revisar e das notas de linguagem
+
+As quatro classes do pacote são `ERROR`, `WARNING`, `INFO` comum e **Revisar**. Achados Revisar aparecem em **Para revisar**,
+nunca bloqueiam em nenhum perfil ou modo, nunca mudam o código de saída e nunca examinam um requisito ASVS.
+Revisar detecta uma proteção não visível localmente, não uma vulnerabilidade demonstrada: pode deixar passar código
+arriscado e apontar código seguro com mais frequência que uma regra bloqueante. Proteções podem estar em outro lugar,
+e a biblioteca ou sua configuração podem diferir do modelo. **Marcar como revisado** registra uma dispensa por ocorrência,
+não uma aprovação de segurança; Revisar sozinho nunca muda o resultado para "aprovado com N dispensas".
+
+Uma nota de linguagem é uma afirmação revisada sobre uma biblioteca ou linguagem, não uma verificação do projeto.
+Nem "Protegido pela própria biblioteca (não verificado pelo JGates)" nem "Não se aplica a esta linguagem" muda um estado
+ASVS, conta como examinado ou registra o seu "não se aplica". Veja [o mapa](asvs-coverage.pt-BR.md).
+
+### Lacuna de detecção de imports mistos de templates Go
+
+`jgates.go.text-template-for-html` não detecta um `import "text/template"` sem nome ao lado de um import nomeado de
+`html/template`, como `import htmltpl "html/template"`. Seu ramo de import sem nome exclui explicitamente arquivos com
+um import nomeado de templates HTML. Tentativas locais de remover ou estreitar essa exclusão detectaram as chamadas
+inseguras, mas também apontaram incorretamente templates seguros `htmltpl` executados numa resposta HTTP. A regra,
+portanto, continua bloqueante e inalterada; esse formato de imports mistos é uma lacuna documentada, não uma detecção corrigida.
+
+### Lacuna de verificação de certificado de cliente em Rust
+
+Não existe a regra `jgates.rust.mtls-client-certificate-not-verified`. Na API OpenSSL modelada, PEER pede e verifica o
+certificado, NONE não pede um, e um callback de verificação que aceita tudo é um desvio explícito, não Revisar por proteção
+ausente. Nenhuma verificação executável nem cobertura examinada é atribuída a essa omissão planejada.
 
 ## Semantic gate
 

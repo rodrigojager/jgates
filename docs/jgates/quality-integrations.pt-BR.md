@@ -59,11 +59,23 @@ arquivos anteriores (injection, taint, XSS, crypto-auth e deserialization) conti
 grupo de marcação e os arquivos de configuração têm um grupo de servidor e um de framework. As bibliotecas que cada
 família cobre estão no cabeçalho do seu arquivo de regras.
 
-- **O que bloqueia.** Uma regra de severidade `ERROR` ou `WARNING` é uma vulnerabilidade, precisa ou heurística, e bloqueia
-  nos rigores Balanced e Strict como todo achado bloqueante. As novas regras bloqueantes valem de imediato.
-- **O que não bloqueia.** Uma regra de severidade `INFO` enuncia uma política do padrão que muitos projetos sólidos não
+- **Quatro classes.** O pacote tem 711 verificações: 277 `ERROR`, 229 `WARNING`, 116 `INFO` comuns e 89 **Revisar**.
+  As outras 113 regras são sinais, não achados (824 regras no total).
+- **O que bloqueia.** `ERROR` e `WARNING` descrevem risco explícito no código encontrado, por exemplo a verificação
+  de certificado TLS desligada, e bloqueiam nos rigores Equilibrado e Rigoroso como todo achado bloqueante.
+  Revisar aponta uma proteção não visível onde a regra procura quando o comportamento arriscado é o padrão da biblioteca,
+  por exemplo uma requisição de saída sem restrição visível de redirecionamento.
+- **Informativos.** Uma verificação `INFO` comum enuncia uma política do padrão que muitos projetos sólidos não
   seguem. O resultado dela é um **achado informativo**: aparece, é contado à parte, é rotulado "não bloqueia a validação"
   e nunca pode ser dispensado.
+- **Revisar.** Uma regra Revisar usa `severity: INFO` e `metadata.class: review`, mas seu achado não é informativo.
+  Aparece em **Para revisar**, contado separadamente dos bloqueantes e informativos nos resultados, histórico e
+  comparações. Nunca bloqueia em nenhum perfil, rigor ou modo, nunca muda o código de saída e nunca examina um requisito
+  ASVS. Pede que uma pessoa examine a ocorrência; não estabelece uma vulnerabilidade.
+  **Marcar como revisado** registra seu motivo e data final como dispensa por ocorrência no `.jgates/waivers.json`
+  do projeto (`jgates waivers add` no CLI). Retira a ocorrência de Para revisar e a lista como revisada com as dispensas;
+  Revisar sozinho nunca produz "aprovado com N dispensas". Dispensas vencidas ou desatualizadas, e
+  `jgates run --no-waivers`, devolvem a ocorrência a Para revisar.
 - **Sinais.** O grupo `signals` tem regras minúsculas (`jgates.<tipo>.uses-<etiqueta>`) que só registram que uma varredura
   viu uma tecnologia (GraphQL, WebSocket, JWT, XML, e-mail e semelhantes). Os resultados delas nunca são achados; o [mapa
   de cobertura ASVS](asvs-coverage.pt-BR.md) as usa para sugerir "não se aplica".

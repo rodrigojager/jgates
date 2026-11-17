@@ -99,6 +99,15 @@ Some results depend on code the project controls, so they are not trusted:
 
 Suppressions written in the code (comments that silence a finding) become the step `jgates-ci.suppressions`, so they appear in the result instead of disappearing. Coverage reports that arrive inside the commit are refused, because the project supplied them.
 
+## Review findings and exit codes
+
+The Semgrep pack has four classes: `ERROR`, `WARNING`, ordinary `INFO` and **Review**.
+Review findings appear under **To review**, separately from blocking and informational findings. They never block
+and never change the exit code, including governed CI, any profile and any rigor. **Mark as reviewed** is a
+per-occurrence waiver action, not approval of an ASVS requirement, and Review alone never produces
+"approved with N waivers". Governed CI still accepts only the pinned policy's waivers, never the project's.
+See [Quality integrations](quality-integrations.en.md) and [the ASVS map](asvs-coverage.en.md).
+
 ## Protect the pipeline
 
 The policy only protects if the job that runs it cannot be removed or edited by the project.
