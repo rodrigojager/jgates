@@ -15,12 +15,16 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 //   1. the clone, validated under Balanced (profile `standard`), reports the recounted findings of master (the new pack
 //      adds none to the sample: its only Semgrep finding is the command injection) and fails on its blocking ones;
 //   2. a Python file written to the clone only (an HTTP call without a timeout, a suppressed exception: two pack rules of
-//      severity INFO) adds exactly two informational findings: shown with their requirement ids, not blocking, and the
-//      verdict and the count of blocking violations are those of the first run; the text says "and 2 informational";
+//      severity INFO) adds exactly two informational findings, and a second one (a tar archive extracted with no visible
+//      filter: one Review rule) adds exactly one finding to review: shown with their requirement ids, none blocking, and
+//      the verdict and the count of blocking violations are those of the first run; the text says "and 2 informational
+//      and 1 to review" (pt-BR "e 1 para revisar") and lists the finding under its own heading;
 //   3. the level-2 map of that run shows no check of a language the project lacks (the Semgrep stage scanned Python files
 //      only): each such check is out of the text and carries LANGUAGE_ABSENT; the Python checks ran, the command
 //      injection shows as an open blocking finding of the requirement it bears on and the informational findings as open
-//      informational ones; the map has at least one suggestion of "not applicable";
+//      informational ones; the Review rule shows as a Review check with one open finding to review on V5.2.3, which it
+//      does not examine (a Review check alone never makes a requirement examined), and no requirement is examined by a
+//      Review check alone; the map has at least one suggestion of "not applicable";
 //   4. confirming a suggestion (`jgates coverage asvs not-applicable <id> --from-suggestion`) shows the entry first
 //      (--preview writes nothing), then writes exactly `.jgates/asvs.json` of the clone, the map shows the requirement as
 //      not applicable with the suggestion's reason, and the undo token takes it out;
@@ -49,6 +53,21 @@ const NEW_SOURCE = [
   "",
 ].join("\n");
 const INFORMATIONAL = ["jgates.python.http-client-without-timeout", "jgates.python.swallowed-exception"];
+// A tar archive extracted with no filter and no member check: the library's default decides, so only the Review half of
+// the archive rule fires (the explicit half needs filter="fully_trusted"); nothing blocking or informational is added.
+const REVIEW_FILE = "hello/archive.py";
+const REVIEW_SOURCE = [
+  "import tarfile",
+  "",
+  "",
+  "def unpack(archive, destination):",
+  "    with tarfile.open(archive) as bundle:",
+  "        bundle.extractall(destination)",
+  "",
+].join("\n");
+const REVIEW = "jgates.python.archive-extraction-unchecked-by-default";
+// A requirement of level 2 whose only Python check is that Review rule: listed there, it examines nothing.
+const REVIEW_REQUIREMENT = "V5.2.3";
 // The findings of master under Balanced: tool, rule, file (no file for a project-wide one); a repeated line is two findings.
 const BALANCED = [
   "builtin-pii pii.cpf tests/fixtures/customers.csv",
@@ -118,9 +137,9 @@ const jgatesTemp = () => new Set(fs.readdirSync(os.tmpdir()).filter((name) => /^
 
 const fileOf = (f) => (f.location?.path ?? "").replace(/\\/g, "/");
 const keyOf = (f) => `${f.tool} ${f.ruleId} ${fileOf(f)}`.trimEnd();
-const summary = (result) => JSON.stringify({ decision: result.decision, stages: result.stages.filter((s) => s.state !== "completed").map((s) => `${s.id}=${s.state}`), findings: result.findings.map((f) => `${keyOf(f)}${f.blocking ? " *" : ""}${f.informational ? " (info)" : ""}`) }, null, 1);
+const summary = (result) => JSON.stringify({ decision: result.decision, stages: result.stages.filter((s) => s.state !== "completed").map((s) => `${s.id}=${s.state}`), findings: result.findings.map((f) => `${keyOf(f)}${f.blocking ? " *" : ""}${f.informational ? " (info)" : ""}${f.review ? " (review)" : ""}`) }, null, 1);
 
-test("V2-101 (real engine): the sample with the expanded pack, Balanced findings recounted, an informational finding that leaves the verdict alone, a level-2 map without checks of absent languages, a suggestion confirmed in the clone only, and the sample untouched", { timeout: 3_600_000 }, async (t) => {
+test("V2-101 (real engine): the sample with the expanded pack, Balanced findings recounted, informational findings and a finding to review that leave the verdict alone, a level-2 map without checks of absent languages and with a Review check that examines nothing, a suggestion confirmed in the clone only, and the sample untouched", { timeout: 3_600_000 }, async (t) => {
   let scratch = "";
   let workspace = "";
   // The cleanup belongs to this test (a root `after` hook can run before the test when the harness filters by name).
@@ -187,15 +206,19 @@ test("V2-101 (real engine): the sample with the expanded pack, Balanced findings
   assert.equal(first.doc.decision, "failed", firstSummary);
   assert.deepEqual(first.doc.findings.map(keyOf).sort(), BALANCED, `the recounted findings of master under Balanced: ${firstSummary}`);
   assert.equal(first.doc.findings.filter((f) => f.informational === true).length, 0, "the sample has no informational finding of its own");
+  assert.equal(first.doc.findings.filter((f) => f.review === true).length, 0, "the sample has no finding to review of its own");
   const blockingFirst = first.doc.findings.filter((f) => f.blocking === true && f.waived !== true);
   assert.equal(blockingFirst.length, BLOCKING_FINDINGS, firstSummary);
+  const firstEn = reportText(first.doc.runId, "en");
+  assert.match(firstEn, new RegExp(`Decision: failed \\(failed: ${BLOCKING_VIOLATIONS} blocking violations\\)`), firstEn);
   const semgrepFirst = first.doc.stages.find((s) => s.id === "semgrep#sast");
   assert.equal(semgrepFirst?.state, "completed", firstSummary);
   const scanned = Object.entries(semgrepFirst.scannedLanguages ?? {}).filter(([, n]) => n > 0).map(([language]) => language);
   assert.deepEqual(scanned, ["python"], "the Semgrep stage scanned Python files only");
 
-  // 2. An informational finding, from a file written to the clone only: the verdict does not change.
+  // 2. Informational findings and a finding to review, from files written to the clone only: the verdict does not change.
   fs.writeFileSync(path.join(project, ...NEW_FILE.split("/")), NEW_SOURCE);
+  fs.writeFileSync(path.join(project, ...REVIEW_FILE.split("/")), REVIEW_SOURCE);
   const beforeSecond = treeEntries(project);
   const second = runJson();
   const secondSummary = summary(second.doc);
@@ -210,14 +233,27 @@ test("V2-101 (real engine): the sample with the expanded pack, Balanced findings
     assert.ok(f.asvsRequirements.length > 0 && f.asvsRequirements.every((id) => /^V\d{1,2}\.\d+\.\d+$/.test(id)), `${f.ruleId} carries its requirement ids`);
     assert.notEqual(f.waived, true);
   }
-  assert.deepEqual(second.doc.findings.filter((f) => f.informational !== true).map(keyOf).sort(), BALANCED, "every other finding is as before");
+  // Exactly one finding to review, the Review rule's, from the archive file alone; it never blocks and is not informational.
+  const review = second.doc.findings.filter((f) => f.review === true);
+  assert.deepEqual(review.map(keyOf), [`semgrep ${REVIEW} ${REVIEW_FILE}`], `exactly one finding to review: ${secondSummary}`);
+  assert.deepEqual(second.doc.findings.filter((f) => fileOf(f) === REVIEW_FILE).map(keyOf), [`semgrep ${REVIEW} ${REVIEW_FILE}`], `the archive file adds that finding and nothing else: ${secondSummary}`);
+  const [toReview] = review;
+  assert.equal(toReview.blocking, false, `${REVIEW} does not block`);
+  assert.notEqual(toReview.informational, true, `${REVIEW} is to review, not informational`);
+  assert.notEqual(toReview.waived, true);
+  assert.ok(toReview.asvsRequirements.includes(REVIEW_REQUIREMENT) && toReview.asvsRequirements.every((id) => /^V\d{1,2}\.\d+\.\d+$/.test(id)), `${REVIEW} carries its requirement ids`);
+  assert.deepEqual(second.doc.findings.filter((f) => f.informational !== true && f.review !== true).map(keyOf).sort(), BALANCED, "every other finding is as before");
   assert.equal(second.doc.findings.filter((f) => f.blocking === true && f.waived !== true).length, BLOCKING_FINDINGS, "the blocking findings are the same");
   const en = reportText(second.doc.runId, "en");
-  assert.match(en, new RegExp(`failed: ${BLOCKING_VIOLATIONS} blocking violations and 2 informational`), en);
+  assert.match(en, new RegExp(`Decision: failed \\(failed: ${BLOCKING_VIOLATIONS} blocking violations and 2 informational and 1 to review`), en);
   assert.match(en, /Informational findings/, en);
+  assert.match(en, /To review \(1; they do not block the validation/, en);
+  assert.ok(en.includes(REVIEW), `the text lists the finding to review:\n${en}`);
   assert.doesNotMatch(en, /approved/i, "a failed run is never worded as an approval");
   const pt = reportText(second.doc.runId, "pt-BR");
   assert.match(pt, /informativ/i, pt);
+  assert.match(pt, new RegExp(`${BLOCKING_VIOLATIONS} [^\\n]*e 1 para revisar`), pt);
+  assert.match(pt, /Para revisar \(1; não bloqueiam a validação/, pt);
   assert.deepEqual(changedPaths(beforeSecond, treeEntries(project)), [], "the validation changed nothing in the clone");
 
   // 3. The level-2 map of that run.
@@ -245,11 +281,31 @@ test("V2-101 (real engine): the sample with the expanded pack, Balanced findings
   const injection = checks.find(({ check }) => check.id === "jgates.python.os-command-injection" && check.openBlocking > 0);
   assert.ok(injection, "the command injection is an open blocking finding of a requirement it bears on");
   assert.equal(injection.check.openInformational, 0);
-  assert.equal(injection.check.openFindings, injection.check.openBlocking + injection.check.openInformational);
+  assert.equal(injection.check.openReview, 0);
+  assert.equal(injection.check.openFindings, injection.check.openBlocking + injection.check.openInformational + injection.check.openReview);
   for (const id of INFORMATIONAL) {
     const named = checks.filter(({ check }) => check.id === id);
     assert.ok(named.length > 0, `${id} is a check of the map`);
-    assert.ok(named.some(({ check }) => check.openInformational > 0 && check.openBlocking === 0), `${id} shows as an open informational finding`);
+    assert.ok(named.some(({ check }) => check.openInformational > 0 && check.openBlocking === 0 && check.openReview === 0), `${id} shows as an open informational finding`);
+  }
+  // The Review rule: a Review check wherever it is listed, one open finding to review, never counted in the two other
+  // numbers; on V5.2.3, its only Python check, the requirement is not examined.
+  const reviewChecks = checks.filter(({ check }) => check.id === REVIEW);
+  assert.ok(reviewChecks.length > 0, `${REVIEW} is a check of the map`);
+  for (const { row, check } of reviewChecks) {
+    assert.equal(check.class, "review", `${row.id}: ${REVIEW} is a Review check`);
+    assert.equal(check.status, "ran", `${row.id}: ${REVIEW} ran`);
+    assert.deepEqual([check.openBlocking, check.openInformational, check.openReview, check.openFindings], [0, 0, 1, 1], `${row.id}: one open finding to review`);
+    assert.ok(!row.reason.includes(REVIEW), `${row.id}: ${REVIEW} is not named among the checks that examined it: ${row.reason}`);
+  }
+  const reviewRow = map.requirements.find((r) => r.id === REVIEW_REQUIREMENT);
+  assert.ok(reviewRow?.checks.some((c) => c.id === REVIEW), `${REVIEW_REQUIREMENT} lists ${REVIEW}`);
+  assert.notEqual(reviewRow.state, "examined", `${REVIEW_REQUIREMENT} is not examined by a Review check: ${reviewRow.code} ${reviewRow.reason}`);
+  assert.ok(reviewRow.checks.filter((c) => c.relevant && c.ran).every((c) => c.class === "review"), `${REVIEW_REQUIREMENT}: only Review checks ran`);
+  if (reviewRow.checks.filter((c) => c.relevant).every((c) => c.class === "review")) assert.equal(reviewRow.code, "UNSUPPORTED_REVIEW_ONLY", reviewRow.reason);
+  // No requirement is examined by a Review check alone.
+  for (const row of map.requirements.filter((r) => r.state === "examined")) {
+    assert.ok(row.checks.some((c) => c.ran && c.class !== "review"), `${row.id} is examined by a check that is not Review`);
   }
   // The text leaves the checks of absent languages out.
   const text = cli(["coverage", "asvs", "--cwd", project, "--level", "2"], { timeout: 120_000 });
@@ -258,6 +314,9 @@ test("V2-101 (real engine): the sample with the expanded pack, Balanced findings
   assert.ok(absent.length > 0);
   for (const id of new Set(absent)) assert.ok(!text.stdout.includes(id), `the text names no check of an absent language: ${id}`);
   assert.doesNotMatch(text.stdout, /\bjgates\.(go|java|csharp|rust|php|js|html|config)\./);
+  // The text labels the Review check and gives its three numbers apart.
+  assert.match(text.stdout, new RegExp(`- ${REVIEW.replace(/\./g, "\\.")}( \\([^)]*\\))? \\[To review\\]:`), text.stdout);
+  assert.match(text.stdout, /Open findings: 0 blocking, 0 informational, 1 to review/, text.stdout);
   assert.doesNotMatch(text.stdout, FORBIDDEN);
   assert.doesNotMatch([map.statement, ...map.requirements.map((r) => r.reason)].join("\n"), FORBIDDEN);
   // Suggestions.

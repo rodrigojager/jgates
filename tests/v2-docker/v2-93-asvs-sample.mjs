@@ -14,8 +14,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // the local development image jgates-tools:dev; then `jgates coverage asvs --level 1 --json` builds the map from that
 // run. The examined requirements of the level-1 map are exactly those whose mapped, reviewed deterministic checks
 // completed in that run (a capability stage in state `completed`, a Semgrep rule whose stage completed and scanned a
-// file of the rule's language), each naming a check that ran; no Semantic run exists, so no requirement is examined by
-// an AI review. The map never says "compliant", "conformant" or "certified" and shows no percentage of compliance. The
+// file of the rule's language), each naming a check that ran; a Review check (a pack rule of class review) that ran
+// examines nothing, so a requirement whose only checks that ran are Review checks is not examined; no Semantic run
+// exists, so no requirement is examined by an AI review. The map never says "compliant", "conformant" or "certified" and shows no percentage of compliance. The
 // sample and the clone's tracked files are byte-identical afterwards, and every engine object the test leaves for its
 // workspace is removed by label.
 
@@ -137,15 +138,21 @@ test("V2-93 (real engine): on a clone of the sample validated under Balanced, th
   };
   const examined = map.requirements.filter((r) => r.state === "examined");
   const expectedIds = [];
+  // A Review check (a pack rule of class review) never examines a requirement (ADR-0017): it is left out of the
+  // expectation, and a requirement whose only checks that ran are Review checks is not examined.
+  const reviewOnly = [];
   for (const row of map.requirements) {
     const entry = mapped.get(row.id);
     if (!entry || entry.status !== "reviewed" || row.decision) continue;
     const checks = row.checks.filter((c) => c.unit === "capability" || c.unit === "semgrep-rule");
-    if (checks.some((c) => ranInThisRun(c, c))) expectedIds.push(row.id);
+    if (checks.some((c) => c.class !== "review" && ranInThisRun(c, c))) expectedIds.push(row.id);
+    else if (checks.some((c) => c.class === "review" && ranInThisRun(c, c))) reviewOnly.push(`${row.id}: ${checks.filter((c) => c.class === "review" && ranInThisRun(c, c)).map((c) => c.id).join(", ")}`);
   }
-  assert.deepEqual(examined.map((r) => r.id).sort(), expectedIds.sort(), "the examined requirements are exactly those whose mapped checks completed in this run");
+  t.diagnostic(`level-1 requirements whose only checks that ran are Review checks (not examined): ${reviewOnly.length}${reviewOnly.length ? ` (${reviewOnly.join("; ")})` : ""}`);
+  t.diagnostic(`level-1 examined requirements: ${expectedIds.length}`);
+  assert.deepEqual(examined.map((r) => r.id).sort(), expectedIds.sort(), "the examined requirements are exactly those whose mapped checks that are not Review completed in this run");
   for (const row of examined) {
-    const ran = row.checks.filter((c) => c.ran);
+    const ran = row.checks.filter((c) => c.ran && c.class !== "review");
     assert.ok(ran.length > 0, `${row.id} is examined and names the check that ran`);
     assert.equal(row.basis, "deterministic", `${row.id} is examined by a deterministic check`);
     for (const c of ran) {
@@ -153,9 +160,9 @@ test("V2-93 (real engine): on a clone of the sample validated under Balanced, th
       if (c.unit === "capability") assert.ok(completed.has(c.id), `${row.id}: ${c.id} completed in the run`);
     }
   }
-  // Nothing outside the examined set claims a check that ran.
+  // Nothing outside the examined set claims a check that ran, other than a Review check, which examines nothing.
   for (const row of map.requirements.filter((r) => r.state !== "examined")) {
-    assert.ok(!row.checks.some((c) => c.ran) || row.state === "not applicable", `${row.id} is ${row.state} and has no check that ran`);
+    assert.ok(!row.checks.some((c) => c.ran && c.class !== "review") || row.state === "not-applicable", `${row.id} is ${row.state} and has no check that ran other than a Review check`);
   }
   const counted = map.totals.examined + map.totals.unexamined + map.totals.unsupported + map.totals.notApplicable + map.totals.awaitingEvidence;
   assert.equal(counted, 70, "every requirement is in exactly one state");
