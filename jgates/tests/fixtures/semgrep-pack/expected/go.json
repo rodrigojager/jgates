@@ -4,6 +4,7 @@
     "jgates.go.sql-string-building",
     "jgates.go.os-command-injection",
     "jgates.go.ssrf",
+    "jgates.go.outbound-request-follows-redirects",
     "jgates.go.path-traversal",
     "jgates.go.unsafe-html-type",
     "jgates.go.text-template-for-html",

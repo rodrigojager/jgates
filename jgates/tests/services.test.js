@@ -152,6 +152,32 @@ const projectOf = (call) => call[call.indexOf("--project-name") + 1];
 const subOf = (call) => ["up", "down", "logs", "ps"].find((s) => call.includes(s));
 const stagesOf = (result, tool) => result.stages.filter((s) => s.execution?.step === tool);
 
+function assertStepTerminatedBeforeDown(calls, step, snapshot) {
+  const down = calls.findIndex((c) => c[0] === "compose" && subOf(c) === "down");
+  assert.ok(down >= 0, "the run's services are taken down");
+  const terminatesStep = (c) =>
+    (c[0] === "kill" && c.length === 2 && [step.id, step.name].includes(c[1])) ||
+    (c[0] === "rm" && c.length === 3 && c[1] === "--force" && c[2] === step.name);
+  assert.ok(calls.slice(0, down).some(terminatesStep), "the exact step container is killed or force-removed before services go down");
+  assert.ok(!snapshot.markers.includes(`${step.name}.container`), "the step is no longer running when compose down starts");
+  assert.ok(!snapshot.containers.some((c) => (c.id === step.id || c.name === step.name) && c.state === "running"), "the registry has no running step at compose down");
+}
+
+test("service cancellation evidence accepts both exact termination paths and rejects missing, wrong, late or ineffective cleanup", () => {
+  const step = { id: "step-id", name: "jgates-run-integ" };
+  const down = ["compose", "--project-name", "jgates-run", "down"];
+  const ended = { containers: [{ ...step, state: "exited" }], markers: [] };
+  for (const cleanup of [["kill", step.id], ["kill", step.name], ["rm", "--force", step.name]]) {
+    assertStepTerminatedBeforeDown([cleanup, down], step, ended);
+    assert.throws(() => assertStepTerminatedBeforeDown([down, cleanup], step, ended));
+    assert.throws(() => assertStepTerminatedBeforeDown([cleanup, down], step, { ...ended, markers: [`${step.name}.container`] }));
+    assert.throws(() => assertStepTerminatedBeforeDown([cleanup, down], step, { ...ended, containers: [{ ...step, state: "running" }] }));
+  }
+  for (const cleanup of [null, ["kill"], ["kill", "another-id"], ["rm", "--force", "another-name"], ["rm", step.name], ["container", "rm", step.name]]) {
+    assert.throws(() => assertStepTerminatedBeforeDown([...(cleanup ? [cleanup] : []), down], step, ended));
+  }
+});
+
 // ---- discovery ---------------------------------------------------------------------------------------------------
 
 test("discovery lists the compose files and reports privileged, network_mode host, host bind mounts and the other host effects", async () => {
@@ -418,11 +444,16 @@ test("cancelling a run while a step uses the services takes the run's compose pr
   await withEnglish(async () => {
     const { runServices } = await load("core", "runner", "index.js");
     const proj = await project(SERVICES_SECTION);
-    const engine = fakeEngine({ FAKE_DOCKER_STEP_MODE: "hang", FAKE_DOCKER_STEP_NAME: "integ" });
+    const snapshotFile = path.join(tmp("svc-cancel-evidence-"), "first-compose-down.json");
+    const engine = fakeEngine({ FAKE_DOCKER_STEP_MODE: "hang", FAKE_DOCKER_STEP_NAME: "integ", FAKE_DOCKER_COMPOSE_DOWN_SNAPSHOT: snapshotFile });
     const controller = new AbortController();
     let runId = null;
     const pending = runProject(proj, engine, { signal: controller.signal, onEvent: (e) => (e.type === "run-started" ? (runId = e.runId) : null) });
     await until(() => fs.readdirSync(engine.dir).find((f) => /integ\.container$/.test(f)), 60_000, "the integ container to start");
+    const step = JSON.parse(fs.readFileSync(path.join(engine.dir, "objects.json"), "utf8")).containers.find((c) => c.name === `jgates-${runId}-integ`);
+    assert.ok(step, "the started step is registered");
+    assert.equal(step.labels["org.jgates.run"], runId);
+    assert.equal(step.labels["org.jgates.managed"], "true");
     controller.abort("user cancelled");
     const { result } = await pending;
     assert.equal(result.decision, "cancelled");
@@ -434,8 +465,10 @@ test("cancelling a run while a step uses the services takes the run's compose pr
     assert.ok(compose.filter((c) => subOf(c) === "down").length >= 1, JSON.stringify(compose));
     const integRun = calls.find((c) => c[0] === "run" && c.includes(`jgates-${result.runId}-integ`));
     assert.equal(integRun[integRun.indexOf("--network") + 1], `${projectName}_default`);
-    const kill = calls.find((c) => c[0] === "kill");
-    assert.ok(kill && calls.indexOf(kill) < calls.indexOf(compose.find((c) => subOf(c) === "down")), "the step container is killed, then the services go down");
+    assertStepTerminatedBeforeDown(calls, step, JSON.parse(fs.readFileSync(snapshotFile, "utf8")));
+    assert.equal(fs.existsSync(path.join(engine.dir, `${step.name}.container`)), false, "no step marker remains");
+    const remaining = JSON.parse(fs.readFileSync(path.join(engine.dir, "objects.json"), "utf8")).containers;
+    assert.ok(!remaining.some((c) => (c.id === step.id || c.name === step.name) && c.state === "running"), "no running step remains");
     assert.deepEqual(runServices(result.runId), [], "nothing stays registered");
   });
 });

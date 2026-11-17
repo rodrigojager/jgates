@@ -29,7 +29,7 @@ async fn run_tool() {
 }
 
 async fn fetch(Query(params): Query<Params>) -> String {
-    let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(10)).build().unwrap();
+    let client = reqwest::Client::builder().timeout(std::time::Duration::from_secs(10)).redirect(reqwest::redirect::Policy::none()).build().unwrap();
     client.get(validate_url(&params.url)).send().await.unwrap().text().await.unwrap()
 }
 

@@ -594,9 +594,13 @@ function checkGroupTwin(language, group, expected) {
   if (expected.signals !== undefined) assert.deepEqual(signalTags(clean), [], `${label} clean twin signals`);
 }
 
-test("every group twin (expected/<language>/<group>.json) gives exactly its rule ids or signal tags on the vulnerable twin and nothing on the clean one [proves: semgrep#sast]", () => {
+test("every group twin (expected/<language>/<group>.json) gives exactly its rule ids or signal tags on the vulnerable twin and nothing on the clean one [proves: semgrep#sast]", async (t) => {
+  // Each completed real group is a reported subtest, not an opaque multi-hour loop. Awaiting each one keeps the
+  // scans sequential and preserves both twins and every exact comparison without a timer or a synthetic heartbeat.
   for (const language of twinGroupLanguages()) {
-    for (const { group, expected } of groupsOf(language)) checkGroupTwin(language, group, expected);
+    for (const { group, expected } of groupsOf(language)) {
+      await t.test(`${language}/${group}: vulnerable and clean twins`, () => checkGroupTwin(language, group, expected));
+    }
   }
 });
 

@@ -68,6 +68,10 @@ const loadObjects = () => {
   }
 };
 const saveObjects = (objects) => fs.writeFileSync(objectsFile, JSON.stringify(objects));
+// An opt-in fixture selects the labelled-kill interleaving for V2-42. It names one registered step; every other
+// invocation, including all non-opted-in tests, keeps the normal concurrent cleanup behavior.
+const killOrderFile = process.env.FAKE_DOCKER_KILL_BEFORE_RM;
+const killOrder = () => killOrderFile && fs.existsSync(killOrderFile) ? JSON.parse(fs.readFileSync(killOrderFile, "utf8")) : null;
 const labelString = (labels) =>
   Object.entries(labels || {})
     .map(([k, v]) => `${k}=${v}`)
@@ -373,6 +377,12 @@ if (argv[0] === "kill") {
   for (const c of objects.containers) if (ids.includes(c.id) || ids.includes(c.name)) fs.rmSync(marker(c.name), { force: true });
   objects.containers = objects.containers.map((c) => (ids.includes(c.id) || ids.includes(c.name) ? { ...c, state: "exited" } : c));
   saveObjects(objects);
+  const order = killOrder();
+  if (order && objects.containers.some((c) => c.id === order.id && c.name === order.name &&
+      c.labels["org.jgates.managed"] === "true" && c.labels["org.jgates.run"] === order.run &&
+      c.state === "exited" && (ids.includes(c.id) || ids.includes(c.name)))) {
+    fs.writeFileSync(`${killOrderFile}.completed`, JSON.stringify({ id: order.id, name: order.name, run: order.run }));
+  }
   process.exit(0);
 }
 
@@ -383,6 +393,15 @@ if (argv[0] === "kill") {
 if (argv[0] === "compose") {
   needDaemon();
   const sub = argv.find((a, i) => i > 0 && ["up", "down", "logs", "ps"].includes(a) && argv[i - 1] !== "-f" && argv[i - 1] !== "--project-name" && argv[i - 1] !== "--profile");
+  // Opt-in evidence for cancellation tests: observe effective termination at the first teardown, not just an issued
+  // cleanup command or the eventual state after teardown.
+  const downSnapshot = process.env.FAKE_DOCKER_COMPOSE_DOWN_SNAPSHOT;
+  if (sub === "down" && downSnapshot && !fs.existsSync(downSnapshot)) {
+    fs.writeFileSync(downSnapshot, JSON.stringify({
+      containers: loadObjects().containers,
+      markers: fs.readdirSync(state).filter((f) => f.endsWith(".container")),
+    }));
+  }
   if (sub === "up") {
     if (process.env.FAKE_DOCKER_COMPOSE_UP_STDERR) process.stderr.write(process.env.FAKE_DOCKER_COMPOSE_UP_STDERR + "\n");
     process.exit(Number(env("FAKE_DOCKER_COMPOSE_UP_EXIT", env("FAKE_DOCKER_COMPOSE_EXIT", "0"))));
@@ -432,14 +451,30 @@ if (argv[0] === "stop") {
 }
 if (argv[0] === "rm") {
   const name = argv[argv.length - 1];
-  fs.rmSync(marker(name), { force: true });
-  const objects = loadObjects();
-  const names = lastNonFlags(argv.slice(1));
-  if (objects.containers.some((c) => names.includes(c.id) || names.includes(c.name))) {
-    objects.containers = objects.containers.filter((c) => !names.includes(c.id) && !names.includes(c.name));
-    saveObjects(objects);
-  }
-  process.exit(0);
+  const remove = () => {
+    fs.rmSync(marker(name), { force: true });
+    const objects = loadObjects();
+    const names = lastNonFlags(argv.slice(1));
+    if (objects.containers.some((c) => names.includes(c.id) || names.includes(c.name))) {
+      objects.containers = objects.containers.filter((c) => !names.includes(c.id) && !names.includes(c.name));
+      saveObjects(objects);
+    }
+    process.exit(0);
+  };
+  const order = killOrder();
+  if (order && argv.length === 3 && argv[1] === "--force" && name === order.name) {
+    const deadline = Date.now() + Math.min(10_000, Math.max(100, order.waitMs ?? 10_000));
+    const waitForKill = () => {
+      if (fs.existsSync(`${killOrderFile}.completed`)) {
+        const completed = JSON.parse(fs.readFileSync(`${killOrderFile}.completed`, "utf8"));
+        if (completed.id === order.id && completed.name === order.name && completed.run === order.run) return remove();
+      }
+      if (Date.now() >= deadline) fail(`fake cleanup coordination: labelled kill did not complete for ${order.name}`);
+      setTimeout(waitForKill, 10);
+    };
+    waitForKill();
+  } else remove();
+  return;
 }
 if (argv[0] === "run") {
   needDaemon();
@@ -457,11 +492,12 @@ if (argv[0] === "run") {
       fail("error during connect: Post \"http://%2F%2F.%2Fpipe%2Fdocker_engine/v1.51/containers/create\": EOF", 1);
     }, Number(env("FAKE_DOCKER_VANISH_MS", "150")));
   } else if (mode === "hang") {
-    fs.writeFileSync(marker(name), "running");
     // The container is registered with its labels, like a daemon does, so a kill/rm by label finds it.
     const registry = loadObjects();
     registry.containers = registry.containers.filter((c) => c.name !== name).concat([{ id: crypto.createHash("sha1").update(name).digest("hex").slice(0, 12), name, state: "running", labels: runLabels }]);
     saveObjects(registry);
+    // Publish readiness only after label-based cancellation can find this container.
+    fs.writeFileSync(marker(name), "running");
     process.on("SIGTERM", () => process.exit(143));
     const poll = setInterval(() => {
       if (!fs.existsSync(marker(name))) {

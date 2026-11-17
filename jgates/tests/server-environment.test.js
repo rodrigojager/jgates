@@ -7,6 +7,7 @@ import path from "node:path";
 import { once } from "node:events";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { fakeHostDiskEnv } from "./setup/fake-host-disk.mjs";
 
 // The environment routes of the guided UI: GET /api/environment/state (every section with its state and reasons, read
 // fresh at every call), POST /api/environment/jobs + GET /api/environment/jobs/:id (the progress events of the image pull,
@@ -117,7 +118,7 @@ test("the environment routes report each section, stream the pull, and see the e
 
   let ui = null;
   try {
-    ui = await startUi(env, project);
+    ui = await startUi(fakeHostDiskEnv(env), project);
     const call = await session(ui);
 
     // 1. Docker installed but stopped (the daemon does not answer).

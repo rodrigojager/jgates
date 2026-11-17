@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { fakeHostDiskEnv } from "../../jgates/tests/setup/fake-host-disk.mjs";
 
 // V2-33 (fake engine): `jgates setup` on a machine whose engine runs.
 //   1. The tools image is not in the engine: setup pulls the pinned reference (by digest), creates the shared volumes
@@ -42,7 +43,7 @@ test("V2-33: setup pulls the pinned image, creates the shared volumes and data; 
   );
   const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: PINNED, JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
   const cli = (args) => {
-    const r = spawnSync(process.execPath, [MAIN, ...args], { cwd: project, encoding: "utf8", env, input: "", timeout: 240_000 });
+    const r = spawnSync(process.execPath, [MAIN, ...args], { cwd: project, encoding: "utf8", env: fakeHostDiskEnv(env), input: "", timeout: 240_000 });
     let doc = null;
     try {
       doc = JSON.parse(r.stdout);
@@ -56,6 +57,11 @@ test("V2-33: setup pulls the pinned image, creates the shared volumes and data; 
   const flag = (call, name) => call[call.indexOf(name) + 1];
 
   // 1. A machine with a running engine and no image.
+  // A low-capacity fake machine must still fail before the fake engine receives any pull.
+  const low = spawnSync(process.execPath, [MAIN, "setup", "--json"], { cwd: project, encoding: "utf8", env: fakeHostDiskEnv(env, 1), input: "", timeout: 240_000 });
+  assert.equal(low.status, 2, low.stdout + low.stderr);
+  assert.ok(JSON.parse(low.stdout).reasons.some((r) => r.code === "DISK_LOW"), low.stdout);
+  assert.ok(!dockerCalls().some((c) => c[0] === "pull"), "the disk guard refuses a download");
   const first = cli(["setup", "--json"]);
   assert.equal(first.status, 0, first.stdout + first.stderr);
   assert.ok(first.doc, first.stdout);

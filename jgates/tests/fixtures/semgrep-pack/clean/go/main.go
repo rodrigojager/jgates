@@ -69,7 +69,7 @@ func tokenHandler(w http.ResponseWriter, r *http.Request) {
 	claims := jwt.MapClaims{}
 	jwt.ParseWithClaims(r.Header.Get("Authorization"), claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte("secret"), nil
-	})
+	}, jwt.WithAudience("profile-service"))
 }
 
 func importHandler(w http.ResponseWriter, r *http.Request) {
