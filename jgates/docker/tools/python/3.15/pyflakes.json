@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "pyflakes",
+      "link": "pyflakes",
+      "path": "bin/pyflakes",
+      "version": [
+        "pyflakes",
+        "--version"
+      ]
+    }
+  ]
+}

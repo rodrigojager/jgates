@@ -1,0 +1,19 @@
+{
+ "tool": "actionlint",
+ "kind": "clean",
+ "version": "1.7.12",
+ "calls": [
+  {
+   "args": [
+    "-no-color",
+    "-format",
+    "{{json .}}",
+    "--",
+    ".github/workflows/actionlint-workflow.yml"
+   ],
+   "exit": 0,
+   "stdout": "[]\n",
+   "stderr": ""
+  }
+ ]
+}
