@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "snakemake",
+  "name": "snakemake",
+  "sourceUrl": "https://github.com/snakemake/snakemake",
+  "license": "MIT",
+  "program": {
+    "tool": "snakemake",
+    "versionRange": ">=9.0.0 <10.0.0"
+  },
+  "megalinter": [
+    "SNAKEMAKE_LINT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "snakemake",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".smk"
+    ],
+    "names": [
+      "Snakefile"
+    ]
+  },
+  "run": {
+    "mode": "each-file",
+    "args": [
+      "--directory",
+      "/tmp",
+      "--lint",
+      "--snakefile",
+      "{file}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "custom",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "snakemake --lint has no configuration: the workflow decides what it declares (log, environment, container, parameters)",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: snakemake --lint has no in-file suppression"
+    }
+  },
+  "install": "snakemake",
+  "text": {
+    "en": {
+      "label": "snakemake (lint)",
+      "purpose": "Lints a Snakemake workflow: rules without a log, an environment or a container, hard-coded paths, shell commands built by string concatenation and other practices the Snakemake best-practice guide advises against.",
+      "limitation": "It parses the workflow but runs no rule; a workflow that fails to parse is reported as a finding of the file, and files included from elsewhere are read as they are.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "snakemake (lint)",
+      "purpose": "Faz lint de um fluxo de trabalho Snakemake: regras sem log, ambiente ou contêiner, caminhos fixos, comandos de shell montados por concatenação de texto e outras práticas que o guia de boas práticas do Snakemake desaconselha.",
+      "limitation": "Lê o fluxo de trabalho, mas não executa nenhuma regra; um fluxo que não pode ser lido aparece como um achado do arquivo, e arquivos incluídos de outros lugares são lidos como estão.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

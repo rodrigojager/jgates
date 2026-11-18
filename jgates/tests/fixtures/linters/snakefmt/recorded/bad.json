@@ -1,0 +1,18 @@
+{
+ "tool": "snakefmt",
+ "kind": "bad",
+ "version": "2.1.0",
+ "calls": [
+  {
+   "args": [
+    "--check",
+    "--compact-diff",
+    "--",
+    "pipeline.smk"
+   ],
+   "exit": 1,
+   "stdout": "=====> Diff for pipeline.smk <=====\n\n--- original\n+++ new\n@@ -1,5 +1,9 @@\n rule make:\n-  output: 'out.txt'\n-  log: 'logs/make.log'\n-  container: 'docker://alpine:3.20'\n-  shell: 'echo hi > {output} 2> {log}'\n+    output:\n+        \"out.txt\",\n+    log:\n+        \"logs/make.log\",\n+    container:\n+        \"docker://alpine:3.20\"\n+    shell:\n+        \"echo hi > {output} 2> {log}\"\n\n",
+   "stderr": "[INFO] 1 file(s) would be changed 😬\n"
+  }
+ ]
+}

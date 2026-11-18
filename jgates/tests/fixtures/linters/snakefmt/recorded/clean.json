@@ -1,0 +1,18 @@
+{
+ "tool": "snakefmt",
+ "kind": "clean",
+ "version": "2.1.0",
+ "calls": [
+  {
+   "args": [
+    "--check",
+    "--compact-diff",
+    "--",
+    "pipeline.smk"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "[INFO] All 1 file(s) would be left unchanged 🎉\n"
+  }
+ ]
+}

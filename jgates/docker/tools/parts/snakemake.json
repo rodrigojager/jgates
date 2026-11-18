@@ -1,0 +1,14 @@
+{
+  "version": "9.27.2",
+  "provides": [
+    {
+      "name": "snakemake",
+      "link": "snakemake",
+      "path": "venv/bin/snakemake",
+      "version": [
+        "snakemake",
+        "--version"
+      ]
+    }
+  ]
+}

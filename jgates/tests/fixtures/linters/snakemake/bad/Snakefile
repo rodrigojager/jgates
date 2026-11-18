@@ -1,0 +1,5 @@
+rule make:
+    output:
+        "out.txt",
+    shell:
+        "echo hi > out.txt"
