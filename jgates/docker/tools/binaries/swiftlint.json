@@ -1,0 +1,26 @@
+{
+  "note": "The release's Linux x86_64 build; the swiftlint-static file has the Swift runtime linked in.",
+  "version": "0.65.1",
+  "url": "https://github.com/realm/SwiftLint/releases/download/{version}/swiftlint_linux_amd64.zip",
+  "sha256": "caeed6f4a679c35539ffaf124f6c4ab4a8416917f7d8796279dc52b74026059d",
+  "archive": "zip",
+  "extract": {
+    "swiftlint-static": "swiftlint",
+    "LICENSE": "LICENSE",
+    "LICENSE.mimalloc": "LICENSE.mimalloc"
+  },
+  "executable": [
+    "swiftlint"
+  ],
+  "provides": [
+    {
+      "name": "swiftlint",
+      "link": "swiftlint",
+      "path": "swiftlint",
+      "version": [
+        "swiftlint",
+        "--version"
+      ]
+    }
+  ]
+}

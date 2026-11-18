@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "swiftlint",
+  "name": "SwiftLint",
+  "sourceUrl": "https://github.com/realm/SwiftLint",
+  "license": "MIT",
+  "program": {
+    "tool": "swiftlint",
+    "prefix": ["lint"],
+    "versionRange": ">=0.65.0 <1.0.0"
+  },
+  "megalinter": [
+    "SWIFT_SWIFTLINT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "swift",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".swift"
+    ],
+    "requires": [
+      ".swiftlint.yml"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "--strict",
+      "--no-cache",
+      "--quiet",
+      "--reporter",
+      "json"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "resources": {
+      "memoryMb": 1024
+    }
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "items": "[]",
+    "fields": {
+      "file": "file",
+      "line": "line",
+      "column": "character",
+      "rule": "rule_id",
+      "level": "severity",
+      "message": "reason"
+    }
+  },
+  "configuration": {
+    "files": [
+      ".swiftlint.yml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "SwiftLint reads the project's .swiftlint.yml (enabled, disabled and opt-in rules, included and excluded paths): the project decides the rules; the tool only runs when that file exists",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: // swiftlint:disable comments (next, this, previous, and block forms)",
+      "pattern": "swiftlint:(?:disable|enable)",
+      "files": "\\.swift$"
+    }
+  },
+  "install": "swiftlint",
+  "text": {
+    "en": {
+      "label": "SwiftLint (Swift)",
+      "purpose": "The Swift linter: naming, spacing, line length, force unwraps, unused code and the style conventions of the Swift community, as the project's .swiftlint.yml sets them.",
+      "limitation": "It runs only when the project has a .swiftlint.yml; it works on the source text and does not compile the code, so its analyzer-only rules are not run. It reports and never rewrites a file.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies; about 1 GB of memory."
+    },
+    "pt-BR": {
+      "label": "SwiftLint (Swift)",
+      "purpose": "O linter de Swift: nomes, espaçamento, tamanho de linha, force unwraps, código não usado e as convenções de estilo da comunidade Swift, como o .swiftlint.yml do projeto define.",
+      "limitation": "Só roda quando o projeto tem um .swiftlint.yml; trabalha sobre o texto do código e não o compila, então as regras que exigem análise do compilador não rodam. Relata e nunca reescreve um arquivo.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto; cerca de 1 GB de memória."
+    }
+  }
+}
