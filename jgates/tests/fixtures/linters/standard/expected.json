@@ -1,0 +1,12 @@
+{
+  "files": [
+    "std-sample.js"
+  ],
+  "findings": [
+    {
+      "rule": "quotes",
+      "file": "std-sample.js",
+      "line": 1
+    }
+  ]
+}

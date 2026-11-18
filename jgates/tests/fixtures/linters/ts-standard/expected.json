@@ -1,0 +1,12 @@
+{
+  "files": [
+    "ts-std-sample.ts"
+  ],
+  "findings": [
+    {
+      "rule": "@typescript-eslint/quotes",
+      "file": "ts-std-sample.ts",
+      "line": 2
+    }
+  ]
+}

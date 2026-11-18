@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "standard",
+      "link": "standard",
+      "path": "node_modules/.bin/standard",
+      "version": [
+        "standard",
+        "--version"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "ts-standard",
+  "name": "ts-standard",
+  "sourceUrl": "https://github.com/standard/ts-standard",
+  "license": "MIT",
+  "program": {
+    "tool": "ts-standard",
+    "versionRange": ">=12.0.0 <13.0.0"
+  },
+  "megalinter": [
+    "TYPESCRIPT_STANDARD"
+  ],
+  "place": {
+    "section": "language",
+    "group": "typescript",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".ts"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--verbose",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^\\s*(?<file>.+?):(?<line>\\d+):(?<column>\\d+):\\s*(?<message>.+?)\\s*\\((?<rule>[^()\\s]+)\\)\\s*$",
+    "level": "error"
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning"
+  },
+  "configuration": {
+    "files": [
+      "tsconfig.eslint.json",
+      "tsconfig.json",
+      "package.json"
+    ],
+    "default": "tsconfig.json",
+    "args": [
+      "--project",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "ts-standard has no rule options by design; it needs the project's tsconfig.eslint.json or tsconfig.json (JGates passes its own minimal tsconfig when the project has none) and reads the ts-standard key of package.json, so the project decides which files are checked",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: eslint-disable comments and the ts-standard key's ignore list",
+      "pattern": "eslint-disable",
+      "files": "\\.ts$"
+    }
+  },
+  "install": "ts-standard",
+  "text": {
+    "en": {
+      "label": "ts-standard (TypeScript)",
+      "purpose": "Checks TypeScript files against TypeScript Standard Style (standard plus type-aware rules): no semicolons, single quotes, strict boolean checks, no floating promises. It has no options on purpose.",
+      "limitation": "It enforces one fixed style and needs type information: with no tsconfig.json in the project it uses a minimal one of JGates that covers every .ts file; it runs only in the Strict profile, beside the project's own ESLint.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies (type information comes from the files themselves)."
+    },
+    "pt-BR": {
+      "label": "ts-standard (TypeScript)",
+      "purpose": "Verifica arquivos TypeScript contra o TypeScript Standard Style (standard mais regras com tipos): sem ponto e vírgula, aspas simples, checagens booleanas estritas, sem promises soltas. Não tem opções de propósito.",
+      "limitation": "Impõe um único estilo fixo e precisa de informação de tipos: sem tsconfig.json no projeto usa um mínimo do JGates que cobre todo arquivo .ts; roda só no perfil Strict, ao lado do ESLint do próprio projeto.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto (os tipos vêm dos próprios arquivos)."
+    }
+  }
+}
