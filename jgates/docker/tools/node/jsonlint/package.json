@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-jsonlint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of @prantlf/jsonlint in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "@prantlf/jsonlint": "17.0.1"
+  }
+}

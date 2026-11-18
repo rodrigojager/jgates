@@ -1,0 +1,17 @@
+{
+ "tool": "npm-package-json-lint",
+ "kind": "bad",
+ "version": "11.0.1",
+ "calls": [
+  {
+   "args": [
+    "--configFile",
+    "/output/linters/npm-package-json-lint/npm-package-json-lint.default.json",
+    "."
+   ],
+   "exit": 2,
+   "stdout": "\n./package.json\nERROR name-format - node: name - name can no longer contain capital letters\n1 error\n0 warnings\n",
+   "stderr": ""
+  }
+ ]
+}

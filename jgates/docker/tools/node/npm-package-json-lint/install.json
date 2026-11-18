@@ -1,0 +1,14 @@
+{
+  "provides": [
+    {
+      "name": "npmPkgJsonLint",
+      "link": "npmPkgJsonLint",
+      "path": "node_modules/.bin/npmPkgJsonLint",
+      "version": [
+        "npmPkgJsonLint",
+        "--version"
+      ],
+      "package": "npm-package-json-lint"
+    }
+  ]
+}

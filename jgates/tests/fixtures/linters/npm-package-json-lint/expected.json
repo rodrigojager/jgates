@@ -1,0 +1,11 @@
+{
+  "files": [
+    "package.json"
+  ],
+  "findings": [
+    {
+      "rule": "name-format",
+      "file": "package.json"
+    }
+  ]
+}

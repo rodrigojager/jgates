@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "npm-package-json-lint",
+  "name": "npm-package-json-lint",
+  "sourceUrl": "https://github.com/tclindner/npm-package-json-lint",
+  "license": "MIT",
+  "program": {
+    "tool": "npmPkgJsonLint",
+    "versionRange": ">=11.0.0 <12.0.0"
+  },
+  "megalinter": [
+    "JSON_NPM_PACKAGE_JSON_LINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "json",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "names": [
+      "package.json"
+    ],
+    "requires": [
+      "package.json"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "."
+    ],
+    "env": {
+      "NODE_PATH": "/opt/tools/node/npm-package-json-lint/node_modules"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "custom"
+  },
+  "severity": {
+    "error": "error",
+    "warn": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".npmpackagejsonlintrc.json",
+      ".npmpackagejsonlintrc",
+      "npmpackagejsonlint.config.js",
+      ".npmpackagejsonlintignore"
+    ],
+    "default": "npm-package-json-lint.default.json",
+    "args": [
+      "--configFile",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "npm-package-json-lint reads the project's .npmpackagejsonlintrc.json and its .npmpackagejsonlintignore: the project decides the rules and their severity",
+    "suppressions": {
+      "honoured": false,
+      "description": "none in the file: package.json has no comments; rules are turned off in the configuration"
+    }
+  },
+  "install": "npm-package-json-lint",
+  "text": {
+    "en": {
+      "label": "npm-package-json-lint (package.json)",
+      "purpose": "Checks package.json files against rules: valid name and version formats, required fields such as description and license, sorted dependencies, no wildcard or deprecated version ranges.",
+      "limitation": "It needs a rule set to run: without a project configuration JGates uses the community default set (npm-package-json-lint-config-default). It reads only package.json, not the installed dependencies.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "npm-package-json-lint (package.json)",
+      "purpose": "Verifica arquivos package.json contra regras: formatos válidos de nome e versão, campos obrigatórios como description e license, dependências ordenadas, sem faixas de versão curinga ou obsoletas.",
+      "limitation": "Precisa de um conjunto de regras para rodar: sem configuração do projeto o JGates usa o conjunto padrão da comunidade (npm-package-json-lint-config-default). Lê só o package.json, não as dependências instaladas.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

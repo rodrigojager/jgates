@@ -1,0 +1,19 @@
+{
+ "tool": "jsonlint",
+ "kind": "bad",
+ "version": "17.0.1",
+ "calls": [
+  {
+   "args": [
+    "--quiet",
+    "--compact",
+    "--continue",
+    "--",
+    "jsonlint-sample.json"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "jsonlint-sample.json: line 3, col 21, Trailing comma in array.\n"
+  }
+ ]
+}

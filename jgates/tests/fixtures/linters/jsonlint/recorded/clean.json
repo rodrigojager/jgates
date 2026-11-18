@@ -1,0 +1,19 @@
+{
+ "tool": "jsonlint",
+ "kind": "clean",
+ "version": "17.0.1",
+ "calls": [
+  {
+   "args": [
+    "--quiet",
+    "--compact",
+    "--continue",
+    "--",
+    "jsonlint-sample.json"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

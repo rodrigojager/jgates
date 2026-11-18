@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "v8r",
+  "name": "v8r",
+  "sourceUrl": "https://github.com/chris48s/v8r",
+  "license": "MIT",
+  "program": {
+    "tool": "v8r",
+    "versionRange": ">=6.1.0 <7.0.0"
+  },
+  "megalinter": [
+    "JSON_V8R",
+    "YAML_V8R"
+  ],
+  "place": {
+    "section": "format",
+    "group": "json",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".json",
+      ".yml",
+      ".yaml"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--ignore-errors",
+      "--output-format",
+      "json",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        99
+      ]
+    },
+    "executesProjectCode": false,
+    "network": true,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "items": "results[].errors[]",
+    "fields": {
+      "file": "^.fileLocation",
+      "rule": "keyword",
+      "message": "message"
+    },
+    "level": "error"
+  },
+  "configuration": {
+    "files": [
+      ".v8rrc",
+      ".v8rrc.json",
+      ".v8rrc.yml",
+      ".v8rrc.yaml",
+      ".v8rignore"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "v8r reads the project's .v8rrc.yml (and .v8rignore): the project decides the custom schema catalogs, the schema per file pattern and the files to skip",
+    "suppressions": {
+      "honoured": false,
+      "description": "none in the file: the tool has no in-file suppression; files are skipped through .v8rignore or the ignore patterns of the configuration"
+    }
+  },
+  "install": "v8r",
+  "text": {
+    "en": {
+      "label": "v8r (JSON and YAML schemas)",
+      "purpose": "Validates JSON and YAML files against the JSON Schema that SchemaStore.org lists for their file name (package.json, tsconfig.json, GitHub workflows, docker-compose files and hundreds more) and reports each violation.",
+      "limitation": "A file whose name SchemaStore does not know is not validated (and not reported); a project can name its own schema in .v8rrc.yml. It checks structure against the schema, not YAML or JSON syntax. The tool downloads the catalog and the schemas it needs while it runs.",
+      "needs": "Network at run time: it downloads the SchemaStore catalog and the schemas (cached for the run). Where the network is not allowed the step is not run. No project dependencies."
+    },
+    "pt-BR": {
+      "label": "v8r (schemas de JSON e YAML)",
+      "purpose": "Valida arquivos JSON e YAML contra o JSON Schema que o SchemaStore.org lista para o nome do arquivo (package.json, tsconfig.json, workflows do GitHub, arquivos docker-compose e centenas de outros) e reporta cada violação.",
+      "limitation": "Um arquivo cujo nome o SchemaStore não conhece não é validado (e não é reportado); o projeto pode indicar o próprio schema no .v8rrc.yml. Verifica a estrutura contra o schema, não a sintaxe de YAML ou JSON. A ferramenta baixa o catálogo e os schemas de que precisa enquanto roda.",
+      "needs": "Rede durante a execução: baixa o catálogo do SchemaStore e os schemas (em cache durante a execução). Onde a rede não é permitida o passo não roda. Sem as dependências do projeto."
+    }
+  }
+}

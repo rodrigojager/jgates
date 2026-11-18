@@ -1,0 +1,20 @@
+{
+ "tool": "v8r",
+ "kind": "clean",
+ "version": "6.1.0",
+ "calls": [
+  {
+   "args": [
+    "--ignore-errors",
+    "--output-format",
+    "json",
+    ".github/workflows/v8r-sample.yml",
+    "jgates.yml",
+    "tsconfig.json"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"results\": [\n    {\n      \"fileLocation\": \".github/workflows/v8r-sample.yml\",\n      \"documentIndex\": null,\n      \"schemaLocation\": \"https://www.schemastore.org/github-workflow.json\",\n      \"valid\": true,\n      \"errors\": [],\n      \"code\": 0\n    },\n    {\n      \"fileLocation\": \"jgates.yml\",\n      \"documentIndex\": null,\n      \"schemaLocation\": null,\n      \"valid\": null,\n      \"errors\": [],\n      \"code\": 1\n    },\n    {\n      \"fileLocation\": \"tsconfig.json\",\n      \"documentIndex\": null,\n      \"schemaLocation\": \"https://www.schemastore.org/tsconfig.json\",\n      \"valid\": true,\n      \"errors\": [],\n      \"code\": 0\n    }\n  ]\n}\n",
+   "stderr": "ℹ No config file found\nℹ Pre-warming the cache\nℹ Processing .github/workflows/v8r-sample.yml\nℹ Found schema in https://www.schemastore.org/api/json/catalog.json ...\nℹ Validating .github/workflows/v8r-sample.yml against schema from https://www.schemastore.org/github-workflow.json ...\n✔ .github/workflows/v8r-sample.yml is valid\n\nℹ Processing jgates.yml\n✖ Could not find a schema to validate jgates.yml\n\nℹ Processing tsconfig.json\nℹ Found schema in https://www.schemastore.org/api/json/catalog.json ...\nℹ Validating tsconfig.json against schema from https://www.schemastore.org/tsconfig.json ...\n✔ tsconfig.json is valid\n\n"
+  }
+ ]
+}
