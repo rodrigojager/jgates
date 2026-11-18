@@ -1,0 +1,20 @@
+{
+ "tool": "gherkin-lint",
+ "kind": "clean",
+ "version": "4.2.4",
+ "calls": [
+  {
+   "args": [
+    "--config",
+    "/output/linters/gherkin-lint/gherkin-lintrc.json",
+    "--format",
+    "json",
+    "--",
+    "login.feature"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "[{\"filePath\":\"/workspace/login.feature\",\"errors\":[]}]\n"
+  }
+ ]
+}

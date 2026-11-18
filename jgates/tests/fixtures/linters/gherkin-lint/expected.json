@@ -1,0 +1,12 @@
+{
+  "files": [
+    "login.feature"
+  ],
+  "findings": [
+    {
+      "rule": "no-trailing-spaces",
+      "file": "login.feature",
+      "line": 3
+    }
+  ]
+}

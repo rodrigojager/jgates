@@ -1,0 +1,14 @@
+{
+  "provides": [
+    {
+      "name": "gherkin-lint",
+      "link": "gherkin-lint",
+      "path": "node_modules/.bin/gherkin-lint",
+      "version": [
+        "node",
+        "-p",
+        "require('/opt/tools/node/gherkin-lint/node_modules/gherkin-lint/package.json').version"
+      ]
+    }
+  ]
+}
