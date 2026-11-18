@@ -1,0 +1,21 @@
+{
+ "tool": "stylua",
+ "kind": "clean",
+ "version": "2.6.0",
+ "calls": [
+  {
+   "args": [
+    "--check",
+    "--output-format",
+    "summary",
+    "--color",
+    "Never",
+    "--",
+    "layout.lua"
+   ],
+   "exit": 0,
+   "stdout": "! Checking formatting...\n✓ All files are correctly formatted.\n",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "tool": "selene",
+ "kind": "bad",
+ "version": "0.32.0",
+ "calls": [
+  {
+   "args": [
+    "--display-style",
+    "quiet",
+    "--no-summary",
+    "--color",
+    "never",
+    "--",
+    "style.lua"
+   ],
+   "exit": 1,
+   "stdout": "style.lua:1:7: warning[unused_variable]: unused is assigned a value, but never used\n",
+   "stderr": ""
+  }
+ ]
+}

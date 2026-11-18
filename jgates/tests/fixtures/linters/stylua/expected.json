@@ -1,0 +1,11 @@
+{
+  "files": [
+    "layout.lua"
+  ],
+  "findings": [
+    {
+      "rule": "stylua.unformatted",
+      "file": "layout.lua"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+ "tool": "stylua",
+ "kind": "bad",
+ "version": "2.6.0",
+ "calls": [
+  {
+   "args": [
+    "--check",
+    "--output-format",
+    "summary",
+    "--color",
+    "Never",
+    "--",
+    "layout.lua"
+   ],
+   "exit": 1,
+   "stdout": "! Checking formatting...\nlayout.lua\n✕ Code style issues found in 1 file above.\n",
+   "stderr": ""
+  }
+ ]
+}

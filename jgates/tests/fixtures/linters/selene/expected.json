@@ -1,0 +1,12 @@
+{
+  "files": [
+    "style.lua"
+  ],
+  "findings": [
+    {
+      "rule": "unused_variable",
+      "file": "style.lua",
+      "line": 1
+    }
+  ]
+}

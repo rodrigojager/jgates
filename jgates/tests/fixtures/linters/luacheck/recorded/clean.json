@@ -1,0 +1,21 @@
+{
+ "tool": "luacheck",
+ "kind": "clean",
+ "version": "1.2.0",
+ "calls": [
+  {
+   "args": [
+    "--formatter",
+    "plain",
+    "--codes",
+    "--no-color",
+    "--no-cache",
+    "--",
+    "check.lua"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "tool": "selene",
+ "kind": "clean",
+ "version": "0.32.0",
+ "calls": [
+  {
+   "args": [
+    "--display-style",
+    "quiet",
+    "--no-summary",
+    "--color",
+    "never",
+    "--",
+    "style.lua"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

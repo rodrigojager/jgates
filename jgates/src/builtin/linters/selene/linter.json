@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "selene",
+  "name": "selene",
+  "sourceUrl": "https://github.com/Kampfkarren/selene",
+  "license": "MPL-2.0",
+  "program": {
+    "tool": "selene",
+    "versionRange": ">=0.20.0 <1.0.0"
+  },
+  "megalinter": [
+    "LUA_SELENE"
+  ],
+  "place": {
+    "section": "language",
+    "group": "lua",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".lua"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--display-style",
+      "quiet",
+      "--no-summary",
+      "--color",
+      "never",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+): (?<level>\\w+)\\[(?<rule>[^\\]]+)\\]: (?<message>.+)$"
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning"
+  },
+  "configuration": {
+    "files": [
+      "selene.toml",
+      "vim.toml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "selene reads the project's selene.toml (and the standard-library definition it names): the project decides the rules and their levels",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: -- selene: allow(rule) comments",
+      "pattern": "--\\s*selene:\\s*allow\\(",
+      "files": "\\.lua$"
+    }
+  },
+  "install": "selene",
+  "text": {
+    "en": {
+      "label": "selene (Lua)",
+      "purpose": "A Lua linter written in Rust: unused variables, shadowing, suspicious comparisons, deprecated standard-library calls and other correctness and style mistakes.",
+      "limitation": "Disabled in MegaLinter 9.6.0 because of an upstream issue; JGates runs it from the official release. It assumes the plain Lua 5.1 standard library unless the project's selene.toml names another (Roblox, Neovim), so such projects need that file.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "selene (Lua)",
+      "purpose": "Um linter de Lua escrito em Rust: variáveis não usadas, sombreamento, comparações suspeitas, chamadas obsoletas da biblioteca padrão e outros erros de correção e de estilo.",
+      "limitation": "Desativado no MegaLinter 9.6.0 por um problema upstream; o JGates o roda a partir da versão oficial. Ele assume a biblioteca padrão do Lua 5.1 a menos que o selene.toml do projeto indique outra (Roblox, Neovim), então esses projetos precisam desse arquivo.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}
