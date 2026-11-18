@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "puppet-lint",
+      "link": "puppet-lint",
+      "path": "bin/puppet-lint",
+      "version": [
+        "puppet-lint",
+        "--version"
+      ]
+    }
+  ]
+}
