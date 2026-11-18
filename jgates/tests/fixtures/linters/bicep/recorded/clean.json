@@ -1,0 +1,19 @@
+{
+ "tool": "bicep",
+ "kind": "clean",
+ "version": "0.49.2",
+ "calls": [
+  {
+   "args": [
+    "lint",
+    "--diagnostics-format",
+    "sarif",
+    "--",
+    "main.bicep"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"$schema\": \"https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json\",\n  \"version\": \"2.1.0\",\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"name\": \"bicep\"\n        }\n      },\n      \"results\": [],\n      \"columnKind\": \"utf16CodeUnits\"\n    }\n  ]\n}",
+   "stderr": ""
+  }
+ ]
+}

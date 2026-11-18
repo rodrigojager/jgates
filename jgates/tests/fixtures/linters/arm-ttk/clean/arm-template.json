@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "greeting": {
+      "type": "string",
+      "defaultValue": "hello",
+      "metadata": {
+        "description": "The text the template returns."
+      }
+    }
+  },
+  "resources": [],
+  "outputs": {
+    "message": {
+      "type": "string",
+      "value": "[parameters('greeting')]"
+    }
+  }
+}

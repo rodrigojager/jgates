@@ -1,0 +1,29 @@
+{
+  "note": "The Azure Resource Manager template test toolkit: a PowerShell module folder run under the image's pwsh (the powershell part).",
+  "version": "20260213",
+  "url": "https://github.com/Azure/arm-ttk/releases/download/{version}/arm-ttk.zip",
+  "sha256": "2a2d21f17cc31299ba2c78caf97def3c1f9f37eb3a7bab7900cda18c95d4c657",
+  "archive": "zip",
+  "strip": 1,
+  "extract": {
+    "arm-ttk": "arm-ttk",
+    "LICENSE": "LICENSE"
+  },
+  "executable": [
+    "arm-ttk/arm-ttk.psd1"
+  ],
+  "provides": [
+    {
+      "name": "arm-ttk",
+      "path": "arm-ttk/arm-ttk.psd1",
+      "pinned": false,
+      "version": [
+        "pwsh",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "(Import-PowerShellDataFile /opt/tools/binaries/arm-ttk/arm-ttk/arm-ttk.psd1).ModuleVersion"
+      ]
+    }
+  ]
+}

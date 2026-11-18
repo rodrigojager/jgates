@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "arm-ttk",
+  "name": "arm-ttk",
+  "sourceUrl": "https://github.com/Azure/arm-ttk",
+  "license": "MIT",
+  "program": {
+    "tool": "arm-ttk",
+    "command": "pwsh",
+    "versionRange": ">=0.27.0 <1.0.0"
+  },
+  "megalinter": [
+    "ARM_ARM_TTK"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "arm",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "content": {
+      "pattern": "schema\\.management\\.azure\\.com",
+      "firstLine": false,
+      "names": [
+        "*.json"
+      ]
+    }
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-CommandWithArgs",
+      "Import-Module /opt/tools/binaries/arm-ttk/arm-ttk/arm-ttk.psd1 -ErrorAction Stop; $settings = @{}; if (Test-Path -LiteralPath '.arm-ttk.psd1') { $data = Import-PowerShellDataFile -LiteralPath '.arm-ttk.psd1'; if ($data.Skip) { $settings.Skip = @($data.Skip) }; if ($data.Test) { $settings.Test = @($data.Test) } }; $found = foreach ($file in $args) { $results = Test-AzTemplate -TemplatePath $file @settings 2>$null 3>$null 6>$null; foreach ($result in $results) { if ($result.Passed) { continue }; foreach ($e in @($result.Errors)) { [pscustomobject]@{ file = $file; line = $e.Location.Line; column = $e.Location.Column; rule = [string]$result.Name; level = 'error'; message = [string]$e.Exception.Message } }; foreach ($w in @($result.Warnings)) { [pscustomobject]@{ file = $file; line = $w.Location.Line; column = $w.Location.Column; rule = [string]$result.Name; level = 'warning'; message = [string]$w.Exception.Message } } } }; ConvertTo-Json -Compress -InputObject @($found)",
+      "{files}"
+    ],
+    "env": {
+      "HOME": "/tmp",
+      "POWERSHELL_TELEMETRY_OPTOUT": "1",
+      "POWERSHELL_UPDATECHECK": "Off",
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "fields": {
+      "file": "file",
+      "line": "line",
+      "column": "column",
+      "rule": "rule",
+      "level": "level",
+      "message": "message"
+    }
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".arm-ttk.psd1"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "arm-ttk runs every test case unless the project's .arm-ttk.psd1 lists test names under Skip (or only those under Test): the project decides the test cases",
+    "suppressions": {
+      "honoured": false,
+      "description": "not honored: arm-ttk has no in-template suppression comments; the project skips test cases in .arm-ttk.psd1"
+    }
+  },
+  "install": "arm-ttk",
+  "text": {
+    "en": {
+      "label": "arm-ttk (ARM templates)",
+      "purpose": "The Azure Resource Manager template test toolkit: checks ARM templates for best practices such as unreferenced parameters, hard-coded locations and unsafe secrets.",
+      "limitation": "It runs under PowerShell in the tools image, one template at a time, and picks .json files that mention schema.management.azure.com. It reads the project's .arm-ttk.psd1 (Skip and Test lists of test case names) when there is one; otherwise every test case runs.",
+      "needs": "Nothing beyond the tools image (PowerShell and the toolkit are in it): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "arm-ttk (templates ARM)",
+      "purpose": "O kit de testes de templates do Azure Resource Manager: verifica boas práticas em templates ARM, como parâmetros sem referência, locais fixos no código e segredos inseguros.",
+      "limitation": "Roda sob o PowerShell da imagem de ferramentas, um template por vez, e escolhe arquivos .json que citam schema.management.azure.com. Lê o .arm-ttk.psd1 do projeto (listas Skip e Test com nomes de casos de teste) quando existe; sem ele todos os casos rodam.",
+      "needs": "Nada além da imagem de ferramentas (o PowerShell e o kit já estão nela): sem rede e sem as dependências do projeto."
+    }
+  }
+}

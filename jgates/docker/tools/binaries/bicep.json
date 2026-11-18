@@ -1,0 +1,19 @@
+{
+  "note": "The Bicep CLI, a self-contained linux-x64 release binary (needs libicu, which the image has).",
+  "version": "0.49.2",
+  "url": "https://github.com/Azure/bicep/releases/download/v{version}/bicep-linux-x64",
+  "sha256": "0ab9de90c2493f206f8281bae74f9ee2d5ed3605548dab1adf41fef185e1f7c5",
+  "archive": "file",
+  "save": "bicep",
+  "provides": [
+    {
+      "name": "bicep",
+      "link": "bicep",
+      "path": "bicep",
+      "version": [
+        "bicep",
+        "--version"
+      ]
+    }
+  ]
+}

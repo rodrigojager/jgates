@@ -1,0 +1,12 @@
+{
+  "files": [
+    "arm-template.json"
+  ],
+  "findings": [
+    {
+      "rule": "Parameters Must Be Referenced",
+      "file": "arm-template.json",
+      "line": 5
+    }
+  ]
+}
