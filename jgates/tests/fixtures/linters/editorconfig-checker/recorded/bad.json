@@ -1,0 +1,17 @@
+{
+ "tool": "editorconfig-checker",
+ "kind": "bad",
+ "version": "4.0.2",
+ "calls": [
+  {
+   "args": [
+    "-format",
+    "gcc",
+    "-no-color"
+   ],
+   "exit": 1,
+   "stdout": "settings.yml:1:0: error: trailing whitespace\n\n1 errors found\n",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "editorconfig-checker",
+  "name": "editorconfig-checker",
+  "sourceUrl": "https://github.com/editorconfig-checker/editorconfig-checker",
+  "license": "MIT",
+  "program": {
+    "tool": "editorconfig-checker",
+    "versionRange": ">=4.0.0 <5.0.0"
+  },
+  "megalinter": [
+    "EDITORCONFIG_EDITORCONFIG_CHECKER"
+  ],
+  "place": {
+    "section": "format",
+    "group": "editorconfig",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "project": true,
+    "requires": [
+      ".editorconfig"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "-format",
+      "gcc",
+      "-no-color"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>[^:]+):(?<line>\\d+):(?<column>\\d+): (?<level>\\w+): (?<message>.+)$",
+    "rule": "editorconfig-checker.violation"
+  },
+  "configuration": {
+    "files": [
+      ".editorconfig",
+      ".editorconfig-checker.json",
+      ".ecrc"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "editorconfig-checker enforces the project's .editorconfig (indent, line ends, final newline, trailing whitespace, line length): the project decides the rules",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the tool has no in-file suppression; files are excluded in .editorconfig-checker.json"
+    }
+  },
+  "install": "editorconfig-checker",
+  "text": {
+    "en": {
+      "label": "editorconfig-checker",
+      "purpose": "Checks that every file follows the project's .editorconfig: indentation style and size, line endings, final newline, trailing whitespace and line length.",
+      "limitation": "It only runs when the project has an .editorconfig, and it checks only what that file declares. It does not understand a language's syntax.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "editorconfig-checker",
+      "purpose": "Verifica se cada arquivo segue o .editorconfig do projeto: estilo e tamanho da indentação, fim de linha, quebra de linha final, espaços no fim da linha e tamanho da linha.",
+      "limitation": "Só roda quando o projeto tem um .editorconfig e verifica apenas o que esse arquivo declara. Não entende a sintaxe de nenhuma linguagem.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

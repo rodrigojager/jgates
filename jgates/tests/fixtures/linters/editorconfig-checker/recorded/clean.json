@@ -1,0 +1,17 @@
+{
+ "tool": "editorconfig-checker",
+ "kind": "clean",
+ "version": "4.0.2",
+ "calls": [
+  {
+   "args": [
+    "-format",
+    "gcc",
+    "-no-color"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}
