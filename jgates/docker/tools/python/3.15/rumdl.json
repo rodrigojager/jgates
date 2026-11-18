@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "rumdl",
+      "link": "rumdl",
+      "path": "bin/rumdl",
+      "version": [
+        "rumdl",
+        "--version"
+      ]
+    }
+  ]
+}

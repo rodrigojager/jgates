@@ -1,0 +1,12 @@
+{
+  "files": [
+    "notes.md"
+  ],
+  "findings": [
+    {
+      "rule": "MD022",
+      "file": "notes.md",
+      "line": 1
+    }
+  ]
+}

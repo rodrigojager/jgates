@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "markdownlint",
+  "name": "markdownlint",
+  "sourceUrl": "https://github.com/igorshubovych/markdownlint-cli",
+  "license": "MIT",
+  "program": {
+    "tool": "markdownlint",
+    "versionRange": ">=0.50.0 <1.0.0"
+  },
+  "megalinter": [
+    "MARKDOWN_MARKDOWNLINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "markdown",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".md"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--json",
+      "--output",
+      "{report}",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "file",
+    "file": "markdownlint.json",
+    "reader": "json",
+    "emptyIsClean": true,
+    "fields": {
+      "file": "fileName",
+      "line": "lineNumber",
+      "column": "errorRange.0",
+      "rule": "ruleNames.0",
+      "level": "severity",
+      "message": "ruleDescription"
+    }
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".markdownlint.jsonc",
+      ".markdownlint.json",
+      ".markdownlint.yaml",
+      ".markdownlint.yml",
+      ".markdownlintrc",
+      ".markdownlintignore"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "markdownlint reads the project's .markdownlint.* and .markdownlintrc files and its .markdownlintignore: the project decides the rules and the files",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: <!-- markdownlint-disable --> and <!-- markdownlint-configure-file --> comments",
+      "pattern": "<!--\\s*markdownlint-(?:disable|capture|configure-file)",
+      "files": "\\.md$"
+    }
+  },
+  "install": "markdownlint",
+  "text": {
+    "en": {
+      "label": "markdownlint (Markdown)",
+      "purpose": "Checks Markdown files for structure and style mistakes: skipped heading levels, missing blank lines, inconsistent lists, long lines.",
+      "limitation": "Without a project configuration it runs with the tool's own defaults, which include an 80-character line limit (MD013); a project with long lines should configure or disable that rule.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "markdownlint (Markdown)",
+      "purpose": "Verifica erros de estrutura e de estilo em arquivos Markdown: níveis de título pulados, linhas em branco faltando, listas inconsistentes, linhas longas.",
+      "limitation": "Sem uma configuração do projeto, roda com os padrões da própria ferramenta, que incluem o limite de 80 caracteres por linha (MD013); um projeto com linhas longas deve configurar ou desligar essa regra.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

@@ -57,6 +57,8 @@ export interface LinterDescriptor {
     reader: LinterReader;
     pattern?: string;
     jsonLines?: boolean;
+    /** json: an empty output is no finding (the tool prints nothing instead of an empty list); the exit code still decides. */
+    emptyIsClean?: boolean;
     items?: string;
     fields?: { file: string; line?: string; column?: string; rule?: string; level?: string; message: string };
     rule?: string;

@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-markdown-table-formatter",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of markdown-table-formatter in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "markdown-table-formatter": "2.1.0"
+  }
+}

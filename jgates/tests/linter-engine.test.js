@@ -196,6 +196,13 @@ test("linter engine: the readers read their formats and anything they cannot rea
   assert.equal(read("json", '{"results":[]}', { items: "files[]", fields: { file: "f", message: "m" } }).ok, false);
   assert.equal(read("json", '[{"m":"x","r":"R"}]', { fields: { file: "f", message: "m", rule: "r" } }).ok, false, "a finding without a file");
   assert.equal(read("json", '[{"f":"a","m":"x"}]', { fields: { file: "f", message: "m", rule: "r" } }).ok, false, "a finding without a rule");
+  // json: a number picks an item of a list (markdownlint's ruleNames); an empty output is no finding only when the
+  // descriptor says so (markdownlint's --json prints nothing when clean).
+  const names = read("json", '[{"fileName":"a.md","lineNumber":3,"ruleNames":["MD001","heading-increment"],"ruleDescription":"d"}]', { fields: { file: "fileName", line: "lineNumber", rule: "ruleNames.0", message: "ruleDescription" } });
+  assert.deepEqual(names.findings, [{ file: "a.md", line: 3, rule: "MD001", level: "warning", message: "d" }]);
+  assert.equal(read("json", "", { fields: { file: "f", message: "m", rule: "r" } }).ok, false, "an empty output is not JSON");
+  assert.deepEqual(read("json", "\n", { emptyIsClean: true, fields: { file: "f", message: "m", rule: "r" } }, 0), { ok: true, findings: [] });
+  assert.equal(read("json", "{not json", { emptyIsClean: true, fields: { file: "f", message: "m" } }).ok, false);
   // checkstyle and junit.
   const cs = read("checkstyle", '<?xml version="1.0"?><checkstyle><file name="src/A.java"><error line="2" column="5" severity="warning" message="m" source="Rule.X"/></file></checkstyle>');
   assert.deepEqual(cs.findings, [{ file: "src/A.java", line: 2, column: 5, rule: "Rule.X", level: "warning", message: "m" }]);

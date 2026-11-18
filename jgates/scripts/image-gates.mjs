@@ -773,6 +773,7 @@ export function linterSmokeGroups(descriptors = readDescriptors()) {
         covers: ds.map((d) => `${d.id}#${d.place.capability}@any`),
         templates: [id],
         toolsOn: ds.map((d) => d.id),
+        eachTool: true,
         bad: { copy: ds.map((d) => ({ from: `linters/${d.id}/bad`, to: "." })) },
         clean: { copy: ds.map((d) => ({ from: `linters/${d.id}/clean`, to: "." })) },
       };
@@ -904,22 +905,25 @@ const SETTLED = new Set(["completed", "not_applicable", "disabled", "skipped"]);
  * Judges one project. The known-bad side must fail with a finding of the adapters the group proves; the clean side must
  * have none, with every stage of those adapters settled and at least one completed (a tool that errors, is blocked or is
  * missing is never a pass). An "incomplete" decision is fine on the clean side only because a self-reported adapter never
- * satisfies a requirement under jgates ci: it can fail the run, and that is what the bad side shows.
+ * satisfies a requirement under jgates ci: it can fail the run, and that is what the bad side shows. With `eachTool`
+ * (the groups of the linter descriptors) the bad side needs a finding of every adapter of the group, not of one.
  */
-const summarize = (project, ran, document, expected, adapters = null) => {
+export const summarize = (project, ran, document, expected, adapters = null, eachTool = false) => {
   const decision = document?.decision ?? null;
   const stages = (document?.stages ?? []).filter((s) => s.kind !== "composite");
   const ownStages = adapters ? stages.filter((s) => adapters.includes(s.adapter)) : stages;
   const findings = document?.findings ?? [];
   const ownFindings = adapters ? findings.filter((f) => adapters.includes(f.origin) || adapters.includes(f.tool)) : findings;
   const unsettled = ownStages.filter((s) => !SETTLED.has(s.state));
+  const silent = eachTool && adapters ? adapters.filter((a) => !ownFindings.some((f) => f.origin === a || f.tool === a)) : [];
   const ok =
     expected === "failed"
-      ? decision === "failed" && ownFindings.length > 0
+      ? decision === "failed" && ownFindings.length > 0 && silent.length === 0
       : (decision === "passed" || decision === "incomplete") && findings.length === 0 && unsettled.length === 0 && ownStages.some((s) => s.state === "completed");
   return {
     id: project,
     expected,
+    ...(expected === "failed" && silent.length > 0 ? { withoutFinding: silent } : {}),
     decision,
     complete: document?.complete ?? null,
     exitCode: ran.status,
@@ -968,7 +972,7 @@ export function smokeInImage({ groups = SMOKE_GROUPS, fixtures = "/fixtures", on
       git(dir, "commit", "-qm", "smoke");
       const started = Date.now();
       const { ran, document } = runCi(dir, policyDir, home, 20 * 60_000);
-      results.push({ ...summarize(`${group.id}/${side}`, ran, document, expected, [...new Set(group.covers.map((row) => row.split("#")[0]))]), group: group.id, seconds: Math.round((Date.now() - started) / 1000) });
+      results.push({ ...summarize(`${group.id}/${side}`, ran, document, expected, [...new Set(group.covers.map((row) => row.split("#")[0]))], group.eachTool === true), group: group.id, seconds: Math.round((Date.now() - started) / 1000) });
       fs.rmSync(dir, { recursive: true, force: true });
     }
   }
@@ -989,8 +993,9 @@ function docker(args, { input, allowFailure = false, timeout = 60 * 60_000 } = {
 }
 
 const hostPath = (p) => path.resolve(p);
-const MOUNT_SELF = (script) => ["-v", `${hostPath(script)}:/gate/image-gates.mjs:ro`];
-const BASE_RUN = ["run", "--rm", "--pull", "never", "--init", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--label", "org.jgates.managed=true", "--label", "org.jgates.kind=helper"];
+// The gates that run inside the image get this script and the module it imports (image-installs.mjs), side by side.
+const MOUNT_SELF = (script) => ["-v", `${hostPath(script)}:/gate/image-gates.mjs:ro`, "-v", `${hostPath(path.join(path.dirname(script), "image-installs.mjs"))}:/gate/image-installs.mjs:ro`];
+const BASE_RUN = ["run", "--rm", "--pull", "never", "--init", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--label", "org.jgates.managed=true", "--label", "org.jgates.kind=helper", "--label", "jproject.project=jgates"];
 
 function writeReport(outDir, name, document) {
   fs.writeFileSync(path.join(outDir, name), `${JSON.stringify(document, null, 2)}\n`);

@@ -6,7 +6,8 @@
 //      - a linter descriptor (src/builtin/linters/<tool>/): the fixtures tests/fixtures/linters/<tool>/<kind>/ prepared
 //        as the per-tool test prepares them (git init, the minimal init), the very calls the engine plans for them
 //        (linterCalls of the built engine, inside the image's semantics), written to recorded/<kind>.json as
-//        {tool, kind, version, calls: [{args, exit, stdout, stderr, reportPath, report}]};
+//        {tool, kind, version, calls: [{args, exit, stdout, stderr, reportPath, report}]}; a tool whose descriptor says
+//        run.readOnly that adds, changes or removes a file of the workspace (a cache beside the sources) fails the probe;
 //      - an existing adapter with recordings in tests/fixtures/lint-stacks/recorded/ (hadolint, shellcheck...): the
 //        recorded command on its fixture, compared with the recording ("reproduces" or the difference; --write
 //        replaces the recording);
@@ -19,6 +20,7 @@
 // _work/00-tmp/image-probe when it exists, else the system's temporary folder. The JGates CLI must be built
 // (npm --prefix jgates run build) for a descriptor; JGATES_PROBE_BASE names another base image.
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -278,6 +280,32 @@ export function copyFixture(from, to) {
   return converted;
 }
 
+/** Every file of a probe workspace with the hash of its content (the repository and JGates' own folder left out, as the per-tool test does). */
+export function workspaceListing(root) {
+  const listing = new Map();
+  const walk = (abs, rel) => {
+    for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
+      const next = rel ? `${rel}/${entry.name}` : entry.name;
+      if (!rel && (entry.name === ".git" || entry.name === ".jgates")) continue;
+      const full = path.join(abs, entry.name);
+      if (entry.isDirectory()) {
+        listing.set(`${next}/`, "dir");
+        walk(full, next);
+      } else listing.set(next, crypto.createHash("sha256").update(fs.readFileSync(full)).digest("hex"));
+    }
+  };
+  walk(root, "");
+  return listing;
+}
+
+/** The paths added, removed or changed between two listings, sorted. */
+export function listingChanges(before, after) {
+  const changed = new Set();
+  for (const [p, hash] of after) if (before.get(p) !== hash) changed.add(p);
+  for (const p of before.keys()) if (!after.has(p)) changed.add(p);
+  return [...changed].sort();
+}
+
 function runCall(image, { workspace, output, network, resources, env, executable, args, timeoutSeconds }) {
   const result = spawnSync(runtime, stepArgs({ image, workspace, output, network, resources, env, command: [executable, ...args] }), { encoding: "utf8", maxBuffer: 256 * 1024 * 1024, timeout: (timeoutSeconds ?? 600) * 1000 });
   if (result.error) fail(`${runtime} run could not start: ${result.error.message}`);
@@ -386,6 +414,7 @@ async function probeDescriptor(image, descriptor, linter, version, scratch) {
       fs.copyFileSync(path.join(linter.dir, contract.defaultConfig), target);
     }
     const calls = engine.linterCalls(descriptor, contract, { executable, args: invocation.command.args }, { runDir: "/output", workspace: "/workspace" }, false);
+    const untouched = workspaceListing(workspace);
     const callEnv = Object.fromEntries(Object.entries(invocation.command.env ?? {}).map(([k, v]) => [k, String(v).split("{runDir}").join("/output").split("{workspace}").join("/workspace")]));
     const recorded = [];
     for (const call of calls) {
@@ -399,6 +428,11 @@ async function probeDescriptor(image, descriptor, linter, version, scratch) {
       }
       recorded.push(entry);
     }
+    // A tool that says it only reads the project must leave the workspace as it found it (a cache beside the sources,
+    // like rumdl's .rumdl_cache without --no-cache, is a write): the step container would otherwise run it beside others.
+    const changed = listingChanges(untouched, workspaceListing(workspace)).filter((p) => !(descriptor.run.workspaceWrites ?? []).some((w) => p === w || p.startsWith(`${w.replace(/\/+$/, "")}/`)));
+    if (changed.length > 0 && descriptor.run.readOnly) fail(`${id} wrote into the workspace on the ${kind} fixture (${changed.slice(0, 10).join(", ")}): it is not read-only. Point its cache or state at /tmp or the run folder with an argument or run.env, or declare run.readOnly false with run.workspaceWrites`);
+    if (changed.length > 0) say(`${kind}: the tool wrote into the workspace: ${changed.slice(0, 10).join(", ")}`);
     fs.mkdirSync(recordedDir, { recursive: true });
     const file = path.join(recordedDir, `${kind}.json`);
     const document = { tool: id, kind, version, calls: recorded };

@@ -1,0 +1,20 @@
+{
+ "tool": "rumdl",
+ "kind": "bad",
+ "version": "0.3.4",
+ "calls": [
+  {
+   "args": [
+    "check",
+    "--no-cache",
+    "--output-format",
+    "sarif",
+    "--",
+    "notes.md"
+   ],
+   "exit": 1,
+   "stdout": "{\n  \"$schema\": \"https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json\",\n  \"version\": \"2.1.0\",\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"name\": \"rumdl\",\n          \"version\": \"0.3.4\",\n          \"informationUri\": \"https://github.com/rvben/rumdl\",\n          \"rules\": [\n            {\n              \"id\": \"MD022\",\n              \"name\": \"MD022\",\n              \"shortDescription\": {\n                \"text\": \"Markdown rule MD022\"\n              },\n              \"fullDescription\": {\n                \"text\": \"Markdown linting rule MD022\"\n              }\n            }\n          ]\n        }\n      },\n      \"results\": [\n        {\n          \"ruleId\": \"MD022\",\n          \"level\": \"warning\",\n          \"message\": {\n            \"text\": \"Expected 1 blank line below heading\"\n          },\n          \"locations\": [\n            {\n              \"physicalLocation\": {\n                \"artifactLocation\": {\n                  \"uri\": \"notes.md\"\n                },\n                \"region\": {\n                  \"startLine\": 1,\n                  \"startColumn\": 1\n                }\n              }\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}\n",
+   "stderr": ""
+  }
+ ]
+}

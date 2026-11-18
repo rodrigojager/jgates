@@ -110,9 +110,10 @@
         "reader": { "enum": ["sarif", "checkstyle", "junit", "json", "lines", "files", "status", "custom"] },
         "pattern": { "description": "lines: the pattern of one finding, with named groups file, line, column, level, rule, message; files: the pattern of a file line (group file), default the whole line.", "type": "string", "minLength": 1 },
         "jsonLines": { "description": "json: one JSON document per line.", "type": "boolean" },
+        "emptyIsClean": { "description": "json: an empty output is no finding, for a tool that prints nothing instead of an empty list when it is clean (markdownlint's --json); the exit code must still be a clean one.", "type": "boolean" },
         "items": { "description": "json: the path to the findings, with [] where a list is walked ([].messages[]).", "type": "string" },
         "fields": {
-          "description": "json: the path of each field from a finding (^ climbs to the parent: ^.filePath).",
+          "description": "json: the path of each field from a finding (^ climbs to the parent: ^.filePath; a number picks an item of a list: ruleNames.0).",
           "type": "object",
           "additionalProperties": false,
           "required": ["file", "message"],

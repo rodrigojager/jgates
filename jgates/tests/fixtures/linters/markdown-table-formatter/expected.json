@@ -1,0 +1,11 @@
+{
+  "files": [
+    "table.md"
+  ],
+  "findings": [
+    {
+      "rule": "markdown-table-formatter.unformatted",
+      "file": "table.md"
+    }
+  ]
+}

@@ -477,9 +477,15 @@ test("the implicit templates activate from the discovery: base always, Python wh
   withProject(files, (dir) => {
     const r = cli(dir, "resolve", "--explain");
     assert.equal(r.status, 0, JSON.stringify(r.doc));
-    const active = Object.fromEntries(r.doc.templates.active.map((a) => [a.id, a.reason]));
+    // The implicit templates of the linter descriptor groups (lint-markdown...) are listed too, each by its own
+    // activation; the closed lists below are the hand-written templates only, so a new descriptor group changes nothing here.
+    const derivedIds = new Set(linterTemplates().map((t) => t.id));
+    const own = (entries) => entries.filter((e) => !derivedIds.has(e.id));
+    const active = Object.fromEntries(own(r.doc.templates.active).map((a) => [a.id, a.reason]));
     assert.deepEqual(active, { base: "ALWAYS", python: "DETECTED" });
-    assert.deepEqual(r.doc.templates.inactive.map((i) => [i.id, i.reason]), [["dotnet", "NOT_DETECTED"], ["typescript", "NOT_DETECTED"]]);
+    assert.deepEqual(own(r.doc.templates.inactive).map((i) => [i.id, i.reason]), [["dotnet", "NOT_DETECTED"], ["typescript", "NOT_DETECTED"]]);
+    const listed = new Set([...r.doc.templates.active, ...r.doc.templates.inactive].map((t) => t.id));
+    for (const id of derivedIds) assert.ok(listed.has(id), `the implicit template ${id} is listed by resolve --explain`);
     assert.equal(r.doc.fields["/templates/base/source"].layer, "defaults");
     assert.ok(r.doc.config.workspace.exclude.includes(".git/**"));
     assert.ok(r.doc.config.workspace.exclude.includes("**/.venv/**"));

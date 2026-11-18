@@ -1,0 +1,21 @@
+{
+ "tool": "markdownlint",
+ "kind": "clean",
+ "version": "0.50.0",
+ "calls": [
+  {
+   "args": [
+    "--json",
+    "--output",
+    "/output/linters/markdownlint/markdownlint.json",
+    "--",
+    "guide.md"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "",
+   "reportPath": "/output/linters/markdownlint/markdownlint.json",
+   "report": ""
+  }
+ ]
+}

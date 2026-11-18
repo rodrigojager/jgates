@@ -106,7 +106,7 @@ function walkItems(doc: unknown, items: string | undefined): Node[] | null {
   return nodes;
 }
 
-/** A field path from a node: `a.b`, `^.a` (the parent's a), `^.^.a`. */
+/** A field path from a node: `a.b`, `^.a` (the parent's a), `^.^.a`; a number picks an item of a list (`ruleNames.0`). */
 function field(node: Node, spec: string | undefined): unknown {
   if (spec === undefined) return undefined;
   const parts = spec.split(".").filter((p) => p !== "");
@@ -117,8 +117,9 @@ function field(node: Node, spec: string | undefined): unknown {
   }
   let value: unknown = up === 0 ? node.value : node.parents[node.parents.length - up];
   for (const p of parts) {
-    if (!isRec(value)) return undefined;
-    value = value[p];
+    if (Array.isArray(value) && /^\d+$/.test(p)) value = value[Number(p)];
+    else if (isRec(value)) value = value[p];
+    else return undefined;
   }
   return value;
 }
@@ -136,6 +137,9 @@ const json: Reader = (input, output) => {
         return fail(`line ${index + 1} is not JSON`);
       }
     }
+  } else if (output.emptyIsClean === true && input.text.trim() === "") {
+    // The tool prints nothing when it has nothing to say (markdownlint's --json); the exit code must still be a clean one.
+    return { ok: true, findings: [] };
   } else {
     try {
       docs.push(JSON.parse(input.text));

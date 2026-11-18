@@ -1,0 +1,17 @@
+{
+ "tool": "markdown-table-formatter",
+ "kind": "bad",
+ "version": "2.1.0",
+ "calls": [
+  {
+   "args": [
+    "--check",
+    "--",
+    "table.md"
+   ],
+   "exit": 1,
+   "stdout": "1 files contain markdown tables to format:\n- table.md\n",
+   "stderr": ""
+  }
+ ]
+}

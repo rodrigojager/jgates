@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-markdownlint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of markdownlint-cli in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "markdownlint-cli": "0.50.0"
+  }
+}

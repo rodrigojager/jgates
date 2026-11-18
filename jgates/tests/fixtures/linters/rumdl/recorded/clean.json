@@ -1,0 +1,20 @@
+{
+ "tool": "rumdl",
+ "kind": "clean",
+ "version": "0.3.4",
+ "calls": [
+  {
+   "args": [
+    "check",
+    "--no-cache",
+    "--output-format",
+    "sarif",
+    "--",
+    "notes.md"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"$schema\": \"https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json\",\n  \"version\": \"2.1.0\",\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"name\": \"rumdl\",\n          \"version\": \"0.3.4\",\n          \"informationUri\": \"https://github.com/rvben/rumdl\",\n          \"rules\": []\n        }\n      },\n      \"results\": []\n    }\n  ]\n}\n",
+   "stderr": ""
+  }
+ ]
+}

@@ -159,6 +159,26 @@ function walk(dir, ...extra) {
   return JSON.parse(r.stdout);
 }
 
+test("V2-54: the smoke group of a linter descriptor group fails its bad side unless every tool of the group reports a finding", () => {
+  const groups = gates.linterSmokeGroups([
+    { id: "tool-a", place: { section: "format", group: "demo", capability: "lint" } },
+    { id: "tool-b", place: { section: "format", group: "demo", capability: "format-check" } },
+  ]);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].id, "lint-demo");
+  assert.equal(groups[0].eachTool, true);
+  const ran = { status: 1, stdout: "", stderr: "" };
+  const stages = [{ id: "tool-a#lint", adapter: "tool-a", state: "completed" }, { id: "tool-b#format-check", adapter: "tool-b", state: "completed" }];
+  const finding = (tool) => ({ tool, origin: tool, ruleId: "R", location: { path: "a.md" }, message: "m" });
+  const adapters = ["tool-a", "tool-b"];
+  const one = gates.summarize("lint-demo/bad", ran, { decision: "failed", stages, findings: [finding("tool-a")] }, "failed", adapters, true);
+  assert.equal(one.ok, false);
+  assert.deepEqual(one.withoutFinding, ["tool-b"]);
+  assert.equal(gates.summarize("lint-demo/bad", ran, { decision: "failed", stages, findings: [finding("tool-a"), finding("tool-b")] }, "failed", adapters, true).ok, true);
+  // The fixed groups keep their rule: a finding of one of their adapters is enough.
+  assert.equal(gates.summarize("x/bad", ran, { decision: "failed", stages, findings: [finding("tool-a")] }, "failed", adapters).ok, true);
+});
+
 function put(base, files) {
   for (const [name, content] of Object.entries(files)) {
     const file = path.join(base, ...name.split("/"));
