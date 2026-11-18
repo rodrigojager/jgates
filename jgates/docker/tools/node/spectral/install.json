@@ -1,0 +1,14 @@
+{
+  "provides": [
+    {
+      "name": "spectral",
+      "link": "spectral",
+      "path": "node_modules/.bin/spectral",
+      "version": [
+        "spectral",
+        "--version"
+      ],
+      "package": "@stoplight/spectral-cli"
+    }
+  ]
+}

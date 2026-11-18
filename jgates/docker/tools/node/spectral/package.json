@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-spectral",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of spectral in the JGates tools image.",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@stoplight/spectral-cli": "6.17.1"
+  }
+}
