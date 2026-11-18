@@ -51,7 +51,7 @@
   "output": {
     "from": "stdout",
     "reader": "files",
-    "pattern": "^\\+\\+\\+ b/(?<file>.+)$",
+    "pattern": "^\\+\\+\\+ (?:b/)?(?<file>.+)$",
     "rule": "format",
     "level": "warning"
   },

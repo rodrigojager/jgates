@@ -13,7 +13,7 @@
     "lint_core.clj"
    ],
    "exit": 2,
-   "stdout": "{\"findings\":[{\"end-row\":4,\"type\":\"unused-binding\",\"level\":\"warning\",\"filename\":\"lint_core.clj\",\"col\":9,\"end-col\":15,\"langs\":[],\"message\":\"unused binding unused\",\"row\":4}],\"summary\":{\"error\":0,\"warning\":1,\"info\":0,\"type\":\"summary\",\"duration\":27,\"files\":1}}\n",
+   "stdout": "{\"findings\":[{\"end-row\":4,\"type\":\"unused-binding\",\"level\":\"warning\",\"filename\":\"lint_core.clj\",\"col\":9,\"end-col\":15,\"langs\":[],\"message\":\"unused binding unused\",\"row\":4}],\"summary\":{\"error\":0,\"warning\":1,\"info\":0,\"type\":\"summary\",\"duration\":39,\"files\":1}}\n",
    "stderr": ""
   }
  ]

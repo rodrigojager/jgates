@@ -1,0 +1,18 @@
+{
+ "tool": "cljstyle",
+ "kind": "bad",
+ "version": "0.17.642",
+ "calls": [
+  {
+   "args": [
+    "--no-color",
+    "check",
+    "--",
+    "style_core.clj"
+   ],
+   "exit": 2,
+   "stdout": "--- a/style_core.clj\n+++ b/style_core.clj\n@@ -1,4 +1,6 @@\n (ns style-core)\n \n-(defn add-one [x]\n-(+ x 1))\n+\n+(defn add-one\n+  [x]\n+  (+ x 1))\n",
+   "stderr": "1 files formatted incorrectly\n"
+  }
+ ]
+}

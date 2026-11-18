@@ -52,7 +52,7 @@
   "output": {
     "from": "stdout",
     "reader": "json",
-    "items": "findings",
+    "items": "findings[]",
     "fields": {
       "file": "filename",
       "line": "row",
