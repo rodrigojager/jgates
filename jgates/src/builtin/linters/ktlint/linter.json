@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "ktlint",
+  "name": "ktlint",
+  "sourceUrl": "https://github.com/pinterest/ktlint",
+  "license": "MIT",
+  "program": {
+    "tool": "ktlint",
+    "versionRange": ">=1.8.0 <2.0.0"
+  },
+  "megalinter": [
+    "KOTLIN_KTLINT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "kotlin",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".kt",
+      ".kts"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--relative",
+      "--reporter=sarif",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "resources": {
+      "memoryMb": 1024
+    }
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      ".editorconfig"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "ktlint reads the project's .editorconfig (the ktlint_* properties); without one it applies its own default code style, so the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: @Suppress(\"ktlint:standard:<rule>\") annotations and ktlint-disable comments",
+      "pattern": "ktlint:|ktlint-disable",
+      "files": "\\.kts?$"
+    }
+  },
+  "install": "ktlint",
+  "text": {
+    "en": {
+      "label": "ktlint (Kotlin)",
+      "purpose": "The Kotlin linter and code-style checker: imports, naming, spacing, blank lines, wrapping and the official Kotlin conventions.",
+      "limitation": "It checks style only, not mistakes in the logic, and it reads its settings from the project's .editorconfig; it reports and never rewrites a file.",
+      "needs": "Nothing beyond the tools image: the Java runtime it carries, no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "ktlint (Kotlin)",
+      "purpose": "O linter e verificador de estilo de Kotlin: imports, nomes, espaçamento, linhas em branco, quebras de linha e as convenções oficiais da linguagem.",
+      "limitation": "Verifica só o estilo, não erros de lógica, e lê as configurações do .editorconfig do projeto; relata e nunca reescreve um arquivo.",
+      "needs": "Nada além da imagem de ferramentas: o runtime Java que ela traz, sem rede e sem as dependências do projeto."
+    }
+  }
+}
