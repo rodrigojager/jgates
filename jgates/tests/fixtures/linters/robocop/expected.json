@@ -1,0 +1,17 @@
+{
+  "files": [
+    "robocop_sample.robot"
+  ],
+  "findings": [
+    {
+      "rule": "DOC02",
+      "file": "robocop_sample.robot",
+      "line": 2
+    },
+    {
+      "rule": "DOC03",
+      "file": "robocop_sample.robot",
+      "line": 1
+    }
+  ]
+}
