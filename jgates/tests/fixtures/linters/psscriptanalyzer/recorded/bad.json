@@ -1,0 +1,20 @@
+{
+ "tool": "psscriptanalyzer",
+ "kind": "bad",
+ "version": "1.25.0",
+ "calls": [
+  {
+   "args": [
+    "-NoLogo",
+    "-NoProfile",
+    "-NonInteractive",
+    "-CommandWithArgs",
+    "$ErrorActionPreference = 'Stop'; Import-Module /opt/tools/parts/powershell/modules/PSScriptAnalyzer/PSScriptAnalyzer.psd1; $settings = @{}; if (Test-Path -LiteralPath '.powershell-psscriptanalyzer.psd1') { $settings.Settings = (Resolve-Path -LiteralPath '.powershell-psscriptanalyzer.psd1').Path }; $found = foreach ($file in $args) { Invoke-ScriptAnalyzer -Path ([WildcardPattern]::Escape($file)) @settings }; ConvertTo-Json -Compress -InputObject @($found | ForEach-Object { [pscustomobject]@{ file = $_.ScriptPath; line = $_.Line; column = $_.Column; rule = $_.RuleName; level = [string]$_.Severity; message = $_.Message } })",
+    "lint-me.ps1"
+   ],
+   "exit": 0,
+   "stdout": "[{\"file\":\"/workspace/lint-me.ps1\",\"line\":1,\"column\":1,\"rule\":\"PSAvoidUsingWriteHost\",\"level\":\"Warning\",\"message\":\"File 'lint-me.ps1' uses Write-Host. Avoid using Write-Host because it might not work in all hosts, does not work when there is no host, and (prior to PS 5.0) cannot be suppressed, captured, or redirected. Instead, use Write-Output, Write-Verbose, or Write-Information.\"}]\n",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+{
+  "version": "7.7.0",
+  "provides": [
+    {
+      "name": "powershell",
+      "link": "pwsh",
+      "path": "pwsh",
+      "version": [
+        "pwsh",
+        "--version"
+      ]
+    },
+    {
+      "name": "psscriptanalyzer",
+      "path": "modules/PSScriptAnalyzer/PSScriptAnalyzer.psd1",
+      "pinned": false,
+      "version": [
+        "pwsh",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "(Import-PowerShellDataFile /opt/tools/parts/powershell/modules/PSScriptAnalyzer/PSScriptAnalyzer.psd1).ModuleVersion"
+      ]
+    }
+  ]
+}

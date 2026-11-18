@@ -1,0 +1,12 @@
+{
+  "files": [
+    "lint-me.ps1"
+  ],
+  "findings": [
+    {
+      "rule": "PSAvoidUsingWriteHost",
+      "file": "lint-me.ps1",
+      "line": 1
+    }
+  ]
+}
