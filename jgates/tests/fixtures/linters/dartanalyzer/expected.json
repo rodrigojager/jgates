@@ -1,0 +1,17 @@
+{
+  "files": [
+    "main.dart"
+  ],
+  "findings": [
+    {
+      "rule": "INVALID_ASSIGNMENT",
+      "file": "main.dart",
+      "line": 4
+    },
+    {
+      "rule": "UNUSED_IMPORT",
+      "file": "main.dart",
+      "line": 1
+    }
+  ]
+}

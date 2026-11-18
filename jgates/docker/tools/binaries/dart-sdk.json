@@ -1,0 +1,21 @@
+{
+  "version": "3.14.1",
+  "url": "https://storage.googleapis.com/dart-archive/channels/stable/release/{version}/sdk/dartsdk-linux-x64-release.zip",
+  "sha256": "759bed01e0aeb50e1a0b0a19474ba5c80c6087ce1d37b3214e475c81a44430e8",
+  "archive": "zip",
+  "strip": 1,
+  "executable": [
+    "bin/dart"
+  ],
+  "provides": [
+    {
+      "name": "dart",
+      "link": "dart",
+      "path": "bin/dart",
+      "version": [
+        "dart",
+        "--version"
+      ]
+    }
+  ]
+}
