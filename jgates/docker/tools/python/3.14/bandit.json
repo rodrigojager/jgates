@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "bandit",
+      "link": "bandit",
+      "path": "bin/bandit",
+      "version": [
+        "bandit",
+        "--version"
+      ]
+    }
+  ]
+}

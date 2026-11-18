@@ -1,0 +1,22 @@
+{
+ "tool": "nbqa",
+ "kind": "clean",
+ "version": "1.10.0",
+ "calls": [
+  {
+   "args": [
+    "mypy",
+    "--no-color-output",
+    "--no-error-summary",
+    "--show-error-codes",
+    "--no-incremental",
+    "--cache-dir=/dev/null",
+    "--",
+    "nbqa_sample.ipynb"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

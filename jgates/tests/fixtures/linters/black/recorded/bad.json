@@ -1,0 +1,17 @@
+{
+ "tool": "black",
+ "kind": "bad",
+ "version": "26.10.1",
+ "calls": [
+  {
+   "args": [
+    "--check",
+    "--",
+    "black_sample.py"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "would reformat black_sample.py\n\nOh no! 💥 💔 💥\n1 file would be reformatted.\n"
+  }
+ ]
+}

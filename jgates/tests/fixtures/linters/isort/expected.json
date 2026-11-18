@@ -1,0 +1,11 @@
+{
+  "files": [
+    "isort_sample.py"
+  ],
+  "findings": [
+    {
+      "rule": "isort.unsorted",
+      "file": "isort_sample.py"
+    }
+  ]
+}

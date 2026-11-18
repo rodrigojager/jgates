@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "nbqa",
+      "link": "nbqa",
+      "path": "bin/nbqa",
+      "version": [
+        "nbqa",
+        "--version"
+      ]
+    }
+  ]
+}

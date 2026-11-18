@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "pylint",
+      "link": "pylint",
+      "path": "bin/pylint",
+      "version": [
+        "pylint",
+        "--version"
+      ]
+    }
+  ]
+}

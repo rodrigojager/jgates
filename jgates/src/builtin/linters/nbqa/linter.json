@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "nbqa",
+  "name": "nbqa",
+  "sourceUrl": "https://github.com/nbQA-dev/nbQA",
+  "license": "MIT",
+  "program": {
+    "tool": "nbqa",
+    "prefix": [
+      "mypy"
+    ],
+    "versionRange": ">=1.0.0 <2.0.0"
+  },
+  "megalinter": [
+    "PYTHON_NBQA_MYPY"
+  ],
+  "place": {
+    "section": "language",
+    "group": "python",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".ipynb"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--no-color-output",
+      "--no-error-summary",
+      "--show-error-codes",
+      "--no-incremental",
+      "--cache-dir=/dev/null",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>[^:\\n]+\\.ipynb):cell_\\d+:(?<line>\\d+): (?<level>error|warning|note): (?<message>.+?)(?:\\s+\\[(?<rule>[a-z0-9-]+)\\])?$"
+  },
+  "configuration": {
+    "files": [
+      "pyproject.toml",
+      "mypy.ini",
+      ".mypy.ini",
+      "setup.cfg"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "nbqa runs mypy over the notebooks and mypy reads the project's mypy.ini, .mypy.ini, pyproject.toml ([tool.mypy]) or setup.cfg: the project decides the checks",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # type: ignore comments",
+      "pattern": "#\\s*type:\\s*ignore",
+      "files": "\\.ipynb$"
+    }
+  },
+  "install": "nbqa",
+  "text": {
+    "en": {
+      "label": "nbqa + mypy (notebooks)",
+      "purpose": "Runs mypy over the code cells of Jupyter notebooks (nbQA), so type errors in notebooks are found the same way as in .py files.",
+      "limitation": "Each cell is reported as a line of the notebook's code, without the cell's own number in the finding; mypy checks the notebook without the project's installed dependencies, so imports of them are reported as missing stubs.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "nbqa + mypy (notebooks)",
+      "purpose": "Roda o mypy sobre as células de código de notebooks Jupyter (nbQA), então erros de tipo em notebooks são achados como nos arquivos .py.",
+      "limitation": "Cada célula é reportada como uma linha do código do notebook, sem o número da célula no achado; o mypy checa o notebook sem as dependências instaladas do projeto, então imports delas são reportados como stubs ausentes.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

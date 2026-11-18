@@ -1,0 +1,18 @@
+{
+ "tool": "pylint",
+ "kind": "bad",
+ "version": "4.1.4",
+ "calls": [
+  {
+   "args": [
+    "--score=n",
+    "--persistent=n",
+    "--",
+    "pylint_sample.py"
+   ],
+   "exit": 16,
+   "stdout": "************* Module pylint_sample\npylint_sample.py:1:0: C0114: Missing module docstring (missing-module-docstring)\npylint_sample.py:1:0: C0116: Missing function or method docstring (missing-function-docstring)\n",
+   "stderr": ""
+  }
+ ]
+}

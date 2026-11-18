@@ -1,0 +1,12 @@
+{
+  "files": [
+    "flake8_sample.py"
+  ],
+  "findings": [
+    {
+      "rule": "F401",
+      "file": "flake8_sample.py",
+      "line": 1
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+ "tool": "isort",
+ "kind": "clean",
+ "version": "9.0.2",
+ "calls": [
+  {
+   "args": [
+    "--settings-file",
+    "/output/linters/isort/isort-default.cfg",
+    "--check-only",
+    "--",
+    "isort_sample.py"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "<sys>:0: UserWarning: A custom settings file was specified: /output/linters/isort/isort-default.cfg but no configuration was found inside. This can happen when [settings] is used as the config header instead of [isort]. See: https://isort.readthedocs.io/en/latest/configuration/config_files.html#custom-config-files for more information.\n"
+  }
+ ]
+}

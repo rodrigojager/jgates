@@ -1,0 +1,16 @@
+{
+ "tool": "flake8",
+ "kind": "bad",
+ "version": "7.5.0",
+ "calls": [
+  {
+   "args": [
+    "--",
+    "flake8_sample.py"
+   ],
+   "exit": 1,
+   "stdout": "flake8_sample.py:1:1: F401 'os' imported but unused\n",
+   "stderr": ""
+  }
+ ]
+}

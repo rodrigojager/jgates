@@ -1,0 +1,17 @@
+{
+  "files": [
+    "pylint_sample.py"
+  ],
+  "findings": [
+    {
+      "rule": "C0114",
+      "file": "pylint_sample.py",
+      "line": 1
+    },
+    {
+      "rule": "C0116",
+      "file": "pylint_sample.py",
+      "line": 1
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+ "tool": "nbqa",
+ "kind": "bad",
+ "version": "1.10.0",
+ "calls": [
+  {
+   "args": [
+    "mypy",
+    "--no-color-output",
+    "--no-error-summary",
+    "--show-error-codes",
+    "--no-incremental",
+    "--cache-dir=/dev/null",
+    "--",
+    "nbqa_sample.ipynb"
+   ],
+   "exit": 1,
+   "stdout": "nbqa_sample.ipynb:cell_1:1: error: Incompatible types in assignment (expression has type \"str\", variable has type \"int\")  [assignment]\n",
+   "stderr": ""
+  }
+ ]
+}
