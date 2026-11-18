@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "ansible-lint",
+  "name": "ansible-lint",
+  "sourceUrl": "https://github.com/ansible/ansible-lint",
+  "license": "GPL-3.0-only",
+  "program": {
+    "tool": "ansible-lint",
+    "versionRange": ">=26.0.0 <27.0.0"
+  },
+  "megalinter": [
+    "ANSIBLE_ANSIBLE_LINT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "ansible",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".yml",
+      ".yaml"
+    ],
+    "requires": [
+      ".ansible-lint",
+      ".ansible-lint.yml",
+      ".ansible-lint.yaml",
+      ".config/ansible-lint.yml",
+      ".config/ansible-lint.yaml"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "--offline",
+      "--nocolor",
+      "-f",
+      "sarif",
+      "--exclude",
+      ".jgates"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "resources": {
+      "memoryMb": 1024
+    }
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      ".ansible-lint",
+      ".ansible-lint.yml",
+      ".ansible-lint.yaml",
+      ".config/ansible-lint.yml",
+      ".config/ansible-lint.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "ansible-lint reads the project's .ansible-lint (profile, enabled and skipped rules, excluded paths): the project decides the rules; the tool only runs when that file exists",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # noqa comments and the skip_list and warn_list of the configuration",
+      "pattern": "#\\s*noqa",
+      "files": "\\.ya?ml$"
+    }
+  },
+  "install": "ansible-lint",
+  "text": {
+    "en": {
+      "label": "ansible-lint (Ansible)",
+      "purpose": "The Ansible linter: playbooks, roles and collections checked for naming, fully qualified module names, deprecated syntax, risky shell use and the profile the project chooses.",
+      "limitation": "It runs only when the project has an ansible-lint configuration, offline, so collections the project needs but does not vendor are not downloaded and rules that need them are skipped. It reports and never rewrites a file.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies; about 1 GB of memory."
+    },
+    "pt-BR": {
+      "label": "ansible-lint (Ansible)",
+      "purpose": "O linter de Ansible: playbooks, roles e coleções verificados quanto a nomes, nomes de módulo totalmente qualificados, sintaxe obsoleta, uso arriscado de shell e o perfil que o projeto escolhe.",
+      "limitation": "Só roda quando o projeto tem uma configuração do ansible-lint, sem rede, então coleções que o projeto precisa mas não inclui não são baixadas e as regras que dependem delas são puladas. Relata e nunca reescreve um arquivo.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto; cerca de 1 GB de memória."
+    }
+  }
+}

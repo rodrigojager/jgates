@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "ansible-lint",
+      "link": "ansible-lint",
+      "path": "bin/ansible-lint",
+      "version": [
+        "ansible-lint",
+        "--version"
+      ]
+    }
+  ]
+}
