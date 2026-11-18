@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "stylelint",
+      "link": "stylelint",
+      "path": "node_modules/.bin/stylelint",
+      "version": [
+        "stylelint",
+        "--version"
+      ]
+    }
+  ]
+}

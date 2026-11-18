@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "id": "stylelint",
+  "name": "stylelint",
+  "sourceUrl": "https://github.com/stylelint/stylelint",
+  "license": "MIT",
+  "program": {
+    "tool": "stylelint",
+    "versionRange": ">=18.0.0 <19.0.0"
+  },
+  "megalinter": [
+    "CSS_STYLELINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "css",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".css",
+      ".scss",
+      ".saas"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--formatter",
+      "json",
+      "--output-file",
+      "{report}",
+      "--no-color",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "file",
+    "file": "stylelint.json",
+    "reader": "json",
+    "items": "[].warnings[]",
+    "fields": {
+      "file": "^.source",
+      "line": "line",
+      "column": "column",
+      "rule": "rule",
+      "level": "severity",
+      "message": "text"
+    }
+  },
+  "configuration": {
+    "files": [
+      ".stylelintrc",
+      ".stylelintrc.json",
+      ".stylelintrc.yaml",
+      ".stylelintrc.yml",
+      ".stylelintrc.js",
+      ".stylelintrc.cjs",
+      ".stylelintrc.mjs",
+      "stylelint.config.js",
+      "stylelint.config.cjs",
+      "stylelint.config.mjs",
+      ".stylelintignore"
+    ],
+    "default": "stylelint-default.json",
+    "args": [
+      "--config",
+      "{config}",
+      "--config-basedir",
+      "/opt/tools/node/stylelint"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "stylelint reads the project's stylelint configuration and .stylelintignore: the project decides the rules and their severity",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: /* stylelint-disable */ comments",
+      "pattern": "stylelint-disable",
+      "files": "\\.(css|scss|saas)$"
+    }
+  },
+  "install": "stylelint",
+  "text": {
+    "en": {
+      "label": "stylelint (CSS, SCSS)",
+      "purpose": "Checks CSS and SCSS files for mistakes and style problems: invalid values, duplicate properties, unknown units, shorthand and color notation, selector conventions. Without a project configuration it applies the standard presets (stylelint-config-standard and stylelint-config-standard-scss).",
+      "limitation": "It checks stylesheets only, not CSS inside HTML, JavaScript or framework components; a project that needs other rules provides its own stylelint configuration.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies; a project configuration that extends a preset the image lacks fails to load."
+    },
+    "pt-BR": {
+      "label": "stylelint (CSS, SCSS)",
+      "purpose": "Verifica arquivos CSS e SCSS em busca de erros e problemas de estilo: valores inválidos, propriedades duplicadas, unidades desconhecidas, notação de atalhos e cores, convenções de seletores. Sem configuração do projeto aplica os presets padrão (stylelint-config-standard e stylelint-config-standard-scss).",
+      "limitation": "Verifica só folhas de estilo, não CSS dentro de HTML, JavaScript ou componentes de frameworks; um projeto que precise de outras regras fornece a própria configuração do stylelint.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto; uma configuração do projeto que estenda um preset ausente da imagem falha ao carregar."
+    }
+  }
+}
