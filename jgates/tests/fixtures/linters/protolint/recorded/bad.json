@@ -1,0 +1,19 @@
+{
+ "tool": "protolint",
+ "kind": "bad",
+ "version": "0.58.0",
+ "calls": [
+  {
+   "args": [
+    "lint",
+    "-reporter",
+    "sarif",
+    "--",
+    "profile.proto"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "{\n  \"runs\": [\n    {\n      \"artifacts\": [\n        {\n          \"location\": {\n            \"uri\": \"profile.proto\"\n          }\n        }\n      ],\n      \"results\": [\n        {\n          \"kind\": \"fail\",\n          \"level\": \"error\",\n          \"locations\": [\n            {\n              \"physicalLocation\": {\n                \"artifactLocation\": {\n                  \"uri\": \"profile.proto\"\n                },\n                \"region\": {\n                  \"startColumn\": 1,\n                  \"startLine\": 3\n                }\n              }\n            }\n          ],\n          \"message\": {\n            \"text\": \"Message name \\\"user_profile\\\" must be UpperCamelCase like \\\"UserProfile\\\"\"\n          },\n          \"ruleId\": \"MESSAGE_NAMES_UPPER_CAMEL_CASE\"\n        }\n      ],\n      \"tool\": {\n        \"driver\": {\n          \"informationUri\": \"https://github.com/yoheimuta/protolint\",\n          \"name\": \"protolint\",\n          \"rules\": [\n            {\n              \"helpUri\": \"https://github.com/yoheimuta/protolint\",\n              \"id\": \"MESSAGE_NAMES_UPPER_CAMEL_CASE\"\n            }\n          ]\n        }\n      }\n    }\n  ],\n  \"version\": \"2.1.0\"\n}"
+  }
+ ]
+}

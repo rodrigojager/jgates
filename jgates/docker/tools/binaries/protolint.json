@@ -1,0 +1,23 @@
+{
+  "version": "0.58.0",
+  "url": "https://github.com/yoheimuta/protolint/releases/download/v{version}/protolint_{version}_linux_amd64.tar.gz",
+  "sha256": "158d6e06c2f0cd96d9916c6e6fceb6af95c9f1006be78b9b950061cc37408a95",
+  "archive": "tar.gz",
+  "extract": {
+    "protolint": "protolint"
+  },
+  "executable": [
+    "protolint"
+  ],
+  "provides": [
+    {
+      "name": "protolint",
+      "link": "protolint",
+      "path": "protolint",
+      "version": [
+        "protolint",
+        "version"
+      ]
+    }
+  ]
+}

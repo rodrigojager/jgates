@@ -1,0 +1,12 @@
+{
+  "files": [
+    "profile.proto"
+  ],
+  "findings": [
+    {
+      "rule": "MESSAGE_NAMES_UPPER_CAMEL_CASE",
+      "file": "profile.proto",
+      "line": 3
+    }
+  ]
+}

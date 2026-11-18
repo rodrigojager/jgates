@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "protolint",
+  "name": "protolint",
+  "sourceUrl": "https://github.com/yoheimuta/protolint",
+  "license": "MIT",
+  "program": {
+    "tool": "protolint",
+    "prefix": [
+      "lint"
+    ],
+    "versionRange": ">=0.50.0 <1.0.0"
+  },
+  "megalinter": [
+    "PROTOBUF_PROTOLINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "protobuf",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".proto"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-reporter",
+      "sarif",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "custom"
+  },
+  "configuration": {
+    "files": [
+      ".protolint.yaml",
+      ".protolint.yml",
+      "protolint.yaml",
+      "protolint.yml",
+      ".protolintrc.yml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "protolint reads the project's protolint.yaml (or .protolint.yaml / .protolint.yml): the project decides which rules apply",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: // protolint:disable comments",
+      "pattern": "protolint:(disable|enable)",
+      "files": "\\.proto$"
+    }
+  },
+  "install": "protolint",
+  "text": {
+    "en": {
+      "label": "protolint (Protocol Buffers)",
+      "purpose": "Lints .proto files against the Protocol Buffers style guide: naming, field and enum conventions, indentation and file layout.",
+      "limitation": "It checks style, not compatibility between versions of a schema. Without a project configuration it uses protolint's default rule set.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "protolint (Protocol Buffers)",
+      "purpose": "Verifica arquivos .proto contra o guia de estilo do Protocol Buffers: nomes, convenções de campos e enums, indentação e organização do arquivo.",
+      "limitation": "Verifica estilo, não a compatibilidade entre versões de um esquema. Sem configuração no projeto usa o conjunto de regras padrão do protolint.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

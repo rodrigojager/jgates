@@ -1,0 +1,19 @@
+{
+ "tool": "protolint",
+ "kind": "clean",
+ "version": "0.58.0",
+ "calls": [
+  {
+   "args": [
+    "lint",
+    "-reporter",
+    "sarif",
+    "--",
+    "profile.proto"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "{\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"informationUri\": \"https://github.com/yoheimuta/protolint\",\n          \"name\": \"protolint\"\n        }\n      }\n    }\n  ],\n  \"version\": \"2.1.0\"\n}"
+  }
+ ]
+}
