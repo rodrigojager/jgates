@@ -120,4 +120,6 @@ export const DATABASE_ABOUT: Readonly<Record<DatabaseId, DatabaseAbout>> = Objec
   osv: { name: "OSV.dev", source: "osv-vulnerabilities.storage.googleapis.com", approxBytes: 1_000_000_000, usedBy: "OSV-Scanner" },
   govulndb: { name: "Go vulnerability database", source: "vuln.go.dev", approxBytes: 40_000_000, usedBy: "govulncheck" },
   rustsec: { name: "RustSec advisory database", source: "github.com/rustsec/advisory-db", approxBytes: 20_000_000, usedBy: "cargo-audit" },
+  grype: { name: "Grype vulnerability database", source: "grype.anchore.io", approxBytes: 200_000_000, usedBy: "Grype" },
+  kubescape: { name: "Kubescape framework artifacts", source: "github.com/kubescape/regolibrary", approxBytes: 20_000_000, usedBy: "Kubescape" },
 });

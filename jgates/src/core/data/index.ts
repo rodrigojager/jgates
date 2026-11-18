@@ -33,8 +33,8 @@ export const DATA_TARGET = "/data";
 export const DATA_STATUS_FILE = "jgates-data.json";
 export const DEFAULT_DATA_MAX_AGE_DAYS = 7;
 
-export type DatabaseId = "trivy" | "osv" | "govulndb" | "rustsec";
-export const DATABASE_IDS: readonly DatabaseId[] = ["trivy", "osv", "govulndb", "rustsec"];
+export type DatabaseId = "trivy" | "osv" | "govulndb" | "rustsec" | "grype" | "kubescape";
+export const DATABASE_IDS: readonly DatabaseId[] = ["trivy", "osv", "govulndb", "rustsec", "grype", "kubescape"];
 
 /** Where each database sits under /data, the tool that reads it and the adapter that runs that tool. */
 export const DATABASES: Readonly<Record<DatabaseId, { tool: string; adapter: string; folder: string }>> = Object.freeze({
@@ -42,6 +42,8 @@ export const DATABASES: Readonly<Record<DatabaseId, { tool: string; adapter: str
   osv: { tool: "osv-scanner", adapter: "osv-scanner", folder: "osv" },
   govulndb: { tool: "govulncheck", adapter: "govulncheck", folder: "govulndb" },
   rustsec: { tool: "cargo-audit", adapter: "cargo-audit", folder: "rustsec" },
+  grype: { tool: "grype", adapter: "grype", folder: "grype" },
+  kubescape: { tool: "kubescape", adapter: "kubescape", folder: "kubescape" },
 });
 
 /**
@@ -70,6 +72,10 @@ export function databaseOfItem(item: Pick<PlanItem, "adapter" | "capabilities">)
       return "govulndb";
     case "cargo-audit":
       return "rustsec";
+    case "grype":
+      return "grype";
+    case "kubescape":
+      return "kubescape";
     default:
       return null;
   }

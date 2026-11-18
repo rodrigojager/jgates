@@ -40,6 +40,7 @@ test("agesOf: a database is fresh up to the limit, stale beyond it, missing when
   assert.equal(ages.govulndb.ageDays, 9);
   assert.equal(ages.rustsec.state, "missing");
   assert.equal(ages.rustsec.fetchedAt, null);
+  assert.deepEqual(["grype", "kubescape"].map((id) => ages[id].state), ["missing", "missing"]);
   const future = data.agesOf(status({ trivy: -3 }), NOW, 7).find((a) => a.id === "trivy");
   assert.equal(future.state, "fresh");
   assert.equal(future.ageDays, 0);
@@ -80,6 +81,8 @@ test("databaseOfItem: the vulnerability scanners read a database, Trivy only for
   assert.equal(data.databaseOfItem(item("osv-scanner", "dependencies")), "osv");
   assert.equal(data.databaseOfItem(item("govulncheck", "dependencies")), "govulndb");
   assert.equal(data.databaseOfItem(item("cargo-audit", "dependencies")), "rustsec");
+  assert.equal(data.databaseOfItem(item("grype", "dependencies")), "grype");
+  assert.equal(data.databaseOfItem(item("kubescape", "iac")), "kubescape");
   assert.equal(data.databaseOfItem(item("gitleaks", "secrets")), null);
 });
 
@@ -149,11 +152,33 @@ test("readDataStatusSync reads the fetch times of a data volume through a read-o
   assert.ok(helper.includes("--network") && helper[helper.indexOf("--network") + 1] === "none");
   assert.ok(helper.some((a, i) => helper[i - 1] === "--mount" && a === "type=volume,src=jgates-data,dst=/data,readonly"));
   assert.ok(helper.includes("org.jgates.kind=data"));
-  assert.deepEqual(data.dataTimestampsOf(read.status), { trivy: at(2), osv: null, govulndb: null, rustsec: at(4) });
+  assert.deepEqual(data.dataTimestampsOf(read.status), { trivy: at(2), osv: null, govulndb: null, rustsec: at(4), grype: null, kubescape: null });
 
   // A status file that is not JSON is unreadable, never "fresh".
   fs.writeFileSync(path.join(engine, "volumes", "jgates-data", "jgates-data.json"), "not json");
   const broken = data.readDataStatusSync(env, "0.0.0");
   assert.equal(broken.state, "unreadable");
   assert.deepEqual(broken.status.databases, {});
+});
+
+test("updateData refreshes grype and kubescape in their own data containers: network, the data volume for writing, one id each", async () => {
+  const engine = tmp("g6-engine-");
+  const calls = path.join(engine, "calls.jsonl");
+  const runtime = path.join(engine, "docker.cjs");
+  fs.writeFileSync(runtime, `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(calls)};\nprocess.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};\nrequire(${JSON.stringify(FAKE)});\n`);
+  fs.writeFileSync(path.join(engine, "objects.json"), JSON.stringify({ containers: [], volumes: [], networks: [], images: [{ id: "sha256:aaaa", name: "jgates-tools", tag: "dev", labels: {}, built: true }] }));
+  const env = { JGATES_CONTAINER_RUNTIME: runtime, JGATES_TOOLS_IMAGE: "jgates-tools:dev" };
+  const progress = [];
+  const result = await data.updateData({ env, version: "0.0.0", only: ["grype", "kubescape"], onProgress: (e) => progress.push(`${e.database}:${e.state}`) });
+  assert.deepEqual(result.databases.map((d) => d.id), ["grype", "kubescape"]);
+  assert.ok(result.databases.every((d) => d.ok), JSON.stringify(result));
+  assert.deepEqual(progress, ["grype:started", "grype:updated", "kubescape:started", "kubescape:updated"]);
+  const runs = fs.readFileSync(calls, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((c) => c[0] === "run" && c.includes("python3"));
+  assert.equal(runs.length, 2);
+  for (const [i, id] of ["grype", "kubescape"].entries()) {
+    const run = runs[i];
+    assert.equal(run[run.length - 1], id);
+    assert.equal(run[run.indexOf("--network") + 1], "bridge");
+    assert.ok(run.some((a, j) => run[j - 1] === "--mount" && a === "type=volume,src=jgates-data,dst=/data"), "the volume is mounted for writing");
+  }
 });
