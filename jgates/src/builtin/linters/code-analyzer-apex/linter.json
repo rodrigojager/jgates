@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "code-analyzer-apex",
+  "name": "Salesforce Code Analyzer (Apex)",
+  "sourceUrl": "https://github.com/forcedotcom/code-analyzer",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "sf",
+    "prefix": [
+      "code-analyzer",
+      "run"
+    ],
+    "versionRange": ">=2.158.0 <3.0.0"
+  },
+  "megalinter": [
+    "SALESFORCE_CODE_ANALYZER_APEX"
+  ],
+  "place": {
+    "section": "language",
+    "group": "salesforce",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".cls",
+      ".trigger"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "--rule-selector",
+      "pmd:Recommended",
+      "--workspace",
+      "{workspace}",
+      "--severity-threshold",
+      "5",
+      "--output-file",
+      "{report}"
+    ],
+    "env": {
+      "HOME": "/tmp/sf-home"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "timeoutSeconds": 900,
+    "resources": {
+      "memoryMb": 2048
+    }
+  },
+  "output": {
+    "from": "file",
+    "file": "code-analyzer-apex.sarif",
+    "reader": "custom"
+  },
+  "configuration": {
+    "files": [
+      "code-analyzer.yml",
+      "code-analyzer.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "the project's code-analyzer.yml, which the Salesforce Code Analyzer reads by itself from the project root; JGates adds only the rule selection of the command line",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: // NOPMD comments, @SuppressWarnings('PMD...') annotations and sfca-disable comments of the Apex source",
+      "pattern": "NOPMD|@SuppressWarnings\\s*\\(\\s*'PMD|sfca-disable",
+      "files": "\\.(cls|trigger)$"
+    }
+  },
+  "install": "salesforce-cli",
+  "text": {
+    "en": {
+      "label": "Salesforce Code Analyzer (Apex)",
+      "purpose": "Static analysis of Apex classes and triggers with the PMD engine's recommended rules of the Salesforce Code Analyzer: security, governor limits, performance, documentation and best practices.",
+      "limitation": "It runs only the PMD engine's Recommended rules; the other engines of the analyzer (flow, sfge, regex, cpd, retire-js) and the ApexGuru engine, which needs a Salesforce org, are not run. A code-analyzer.yml of the project is read by the analyzer itself.",
+      "needs": "The Salesforce CLI with its Code Analyzer plugin and the Java runtime of the tools image, about 2 GB of memory and a minute or two per run; no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Salesforce Code Analyzer (Apex)",
+      "purpose": "Análise estática de classes e triggers Apex com as regras recomendadas do motor PMD do Salesforce Code Analyzer: segurança, limites do governor, desempenho, documentação e boas práticas.",
+      "limitation": "Roda apenas as regras Recommended do motor PMD; os outros motores do analisador (flow, sfge, regex, cpd, retire-js) e o motor ApexGuru, que precisa de uma org Salesforce, não são executados. Um code-analyzer.yml do projeto é lido pelo próprio analisador.",
+      "needs": "A Salesforce CLI com o plugin Code Analyzer e o ambiente Java da imagem de ferramentas, cerca de 2 GB de memória e um ou dois minutos por execução; sem rede e sem as dependências do projeto."
+    }
+  }
+}

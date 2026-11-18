@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "code-analyzer-aura",
+  "name": "Salesforce Code Analyzer (Aura)",
+  "sourceUrl": "https://github.com/forcedotcom/code-analyzer",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "sf",
+    "prefix": [
+      "code-analyzer",
+      "run"
+    ],
+    "versionRange": ">=2.158.0 <3.0.0"
+  },
+  "megalinter": [
+    "SALESFORCE_CODE_ANALYZER_AURA"
+  ],
+  "place": {
+    "section": "language",
+    "group": "salesforce",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".cmp",
+      ".app",
+      ".evt",
+      ".intf"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "--rule-selector",
+      "eslint",
+      "--workspace",
+      "{workspace}",
+      "--target",
+      "**/aura/**/*.js",
+      "--severity-threshold",
+      "5",
+      "--output-file",
+      "{report}"
+    ],
+    "env": {
+      "HOME": "/tmp/sf-home"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "timeoutSeconds": 900,
+    "resources": {
+      "memoryMb": 2048
+    }
+  },
+  "output": {
+    "from": "file",
+    "file": "code-analyzer-aura.sarif",
+    "reader": "custom"
+  },
+  "configuration": {
+    "files": [
+      "code-analyzer.yml",
+      "code-analyzer.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "the project's code-analyzer.yml, which the Salesforce Code Analyzer reads by itself from the project root; JGates adds only the rule selection and the target of the command line",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: eslint-disable comments and sfca-disable comments of the Aura JavaScript",
+      "pattern": "eslint-disable|sfca-disable",
+      "files": "\\.js$"
+    }
+  },
+  "install": "salesforce-cli",
+  "text": {
+    "en": {
+      "label": "Salesforce Code Analyzer (Aura)",
+      "purpose": "Static analysis of the JavaScript of Aura components with the ESLint engine of the Salesforce Code Analyzer: unused variables, debugger statements, eval and style rules.",
+      "limitation": "It runs the ESLint engine's rules on the JavaScript files under aura folders; the markup of the components (.cmp) is not analyzed. A code-analyzer.yml of the project is read by the analyzer itself.",
+      "needs": "The Salesforce CLI with its Code Analyzer plugin and the Java runtime of the tools image, about 2 GB of memory and a minute or two per run; no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Salesforce Code Analyzer (Aura)",
+      "purpose": "Análise estática do JavaScript de componentes Aura com o motor ESLint do Salesforce Code Analyzer: variáveis não usadas, comandos debugger, eval e regras de estilo.",
+      "limitation": "Roda as regras do motor ESLint nos arquivos JavaScript das pastas aura; a marcação dos componentes (.cmp) não é analisada. Um code-analyzer.yml do projeto é lido pelo próprio analisador.",
+      "needs": "A Salesforce CLI com o plugin Code Analyzer e o ambiente Java da imagem de ferramentas, cerca de 2 GB de memória e um ou dois minutos por execução; sem rede e sem as dependências do projeto."
+    }
+  }
+}

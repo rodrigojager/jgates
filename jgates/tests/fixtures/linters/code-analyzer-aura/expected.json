@@ -1,0 +1,57 @@
+{
+  "files": [
+    "force-app/main/default/aura/accountPanel/accountPanel.cmp"
+  ],
+  "findings": [
+    {
+      "rule": "no-unused-expressions",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 1
+    },
+    {
+      "rule": "func-names",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 2
+    },
+    {
+      "rule": "object-shorthand",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 2
+    },
+    {
+      "rule": "no-unused-vars",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 2
+    },
+    {
+      "rule": "no-unused-vars",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 2
+    },
+    {
+      "rule": "no-unused-vars",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 2
+    },
+    {
+      "rule": "no-var",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 3
+    },
+    {
+      "rule": "no-unused-vars",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 3
+    },
+    {
+      "rule": "no-debugger",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 4
+    },
+    {
+      "rule": "no-eval",
+      "file": "force-app/main/default/aura/accountPanel/accountPanelController.js",
+      "line": 5
+    }
+  ]
+}

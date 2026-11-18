@@ -1,0 +1,14 @@
+{
+  "version": "2.158.7",
+  "provides": [
+    {
+      "name": "sf",
+      "link": "sf",
+      "path": "sf",
+      "version": [
+        "sf",
+        "--version"
+      ]
+    }
+  ]
+}
