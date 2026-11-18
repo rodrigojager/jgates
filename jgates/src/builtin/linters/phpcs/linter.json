@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "phpcs",
+  "name": "phpcs",
+  "sourceUrl": "https://github.com/PHPCSStandards/PHP_CodeSniffer",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "phpcs",
+    "versionRange": ">=4.0.0 <5.0.0"
+  },
+  "megalinter": [
+    "PHP_PHPCS"
+  ],
+  "place": {
+    "section": "language",
+    "group": "php",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".php"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--report=checkstyle",
+      "--report-file={report}",
+      "--no-colors",
+      "-q",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2,
+        3
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "file",
+    "file": "phpcs-report.xml",
+    "reader": "checkstyle"
+  },
+  "configuration": {
+    "files": [
+      "phpcs.xml",
+      ".phpcs.xml",
+      "phpcs.xml.dist",
+      ".phpcs.xml.dist",
+      "phpcs.ruleset.xml",
+      "ruleset.xml",
+      "CodeSniffer.conf"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "phpcs reads the project's phpcs.xml (or .phpcs.xml, phpcs.xml.dist): the project decides the standard and the sniffs",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: phpcs:ignore, phpcs:disable and @codingStandardsIgnore comments",
+      "pattern": "phpcs:(?:ignore|disable|disableFile|set)|@codingStandardsIgnore",
+      "files": "\\.php$"
+    }
+  },
+  "install": "phpcs",
+  "text": {
+    "en": {
+      "label": "phpcs (PHP)",
+      "purpose": "PHP_CodeSniffer: checks PHP code against a coding standard (PSR-12 unless the project says otherwise): spacing, braces, naming and declarations.",
+      "limitation": "Without a project ruleset it checks PSR-12, its own default; a project that follows another standard should ship a phpcs.xml.",
+      "needs": "Nothing beyond the tools image (PHP and the tool's phar): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "phpcs (PHP)",
+      "purpose": "PHP_CodeSniffer: confere o código PHP com um padrão de código (PSR-12, salvo se o projeto disser outro): espaçamento, chaves, nomes e declarações.",
+      "limitation": "Sem um conjunto de regras do projeto confere o PSR-12, o seu padrão; um projeto que segue outro padrão deve trazer um phpcs.xml.",
+      "needs": "Nada além da imagem de ferramentas (PHP e o phar da ferramenta): sem rede e sem as dependências do projeto."
+    }
+  }
+}

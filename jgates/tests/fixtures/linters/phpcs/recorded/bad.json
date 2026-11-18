@@ -1,0 +1,22 @@
+{
+ "tool": "phpcs",
+ "kind": "bad",
+ "version": "4.0.4",
+ "calls": [
+  {
+   "args": [
+    "--report=checkstyle",
+    "--report-file=/output/linters/phpcs/phpcs-report.xml",
+    "--no-colors",
+    "-q",
+    "--",
+    "Spacing.php"
+   ],
+   "exit": 3,
+   "stdout": "",
+   "stderr": "",
+   "reportPath": "/output/linters/phpcs/phpcs-report.xml",
+   "report": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<checkstyle version=\"4.0.4\">\n<file name=\"/workspace/Spacing.php\">\n <error line=\"1\" column=\"1\" severity=\"error\" message=\"Header blocks must be separated by a single blank line\" source=\"PSR12.Files.FileHeader.SpacingAfterTagBlock\"/>\n <error line=\"2\" column=\"18\" severity=\"error\" message=\"Header blocks must be separated by a single blank line\" source=\"PSR12.Files.FileHeader.SpacingAfterNamespaceBlock\"/>\n <error line=\"3\" column=\"14\" severity=\"error\" message=\"Opening brace of a class must be on the line after the definition\" source=\"PSR2.Classes.ClassDeclaration.OpenBraceNewLine\"/>\n <error line=\"4\" column=\"1\" severity=\"error\" message=\"Line indented incorrectly; expected 4 spaces, found 0\" source=\"Generic.WhiteSpace.ScopeIndent.IncorrectExact\"/>\n <error line=\"4\" column=\"1\" severity=\"error\" message=\"Visibility must be declared on method &quot;run&quot;\" source=\"Squiz.Scope.MethodScope.Missing\"/>\n <error line=\"4\" column=\"13\" severity=\"error\" message=\"Expected 0 spaces after opening parenthesis; 1 found\" source=\"Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingAfterOpen\"/>\n <error line=\"4\" column=\"18\" severity=\"error\" message=\"Expected 0 spaces before closing parenthesis; 1 found\" source=\"Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingBeforeClose\"/>\n <error line=\"4\" column=\"19\" severity=\"error\" message=\"Opening brace should be on a new line\" source=\"Squiz.Functions.MultiLineFunctionDeclaration.BraceOnSameLine\"/>\n <error line=\"5\" column=\"1\" severity=\"error\" message=\"Line indented incorrectly; expected 8 spaces, found 0\" source=\"Generic.WhiteSpace.ScopeIndent.IncorrectExact\"/>\n <error line=\"5\" column=\"1\" severity=\"error\" message=\"Expected 1 space after IF keyword; 0 found\" source=\"Squiz.ControlStructures.ControlSignature.SpaceAfterKeyword\"/>\n <error line=\"5\" column=\"6\" severity=\"error\" message=\"Expected 1 space after closing parenthesis; found 0\" source=\"Squiz.ControlStructures.ControlSignature.SpaceAfterCloseParenthesis\"/>\n <error line=\"5\" column=\"7\" severity=\"error\" message=\"Newline required after opening brace\" source=\"Squiz.ControlStructures.ControlSignature.NewlineAfterOpenBrace\"/>\n <error line=\"5\" column=\"17\" severity=\"error\" message=\"Closing brace must be on a line by itself\" source=\"Squiz.WhiteSpace.ScopeClosingBrace.ContentBefore\"/>\n <error line=\"6\" column=\"1\" severity=\"error\" message=\"Line indented incorrectly; expected 4 spaces, found 0\" source=\"Generic.WhiteSpace.ScopeIndent.IncorrectExact\"/>\n</file>\n</checkstyle>\n\n"
+  }
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "tool": "php-cs-fixer",
+ "kind": "bad",
+ "version": "3.95.32",
+ "calls": [
+  {
+   "args": [
+    "--config=/output/linters/php-cs-fixer/php-cs-fixer.default.php",
+    "check",
+    "--using-cache=no",
+    "--format=checkstyle",
+    "--show-progress=none",
+    "--no-interaction"
+   ],
+   "exit": 8,
+   "stdout": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<checkstyle version=\"PHP CS Fixer 3.95.32 (4a66987) Adalbertus by Fabien Potencier, Dariusz Ruminski and contributors.\">\n  <file name=\"Whitespace.php\">\n    <error severity=\"warning\" source=\"PHP-CS-Fixer.indentation_type\" message=\"Found violation(s) of type: indentation_type\"/>\n    <error severity=\"warning\" source=\"PHP-CS-Fixer.no_trailing_whitespace\" message=\"Found violation(s) of type: no_trailing_whitespace\"/>\n  </file>\n</checkstyle>\n",
+   "stderr": "Unable to determine minimum PHP version supported by your project from composer.json: Failed to read file \"composer.json\".\nIf you need help while solving warnings, ask at https://github.com/PHP-CS-Fixer/PHP-CS-Fixer/discussions/, we will help you!\n\nPHP CS Fixer 3.95.32 (4a66987) Adalbertus by Fabien Potencier, Dariusz Ruminski and contributors.\nPHP runtime: 8.4.27\nLoaded config default from \"/output/linters/php-cs-fixer/php-cs-fixer.default.php\".\nRunning analysis on 2 cores with 10 files per process.\n"
+  }
+ ]
+}

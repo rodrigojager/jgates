@@ -1,0 +1,21 @@
+{
+ "tool": "psalm",
+ "kind": "clean",
+ "version": "7.10.0",
+ "calls": [
+  {
+   "args": [
+    "--config=/output/linters/psalm/psalm.default.xml",
+    "--no-cache",
+    "--no-progress",
+    "--output-format=compact",
+    "--report-show-info=false",
+    "--",
+    "Mismatch.php"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

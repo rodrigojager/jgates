@@ -1,0 +1,21 @@
+{
+  "version": "3.95.32",
+  "url": "https://github.com/PHP-CS-Fixer/PHP-CS-Fixer/releases/download/v3.95.32/php-cs-fixer.phar",
+  "sha256": "5c5358423ee19cc73e436da1bf0f0171bf3ce99efd2e323fe5e312795f7763b1",
+  "archive": "file",
+  "save": "php-cs-fixer.phar",
+  "executable": [
+    "php-cs-fixer.phar"
+  ],
+  "provides": [
+    {
+      "name": "php-cs-fixer",
+      "link": "php-cs-fixer",
+      "path": "php-cs-fixer.phar",
+      "version": [
+        "php-cs-fixer",
+        "--version"
+      ]
+    }
+  ]
+}

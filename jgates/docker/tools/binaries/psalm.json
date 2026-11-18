@@ -1,0 +1,21 @@
+{
+  "version": "7.10.0",
+  "url": "https://github.com/vimeo/psalm/releases/download/{version}/psalm.phar",
+  "sha256": "282414bd6eb71c56fa754c0ba6c4c8014722a0a46849e04f803eaafcc9d5139a",
+  "archive": "file",
+  "save": "psalm.phar",
+  "executable": [
+    "psalm.phar"
+  ],
+  "provides": [
+    {
+      "name": "psalm",
+      "link": "psalm",
+      "path": "psalm.phar",
+      "version": [
+        "psalm",
+        "--version"
+      ]
+    }
+  ]
+}

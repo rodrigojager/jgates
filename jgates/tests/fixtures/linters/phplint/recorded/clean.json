@@ -1,0 +1,20 @@
+{
+ "tool": "phplint",
+ "kind": "clean",
+ "version": "9.8.2",
+ "calls": [
+  {
+   "args": [
+    "lint",
+    "--no-cache",
+    "--no-progress",
+    "--no-ansi",
+    "--",
+    "Syntax.php"
+   ],
+   "exit": 0,
+   "stdout": "\nPHPLint Console Application version dev-main (b8f8ad7) by overtrue and contributors.\n\nRuntime       : PHP 8.4.27\nConfiguration : No config file loaded\n\n\n [OK] 1 file                                                                    \n\n\nMetadata Information\n--------------------\n\n[application_version] PHPLint Console Application {\"semantic_version\":\"dev-main\",\"pretty_version\":\"dev-main\",\"reference\":\"b8f8ad7306170c61142dc72487c58b7e667a0132\"}\n[current_configuration] Current configuration settings {\"configuration\":\"\",\"no-configuration\":true,\"path\":[\"/workspace/Syntax.php\"],\"exclude\":[],\"file-extensions\":[\"php\"],\"jobs\":1,\"no-cache\":true,\"cache-dir\":\".phplint.cache\",\"cache-ttl\":3600,\"cache-adapter\":\"Filesystem\",\"no-progress\":true,\"progress\":\"auto\",\"output-file\":null,\"output-format\":[\"console\"],\"warning\":false,\"memory-limit\":-1,\"ignore-exit-code\":false,\"bootstrap\":\"\",\"dry-run\":false,\"profile\":\"auto\",\"env\":\"dev\",\"extensions\":[\"cache_manager\",\"diagnose_manager\",\"output_manager\",\"profile_manager\",\"progress_manager\"],\"mode\":\"off\"}\n\n [OK] The Diagnose Manager has finished successfully.                           \n\n",
+   "stderr": ""
+  }
+ ]
+}

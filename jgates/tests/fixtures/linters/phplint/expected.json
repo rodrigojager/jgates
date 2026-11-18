@@ -1,0 +1,12 @@
+{
+  "files": [
+    "Syntax.php"
+  ],
+  "findings": [
+    {
+      "file": "Syntax.php",
+      "line": 9,
+      "rule": "phplint.syntax"
+    }
+  ]
+}

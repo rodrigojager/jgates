@@ -1,0 +1,15 @@
+{
+  "files": [
+    "Whitespace.php"
+  ],
+  "findings": [
+    {
+      "file": "Whitespace.php",
+      "rule": "PHP-CS-Fixer.indentation_type"
+    },
+    {
+      "file": "Whitespace.php",
+      "rule": "PHP-CS-Fixer.no_trailing_whitespace"
+    }
+  ]
+}

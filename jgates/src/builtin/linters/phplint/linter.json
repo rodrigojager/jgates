@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "phplint",
+  "name": "phplint",
+  "sourceUrl": "https://github.com/overtrue/phplint",
+  "license": "MIT",
+  "program": {
+    "tool": "phplint",
+    "versionRange": ">=0.0.0"
+  },
+  "megalinter": [
+    "PHP_PHPLINT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "php",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".php"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "lint",
+      "--no-cache",
+      "--no-progress",
+      "--no-ansi",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^\\d+\\. (?<file>.+?):(?<line>\\d+)(?<message>)\\s*$",
+    "rule": "phplint.syntax",
+    "level": "error"
+  },
+  "configuration": {
+    "files": [
+      ".phplint.yml",
+      ".phplint.yaml",
+      "phplint.yml",
+      "phplint.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "phplint reads the project's .phplint.yml: the project decides the paths, the excluded files and the extensions",
+    "suppressions": {
+      "honoured": false,
+      "description": "not applicable: phplint only checks syntax and has no suppression comments"
+    }
+  },
+  "install": "phplint",
+  "text": {
+    "en": {
+      "label": "phplint (PHP)",
+      "purpose": "Checks that every PHP file parses: reports syntax errors with the file and the line.",
+      "limitation": "It only checks syntax. The report names the file and the line; the message is in the tool's own output, not in the finding.",
+      "needs": "Nothing beyond the tools image (PHP and the tool's phar): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "phplint (PHP)",
+      "purpose": "Confere que cada arquivo PHP é lido sem erro: informa erros de sintaxe com o arquivo e a linha.",
+      "limitation": "Só confere a sintaxe. O relatório diz o arquivo e a linha; a mensagem fica na saída da própria ferramenta, não no achado.",
+      "needs": "Nada além da imagem de ferramentas (PHP e o phar da ferramenta): sem rede e sem as dependências do projeto."
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "version": "4.0.4",
+  "url": "https://github.com/PHPCSStandards/PHP_CodeSniffer/releases/download/{version}/phpcs.phar",
+  "sha256": "4b010cd21d8bc8a17e2504792e3c77ef8259126f24caf7eafe7eddef1fa871e9",
+  "archive": "file",
+  "save": "phpcs.phar",
+  "executable": [
+    "phpcs.phar"
+  ],
+  "provides": [
+    {
+      "name": "phpcs",
+      "link": "phpcs",
+      "path": "phpcs.phar",
+      "version": [
+        "phpcs",
+        "--version"
+      ]
+    }
+  ]
+}

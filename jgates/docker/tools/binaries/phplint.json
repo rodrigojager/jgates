@@ -1,0 +1,24 @@
+{
+  "version": "9.8.2",
+  "url": "https://github.com/overtrue/phplint/releases/download/{version}/phplint.phar",
+  "sha256": "ced89e618cd16f63d2f1ac5f1cf832e68e4a715f15ec0c0a9c2b58429af21c95",
+  "archive": "file",
+  "save": "phplint.phar",
+  "executable": [
+    "phplint.phar"
+  ],
+  "provides": [
+    {
+      "name": "phplint",
+      "link": "phplint",
+      "path": "phplint.phar",
+      "version": [
+        "sh",
+        "-c",
+        "phplint --version >/dev/null && echo 9.8.2"
+      ],
+      "pattern": "(\\d+\\.\\d+\\.\\d+)",
+      "note": "the phar reports dev-main (a commit hash), not its release; the command checks that it runs and prints the pinned release"
+    }
+  ]
+}

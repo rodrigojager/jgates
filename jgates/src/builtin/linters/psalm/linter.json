@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "psalm",
+  "name": "psalm",
+  "sourceUrl": "https://github.com/vimeo/psalm",
+  "license": "MIT",
+  "program": {
+    "tool": "psalm",
+    "versionRange": ">=7.0.0 <8.0.0"
+  },
+  "megalinter": [
+    "PHP_PSALM"
+  ],
+  "place": {
+    "section": "language",
+    "group": "php",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".php"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--no-cache",
+      "--no-progress",
+      "--output-format=compact",
+      "--report-show-info=false",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<level>ERROR|WARNING|INFO) (?<file>.+?):(?<line>\\d+):(?<column>\\d+) (?<rule>\\w+): (?<message>.*)$"
+  },
+  "configuration": {
+    "files": [
+      "psalm.xml",
+      "psalm.xml.dist"
+    ],
+    "default": "psalm.default.xml",
+    "args": [
+      "--config={config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "psalm reads the project's psalm.xml: the project decides the error level, the files and the suppressed issues",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: @psalm-suppress comments and the issueHandlers of the configuration",
+      "pattern": "@psalm-suppress",
+      "files": "\\.php$"
+    }
+  },
+  "install": "psalm",
+  "text": {
+    "en": {
+      "label": "Psalm (PHP)",
+      "purpose": "Static analysis of PHP with type inference: finds wrong return types, invalid arguments, null misuse and impossible conditions.",
+      "limitation": "Psalm cannot run without a configuration, so without the project's psalm.xml JGates gives it a minimal one (error level 4, every file under the project). It runs without the project's Composer dependencies (as MegaLinter did), so classes that come from vendor/ are unknown to it.",
+      "needs": "Nothing beyond the tools image (PHP and the tool's phar): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Psalm (PHP)",
+      "purpose": "Análise estática de PHP com inferência de tipos: acha tipos de retorno errados, argumentos inválidos, uso indevido de null e condições impossíveis.",
+      "limitation": "O Psalm não roda sem configuração; sem o psalm.xml do projeto o JGates entrega uma mínima (nível de erro 4, todos os arquivos do projeto). Roda sem as dependências do Composer do projeto (como o MegaLinter fazia), então classes que vêm de vendor/ são desconhecidas para ela.",
+      "needs": "Nada além da imagem de ferramentas (PHP e o phar da ferramenta): sem rede e sem as dependências do projeto."
+    }
+  }
+}
