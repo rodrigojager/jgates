@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<ruleset name="JGates default"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+  <description>PMD's own quickstart ruleset for Java, which the PMD project recommends as a starting point.</description>
+  <rule ref="rulesets/java/quickstart.xml"/>
+</ruleset>

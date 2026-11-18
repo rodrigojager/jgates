@@ -1,0 +1,24 @@
+{
+ "tool": "checkstyle",
+ "kind": "clean",
+ "version": "14.4.0",
+ "calls": [
+  {
+   "args": [
+    "-c",
+    "/sun_checks.xml",
+    "-f",
+    "xml",
+    "-o",
+    "/output/linters/checkstyle/checkstyle.xml",
+    "Tally.java",
+    "package-info.java"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "",
+   "reportPath": "/output/linters/checkstyle/checkstyle.xml",
+   "report": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<checkstyle version=\"14.4.0\">\n<file name=\"/workspace/Tally.java\">\n</file>\n<file name=\"/workspace/package-info.java\">\n</file>\n</checkstyle>\n"
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "tool": "pmd",
+ "kind": "clean",
+ "version": "7.29.0",
+ "calls": [
+  {
+   "args": [
+    "check",
+    "--rulesets",
+    "/output/linters/pmd/pmd-ruleset.xml",
+    "--no-cache",
+    "--no-progress",
+    "--format",
+    "sarif",
+    "--report-file",
+    "/output/linters/pmd/pmd.sarif",
+    "--dir",
+    "Counter.java"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "[INFO] Found no violations.\n",
+   "reportPath": "/output/linters/pmd/pmd.sarif",
+   "report": "{\n  \"$schema\": \"https://json.schemastore.org/sarif-2.1.0.json\",\n  \"version\": \"2.1.0\",\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"name\": \"PMD\",\n          \"version\": \"7.29.0\",\n          \"informationUri\": \"https://docs.pmd-code.org/latest/\",\n          \"rules\": []\n        }\n      },\n      \"results\": [],\n      \"invocations\": [\n        {\n          \"executionSuccessful\": true,\n          \"toolConfigurationNotifications\": [],\n          \"toolExecutionNotifications\": []\n        }\n      ]\n    }\n  ]\n}\n"
+  }
+ ]
+}
