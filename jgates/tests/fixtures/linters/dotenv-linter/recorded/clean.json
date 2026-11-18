@@ -1,0 +1,20 @@
+{
+ "tool": "dotenv-linter",
+ "kind": "clean",
+ "version": "4.0.0",
+ "calls": [
+  {
+   "args": [
+    "check",
+    "--plain",
+    "--skip-updates",
+    "--quiet",
+    "--",
+    "settings.env"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}
