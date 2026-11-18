@@ -1,0 +1,20 @@
+{
+ "tool": "clj-kondo",
+ "kind": "clean",
+ "version": "2026.10.26",
+ "calls": [
+  {
+   "args": [
+    "--cache",
+    "false",
+    "--config",
+    "{:output {:format :json}}",
+    "--lint",
+    "lint_core.clj"
+   ],
+   "exit": 0,
+   "stdout": "{\"findings\":[],\"summary\":{\"error\":0,\"warning\":0,\"info\":0,\"type\":\"summary\",\"duration\":19,\"files\":1}}\n",
+   "stderr": ""
+  }
+ ]
+}

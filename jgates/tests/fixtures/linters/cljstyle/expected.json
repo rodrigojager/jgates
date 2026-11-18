@@ -1,0 +1,11 @@
+{
+  "files": [
+    "style_core.clj"
+  ],
+  "findings": [
+    {
+      "rule": "format",
+      "file": "style_core.clj"
+    }
+  ]
+}

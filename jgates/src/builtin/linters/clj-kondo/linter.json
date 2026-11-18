@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "clj-kondo",
+  "name": "clj-kondo",
+  "sourceUrl": "https://github.com/clj-kondo/clj-kondo",
+  "license": "EPL-1.0",
+  "program": {
+    "tool": "clj-kondo",
+    "versionRange": ">=2026.1.0 <2027.0.0"
+  },
+  "megalinter": [
+    "CLOJURE_CLJ_KONDO"
+  ],
+  "place": {
+    "section": "language",
+    "group": "clojure",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".clj",
+      ".cljs",
+      ".cljc",
+      ".edn"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--cache",
+      "false",
+      "--config",
+      "{:output {:format :json}}",
+      "--lint",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2,
+        3
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "items": "findings",
+    "fields": {
+      "file": "filename",
+      "line": "row",
+      "column": "col",
+      "rule": "type",
+      "level": "level",
+      "message": "message"
+    }
+  },
+  "configuration": {
+    "files": [
+      ".clj-kondo/config.edn"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "clj-kondo reads the project's .clj-kondo/config.edn: the project decides which linters are on, their levels and the namespaces and vars to skip",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: #_:clj-kondo/ignore and {:clj-kondo/ignore [...]} markers, and (comment ...) forms",
+      "pattern": ":clj-kondo/ignore",
+      "files": "\\.(clj|cljs|cljc|edn)$"
+    }
+  },
+  "install": "clj-kondo",
+  "text": {
+    "en": {
+      "label": "clj-kondo (Clojure)",
+      "purpose": "A static analyzer for Clojure, ClojureScript and EDN: unused bindings, unresolved symbols, wrong arity, misplaced forms and other mistakes found without running the code.",
+      "limitation": "It runs without its cache (--cache false), so nothing is written next to the sources and calls into libraries are not resolved from a project cache; a project configuration in .clj-kondo/config.edn decides the rules.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "clj-kondo (Clojure)",
+      "purpose": "Um analisador estático para Clojure, ClojureScript e EDN: bindings não usados, símbolos não resolvidos, aridade errada, formas fora de lugar e outros erros achados sem executar o código.",
+      "limitation": "Roda sem o seu cache (--cache false), então nada é escrito ao lado dos fontes e chamadas a bibliotecas não são resolvidas por um cache do projeto; a configuração em .clj-kondo/config.edn decide as regras.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}
