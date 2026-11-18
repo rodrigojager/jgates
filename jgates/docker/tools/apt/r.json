@@ -1,0 +1,18 @@
+{
+  "packages": [
+    "r-base-core",
+    "r-cran-lintr"
+  ],
+  "provides": [
+    {
+      "name": "lintr",
+      "path": "/usr/bin/Rscript",
+      "version": [
+        "Rscript",
+        "-e",
+        "cat(as.character(packageVersion('lintr')))"
+      ],
+      "pattern": "(\\d+\\.\\d+(?:\\.\\d+)*)"
+    }
+  ]
+}

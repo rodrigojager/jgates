@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "lintr",
+  "name": "lintr",
+  "sourceUrl": "https://github.com/r-lib/lintr",
+  "license": "MIT",
+  "program": {
+    "tool": "lintr",
+    "command": "Rscript",
+    "prefix": [
+      "-e",
+      "n <- 0L; for (f in setdiff(commandArgs(TRUE), \"--\")) for (l in lintr::lint(f)) { n <- n + 1L; writeLines(sprintf(\"%s:%d:%d: %s: [%s] %s\", l$filename, l$line_number, l$column_number, l$type, l$linter, gsub(\"[[:space:]]+\", \" \", l$message))) }; quit(save = \"no\", status = if (n > 0L) 1L else 0L)"
+    ],
+    "versionRange": ">=3.0.0 <4.0.0"
+  },
+  "megalinter": [
+    "R_LINTR"
+  ],
+  "place": {
+    "section": "language",
+    "group": "r",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".r",
+      ".rmd"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+): (?<level>[a-z]+): \\[(?<rule>[^\\]]+)\\] (?<message>.+)$",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".lintr"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "lintr reads the project's .lintr: the project decides which linters run, the line length and the excluded files",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # nolint comments",
+      "pattern": "#\\s*nolint",
+      "files": "\\.(?:[rR]|[rR]md)$"
+    }
+  },
+  "install": "r",
+  "text": {
+    "en": {
+      "label": "lintr (R)",
+      "purpose": "Checks R scripts and R Markdown files for style problems, likely bugs and bad practice: assignment with =, long lines, unused variables, bad spacing and more.",
+      "limitation": "It reads the source without running it, with lintr's default linters unless the project's .lintr says otherwise. It does not lint the project's package dependencies.",
+      "needs": "Nothing beyond the tools image (R comes with it): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "lintr (R)",
+      "purpose": "Verifica scripts R e arquivos R Markdown em busca de problemas de estilo, prováveis bugs e más práticas: atribuição com =, linhas longas, variáveis não usadas, espaçamento e mais.",
+      "limitation": "Lê o código sem executá-lo, com os linters padrão do lintr a menos que o .lintr do projeto diga outra coisa. Não analisa as dependências de pacote do projeto.",
+      "needs": "Nada além da imagem de ferramentas (o R vem com ela): sem rede e sem as dependências do projeto."
+    }
+  }
+}
