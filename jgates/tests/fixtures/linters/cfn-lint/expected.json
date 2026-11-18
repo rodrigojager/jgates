@@ -1,0 +1,12 @@
+{
+  "files": [
+    "cfn_template.yml"
+  ],
+  "findings": [
+    {
+      "rule": "E3002",
+      "file": "cfn_template.yml",
+      "line": 6
+    }
+  ]
+}

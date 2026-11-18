@@ -1,0 +1,18 @@
+{
+ "tool": "cfn-lint",
+ "kind": "clean",
+ "version": "1.60.1",
+ "calls": [
+  {
+   "args": [
+    "--format",
+    "sarif",
+    "--",
+    "cfn_template.yml"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"name\": \"cfn-lint\",\n          \"rules\": [],\n          \"version\": \"1.60.1\",\n          \"informationUri\": \"https://github.com/aws-cloudformation/cfn-lint\",\n          \"shortDescription\": {\n            \"text\": \"Validates AWS CloudFormation templates against the resource specification and additional checks.\"\n          }\n        }\n      },\n      \"results\": [],\n      \"originalUriBaseIds\": {\n        \"EXECUTIONROOT\": {\n          \"description\": {\n            \"text\": \"The directory in which cfn-lint was run.\"\n          }\n        }\n      }\n    }\n  ],\n  \"version\": \"2.1.0\",\n  \"$schema\": \"https://docs.oasis-open.org/sarif/sarif/v2.1.0/cos02/schemas/sarif-schema-2.1.0.json\"\n}\n",
+   "stderr": ""
+  }
+ ]
+}

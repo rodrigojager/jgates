@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "cfn-lint",
+      "link": "cfn-lint",
+      "path": "bin/cfn-lint",
+      "version": [
+        "cfn-lint",
+        "--version"
+      ]
+    }
+  ]
+}
