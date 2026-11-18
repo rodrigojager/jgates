@@ -1,0 +1,12 @@
+{
+  "files": [
+    "greeter.coffee"
+  ],
+  "findings": [
+    {
+      "rule": "coffeelint",
+      "file": "greeter.coffee",
+      "line": 3
+    }
+  ]
+}

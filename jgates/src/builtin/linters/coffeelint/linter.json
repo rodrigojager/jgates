@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "coffeelint",
+  "name": "coffeelint",
+  "sourceUrl": "https://github.com/coffeelint/coffeelint",
+  "license": "MIT",
+  "program": {
+    "tool": "coffeelint",
+    "versionRange": ">=5.2.0 <6.0.0"
+  },
+  "megalinter": [
+    "COFFEE_COFFEELINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "coffeescript",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".coffee"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--reporter",
+      "checkstyle",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "checkstyle"
+  },
+  "severity": {
+    "error": "error",
+    "warn": "warning",
+    "warning": "warning",
+    "ignore": "info"
+  },
+  "configuration": {
+    "files": [
+      "coffeelint.json",
+      ".coffee-lint.json"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "coffeelint reads the project's coffeelint.json (or the coffeelintConfig key of package.json): the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # coffeelint: disable and # coffeelint: disable-line comments",
+      "pattern": "#\\s*coffeelint:\\s*(?:enable|disable)",
+      "files": "\\.coffee$"
+    }
+  },
+  "install": "coffeelint",
+  "text": {
+    "en": {
+      "label": "coffeelint (CoffeeScript)",
+      "purpose": "Checks CoffeeScript files for style and likely mistakes: trailing whitespace, tabs, inconsistent indentation, overlong lines, ambiguous constructs.",
+      "limitation": "Without a project coffeelint.json it runs with the tool's own defaults, which include an 80-character line limit; MegaLinter's .coffee-lint.json name is not passed to the tool, so a project using it should keep its rules in coffeelint.json.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "coffeelint (CoffeeScript)",
+      "purpose": "Verifica arquivos CoffeeScript quanto a estilo e prováveis erros: espaços no fim da linha, tabulações, indentação inconsistente, linhas longas, construções ambíguas.",
+      "limitation": "Sem um coffeelint.json do projeto, roda com os padrões da própria ferramenta, que incluem o limite de 80 caracteres por linha; o nome .coffee-lint.json usado pelo MegaLinter não é passado à ferramenta, então um projeto que o usa deve manter suas regras em coffeelint.json.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

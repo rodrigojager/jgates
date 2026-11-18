@@ -1,0 +1,14 @@
+{
+  "provides": [
+    {
+      "name": "coffeelint",
+      "link": "coffeelint",
+      "path": "node_modules/.bin/coffeelint",
+      "version": [
+        "coffeelint",
+        "--version"
+      ],
+      "package": "@coffeelint/cli"
+    }
+  ]
+}

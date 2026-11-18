@@ -1,0 +1,18 @@
+{
+ "tool": "coffeelint",
+ "kind": "clean",
+ "version": "5.2.15",
+ "calls": [
+  {
+   "args": [
+    "--reporter",
+    "checkstyle",
+    "--",
+    "greeter.coffee"
+   ],
+   "exit": 0,
+   "stdout": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<checkstyle version=\"4.3\">\n</checkstyle>\n",
+   "stderr": ""
+  }
+ ]
+}

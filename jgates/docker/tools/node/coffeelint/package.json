@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-coffeelint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of @coffeelint/cli in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "@coffeelint/cli": "5.2.15"
+  }
+}
