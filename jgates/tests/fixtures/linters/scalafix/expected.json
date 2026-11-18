@@ -1,0 +1,12 @@
+{
+  "files": [
+    "Counter.scala"
+  ],
+  "findings": [
+    {
+      "rule": "DisableSyntax.var",
+      "file": "Counter.scala",
+      "line": 3
+    }
+  ]
+}

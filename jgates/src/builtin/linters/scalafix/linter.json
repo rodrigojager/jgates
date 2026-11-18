@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "scalafix",
+  "name": "Scalafix",
+  "sourceUrl": "https://github.com/scalacenter/scalafix",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "scalafix",
+    "versionRange": ">=0.14.10 <0.15.0"
+  },
+  "megalinter": [
+    "SCALA_SCALAFIX"
+  ],
+  "place": {
+    "section": "language",
+    "group": "scala",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".scala"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--check",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        64
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "resources": {
+      "memoryMb": 1024
+    }
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+): (?<level>[a-z]+): \\[(?<rule>[A-Za-z.]+)\\] (?<message>.+)$"
+  },
+  "configuration": {
+    "files": [
+      ".scalafix.conf"
+    ],
+    "default": "scalafix-default.conf",
+    "args": [
+      "--config",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "Scalafix reads the project's .scalafix.conf; without one JGates runs its DisableSyntax rule (no var, null, return, while, throw, asInstanceOf or isInstanceOf), because Scalafix cannot run without a rule",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: // scalafix:ok and // scalafix:off ... // scalafix:on comments, and @SuppressWarnings(\"scalafix:...\")",
+      "pattern": "scalafix:(?:ok|off|on)|SuppressWarnings\\s*\\(\\s*\"scalafix",
+      "files": "\\.scala$"
+    }
+  },
+  "install": "scalafix",
+  "text": {
+    "en": {
+      "label": "Scalafix (Scala)",
+      "purpose": "Scala's linting and rewriting tool, run in check mode: it reports what its rules would change or forbid, such as vars, nulls, returns and loops.",
+      "limitation": "Without a project .scalafix.conf it runs only the syntactic DisableSyntax rule; rules that need compiled semantic information (RemoveUnused, ExplicitResultTypes) need the project's build and are not run.",
+      "needs": "The Java runtime of the tools image and about 1 GB of memory; no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Scalafix (Scala)",
+      "purpose": "A ferramenta de lint e reescrita de Scala, em modo de verificação: relata o que suas regras mudariam ou proibiriam, como vars, nulls, returns e laços.",
+      "limitation": "Sem um .scalafix.conf no projeto, roda só a regra sintática DisableSyntax; regras que precisam de informação semântica compilada (RemoveUnused, ExplicitResultTypes) exigem o build do projeto e não são executadas.",
+      "needs": "O ambiente Java da imagem de ferramentas e cerca de 1 GB de memória; sem rede e sem as dependências do projeto."
+    }
+  }
+}
