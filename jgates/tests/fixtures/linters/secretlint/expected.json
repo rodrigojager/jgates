@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "@secretlint/secretlint-rule-github",
+      "file": "secretlint-deploy.sh",
+      "line": 4
+    }
+  ]
+}

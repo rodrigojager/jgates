@@ -1,0 +1,11 @@
+{
+  "name": "jgates-tools-secretlint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of secretlint in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "13.1.0",
+    "secretlint": "14.0.1"
+  }
+}

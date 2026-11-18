@@ -1,0 +1,24 @@
+{
+  "version": "2.19.1",
+  "url": "https://github.com/mongodb/kingfisher/releases/download/v{version}/kingfisher-linux-x64.tgz",
+  "sha256": "3449ba41007df91e6774a816dd64cc9385900a304ef3cbb58ab61e0a83448e1c",
+  "archive": "tgz",
+  "extract": {
+    "kingfisher": "kingfisher",
+    "notices/NOTICE": "NOTICE"
+  },
+  "executable": [
+    "kingfisher"
+  ],
+  "provides": [
+    {
+      "name": "kingfisher",
+      "link": "kingfisher",
+      "path": "kingfisher",
+      "version": [
+        "kingfisher",
+        "--version"
+      ]
+    }
+  ]
+}

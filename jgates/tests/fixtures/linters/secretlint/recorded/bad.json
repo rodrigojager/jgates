@@ -1,0 +1,20 @@
+{
+ "tool": "secretlint",
+ "kind": "bad",
+ "version": "14.0.1",
+ "calls": [
+  {
+   "args": [
+    "--format",
+    "json",
+    "--no-color",
+    "--no-terminalLink",
+    "--",
+    "**/*"
+   ],
+   "exit": 1,
+   "stdout": "[{\"filePath\":\"/workspace/.jgates/profiles.yml\",\"sourceContentType\":\"text\",\"messages\":[]},{\"filePath\":\"/workspace/jgates.yml\",\"sourceContentType\":\"text\",\"messages\":[]},{\"filePath\":\"/workspace/secretlint-deploy.sh\",\"sourceContentType\":\"text\",\"messages\":[{\"message\":\"found GitHub Token(*****************************): ****************************************\",\"range\":[33,73],\"type\":\"message\",\"ruleId\":\"@secretlint/secretlint-rule-github\",\"ruleParentId\":\"@secretlint/secretlint-rule-preset-recommend\",\"loc\":{\"start\":{\"line\":4,\"column\":14},\"end\":{\"line\":4,\"column\":54}},\"severity\":\"error\",\"messageId\":\"GITHUB_TOKEN\",\"docsUrl\":\"https://github.com/secretlint/secretlint/blob/HEAD/docs/rules/github.md#GITHUB_TOKEN\",\"data\":{\"KEY\":\"****************************************\",\"typeName\":\"*****************************\"}}]}]\n",
+   "stderr": ""
+  }
+ ]
+}

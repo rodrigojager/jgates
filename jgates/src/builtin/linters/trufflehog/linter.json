@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "trufflehog",
+  "name": "trufflehog",
+  "sourceUrl": "https://github.com/trufflesecurity/trufflehog",
+  "license": "AGPL-3.0-only",
+  "program": {
+    "tool": "trufflehog",
+    "versionRange": ">=3.99.0 <4.0.0"
+  },
+  "megalinter": [
+    "REPOSITORY_TRUFFLEHOG"
+  ],
+  "place": {
+    "section": "other",
+    "group": "secrets",
+    "capability": "secrets",
+    "kind": "scan",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "filesystem",
+      "--json",
+      "--no-color",
+      "--no-update",
+      "--fail",
+      "--",
+      "{workspace}"
+    ],
+    "env": {
+      "HOME": "/tmp"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        183
+      ]
+    },
+    "executesProjectCode": false,
+    "network": true,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "jsonLines": true,
+    "emptyIsClean": true,
+    "fields": {
+      "file": "SourceMetadata.Data.Filesystem.file",
+      "line": "SourceMetadata.Data.Filesystem.line",
+      "rule": "DetectorName",
+      "message": "DetectorDescription"
+    }
+  },
+  "configuration": {
+    "files": [
+      ".trufflehog.yml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "trufflehog runs with its built-in detectors; JGates does not pass the project's .trufflehog.yml, so the project does not choose the detectors",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: a trufflehog:ignore comment on the line",
+      "pattern": "trufflehog:ignore",
+      "files": ".*"
+    }
+  },
+  "install": "trufflehog",
+  "text": {
+    "en": {
+      "label": "trufflehog (secrets)",
+      "purpose": "Scans the project's files for secrets with over 700 detectors, and checks each one it finds against its provider to tell a live credential from a dead one.",
+      "limitation": "To verify a secret it sends that secret to the provider that issued it, so it needs the network and runs only under the Strict profile. It scans the files of the project, not its Git history. License: AGPL-3.0, accepted by name.",
+      "needs": "The network, to verify what it finds. No project dependencies."
+    },
+    "pt-BR": {
+      "label": "trufflehog (segredos)",
+      "purpose": "Procura nos arquivos do projeto segredos com mais de 700 detectores e confere cada achado com o provedor, para separar uma credencial ativa de uma morta.",
+      "limitation": "Para verificar um segredo, envia esse segredo ao provedor que o emitiu, por isso precisa de rede e só roda no perfil Estrito. Examina os arquivos do projeto, não o histórico do Git. Licença: AGPL-3.0, aceita por nome.",
+      "needs": "Rede, para verificar o que encontra. Sem as dependências do projeto."
+    }
+  }
+}

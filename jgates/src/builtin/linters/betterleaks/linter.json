@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "betterleaks",
+  "name": "betterleaks",
+  "sourceUrl": "https://github.com/betterleaks/betterleaks",
+  "license": "MIT",
+  "program": {
+    "tool": "betterleaks",
+    "versionRange": ">=1.10.0 <2.0.0"
+  },
+  "megalinter": [
+    "REPOSITORY_BETTERLEAKS"
+  ],
+  "place": {
+    "section": "other",
+    "group": "secrets",
+    "capability": "secrets",
+    "kind": "scan",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "dir",
+      "--no-banner",
+      "--no-color",
+      "--log-level",
+      "warn",
+      "--redact",
+      "--unsafe-auto-load-config",
+      "--report-format",
+      "sarif",
+      "--report-path",
+      "{report}",
+      "{workspace}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "file",
+    "file": "betterleaks.sarif",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      ".betterleaks.toml",
+      ".gitleaks.toml",
+      ".betterleaksignore",
+      ".gitleaksignore"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "betterleaks reads .betterleaks.toml (or .gitleaks.toml) from the folder it scans: the project decides which rules apply, its allowlists and its ignore file",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: a betterleaks:allow or gitleaks:allow comment on the line, and the fingerprints of .betterleaksignore",
+      "pattern": "(?:betterleaks|gitleaks):allow",
+      "files": ".*"
+    }
+  },
+  "install": "betterleaks",
+  "text": {
+    "en": {
+      "label": "betterleaks (secrets)",
+      "purpose": "Scans the project's files for secrets such as access tokens, passwords and private keys, from its built-in rules. A successor of gitleaks by the same author; the secret itself is hidden in the report.",
+      "limitation": "It scans the files of the project, not its Git history, and does not check a found secret against its provider (that is switched off). It reads .betterleaks.toml or .gitleaks.toml from the project.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "betterleaks (segredos)",
+      "purpose": "Procura nos arquivos do projeto segredos como tokens de acesso, senhas e chaves privadas, com suas regras embutidas. Sucessor do gitleaks, do mesmo autor; o segredo em si fica oculto no relatório.",
+      "limitation": "Examina os arquivos do projeto, não o histórico do Git, e não confere o segredo encontrado com o provedor (isso fica desligado). Lê o .betterleaks.toml ou o .gitleaks.toml do projeto.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

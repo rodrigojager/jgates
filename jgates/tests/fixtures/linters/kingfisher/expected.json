@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "betterleaks.github-pat",
+      "file": "kingfisher-deploy.sh",
+      "line": 4
+    }
+  ]
+}

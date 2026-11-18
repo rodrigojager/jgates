@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "secretlint",
+  "name": "secretlint",
+  "sourceUrl": "https://github.com/secretlint/secretlint",
+  "license": "MIT",
+  "program": {
+    "tool": "secretlint",
+    "versionRange": ">=14.0.0 <15.0.0"
+  },
+  "megalinter": [
+    "REPOSITORY_SECRETLINT"
+  ],
+  "place": {
+    "section": "other",
+    "group": "secrets",
+    "capability": "secrets",
+    "kind": "scan",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "--format",
+      "json",
+      "--no-color",
+      "--no-terminalLink",
+      "--",
+      "**/*"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": true,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "items": "[].messages[]",
+    "fields": {
+      "file": "^.filePath",
+      "line": "loc.start.line",
+      "column": "loc.start.column",
+      "rule": "ruleId",
+      "level": "severity",
+      "message": "message"
+    }
+  },
+  "configuration": {
+    "files": [
+      ".secretlintrc.json",
+      ".secretlintrc.yaml",
+      ".secretlintrc.yml",
+      ".secretlintrc.js",
+      ".secretlintrc.cjs",
+      ".secretlintrc.mjs",
+      ".secretlintignore"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "secretlint reads .secretlintrc.* and .secretlintignore from the project; without a configuration it runs its recommended rule set",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: a secretlint-disable comment (secretlint-disable-line, secretlint-disable-next-line, or a secretlint-disable ... secretlint-enable block) and the patterns of .secretlintignore",
+      "pattern": "secretlint-(?:disable|enable)",
+      "files": ".*"
+    }
+  },
+  "install": "secretlint",
+  "text": {
+    "en": {
+      "label": "secretlint (secrets)",
+      "purpose": "Pluggable linter for secrets. With no configuration it runs the recommended rules: cloud keys, GitHub, Slack and other service tokens, private keys and basic-auth URLs. The secret itself is hidden in the report.",
+      "limitation": "Only the rule packages installed in the tools image can run: the recommended preset. A project configuration that names another rule package fails. A configuration written as .js, .cjs or .mjs is executed.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "secretlint (segredos)",
+      "purpose": "Linter de segredos com regras plugáveis. Sem configuração, roda as regras recomendadas: chaves de nuvem, tokens do GitHub, do Slack e de outros serviços, chaves privadas e URLs com senha. O segredo em si fica oculto no relatório.",
+      "limitation": "Só roda os pacotes de regras instalados na imagem de ferramentas: o preset recomendado. Uma configuração do projeto que cite outro pacote de regras falha. Uma configuração escrita como .js, .cjs ou .mjs é executada.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}
