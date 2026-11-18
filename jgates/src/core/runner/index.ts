@@ -1,6 +1,6 @@
 // Local runner: one process per ExecutionSpec (no shell, allowlisted
 // environment, limits, process-tree cancellation), the preflight of a step, and the executor that runs the steps of
-// a run in dependency order, fail-closed. The spec and result shapes are what the adapters depend on.
+// a run in dependency order, fail-closed, with the read-only steps beside each other up to the number of checks at a time. The spec and result shapes are what the adapters depend on.
 export {
   DEFAULT_ENV_ALLOWLIST,
   DEFAULT_KILL_GRACE_MS,
@@ -56,3 +56,4 @@ export {
   type StepReport,
   type StepStatus,
 } from "./executor.js";
+export { MAX_AUTOMATIC_CONCURRENCY, automaticConcurrency, chooseConcurrency, type ConcurrencyChoice, type ConcurrencyFacts } from "./concurrency.js";

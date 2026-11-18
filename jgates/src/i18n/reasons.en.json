@@ -19,6 +19,8 @@
   "reason_TOOL_MISSING_action": "Download the tools of this JGates version",
   "reason_ENGINE_LOST": "Docker stopped during the run; this check is incomplete.",
   "reason_ENGINE_LOST_action": "Open Docker Desktop and run again",
+  "reason_STEP_MEMORY_LIMIT": "A check was stopped at its memory limit; it is incomplete.",
+  "reason_STEP_MEMORY_LIMIT_action": "Lower the number of checks at a time",
   "reason_UNSUPPORTED_PLATFORM": "This Docker runs {platform}; JGates needs Linux amd64.",
   "reason_UNSUPPORTED_PLATFORM_action": "How to set up Docker",
   "reason_DEPENDENCIES_NOT_READY": "The dependencies of component {component} are not ready; this check is incomplete.",

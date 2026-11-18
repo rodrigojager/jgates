@@ -43,6 +43,8 @@ export const fileSizeManifest: AdapterManifest = {
     needsService: false,
     usesAi: false,
     needsLicense: false,
+    // Reads the synchronized copy of the project only: its step may run beside others (ADR-0023).
+    onlyReadsProject: true,
   },
   redirection: { flags: [], unavoidableWorkspaceWrites: [] },
   toggles: { togglable: [], perRunByFlag: false },

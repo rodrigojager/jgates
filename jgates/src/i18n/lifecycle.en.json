@@ -57,6 +57,8 @@
   "lifecycle_state_unsupported": "not supported",
   "lifecycle_status_engine": "Engine: {state} (version {version}, {platform}, {memory} of memory, {cpus, plural, one {# CPU} other {# CPUs}})",
   "lifecycle_status_engine_down": "Engine: {state}",
+  "lifecycle_status_concurrency_automatic": "Checks at a time: {value} (automatic: {memory} of memory and {cpus, plural, one {# CPU} other {# CPUs}} per check)",
+  "lifecycle_status_concurrency_configured": "Checks at a time: {value} (set in the configuration; automatic would be {automatic})",
   "lifecycle_status_image": "Tools image {image}: {state} (version {version})",
   "lifecycle_state_image_ready": "ready",
   "lifecycle_state_image_missing": "not downloaded",

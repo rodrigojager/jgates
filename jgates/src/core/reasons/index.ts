@@ -56,6 +56,8 @@ export const REASONS: Readonly<Record<string, ReasonEntry>> = Object.freeze({
   // (never by a host install of the tool).
   TOOL_MISSING: entry("TOOL_MISSING", { kind: "command", command: "jgates setup" }),
   ENGINE_LOST: entry("ENGINE_LOST", { kind: "link", url: DOCKER_DESKTOP_URL }),
+  // A step container ended by the kernel at its memory limit (ADR-0023): fewer checks at a time, or more engine memory.
+  STEP_MEMORY_LIMIT: entry("STEP_MEMORY_LIMIT", { kind: "route", route: "config/execution" }),
   DEPENDENCIES_NOT_READY: entry("DEPENDENCIES_NOT_READY", { kind: "command", command: "jgates deps status" }),
   DEPENDENCIES_FAILED: entry("DEPENDENCIES_FAILED", { kind: "command", command: "jgates deps prepare" }),
   DATA_MISSING: entry("DATA_MISSING", { kind: "command", command: "jgates tools update-data" }),

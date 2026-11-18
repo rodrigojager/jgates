@@ -20,5 +20,6 @@
   "runner_invalid_output": "Unreadable output, the stage proves nothing: {detail}",
   "runner_step_timeout": "Stopped: the step exceeded its time limit of {seconds} s.",
   "runner_engine_lost": "Incomplete: {message}",
-  "runner_engine_lost_blocked": "Not run: {message}"
+  "runner_engine_lost_blocked": "Not run: {message}",
+  "runner_memory_limit": "Incomplete: the step was stopped at its memory limit ({memory} MB) and its result proves nothing. Lower the number of checks at a time (now {concurrency}) or give the engine more memory."
 }

@@ -7,7 +7,7 @@ import { lintManifest } from "../lint-common/manifest.js";
  * .hadolint.yaml and the `# hadolint ignore` comments decide what is reported. Hadolint only reads the files; nothing is
  * rewritten and no image is built.
  */
-export const hadolintManifest: AdapterManifest = lintManifest({
+const base: AdapterManifest = lintManifest({
   id: "hadolint",
   displayName: "Hadolint (Dockerfile lint)",
   toolName: "hadolint",
@@ -41,3 +41,6 @@ export const hadolintManifest: AdapterManifest = lintManifest({
   acquisition: ["https://github.com/hadolint/hadolint#install"],
   setup: ["https://github.com/hadolint/hadolint#configure"],
 });
+
+// Reads the synchronized copy of the project only: its step may run beside others (ADR-0023).
+export const hadolintManifest: AdapterManifest = { ...base, effects: { ...base.effects, onlyReadsProject: true } };

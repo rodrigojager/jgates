@@ -31,11 +31,13 @@ import { readResultAsGateRun, writeGateRecord } from "../gates/read.js";
 import { sourceIdentityOf } from "../gates/source.js";
 import type { SourceIdentity } from "../gates/types.js";
 import { renameWithRetry } from "../fs-retry/index.js";
+import { runConcurrency } from "./concurrency.js";
 
 export * from "./types.js";
 export { compareGitStatus, diffManifests, takeGitStatus, takeManifest } from "./workspace-state.js";
 export * from "./analysis.js";
 export * from "./heartbeat.js";
+export { concurrencyFacts, configuredConcurrency, runConcurrency } from "./concurrency.js";
 export { isLegacyPlan, legacyPlan, legacySteps, legacySelection, validateLegacyPlan } from "./legacy-plan.js";
 
 export const RESULT_FILE = "result.json";
@@ -112,6 +114,12 @@ export interface RunOptions {
   neverPassReduced?: boolean;
   /** Governed runs: false when a self-reported stage may not satisfy its requirement (the CI policy's choice). */
   selfReportedSatisfies?: boolean;
+  /**
+   * How many read-only steps run at the same time. Absent: a plan run takes the number of the configuration
+   * (execution.concurrency written by the user or the policy) or the automatic one from the engine; a run without a
+   * plan runs one step at a time.
+   */
+  concurrency?: number;
 }
 
 function mkdirPrivate(dir: string): void {
@@ -455,8 +463,17 @@ export async function executeRun(opts: RunOptions): Promise<RunResult> {
     const codeqlGated = codeql ? codeql.gate(dataGated) : dataGated;
     // A check that uses the services does not start without them (SERVICES_NOT_READY / SERVICES_REQUIRED).
     const steps = services ? services.gate(codeqlGated) : codeqlGated;
+    // The number of checks at a time matters only when two steps may share the machine (ADR-0023); the engine is asked
+    // for its memory and CPUs only then, and only when the configuration does not set the number.
+    const concurrency =
+      opts.concurrency !== undefined
+        ? opts.concurrency
+        : opts.plan && steps.filter((s) => s.readOnly === true).length >= 2
+          ? runConcurrency({ projectDir: opts.workspacePath, ...(opts.policy ? { configDir: opts.policy.source.dir } : {}), env, engine: engineContext }).value
+          : 1;
     executed = await executeSteps(steps, {
       phases,
+      concurrency,
       ...(launcher ? { launcher } : {}),
       ...(signal ? { signal } : {}),
       failFast: opts.failFast === true,

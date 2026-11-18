@@ -19,6 +19,8 @@
   "reason_TOOL_MISSING_action": "Baixar as ferramentas desta versão do JGates",
   "reason_ENGINE_LOST": "O Docker parou durante a execução; esta verificação ficou incompleta.",
   "reason_ENGINE_LOST_action": "Abrir o Docker Desktop e executar de novo",
+  "reason_STEP_MEMORY_LIMIT": "Uma verificação foi interrompida no limite de memória; ela ficou incompleta.",
+  "reason_STEP_MEMORY_LIMIT_action": "Diminuir o número de verificações ao mesmo tempo",
   "reason_UNSUPPORTED_PLATFORM": "Este Docker roda {platform}; o JGates precisa de Linux amd64.",
   "reason_UNSUPPORTED_PLATFORM_action": "Como configurar o Docker",
   "reason_DEPENDENCIES_NOT_READY": "As dependências do componente {component} não estão prontas; esta verificação ficou incompleta.",
