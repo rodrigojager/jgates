@@ -1,0 +1,23 @@
+{
+ "tool": "roslynator",
+ "kind": "bad",
+ "version": "1.0.1",
+ "calls": [
+  {
+   "args": [
+    "analyze",
+    "Calc.csproj",
+    "--severity-level",
+    "info",
+    "--properties",
+    "BaseIntermediateOutputPath=/tmp/jg-obj/",
+    "MSBuildProjectExtensionsPath=/tmp/jg-obj/",
+    "BaseOutputPath=/tmp/jg-bin/",
+    "OutDir=/tmp/jg-bin/"
+   ],
+   "exit": 1,
+   "stdout": "Loading project '/workspace/Calc.csproj'...\nAnalyze 'Calc'\n  Calc.cs(1,14): info CA1050: Declare types in namespaces\n  Calc.cs(3,16): info CA1822: Member 'Twice' does not access instance data and can be marked as static\nAnalyzed project '/workspace/Calc.csproj' (in 2.7 s)\n\n1 CA1050 Declare types in namespaces\n1 CA1822 Mark members as static\n\n2 diagnostics found\n",
+   "stderr": ""
+  }
+ ]
+}

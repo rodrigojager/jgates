@@ -1,0 +1,11 @@
+{
+  "files": [
+    "Greeter.cs"
+  ],
+  "findings": [
+    {
+      "rule": "csharpier.unformatted",
+      "file": "Greeter.cs"
+    }
+  ]
+}

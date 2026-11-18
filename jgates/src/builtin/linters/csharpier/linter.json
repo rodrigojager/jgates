@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "csharpier",
+  "name": "CSharpier",
+  "sourceUrl": "https://github.com/belav/csharpier",
+  "license": "MIT",
+  "program": {
+    "tool": "csharpier",
+    "prefix": [
+      "check"
+    ],
+    "versionRange": ">=1.4.0 <2.0.0"
+  },
+  "megalinter": [
+    "CSHARP_CSHARPIER"
+  ],
+  "place": {
+    "section": "language",
+    "group": "csharp",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".config",
+      ".cs",
+      ".csproj",
+      ".props",
+      ".targets"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--log-format",
+      "MsBuild",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?): error: (?<message>Was not formatted[.])$",
+    "rule": "csharpier.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".csharpierrc",
+      ".csharpierrc.json",
+      ".csharpierrc.yaml",
+      ".csharpierrc.yml",
+      ".csharpierignore",
+      ".editorconfig"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "CSharpier reads the project's .csharpierrc (or .csharpierrc.json, .yaml, .yml), its .csharpierignore and the formatting options of .editorconfig: the project decides the layout",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: // csharpier-ignore comments and .csharpierignore",
+      "pattern": "csharpier-ignore",
+      "files": "\\.(cs|csproj|props|targets|config)$"
+    }
+  },
+  "install": "csharpier",
+  "text": {
+    "en": {
+      "label": "CSharpier (C# formatting)",
+      "purpose": "Checks that C# files and MSBuild project files (.csproj, .props, .targets, .config) are laid out as CSharpier would write them; a file that would change is reported.",
+      "limitation": "It names the file, not the line; run it locally without check to rewrite the files. The layout is CSharpier's own, tuned only by .csharpierrc and .editorconfig.",
+      "needs": "Nothing beyond the tools image: the .NET runtime is in it, no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "CSharpier (formatação de C#)",
+      "purpose": "Verifica se os arquivos C# e de projeto MSBuild (.csproj, .props, .targets, .config) estão escritos como o CSharpier os escreveria; um arquivo que mudaria é reportado.",
+      "limitation": "Ele aponta o arquivo, não a linha; rode localmente sem check para reescrever os arquivos. O layout é o próprio do CSharpier, ajustável só por .csharpierrc e .editorconfig.",
+      "needs": "Nada além da imagem de ferramentas: o runtime .NET já está nela, sem rede e sem as dependências do projeto."
+    }
+  }
+}

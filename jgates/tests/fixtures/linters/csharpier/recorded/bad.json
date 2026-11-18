@@ -1,0 +1,19 @@
+{
+ "tool": "csharpier",
+ "kind": "bad",
+ "version": "1.4.0",
+ "calls": [
+  {
+   "args": [
+    "check",
+    "--log-format",
+    "MsBuild",
+    "--",
+    "Greeter.cs"
+   ],
+   "exit": 1,
+   "stdout": "Checked 1 files in 285ms.\n",
+   "stderr": "./Greeter.cs: error: Was not formatted.\n  ----------------------------- Expected: Around Line 1 -----------------------------\n  class Greeter\n  {\n  ----------------------------- Actual: Around Line 1 -----------------------------\n  class Greeter{public string Hello(string name){return \"Hello, \"+name;}}\n  \n"
+  }
+ ]
+}
