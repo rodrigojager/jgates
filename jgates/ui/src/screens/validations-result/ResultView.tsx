@@ -1,4 +1,5 @@
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
+import { NewChecks } from "../../components/NewChecks";
 import { formatDateTime } from "../../components/format";
 import type { MascotSnapshot } from "../../../../src/core/mascots/index";
 import { useMemo, useState } from "react";
@@ -424,12 +425,16 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
   );
 }
 
+/** From this many tools on, the tool filter of the findings gets a search box. */
+const TOOL_SEARCH_FROM = 8;
+
 function Findings({ result, domainFilter, onClear, waivedOnly, onWaivedOnly }: { result: any; domainFilter: { domain: string; ids: string[] } | null; onClear: () => void; waivedOnly: boolean; onWaivedOnly: (on: boolean) => void }) {
   const findings = useReviewedFindings(result.findings ?? []);
   const [severity, setSeverity] = useState("");
   const [category, setCategory] = useState("");
   const [component, setComponent] = useState("");
   const [tool, setTool] = useState("");
+  const [toolQuery, setToolQuery] = useState("");
   const severities = useMemo(() => [...new Set(findings.map((f) => String(f.normalizedSeverity)))], [findings]);
   const categories = useMemo(() => [...new Set(findings.map((f) => String(f.category ?? "")))], [findings]);
   const components = useMemo(() => [...new Set(findings.map((f) => String(f.component ?? "")).filter(Boolean))], [findings]);
@@ -463,11 +468,18 @@ function Findings({ result, domainFilter, onClear, waivedOnly, onWaivedOnly }: {
               ))}
             </select>
           </label>
+          {tools.length > TOOL_SEARCH_FROM ? (
+            // Many tools: the list of the filter below narrows as you type (the choice made stays in it).
+            <label className="row">
+              <span className="muted">{t("vres_filter_tool_search")}</span>
+              <input type="search" className="input search" value={toolQuery} onChange={(e) => setToolQuery(e.target.value)} data-testid="filter-tool-search" />
+            </label>
+          ) : null}
           <label className="row">
             <span className="muted">{t("vres_filter_tool")}</span>
             <select value={tool} onChange={(e) => setTool(e.target.value)} data-testid="filter-tool">
               <option value="">{t("vres_filter_all")}</option>
-              {tools.map((x) => (
+              {tools.filter((x) => x === tool || toolQuery.trim() === "" || x.toLowerCase().includes(toolQuery.trim().toLowerCase())).map((x) => (
                 <option key={x} value={x}>
                   {x}
                 </option>
@@ -910,6 +922,7 @@ export function ResultView({ result, previous, crashed = false, compact = false,
         </dl>
       </div>
       <Actions runId={result.runId} />
+      <NewChecks checks={previous?.newChecks} where="result" />
       {compact ? null : <Stages result={result} domainFilter={domainFilter} />}
       <Findings result={result} waivedOnly={waivedOnly} onWaivedOnly={setWaivedOnly} domainFilter={domainFilter} onClear={() => { setDomainFilter(null); onClearDomain?.(); }} />
       <Metrics result={result} />

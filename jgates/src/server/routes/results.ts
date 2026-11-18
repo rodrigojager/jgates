@@ -9,6 +9,7 @@ import { buildAgentContext, scrub } from "../../core/agent-context/index.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { listRuns } from "../../core/artifacts/index.js";
 import { approvalWording, approvalWordingParams, compareWithPrevious, toSarif } from "../../core/results/index.js";
+import { newChecks, toolsOfStages } from "../../core/results/new-checks.js";
 import { RESULT_FILE } from "../../core/run/index.js";
 import type { RunResult } from "../../core/run/types.js";
 import { openInBrowser } from "../browser.js";
@@ -65,7 +66,12 @@ function previousOf(server: ServerContext, result: RunResult): Record<string, un
   if (!other) return null;
   // The hashes of the analysis and the waivers in force (core/results/previous.ts).
   const { comparable, changed, policyChanged, waiversChanged } = compareWithPrevious(result, other);
-  return { runId: before.runId, startedAt: before.startedAt, decision: before.decision, comparable, changed, policyChanged, waiversChanged };
+  // The checks this validation ran that the one before did not (named; the screen says "N checks are new").
+  const fresh = newChecks(
+    (result.stages ?? []).filter((s) => s.kind !== "composite").map((s) => ({ tool: String(s.id).split("#")[0] ?? "", label: typeof s.label === "string" ? s.label : undefined })),
+    toolsOfStages(other.stages),
+  );
+  return { runId: before.runId, startedAt: before.startedAt, decision: before.decision, comparable, changed, policyChanged, waiversChanged, newChecks: fresh };
 }
 
 export const routes: RouteDefinition[] = [

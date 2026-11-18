@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatRunWhen } from "../../components/format";
 import { fetchEnvironmentState, useRecheckOnFocus, type EnvironmentReason, type EnvironmentState } from "../../api/environment";
+import { NewChecks } from "../../components/NewChecks";
 import { DoctorAvatar } from "../../components/DoctorAvatar";
 import { PrerequisitesBar } from "../../components/PrerequisitesBar";
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
@@ -57,6 +58,8 @@ interface Overview {
   plan: { planHash: string | null; approvable: boolean; blocked: string | null; uncovered: Array<{ selector: string; category: string | null; reason: string; message: string }> };
   categories: Category[];
   lastRun: LastRun | null;
+  /** The checks of the plan that the last finished validation did not run (empty without a validation before). */
+  newChecks?: Array<{ tool: string; label: string }>;
   /** What to do after a validation that did not pass: read its result. */
   nextStep?: { kind: "open-result"; runId: string; decision: string; route: string } | null;
 }
@@ -458,6 +461,7 @@ export default function OverviewScreen() {
                   {t("overview_history")} <Icon name="chevron" />
                 </a>
               </div>
+              <NewChecks checks={data.newChecks} where="overview" />
               <LastRunCard run={data.lastRun} image={env && env.sections.image.state === "ready" ? (env.sections.image as { id?: string; version?: string }) : null} />
             </section>
             <section>

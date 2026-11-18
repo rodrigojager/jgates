@@ -239,5 +239,12 @@
   "tools_category_infrastructure": "Infrastructure",
   "tools_category_custom": "Your own checks",
   "tools_group_count": "{count, plural, one {# tool} other {# tools}}",
-  "tools_group_hint": "Groups are closed: open one to see its tools."
+  "tools_group_hint": "Groups are closed: open one to see its tools.",
+  "tools_section_language": "Languages",
+  "tools_section_format": "Formats and data files",
+  "tools_section_tooling": "Tooling and infrastructure",
+  "tools_section_other": "Other checks",
+  "tools_tier_main": "Runs from the Balanced profile up",
+  "tools_tier_extended": "Runs under the Strict profile",
+  "tools_card_network": "Uses the network"
 }

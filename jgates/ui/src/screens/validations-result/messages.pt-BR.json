@@ -151,6 +151,7 @@
   "vres_more": "Mais sobre esta execução",
   "vres_filters": "Filtros dos achados",
   "vres_filter_tool": "Ferramenta",
+  "vres_filter_tool_search": "Buscar ferramentas",
   "vres_open_at_line": "Abrir {location} no editor",
   "vres_findings": "Achados",
   "vres_findings_empty": "Nenhum achado.",

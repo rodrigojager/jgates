@@ -15,6 +15,8 @@ export default function PreferencesScreen() {
   const { theme, setTheme } = useTheme();
   const toast = useToast();
   const prefs = useAsync(() => api<{ language: string }>("GET", "/api/preferences"), "preferences");
+  // The number of checks that run at the same time: a setting of the run (Configuration > Execution), explained here.
+  const concurrency = useAsync(() => api<{ value: number; source: "configuration" | "automatic"; automatic: number; max: number; step: { memoryMb: number; cpus: number } }>("GET", "/api/execution/concurrency").catch(() => null), "prefs-concurrency");
 
   if (prefs.loading && !prefs.data) return <Loading />;
   if (prefs.error) return <ErrorNotice error={prefs.error} onRetry={prefs.reload} />;
@@ -77,6 +79,26 @@ export default function PreferencesScreen() {
           <a className="btn" href="#/semantic/providers" data-testid="prefs-providers-link">
             <Icon name="lock" />
             {t("prefs_providers_link")}
+          </a>
+        </div>
+      </section>
+
+      <section className="card flat stack" aria-labelledby="prefs-concurrency" data-testid="prefs-concurrency">
+        <h2 id="prefs-concurrency">{t("prefs_concurrency")}</h2>
+        <p>{t("prefs_concurrency_what")}</p>
+        {concurrency.data ? (
+          <p data-testid="prefs-concurrency-value" data-value={concurrency.data.value} data-source={concurrency.data.source}>
+            {concurrency.data.source === "configuration"
+              ? t("prefs_concurrency_configured", { value: concurrency.data.value, automatic: concurrency.data.automatic })
+              : t("prefs_concurrency_automatic", { value: concurrency.data.value })}
+          </p>
+        ) : null}
+        <p className="small muted">{t("prefs_concurrency_how", { memory: concurrency.data?.step.memoryMb ?? 4096, cpus: concurrency.data?.step.cpus ?? 2, max: concurrency.data?.max ?? 8 })}</p>
+        <p className="small muted">{t("prefs_concurrency_same")}</p>
+        <div>
+          <a className="btn" href="#/config/execution" data-testid="prefs-concurrency-link">
+            <Icon name="settings" />
+            {t("prefs_concurrency_link")}
           </a>
         </div>
       </section>

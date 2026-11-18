@@ -151,6 +151,7 @@
   "vres_more": "More about this run",
   "vres_filters": "Finding filters",
   "vres_filter_tool": "Tool",
+  "vres_filter_tool_search": "Search tools",
   "vres_open_at_line": "Open {location} in the editor",
   "vres_findings": "Findings",
   "vres_findings_empty": "No findings.",

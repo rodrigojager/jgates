@@ -10,6 +10,7 @@ import { withEngineFacts } from "../../core/engine/facts.js";
 import { workspaceDir } from "../../core/home/index.js";
 import { buildPlan, type Plan } from "../../core/plan/index.js";
 import { approvalWording, approvalWordingParams } from "../../core/results/index.js";
+import { newChecks, toolsOfStages } from "../../core/results/new-checks.js";
 import { RESULT_FILE } from "../../core/run/index.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 
@@ -98,6 +99,18 @@ function readLastRun(server: ServerContext): Record<string, unknown> | null {
   };
 }
 
+/** The tools the last finished validation ran (null: there is none to compare with). */
+function lastFinishedTools(server: ServerContext): Set<string> | null {
+  const last = listRuns(server.home, server.workspace.id).find((r) => !r.partial && !r.alive);
+  if (!last) return null;
+  try {
+    const result = JSON.parse(fs.readFileSync(path.join(last.dir, RESULT_FILE), "utf8")) as { stages?: any[] };
+    return toolsOfStages(result.stages);
+  } catch {
+    return null;
+  }
+}
+
 export interface NextStep {
   kind: "open-result";
   runId: string;
@@ -151,6 +164,8 @@ export const routes: RouteDefinition[] = [
             ? { planHash: plan.planHash, approvable: plan.approvable, blocked: plan.blocked ? plan.blocked.message : null, uncovered: plan.groups.uncoveredRequirements.map((u) => ({ selector: u.selector, category: u.category, reason: u.reason, message: u.message })) }
             : { planHash: null, approvable: false, blocked: built.ok ? null : built.error.message, uncovered: [] },
           categories,
+          // The checks the plan runs that the last finished validation did not (named; empty without a validation before).
+          newChecks: plan ? newChecks(plan.groups.willRun.filter((i) => i.state.enabled).map((i) => ({ tool: i.tool, label: i.label })), lastFinishedTools(server)) : [],
           // Settings the configuration reader migrated or dropped (for example the retired quality bridge).
           notices: plan ? plan.warnings.filter((w) => w.code === "CONFIG_MIGRATED").map((w) => ({ code: w.code, message: w.message })) : [],
           mascots: projectMascots({ plan, invalid: !built.ok }),

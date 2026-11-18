@@ -35,6 +35,8 @@ interface RuleView extends ItemBase {
 interface ToolView extends ItemBase {
   id: string;
   label: string;
+  /** ADR-0022: absent or "core" runs as it always did; "main" and "extended" run from a profile of that tier up. */
+  tier?: "core" | "main" | "extended";
   alsoCapabilities: string[];
   rules: RuleView[];
 }
@@ -202,6 +204,12 @@ function ToolRow({ tool, capabilityLabel, profile, editable, busy, onToggle, inD
   return (
     <div className="tool-block" data-tool={tool.id}>
       <CheckRow label={tool.label} secondary={tool.id} item={tool} profile={profile} editable={editable} busy={busy} onToggle={onToggle} level="tool" inDraft={inDraft} />
+      {tool.tier && tool.tier !== "core" ? (
+        // A tool above the profile's tier is off, and says why; its switch above turns it on for this profile.
+        <p className="small tool-note" data-testid="tool-tier" data-tier={tool.tier} data-above={tool.reason === "ABOVE_TIER" ? "true" : "false"}>
+          {tool.reason === "ABOVE_TIER" ? t(`cfgp_tier_above_${tool.tier}`) : t(`cfgp_tier_${tool.tier}`)}
+        </p>
+      ) : null}
       {tool.alsoCapabilities.length > 0 ? (
         <p className="small muted tool-note">{t("cfgp_tool_shared", { capability: capabilityLabel, others: tool.alsoCapabilities.join(", ") })}</p>
       ) : null}

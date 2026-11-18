@@ -9,6 +9,7 @@ import { useToast } from "../../components/Toast";
 import { useShell } from "../../app/shell-context";
 import { currentQuery } from "../../app/route";
 import { t, tOr } from "../../i18n";
+import { areaLabel, groupByArea, useToolAreas, type ToolArea } from "../../components/tool-areas";
 import type { ScreenMeta } from "../../registry";
 import { PendingDrafts } from "../tool-area/editbar/pending";
 import { TOOLS_DOWNLOAD, blockersOf, unavailableItems, type Blocker } from "./blockers";
@@ -84,6 +85,32 @@ function ItemList({ items, label }: { items: any[]; label: string }) {
   );
 }
 
+/**
+ * The items of one category, collapsed by area (PHP, Markdown, secrets...) with a count on each header, so that forty
+ * linters are forty lines behind a few headers and not a wall. The checks without an area of their own stay listed.
+ */
+function AreaItemList({ items, label, areaOf }: { items: any[]; label: string; areaOf: (adapter: string | null | undefined) => ToolArea | null }) {
+  const groups = groupByArea(items, (i) => areaOf(i.adapter));
+  if (groups.every((g) => g.id === "")) return <ItemList items={items} label={label} />;
+  return (
+    <div className="stack tight">
+      {groups.map((g) =>
+        g.id === "" ? (
+          <ItemList key="none" items={g.items} label={label} />
+        ) : (
+          <details key={`${g.section}/${g.id}`} className="capst-group" data-testid="area-group" data-area={g.id}>
+            <summary>
+              <strong>{areaLabel(g.id)}</strong>
+              <span className="small muted"> · {t("vrev_group_items", { count: g.items.length })}</span>
+            </summary>
+            <ItemList items={g.items} label={`${label}: ${areaLabel(g.id)}`} />
+          </details>
+        ),
+      )}
+    </div>
+  );
+}
+
 function groupByCategory(items: any[]): Array<[string | null, any[]]> {
   const map = new Map<string | null, any[]>();
   for (const item of items) {
@@ -120,6 +147,7 @@ function TieNote({ tie }: { tie: any }) {
 
 export default function ReviewScreen() {
   const { info } = useShell();
+  const areaOf = useToolAreas();
   const toast = useToast();
   const [request, setRequest] = useState(() => readRequest());
   const body = useMemo(() => planBody(request), [request]);
@@ -423,7 +451,7 @@ export default function ReviewScreen() {
                     <strong>{catLabel(category)}</strong>
                     <span className="small muted"> · {t("vrev_group_items", { count: items.length })}</span>
                   </summary>
-                  <ItemList items={items} label={catLabel(category)} />
+                  <AreaItemList items={items} label={catLabel(category)} areaOf={areaOf} />
                 </details>
               ))
             )}

@@ -18,7 +18,7 @@
   "cfe_f_budgets.memoryMegabytes": "Memória por processo",
   "cfe_f_budgets.processes": "Processos ao mesmo tempo",
   "cfe_f_budgets.logMegabytes": "Espaço de logs por validação",
-  "cfe_h_concurrency": "Quantas verificações rodam ao mesmo tempo.",
+  "cfe_h_concurrency": "Quantas verificações rodam ao mesmo tempo. Sem valor definido, o JGates escolhe o número pela memória e pelas CPUs do motor (nunca acima de 8).",
   "cfe_h_network": "Explícita: o plano mostra quais verificações usam a rede. Permitida: elas podem rodar com rede. Negada: o plano fica bloqueado se alguma exigir rede.",
   "cfe_h_failFast": "Ao falhar uma verificação, o resto fica registrado como não executado.",
   "cfe_h_timeoutSeconds": "Limite de cada verificação antes de ela ser interrompida.",

@@ -7,6 +7,8 @@ import { unifiedDiff } from "../../core/documents/diff.js";
 import { ROOT_FILE, parseYamlText } from "../../core/config/load/index.js";
 import { encodePointer } from "../../core/config/resolve/index.js";
 import { fileDiagnostics, invalidateProjectCache, projectResolveReadable } from "../../core/cache/project.js";
+import { concurrencyFacts, configuredConcurrency } from "../../core/run/concurrency.js";
+import { chooseConcurrency, MAX_AUTOMATIC_CONCURRENCY } from "../../core/runner/concurrency.js";
 import { HttpError, refuseMsg } from "../http.js";
 import type { RouteDefinition, ServerContext } from "../types.js";
 import { assertWritable, patchConfigFile } from "./templates.js";
@@ -122,6 +124,20 @@ const changesSchema = {
 };
 
 export const routes: RouteDefinition[] = [
+  {
+    // The number of checks at a time (ADR-0023) as a run of this project would use it: the one the configuration sets, or the
+    // automatic one from the memory and CPUs of the engine, with the facts behind it (Preferences explains the number).
+    method: "GET",
+    path: "/api/execution/concurrency",
+    timeoutMs: 60_000,
+    handler({ server }) {
+      const choice = chooseConcurrency(configuredConcurrency(server.projectDir), concurrencyFacts(process.env));
+      return {
+        status: 200,
+        json: { schemaVersion: 1, status: "OK", value: choice.value, source: choice.source, automatic: choice.automatic, max: MAX_AUTOMATIC_CONCURRENCY, memoryMb: choice.facts.memoryMb, cpus: choice.facts.cpus, step: choice.step },
+      };
+    },
+  },
   {
     method: "GET",
     path: "/api/config/execution",

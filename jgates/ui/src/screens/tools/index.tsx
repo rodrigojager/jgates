@@ -6,7 +6,7 @@ import { useShell } from "../../app/shell-context";
 import { ErrorNotice, Loading, Pill, Updating, useAsync } from "../../components/common";
 import { Icon } from "../../components/icons";
 import { ProjectMascotStrip } from "../../components/ProjectMascotStrip";
-import { adapterName, t, tOr } from "../../i18n";
+import { adapterName, getLocale, t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { ConfigDiagnostics, type ConfigDiagnostic } from "../config-profiles/diagnostics";
 import { SemanticCard } from "./semantic/card";
@@ -36,7 +36,14 @@ interface CatalogEntry extends CatalogAdapter {
   executesProjectCode: boolean;
   /** 0: for a language of the project; 1: for any language; 2: for other languages only. */
   relevance?: number;
+  /** An engine tool (a descriptor) says where it belongs, what it is for and how far its tier reaches. */
+  place?: { section: string; group: string; tier: "main" | "extended"; kind: string };
+  purpose?: { en: string; "pt-BR": string };
+  network?: boolean;
 }
+
+/** The sections of the catalogue, in the order the screen shows them. */
+const SECTIONS = ["language", "format", "tooling", "other"] as const;
 
 /** A tool the plan of the project runs (GET /api/tool-effective). */
 interface EffectiveTool {
@@ -302,9 +309,17 @@ export default function ToolsScreen() {
 
   // A search or a category filter is looking for something: the groups open. Otherwise they are closed and counted.
   const filtering = searching || category !== "";
-  const catalogGroupId = (a: CatalogEntry): string => (a.languages[0] ? languageKey(a.languages[0]) : "");
+  // An engine tool sits where its descriptor puts it (section and group); the others by their first language, as before.
+  const sectionOf = (a: CatalogEntry): string => a.place?.section ?? (a.languages[0] ? "language" : "other");
+  const catalogGroupId = (a: CatalogEntry): string => a.place?.group ?? (a.languages[0] ? languageKey(a.languages[0]) : "");
   const languageLabel = (id: string) => (id === "" ? t("lang_any") : tOr(`lang_${id}`, id));
-  const catalogGroups = [...new Set(visibleCatalog.map(catalogGroupId))].map((id) => ({ id, items: visibleCatalog.filter((a) => catalogGroupId(a) === id) }));
+  const catalogSections = SECTIONS.map((section) => {
+    const inSection = visibleCatalog.filter((a) => sectionOf(a) === section);
+    const groups = [...new Set(inSection.map(catalogGroupId))]
+      .map((id) => ({ id, items: inSection.filter((a) => catalogGroupId(a) === id) }))
+      .sort((x, y) => (x.id === "" ? 1 : y.id === "" ? -1 : languageLabel(x.id).localeCompare(languageLabel(y.id))));
+    return { section, groups, count: inSection.length };
+  }).filter((s) => s.count > 0);
   const catalogCard = (a: CatalogEntry) => (
       <li key={a.adapter} className="card flat stack" data-testid="catalog-card" data-adapter={a.adapter}>
         <div className="between wrap">
@@ -322,6 +337,21 @@ export default function ToolsScreen() {
         </div>
         <p className="small">{a.languages.length > 0 ? t("tools_card_languages", { languages: a.languages.join(", ") }) : t("tools_card_languages_none")}</p>
         <p className="small">{a.categories.map((c) => tOr(`tools_category_${c}`, c)).join(", ")}</p>
+        {a.purpose ? (
+          <p className="small" data-testid="catalog-purpose">
+            {getLocale() === "pt-BR" ? a.purpose["pt-BR"] : a.purpose.en}
+          </p>
+        ) : null}
+        {a.place ? (
+          <div className="row wrap">
+            <Pill tone={a.place.tier === "main" ? "green" : "blue"}>
+              <span data-testid="catalog-tier" data-tier={a.place.tier}>
+                {t(`tools_tier_${a.place.tier}`)}
+              </span>
+            </Pill>
+            {a.network ? <Pill tone="gold">{t("tools_card_network")}</Pill> : null}
+          </div>
+        ) : null}
         {/* Where it comes from, said once: the distribution carries the state, version, licence and source. */}
         {matrixOf.get(a.adapter)?.distribution ? <DistributionInfo info={matrixOf.get(a.adapter)} version={origins.data?.image.tools[a.toolName] ?? null} /> : <CatalogOrigin entry={a} info={matrixOf.get(a.adapter)} origins={origins.data} />}
         {a.instantiable ? (
@@ -579,15 +609,22 @@ export default function ToolsScreen() {
         <p className="small muted">{projectLanguages.length > 0 ? t("tools_scope_note", { languages: projectLanguages.join(", ") }) : t("tools_scope_note_none")}</p>
         {!filtering ? <p className="small muted">{t("tools_group_hint")}</p> : null}
         {visibleCatalog.length === 0 ? <p>{t("tools_no_match")}</p> : null}
-        {catalogGroups.map((g) => (
-          <details key={g.id || "any"} className="card pad tools-group" data-group={g.id || "any"} data-testid="catalog-group" open={filtering}>
-            <summary>
-              <strong>{languageLabel(g.id)}</strong> <span className="small muted">{t("tools_group_count", { count: g.items.length })}</span>
-            </summary>
-            <ul className="tool-cards stack" style={{ listStyle: "none", padding: 0 }}>
-              {g.items.map(catalogCard)}
-            </ul>
-          </details>
+        {catalogSections.map((s) => (
+          <div key={s.section} className="stack tight" data-testid="catalog-section" data-section={s.section}>
+            <h3>
+              {t(`tools_section_${s.section}`)} <span className="small muted">{t("tools_group_count", { count: s.count })}</span>
+            </h3>
+            {s.groups.map((g) => (
+              <details key={g.id || "any"} className="card pad tools-group" data-group={g.id || "any"} data-testid="catalog-group" open={filtering}>
+                <summary>
+                  <strong>{languageLabel(g.id)}</strong> <span className="small muted">{t("tools_group_count", { count: g.items.length })}</span>
+                </summary>
+                <ul className="tool-cards stack" style={{ listStyle: "none", padding: 0 }}>
+                  {g.items.map(catalogCard)}
+                </ul>
+              </details>
+            ))}
+          </div>
         ))}
         {hiddenByScope > 0 ? (
           <p className="small muted" data-testid="tools-scope-hidden">
