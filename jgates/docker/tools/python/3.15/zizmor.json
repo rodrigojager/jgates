@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "zizmor",
+      "link": "zizmor",
+      "path": "bin/zizmor",
+      "version": [
+        "zizmor",
+        "--version"
+      ]
+    }
+  ]
+}

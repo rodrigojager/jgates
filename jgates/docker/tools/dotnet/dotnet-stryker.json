@@ -1,0 +1,18 @@
+{
+  "note": "Stryker.NET's --version names the project version of its dashboard: the tool answers --help, and its version is the package folder of the tool store.",
+  "package": "dotnet-stryker",
+  "version": "5.1.0",
+  "sha256": "3c28fd73556a35aac6bb616322e15c1a1fe07f9054b8c8208726c307de90fb16",
+  "provides": [
+    {
+      "name": "dotnet-stryker",
+      "path": "dotnet-stryker",
+      "version": [
+        "sh",
+        "-c",
+        "dotnet-stryker --help >/dev/null && ls /opt/dotnet-tools/.store/dotnet-stryker"
+      ],
+      "pattern": "^(\\d+\\.\\d+\\.\\d+)\\s*$"
+    }
+  ]
+}

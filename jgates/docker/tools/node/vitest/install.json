@@ -1,0 +1,17 @@
+{
+  "provides": [
+    {
+      "name": "vitest",
+      "link": "vitest",
+      "path": "node_modules/.bin/vitest",
+      "version": [
+        "vitest",
+        "--version"
+      ]
+    },
+    {
+      "name": "vitest-coverage-v8",
+      "package": "@vitest/coverage-v8"
+    }
+  ]
+}

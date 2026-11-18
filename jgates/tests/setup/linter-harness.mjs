@@ -31,7 +31,9 @@ export async function linterHarness() {
   const { executeRun } = await load("core", "run", "index.js");
   const { planSteps, planDisabled } = await load("core", "run", "plan-run.js");
   const engine = await load("adapters", "linter", "index.js");
-  const { imageJsonWithout } = await import(pathToFileURL(path.join(here, "image-json.mjs")).href);
+  const { imageJsonWithout, releaseImageJson, writeImageJson } = await import(pathToFileURL(path.join(here, "image-json.mjs")).href);
+  const gates = await import(pathToFileURL(path.resolve(here, "..", "..", "scripts", "image-gates.mjs")).href);
+  const installs = await import(pathToFileURL(path.resolve(here, "..", "..", "scripts", "image-installs.mjs")).href);
 
   const made = [];
   const tmp = (prefix) => {
@@ -121,11 +123,37 @@ export async function linterHarness() {
 
   const key = (f) => `${f.rule}|${f.file}|${f.line ?? ""}`;
 
+  /**
+   * The image side of a tool (PLAN-image.md sections 3 and 4): its install entry exists and provides the program, and
+   * its declared license passes the image's license policy.
+   */
+  function assertShippable(descriptor) {
+    const { entries } = installs.readInstalls();
+    const install = gates.checkDescriptorInstalls({ descriptors: [descriptor], entries });
+    assert.deepEqual(install.findings.map((f) => f.message), [], `${descriptor.id}: its install entry`);
+    const license = gates.checkDescriptorLicenses({ descriptors: [descriptor], policy: gates.loadPolicy(), entries });
+    assert.deepEqual(license.findings.map((f) => f.message), [], `${descriptor.id}: its license against jgates/docker/tools/license-policy.json`);
+  }
+
+  /**
+   * The environment of the proof. A tool the package's image.json mirror does not list yet (it reaches
+   * release/image-tools.json with the next image build, in the integration slices) gets the version its probe recorded.
+   */
+  function proofEnv(descriptor, fixtures) {
+    const tool = descriptor.program.tool;
+    if (releaseImageJson().tools[tool] !== undefined) return envFor(descriptor.id);
+    const recorded = JSON.parse(fs.readFileSync(path.join(fixtures, descriptor.id, "recorded", "bad.json"), "utf8"));
+    // Without a recorded version (the engine's invented tools) the override's version stands in (0.0.0).
+    if (typeof recorded.version !== "string" || recorded.version === "") return envFor(descriptor.id);
+    return envFor(descriptor.id, { JGATES_IMAGE_JSON: writeImageJson({ [tool]: recorded.version }) });
+  }
+
   /** The whole proof of one tool. */
   async function prove(descriptor, fixtures) {
     const id = descriptor.id;
     const expected = assertComplete(descriptor, fixtures);
-    const env = envFor(id);
+    if (fixtures === BUILTIN_FIXTURES) assertShippable(descriptor);
+    const env = proofEnv(descriptor, fixtures);
     const stage = `${id}#${descriptor.place.capability}`;
 
     // The bad side: exactly the expected findings, located, blocking; the activation picks the fixture's files only.

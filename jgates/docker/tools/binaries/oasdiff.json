@@ -1,0 +1,20 @@
+{
+  "version": "1.37.0",
+  "url": "https://github.com/oasdiff/oasdiff/releases/download/v{version}/oasdiff_{version}_linux_amd64.tar.gz",
+  "sha256": "eac87307d31d08c36800c58a409c247f1c5db37fbb72e2544402f22a87cbca3c",
+  "archive": "tar.gz",
+  "extract": {
+    "oasdiff": "oasdiff"
+  },
+  "provides": [
+    {
+      "name": "oasdiff",
+      "link": "oasdiff",
+      "path": "oasdiff",
+      "version": [
+        "oasdiff",
+        "--version"
+      ]
+    }
+  ]
+}

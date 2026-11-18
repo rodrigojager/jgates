@@ -19,7 +19,7 @@ import { DATA_VOLUME, DATABASE_IDS } from "../../core/data/index.js";
 import { managersOfLanguage } from "../../core/discovery/dependencies.js";
 import { formatMegabytes } from "../../core/reasons/index.js";
 import { findOnPath } from "../../core/runner/path-lookup.js";
-import { DATABASE_ABOUT, TOOL_ABOUT } from "../../core/tools-image/about.js";
+import { DATABASE_ABOUT, toolAboutTable } from "../../core/tools-image/about.js";
 import { imageToolCatalogue } from "../../core/tools-image/catalogue.js";
 import { readPreferences, writePreferences } from "./preferences.js";
 import { refreshPath } from "../../core/env-refresh/index.js";
@@ -1120,10 +1120,11 @@ export const routes: RouteDefinition[] = [
       const reasons = [...status.reasons, ...status.warnings].filter((r) => r.code.startsWith("IMAGE_") || r.code.startsWith("DATA_") || r.code === "DISK_LOW");
       const t = translator("setup", locale);
       const catalogue = imageToolCatalogue(process.env);
+      const aboutTable = toolAboutTable();
       const tools = Object.entries(catalogue?.tools ?? {})
         .sort(([a], [b]) => a.localeCompare(b, "en"))
         .map(([name, version]) => {
-          const about = TOOL_ABOUT[name];
+          const about = aboutTable[name];
           return { name, version, license: about?.license ?? null, purpose: about?.purpose ?? null, purposeText: about ? t(`setup_purpose_${about.purpose.replace(/-/g, "_")}`) : null };
         });
       const ages = new Map(status.data.databases.map((d) => [d.id, d]));

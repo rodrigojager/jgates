@@ -1,0 +1,5 @@
+# Release binaries and archives
+
+One file per tool: `<name>.json` with `version`, `url` (`{version}` is replaced), `sha256` (the published checksum; SHA-512 is accepted), `archive` (`file`, `tar.gz`, `tgz`, `tar.xz`, `tar.bz2`, `tar` or `zip`), `save` (archive `file`: the file name, default the entry name), `strip` (leading folders removed), `extract` (path in the archive -> path in the install folder; without it everything is kept) and `executable` (paths made executable). Installed by `installers/binary.sh` into `/opt/tools/binaries/<name>`. Single binaries, tarballs, zips, jars, PHP archives and PowerShell modules (a `.nupkg` is a zip) are all this kind.
+
+Every entry lists in `provides` the programs and libraries it brings (`name` in image.json, `link` on PATH, `path` in the install folder, `version` command and `pattern`, `package`, `pinned`); see the header of `jgates/scripts/image-installs.mjs`. `npm --prefix jgates run image:probe -- <tool>` installs one entry on top of the built image with the same installer the build uses (`../installers/`).

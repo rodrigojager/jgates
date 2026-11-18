@@ -68,6 +68,14 @@ test('every Quality integration of V2 has a row in THIRD_PARTY_NOTICES.md', () =
   }
 });
 
+test('the tools image table is generated from about.json and the linter descriptors, and the sizes from the pin', () => {
+  // jgates/scripts/gen-image-docs.mjs --check: THIRD_PARTY_NOTICES.md's table "Tools shipped in the tools image" and the
+  // image sizes of the README and docs/jgates are what the generator writes (npm --prefix jgates run image:docs).
+  const { spawnSync } = require('node:child_process');
+  const ran = spawnSync(process.execPath, [path.join(root, 'jgates', 'scripts', 'gen-image-docs.mjs'), '--check'], { encoding: 'utf8' });
+  assert.equal(ran.status, 0, ran.stderr || ran.stdout);
+});
+
 test('every tool shipped in the tools image has a row with a license and a source URL', () => {
   const image = JSON.parse(fs.readFileSync(path.join(root, 'jgates', 'release', 'image-tools.json'), 'utf8'));
   const tools = Object.keys(image.tools);

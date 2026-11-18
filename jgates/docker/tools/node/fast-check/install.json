@@ -1,0 +1,8 @@
+{
+  "provides": [
+    {
+      "name": "fast-check",
+      "package": "fast-check"
+    }
+  ]
+}

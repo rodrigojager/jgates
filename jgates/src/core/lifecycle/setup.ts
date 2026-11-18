@@ -79,9 +79,9 @@ export interface DiskRequirement {
 }
 
 /**
- * The pin says the compressed size (`compressedBytes`, or `sizeBytes`) and may say the unpacked size
- * (`uncompressedBytes`); without it the unpacked size is estimated with the ratio measured on the first complete image
- * (1,93 GB compressed, 5,58 GB unpacked).
+ * The pin says the compressed size (`compressedBytes`, or `sizeBytes`) and the unpacked size (`uncompressedBytes`), both
+ * written by the image build from the image it measured (scripts/image-build.mjs); a pin written before that has only
+ * the compressed size, and the unpacked size is then estimated with the ratio of the first complete image (2.9).
  */
 export function diskRequirement(pin: ToolsImagePin): DiskRequirement {
   const extra = pin as ToolsImagePin & { compressedBytes?: number; uncompressedBytes?: number };

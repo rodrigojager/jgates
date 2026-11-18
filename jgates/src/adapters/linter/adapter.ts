@@ -18,7 +18,7 @@ import { stepViewOfPaths } from "../../core/runner/container.js";
 import type { AdapterContext, AdapterOutput, ResultFinding, ResultStage } from "../../core/run/types.js";
 import { RUN_DIR, toFindings, type LintDiagnostic } from "../lint-common/index.js";
 import { activatedFiles, fileCensus, requiredFilePresent } from "./census.js";
-import { linterOverrideEnv, linterTexts, type LoadedLinter } from "./descriptor.js";
+import { linterOverrideEnv, linterTexts, type LinterDescriptor, type LoadedLinter } from "./descriptor.js";
 import { linterManifest } from "./manifest.js";
 import { mapLevel, readerOf, statusFinding, type RawFinding, type ReaderInput } from "./readers.js";
 
@@ -140,6 +140,44 @@ export function batches(files: string[]): string[][] {
   return out;
 }
 
+/** One process the run starts for a tool: its command, the files it covers and the report it writes (a host path). */
+export interface LinterCall {
+  executable: string;
+  args: string[];
+  files: string[];
+  report: string | null;
+}
+
+/**
+ * The processes the run starts for a planned tool (the image probe records the same ones): one per batch of files in
+ * the files mode, one per file in the each-file mode inside the tools image (`loop` false) or one sh loop per batch in a
+ * step container (`loop` true), else the one command. `tokens` replace {runDir} and {workspace}.
+ */
+export function linterCalls(d: LinterDescriptor, contract: LinterContract, command: { executable: string; args: string[] }, tokens: Record<string, string>, loop: boolean): LinterCall[] {
+  const planned = command.args;
+  const calls: LinterCall[] = [];
+  const reportOf = (index: number): string | null => (contract.report ? substituteTokens(index === 0 ? contract.report : contract.report.replace(`/linters/${d.id}/`, `/linters/${d.id}/${index + 1}/`), tokens) : null);
+  if (contract.mode === "files" && contract.fileArgs && contract.fileArgs.count > 0) {
+    const { start, count } = contract.fileArgs;
+    const files = planned.slice(start, start + count);
+    for (const [index, batch] of batches(files).entries()) {
+      const callArgs = [...planned.slice(0, start), ...batch, ...planned.slice(start + count)].map((a) => {
+        const value = index > 0 && contract.report && a.includes(contract.report) ? a.split(contract.report).join(contract.report.replace(`/linters/${d.id}/`, `/linters/${d.id}/${index + 1}/`)) : a;
+        return substituteTokens(value, tokens);
+      });
+      calls.push({ executable: command.executable, args: callArgs, files: batch, report: reportOf(index) });
+    }
+  } else if (contract.mode === "each-file" && loop) {
+    for (const batch of batches(contract.files)) {
+      const script = eachFileScript([command.executable, ...planned.map((a) => (a === "{file}" ? a : substituteTokens(a, tokens)))], d.output.from === "stderr");
+      calls.push({ executable: "sh", args: ["-c", script, "jgates-each-file", ...batch], files: batch, report: null });
+    }
+  } else if (contract.mode === "each-file") {
+    for (const file of contract.files) calls.push({ executable: command.executable, args: planned.map((a) => (a === "{file}" ? file : substituteTokens(a, tokens))), files: [file], report: null });
+  } else calls.push({ executable: command.executable, args: planned.map((a) => substituteTokens(a, tokens)), files: contract.files, report: reportOf(0) });
+  return calls;
+}
+
 const tailOf = (text: string): string => text.trim().split(/\r?\n/).slice(-3).join(" ");
 const relToRun = (runDir: string, p: string): string => path.relative(runDir, p).split(path.sep).join("/");
 
@@ -258,29 +296,9 @@ export function makeLinterAdapter(linter: LoadedLinter): ExternalAdapter {
     if (contract.defaultConfig) fs.copyFileSync(path.join(linter.dir, contract.defaultConfig), path.join(runToolDir, contract.defaultConfig));
 
     // The calls: one per batch of files (files mode), else the one command.
-    const planned = command.args;
     // each-file: in a step container, one container runs the loop over the files (sh); inside the tools image, one process per file.
     const loop = contract.mode === "each-file" && stepMode(context.env) !== "in-image";
-    const calls: Array<{ executable: string; args: string[]; files: string[]; report: string | null }> = [];
-    const reportOf = (index: number): string | null => (contract.report ? substituteTokens(index === 0 ? contract.report : contract.report.replace(`/linters/${d.id}/`, `/linters/${d.id}/${index + 1}/`), tokens) : null);
-    if (contract.mode === "files" && contract.fileArgs && contract.fileArgs.count > 0) {
-      const { start, count } = contract.fileArgs;
-      const files = planned.slice(start, start + count);
-      for (const [index, batch] of batches(files).entries()) {
-        const callArgs = [...planned.slice(0, start), ...batch, ...planned.slice(start + count)].map((a) => {
-          const value = index > 0 && contract.report && a.includes(contract.report) ? a.split(contract.report).join(contract.report.replace(`/linters/${d.id}/`, `/linters/${d.id}/${index + 1}/`)) : a;
-          return substituteTokens(value, tokens);
-        });
-        calls.push({ executable: command.executable, args: callArgs, files: batch, report: reportOf(index) });
-      }
-    } else if (contract.mode === "each-file" && loop) {
-      for (const batch of batches(contract.files)) {
-        const script = eachFileScript([command.executable, ...planned.map((a) => (a === "{file}" ? a : substituteTokens(a, tokens)))], d.output.from === "stderr");
-        calls.push({ executable: "sh", args: ["-c", script, "jgates-each-file", ...batch], files: batch, report: null });
-      }
-    } else if (contract.mode === "each-file") {
-      for (const file of contract.files) calls.push({ executable: command.executable, args: planned.map((a) => (a === "{file}" ? file : substituteTokens(a, tokens))), files: [file], report: null });
-    } else calls.push({ executable: command.executable, args: planned.map((a) => substituteTokens(a, tokens)), files: contract.files, report: reportOf(0) });
+    const calls = linterCalls(d, contract, command, tokens, loop);
 
     const reader = await readerOf(d);
     const view = (p: string): string => stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, p);

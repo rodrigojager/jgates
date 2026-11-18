@@ -1,0 +1,16 @@
+{
+  "crate": "cargo-llvm-cov",
+  "version": "0.9.1",
+  "provides": [
+    {
+      "name": "cargo-llvm-cov",
+      "link": "cargo-llvm-cov",
+      "path": "bin/cargo-llvm-cov",
+      "version": [
+        "cargo",
+        "llvm-cov",
+        "--version"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "note": "gitleaks 8.30.1 is published built with Go 1.24.11, whose crypto/tls has a critical CVE fixed in 1.24.13 (CVE-2025-68121, found by the image scan gate). Built here from the same module version with the image's Go and the build flags of its goreleaser file, the binary carries the fixed standard library.",
+  "module": "github.com/zricethezav/gitleaks/v8",
+  "version": "8.30.1",
+  "tags": [
+    "gore2regex"
+  ],
+  "ldflags": "-s -w -X=github.com/zricethezav/gitleaks/v8/version.Version={version}",
+  "provides": [
+    {
+      "name": "gitleaks",
+      "link": "gitleaks",
+      "path": "gitleaks",
+      "version": [
+        "gitleaks",
+        "version"
+      ]
+    }
+  ]
+}

@@ -7,10 +7,12 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // V2-54: the build gates of the tools image. The license gate fails on an SBOM that holds an AGPL component (and on an
-// unknown license) and names the component; the size gate fails above the budget and lists the five largest layers;
-// the forbidden-content gate finds a planted semgrep rule file and a credential-looking file in an image filesystem
-// (the walk runs through the same command the build runs inside the image), and says nothing about a clean one. The
-// gates are the module the build uses (jgates/scripts/image-gates.mjs) with the policy the build uses.
+// unknown license) and names the component, and checks the license each linter descriptor declares (GPL only for the
+// tools the policy lists or Debian packages, AGPL only for the tool the user accepted by name); the size gate is a
+// report that never fails (ADR-0020: no size budget) and lists the ten largest layers and the difference from the
+// previous report; the forbidden-content gate finds a planted semgrep rule file and a credential-looking file in an
+// image filesystem (the walk runs through the same command the build runs inside the image), and says nothing about a
+// clean one. The gates are the module the build uses (jgates/scripts/image-gates.mjs) with the policy the build uses.
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SCRIPT = path.join(root, "jgates", "scripts", "image-gates.mjs");
@@ -74,25 +76,72 @@ test("V2-54: the license gate fails on an unknown license, on no license, and on
 
 const layer = (megabytes, createdBy) => ({ size: megabytes * 1024 ** 2, createdBy });
 
-test("V2-54: the size gate fails above the budget and lists the five largest layers; a smaller image passes", () => {
-  const layers = [layer(4000, "RUN install-rust"), layer(1500, "RUN install-go"), layer(900, "RUN install-dotnet"), layer(800, "COPY tools"), layer(700, "RUN apt"), layer(600, "RUN node"), layer(5, "ADD base"), layer(1, "LABEL x")];
-  const over = gates.checkSize({ layers, compressedBytes: 2 * 1024 ** 3 });
-  assert.equal(over.passed, false);
-  assert.match(over.findings[0].message, /uncompressed size .* above the budget of 7\.00 GB/);
-  assert.equal(over.largestLayers.length, 5);
-  assert.deepEqual(
-    over.largestLayers.map((l) => l.createdBy),
-    ["RUN install-rust", "RUN install-go", "RUN install-dotnet", "COPY tools", "RUN apt"],
-  );
-  assert.ok(over.largestLayers[0].sizeBytes >= over.largestLayers[1].sizeBytes);
+test("V2-54: the size gate is a report: it never fails, lists the ten largest layers and the difference from the previous report", () => {
+  const layers = [
+    layer(9000, "RUN install-sdks"),
+    layer(4000, "RUN install-rust"),
+    layer(1500, "RUN install-go"),
+    layer(900, "RUN install-dotnet"),
+    layer(800, "COPY tools"),
+    layer(700, "RUN apt"),
+    layer(600, "RUN node"),
+    layer(500, "RUN python"),
+    layer(400, "COPY binaries"),
+    layer(300, "COPY go-tools"),
+    layer(200, "COPY cargo-tools"),
+    layer(5, "ADD base"),
+    layer(1, "LABEL x"),
+  ];
+  // Far above the 7 GB / 3 GB of the old budget: still a pass.
+  const big = gates.checkSize({ layers, compressedBytes: 9 * 1024 ** 3 });
+  assert.equal(big.passed, true);
+  assert.deepEqual(big.findings, []);
+  assert.equal("budget" in big, false);
+  assert.equal(big.largestLayers.length, 10);
+  assert.deepEqual(big.largestLayers.slice(0, 3).map((l) => l.createdBy), ["RUN install-sdks", "RUN install-rust", "RUN install-go"]);
+  assert.ok(big.largestLayers.every((l, i, all) => i === 0 || all[i - 1].sizeBytes >= l.sizeBytes));
+  assert.equal(big.difference, null);
+  assert.match(big.summary, /^unpacked \d+\.\d+ GB, compressed 9\.00 GB$/);
 
-  const compressedOver = gates.checkSize({ layers: layers.slice(2), compressedBytes: 3.5 * 1024 ** 3 });
-  assert.equal(compressedOver.passed, false);
-  assert.equal(compressedOver.findings[0].kind, "compressed-over-budget");
+  const grown = gates.checkSize({ layers, compressedBytes: 9 * 1024 ** 3, previous: { uncompressedBytes: big.uncompressedBytes - 1024 ** 3, compressedBytes: 8 * 1024 ** 3 } });
+  assert.equal(grown.passed, true);
+  assert.equal(grown.difference.uncompressedBytes, 1024 ** 3);
+  assert.equal(grown.difference.compressedBytes, 1024 ** 3);
+  assert.match(grown.summary, /\+1\.00 GB unpacked, \+1\.00 GB compressed since the previous report/);
+  assert.equal(gates.DEFAULT_BUDGET, undefined, "the budget constant is gone");
+});
 
-  const fits = gates.checkSize({ layers: layers.slice(2), compressedBytes: 1.9 * 1024 ** 3 });
-  assert.equal(fits.passed, true, JSON.stringify(fits.findings));
-  assert.equal(fits.largestLayers.length, 5);
+const descriptor = (id, license, install = id) => ({ id, license, install, program: { tool: id } });
+
+test("V2-54: the license gate checks each linter descriptor's declared license against the policy", () => {
+  const entries = [{ kind: "apt", name: "cppcheck", provides: [{ name: "cppcheck" }] }, { kind: "binaries", name: "trufflehog", provides: [{ name: "trufflehog" }] }];
+  const allowed = gates.checkDescriptorLicenses({
+    descriptors: [descriptor("markdownlint", "MIT"), descriptor("pylint", "GPL-2.0-or-later"), descriptor("yamllint", "GPL-3.0-only"), descriptor("codespell", "GPL-2.0-only"), descriptor("ansible-lint", "GPL-3.0-only"), descriptor("djlint", "GPL-3.0-only"), descriptor("cppcheck", "GPL-3.0-or-later"), descriptor("trufflehog", "AGPL-3.0-only"), descriptor("perlcritic-like", "Artistic-1.0-Perl OR GPL-1.0-or-later")],
+    policy,
+    entries,
+  });
+  assert.equal(allowed.passed, true, JSON.stringify(allowed.findings));
+  assert.equal(allowed.checked, 9);
+
+  const refused = gates.checkDescriptorLicenses({
+    descriptors: [descriptor("some-gpl-binary", "GPL-3.0-only"), descriptor("other-agpl", "AGPL-3.0-only"), descriptor("trufflehog", "SSPL-1.0"), descriptor("mystery", "SuperCustom-1.0")],
+    policy,
+    entries,
+  });
+  assert.equal(refused.passed, false);
+  const byTool = Object.fromEntries(refused.findings.map((f) => [f.tool, f.reasons.join(" ")]));
+  assert.match(byTool["some-gpl-binary"], /GPL is allowed only/, "a GPL static binary is seen and refused unless listed");
+  assert.match(byTool["other-agpl"], /AGPL.*forbidden/, "the AGPL exception is trufflehog's alone");
+  assert.match(byTool.trufflehog, /SSPL.*forbidden/, "the exception names one license");
+  assert.match(byTool.mystery, /not in the allow-list/);
+
+  // The SBOM rule takes the same named exception: trufflehog's AGPL passes, anyone else's fails.
+  assert.equal(gates.checkLicenses({ sbom: sbomOf(pkg("trufflehog", "3.90.0", "AGPL-3.0-only", "gobinary")), policy }).passed, true);
+  assert.equal(gates.checkLicenses({ sbom: sbomOf(pkg("not-trufflehog", "1.0.0", "AGPL-3.0-only", "gobinary")), policy }).passed, false);
+
+  // A descriptor's install entry must exist and provide its program.
+  const installs = gates.checkDescriptorInstalls({ descriptors: [descriptor("cppcheck", "GPL-3.0-or-later"), descriptor("ghost", "MIT")], entries });
+  assert.deepEqual(installs.findings.map((f) => `${f.kind} ${f.tool}`), ["install-missing ghost"]);
 });
 
 const SEMGREP_RULE = `rules:

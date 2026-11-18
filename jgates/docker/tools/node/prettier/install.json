@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "prettier",
+      "link": "prettier",
+      "path": "node_modules/.bin/prettier",
+      "version": [
+        "prettier",
+        "--version"
+      ]
+    }
+  ]
+}

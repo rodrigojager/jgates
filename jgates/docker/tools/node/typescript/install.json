@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "typescript",
+      "link": "tsc",
+      "path": "node_modules/.bin/tsc",
+      "version": [
+        "tsc",
+        "--version"
+      ]
+    }
+  ]
+}

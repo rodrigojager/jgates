@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
-  "description": "License allow-list of the JGates tools image (PLAN-image.md sections 2 and 5). image-gates.mjs checks every component of the image's SPDX SBOM against it. An identifier that is not listed fails the build; adding one is a decision of the user, never of the build.",
+  "description": "License allow-list of the JGates tools image (PLAN-image.md sections 2 and 5). image-gates.mjs checks every component of the image's SPDX SBOM against it. An identifier that is not listed fails the build; adding one is a decision of the user, never of the build. The descriptors of the linter engine are checked against it as well (their declared license, scripts/image-gates.mjs checkDescriptorLicenses): GPL only for a tool named in gplPackages or installed from Debian, a forbidden license only for a tool named in namedExceptions.",
   "allowedSpdx": {
     "permissive": [
       "0BSD",
       "AFL-2.0",
       "AFL-2.1",
       "Apache-2.0",
+      "Artistic-1.0-Perl",
       "Artistic-2.0",
       "Beerware",
       "BlueOak-1.0.0",
@@ -152,6 +153,34 @@
     {
       "name": "javax.help:javahelp",
       "reason": "GPL-2.0 with Classpath exception, bundled unmodified by ZAP (PLAN-image.md section 2)"
+    },
+    {
+      "name": "pylint",
+      "reason": "GPL-2.0 linter, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "yamllint",
+      "reason": "GPL-3.0 linter, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "codespell",
+      "reason": "GPL-2.0 spelling checker, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "ansible-lint",
+      "reason": "GPL-3.0 linter, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "djlint",
+      "reason": "GPL-3.0 linter, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    }
+  ],
+  "namedExceptions": [
+    {
+      "name": "trufflehog",
+      "license": "AGPL-3.0-only",
+      "decided": "2026-11-17",
+      "reason": "Accepted by name by the user, unmodified and run as a separate process, because it verifies more kinds of secret than kingfisher (their own pages: over 700 against 266). The forbidden patterns stay in force for every other component; THIRD_PARTY_NOTICES.md carries its license and source."
     }
   ],
   "resolved": {

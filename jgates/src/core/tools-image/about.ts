@@ -1,8 +1,14 @@
 // What the first-run wizard tells about the downloads (PLAN-guided-flows.md section 2, step 2): for each tool of the
 // tools image its licence (as THIRD_PARTY_NOTICES.md lists it, section "Tools shipped in the tools image") and what it
 // is for, and for each advisory database its name, source, approximate size and the tool that reads it. The versions
-// come from the image's own image.json (catalogue.ts); this file only adds the words. tests/v2/v2-69 checks that every
-// tool of release/image-tools.json is here with the licence of THIRD_PARTY_NOTICES.md.
+// come from the image's own image.json (catalogue.ts); this file only adds the words: about.json for the programs that
+// are not linter descriptors, the descriptors' own identity for the others (PLAN-engine.md section 4). The notices table
+// is generated from the same two sources (scripts/gen-image-docs.mjs). tests/v2/v2-69 checks that every tool of
+// release/image-tools.json is here with the licence of THIRD_PARTY_NOTICES.md.
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { loadLinters, type LinterDescriptor } from "../../adapters/linter/descriptor.js";
 import type { DatabaseId } from "../data/index.js";
 
 export type ToolPurpose =
@@ -33,77 +39,48 @@ export const TOOL_PURPOSES: readonly ToolPurpose[] = ["runtime", "package-manage
 export interface ToolAbout {
   license: string;
   purpose: ToolPurpose;
+  /** Where its source is published. */
+  source: string;
 }
 
-/** Licence (SPDX expression, or the words of THIRD_PARTY_NOTICES.md) and purpose of each tool of the image. */
-export const TOOL_ABOUT: Readonly<Record<string, ToolAbout>> = Object.freeze({
-  cargo: { license: "MIT OR Apache-2.0", purpose: "package-manager" },
-  "cargo-audit": { license: "Apache-2.0 OR MIT", purpose: "vulnerabilities" },
-  "cargo-llvm-cov": { license: "Apache-2.0 OR MIT", purpose: "coverage" },
-  checkov: { license: "Apache-2.0", purpose: "iac" },
-  clippy: { license: "MIT OR Apache-2.0", purpose: "lint" },
-  corepack: { license: "MIT", purpose: "package-manager" },
-  coverage: { license: "Apache-2.0", purpose: "coverage" },
-  curl: { license: "curl", purpose: "utility" },
-  "dependency-cruiser": { license: "MIT", purpose: "architecture" },
-  dotnet: { license: "MIT", purpose: "runtime" },
-  "dotnet-ef": { license: "MIT", purpose: "migrations" },
-  "dotnet-format": { license: "MIT", purpose: "format" },
-  "dotnet-stryker": { license: "Apache-2.0", purpose: "mutation" },
-  eslint: { license: "MIT", purpose: "lint" },
-  "fast-check": { license: "MIT", purpose: "tests" },
-  gcc: { license: "GPL-3.0-or-later with the GCC Runtime Library Exception", purpose: "build" },
-  git: { license: "GPL-2.0-only", purpose: "utility" },
-  gitleaks: { license: "MIT", purpose: "secrets" },
-  go: { license: "BSD-3-Clause", purpose: "runtime" },
-  "golangci-lint": { license: "GPL-3.0", purpose: "lint" },
-  govulncheck: { license: "BSD-3-Clause", purpose: "vulnerabilities" },
-  hadolint: { license: "GPL-3.0", purpose: "iac" },
-  hypothesis: { license: "MPL-2.0", purpose: "tests" },
-  "import-linter": { license: "BSD-2-Clause", purpose: "architecture" },
-  java: { license: "GPL-2.0-only with the Classpath Exception", purpose: "runtime" },
-  jgates: { license: "MIT", purpose: "jgates" },
-  jq: { license: "MIT", purpose: "utility" },
-  jscpd: { license: "MIT", purpose: "duplication" },
-  make: { license: "GPL-3.0-or-later", purpose: "build" },
-  mutmut: { license: "BSD-3-Clause", purpose: "mutation" },
-  mypy: { license: "MIT", purpose: "types" },
-  node: { license: "MIT", purpose: "runtime" },
-  npm: { license: "Artistic-2.0", purpose: "package-manager" },
-  oasdiff: { license: "Apache-2.0", purpose: "api" },
-  "osv-scanner": { license: "Apache-2.0", purpose: "vulnerabilities" },
-  "pkg-config": { license: "ISC", purpose: "build" },
-  prettier: { license: "MIT", purpose: "format" },
-  pyright: { license: "MIT", purpose: "types" },
-  pytest: { license: "MIT", purpose: "tests" },
-  "pytest-cov": { license: "MIT", purpose: "coverage" },
-  python: { license: "PSF-2.0", purpose: "runtime" },
-  "quality-sidecar": { license: "MIT", purpose: "jgates" },
-  rsync: { license: "GPL-3.0-or-later", purpose: "utility" },
-  ruff: { license: "MIT", purpose: "lint" },
-  rustc: { license: "MIT OR Apache-2.0", purpose: "runtime" },
-  rustfmt: { license: "MIT OR Apache-2.0", purpose: "format" },
-  rustup: { license: "MIT OR Apache-2.0", purpose: "package-manager" },
-  schemathesis: { license: "MIT", purpose: "api" },
-  semgrep: { license: "LGPL-2.1-only", purpose: "sast" },
-  shellcheck: { license: "GPL-3.0-or-later", purpose: "lint" },
-  squawk: { license: "Apache-2.0", purpose: "migrations" },
-  stryker: { license: "Apache-2.0", purpose: "mutation" },
-  "stryker-jest-runner": { license: "Apache-2.0", purpose: "mutation" },
-  "stryker-vitest-runner": { license: "Apache-2.0", purpose: "mutation" },
-  tini: { license: "MIT", purpose: "utility" },
-  tomlkit: { license: "MIT", purpose: "utility" },
-  trivy: { license: "Apache-2.0", purpose: "vulnerabilities" },
-  typescript: { license: "Apache-2.0", purpose: "types" },
-  "typescript-eslint": { license: "MIT", purpose: "lint" },
-  unzip: { license: "Info-ZIP", purpose: "utility" },
-  uv: { license: "MIT OR Apache-2.0", purpose: "package-manager" },
-  vitest: { license: "MIT", purpose: "tests" },
-  "vitest-coverage-v8": { license: "MIT", purpose: "coverage" },
-  xz: { license: "0BSD and GPL-2.0-or-later", purpose: "utility" },
-  zap: { license: "Apache-2.0", purpose: "dast" },
-  zizmor: { license: "MIT", purpose: "workflows" },
-});
+interface AboutFile {
+  tools: Record<string, { license: string; purpose: ToolPurpose; source: string; note?: string; notice?: string }>;
+}
+
+let aboutFile: AboutFile | null = null;
+
+function readAboutFile(): AboutFile {
+  aboutFile ??= JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "about.json"), "utf8")) as AboutFile;
+  return aboutFile;
+}
+
+/** What a linter descriptor's tool is for, from its place in the catalogue. */
+export function descriptorPurpose(d: Pick<LinterDescriptor, "place">): ToolPurpose {
+  const { kind, capability } = d.place;
+  if (kind === "format") return "format";
+  if (kind === "sbom") return "vulnerabilities";
+  const byCapability: Record<string, ToolPurpose> = { secrets: "secrets", sast: "sast", iac: "iac", dependencies: "vulnerabilities", "ci-cd": "workflows", "api-contract": "api" };
+  return byCapability[capability] ?? (kind === "scan" ? "sast" : "lint");
+}
+
+/**
+ * Licence (SPDX expression, or the words of THIRD_PARTY_NOTICES.md), purpose and source of each tool of the image,
+ * keyed by its image.json name: about.json, then one entry per descriptor program that about.json does not name.
+ */
+export function toolAboutTable(env: NodeJS.ProcessEnv = process.env): Readonly<Record<string, ToolAbout>> {
+  const out: Record<string, ToolAbout> = {};
+  for (const [name, entry] of Object.entries(readAboutFile().tools)) out[name] = { license: entry.license, purpose: entry.purpose, source: entry.source };
+  for (const { descriptor } of loadLinters(env)) {
+    const name = descriptor.program.tool;
+    if (out[name] === undefined) out[name] = { license: descriptor.license, purpose: descriptorPurpose(descriptor), source: descriptor.sourceUrl };
+  }
+  return Object.freeze(out);
+}
+
+/** The words about one tool of the image, or undefined for a program JGates says nothing about. */
+export function toolAbout(name: string, env: NodeJS.ProcessEnv = process.env): ToolAbout | undefined {
+  return toolAboutTable(env)[name];
+}
 
 export interface DatabaseAbout {
   name: string;

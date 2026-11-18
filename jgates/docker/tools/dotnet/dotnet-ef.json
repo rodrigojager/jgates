@@ -1,0 +1,16 @@
+{
+  "package": "dotnet-ef",
+  "version": "10.0.15",
+  "sha256": "23753de0b4481d2c4bacb918ac7578b2c2fbde068b3a19a222d0cac4b49d0da2",
+  "provides": [
+    {
+      "name": "dotnet-ef",
+      "path": "dotnet-ef",
+      "version": [
+        "dotnet-ef",
+        "--version"
+      ],
+      "pattern": "^(\\d+\\.\\d+\\.\\d+)\\s*$"
+    }
+  ]
+}

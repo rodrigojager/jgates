@@ -12,7 +12,7 @@ import { linterManifest } from "./manifest.js";
 export { LinterDescriptorError, builtinLintersDir, linterById, linterOverrideEnv, linterTexts, linterTemplateId, linterGroupKey, loadLinters, type LinterDescriptor, type LoadedLinter } from "./descriptor.js";
 export { activatedFiles, censusHasEvidence, fileCensus, requiredFilePresent, type FileCensus } from "./census.js";
 export { builtinReader, mapLevel, type RawFinding, type ReadResult, type Reader, type ReaderInput } from "./readers.js";
-export { BATCH_CHARS, BATCH_FILES, batches, concludeExit, eachFileScript, makeLinterAdapter, probeLinter, splitEachFile, type LinterContract } from "./adapter.js";
+export { BATCH_CHARS, BATCH_FILES, batches, concludeExit, eachFileScript, linterCalls, makeLinterAdapter, probeLinter, splitEachFile, type LinterCall, type LinterContract } from "./adapter.js";
 export { LINTERS_TEST_FILE, linterEvidence, linterGroups, linterSuppressionKind, linterSuppressionKinds, linterSupersedingIds, linterTemplates, linterTestTitle, linterTrust, withDerived } from "./derived.js";
 export { linterManifest } from "./manifest.js";
 

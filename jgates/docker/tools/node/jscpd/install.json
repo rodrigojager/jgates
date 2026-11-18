@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "jscpd",
+      "link": "jscpd",
+      "path": "node_modules/.bin/jscpd",
+      "version": [
+        "jscpd",
+        "--version"
+      ]
+    }
+  ]
+}

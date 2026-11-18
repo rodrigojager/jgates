@@ -5,98 +5,27 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { docker, dockerAvailable } from "./dev-docker.mjs";
+import { imagePrograms } from "../../scripts/image-installs.mjs";
 
 // The complete tools image (S2, PLAN-image.md sections 2 and 4) with the real engine (npm run test:docker; never part of
-// npm test). Every tool of sections 2.1-2.5 is asked for its version inside one container under the step contract
+// npm test). Every program of the image (the toolchains of docker/tools/runtimes.json and the install entries of
+// docker/tools/, PLAN-image.md section 3) is asked for its version inside one container under the step contract
 // (non-root, read-only root, tmpfs /tmp, no network, no capabilities) and must answer the version /etc/jgates/image.json
-// records; the image config, labels and size are read from the engine, and the image filesystem is listed to prove
-// that nothing forbidden (CodeQL, official Semgrep rules, vulnerability databases) is inside. The image is built by
-// `npm --prefix jgates run image:build` when it is missing.
+// records; the image config, labels and size are read from the engine (the size is reported, never limited: ADR-0020),
+// and the image filesystem is listed to prove that nothing forbidden (CodeQL, official Semgrep rules, vulnerability
+// databases) is inside. The image is built by `npm --prefix jgates run image:build` when it is missing.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, "..", "..");
 const IMAGE = "jgates-tools:dev";
 const VERSION = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8")).version;
-const SIZE_LIMIT = 7e9;
 const FIRST_VERSION = /(\d+\.\d+(?:\.\d+)?)/;
 
-// Every tool of PLAN-image.md sections 2.1-2.5, with the command that asks it for its version and, when the version is
-// not the first dotted number of the answer, the pattern that finds it. Libraries the image ships for runners (no
-// command of their own) answer through their package metadata.
-const TOOLS = {
-  // 2.1 Base and shared runtime
-  git: ["git --version"],
-  curl: ["curl --version"],
-  rsync: ["rsync --version"],
-  tini: ["tini --version"],
-  jq: ["jq --version"],
-  unzip: ["unzip -v"],
-  xz: ["xz --version"],
-  gcc: ["gcc --version", /\) (\d+\.\d+\.\d+)/],
-  make: ["make --version"],
-  "pkg-config": ["pkg-config --version"],
-  jgates: ["jgates --version", /^jgates (\S+)$/m],
-  "quality-sidecar": ["/opt/tools/python/quality-sidecar/bin/python -c 'import tomllib; print(tomllib.load(open(\"/opt/jgates/quality-gate/pyproject.toml\", \"rb\"))[\"project\"][\"version\"])'"],
-  tomlkit: ["/opt/tools/python/quality-sidecar/bin/python -c 'import tomlkit; print(tomlkit.__version__)'"],
-  // 2.2 Python
-  python: ["python --version"],
-  uv: ["uv --version"],
-  ruff: ["ruff --version"],
-  mypy: ["mypy --version"],
-  pytest: ["pytest --version"],
-  "pytest-cov": ["/opt/tools/python/pytest/bin/python -c 'import importlib.metadata as m; print(m.version(\"pytest-cov\"))'"],
-  coverage: ["coverage --version"],
-  hypothesis: ["/opt/tools/python/pytest/bin/python -c 'import hypothesis; print(hypothesis.__version__)'"],
-  // mutmut reads its configuration first and needs a project with sources, even for --version.
-  mutmut: ["(mkdir -p /tmp/mutmut/src && cd /tmp/mutmut && mutmut --version)"],
-  "import-linter": ["lint-imports --version"],
-  schemathesis: ["st --version"],
-  semgrep: ["semgrep --version"],
-  checkov: ["checkov --version"],
-  zizmor: ["zizmor --version"],
-  // 2.3 TypeScript / JavaScript
-  node: ["node --version"],
-  npm: ["npm --version"],
-  corepack: ["corepack --version"],
-  typescript: ["tsc --version"],
-  pyright: ["pyright --version"],
-  eslint: ["eslint --version"],
-  "typescript-eslint": ["node -p 'require(\"/opt/tools/node/eslint/node_modules/typescript-eslint/package.json\").version'"],
-  prettier: ["prettier --version"],
-  vitest: ["vitest --version"],
-  stryker: ["stryker --version"],
-  "stryker-vitest-runner": ["node -p 'require(\"/opt/tools/node/stryker/node_modules/@stryker-mutator/vitest-runner/package.json\").version'"],
-  "stryker-jest-runner": ["node -p 'require(\"/opt/tools/node/stryker/node_modules/@stryker-mutator/jest-runner/package.json\").version'"],
-  jscpd: ["jscpd --version"],
-  "dependency-cruiser": ["depcruise --version"],
-  "fast-check": ["node -p 'require(\"/opt/tools/node/fast-check/node_modules/fast-check/package.json\").version'"],
-  // 2.4 Go, Rust and .NET
-  go: ["go version"],
-  "golangci-lint": ["golangci-lint --version"],
-  govulncheck: ["govulncheck -version", /govulncheck@v(\S+)/],
-  rustup: ["rustup --version", /rustup (\d+\.\d+\.\d+)/],
-  rustc: ["rustc --version"],
-  cargo: ["cargo --version"],
-  rustfmt: ["rustfmt --version"],
-  clippy: ["cargo clippy --version"],
-  "cargo-audit": ["cargo audit --version"],
-  "cargo-llvm-cov": ["cargo llvm-cov --version"],
-  dotnet: ["dotnet --version"],
-  "dotnet-format": ["dotnet format --version"],
-  // 2.5 Cross-stack security, API and runtime tools
-  gitleaks: ["gitleaks version"],
-  trivy: ["trivy --version", /Version: (\S+)/],
-  "osv-scanner": ["osv-scanner --version", /osv-scanner version: (\S+)/],
-  oasdiff: ["oasdiff --version"],
-  java: ["java --version"],
-  // ZAP's default home is the image user's passwd home (/tmp/home), which a fresh tmpfs does not have: like the adapter,
-  // the home is given with -dir. (Under --network none log4j also logs that it cannot resolve the container's hostname;
-  // that line is harmless.)
-  zap: ['zap.sh -cmd -dir "$HOME/.ZAP" -version', /^(\d+\.\d+\.\d+)\s*$/m],
-  shellcheck: ["shellcheck --version", /version: (\S+)/],
-  hadolint: ["hadolint --version"],
-  squawk: ["squawk --version"],
-};
+// Every program of the image, with the command that asks it for its version and, when the version is not the first
+// dotted number of the answer, the pattern that finds it: read from runtimes.json and the install entries (a tool slice
+// adds its program by adding its install entry). Libraries the image ships for runners (no command of their own)
+// answer through their package metadata.
+const TOOLS = Object.fromEntries(Object.entries(imagePrograms()).map(([name, program]) => [name, program.pattern ? [program.command, new RegExp(program.pattern, "m")] : [program.command]]));
 
 // The step contract of the runner (PLAN.md shared interfaces), without the volumes.
 const STEP = ["run", "--rm", "--init", "--pull", "never", "--network", "none", "--read-only", "--tmpfs", "/tmp:exec", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", "10001:10001", "--env", "HOME=/tmp", "--label", "org.jgates.dev=true", "--label", "org.jgates.test=tools-image"];
@@ -122,7 +51,7 @@ before(() => {
   imageJson = JSON.parse(shown.out);
 });
 
-test("S2: every tool of PLAN-image.md 2.1-2.5 answers its version command with the version image.json records", () => {
+test("S2: every program of the image answers its version command with the version image.json records", () => {
   const names = Object.keys(TOOLS);
   for (const name of names) assert.equal(typeof imageJson.tools[name], "string", `image.json records ${name}`);
   // One container for every tool: each answer is framed by separators, followed by its exit code.
@@ -205,12 +134,16 @@ test("S2: OCI labels, the JGates version label and one org.jgates.tool.<tool>.ve
   for (const [tool, version] of Object.entries(imageJson.tools)) assert.equal(labels[`org.jgates.tool.${tool}.version`], version, tool);
 });
 
-test("S2: the image is at most 7 GB", () => {
+test("S2: the image's size is reported and the pin carries what the build measured (no budget: ADR-0020)", () => {
   const layers = docker(["history", "--no-trunc", "--human=false", "--format", "{{.Size}}", IMAGE]).out.split(/\s+/).filter(Boolean);
   const uncompressed = layers.reduce((sum, size) => sum + Number(size), 0);
   console.log(`# ${IMAGE}: engine size ${inspect.Size} bytes, ${uncompressed} bytes uncompressed in ${layers.length} history entries`);
-  assert.ok(inspect.Size > 0 && inspect.Size <= SIZE_LIMIT, `docker image inspect size ${inspect.Size} <= ${SIZE_LIMIT}`);
-  assert.ok(uncompressed > 0 && uncompressed <= SIZE_LIMIT, `uncompressed size ${uncompressed} <= ${SIZE_LIMIT}`);
+  assert.ok(inspect.Size > 0 && uncompressed > 0);
+  const pin = JSON.parse(fs.readFileSync(path.join(packageRoot, "release", "tools-image.json"), "utf8"));
+  if (pin.digest === inspect.Id) {
+    assert.equal(pin.compressedBytes, inspect.Size, "the pin's compressed size is the engine's image size");
+    assert.equal(pin.uncompressedBytes, uncompressed, "the pin's unpacked size is the sum of the layers");
+  } else console.log(`# the pin names ${pin.digest}, not this image (${inspect.Id}): written by the next npm run image:build`);
 });
 
 test("S2: no CodeQL, no official Semgrep rules and no vulnerability database inside the image", () => {

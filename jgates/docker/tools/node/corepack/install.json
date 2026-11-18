@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "corepack",
+      "link": "corepack",
+      "path": "node_modules/.bin/corepack",
+      "version": [
+        "corepack",
+        "--version"
+      ]
+    }
+  ]
+}

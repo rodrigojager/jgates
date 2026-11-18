@@ -1,0 +1,17 @@
+{
+  "provides": [
+    {
+      "name": "eslint",
+      "link": "eslint",
+      "path": "node_modules/.bin/eslint",
+      "version": [
+        "eslint",
+        "--version"
+      ]
+    },
+    {
+      "name": "typescript-eslint",
+      "package": "typescript-eslint"
+    }
+  ]
+}

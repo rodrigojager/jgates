@@ -191,13 +191,15 @@ it prints the attribution line "Requirement text: OWASP ASVS 5.0.0, © The OWASP
 
 Every tool listed in /etc/jgates/image.json of the image, with its license and the place its source is published.
 Tools are installed unmodified, from the pinned release or package, and run only as separate processes: JGates never
-links to them. The GPL tools (git, make, rsync, shellcheck, hadolint, golangci-lint, gcc, the Java runtime with its
-Classpath Exception) are shipped unmodified; their source is available at the URL of the row and, for Debian packages,
-from Debian. The image carries the license and notice files of what it ships in /usr/share/jgates/notices/
-(this file, the JGates license, the license files of the Python and Node packages of the tool environments, and the
-Debian copyright files). The image build checks every component of its SPDX SBOM against
-jgates/docker/tools/license-policy.json: AGPL and unknown licenses fail the build. Never in the image: CodeQL,
-the official Semgrep rules, vulnerability databases, MegaLinter, credentials.
+links to them. The GPL and AGPL tools (their rows say so) are shipped unmodified; their source is available at the URL
+of the row and, for Debian packages, from Debian. The image carries the license and notice files of what it ships in
+/usr/share/jgates/notices/ (this file, the JGates license, the license files of the Python and Node packages of the tool
+environments and of the other install entries, and the Debian copyright files). The image build checks every component
+of its SPDX SBOM against jgates/docker/tools/license-policy.json, and the license each linter descriptor declares
+against the same policy: AGPL and unknown licenses fail the build, except a tool the policy names one by one with the
+user's decision (trufflehog, AGPL-3.0, accepted on 2026-11-17). The table below is generated
+(`npm --prefix jgates run image:docs`). Never in the image: CodeQL, the official Semgrep rules, vulnerability databases,
+MegaLinter, credentials.
 
 | Tool | License | Source |
 | --- | --- | --- |
@@ -211,10 +213,9 @@ the official Semgrep rules, vulnerability databases, MegaLinter, credentials.
 | `curl` | curl | <https://github.com/curl/curl> |
 | `dependency-cruiser` | MIT | <https://github.com/sverweij/dependency-cruiser> |
 | `dotnet` | MIT | <https://github.com/dotnet/sdk> |
+| `dotnet-ef` | MIT (EF Core command-line tools) | <https://github.com/dotnet/efcore> |
 | `dotnet-format` | MIT | <https://github.com/dotnet/format> |
 | `dotnet-stryker` | Apache-2.0 (Stryker.NET; its bundled assemblies are covered by the tool) | <https://github.com/stryker-mutator/stryker-net> |
-| `libgit2` | GPL-2.0-only WITH GCC-exception-2.0 (the libgit2 linking exception; bundled unmodified by Stryker.NET through LibGit2Sharp) | <https://github.com/libgit2/libgit2> |
-| `dotnet-ef` | MIT (EF Core command-line tools) | <https://github.com/dotnet/efcore> |
 | `eslint` | MIT | <https://github.com/eslint/eslint> |
 | `fast-check` | MIT | <https://github.com/dubzzz/fast-check> |
 | `gcc` | GPL-3.0-or-later with the GCC Runtime Library Exception | <https://gcc.gnu.org/git.html> |
@@ -230,6 +231,7 @@ the official Semgrep rules, vulnerability databases, MegaLinter, credentials.
 | `jgates` | MIT | <https://github.com/rodrigojager/jgates> |
 | `jq` | MIT | <https://github.com/jqlang/jq> |
 | `jscpd` | MIT | <https://github.com/kucherenko/jscpd> |
+| `libgit2` | GPL-2.0-only WITH GCC-exception-2.0 (the libgit2 linking exception; bundled unmodified by Stryker.NET through LibGit2Sharp) | <https://github.com/libgit2/libgit2> |
 | `make` | GPL-3.0-or-later | <https://git.savannah.gnu.org/cgit/make.git> |
 | `mutmut` | BSD-3-Clause | <https://github.com/boxed/mutmut> |
 | `mypy` | MIT | <https://github.com/python/mypy> |

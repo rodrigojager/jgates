@@ -1,0 +1,17 @@
+{
+  "provides": [
+    {
+      "name": "schemathesis",
+      "link": "schemathesis",
+      "path": "bin/schemathesis",
+      "version": [
+        "schemathesis",
+        "--version"
+      ]
+    },
+    {
+      "link": "st",
+      "path": "bin/st"
+    }
+  ]
+}

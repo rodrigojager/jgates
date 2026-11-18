@@ -1,0 +1,18 @@
+{
+  "version": "2.7.1",
+  "url": "https://github.com/google/osv-scanner/releases/download/v{version}/osv-scanner_linux_amd64",
+  "sha256": "fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8",
+  "archive": "file",
+  "save": "osv-scanner",
+  "provides": [
+    {
+      "name": "osv-scanner",
+      "link": "osv-scanner",
+      "path": "osv-scanner",
+      "version": [
+        "osv-scanner",
+        "--version"
+      ]
+    }
+  ]
+}

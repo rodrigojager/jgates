@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "description": "The toolchains and the base programs of the JGates tools image, which the Dockerfile installs itself (they are not install entries of PLAN-image.md section 3). write-image-json.py asks each for its version; pinArg names the build argument of the Dockerfile's final stage that pins it. The tools are the install entries (installs.json, written by scripts/image-installs.mjs).",
+  "runtimes": [
+    {
+      "name": "git",
+      "version": [
+        "git",
+        "--version"
+      ]
+    },
+    {
+      "name": "curl",
+      "version": [
+        "curl",
+        "--version"
+      ]
+    },
+    {
+      "name": "rsync",
+      "version": [
+        "rsync",
+        "--version"
+      ]
+    },
+    {
+      "name": "tini",
+      "version": [
+        "tini",
+        "--version"
+      ]
+    },
+    {
+      "name": "jq",
+      "version": [
+        "jq",
+        "--version"
+      ]
+    },
+    {
+      "name": "unzip",
+      "version": [
+        "unzip",
+        "-v"
+      ]
+    },
+    {
+      "name": "xz",
+      "version": [
+        "xz",
+        "--version"
+      ]
+    },
+    {
+      "name": "gcc",
+      "version": [
+        "gcc",
+        "-dumpfullversion"
+      ]
+    },
+    {
+      "name": "make",
+      "version": [
+        "make",
+        "--version"
+      ]
+    },
+    {
+      "name": "pkg-config",
+      "version": [
+        "pkg-config",
+        "--version"
+      ]
+    },
+    {
+      "name": "jgates",
+      "version": [
+        "jgates",
+        "--version"
+      ],
+      "pattern": "jgates (\\S+)",
+      "pinArg": "JGATES_VERSION"
+    },
+    {
+      "name": "python",
+      "version": [
+        "python3",
+        "--version"
+      ]
+    },
+    {
+      "name": "uv",
+      "version": [
+        "uv",
+        "--version"
+      ],
+      "pinArg": "UV_VERSION"
+    },
+    {
+      "name": "node",
+      "version": [
+        "node",
+        "--version"
+      ],
+      "pinArg": "NODE_VERSION"
+    },
+    {
+      "name": "npm",
+      "version": [
+        "npm",
+        "--version"
+      ]
+    },
+    {
+      "name": "go",
+      "version": [
+        "go",
+        "version"
+      ],
+      "pinArg": "GO_VERSION"
+    },
+    {
+      "name": "rustup",
+      "version": [
+        "rustup",
+        "--version"
+      ],
+      "pattern": "rustup (\\d+\\.\\d+\\.\\d+)",
+      "pinArg": "RUSTUP_VERSION"
+    },
+    {
+      "name": "rustc",
+      "version": [
+        "rustc",
+        "--version"
+      ],
+      "pinArg": "RUST_VERSION"
+    },
+    {
+      "name": "cargo",
+      "version": [
+        "cargo",
+        "--version"
+      ],
+      "pinArg": "RUST_VERSION"
+    },
+    {
+      "name": "rustfmt",
+      "version": [
+        "rustfmt",
+        "--version"
+      ]
+    },
+    {
+      "name": "clippy",
+      "version": [
+        "cargo",
+        "clippy",
+        "--version"
+      ]
+    },
+    {
+      "name": "dotnet",
+      "version": [
+        "dotnet",
+        "--version"
+      ],
+      "pinArg": "DOTNET_SDK_VERSION"
+    },
+    {
+      "name": "dotnet-format",
+      "version": [
+        "dotnet",
+        "format",
+        "--version"
+      ]
+    },
+    {
+      "name": "java",
+      "version": [
+        "java",
+        "--version"
+      ],
+      "pinArg": "JAVA_VERSION"
+    },
+    {
+      "name": "zap",
+      "version": [
+        "zap.sh",
+        "-cmd",
+        "-version"
+      ],
+      "pattern": "^(\\d+\\.\\d+\\.\\d+)\\s*$",
+      "pinArg": "ZAP_VERSION",
+      "stepCommand": "zap.sh -cmd -dir \"$HOME/.ZAP\" -version",
+      "note": "Under the step contract ZAP's default home (the image user's passwd home) does not exist on the fresh tmpfs: like the adapter, the step-contract check gives it a home with -dir."
+    }
+  ]
+}

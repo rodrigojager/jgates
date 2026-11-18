@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "mypy",
+      "link": "mypy",
+      "path": "bin/mypy",
+      "version": [
+        "mypy",
+        "--version"
+      ]
+    }
+  ]
+}
