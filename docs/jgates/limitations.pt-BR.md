@@ -79,7 +79,7 @@ O semantic gate é opcional, continua no computador e está descrito em [semanti
 
 O `THIRD_PARTY_NOTICES.md` (na raiz do repositório) lista todos os componentes. Para quem distribui uma imagem ou um pacote, estes pontos importam:
 
-- **A imagem do sidecar antigo é AGPL-3.0.** O sidecar do quality gate antigo parte da imagem do MegaLinter. O JGates não a constrói mais nem a usa nos planos do `jgates run`, mas o `jgates ci` e o comando `quality-gate` ainda usam essa camada. Ela roda como um processo separado, não ligado ao JGates, mas redistribuir essa imagem exige a oferta do código-fonte e o texto da licença do MegaLinter e das ferramentas que ele embute.
+- **A imagem do sidecar antigo é AGPL-3.0.** O sidecar do quality gate antigo parte da imagem do MegaLinter. O JGates não a constrói mais nem a usa nos planos do `jgates run`, mas o comando `quality-gate` ainda usa essa camada; o `jgates ci` roda dentro da imagem de ferramentas, que não tem o MegaLinter. Ela roda como um processo separado, não ligado ao JGates, mas redistribuir essa imagem exige a oferta do código-fonte e o texto da licença do MegaLinter e das ferramentas que ele embute.
 - **As regras do registro do Semgrep** têm a Semgrep Rules License v1.0, que restringe o uso a fins comerciais internos. A imagem de ferramentas não as contém e o JGates não as distribui; um projeto que as ativa aceita esses termos.
 - **Bases de vulnerabilidades.** A base do Trivy e os dados do OSV.dev têm termos próprios e são baixados para um volume quando você roda `jgates setup` ou `jgates tools update-data`, nunca guardados no repositório.
 - **O CodeQL** está sob os termos do GitHub, que você aceita ao prepará-lo.
@@ -107,7 +107,7 @@ O que já funciona: `execution.failFast` (age como `--fail-fast`), `execution.da
 
 ## CI
 
-- **Escopo do `jgates ci`.** O `jgates ci` roda dentro do contêiner do job (a imagem de ferramentas, fixada por digest). Os scanners que leem configuração ou arquivos de ignorar da árvore analisada ficam de fora, e a camada da ponte do quality gate antigo, com a configuração empacotada e confiável, os cobre. Do MegaLinter só rodam os linters verificados, listados em `quality-gate/sidecar/config/megalinter-linters.json`.
+- **Escopo do `jgates ci`.** O `jgates ci` roda dentro do contêiner do job (a imagem de ferramentas, fixada por digest). Os scanners que leem configuração ou arquivos de ignorar da árvore analisada ficam de fora, e a camada da ponte do quality gate antigo, com a configuração empacotada e confiável, os cobre. O MegaLinter não roda ali: a imagem de ferramentas não o tem, e a subverificação `megalinter` da ponte fica sempre desligada, substituída pelos linters que são ferramentas próprias do JGates.
 - **Resultados autodeclarados.** Ferramentas que executam código do projeto produzem um resultado `selfReported`, que só aprova se a política confiar nele (`execution.trustSelfReported`, padrão `false`).
 - **Ativação nos templates da política.** No repositório da política use a ativação `always`; a ativação por arquivo deixa o projeto ligar ou desligar a ferramenta.
 - **Sem prova em pipelines reais.** Os exemplos em `examples/ci` são testados como texto e pelo comando; nenhum pipeline do GitHub ou do GitLab os executou de ponta a ponta, e a imagem de ferramentas ainda não foi publicada num registro.

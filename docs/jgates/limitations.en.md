@@ -79,7 +79,7 @@ The semantic gate is optional, stays on the host and is described in [semantic g
 
 `THIRD_PARTY_NOTICES.md` (at the repository root) lists every component. For whoever distributes an image or a package, these points matter:
 
-- **The legacy sidecar image is AGPL-3.0.** The sidecar of the old quality gate starts from the MegaLinter image. JGates no longer builds it or uses it for the plans of `jgates run`, but `jgates ci` and the `quality-gate` command still use that layer. It runs as a separate process, not linked to JGates, but redistributing that image requires the source offer and the license text of MegaLinter and of the tools it bundles.
+- **The legacy sidecar image is AGPL-3.0.** The sidecar of the old quality gate starts from the MegaLinter image. JGates no longer builds it or uses it for the plans of `jgates run`, but the `quality-gate` command still uses that layer; `jgates ci` runs inside the tools image, which has no MegaLinter. It runs as a separate process, not linked to JGates, but redistributing that image requires the source offer and the license text of MegaLinter and of the tools it bundles.
 - **Semgrep registry rules** carry the Semgrep Rules License v1.0, which restricts use to internal business purposes. The tools image does not contain them and JGates does not distribute them; a project that enables them accepts those terms.
 - **Vulnerability databases.** The Trivy database and the OSV.dev data have their own terms and are downloaded into a volume when you run `jgates setup` or `jgates tools update-data`, never stored in the repository.
 - **CodeQL** is under GitHub's terms, which you accept when you prepare it.
@@ -107,7 +107,7 @@ What already works: `execution.failFast` (acts as `--fail-fast`), `execution.dat
 
 ## CI
 
-- **Scope of `jgates ci`.** `jgates ci` runs inside the container of the job (the tools image, pinned by digest). The scanners that read configuration or ignore files from the analyzed tree are left out of it, and the layer of the legacy quality gate bridge, with its packaged and trusted configuration, covers them. Of MegaLinter only the verified linters run, listed in `quality-gate/sidecar/config/megalinter-linters.json`.
+- **Scope of `jgates ci`.** `jgates ci` runs inside the container of the job (the tools image, pinned by digest). The scanners that read configuration or ignore files from the analyzed tree are left out of it, and the layer of the legacy quality gate bridge, with its packaged and trusted configuration, covers them. MegaLinter does not run there: the tools image has none, and the bridge's `megalinter` subcheck is always off, replaced by the linters that are JGates tools of their own.
 - **Self-reported results.** Tools that execute project code produce a `selfReported` result, which only approves if the policy trusts it (`execution.trustSelfReported`, default `false`).
 - **Activation in the policy templates.** In the policy repository use the `always` activation; activation by file lets the project turn the tool on or off.
 - **No proof on real pipelines.** The examples in `examples/ci` are tested as text and through the command; no GitHub or GitLab pipeline ran them end to end, and the tools image has not been published to a registry yet.

@@ -26,6 +26,9 @@ const HAND_SUPERSEDING: Readonly<Record<string, readonly string[]>> = {
 // descriptor tools of the linter engine that answer for a MegaLinter linter join the hand-written ones.
 const MEGALINTER_SUPERSEDING = ["golangci-lint", "clippy", "dotnet-analyzers", "shellcheck", "hadolint"];
 
+/** The bridge subcheck that is replaced even when no linter tool applies: the tools image has no MegaLinter. */
+const RETIRED_SUBCHECK = "megalinter";
+
 export const SUPERSEDING_ADAPTERS: Readonly<Record<string, readonly string[]>> = withDerived(HAND_SUPERSEDING, () => ({
   megalinter: [...MEGALINTER_SUPERSEDING, ...linterSupersedingIds()],
 }));
@@ -56,6 +59,16 @@ export function supersededPairs(bridgePairs: Array<{ subcheck: string; capabilit
     const adapters = SUPERSEDING_ADAPTERS[pair.subcheck];
     if (!adapters) continue;
     const by = active.filter((a) => a.adapter !== null && adapters.includes(a.adapter) && a.capability === pair.capability).map((a) => `${a.tool}#${a.capability}`);
+    if (by.length === 0 && pair.subcheck === RETIRED_SUBCHECK) {
+      // The tools image has no MegaLinter: the subcheck is never run, and the linter tools answer for it.
+      out.set(`${pair.subcheck}#${pair.capability}`, {
+        subcheck: pair.subcheck,
+        capability: pair.capability,
+        by,
+        reason: { code: "SUPERSEDED", message: t("bridge_retired_megalinter", { capability: pair.capability }) },
+      });
+      continue;
+    }
     if (by.length === 0) continue;
     const key = TEST_SUBCHECKS.has(pair.subcheck) ? "bridge_superseded_tests" : "bridge_superseded";
     out.set(`${pair.subcheck}#${pair.capability}`, {

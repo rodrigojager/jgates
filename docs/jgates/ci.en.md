@@ -95,7 +95,7 @@ Some results depend on code the project controls, so they are not trusted:
 | --- | --- |
 | trusted | The tool reads the code without running it. Counts normally. |
 | self-reported | The tool executes project code (tests, linters that load project files). The result is marked `selfReported` and only approves if the policy sets `execution.trustSelfReported: true` (default: false). |
-| excluded | Tools that read configuration or ignore files from the analyzed tree by themselves. The native scanners (gitleaks, trivy, osv-scanner, checkov, jscpd, dependency-cruiser, import-linter) do not run on their own in `jgates ci`: the hardened quality gate bridge already covers them. Of MegaLinter only the verified linters run, the ones listed as `trusted` or `self-reported` in `quality-gate/sidecar/config/megalinter-linters.json`; the others are left out. |
+| excluded | Tools that read configuration or ignore files from the analyzed tree by themselves. The native scanners (gitleaks, trivy, osv-scanner, checkov, jscpd, dependency-cruiser, import-linter) do not run on their own in `jgates ci`: the hardened quality gate bridge already covers them. MegaLinter does not run: the tools image has none, and its linters are JGates tools of their own, each `trusted` or `self-reported` by its descriptor (the bridge's `megalinter` subcheck is always off and is not reported as missing). |
 
 Suppressions written in the code (comments that silence a finding) become the step `jgates-ci.suppressions`, so they appear in the result instead of disappearing. Coverage reports that arrive inside the commit are refused, because the project supplied them.
 

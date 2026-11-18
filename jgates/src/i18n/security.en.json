@@ -42,6 +42,7 @@
   "security_reason_completed": "{tool} {version}: {count, plural, one {# finding} other {# findings}}",
   "security_database": "vulnerability database {source}, updated on {date}",
   "bridge_superseded": "Switched off so the same tool does not run twice: the dedicated adapter runs {subcheck} for {capability} ({by}), and the bridge subcheck stays out.",
+  "bridge_retired_megalinter": "Switched off: the tools image has no MegaLinter. The linters it ran are JGates tools of their own (the plan lists the ones that apply to this project for {capability}), so the bridge subcheck never runs and is not reported as missing.",
   "bridge_superseded_tests": "Switched off so the project's tests do not run twice: the test adapter runs them with the project's own runner for {capability} ({by}), and the bridge's {subcheck} stays out.",
   "bridge_runs_twice": "The bridge subcheck {subcheck} keeps running for {capabilities}, while the dedicated adapter ({by}) runs the same tool for another capability: the tool runs twice. Declare those capabilities in the adapter instance too so the bridge leaves it out.",
   "security_findings_dropped": "{count, plural, one {# finding of a capability the plan did not ask of this instance was left out} other {# findings of a capability the plan did not ask of this instance were left out}}",
