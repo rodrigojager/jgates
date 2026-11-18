@@ -9,10 +9,10 @@
     "--log-format",
     "%{path}:%{line}:%{column}:%{kind}:%{check}:%{message}",
     "--",
-    "motd.pp"
+    "motd/manifests/init.pp"
    ],
-   "exit": 1,
-   "stdout": "motd.pp:2:7:error:autoloader_layout:motd not in autoload module layout\n",
+   "exit": 0,
+   "stdout": "",
    "stderr": ""
   }
  ]
