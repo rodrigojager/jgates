@@ -1,0 +1,18 @@
+{
+  "tool": "bash-exec",
+  "kind": "bad",
+  "version": "5.2.37",
+  "calls": [
+    {
+      "args": [
+        "-c",
+        "[ -x \"$1\" ] || { echo \"the script is not executable (chmod +x)\"; exit 1; }",
+        "bash-exec",
+        "not-executable.sh"
+      ],
+      "exit": 1,
+      "stdout": "the script is not executable (chmod +x)\n",
+      "stderr": ""
+    }
+  ]
+}

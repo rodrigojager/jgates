@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "bash-exec",
+  "name": "bash-exec",
+  "sourceUrl": "https://www.gnu.org/software/bash/",
+  "license": "GPL-3.0-or-later",
+  "program": {
+    "tool": "bash",
+    "versionRange": ">=5.0.0 <6.0.0"
+  },
+  "megalinter": [
+    "BASH_EXEC"
+  ],
+  "place": {
+    "section": "language",
+    "group": "bash",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".sh",
+      ".bash",
+      ".dash",
+      ".ksh"
+    ],
+    "content": {
+      "pattern": "^#!(?:/usr/bin/env bash|/bin/bash|/bin/sh)"
+    }
+  },
+  "run": {
+    "mode": "each-file",
+    "args": [
+      "-c",
+      "[ -x \"$1\" ] || { echo \"the script is not executable (chmod +x)\"; exit 1; }",
+      "bash-exec",
+      "{file}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "status",
+    "rule": "bash-exec.not-executable",
+    "level": "error"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "bash-exec reads no configuration: it checks the file's executable permission",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the check has no in-file suppression"
+    }
+  },
+  "install": "bash-exec",
+  "text": {
+    "en": {
+      "label": "bash-exec (executable scripts)",
+      "purpose": "Checks that each shell script has its executable permission, so it can be run directly.",
+      "limitation": "It only looks at the file's permission and never runs the script. A project copied from a system that does not keep permissions (a Windows folder) shows every script as it was copied.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "bash-exec (scripts executáveis)",
+      "purpose": "Verifica se cada script de shell tem a permissão de execução, para poder ser executado diretamente.",
+      "limitation": "Só olha a permissão do arquivo e nunca executa o script. Um projeto copiado de um sistema que não guarda permissões (uma pasta do Windows) mostra cada script como foi copiado.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

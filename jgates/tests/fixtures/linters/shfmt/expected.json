@@ -1,0 +1,11 @@
+{
+  "files": [
+    "format-me.sh"
+  ],
+  "findings": [
+    {
+      "rule": "shfmt.unformatted",
+      "file": "format-me.sh"
+    }
+  ]
+}

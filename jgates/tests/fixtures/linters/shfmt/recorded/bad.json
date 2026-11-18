@@ -1,0 +1,17 @@
+{
+ "tool": "shfmt",
+ "kind": "bad",
+ "version": "3.14.1",
+ "calls": [
+  {
+   "args": [
+    "-d",
+    "--",
+    "format-me.sh"
+   ],
+   "exit": 1,
+   "stdout": "diff format-me.sh.orig format-me.sh\n--- format-me.sh.orig\n+++ format-me.sh\n@@ -1,4 +1,4 @@\n #!/bin/bash\n if [ -n \"$1\" ]; then\n-echo \"$1\"\n+\techo \"$1\"\n fi\n",
+   "stderr": ""
+  }
+ ]
+}
