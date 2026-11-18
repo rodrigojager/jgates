@@ -1,0 +1,18 @@
+{
+  "files": [
+    "hello.go"
+  ],
+  "findings": [
+    {
+      "rule": "package-comments",
+      "file": "hello.go",
+      "line": 1
+    },
+    {
+      "rule": "exported",
+      "file": "hello.go",
+      "line": 3
+    }
+  ]
+}
+

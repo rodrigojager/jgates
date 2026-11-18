@@ -1,0 +1,17 @@
+{
+  "note": "go install verifies every module against the Go checksum database (sum.golang.org).",
+  "module": "github.com/mgechev/revive",
+  "version": "1.17.1",
+  "ldflags": "-s -w",
+  "provides": [
+    {
+      "name": "revive",
+      "link": "revive",
+      "path": "revive",
+      "version": [
+        "revive",
+        "-version"
+      ]
+    }
+  ]
+}
