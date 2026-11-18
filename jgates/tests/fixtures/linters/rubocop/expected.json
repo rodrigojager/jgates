@@ -1,0 +1,12 @@
+{
+  "files": [
+    "greeter.rb"
+  ],
+  "findings": [
+    {
+      "rule": "Lint/UselessAssignment",
+      "file": "greeter.rb",
+      "line": 4
+    }
+  ]
+}

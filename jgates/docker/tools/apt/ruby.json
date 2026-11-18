@@ -1,0 +1,27 @@
+{
+  "packages": [
+    "ruby",
+    "bundler",
+    "ruby-dev"
+  ],
+  "provides": [
+    {
+      "name": "ruby",
+      "path": "/usr/bin/ruby",
+      "version": [
+        "ruby",
+        "--version"
+      ],
+      "pattern": "ruby (\\d+\\.\\d+(?:\\.\\d+)?)"
+    },
+    {
+      "name": "bundler",
+      "path": "/usr/bin/bundle",
+      "version": [
+        "bundle",
+        "--version"
+      ],
+      "pattern": "(\\d+\\.\\d+(?:\\.\\d+)?)"
+    }
+  ]
+}
