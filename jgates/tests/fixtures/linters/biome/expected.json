@@ -1,0 +1,12 @@
+{
+  "files": [
+    "total.js"
+  ],
+  "findings": [
+    {
+      "rule": "lint/suspicious/noDebugger",
+      "file": "total.js",
+      "line": 2
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "version": "2.6.8",
+  "url": "https://github.com/biomejs/biome/releases/download/%40biomejs%2Fbiome%40{version}/biome-linux-x64",
+  "sha256": "fc1cb7c6664d6fa315144f58bd03096ee5d035e641538840a80262d59203d5dd",
+  "archive": "file",
+  "save": "biome",
+  "executable": [
+    "biome"
+  ],
+  "provides": [
+    {
+      "name": "biome",
+      "link": "biome",
+      "path": "biome",
+      "version": [
+        "biome",
+        "--version"
+      ]
+    }
+  ]
+}

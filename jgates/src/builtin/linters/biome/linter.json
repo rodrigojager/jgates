@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "id": "biome",
+  "name": "Biome",
+  "sourceUrl": "https://github.com/biomejs/biome",
+  "license": "MIT OR Apache-2.0",
+  "program": {
+    "tool": "biome",
+    "prefix": [
+      "lint"
+    ],
+    "versionRange": ">=2.0.0 <3.0.0"
+  },
+  "megalinter": [],
+  "place": {
+    "section": "language",
+    "group": "javascript",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".js",
+      ".mjs",
+      ".cjs",
+      ".jsx",
+      ".ts",
+      ".mts",
+      ".cts",
+      ".tsx",
+      ".json",
+      ".jsonc",
+      ".css",
+      ".graphql",
+      ".gql"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--reporter=json",
+      "--colors=off",
+      "--no-errors-on-unmatched",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "items": "diagnostics[]",
+    "fields": {
+      "file": "location.path",
+      "rule": "category",
+      "level": "severity",
+      "message": "message",
+      "line": "location.start.line",
+      "column": "location.start.column"
+    }
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning",
+    "information": "info"
+  },
+  "configuration": {
+    "files": [
+      "biome.json",
+      "biome.jsonc",
+      ".biome.json",
+      ".biome.jsonc"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "Biome reads the project's biome.json or biome.jsonc: the project decides the rules, the files and the layout",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: biome-ignore comments",
+      "pattern": "biome-ignore",
+      "files": "\\.(?:[cm]?[jt]sx?|jsonc?|css|g(?:raph)?ql)$"
+    }
+  },
+  "install": "biome",
+  "text": {
+    "en": {
+      "label": "Biome (JavaScript, TypeScript, JSON, CSS and GraphQL)",
+      "purpose": "Lints JavaScript, TypeScript, JSON, CSS and GraphQL files with Biome's rules: suspicious code, correctness, complexity, style and accessibility mistakes.",
+      "limitation": "It runs Biome's recommended rules unless the project has a biome.json; a project whose biome.json extends a shared configuration kept outside the repository cannot be followed. It lints only; the layout check (biome format) is not run.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Biome (JavaScript, TypeScript, JSON, CSS e GraphQL)",
+      "purpose": "Analisa arquivos JavaScript, TypeScript, JSON, CSS e GraphQL com as regras do Biome: código suspeito, erros de correção, complexidade, estilo e acessibilidade.",
+      "limitation": "Roda as regras recomendadas do Biome, a menos que o projeto tenha um biome.json; um projeto cujo biome.json estende uma configuração compartilhada guardada fora do repositório não pode ser seguido. Só analisa; a verificação de layout (biome format) não roda.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}
