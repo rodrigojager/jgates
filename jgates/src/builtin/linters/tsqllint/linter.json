@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "tsqllint",
+  "name": "TSQLLint",
+  "sourceUrl": "https://github.com/tsqllint/tsqllint",
+  "license": "MIT",
+  "program": {
+    "tool": "tsqllint",
+    "versionRange": ">=1.16.0 <2.0.0"
+  },
+  "megalinter": [
+    "SQL_TSQLLINT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "sql",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".sql"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "{files}"
+    ],
+    "env": {
+      "DOTNET_ROLL_FORWARD": "Major"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?)\\((?<line>\\d+),(?<column>\\d+)\\): (?<level>error|warning) (?<rule>[a-z-]+) : (?<message>.+)$"
+  },
+  "configuration": {
+    "files": [
+      ".tsqllintrc"
+    ],
+    "default": "tsqllint-default.json",
+    "args": [
+      "--config",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "TSQLLint reads the project's .tsqllintrc: the rules and their levels are the project's choice; without one JGates uses the rule set TSQLLint ships by default",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: /* tsqllint-disable */ and /* tsqllint-enable */ comments",
+      "pattern": "tsqllint-(?:disable|enable)",
+      "files": "\\.sql$"
+    }
+  },
+  "install": "tsqllint",
+  "text": {
+    "en": {
+      "label": "TSQLLint (T-SQL)",
+      "purpose": "Lints Transact-SQL (SQL Server) files for rules such as SELECT *, missing semicolons, unqualified object names, cursors, non-sargable predicates and keyword capitalization.",
+      "limitation": "It understands T-SQL only: other SQL dialects can produce parse errors. It names the rule and the position but checks no database, only the text of the files.",
+      "needs": "Nothing beyond the tools image: the .NET runtime is in it, no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "TSQLLint (T-SQL)",
+      "purpose": "Verifica arquivos Transact-SQL (SQL Server) quanto a regras como SELECT *, ponto e vírgula ausente, nomes de objeto sem esquema, cursores, predicados não sargable e capitalização de palavras-chave.",
+      "limitation": "Entende apenas T-SQL: outros dialetos de SQL podem gerar erros de análise. Informa a regra e a posição, mas não consulta nenhum banco, só o texto dos arquivos.",
+      "needs": "Nada além da imagem de ferramentas: o runtime .NET já está nela, sem rede e sem as dependências do projeto."
+    }
+  }
+}

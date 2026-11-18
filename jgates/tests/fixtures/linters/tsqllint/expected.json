@@ -1,0 +1,12 @@
+{
+  "files": [
+    "tsqllint_sample.sql"
+  ],
+  "findings": [
+    {
+      "rule": "select-star",
+      "file": "tsqllint_sample.sql",
+      "line": 1
+    }
+  ]
+}

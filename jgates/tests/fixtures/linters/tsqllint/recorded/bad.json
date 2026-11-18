@@ -1,0 +1,15 @@
+{
+ "tool": "tsqllint",
+ "kind": "bad",
+ "version": "16.0.0",
+ "calls": [
+  {
+   "args": [
+    "tsqllint_sample.sql"
+   ],
+   "exit": 1,
+   "stdout": "running tsqllint\ntsqllint_sample.sql(1,8): error select-star : Expected column names in SELECT.\n\nLinted 1 files in 0.3766686 seconds\n\n1 Errors.\n0 Warnings.\n",
+   "stderr": ""
+  }
+ ]
+}

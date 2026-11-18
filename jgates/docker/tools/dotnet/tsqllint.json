@@ -1,0 +1,18 @@
+{
+  "note": "TSQLLint targets .NET 8 and the image carries a newer runtime: the program runs with DOTNET_ROLL_FORWARD=Major (the descriptor sets it for runs; the version command sets it here).",
+  "package": "tsqllint",
+  "version": "1.16.0",
+  "sha256": "b3f0975df59cd23037526f03e38f7dc835ed089b2b788e2bfdd8f7ebc8cb865a",
+  "provides": [
+    {
+      "name": "tsqllint",
+      "path": "tsqllint",
+      "version": [
+        "sh",
+        "-c",
+        "DOTNET_ROLL_FORWARD=Major tsqllint --version"
+      ],
+      "pattern": "(\\d+\\.\\d+\\.\\d+)(?:\\.\\d+)?\\s*$"
+    }
+  ]
+}

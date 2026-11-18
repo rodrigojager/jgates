@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "sqlfluff",
+      "link": "sqlfluff",
+      "path": "bin/sqlfluff",
+      "version": [
+        "sqlfluff",
+        "--version"
+      ]
+    }
+  ]
+}
