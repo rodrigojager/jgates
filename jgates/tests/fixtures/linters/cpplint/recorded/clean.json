@@ -1,0 +1,16 @@
+{
+ "tool": "cpplint",
+ "kind": "clean",
+ "version": "2.0.2",
+ "calls": [
+  {
+   "args": [
+    "--",
+    "cpplint-sample.cpp"
+   ],
+   "exit": 0,
+   "stdout": "Done processing cpplint-sample.cpp\n",
+   "stderr": ""
+  }
+ ]
+}

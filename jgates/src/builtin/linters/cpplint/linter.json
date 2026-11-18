@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "cpplint",
+  "name": "cpplint",
+  "sourceUrl": "https://github.com/cpplint/cpplint",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "cpplint",
+    "versionRange": ">=2.0.0 <3.0.0"
+  },
+  "megalinter": [
+    "C_CPPLINT",
+    "CPP_CPPLINT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "c-cpp",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".c",
+      ".h",
+      ".cpp",
+      ".cc",
+      ".hpp",
+      ".cxx",
+      ".cu",
+      ".hxx",
+      ".c++",
+      ".hh",
+      ".h++",
+      ".cuh"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^(?<file>[^:\\n]+):(?<line>\\d+):\\s+(?<message>.+?)\\s+\\[(?<rule>[a-z_]+/[a-z_]+)\\]\\s+\\[\\d+\\]$"
+  },
+  "configuration": {
+    "files": [
+      "CPPLINT.cfg"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "cpplint reads CPPLINT.cfg files in the project folders (filters, line length, root), else the Google C++ style rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: // NOLINT and // NOLINTNEXTLINE comments",
+      "pattern": "NOLINT",
+      "files": "\\.(c|h|cpp|cc|hpp|cxx|cu|hxx|c\\+\\+|hh|h\\+\\+|cuh)$"
+    }
+  },
+  "install": "cpplint",
+  "text": {
+    "en": {
+      "label": "cpplint (C and C++ style)",
+      "purpose": "Checks C and C++ files against the Google C++ style guide: line length, header guards, include order, casts, naming and whitespace.",
+      "limitation": "It is a style checker, not a bug finder, and it follows Google's conventions unless the project's CPPLINT.cfg changes them.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "cpplint (estilo de C e C++)",
+      "purpose": "Confere arquivos C e C++ com o guia de estilo C++ do Google: tamanho de linha, guardas de cabeçalho, ordem dos includes, conversões, nomes e espaços.",
+      "limitation": "É um verificador de estilo, não um caçador de bugs, e segue as convenções do Google a menos que o CPPLINT.cfg do projeto as mude.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

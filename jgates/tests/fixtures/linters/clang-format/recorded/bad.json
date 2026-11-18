@@ -1,0 +1,18 @@
+{
+ "tool": "clang-format",
+ "kind": "bad",
+ "version": "19.1.7",
+ "calls": [
+  {
+   "args": [
+    "--Werror",
+    "--dry-run",
+    "--",
+    "format-sample.cpp"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "format-sample.cpp:3:15: error: code should be clang-formatted [-Wclang-format-violations]\nint Add(int a,int b){return a+b;}\n              ^\nformat-sample.cpp:3:21: error: code should be clang-formatted [-Wclang-format-violations]\nint Add(int a,int b){return a+b;}\n                    ^\nformat-sample.cpp:3:22: error: code should be clang-formatted [-Wclang-format-violations]\nint Add(int a,int b){return a+b;}\n                     ^\nformat-sample.cpp:3:30: error: code should be clang-formatted [-Wclang-format-violations]\nint Add(int a,int b){return a+b;}\n                             ^\nformat-sample.cpp:3:31: error: code should be clang-formatted [-Wclang-format-violations]\nint Add(int a,int b){return a+b;}\n                              ^\nformat-sample.cpp:3:33: error: code should be clang-formatted [-Wclang-format-violations]\nint Add(int a,int b){return a+b;}\n                                ^\n"
+  }
+ ]
+}

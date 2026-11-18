@@ -1,0 +1,18 @@
+{
+ "tool": "clang-format",
+ "kind": "clean",
+ "version": "19.1.7",
+ "calls": [
+  {
+   "args": [
+    "--Werror",
+    "--dry-run",
+    "--",
+    "format-sample.cpp"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

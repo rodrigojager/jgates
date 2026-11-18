@@ -1,0 +1,16 @@
+{
+ "tool": "cpplint",
+ "kind": "bad",
+ "version": "2.0.2",
+ "calls": [
+  {
+   "args": [
+    "--",
+    "cpplint-sample.cpp"
+   ],
+   "exit": 1,
+   "stdout": "Done processing cpplint-sample.cpp\nTotal errors found: 1\n",
+   "stderr": "cpplint-sample.cpp:3:  Lines should be <= 80 characters long  [whitespace/line_length] [2]\n"
+  }
+ ]
+}

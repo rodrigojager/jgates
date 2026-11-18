@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "cppcheck"
+  ],
+  "provides": [
+    {
+      "name": "cppcheck",
+      "path": "/usr/bin/cppcheck",
+      "version": [
+        "cppcheck",
+        "--version"
+      ],
+      "pattern": "Cppcheck (\\S+)"
+    }
+  ]
+}
