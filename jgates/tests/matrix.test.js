@@ -12,6 +12,7 @@ const MAIN = path.join(dist, "cli", "main.js");
 const repo = path.resolve(here, "..", "..");
 const mx = await import(pathToFileURL(path.join(dist, "core", "matrix", "index.js")).href);
 const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
+const linterEngine = await import(pathToFileURL(path.join(dist, "adapters", "linter", "index.js")).href);
 
 function cliMatrix() {
   const r = spawnSync(process.execPath, [MAIN, "tools", "matrix", "--json"], { encoding: "utf8" });
@@ -59,7 +60,9 @@ test("every capability a manifest announces has an existing test or a stated rea
     for (const c of row.capabilities) {
       if (c.status === "integrated") {
         for (const ref of c.tests) {
-          const file = fs.readFileSync(path.join(here, ref.file), "utf8");
+          // linters.test.js makes one test per linter descriptor, titled by linterTestTitle: those titles are generated.
+          const generated = ref.file === linterEngine.LINTERS_TEST_FILE ? linterEngine.loadLinters().map((l) => linterEngine.linterTestTitle(l.descriptor)).join("\n") : "";
+          const file = fs.readFileSync(path.join(here, ref.file), "utf8") + generated;
           assert.ok(file.includes(ref.test), `${m.id}#${c.id}: "${ref.test}" is in ${ref.file}`);
         }
       }

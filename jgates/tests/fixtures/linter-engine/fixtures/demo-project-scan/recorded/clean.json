@@ -1,0 +1,23 @@
+{
+  "tool": "demo-project-scan",
+  "kind": "clean",
+  "calls": [
+    {
+      "args": [
+        "--config",
+        "/output/linters/demo-project-scan/default.toml",
+        "scan",
+        "--format",
+        "sarif",
+        "--output",
+        "/output/linters/demo-project-scan/report.sarif",
+        "/workspace"
+      ],
+      "exit": 0,
+      "stdout": "0 findings\n",
+      "stderr": "",
+      "reportPath": "/output/linters/demo-project-scan/report.sarif",
+      "report": "{\"version\": \"2.1.0\", \"runs\": [{\"tool\": {\"driver\": {\"name\": \"demo-project-scan\", \"rules\": [{\"id\": \"demo.secret\"}]}}, \"results\": []}]}"
+    }
+  ]
+}

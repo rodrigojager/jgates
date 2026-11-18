@@ -1,0 +1,16 @@
+{
+  "linter_requires": "{tool} runs only where its configuration exists, and none was found at the workspace root ({files}): it does not apply here.",
+  "linter_no_files": "No file {tool} checks was found in the workspace: it does not apply here.",
+  "linter_missing": "{tool} is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
+  "linter_condition_read_only": "Read-only: the tool reports what it finds and rewrites nothing.",
+  "linter_no_invocation": "The plan has no invocation for the instance {tool}.",
+  "linter_blocked": "{tool} could not run: {detail}",
+  "linter_cancelled": "The run was cancelled; {tool} was stopped and its partial output was kept in the logs.",
+  "linter_timeout": "{tool} exceeded the limit of {seconds} s and was ended.",
+  "linter_exit_error": "{tool} ended with code {code} without a result JGates can read: {detail}",
+  "linter_truncated": "the output was truncated",
+  "linter_each_file_loop": "the loop over the files did not finish",
+  "linter_each_file_markers": "the output of the loop over the files does not name every file",
+  "linter_no_report": "the report {file} was not written",
+  "linter_reason_completed": "{tool} {version}: {count, plural, one {# finding} other {# findings}}"
+}

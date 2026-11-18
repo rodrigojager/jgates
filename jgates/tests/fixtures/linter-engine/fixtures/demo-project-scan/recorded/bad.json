@@ -1,0 +1,23 @@
+{
+  "tool": "demo-project-scan",
+  "kind": "bad",
+  "calls": [
+    {
+      "args": [
+        "--config",
+        "/output/linters/demo-project-scan/default.toml",
+        "scan",
+        "--format",
+        "sarif",
+        "--output",
+        "/output/linters/demo-project-scan/report.sarif",
+        "/workspace"
+      ],
+      "exit": 1,
+      "stdout": "1 finding\n",
+      "stderr": "",
+      "reportPath": "/output/linters/demo-project-scan/report.sarif",
+      "report": "{\"version\": \"2.1.0\", \"runs\": [{\"tool\": {\"driver\": {\"name\": \"demo-project-scan\", \"rules\": [{\"id\": \"demo.secret\"}]}}, \"results\": [{\"ruleId\": \"demo.secret\", \"level\": \"error\", \"message\": {\"text\": \"a value that looks like an access key\"}, \"locations\": [{\"physicalLocation\": {\"artifactLocation\": {\"uri\": \"config.env\"}, \"region\": {\"startLine\": 1, \"startColumn\": 9}}}]}]}]}"
+    }
+  ]
+}

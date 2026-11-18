@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "demo.secret",
+      "file": "config.env",
+      "line": 1
+    }
+  ]
+}

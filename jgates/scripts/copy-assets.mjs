@@ -20,3 +20,10 @@ function copyJson(dir) {
 }
 
 copyJson(src);
+
+// The linter descriptors' folders are copied whole: a tool's default configuration may be YAML, TOML or an ini file.
+// The copy mirrors the source, so a descriptor removed from src/ does not linger in dist/.
+const linters = path.join(src, "builtin", "linters");
+const lintersOut = path.join(dist, "builtin", "linters");
+fs.rmSync(lintersOut, { recursive: true, force: true });
+if (fs.existsSync(linters)) fs.cpSync(linters, lintersOut, { recursive: true });

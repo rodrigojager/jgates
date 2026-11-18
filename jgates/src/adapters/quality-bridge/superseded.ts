@@ -4,24 +4,31 @@
 // A subcheck left with another capability still on (Trivy's iac while the trivy adapter runs only dependencies) keeps
 // running in the bridge, and the plan says the tool runs twice.
 import { translator } from "../../i18n/index.js";
+import { linterSupersedingIds, withDerived } from "../linter/derived.js";
 
 /**
  * Subcheck id -> the adapters that replace it. The project's tests are one more case: the bridge's project-tests
  * (`npm test` or `python -m unittest discover`) and its coverage (a report the project left in the folder) are the
  * weaker copy of what a test adapter does with the project's own runner, so they stay out when one runs.
  */
-export const SUPERSEDING_ADAPTERS: Readonly<Record<string, readonly string[]>> = {
+const HAND_SUPERSEDING: Readonly<Record<string, readonly string[]>> = {
   gitleaks: ["gitleaks"],
   trivy: ["trivy"],
   "osv-scanner": ["osv-scanner"],
   checkov: ["checkov"],
   jscpd: ["jscpd"],
-  // MegaLinter's lint is the generic, container-flavored copy of the stack linters: when a stack linter runs lint, the plan
-  // prefers it (it uses the project's own configuration and the tools image) and the bridge's lint stays out.
-  megalinter: ["golangci-lint", "clippy", "dotnet-analyzers", "shellcheck", "hadolint"],
   "project-tests": ["pytest", "vitest"],
   coverage: ["pytest", "vitest"],
 };
+
+// MegaLinter's lint is the generic, container-flavored copy of the stack linters: when a stack linter runs lint, the plan
+// prefers it (it uses the project's own configuration and the tools image) and the bridge's lint stays out. The
+// descriptor tools of the linter engine that answer for a MegaLinter linter join the hand-written ones.
+const MEGALINTER_SUPERSEDING = ["golangci-lint", "clippy", "dotnet-analyzers", "shellcheck", "hadolint"];
+
+export const SUPERSEDING_ADAPTERS: Readonly<Record<string, readonly string[]>> = withDerived(HAND_SUPERSEDING, () => ({
+  megalinter: [...MEGALINTER_SUPERSEDING, ...linterSupersedingIds()],
+}));
 
 /** Subchecks replaced by a test adapter (a different tool doing the same job), with their own reason. */
 const TEST_SUBCHECKS = new Set(["project-tests", "coverage"]);

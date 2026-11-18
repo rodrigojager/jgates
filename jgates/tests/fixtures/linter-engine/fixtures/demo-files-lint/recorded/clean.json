@@ -1,0 +1,17 @@
+{
+  "tool": "demo-files-lint",
+  "kind": "clean",
+  "calls": [
+    {
+      "args": [
+        "--format",
+        "lines",
+        "a.demo",
+        "sub/b.demo"
+      ],
+      "exit": 0,
+      "stdout": "checked 2 files\n",
+      "stderr": ""
+    }
+  ]
+}

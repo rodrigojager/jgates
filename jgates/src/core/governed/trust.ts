@@ -8,6 +8,7 @@
 //     jgates ci: a policy that turns it on is refused (exit 3) with the reason, and nothing runs.
 // The table is the only source of truth: the plan, the step wrapper and the documentation read it.
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
+import { linterTrust, withDerived } from "../../adapters/linter/derived.js";
 
 export type CiTreatment = "trusted" | "self-reported" | "excluded";
 
@@ -19,8 +20,8 @@ export interface CiTrust {
   suppressions: string;
 }
 
-/** Adapters that run their own process (src/core/plan/adapters.ts), by manifest id. */
-export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
+/** The hand-written adapters that run their own process (src/core/plan/adapters.ts), by manifest id. */
+const HAND_ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
   ruff: {
     treatment: "trusted",
     config: "the policy's binding (tools.<id>.config), else Ruff's defaults with --isolated; pyproject.toml, ruff.toml and .ruff.toml of the project are never read",
@@ -217,6 +218,9 @@ export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = {
     suppressions: "honored: ignore_imports of the project's contracts",
   },
 };
+
+/** Adapters that run their own process, by manifest id: the hand-written ones and the linter engine's descriptor tools (their `governed`). */
+export const ADAPTER_TRUST: Readonly<Record<string, CiTrust>> = withDerived(HAND_ADAPTER_TRUST, linterTrust);
 
 /** Subchecks of the quality gate (the bridge), by subcheck id. */
 export const SUBCHECK_TRUST: Readonly<Record<string, CiTrust>> = {

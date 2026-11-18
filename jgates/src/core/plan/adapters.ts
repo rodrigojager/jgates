@@ -44,6 +44,7 @@ import { playwrightAdapter } from "../../adapters/playwright/index.js";
 import { migrationDriftAdapter } from "../../adapters/migration-drift/index.js";
 import { performanceAdapter } from "../../adapters/performance/index.js";
 import { dotnetVulnerableAdapter } from "../../adapters/dotnet-vulnerable/index.js";
+import { linterAdapters } from "../../adapters/linter/index.js";
 
 export interface ExternalPlanInput {
   /** Workspace directory (absolute). */
@@ -154,10 +155,17 @@ const REGISTRY = new Map<string, ExternalAdapter>([
   [dotnetVulnerableAdapter.manifest.id, dotnetVulnerableAdapter],
 ]);
 
+/** The descriptor tools of the linter engine (one adapter per src/builtin/linters/<id>/), refused when an id is a hand-written adapter's. */
+function descriptorAdapters(): ReadonlyMap<string, ExternalAdapter> {
+  const linters = linterAdapters();
+  for (const id of linters.keys()) if (REGISTRY.has(id)) throw new Error(`linter descriptor ${id}: the id is a built-in adapter's`);
+  return linters;
+}
+
 export function externalAdapter(id: string | null | undefined): ExternalAdapter | undefined {
-  return id ? REGISTRY.get(id) : undefined;
+  return id ? (REGISTRY.get(id) ?? descriptorAdapters().get(id)) : undefined;
 }
 
 export function externalAdapterIds(): string[] {
-  return [...REGISTRY.keys()];
+  return [...REGISTRY.keys(), ...descriptorAdapters().keys()];
 }

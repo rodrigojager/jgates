@@ -34,6 +34,7 @@ const { governedBridgeEnv } = await mod("core/governed/env.js");
 const { readBridgeLinters, lintersFile, ciLinters, LinterListError } = await mod("core/governed/linters.js");
 const { ADAPTER_TRUST, SUBCHECK_TRUST, untrustedSubchecks, adapterTreatment } = await mod("core/governed/trust.js");
 const { externalAdapterIds } = await mod("core/plan/adapters.js");
+const { loadLinters } = await mod("adapters/linter/descriptor.js");
 const { STANDARD_BUDGET_CEILINGS } = await mod("core/governed/budgets.js");
 const { resolveInTree } = await mod("core/governed/tree.js");
 
@@ -389,10 +390,11 @@ test("ci hardening: the list of MegaLinter's linters exists, covers every linter
   assert.deepEqual(untrustedSubchecks(), []);
   assert.equal(adapterTreatment("not-an-adapter", false), "excluded");
   assert.equal(SUBCHECK_TRUST["project-tests"].treatment, "self-reported");
-  // Every excluded adapter has its reason in both languages.
+  // Every excluded adapter has its reason in both languages (a descriptor tool of the linter engine has it in its descriptor's governed.config, required by its schema).
+  const descriptorTools = new Set(loadLinters().map((l) => l.descriptor.id));
   for (const locale of ["en", "pt-BR"]) {
     const catalog = JSON.parse(fs.readFileSync(path.resolve(here, "..", "src", "i18n", `governed.${locale}.json`), "utf8"));
-    for (const [id, trust] of Object.entries(ADAPTER_TRUST)) if (trust.treatment === "excluded") assert.ok(catalog[`governed_excluded_${id}`], `${locale}: ${id}`);
+    for (const [id, trust] of Object.entries(ADAPTER_TRUST)) if (trust.treatment === "excluded" && !descriptorTools.has(id)) assert.ok(catalog[`governed_excluded_${id}`], `${locale}: ${id}`);
   }
 });
 

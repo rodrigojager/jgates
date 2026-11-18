@@ -16,6 +16,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(here, "..", "dist");
 const runner = await import(pathToFileURL(path.join(dist, "core", "runner", "index.js")).href);
 const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
+const { loadLinters } = await import(pathToFileURL(path.join(dist, "adapters", "linter", "descriptor.js")).href);
 const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -246,7 +247,10 @@ test("the automatic number: the smaller of memory and CPUs over a step's limits,
 });
 
 test("the built-in adapters that only read the project are marked one by one, and no marked one executes project code", () => {
-  const marked = builtinManifests().filter((m) => m.effects.onlyReadsProject === true).map((m) => m.id).sort();
+  // The hand-written adapters are marked one by one; a descriptor tool of the linter engine is marked by its run.readOnly.
+  const descriptors = new Map(loadLinters().map((l) => [l.descriptor.id, l.descriptor]));
+  for (const [id, d] of descriptors) assert.equal(builtinManifests().find((m) => m.id === id)?.effects.onlyReadsProject === true, d.run.readOnly && !d.run.executesProjectCode && (d.run.workspaceWrites ?? []).length === 0, id);
+  const marked = builtinManifests().filter((m) => m.effects.onlyReadsProject === true && !descriptors.has(m.id)).map((m) => m.id).sort();
   assert.deepEqual(marked, ["builtin-pii", "cargo-audit", "checkov", "file-size", "gitleaks", "hadolint", "import-linter", "jscpd", "oasdiff", "osv-scanner", "ruff", "semgrep", "shellcheck", "supply-chain", "trivy", "zizmor"]);
   for (const m of builtinManifests().filter((x) => x.effects.onlyReadsProject === true)) {
     assert.equal(m.effects.executesProjectCode, false, m.id);

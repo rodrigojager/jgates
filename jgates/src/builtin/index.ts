@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateDocument } from "../core/config/load/schema.js";
+import { linterTemplates } from "../adapters/linter/derived.js";
 
 /**
  * Built-in templates and starter profiles. One JSON file per item, found by scanning the folders (no central list):
@@ -45,6 +46,9 @@ export function registerTemplateProvider(name: string, provider: TemplateProvide
   else providers.delete(name);
   cache.delete("templates");
 }
+
+// The linter engine's templates: one implicit template per descriptor group (src/builtin/linters/).
+registerTemplateProvider("linters", linterTemplates);
 
 /** A broken built-in file is a defect of JGates itself, not of the project: callers report it as an internal error. */
 export class BuiltinError extends Error {

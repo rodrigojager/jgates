@@ -1,0 +1,13 @@
+{
+  "files": [
+    "a.cfg",
+    "b.cfg",
+    "tool"
+  ],
+  "findings": [
+    {
+      "rule": "demo.syntax",
+      "file": "a.cfg"
+    }
+  ]
+}

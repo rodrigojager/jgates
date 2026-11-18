@@ -6,6 +6,7 @@
  * test does not say in its title that it exercises the capability (`[proves: <adapter>#<capability>]`), or when no
  * limitation is described.
  */
+import { linterEvidence, withDerived } from "../../adapters/linter/derived.js";
 
 export interface TestRef {
   /** File name inside jgates/tests. */
@@ -118,7 +119,7 @@ const bridgeDeclared = (scanners: string): CapabilityEvidence => ({
   },
 });
 
-export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
+const HAND_EVIDENCE: Record<string, AdapterEvidence> = {
   "quality-bridge": {
     capabilities: {
       lint: bridgeDeclared("MegaLinter"),
@@ -597,6 +598,9 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "the .NET SDK of the JGates tools image; network to nuget.org (or the project's sources)", ptBR: "o SDK .NET da imagem de ferramentas do JGates; rede até o nuget.org (ou as fontes do projeto)" },
   },
 };
+
+/** Evidence of every built-in adapter: the hand-kept entries and the linter engine's descriptor tools (proven by their test in linters.test.js). */
+export const ADAPTER_EVIDENCE: Readonly<Record<string, AdapterEvidence>> = withDerived(HAND_EVIDENCE, linterEvidence);
 
 /** Operating systems the first version declares: only what was tested. */
 export const OS_STATUS: Record<"linux" | "win32" | "darwin", Bilingual> = {

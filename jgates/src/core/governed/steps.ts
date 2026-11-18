@@ -11,7 +11,7 @@ import type { Plan, PlanItem } from "../plan/types.js";
 import type { RunStep } from "../runner/index.js";
 import type { AdapterContext, AdapterOutput, CacheableStep, ResultStage } from "../run/types.js";
 import { ciLinters, LinterListError, lintersFile, readBridgeLinters, type BridgeLinter } from "./linters.js";
-import { findSuppressions, listTree, suppressionFinding, SUPPRESSIONS_STAGE, type SuppressionStatus, type TreeListing } from "./suppressions.js";
+import { findSuppressions, listTree, suppressionFinding, suppressionKinds, SUPPRESSIONS_STAGE, type SuppressionStatus, type TreeListing } from "./suppressions.js";
 import { adapterTreatment, subcheckTreatment } from "./trust.js";
 
 /** MSBuild project files: a linter that runs MSBuild loads (and executes) them. */
@@ -104,6 +104,13 @@ export function suppressionStatus(plan: Plan, facts: GovernedFacts): (kind: stri
       case "jscpd":
         return bridgeRuns(plan, "jscpd") ? { state: "honored", by: stageIdOf("jscpd"), blocking: true } : { state: "unused" };
       default: {
+        // A descriptor tool of the linter engine that honours its comments: a policy finding, blocking when the tool is trusted.
+        const engine = suppressionKinds().find((k) => k.id === kind && k.adapter !== undefined);
+        if (engine?.adapter) {
+          const items = plan.groups.willRun.filter((i) => i.adapter === engine.adapter);
+          if (items.length === 0) return { state: "unused" };
+          return { state: "honored", by: items.map((i) => i.id).join(", "), blocking: items.some((i) => adapterTreatment(i.adapter, i.effects.executesProjectCode) === "trusted") };
+        }
         const linter = megalinter ? linters.find((l) => l.suppressionMarker === kind) : undefined;
         if (!linter) return { state: "unused" };
         return { state: "honored", by: `${stageIdOf("megalinter")} (${linter.id})`, blocking: linter.ci === "trusted" };

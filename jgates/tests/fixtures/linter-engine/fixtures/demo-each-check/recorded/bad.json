@@ -1,0 +1,33 @@
+{
+  "tool": "demo-each-check",
+  "kind": "bad",
+  "calls": [
+    {
+      "args": [
+        "--check",
+        "a.cfg"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "a.cfg: line 2: a value is missing\n"
+    },
+    {
+      "args": [
+        "--check",
+        "b.cfg"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--check",
+        "tool"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}

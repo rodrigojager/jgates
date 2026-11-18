@@ -1,0 +1,33 @@
+{
+  "tool": "demo-each-check",
+  "kind": "clean",
+  "calls": [
+    {
+      "args": [
+        "--check",
+        "a.cfg"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--check",
+        "b.cfg"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "--check",
+        "tool"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}

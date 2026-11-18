@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "demo-each-check",
+  "name": "demo-each-check",
+  "sourceUrl": "https://example.invalid/demo-each-check",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "demo-each-check",
+    "versionRange": ">=0.0.0"
+  },
+  "megalinter": [
+    "DEMO_EACH_CHECK"
+  ],
+  "place": {
+    "section": "format",
+    "group": "demo",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".cfg"
+    ],
+    "content": {
+      "pattern": "^#!.*demo-cfg"
+    }
+  },
+  "run": {
+    "mode": "each-file",
+    "args": [
+      "--check",
+      "{file}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "status",
+    "rule": "demo.syntax"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "demo-each-check has no configuration",
+    "suppressions": {
+      "honoured": false,
+      "description": "none"
+    }
+  },
+  "install": "demo-each-check",
+  "text": {
+    "en": {
+      "label": "demo-each-check (cfg syntax)",
+      "purpose": "Checks the syntax of each .cfg file.",
+      "limitation": "An invented tool of the linter engine's tests; it exists only as a recording.",
+      "needs": "Nothing: the test replays its recording."
+    },
+    "pt-BR": {
+      "label": "demo-each-check (sintaxe cfg)",
+      "purpose": "Verifica a sintaxe de cada arquivo .cfg.",
+      "limitation": "Uma ferramenta inventada dos testes do motor de linters; existe só como gravação.",
+      "needs": "Nada: o teste reproduz a gravação."
+    }
+  }
+}

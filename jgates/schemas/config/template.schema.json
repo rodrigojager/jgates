@@ -145,7 +145,7 @@
   },
   "$defs": {
     "evidenceFiles": {
-      "description": "Configuration evidence: the template is detected only when at least one of these files exists in the root of a component of the matched languages, or in the workspace root. A string is a path relative to that root; an object also asks for a line that starts with `contains` (after spaces), for a section of a shared file such as [tool.pytest.ini_options] in pyproject.toml.",
+      "description": "Configuration evidence: the template is detected only when at least one of these files exists in the root of a component of the matched languages, or in the workspace root. A string is a path relative to that root (a `**` folder stands for any depth: `**/*.php` is a PHP file anywhere under the root, found by the file census); an object also asks for a line that starts with `contains` (after spaces), for a section of a shared file such as [tool.pytest.ini_options] in pyproject.toml.",
       "type": "array",
       "minItems": 1,
       "items": {
@@ -163,7 +163,7 @@
         ]
       }
     },
-    "evidencePath": { "type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$))(?:[^:*?<>|]*[/\\\\])?[^:?<>|/\\\\]+$" },
+    "evidencePath": { "type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$))(?:(?:[^:*?<>|/\\\\]+|\\*\\*)[/\\\\])*[^:?<>|/\\\\]+$" },
     "stringList": {
       "anyOf": [
         { "type": "array", "items": { "type": "string", "minLength": 1 } },

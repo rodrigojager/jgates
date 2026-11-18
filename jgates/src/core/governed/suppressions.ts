@@ -9,6 +9,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { translator } from "../../i18n/index.js";
 import type { ResultFinding } from "../run/types.js";
+import { linterSuppressionKinds } from "../../adapters/linter/derived.js";
 
 export const SUPPRESSIONS_STAGE = "jgates-ci.suppressions";
 export const SUPPRESSION_RULE_PREFIX = "suppression.";
@@ -20,6 +21,8 @@ export interface SuppressionKind {
   pattern: RegExp;
   /** Files where the comment means something (by name); absent: any text file. */
   files?: RegExp;
+  /** A descriptor tool of the linter engine: the adapter whose run honours the comment. */
+  adapter?: string;
 }
 
 export const SUPPRESSION_KINDS: readonly SuppressionKind[] = [
@@ -33,6 +36,13 @@ export const SUPPRESSION_KINDS: readonly SuppressionKind[] = [
   { id: "shellcheck", tool: "ShellCheck", pattern: /#\s*shellcheck\s+disable=/ },
   { id: "csharp", tool: "C# analyzers", pattern: /#pragma\s+warning\s+disable\b|\bSuppressMessage(?:Attribute)?\s*\(/, files: /\.(?:cs|vb|fs|csx)$/i },
 ];
+
+let allKinds: readonly SuppressionKind[] | null = null;
+
+/** The hand-kept kinds plus one per descriptor tool of the linter engine that honours in-code suppressions. */
+export function suppressionKinds(): readonly SuppressionKind[] {
+  return (allKinds ??= [...SUPPRESSION_KINDS, ...linterSuppressionKinds()]);
+}
 
 /** What jgates ci does with one kind of comment in this run. */
 export type SuppressionStatus =
@@ -108,7 +118,7 @@ export function findSuppressions(root: string, files: string[], statusOf: (kind:
   const hits: SuppressionHit[] = [];
   const skipped: string[] = [];
   for (const rel of files) {
-    const kinds = SUPPRESSION_KINDS.filter((k) => !k.files || k.files.test(rel));
+    const kinds = suppressionKinds().filter((k) => !k.files || k.files.test(rel));
     if (kinds.length === 0) continue;
     const text = readText(path.join(root, ...rel.split("/")));
     if (text === null) {
@@ -131,7 +141,7 @@ export function findSuppressions(root: string, files: string[], statusOf: (kind:
 /** The finding of one comment, in the vocabulary of result.json. */
 export function suppressionFinding(hit: SuppressionHit): ResultFinding {
   const t = translator("governed");
-  const kind = SUPPRESSION_KINDS.find((k) => k.id === hit.kind);
+  const kind = suppressionKinds().find((k) => k.id === hit.kind);
   const tool = kind?.tool ?? hit.kind;
   const blocking = hit.status.state === "honored" && hit.status.blocking;
   const message =
