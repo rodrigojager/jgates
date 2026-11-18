@@ -1,0 +1,21 @@
+{
+  "version": "0.3.2",
+  "url": "https://github.com/checkmake/checkmake/releases/download/v{version}/checkmake-v{version}.linux.amd64",
+  "sha256": "e2effb876913f3ee2caef0ba35f6202c5e8a3cd55a077d8d2b9ce2034257b6af",
+  "archive": "file",
+  "save": "checkmake",
+  "executable": [
+    "checkmake"
+  ],
+  "provides": [
+    {
+      "name": "checkmake",
+      "link": "checkmake",
+      "path": "checkmake",
+      "version": [
+        "checkmake",
+        "--version"
+      ]
+    }
+  ]
+}

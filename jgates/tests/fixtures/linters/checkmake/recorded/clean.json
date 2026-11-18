@@ -1,0 +1,18 @@
+{
+ "tool": "checkmake",
+ "kind": "clean",
+ "version": "0.3.2",
+ "calls": [
+  {
+   "args": [
+    "-o",
+    "json",
+    "--",
+    "Makefile"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

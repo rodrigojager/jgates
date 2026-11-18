@@ -1,0 +1,18 @@
+{
+ "tool": "checkmake",
+ "kind": "bad",
+ "version": "0.3.2",
+ "calls": [
+  {
+   "args": [
+    "-o",
+    "json",
+    "--",
+    "Makefile"
+   ],
+   "exit": 1,
+   "stdout": "[\n  {\n    \"rule\": \"minphony\",\n    \"violation\": \"Required target \\\"all\\\" is missing from the Makefile.\",\n    \"file_name\": \"Makefile\",\n    \"line_number\": 3\n  },\n  {\n    \"rule\": \"minphony\",\n    \"violation\": \"Required target \\\"clean\\\" is missing from the Makefile.\",\n    \"file_name\": \"Makefile\",\n    \"line_number\": 3\n  },\n  {\n    \"rule\": \"minphony\",\n    \"violation\": \"Required target \\\"test\\\" is missing from the Makefile.\",\n    \"file_name\": \"Makefile\",\n    \"line_number\": 3\n  }\n]\n",
+   "stderr": "Error: violations found (3)\n"
+  }
+ ]
+}
