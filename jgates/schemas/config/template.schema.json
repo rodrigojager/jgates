@@ -17,6 +17,10 @@
       "items": { "type": "string", "minLength": 1 }
     },
     "priority": { "type": "integer" },
+    "implicit": {
+      "description": "Built-in templates only (ADR-0022): true makes the template part of every project's configuration without being listed in jgates.yml, with activation detected when it has a match (always otherwise). A project switches it off by listing the same id with enabled: false or activation: manual.",
+      "type": "boolean"
+    },
     "match": {
       "type": "object",
       "additionalProperties": false,
@@ -91,6 +95,10 @@
             "properties": {
               "adapter": { "type": "string", "minLength": 1 },
               "enabled": { "type": "boolean" },
+              "tier": {
+                "description": "Which profile runs the instance by default (ADR-0022): core (absent), main (from Balanced up) or extended (Strict). A tool:<id> entry switches it on under any profile.",
+                "enum": ["core", "main", "extended"]
+              },
               "capabilities": { "$ref": "#/$defs/stringList" },
               "command": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
               "args": { "$ref": "#/$defs/stringList" },

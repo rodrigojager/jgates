@@ -1,7 +1,7 @@
 import type { ReasonAction } from "../reasons/index.js";
 import type { LayerName } from "../config/resolve/index.js";
 import type { Inventory } from "../discovery/types.js";
-import type { CheckCondition, LockInfo, SelectionDecision, SelectionIssue, SelectionReason } from "../selection/index.js";
+import type { CheckCondition, LockInfo, SelectionDecision, SelectionIssue, SelectionReason, Tier } from "../selection/index.js";
 
 /**
  * Reviewable plan.
@@ -110,6 +110,8 @@ export interface PlanItem {
   /** Semantic identity (what runs and how): equal items are deduplicated by it. */
   identity: string;
   tool: string;
+  /** The instance's tier when above core (ADR-0022); absent: core. */
+  tier?: Tier;
   adapter: string | null;
   subcheck: string | null;
   label: string;
@@ -355,7 +357,8 @@ export interface PlanBody {
   kind: typeof PLAN_KIND;
   workspace: { path: string; id: string };
   versions: { jgates: string; detector: string; adapters: Record<string, string>; tools: Record<string, string | null> };
-  profile: { id: string; label: string | null; chain: Array<{ id: string; file: string; path: string }> } | null;
+  /** `tier`: how far the profile's capability entries reach (ADR-0022). */
+  profile: { id: string; label: string | null; chain: Array<{ id: string; file: string; path: string }>; tier?: Tier } | null;
   scope: { requested: PlanScopeKind; effective: PlanScopeKind; paths: string[]; base: string | null; head: string | null; note: string | null };
   selection: { request: PlanRequest; overrides: SelectionOverride[]; reduced: boolean };
   components: Array<{ id: string; root: string; language: string | null; framework: string | null; status: string; approvable: boolean; templates: string[] }>;
@@ -431,6 +434,20 @@ export interface Plan extends PlanBody {
   createdAt: string;
   /** Difference from the previous plan of the workspace (not part of the hash); null when there is none. */
   changes: PlanChanges | null;
+  /**
+   * Not part of the hash: the tools that will run now and did not run in the workspace's last run (new tools arrive
+   * with an upgrade, ADR-0022); null when there is no earlier run or the plan was made without comparing.
+   */
+  newSinceLastRun?: PlanNewSinceLastRun | null;
+}
+
+export interface PlanNewSinceLastRun {
+  runId: string;
+  startedAt: string | null;
+  /** Tool instances, sorted. */
+  tools: string[];
+  /** Their items (<tool>#<capability>), sorted. */
+  items: string[];
 }
 
 export interface BuildPlanOptions {

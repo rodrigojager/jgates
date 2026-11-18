@@ -275,6 +275,9 @@ export const CORE_CAPABILITIES: CatalogEntry[] = [
   cap("supply-chain", "dependencies", "Cadeia de suprimentos", "Procedência e execução de pacotes nos lockfiles: scripts de instalação, hashes de integridade ausentes, registros não públicos ou não fixados, fontes git sem commit fixo e pacotes descontinuados. O que exige rede fica desconhecido, nunca limpo."),
   cap("dast", "security", "Segurança em execução (DAST)", "Evidência de segurança obtida de um alvo em execução configurado: varredura passiva por padrão, ativa só quando permitida explicitamente."),
   cap("file-size", "quality", "Tamanho de arquivo", "Limite de linhas por arquivo.", { unit: "lines" }),
+  cap("spelling", "quality", "Ortografia e redação", "Erros de ortografia em código, comentários e documentos, e estilo de redação em documentos."),
+  cap("links", "quality", "Links quebrados", "Links em documentos e código que apontam para uma página ou um arquivo que não existe."),
+  cap("sbom", "dependencies", "Lista de materiais (SBOM)", "A lista de materiais do projeto: os pacotes de que ele depende, com suas versões, produzida como um documento padrão."),
 ];
 
 /** The label and description of a core entry in the current language; the text above is the fallback. */

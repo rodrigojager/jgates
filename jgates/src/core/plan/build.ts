@@ -41,6 +41,7 @@ import { invalidToolConfigs } from "./config-validity.js";
 import { governExternalPlan } from "../governed/plan.js";
 import { diffPlans } from "./diff.js";
 import { readLastPlan } from "./store.js";
+import { newSinceLastRun } from "./arrivals.js";
 import { planDependencies } from "../deps/plan.js";
 import { planServices } from "../services/plan.js";
 import { databaseOfItem, readDataTimestampsSync, type DatabaseId } from "../data/index.js";
@@ -111,11 +112,11 @@ function containerInputs(env: NodeJS.ProcessEnv, given: BuildPlanOptions["contai
 
 /** Body of the plan without the fields outside the hash. */
 export function planBody(plan: Plan | PlanBody): PlanBody {
-  const { planHash: _h, createdAt: _c, changes: _d, ...body } = plan as Plan;
+  const { planHash: _h, createdAt: _c, changes: _d, newSinceLastRun: _n, ...body } = plan as Plan;
   return body as PlanBody;
 }
 
-/** Hash of the plan: content hash of everything except planHash, createdAt and changes. */
+/** Hash of the plan: content hash of everything except planHash, createdAt, changes and newSinceLastRun. */
 export function computePlanHash(plan: Plan | PlanBody): string {
   return contentHash(planBody(plan));
 }
@@ -611,6 +612,10 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     } else if (reason === "ONLY_EXCLUDED") {
       reasonCode = "ONLY_EXCLUDED";
       reasonMessage = t("plan_reason_only", { only: request.only.join(", ") });
+    } else if (reason === "ABOVE_TIER") {
+      // Above the profile's tier (ADR-0022): listed, off, with the profile that runs it and the way to switch it on.
+      reasonCode = "ABOVE_PROFILE_TIER";
+      reasonMessage = t(p.tool.tier === "main" ? "plan_reason_above_tier_main" : "plan_reason_above_tier_extended", { tool: p.tool.id });
     } else if (reason === "NOT_SELECTED" || !decision) {
       reasonCode = "NOT_SELECTED";
       reasonMessage = t("plan_reason_not_selected");
@@ -655,6 +660,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
         command: itemCommand ? { executable: itemCommand.executable, args: itemCommand.args, stdin: itemCommand.stdin } : null,
       }),
       tool: p.tool.id,
+      ...(p.tool.tier !== "core" ? { tier: p.tool.tier } : {}),
       adapter: adapterId,
       subcheck: subId,
       label: (sub ? subcheckLabel(ADAPTER_ID, sub) : null) ?? ext?.plan.label ?? p.tool.id,
@@ -1068,7 +1074,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       adapters: { ...(bridgePairs.length > 0 ? { [ADAPTER_ID]: qualityBridgeManifest.adapterVersion } : {}), ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.id, e.adapter.manifest.adapterVersion])) },
       tools: { ...(bridgePairs.length > 0 ? { [qualityBridgeManifest.toolName]: runtime.toolVersion } : {}), ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.toolName, e.plan.toolVersion])) },
     },
-    profile: effective.profile ? { id: effective.profile.id, label: profileLabelText(effective.profile.id, effective.profile.label), chain: effective.profile.chain.map((c) => ({ ...c })) } : null,
+    profile: effective.profile ? { id: effective.profile.id, label: profileLabelText(effective.profile.id, effective.profile.label), chain: effective.profile.chain.map((c) => ({ ...c })), tier: selEff.tier } : null,
     // The references as full commit ids (the request keeps them as typed): a plan of HEAD~1 stays the plan of that commit.
     scope: { requested: request.scope, effective: effectiveScope, paths: request.paths, base: refs.base, head: refs.head, note: scopeNote },
     selection: { request, overrides: overridesOut, reduced },
@@ -1111,8 +1117,11 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   const clean = JSON.parse(JSON.stringify(body)) as PlanBody;
   const plan: Plan = { ...clean, planHash: computePlanHash(clean), createdAt: (options.now ?? new Date()).toISOString(), changes: null };
   if (options.compare !== false) {
-    const previous = readLastPlan(options.home ?? resolveHome({ env }), wsId);
+    const home = options.home ?? resolveHome({ env });
+    const previous = readLastPlan(home, wsId);
     if (previous) plan.changes = diffPlans(previous, plan);
+    // The tools that arrived since the last run (an upgrade brings new tools, ADR-0022); not part of the hash.
+    plan.newSinceLastRun = newSinceLastRun(home, wsId, clean.groups.willRun);
   }
   return { ok: true, plan };
 }

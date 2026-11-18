@@ -32,6 +32,8 @@
   "plan_reason_locked": "Required by the policy ({selector}, {where}).",
   "plan_reason_disabled": "Turned off by {selector} in {where}.",
   "plan_reason_not_selected": "No selector turns this check on.",
+  "plan_reason_above_tier_main": "Runs from the Balanced profile up, or when you switch it on (tool:{tool}).",
+  "plan_reason_above_tier_extended": "Runs under the Strict profile, or when you switch it on (tool:{tool}).",
   "plan_reason_only": "Outside --only ({only}) for this run only.",
   "plan_reason_no_adapter": "The tool {tool} is on ({where}), but has no executable adapter in this version of JGates.",
   "plan_origin_defaults": "JGates default",

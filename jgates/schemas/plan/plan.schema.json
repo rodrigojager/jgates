@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://jgates.dev/schemas/plan/plan.schema.json",
   "title": "JGates plan",
-  "description": "Reviewable plan of a workspace. planHash is the content hash of every field except planHash, createdAt and changes. The run executes exactly this plan; a received plan is validated against this schema, its hash and the workspace.",
+  "description": "Reviewable plan of a workspace. planHash is the content hash of every field except planHash, createdAt, changes and newSinceLastRun. The run executes exactly this plan; a received plan is validated against this schema, its hash and the workspace.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -51,7 +51,25 @@
                 "required": ["id", "file", "path"],
                 "properties": { "id": { "type": "string" }, "file": { "type": "string" }, "path": { "type": "string" } }
               }
-            }
+            },
+            "tier": { "description": "How far the profile's capability entries reach (ADR-0022).", "$ref": "#/$defs/tier" }
+          }
+        }
+      ]
+    },
+    "newSinceLastRun": {
+      "description": "Not part of the hash. The tools that will run now and did not run in the workspace's last run (ADR-0022: new tools arrive with an upgrade); null when there is no earlier run to compare with or the plan was made without comparing.",
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runId", "startedAt", "tools", "items"],
+          "properties": {
+            "runId": { "type": "string" },
+            "startedAt": { "type": ["string", "null"] },
+            "tools": { "$ref": "#/$defs/strings" },
+            "items": { "$ref": "#/$defs/strings" }
           }
         }
       ]
@@ -309,6 +327,7 @@
     "strings": { "type": "array", "items": { "type": "string" } },
     "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "scopeKind": { "enum": ["changed", "full", "paths"] },
+    "tier": { "enum": ["core", "main", "extended"] },
     "fileHashes": {
       "type": "array",
       "items": {
@@ -393,6 +412,7 @@
         "id": { "type": "string", "minLength": 1 },
         "identity": { "$ref": "#/$defs/hash" },
         "tool": { "type": "string" },
+        "tier": { "description": "The instance's tier when it is above core (ADR-0022); absent: core.", "$ref": "#/$defs/tier" },
         "adapter": { "type": ["string", "null"] },
         "subcheck": { "type": ["string", "null"] },
         "label": { "type": "string" },
@@ -462,7 +482,7 @@
             "enabled": { "type": "boolean" },
             "origin": { "enum": ["defaults", "template", "profile", "project", "run", "policy", null] },
             "originLabel": { "type": "string" },
-            "reason": { "enum": ["EXPLICIT", "DERIVED", "NOT_SELECTED", "DEFAULT", "LOCKED_REQUIRED", "ONLY_EXCLUDED"] },
+            "reason": { "enum": ["EXPLICIT", "DERIVED", "NOT_SELECTED", "DEFAULT", "LOCKED_REQUIRED", "ONLY_EXCLUDED", "ABOVE_TIER"] },
             "decision": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/decision" }] },
             "overridden": { "type": "array", "items": { "$ref": "#/$defs/decision" } },
             "runOnly": { "type": "boolean" },

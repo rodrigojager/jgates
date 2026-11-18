@@ -20,6 +20,10 @@
           "extends": { "type": "string", "minLength": 1 },
           "intensity": { "type": "string", "minLength": 1 },
           "scope": { "enum": ["changed", "full", "paths"] },
+          "tier": {
+            "description": "How far the profile's capability, category and component entries reach (ADR-0022): core (the tools JGates always had), main (also the main tool of each language and format) or extended (every tool). A tool above the tier is off with its reason until a tool:<id> entry switches it on. Absent: inherited from extends; core when no profile of the chain says one.",
+            "enum": ["core", "main", "extended"]
+          },
           "gates": {
             "description": "The gates this profile selects: quality, semantic or both (Quality always runs first).",
             "type": "array",

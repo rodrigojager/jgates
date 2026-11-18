@@ -31,6 +31,14 @@
           "enabled": {
             "type": "boolean"
           },
+          "tier": {
+            "description": "Which profile runs the instance by default (ADR-0022): core (absent), main (from Balanced up) or extended (Strict). A tool:<id> entry switches it on under any profile.",
+            "enum": [
+              "core",
+              "main",
+              "extended"
+            ]
+          },
           "component": {
             "type": "string",
             "minLength": 1
