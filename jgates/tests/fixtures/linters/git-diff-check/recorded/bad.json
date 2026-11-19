@@ -1,0 +1,20 @@
+{
+ "tool": "git-diff-check",
+ "kind": "bad",
+ "version": "2.47.3",
+ "calls": [
+  {
+   "args": [
+    "diff",
+    "--no-index",
+    "--check",
+    "--",
+    "/srv",
+    "."
+   ],
+   "exit": 3,
+   "stdout": "./merge-notes.txt:1: trailing whitespace.\n+release notes  \n./merge-notes.txt:2: leftover conflict marker\n./merge-notes.txt:4: leftover conflict marker\n./merge-notes.txt:6: leftover conflict marker\n",
+   "stderr": ""
+  }
+ ]
+}

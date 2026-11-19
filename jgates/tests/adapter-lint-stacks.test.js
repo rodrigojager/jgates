@@ -257,6 +257,39 @@ test("lint adapters: shell scripts and Dockerfiles come in by their files, liste
   assert.equal(planInit(none, "minimal").templates.some((id) => id === "shell-shellcheck" || id === "docker-hadolint"), false);
 });
 
+test("lint adapters: shellcheck and hadolint activate on files anywhere, with the extensions, names and shebangs MegaLinter reads", () => {
+  const dir = tmp("jgates-lint-anywhere-");
+  const put = (rel, text) => {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), text);
+  };
+  put("ci/deep/er/a.dash", "echo a\n");
+  put("tools/run", "#!/usr/bin/env bash\necho b\n");
+  put("tools/other", "#!/bin/dash\necho c\n");
+  put("tools/py", "#!/usr/bin/env python3\nprint(1)\n");
+  put("tools/notshell", "echo not a script\n");
+  put("svc/api/Containerfile", "FROM alpine:3.20\n");
+  put("svc/api/Dockerfile.dev", "FROM alpine:3.20\n");
+  put("svc/web/app.Dockerfile", "FROM alpine:3.20\n");
+  put("svc/node_modules/x/Dockerfile", "FROM alpine:3.20\n");
+  assert.equal(spawnSync("git", ["init", "-q"], { cwd: dir }).status, 0);
+  const init = planInit(dir, "minimal");
+  assert.ok(init.templates.includes("shell-shellcheck") && init.templates.includes("docker-hadolint"), init.templates.join(", "));
+  writeInit(dir, init);
+  const env = { ...baseEnv };
+  const sh = plan(dir, "shellcheck", env).invocations.find((i) => i.id === "shellcheck");
+  assert.deepEqual(sh.command.args.slice(sh.command.args.indexOf("--") + 1), ["ci/deep/er/a.dash", "tools/other", "tools/run"]);
+  const hl = plan(dir, "hadolint", env).invocations.find((i) => i.id === "hadolint");
+  assert.deepEqual(hl.command.args.slice(-3), ["svc/api/Containerfile", "svc/api/Dockerfile.dev", "svc/web/app.Dockerfile"]);
+
+  const nested = tmp("jgates-lint-nested-");
+  fs.mkdirSync(path.join(nested, "a", "b", "c"), { recursive: true });
+  fs.writeFileSync(path.join(nested, "a", "b", "c", "x.sh"), "echo x\n");
+  fs.writeFileSync(path.join(nested, "a", "b", "c", "Dockerfile"), "FROM alpine:3.20\n");
+  const nestedInit = planInit(nested, "minimal");
+  assert.ok(nestedInit.templates.includes("shell-shellcheck") && nestedInit.templates.includes("docker-hadolint"), "a file at any depth activates the templates");
+});
+
 test("lint adapters: a strict plan of a Go + Rust + .NET project runs the stack linters and has no bridge lint", () => {
   const dir = tmp("jgates-lint-mixed-");
   for (const stack of ["go", "rust", "csharp"]) fs.cpSync(path.join(FIXTURES, stack, "bad"), dir, { recursive: true });
@@ -264,9 +297,11 @@ test("lint adapters: a strict plan of a Go + Rust + .NET project runs the stack 
   writeInit(dir, planInit(dir, "strict"));
   const built = buildPlan(dir, { env: baseEnv, home, compare: false, version: "test", profile: "builtin:strict" });
   assert.equal(built.ok, true, JSON.stringify(built.errors ?? built.error));
-  const runs = built.plan.groups.willRun.filter((i) => i.capabilities.includes("lint"));
-  assert.deepEqual(runs.map((i) => i.id).sort(), ["clippy#lint", "dotnet-analyzers#lint", "golangci-lint#lint"], "the stack linters run lint");
-  for (const item of runs) assert.equal(item.availability.status, "available", `${item.id}: ${item.availability.reason ?? ""}`);
+  for (const id of ["clippy#lint", "dotnet-analyzers#lint", "golangci-lint#lint"]) {
+    const item = built.plan.groups.willRun.find((i) => i.id === id);
+    assert.ok(item?.capabilities.includes("lint"), `${id} runs lint`);
+    assert.equal(item.availability.status, "available", item.availability.reason);
+  }
   // The quality bridge (MegaLinter) is retired from the plans: it is neither run nor listed as left out.
   const everyItem = [...built.plan.groups.willRun, ...built.plan.groups.notApplicableOrDisabled];
   assert.equal(everyItem.some((i) => i.adapter === "quality-bridge"), false);

@@ -32,6 +32,5 @@
   "build_check_exit_error": "{tool} in {unit} ended with code {code} and its output could not be interpreted: {detail}",
   "build_check_no_invocation": "The plan has no build-check invocation for the instance {tool}.",
   "build_check_reason_completed": "{tool} {version}: {units, plural, one {# unit} other {# units}} checked, {count, plural, one {# diagnostic} other {# diagnostics}}, {blocking} blocking; {skipped, plural, one {# unit} other {# units}} skipped",
-  "build_check_setting_without_config": "The withoutConfig of the instance {tool} is {value}; use one of: {allowed}.",
-  "build_check_skip_pyright_configured": "the component configures pyright, not mypy (the pyright check covers it)"
+  "build_check_setting_without_config": "The withoutConfig of the instance {tool} is {value}; use one of: {allowed}."
 }

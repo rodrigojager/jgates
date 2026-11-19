@@ -411,7 +411,8 @@ async function probeDescriptor(image, descriptor, linter, version, scratch) {
     if (contract.defaultConfig) {
       const target = path.join(output, "linters", id, contract.defaultConfig);
       fs.mkdirSync(path.dirname(target), { recursive: true });
-      fs.copyFileSync(path.join(linter.dir, contract.defaultConfig), target);
+      // As the engine does: {workspace} in the file is the project's path as the tool sees it.
+      fs.writeFileSync(target, fs.readFileSync(path.join(linter.dir, contract.defaultConfig), "utf8").split("{workspace}").join("/workspace"));
     }
     const calls = engine.linterCalls(descriptor, contract, { executable, args: invocation.command.args }, { runDir: "/output", workspace: "/workspace" }, false);
     const untouched = workspaceListing(workspace);

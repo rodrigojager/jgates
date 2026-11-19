@@ -54,6 +54,7 @@ JGates explains why something did not run with a fixed code, a text in your lang
 - **`DEPENDENCIES_NOT_READY`**: the dependencies of a component are not prepared; `jgates deps status`.
 - **`DEPENDENCIES_FAILED`**: installing them failed; read the log and `jgates deps prepare` again.
 - **`DATA_MISSING`**: a vulnerability database was never downloaded; `jgates tools update-data`.
+- **`STEP_MEMORY_LIMIT`**. A check reached its memory limit and stopped before it could finish. Lower the number of simultaneous checks in the execution settings and run again.
 - **`DATA_STALE`**: it is older than `execution.dataMaxAgeDays`; `jgates tools update-data`.
 - **`CUSTOMER_SUPPLIED`**: CodeQL is yours to prepare; `jgates tools prepare-codeql`.
 - **`EXTENSION_OUTDATED`**: your own image changed; `jgates tools build-extension`.

@@ -24,7 +24,7 @@ const base: AdapterManifest = lintManifest({
   relativeCost: "low",
   license: "GPL-3.0-only",
   limitations: [
-    "checks the files named Dockerfile, Dockerfile.* or *.Dockerfile, up to 500; other names (Containerfile) are not found, and a workspace with more files is not applicable until the list is narrowed",
+    "checks the files named Dockerfile, Containerfile, Dockerfile.* or *.Dockerfile anywhere in the project, up to 500; a workspace with more files is not applicable until the list is narrowed",
     "every severity is a blocking finding (error, warning, info, style); the project's .hadolint.yaml ignores the rules it does not want",
     "static analysis of the file: no image is built and the base images are not pulled",
   ],

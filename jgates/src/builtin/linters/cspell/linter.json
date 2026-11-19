@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "id": "cspell",
+  "name": "cspell",
+  "sourceUrl": "https://github.com/streetsidesoftware/cspell",
+  "license": "MIT",
+  "program": {
+    "tool": "cspell",
+    "versionRange": ">=10.5.1 <11.0.0"
+  },
+  "megalinter": [
+    "SPELL_CSPELL"
+  ],
+  "place": {
+    "section": "other",
+    "group": "spelling",
+    "capability": "spelling",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".md",
+      ".mdx",
+      ".markdown",
+      ".rst",
+      ".txt",
+      ".adoc",
+      ".html",
+      ".htm",
+      ".xml",
+      ".json",
+      ".jsonc",
+      ".json5",
+      ".yaml",
+      ".yml",
+      ".toml",
+      ".ini",
+      ".cfg",
+      ".properties",
+      ".csv",
+      ".tex",
+      ".js",
+      ".mjs",
+      ".cjs",
+      ".jsx",
+      ".ts",
+      ".mts",
+      ".cts",
+      ".tsx",
+      ".vue",
+      ".svelte",
+      ".css",
+      ".scss",
+      ".sass",
+      ".less",
+      ".py",
+      ".pyi",
+      ".rb",
+      ".php",
+      ".pl",
+      ".pm",
+      ".raku",
+      ".go",
+      ".rs",
+      ".java",
+      ".kt",
+      ".kts",
+      ".scala",
+      ".groovy",
+      ".gradle",
+      ".swift",
+      ".dart",
+      ".c",
+      ".h",
+      ".cc",
+      ".cpp",
+      ".cxx",
+      ".hpp",
+      ".hh",
+      ".cs",
+      ".fs",
+      ".vb",
+      ".lua",
+      ".r",
+      ".R",
+      ".sh",
+      ".bash",
+      ".zsh",
+      ".ps1",
+      ".psm1",
+      ".sql",
+      ".graphql",
+      ".gql",
+      ".proto",
+      ".tf",
+      ".tfvars",
+      ".hcl",
+      ".clj",
+      ".cljs",
+      ".cljc",
+      ".coffee",
+      ".feature",
+      ".robot",
+      ".bicep",
+      ".env"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--no-progress",
+      "--no-summary",
+      "--no-color",
+      "--no-cache",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+) - (?<message>.+)$",
+    "rule": "unknown-word",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".cspell.json",
+      "cspell.json",
+      ".cspell.jsonc",
+      "cspell.jsonc",
+      ".cspell.yaml",
+      ".cspell.yml",
+      "cspell.yaml",
+      "cspell.yml",
+      "cspell.config.js",
+      "cspell.config.cjs",
+      "cspell.config.mjs",
+      "cspell.config.json",
+      "cspell.config.yaml",
+      "cspell.config.yml",
+      ".cspell.config.json",
+      "package.json"
+    ],
+    "default": "cspell-default.json",
+    "args": [
+      "--config",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "cspell reads the project's cspell configuration (words, dictionaries, ignore paths): the project decides what counts as a misspelling",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: cspell:disable, cspell:ignore and cspell:words comments, and the words of the project's configuration",
+      "pattern": "cspell:\\s*(?:disable|ignore|words|enable)"
+    }
+  },
+  "install": "cspell",
+  "text": {
+    "en": {
+      "label": "cspell (spelling)",
+      "purpose": "A code-aware spell checker: finds misspelled words in comments, strings and identifiers of source and text files, splitting camelCase and snake_case names.",
+      "limitation": "Without a project configuration it uses the tool's default English and software-term dictionaries, so project names and jargon may be reported until they are added to the project's cspell words.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "cspell (ortografia)",
+      "purpose": "Um corretor ortográfico que entende código: encontra palavras erradas em comentários, textos e identificadores de arquivos de código e de texto, separando nomes camelCase e snake_case.",
+      "limitation": "Sem uma configuração do projeto usa os dicionários padrão da ferramenta, em inglês e de termos de software, então nomes e jargões do projeto podem ser apontados até entrarem nas palavras do cspell do projeto.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

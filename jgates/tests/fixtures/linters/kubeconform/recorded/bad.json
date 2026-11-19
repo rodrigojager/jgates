@@ -1,0 +1,19 @@
+{
+ "tool": "kubeconform",
+ "kind": "bad",
+ "version": "0.8.0",
+ "calls": [
+  {
+   "args": [
+    "-output",
+    "json",
+    "-ignore-missing-schemas",
+    "--",
+    "kubeconform_deployment.yaml"
+   ],
+   "exit": 1,
+   "stdout": "{\n  \"resources\": [\n    {\n      \"filename\": \"kubeconform_deployment.yaml\",\n      \"kind\": \"Deployment\",\n      \"name\": \"web\",\n      \"version\": \"apps/v1\",\n      \"status\": \"statusInvalid\",\n      \"msg\": \"problem validating schema. Check JSON formatting: jsonschema validation failed with 'https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/master-standalone/deployment-apps-v1.json#' - at '/spec/replicas': got string, want null or integer\",\n      \"validationErrors\": [\n        {\n          \"path\": \"/spec/replicas\",\n          \"msg\": \"got string, want null or integer\"\n        }\n      ]\n    }\n  ]\n}\n",
+   "stderr": ""
+  }
+ ]
+}

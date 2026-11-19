@@ -151,7 +151,7 @@ async function proveStack({ stack, tool, file, extraEnv = {} }) {
   assert.equal(hit.ruleId, "format-check.unformatted");
   assert.equal(hit.category, "format-check");
   assert.equal(hit.blocking, true);
-  assert.equal(hit.tool, { "ruff-format": "ruff", prettier: "prettier", gofmt: "gofmt", "cargo-fmt": "rustfmt", "dotnet-format": "dotnet-format" }[tool]);
+  assert.equal(hit.tool, { "ruff-format": "ruff", prettier: "prettier", "prettier-data": "prettier", gofmt: "gofmt", "cargo-fmt": "rustfmt", "dotnet-format": "dotnet-format" }[tool]);
   assert.equal(treeHash(bad), badBefore, "the formatter ran in check mode: the fixture is byte for byte the same");
 
   const clean = workspace(stack, "clean");
@@ -171,6 +171,42 @@ test("format-check python: ruff format --check flags the unformatted module and 
 
 test("format-check typescript: prettier --check flags the unformatted module and passes the formatted twin [proves: format-check#format-check, format-check#format-check@typescript]", async () => {
   await proveStack({ stack: "typescript", tool: "prettier", file: "src/index.ts" });
+});
+
+test("format-check data: prettier --check flags unformatted JSON and YAML anywhere in the project and passes the formatted twin [proves: format-check#format-check, format-check#format-check@any]", async () => {
+  await proveStack({ stack: "data", tool: "prettier-data", file: "config/app.json" });
+  // The YAML file two folders down is a finding too.
+  const env = { ...baseEnv, ...formatterEnv() };
+  const bad = workspace("data", "bad");
+  const failed = await execute(bad, plan(bad, "prettier-data", env), env);
+  assert.deepEqual(failed.findings.filter((f) => f.origin === "format-check").map((f) => f.location?.path).sort(), ["config/app.json", "config/deep/stack.yaml"]);
+});
+
+test("format-check data: the instance comes in by a JSON or YAML file in any folder and checks only those files", async () => {
+  const dir = tmp("jgates-fc-data-");
+  const put = (rel, text) => {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), text);
+  };
+  put("src/main.py", "print(1)\n");
+  put("README.md", "# x\n");
+  assert.equal(spawnSync("git", ["init", "-q"], { cwd: dir }).status, 0);
+  assert.equal(planInit(dir, "minimal").templates.includes("data-prettier"), false, "no JSON or YAML file: no template");
+  await new Promise((resolve) => setImmediate(resolve)); // the file census lives for one synchronous task
+  put("ci/deep/pipeline.yml", "a: 1\n");
+  put("conf/settings.json", "{}\n");
+  put("conf/node_modules/x/package.json", "{}\n");
+  put("-odd.yaml", "b: 2\n");
+  const init = planInit(dir, "minimal");
+  assert.ok(init.templates.includes("data-prettier"), init.templates.join(", "));
+  writeInit(dir, init);
+  const env = { ...baseEnv, ...formatterEnv() };
+  const item = plan(dir, "prettier-data", env).invocations.find((i) => i.id === "prettier-data");
+  const args = item.command.args;
+  assert.deepEqual(args.slice(args.indexOf("--check")), ["--check", "--no-color", "--", "-odd.yaml", "ci/deep/pipeline.yml", "conf/settings.json", "jgates.yml"]);
+  assert.equal(adapter.formatCheckSettings({ tool: "d", config: { tools: { d: { config: { formatter: "ruff", scope: "data" } } } } }).problems.length, 1, "only prettier has a data scope");
+  assert.equal(adapter.formatCheckSettings({ tool: "d", config: { tools: { d: { config: { formatter: "prettier", scope: "x" } } } } }).problems.length, 1);
+  assert.equal(adapter.formatCheckSettings({ tool: "d", config: { tools: { d: { config: { formatter: "prettier" } } } } }).scope, "component");
 });
 
 test("format-check go: gofmt -l flags the unformatted file and passes the formatted twin [proves: format-check#format-check, format-check#format-check@go]", async () => {
@@ -238,6 +274,32 @@ test("format-check parsers: each formatter's output lists the files it would cha
   assert.equal(adapter.parseDotnet("", 0).ok, true);
   assert.equal(adapter.parseDotnet("Could not find a MSBuild project file\n", 1).ok, false);
   assert.equal(adapter.parseDotnet("", 2).ok, false);
+});
+
+test("format-check dotnet: the full check runs on a restored solution or project, the whitespace form is the fallback", () => {
+  const dir = tmp("jg-dotnet-target-");
+  assert.equal(adapter.dotnetTarget(dir), null, "no solution or project file");
+  assert.equal(adapter.dotnetTarget(path.join(dir, "missing")), null);
+  fs.writeFileSync(path.join(dir, "App.vbproj"), "<Project />");
+  assert.equal(adapter.dotnetTarget(dir), null, "an unrestored project takes the whitespace form: a run never restores");
+  fs.mkdirSync(path.join(dir, "obj"));
+  fs.writeFileSync(path.join(dir, "obj", "project.assets.json"), "{}");
+  assert.equal(adapter.dotnetTarget(dir), "App.vbproj", "a restored Visual Basic project");
+  fs.writeFileSync(path.join(dir, "App.csproj"), "<Project />");
+  assert.equal(adapter.dotnetTarget(dir), "App.csproj");
+  fs.writeFileSync(path.join(dir, "All.sln"), "");
+  assert.equal(adapter.dotnetTarget(dir), "All.sln", "a solution wins over a project");
+  const sol = tmp("jg-dotnet-sln-");
+  fs.writeFileSync(path.join(sol, "All.slnx"), "");
+  assert.equal(adapter.dotnetTarget(sol), null, "a solution with no restored project below it");
+  fs.mkdirSync(path.join(sol, "src", "A", "obj"), { recursive: true });
+  fs.writeFileSync(path.join(sol, "src", "A", "obj", "project.assets.json"), "{}");
+  assert.equal(adapter.dotnetTarget(sol), "All.slnx");
+
+  const full = adapter.parseDotnet("/workspace/Program.cs(3,5): error IDE0055: Fix formatting [/workspace/App.csproj]\n/workspace/Program.cs(4,1): error IDE0005: Using directive is unnecessary. [/workspace/App.csproj]\n", 2);
+  assert.equal(full.ok, true);
+  assert.equal(full.files.length, 1);
+  assert.equal(full.files[0].edits, 2, "style and analyzer findings count, not only WHITESPACE");
 });
 
 test("format-check: the support matrix shows format-check validated for the five stacks, each with its proof", () => {

@@ -1,0 +1,20 @@
+{
+ "tool": "git-diff-check",
+ "kind": "clean",
+ "version": "2.47.3",
+ "calls": [
+  {
+   "args": [
+    "diff",
+    "--no-index",
+    "--check",
+    "--",
+    "/srv",
+    "."
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "rstcheck",
+  "name": "rstcheck",
+  "sourceUrl": "https://github.com/rstcheck/rstcheck",
+  "license": "MIT",
+  "program": {
+    "tool": "rstcheck",
+    "versionRange": ">=6.0.0 <7.0.0"
+  },
+  "megalinter": [
+    "RST_RSTCHECK"
+  ],
+  "place": {
+    "section": "format",
+    "group": "rst",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".rst"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+): \\((?<level>[A-Z]+)/\\d\\) (?<message>.+)$",
+    "rule": "rstcheck.docutils"
+  },
+  "configuration": {
+    "files": [
+      ".rstcheck.cfg",
+      "setup.cfg",
+      "pyproject.toml",
+      "tox.ini"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "rstcheck reads .rstcheck.cfg, or the [rstcheck] section of setup.cfg or tox.ini, or [tool.rstcheck] of pyproject.toml: the project decides the report level, ignored directives and languages",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: .. rstcheck: ignore-directives=... comments",
+      "pattern": "\\.\\.\\s+rstcheck:",
+      "files": "\\.rst$"
+    }
+  },
+  "install": "rstcheck",
+  "text": {
+    "en": {
+      "label": "rstcheck (reStructuredText)",
+      "purpose": "Checks reStructuredText syntax, including Sphinx roles and directives, and the code blocks written in other languages.",
+      "limitation": "Findings carry the docutils level, not a rule name. Code blocks are checked only for the languages whose checker is in the image.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "rstcheck (reStructuredText)",
+      "purpose": "Verifica a sintaxe do reStructuredText, incluindo papéis e diretivas do Sphinx, e os blocos de código escritos em outras linguagens.",
+      "limitation": "Os achados trazem o nível do docutils, não o nome de uma regra. Os blocos de código só são verificados nas linguagens cujo verificador está na imagem.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

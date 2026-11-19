@@ -1,0 +1,19 @@
+{
+ "tool": "syft",
+ "kind": "clean",
+ "version": "1.57.2",
+ "calls": [
+  {
+   "args": [
+    "scan",
+    "dir:.",
+    "--quiet",
+    "-o",
+    "table"
+   ],
+   "exit": 0,
+   "stdout": "NAME    VERSION  TYPE  \ndemo    1.0.0    npm   \nlodash  4.17.21  npm\n",
+   "stderr": ""
+  }
+ ]
+}

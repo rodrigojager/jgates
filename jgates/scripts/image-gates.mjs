@@ -757,7 +757,8 @@ export const SMOKE_GROUPS = [
  */
 export function linterSmokeGroups(descriptors = readDescriptors()) {
   const groups = new Map();
-  for (const d of descriptors) {
+  // A tool whose row is exempt (it needs the network or a data volume the offline smoke does not have) joins no group.
+  for (const d of descriptors.filter((d) => !SMOKE_EXEMPT[`${d.id}#${d.place.capability}@any`])) {
     const key = `${d.place.section}/${d.place.group}`;
     groups.set(key, [...(groups.get(key) ?? []), d]);
   }
@@ -813,6 +814,12 @@ export const SMOKE_EXEMPT = {
   "performance#performance@python": "pytest-benchmark runs on the project's own pytest, a dependency installed by the dependencies phase into the dependency volume",
   "performance#performance@rust": "criterion is a crate of the project: it needs the dependency volume or the network",
   "performance#performance@csharp": "BenchmarkDotNet is a NuGet package of the project: it needs the dependency volume or the network",
+  // Linter descriptors (their rows are `<id>#<capability>@any`; an exempt one joins no derived group).
+  "v8r#lint@any": "downloads the SchemaStore catalog and the schemas while it runs: needs the network",
+  "kubeconform#lint@any": "downloads the schema of each resource kind while it runs: needs the network",
+  "dustilock#supply-chain@any": "asks the public package registries whether each name exists: needs the network",
+  "grype#dependencies@any": "needs the vulnerability database of the data volume (jgates-data), which an offline container does not have",
+  "kubescape#lint@any": "needs its control definitions from the data volume (jgates-data), which an offline container does not have",
 };
 
 /** Rows of the legacy quality gate's bridge, kept by the governed path and proven by the file-size projects. */
@@ -844,12 +851,28 @@ function copyFixture(root, relative, target) {
   fs.cpSync(path.join(root, ...relative.split("/")), target, { recursive: true });
 }
 
-/** Writes the project of one side (bad or clean) of a group. */
-function writeProject(dir, side, fixtures) {
+/**
+ * Writes the project of one side (bad or clean) of a group. `executables`: the paths under tests/fixtures that Git
+ * records as executable. A folder bind-mounted from Windows shows every file as executable, so each copied file gets the
+ * mode Git records (what bash-exec checks); without the list (null) the copied modes stay.
+ */
+function writeProject(dir, side, fixtures, executables = null) {
   fs.mkdirSync(dir, { recursive: true });
   for (const entry of [side.copy ?? []].flat()) {
     const { from, to } = typeof entry === "string" ? { from: entry, to: "." } : entry;
-    copyFixture(fixtures, from, path.join(dir, ...to.split("/")));
+    const source = path.join(fixtures, ...from.split("/"));
+    const target = path.join(dir, ...to.split("/"));
+    copyFixture(fixtures, from, target);
+    if (!executables || !fs.statSync(source).isDirectory()) continue;
+    // Only the files this entry brought: walk its source and set the modes of their copies.
+    const walk = (folder, relative) => {
+      for (const item of fs.readdirSync(folder, { withFileTypes: true })) {
+        const rel = relative ? `${relative}/${item.name}` : item.name;
+        if (item.isDirectory()) walk(path.join(folder, item.name), rel);
+        else if (item.isFile()) fs.chmodSync(path.join(target, ...rel.split("/")), executables.has(`${from}/${rel}`) ? 0o755 : 0o644);
+      }
+    };
+    walk(source, "");
   }
   if (side.files) writeTree(dir, side.files);
   if (side.overlay) writeTree(dir, side.overlay);
@@ -939,8 +962,11 @@ export const summarize = (project, ran, document, expected, adapters = null, eac
  * Runs inside the image: `jgates ci` on every smoke project. `groups` and `fixtures` come from the host (the groups
  * file and the read-only mount of tests/fixtures); `only` names the group ids to run (all by default).
  */
-export function smokeInImage({ groups = SMOKE_GROUPS, fixtures = "/fixtures", only, work = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-smoke-")) } = {}) {
+export function smokeInImage({ groups = SMOKE_GROUPS, fixtures = "/fixtures", only, executables = null, work = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-smoke-")) } = {}) {
   const results = [];
+  // The image user's home (/tmp/home) lives on the /tmp tmpfs, empty at the start: tools that need an existing home
+  // (dotnet, NuGet) would otherwise depend on an earlier group having created it.
+  if (process.env.HOME) fs.mkdirSync(process.env.HOME, { recursive: true });
   const home = path.join(work, "home");
   fs.mkdirSync(home, { recursive: true });
   // 1. The legacy bridge's file-size subcheck and the PII scan: per stack a clean and a known-bad project, with a budget of 20 lines.
@@ -966,7 +992,7 @@ export function smokeInImage({ groups = SMOKE_GROUPS, fixtures = "/fixtures", on
     writePolicy(policyDir, group);
     for (const [side, expected] of [["bad", "failed"], ["clean", "passed"]]) {
       const dir = path.join(work, `${group.id}-${side}`);
-      writeProject(dir, group[side], fixtures);
+      writeProject(dir, group[side], fixtures, executables);
       git(dir, "init", "-q");
       git(dir, "add", "-A");
       git(dir, "commit", "-qm", "smoke");
@@ -1074,6 +1100,17 @@ async function gateSize({ image, outDir }) {
 
 let smokeOnly = null;
 
+/** The paths under tests/fixtures that Git records with mode 100755 (relative to tests/fixtures, with /). */
+export function fixtureExecutables() {
+  const listed = spawnSync("git", ["ls-files", "-s", "--", "tests/fixtures"], { cwd: packageRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  if (listed.status !== 0) throw new Error(`git ls-files could not list the fixtures: ${listed.stderr.trim()}`);
+  return listed.stdout
+    .split("\n")
+    .map((line) => line.match(/^100755 \S+ \d+\t(.+)$/)?.[1])
+    .filter(Boolean)
+    .map((file) => file.replace(/^tests\/fixtures\//, ""));
+}
+
 async function gateSmoke({ image, outDir }) {
   // The rows come from the matrix of this build and the trust table; a row nobody covers fails the gate before anything runs.
   const dist = path.join(packageRoot, "dist");
@@ -1091,7 +1128,10 @@ async function gateSmoke({ image, outDir }) {
   // The groups travel to the container as a file: the derived ones are computed here, from the descriptors.
   const groupsFile = path.join(outDir, "smoke-groups.json");
   fs.writeFileSync(groupsFile, `${JSON.stringify(groups)}\n`);
-  const mounts = ["-v", `${hostPath(path.join(packageRoot, "tests", "fixtures"))}:/fixtures:ro`, "-v", `${hostPath(groupsFile)}:/gate/smoke-groups.json:ro`];
+  // The fixture files Git records as executable (a Windows bind mount shows every file as executable).
+  const modesFile = path.join(outDir, "smoke-modes.json");
+  fs.writeFileSync(modesFile, `${JSON.stringify(fixtureExecutables())}\n`);
+  const mounts = ["-v", `${hostPath(path.join(packageRoot, "tests", "fixtures"))}:/fixtures:ro`, "-v", `${hostPath(groupsFile)}:/gate/smoke-groups.json:ro`, "-v", `${hostPath(modesFile)}:/gate/smoke-modes.json:ro`];
   // Development: the CLI baked into the image is replaced by the build of this working tree (a real build bakes it in).
   if (process.env.JGATES_SMOKE_DIST) mounts.push("-v", `${hostPath(process.env.JGATES_SMOKE_DIST)}:/opt/jgates/jgates/dist:ro`);
   const ran = docker([...BASE_RUN, "--network", "none", "--read-only", "--tmpfs", "/tmp:exec,uid=10001,gid=10001,size=4g", "--memory", "6g", ...MOUNT_SELF(self), ...mounts, ...(only ? ["-e", `JGATES_SMOKE_GROUPS=${only.join(",")}`] : []), image, "node", "/gate/image-gates.mjs", "smoke"], { allowFailure: true, timeout: 4 * 60 * 60_000 });
@@ -1199,7 +1239,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === self) {
     const only = process.env.JGATES_SMOKE_GROUPS?.split(",").filter(Boolean);
     const groupsFile = "/gate/smoke-groups.json";
     const groups = fs.existsSync(groupsFile) ? JSON.parse(fs.readFileSync(groupsFile, "utf8")) : SMOKE_GROUPS;
-    process.stdout.write(`${JSON.stringify(smokeInImage({ groups, ...(only?.length ? { only } : {}) }))}\n`);
+    const modesFile = "/gate/smoke-modes.json";
+    const executables = fs.existsSync(modesFile) ? new Set(JSON.parse(fs.readFileSync(modesFile, "utf8"))) : null;
+    process.stdout.write(`${JSON.stringify(smokeInImage({ groups, executables, ...(only?.length ? { only } : {}) }))}\n`);
   } else if (command === "run") {
     const groups = option(rest, "group")?.split(",").filter(Boolean);
     // A smoke group alone: --group without --only runs the smoke gate only.

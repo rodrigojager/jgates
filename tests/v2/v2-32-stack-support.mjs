@@ -9,10 +9,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // V2-32: stack support is declared per capability and stack, with evidence, and a mixed repository gets it per unit.
 // The fixture is a TypeScript package (web/), a Python package (api/) and a plain JavaScript folder (scripts/). The
 // real discovery, matrix, plan and run services (and the CLI and the tools API over them) must agree: web and api are
-// units of the build/type-check capability (tsc and mypy, both declared validated with evidence), scripts is a visible
+// units of the build/type-check capability (tsc, mypy and pyright), scripts is a visible
 // gap, the plan lists exactly the units the matrix says apply, and the run turns each unit's type error into a finding
-// located inside that unit. Both checkers are the real ones of this machine (mypy comes from a throwaway virtual
-// environment unless JGATES_MYPY names one).
+// located inside that unit. The Python checkers come from a throwaway virtual environment unless JGATES_MYPY and
+// JGATES_PYRIGHT name existing installations.
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const DIST = path.join(root, "jgates", "dist");
@@ -27,23 +27,27 @@ const tmp = (prefix) => {
   return dir;
 };
 
-function mypyEnv() {
-  if (process.env.JGATES_MYPY) return {};
+function pythonCheckerEnv() {
+  if (process.env.JGATES_MYPY && process.env.JGATES_PYRIGHT) return {};
   const venv = path.join(tmp("v2-32-venv-"), "venv");
   const run = (cmd, args) => spawnSync(cmd, args, { encoding: "utf8", timeout: 600_000 });
   assert.equal(run(process.platform === "win32" ? "python" : "python3", ["-m", "venv", venv]).status, 0, "python -m venv");
   const bin = path.join(venv, process.platform === "win32" ? "Scripts" : "bin");
   const py = path.join(bin, process.platform === "win32" ? "python.exe" : "python");
-  const installed = run(py, ["-m", "pip", "install", "--quiet", "--disable-pip-version-check", "mypy"]);
-  assert.equal(installed.status, 0, `pip install mypy failed (the Python checker needs the network once): ${installed.stderr}`);
-  return { JGATES_MYPY: path.join(bin, process.platform === "win32" ? "mypy.exe" : "mypy") };
+  const installed = run(py, ["-m", "pip", "install", "--quiet", "--disable-pip-version-check", "mypy", "pyright"]);
+  assert.equal(installed.status, 0, `pip install mypy pyright failed: ${installed.stderr}`);
+  const exe = process.platform === "win32" ? ".exe" : "";
+  return {
+    JGATES_MYPY: process.env.JGATES_MYPY ?? path.join(bin, `mypy${exe}`),
+    JGATES_PYRIGHT: process.env.JGATES_PYRIGHT ?? path.join(bin, `pyright${exe}`),
+  };
 }
 
 test("V2-32: a mixed TypeScript and Python repository gets per-unit build and type-check applicability, and the matrix, the CLI plan JSON and the tools API agree", async () => {
   try {
     const home = tmp("v2-32-home-");
     const dir = tmp("v2-32-ws-");
-    const env = { ...process.env, JGATES_HOME: home, JGATES_NO_CACHE: "1", NO_COLOR: "1", ...mypyEnv() };
+    const env = { ...process.env, JGATES_HOME: home, JGATES_NO_CACHE: "1", NO_COLOR: "1", ...pythonCheckerEnv() };
     fs.cpSync(FIXTURE, dir, { recursive: true });
     assert.equal(spawnSync("git", ["init", "-q"], { cwd: dir }).status, 0);
     const { planInit, writeInit } = await load("core", "init", "index.js");
@@ -102,12 +106,13 @@ test("V2-32: a mixed TypeScript and Python repository gets per-unit build and ty
     const planned = cli(["plan", "--cwd", dir, "--only", "capability:typecheck"]).doc;
     assert.equal(planned.status, "OK");
     const willRun = planned.plan.groups.willRun.filter((i) => i.adapter === "build-check");
-    assert.deepEqual(willRun.map((i) => i.id).sort(), ["mypy#typecheck", "tsc#typecheck"]);
+    const checkers = ["mypy", "pyright", "tsc"];
+    assert.deepEqual(willRun.map((i) => i.id).sort(), checkers.map((checker) => `${checker}#typecheck`));
     assert.ok(willRun.every((i) => i.availability.status === "available"), JSON.stringify(willRun.map((i) => i.availability)));
     const contractUnits = planned.plan.invocations.filter((i) => i.adapter === "build-check").flatMap((i) => i.contract.units.map((u) => ({ checker: i.contract.checker, root: u.root, language: u.language })));
-    assert.deepEqual(contractUnits.map((u) => u.root).sort(), [...expected.keys()].sort());
+    assert.deepEqual([...new Set(contractUnits.map((u) => u.root))].sort(), [...expected.keys()].sort());
     for (const u of contractUnits) assert.equal(u.language, expected.get(u.root), `${u.root}: the plan and the matrix agree on the stack`);
-    assert.deepEqual(Object.fromEntries(contractUnits.map((u) => [u.root, u.checker])), { api: "mypy", web: "tsc" });
+    assert.deepEqual(contractUnits.map((u) => `${u.root}:${u.checker}`).sort(), ["api:mypy", "api:pyright", "web:tsc"]);
     assert.ok(planned.plan.invocations.every((i) => !i.contract?.skipped?.length), "no unit with a checker is skipped here");
     // The plan names the components of the repository, scripts included: it is not a unit of any build-check instance.
     assert.ok(planned.plan.components.some((c) => c.root === "scripts"));
@@ -137,7 +142,7 @@ test("V2-32: a mixed TypeScript and Python repository gets per-unit build and ty
       });
     const failed = await run(plan());
     assert.equal(failed.decision, "failed");
-    for (const id of ["tsc#typecheck", "mypy#typecheck"]) assert.equal(failed.stages.find((s) => s.id === id)?.state, "completed", id);
+    for (const { id } of willRun) assert.equal(failed.stages.find((s) => s.id === id)?.state, "completed", id);
     const found = failed.findings.filter((f) => f.origin === "build-check");
     const at = (tool) => found.filter((f) => f.tool === tool);
     assert.equal(at("tsc").length, 1);
@@ -148,6 +153,10 @@ test("V2-32: a mixed TypeScript and Python repository gets per-unit build and ty
     assert.equal(at("mypy")[0].location.path, "api/app.py");
     assert.equal(at("mypy")[0].location.line, 5);
     assert.equal(at("mypy")[0].ruleId, "arg-type");
+    assert.equal(at("pyright").length, 1);
+    assert.equal(at("pyright")[0].location.path, "api/app.py");
+    assert.equal(at("pyright")[0].location.line, 5);
+    assert.equal(at("pyright")[0].ruleId, "reportArgumentType");
     assert.ok(found.every((f) => f.blocking && f.category === "typecheck"));
     assert.equal(found.some((f) => f.location.path.startsWith("scripts/")), false, "the JavaScript unit is never reported as checked");
 
@@ -157,7 +166,7 @@ test("V2-32: a mixed TypeScript and Python repository gets per-unit build and ty
     const passed = await run(plan());
     assert.equal(passed.decision, "passed", JSON.stringify(passed.stages));
     assert.equal(passed.findings.filter((f) => f.origin === "build-check").length, 0);
-    for (const id of ["tsc#typecheck", "mypy#typecheck"]) assert.equal(passed.stages.find((s) => s.id === id)?.state, "completed", id);
+    for (const { id } of willRun) assert.equal(passed.stages.find((s) => s.id === id)?.state, "completed", id);
   } finally {
     for (const dir of made) fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
   }

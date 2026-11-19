@@ -1,0 +1,18 @@
+{
+ "tool": "graphql-schema-linter",
+ "kind": "clean",
+ "version": "3.0.1",
+ "calls": [
+  {
+   "args": [
+    "--format",
+    "json",
+    "--",
+    "schema.graphql"
+   ],
+   "exit": 0,
+   "stdout": "{\"errors\":[]}",
+   "stderr": ""
+  }
+ ]
+}

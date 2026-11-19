@@ -164,7 +164,7 @@ test("ci hardening: a hostile project (its own ESLint, Ruff, Semgrep and Gitleak
     }
     for (const id of ["ruff#lint", "eslint#lint", "semgrep#sast"]) assert.equal(stage(b, id)?.state, "completed", JSON.stringify(stage(b, id)));
 
-    // The suppressions appear: neutralized ones as information, the ones a check still honors as blocking.
+    // Neutralized and unused directives are reported as information.
     const suppressions = b.findings.filter((f) => f.ruleId.startsWith("suppression."));
     const kinds = new Set(suppressions.map((f) => f.ruleId));
     for (const kind of ["suppression.noqa", "suppression.eslint", "suppression.nosem", "suppression.gitleaks", "suppression.shellcheck"]) assert.ok(kinds.has(kind), `${kind}: ${JSON.stringify([...kinds])}`);
@@ -172,10 +172,10 @@ test("ci hardening: a hostile project (its own ESLint, Ruff, Semgrep and Gitleak
       assert.equal(f.blocking, false, JSON.stringify(f));
     }
     const shellcheck = suppressions.find((f) => f.ruleId === "suppression.shellcheck");
-    assert.equal(shellcheck.blocking, true, JSON.stringify(shellcheck));
+    assert.equal(shellcheck.blocking, false, JSON.stringify(shellcheck));
     assert.deepEqual(shellcheck.location, { path: "scripts/run.sh", line: 2 });
     assert.equal(stage(b, "jgates-ci.suppressions").state, "completed");
-    assert.ok(stage(b, "jgates-ci.suppressions").blockingViolations >= 1);
+    assert.equal(stage(b, "jgates-ci.suppressions").blockingViolations, 0);
     assert.equal(a.findings.filter((f) => f.ruleId.startsWith("suppression.")).length, 0, "the clean copy has no suppression comment");
 
     // The plan names only the policy's files and forces the flags; the project's configuration is never read.
@@ -201,7 +201,8 @@ test("ci hardening: a hostile project (its own ESLint, Ruff, Semgrep and Gitleak
     assert.equal(gitleaks.bridge.effectiveCommand.config.source, "package");
     assert.ok(gitleaks.bridge.effectiveCommand.args.includes("--ignore-gitleaks-allow"));
     const projectConfigs = ["eslint.config.js", "pyproject.toml", "ruff.toml", ".semgrepignore", ".gitleaks.toml", ".gitleaksignore", ".jscpd.json", ".quality-gate-policy.json"];
-    const planFiles = [...plan.inputs.configFiles.map((f) => f.file), ...plan.groups.willRun.flatMap((i) => i.configFiles.map((f) => f.file))];
+    // The input hash also covers discovered files of inactive tools. Only running checks can consume their configuration.
+    const planFiles = plan.groups.willRun.flatMap((i) => i.configFiles.map((f) => f.file));
     for (const file of projectConfigs) assert.ok(!planFiles.includes(file), `${file} in ${JSON.stringify(planFiles)}`);
     assert.ok(validateResult(JSON.parse(readRun(b, "result.json"))), JSON.stringify(validateResult.errors));
   } finally {
@@ -252,21 +253,7 @@ test("ci hardening: a conftest.py that forges the tests' result does not approve
   }
 });
 
-test("ci hardening: a .csproj makes MegaLinter's stage selfReported (MSBuild runs the project's targets), and a self-reported pass never approves alone", async () => {
-  const p = setup(forgedTestFiles({ forged: false, csproj: true }), smallPolicy({ checks: { "capability:lint": true, "tool:ruff": false } }));
-  try {
-    const result = one(p.ci());
-    assert.equal(stage(result, "quality-bridge.megalinter")?.selfReported, true, JSON.stringify(result.stages));
-    // Without a project file MSBuild has nothing to load: the stage is trusted.
-    fs.rmSync(path.join(p.dir, "Sample.csproj"));
-    git(p.dir, "add", "-A");
-    git(p.dir, "commit", "-qm", "no project file");
-    const again = one(p.ci());
-    assert.equal(stage(again, "quality-bridge.megalinter")?.selfReported, undefined);
-  } finally {
-    p.cleanup();
-  }
-
+test("ci hardening: .NET analyzers run project code and a self-reported pass never approves alone", async () => {
   // The decision: a completed self-reported stage satisfies its requirement only when the run trusts it.
   const stages = [{ id: "unit", state: "completed", selfReported: true }];
   const requirements = [{ id: "unit", required: true }];
@@ -279,13 +266,14 @@ test("ci hardening: a .csproj makes MegaLinter's stage selfReported (MSBuild run
   const plan = { groups: { willRun: [
     { id: "quality-bridge.megalinter#lint", adapter: "quality-bridge", subcheck: "megalinter", effects: { executesProjectCode: false } },
     { id: "quality-bridge.coverage#coverage", adapter: "quality-bridge", subcheck: "coverage", effects: { executesProjectCode: false } },
+    { id: "dotnet-analyzers#lint", adapter: "dotnet-analyzers", subcheck: null, effects: { executesProjectCode: true } },
     { id: "ruff#lint", adapter: "ruff", subcheck: null, effects: { executesProjectCode: false } },
     { id: "run-tests#unit", adapter: "generic-command", subcheck: null, effects: { executesProjectCode: true } },
   ] } };
   const linters = readBridgeLinters(lintersFile({ JGATES_SIDECAR_DIR: SIDECAR }));
   const facts = { listing: { files: ["src/App.csproj"], truncated: false }, linters, msbuildFiles: ["src/App.csproj"], coverageReports: [] };
-  assert.deepEqual([...governedSteps.selfReportedStages(plan, facts)].sort(), ["quality-bridge.coverage", "quality-bridge.megalinter", "run-tests#unit"]);
-  assert.deepEqual([...governedSteps.selfReportedStages(plan, { ...facts, msbuildFiles: [] })].sort(), ["quality-bridge.coverage", "run-tests#unit"]);
+  assert.deepEqual([...governedSteps.selfReportedStages(plan, facts)].sort(), ["dotnet-analyzers#lint", "quality-bridge.coverage", "quality-bridge.megalinter", "run-tests#unit"]);
+  assert.deepEqual([...governedSteps.selfReportedStages(plan, { ...facts, msbuildFiles: [] })].sort(), ["dotnet-analyzers#lint", "quality-bridge.coverage", "run-tests#unit"]);
   const unreadable = { ...facts, msbuildFiles: [], linters: new LinterListError("broken") };
   assert.ok(governedSteps.selfReportedStages(plan, unreadable).has("quality-bridge.megalinter"), "an unreadable list proves nothing");
 

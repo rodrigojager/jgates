@@ -1,0 +1,16 @@
+{
+  "package": "microsoft.cst.devskim.cli",
+  "version": "1.0.103",
+  "sha256": "ea8c70cca113563919909b64534b6d50f97af4b2941e1ea4bb434db7890a28af",
+  "provides": [
+    {
+      "name": "devskim",
+      "path": "devskim",
+      "version": [
+        "devskim",
+        "--version"
+      ],
+      "pattern": "(\\d+\\.\\d+\\.\\d+)"
+    }
+  ]
+}

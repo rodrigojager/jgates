@@ -28,7 +28,7 @@
     "mode": "files",
     "args": [
       "--relative",
-      "--reporter=sarif",
+      "--reporter=sarif,output={report}",
       "--",
       "{files}"
     ],
@@ -48,7 +48,8 @@
     }
   },
   "output": {
-    "from": "stdout",
+    "from": "file",
+    "file": "ktlint.sarif",
     "reader": "sarif"
   },
   "configuration": {

@@ -1,0 +1,12 @@
+{
+  "files": [
+    "djlint_sample.html"
+  ],
+  "findings": [
+    {
+      "rule": "H005",
+      "file": "djlint_sample.html",
+      "line": 2
+    }
+  ]
+}

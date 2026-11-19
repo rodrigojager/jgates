@@ -1,0 +1,16 @@
+{
+ "tool": "rstcheck",
+ "kind": "bad",
+ "version": "6.3.1",
+ "calls": [
+  {
+   "args": [
+    "--",
+    "rstcheck_sample.rst"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "rstcheck_sample.rst:2: (WARNING/2) Title underline too short.\nError! Issues detected.\n"
+  }
+ ]
+}

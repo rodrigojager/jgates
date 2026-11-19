@@ -12,8 +12,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // --no-hardlinks`) into JGATES_E2E_TMP, by default the `_work/00-tmp` folder of the container that holds this repository
 // when there is one, else the system temporary folder. With the local development image jgates-tools:dev:
 //
-//   1. the clone, validated under Balanced (profile `standard`), reports the recounted findings of master (the new pack
-//      adds none to the sample: its only Semgrep finding is the command injection) and fails on its blocking ones;
+//   1. Essential keeps the baseline and Balanced adds the Markdownlint findings. The only Semgrep finding is the
+//      command injection;
 //   2. a Python file written to the clone only (an HTTP call without a timeout, a suppressed exception: two pack rules of
 //      severity INFO) adds exactly two informational findings, and a second one (a tar archive extracted with no visible
 //      filter: one Review rule) adds exactly one finding to review: shown with their requirement ids, none blocking, and
@@ -68,7 +68,14 @@ const REVIEW_SOURCE = [
 const REVIEW = "jgates.python.archive-extraction-unchecked-by-default";
 // A requirement of level 2 whose only Python check is that Review rule: listed there, it examines nothing.
 const REVIEW_REQUIREMENT = "V5.2.3";
-// The findings of master under Balanced: tool, rule, file (no file for a project-wide one); a repeated line is two findings.
+// Findings are identified by tool, rule and file. Repeated keys count distinct findings at different locations.
+const ESSENTIAL = [
+  "gitleaks stripe-access-token hello/infrastructure/config.py",
+  "import-linter The domain must not depend on infrastructure hello/domain/greeting.py",
+  "pytest test-failed tests/test_greeting.py",
+  "ruff F401 hello/cli.py",
+  "ruff F841 hello/cli.py",
+].sort();
 const BALANCED = [
   "builtin-pii pii.cpf tests/fixtures/customers.csv",
   "builtin-pii pii.cpf tests/fixtures/customers.csv",
@@ -76,6 +83,8 @@ const BALANCED = [
   "gitleaks stripe-access-token hello/infrastructure/config.py",
   "import-linter The domain must not depend on infrastructure hello/domain/greeting.py",
   "jscpd jscpd.duplicate hello/report.py",
+  ...Array(30).fill("markdownlint MD013 README.md"),
+  ...Array(6).fill("markdownlint MD060 README.md"),
   "osv-scanner PYSEC-2021-142 requirements-dev.txt",
   "osv-scanner PYSEC-2021-142 requirements.txt",
   "pytest test-failed tests/test_greeting.py",
@@ -85,9 +94,9 @@ const BALANCED = [
   "trivy CVE-2020-14343 requirements.txt",
   "trivy DS-0002 Dockerfile",
 ].sort();
-// Thirteen findings block; the decision counts twelve violations (the two personal-data rows of one file are one).
-const BLOCKING_FINDINGS = 13;
-const BLOCKING_VIOLATIONS = 12;
+// The two personal-data rows of one file count as one blocking violation.
+const BLOCKING_FINDINGS = 49;
+const BLOCKING_VIOLATIONS = 48;
 
 const docker = (args) => {
   const r = spawnSync("docker", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -139,7 +148,7 @@ const fileOf = (f) => (f.location?.path ?? "").replace(/\\/g, "/");
 const keyOf = (f) => `${f.tool} ${f.ruleId} ${fileOf(f)}`.trimEnd();
 const summary = (result) => JSON.stringify({ decision: result.decision, stages: result.stages.filter((s) => s.state !== "completed").map((s) => `${s.id}=${s.state}`), findings: result.findings.map((f) => `${keyOf(f)}${f.blocking ? " *" : ""}${f.informational ? " (info)" : ""}${f.review ? " (review)" : ""}`) }, null, 1);
 
-test("V2-101 (real engine): the sample with the expanded pack, Balanced findings recounted, informational findings and a finding to review that leave the verdict alone, a level-2 map without checks of absent languages and with a Review check that examines nothing, a suggestion confirmed in the clone only, and the sample untouched", { timeout: 3_600_000 }, async (t) => {
+test("V2-101 (real engine): the sample keeps its Essential baseline, gains Balanced findings, maps the expanded pack and leaves the source untouched", { timeout: 3_600_000 }, async (t) => {
   let scratch = "";
   let workspace = "";
   // The cleanup belongs to this test (a root `after` hook can run before the test when the harness filters by name).
@@ -182,8 +191,8 @@ test("V2-101 (real engine): the sample with the expanded pack, Balanced findings
       assert.fail(`${what}: no JSON (exit ${r.status}):\n${r.stdout.slice(0, 2000)}\n${r.stderr.slice(0, 2000)}`);
     }
   };
-  const runJson = () => {
-    const r = cli(["run", "--cwd", project, "--no-interactive", "--json"]);
+  const runJson = (...options) => {
+    const r = cli(["run", "--cwd", project, "--no-interactive", "--json", ...options]);
     return { status: r.status, doc: json(r, "jgates run") };
   };
   const mapJson = (level) => {
@@ -197,13 +206,21 @@ test("V2-101 (real engine): the sample with the expanded pack, Balanced findings
     return r.stdout;
   };
 
-  // 1. Balanced: the recounted findings of master.
+  // 1. Essential's baseline and Balanced's recounted findings on master.
   const init = cli(["init", "--cwd", project, "--profile", "standard", "--no-interactive", "--json"], { timeout: 300_000 });
   assert.equal(init.status, 0, init.stderr + init.stdout);
+  const essential = runJson("--profile", "builtin:minimal");
+  assert.equal(essential.status, 1, summary(essential.doc));
+  assert.equal(essential.doc.decision, "failed", summary(essential.doc));
+  assert.deepEqual(essential.doc.findings.map(keyOf).sort(), ESSENTIAL, summary(essential.doc));
+  t.diagnostic(`Essential master: ${essential.doc.findings.length} findings, ${essential.doc.stages.length} stages`);
   const first = runJson();
   const firstSummary = summary(first.doc);
   assert.equal(first.status, 1, firstSummary);
   assert.equal(first.doc.decision, "failed", firstSummary);
+  for (const id of ["hadolint#lint", "markdownlint#lint", "ruff#lint"]) {
+    assert.equal(first.doc.stages.find((stage) => stage.id === id)?.state, "completed", firstSummary);
+  }
   assert.deepEqual(first.doc.findings.map(keyOf).sort(), BALANCED, `the recounted findings of master under Balanced: ${firstSummary}`);
   assert.equal(first.doc.findings.filter((f) => f.informational === true).length, 0, "the sample has no informational finding of its own");
   assert.equal(first.doc.findings.filter((f) => f.review === true).length, 0, "the sample has no finding to review of its own");
@@ -211,6 +228,7 @@ test("V2-101 (real engine): the sample with the expanded pack, Balanced findings
   assert.equal(blockingFirst.length, BLOCKING_FINDINGS, firstSummary);
   const firstEn = reportText(first.doc.runId, "en");
   assert.match(firstEn, new RegExp(`Decision: failed \\(failed: ${BLOCKING_VIOLATIONS} blocking violations\\)`), firstEn);
+  t.diagnostic(`Balanced master: ${first.doc.findings.length} findings, ${blockingFirst.length} blocking findings, ${first.doc.blockingViolations} blocking violations, ${first.doc.stages.length} stages`);
   const semgrepFirst = first.doc.stages.find((s) => s.id === "semgrep#sast");
   assert.equal(semgrepFirst?.state, "completed", firstSummary);
   const scanned = Object.entries(semgrepFirst.scannedLanguages ?? {}).filter(([, n]) => n > 0).map(([language]) => language);

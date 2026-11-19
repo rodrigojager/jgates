@@ -5,6 +5,13 @@ import { translator } from "../../i18n/index.js";
 import type { ExternalPlan } from "../plan/adapters.js";
 import { ADAPTER_TRUST, adapterTreatment } from "./trust.js";
 import { linterExclusionReason } from "../../adapters/linter/derived.js";
+import { linterById } from "../../adapters/linter/descriptor.js";
+
+/** Descriptor tools need explicit policy permission to use the network in governed runs. */
+export function governedNetworkExclusion(adapter: string, planned: ExternalPlan, networkPolicy: string): string | null {
+  if (networkPolicy === "allow" || !planned.network || !linterById(adapter)) return null;
+  return translator("governed")("governed_linter_network_excluded", { adapter });
+}
 
 export function governExternalPlan(adapter: string, tool: string, planned: ExternalPlan): ExternalPlan {
   const t = translator("governed");

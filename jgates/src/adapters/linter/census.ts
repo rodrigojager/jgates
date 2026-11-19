@@ -79,6 +79,11 @@ export function fileCensus(dir: string): FileCensus {
   return census;
 }
 
+/** Forgets the census of a folder: a caller that has just written files into it (init) must not leave a listing without them. */
+export function forgetCensus(dir: string): void {
+  tick.delete(path.resolve(dir));
+}
+
 /** A name pattern (* is any text inside one name) as a regular expression; matched on the base name, or on the relative path when the pattern has a folder. */
 export function namePattern(pattern: string): { regex: RegExp; onPath: boolean } {
   const clean = pattern.replace(/\\/g, "/").replace(/^\.\//, "");

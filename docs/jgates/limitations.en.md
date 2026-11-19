@@ -11,7 +11,7 @@ This page gathers what JGates does not do yet, what was not tested and the contr
 - **The OSV mirror covers npm, PyPI, Go, crates.io and NuGet only.** A dependency of another ecosystem is not covered by the offline OSV data; do not read a clean result as proof for it.
 - **Trivy uses its embedded checks.** The checks bundle that Trivy would download is not used; the misconfiguration checks that ship inside the binary are, with the vulnerability database from the `jgates-data` volume.
 - **Playwright e2e runs Chromium only.** The browsers of the project's Playwright version are fetched into the toolchain volume, and JGates fetches Chromium; Firefox and WebKit projects are not run.
-- **The first download is large.** The image is about 2 GB to download and around 6 GB unpacked, plus the dependencies of each project and the vulnerability databases. See [storage and cleanup](storage.en.md).
+- **The first download is large.** The image is about 5 GB to download and around 13 GB unpacked, plus the dependencies of each project and the vulnerability databases. See [storage and cleanup](storage.en.md).
 - **Install scripts run, but in the container.** The dependency step runs the install scripts of the packages (npm `postinstall`, Python build backends) inside the container, with the network on. They cannot touch your project or machine, but they do run, and the review says so. See [security](security.en.md#shared-caches-and-install-scripts).
 - **Case sensitivity.** The copy of the project in the volume is case-sensitive, like Linux. A project that only works on a case-insensitive file system fails in the container (see [common problems](troubleshooting.en.md#windows-and-wsl)).
 
@@ -32,17 +32,9 @@ This page gathers what JGates does not do yet, what was not tested and the contr
 - inside a project: `npm install git+https://github.com/rodrigojager/jgates`, and the commands through `npx`;
 - global: `npm pack` in a clone, followed by `npm install --global ./jgates-<version>.tgz`.
 
-## Java and PHP: SAST only
+## Java and PHP checks
 
-JGates recognizes Java and PHP but has no stack for them. What runs on a Java or PHP project is the checks that work on any project (secrets, file size, personal data, duplication, dependency and infrastructure scans) and, when SAST is on (not under the Essential profile), Semgrep with the JGates rule pack, which has rules for eight languages: JavaScript, TypeScript, Python, Go, C#, Rust, Java and PHP. What stays missing for Java and PHP:
-
-- no component template, lint, type check, tests, coverage, mutation testing or dependency preparation;
-- the offline advisory data covers npm, PyPI, Go, crates.io and NuGet only, so vulnerable Maven or Composer dependencies are found only by what Trivy reads;
-- template files (Jinja, Blade, Razor, EJS, Go templates, Vue files) are not scanned, and the pack reads HTML and configuration files only in the formats its rules name;
-- a pack rule follows a value only inside one function: a value that crosses functions or files is not followed, and each family models the libraries named in its rule file's header, so most checks see one way of breaking a requirement (they are partial, and the ASVS map says what each misses);
-- a language the pack has no rule for (Kotlin, Ruby and others) is named in the plan as a limitation of the Semgrep step, and the result records how many files of each language the scan covered.
-
-In-image mode (JGates running inside the tools image, as in a CI container) uses the copy of the pack that sits in the image: it keeps the older, smaller pack until the image is rebuilt. A run started from the host always uses the pack of the installed JGates.
+File evidence activates PMD for Java and PHPStan for PHP under Balanced and Strict. Strict can also run additional Java and PHP tools when their file and configuration requirements match. See the [tool catalog](tools.en.md) for activation and limitations. Semgrep supplies SAST in Balanced and Strict. Java and PHP lack dedicated component test runners, coverage collection and dependency preparation. Offline advisory data does not cover Maven or Composer.
 
 ## Review and language-note limits
 

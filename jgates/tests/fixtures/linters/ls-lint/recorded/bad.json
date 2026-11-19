@@ -1,0 +1,16 @@
+{
+ "tool": "ls-lint",
+ "kind": "bad",
+ "version": "2.3.2",
+ "calls": [
+  {
+   "args": [
+    "--workdir",
+    "."
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "BadName.js failed for `.js` rules: kebabcase\n"
+  }
+ ]
+}

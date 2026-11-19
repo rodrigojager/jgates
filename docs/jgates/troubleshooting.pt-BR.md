@@ -54,6 +54,7 @@ O JGates explica por que algo não rodou com um código fixo, um texto no seu id
 - **`DEPENDENCIES_NOT_READY`**: as dependências de um componente não estão preparadas; `jgates deps status`.
 - **`DEPENDENCIES_FAILED`**: a instalação falhou; leia o log e rode `jgates deps prepare` de novo.
 - **`DATA_MISSING`**: uma base de vulnerabilidades nunca foi baixada; `jgates tools update-data`.
+- **`STEP_MEMORY_LIMIT`**. Uma verificação atingiu o limite de memória e foi interrompida antes de terminar. Reduza o número de verificações simultâneas nas configurações de execução e tente novamente.
 - **`DATA_STALE`**: ela é mais velha que `execution.dataMaxAgeDays`; `jgates tools update-data`.
 - **`CUSTOMER_SUPPLIED`**: o CodeQL é seu para preparar; `jgates tools prepare-codeql`.
 - **`EXTENSION_OUTDATED`**: a sua imagem própria mudou; `jgates tools build-extension`.

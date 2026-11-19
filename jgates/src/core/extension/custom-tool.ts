@@ -110,7 +110,8 @@ export function installLines(request: string): string[] {
   }
   if (!SPEC_RE.test(spec)) return bad();
   // The spec is quoted (extras such as bandit[sarif] are glob characters to the shell); it can hold no quote itself.
-  if (method === "pip") return [`RUN UV_TOOL_DIR=/opt/jgates-ext/uv UV_TOOL_BIN_DIR=/usr/local/bin uv tool install --no-cache '${spec}'`];
+  // An explicitly installed version can replace an executable inherited from the base image.
+  if (method === "pip") return [`RUN UV_TOOL_DIR=/opt/jgates-ext/uv UV_TOOL_BIN_DIR=/usr/local/bin uv tool install --force --no-cache '${spec}'`];
   if (method === "npm") return [`RUN npm install --global --prefix /usr/local '${spec}'`];
   return [`RUN apt-get update && apt-get install -y --no-install-recommends '${spec}' && rm -rf /var/lib/apt/lists/*`];
 }

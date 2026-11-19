@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "git-diff-check",
+  "name": "git diff check",
+  "sourceUrl": "https://github.com/git/git",
+  "license": "GPL-2.0-only",
+  "program": {
+    "tool": "git-diff-check",
+    "command": "git",
+    "versionRange": ">=2.0.0 <3.0.0"
+  },
+  "megalinter": [
+    "REPOSITORY_GIT_DIFF"
+  ],
+  "place": {
+    "section": "other",
+    "group": "repository",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "diff",
+      "--no-index",
+      "--check",
+      "--",
+      "/srv",
+      "."
+    ],
+    "exit": {
+      "clean": [
+        0,
+        1,
+        3
+      ],
+      "findings": [
+        3
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "custom",
+    "pattern": "^(?<file>[^:\\n]+):(?<line>\\d+): (?<message>(?<rule>.+?)\\.?)$"
+  },
+  "configuration": {
+    "files": [
+      ".gitattributes"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "git applies its own whitespace checks (trailing whitespace, space before tab, blank line at the end of a file) and looks for leftover conflict markers; a .gitattributes whitespace attribute can change which checks apply",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: a file is excluded with a -whitespace attribute in .gitattributes"
+    }
+  },
+  "install": "git-diff-check",
+  "text": {
+    "en": {
+      "label": "git diff check (conflict markers and whitespace)",
+      "purpose": "Treats every file of the project as newly added and reports leftover merge conflict markers and whitespace errors such as trailing whitespace, a space before a tab and blank lines at the end of a file.",
+      "limitation": "It checks text shape only, not what the code does. Binary files are skipped, and it does not read the project's git history.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "git diff check (marcadores de conflito e espaços)",
+      "purpose": "Trata cada arquivo do projeto como recém-adicionado e aponta marcadores de conflito de merge esquecidos e erros de espaço em branco, como espaços no fim da linha, espaço antes de tabulação e linhas em branco no fim do arquivo.",
+      "limitation": "Verifica só o formato do texto, não o que o código faz. Arquivos binários são ignorados e o histórico do git do projeto não é lido.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

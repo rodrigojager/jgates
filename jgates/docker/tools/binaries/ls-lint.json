@@ -1,0 +1,24 @@
+{
+  "version": "2.3.2",
+  "url": "https://github.com/loeffel-io/ls-lint/releases/download/v{version}/ls-lint-linux-amd64.tar.gz",
+  "sha256": "35f2cfd41fd2aa25f388926554fde146395dee6e5030ead2de948181a1a27cef",
+  "archive": "tar",
+  "extract": {
+    "ls-lint-linux-amd64": "ls-lint",
+    "LICENSE": "LICENSE"
+  },
+  "executable": [
+    "ls-lint"
+  ],
+  "provides": [
+    {
+      "name": "ls-lint",
+      "link": "ls-lint",
+      "path": "ls-lint",
+      "version": [
+        "ls-lint",
+        "--version"
+      ]
+    }
+  ]
+}

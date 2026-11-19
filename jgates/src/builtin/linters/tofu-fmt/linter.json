@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "tofu-fmt",
+  "name": "tofu fmt",
+  "sourceUrl": "https://github.com/opentofu/opentofu",
+  "license": "MPL-2.0",
+  "program": {
+    "tool": "tofu",
+    "versionRange": ">=1.13.9 <2.0.0"
+  },
+  "megalinter": [
+    "TERRAFORM_TERRAFORM_FMT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "terraform",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".tf",
+      ".tfvars"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "fmt",
+      "-check",
+      "-list=true",
+      "-write=false",
+      "-no-color",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        3
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "files",
+    "rule": "tofu-fmt.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "tofu fmt has no configuration: the canonical style of the language is the rule",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the formatter has no in-file suppression"
+    }
+  },
+  "install": "tofu",
+  "text": {
+    "en": {
+      "label": "tofu fmt (Terraform format)",
+      "purpose": "Checks that Terraform and OpenTofu files are formatted the way OpenTofu writes them: indentation, alignment of equals signs and spacing. It only reports the files that differ; it never rewrites one.",
+      "limitation": "It reports the file, not the line. It is OpenTofu's formatter (MPL-2.0), which produces the same layout as terraform fmt; Terraform itself is not shipped.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "tofu fmt (formato Terraform)",
+      "purpose": "Verifica se os arquivos Terraform e OpenTofu estão formatados como o OpenTofu os escreveria: indentação, alinhamento dos sinais de igual e espaçamento. Só relata os arquivos que diferem; nunca reescreve um.",
+      "limitation": "Relata o arquivo, não a linha. É o formatador do OpenTofu (MPL-2.0), que produz o mesmo layout do terraform fmt; o próprio Terraform não é distribuído.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

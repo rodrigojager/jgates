@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-tekton-lint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of tekton-lint in the JGates tools image.",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@ibm/tekton-lint": "1.3.0"
+  }
+}

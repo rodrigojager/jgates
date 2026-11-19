@@ -191,7 +191,7 @@ function CheckRow({ label, secondary, description, item, profile, editable, busy
             ))}
           </select>
         ) : (
-          <Switch checked={item.enabled} label={label} disabled={Boolean(lock) || !editable || busy} onChange={(next) => onToggle([{ selector: item.selector, enabled: next }])} />
+          <Switch checked={item.enabled} label={label} disabled={Boolean(lock) || !editable} busy={busy} onChange={(next) => onToggle([{ selector: item.selector, enabled: next }])} />
         )}
       </div>
       <OriginLine origin={item.decision} saveTo={editable ? item.saveTo : null} fallback={t(`cfgp_reason_${item.reason}`)} />
@@ -292,7 +292,7 @@ function CategoryBlock({ category, states, ctx, profile, editable, busy, pending
           </button>
         ) : null}
         {lockedInside > 0 ? <Pill tone="gold">{t("cfgp_category_locked", { count: lockedInside })}</Pill> : null}
-        <Switch checked={category.enabled} label={t("cfgp_category_switch", { name: category.label })} disabled={!editable || busy} pending={pending === category.selector} onChange={toggleCategory} testId={`category-${category.id}`} />
+        <Switch checked={category.enabled} label={t("cfgp_category_switch", { name: category.label })} disabled={!editable} busy={busy} pending={pending === category.selector} onChange={toggleCategory} testId={`category-${category.id}`} />
       </div>
       {open ? (
         <ul id={`cat-body-${category.id}`} className="capabilities">

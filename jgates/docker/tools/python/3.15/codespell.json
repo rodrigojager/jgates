@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "codespell",
+      "link": "codespell",
+      "path": "bin/codespell",
+      "version": [
+        "codespell",
+        "--version"
+      ]
+    }
+  ]
+}

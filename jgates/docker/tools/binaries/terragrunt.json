@@ -1,0 +1,18 @@
+{
+  "version": "1.2.2",
+  "url": "https://github.com/gruntwork-io/terragrunt/releases/download/v{version}/terragrunt_linux_amd64",
+  "sha256": "1ba4ad11cf6ac277e8ba59a3fdceb8576778e22f6a24bedd542e91bad9f36491",
+  "archive": "file",
+  "save": "terragrunt",
+  "provides": [
+    {
+      "name": "terragrunt",
+      "link": "terragrunt",
+      "path": "terragrunt",
+      "version": [
+        "terragrunt",
+        "--version"
+      ]
+    }
+  ]
+}

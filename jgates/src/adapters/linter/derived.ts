@@ -3,10 +3,10 @@
 // MegaLinter subcheck, the per-tool test titles and one implicit template per descriptor group. The hand-kept tables
 // read these through `withDerived`, which merges a hand table with the derived entries when it is first read.
 //
-// This module reads descriptors only (no adapter code), so the tables that import it stay free of cycles.
+// This module reads descriptors only (no adapter code). Descriptor validation runs lazily.
 import type { AdapterEvidence, TestRef } from "../../core/matrix/evidence.js";
 import { evidencePatterns } from "./census.js";
-import { linterGroupKey, linterTemplateId, loadLinters, type LinterDescriptor, type LoadedLinter } from "./descriptor.js";
+import { linterGroupKey, linterTemplateId, linterTexts, loadLinters, type LinterDescriptor, type LoadedLinter } from "./descriptor.js";
 
 /** The per-tool test file and the title of a descriptor's test there (the evidence entry cites it). */
 export const LINTERS_TEST_FILE = "linters.test.js";
@@ -90,8 +90,14 @@ export function linterSupersedingIds(): string[] {
     .map((l) => l.descriptor.id);
 }
 
+interface LinterGroup {
+  key: string;
+  templateId: string;
+  linters: LoadedLinter[];
+}
+
 /** The descriptor groups (section/group) with their tools, sorted. */
-export function linterGroups(): Array<{ key: string; templateId: string; linters: LoadedLinter[] }> {
+export function linterGroups(): LinterGroup[] {
   const groups = new Map<string, LoadedLinter[]>();
   for (const l of loadLinters()) {
     const key = linterGroupKey(l.descriptor);
@@ -102,9 +108,18 @@ export function linterGroups(): Array<{ key: string; templateId: string; linters
     .map(([key, linters]) => ({ key, templateId: linterTemplateId((linters[0] as LoadedLinter).descriptor), linters }));
 }
 
+export function linterTemplateText(group: LinterGroup, locale: string): { label: string; description: string } {
+  const texts = group.linters.map(({ descriptor }) => linterTexts(descriptor, locale));
+  return {
+    label: `${texts.map((text) => text.label).join(", ")} (${group.key})`,
+    description: texts.map((text) => `${text.label}: ${text.purpose}`).join(" "),
+  };
+}
+
 /**
  * One implicit template per descriptor group (lint-php, lint-markdown, scan-secrets): the group's tools, detected by a
- * file of the group anywhere in the workspace (the census), always active for a group of whole-project tools. Two
+ * file of the group anywhere in the workspace (the census), always active for a group of whole-project tools.
+ * The templates contribute only their tools, leaving activation of the base template to the project resolver. Two
  * groups of different sections that map to one template id are a defect of the descriptors.
  */
 export function linterTemplates(): Array<{ id: string; value: Record<string, unknown> }> {
@@ -123,10 +138,8 @@ export function linterTemplates(): Array<{ id: string; value: Record<string, unk
       value: {
         schemaVersion: 1,
         id: group.templateId,
-        label: `${ds.map((d) => d.name).join(", ")} (${group.key})`,
-        description: ds.map((d) => `${d.name}: ${d.text.en.purpose}`).join(" "),
+        ...linterTemplateText(group, "en"),
         implicit: true,
-        extends: ["builtin:base"],
         ...(patterns.length > 0 ? { match: { files: patterns } } : {}),
         config: { tools },
       },

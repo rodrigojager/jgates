@@ -1,0 +1,17 @@
+{
+ "tool": "proselint",
+ "kind": "clean",
+ "version": "0.16.0",
+ "calls": [
+  {
+   "args": [
+    "check",
+    "--",
+    "prose.md"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ":0: DeprecationWarning: /workspace/.proselintrc was found instead of a JSON file. Rename to /workspace/.proselintrc.json.\n"
+  }
+ ]
+}

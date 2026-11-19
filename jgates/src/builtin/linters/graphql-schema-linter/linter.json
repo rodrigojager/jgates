@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "graphql-schema-linter",
+  "name": "graphql-schema-linter",
+  "sourceUrl": "https://github.com/cjoudrey/graphql-schema-linter",
+  "license": "MIT",
+  "program": {
+    "tool": "graphql-schema-linter",
+    "versionRange": ">=3.0.0 <4.0.0"
+  },
+  "megalinter": [
+    "GRAPHQL_GRAPHQL_SCHEMA_LINTER"
+  ],
+  "place": {
+    "section": "format",
+    "group": "graphql",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".graphql"
+    ]
+  },
+  "run": {
+    "mode": "each-file",
+    "args": [
+      "--format",
+      "json",
+      "--",
+      "{file}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "items": "errors[]",
+    "fields": {
+      "file": "location.file",
+      "rule": "rule",
+      "message": "message",
+      "line": "location.line",
+      "column": "location.column"
+    },
+    "level": "error"
+  },
+  "configuration": {
+    "files": [
+      ".graphql-schema-linterrc",
+      ".graphql-schema-linterrc.json",
+      ".graphql-schema-linterrc.yaml",
+      ".graphql-schema-linterrc.yml",
+      "graphql-schema-linter.config.js",
+      "package.json"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "graphql-schema-linter reads the project's .graphql-schema-linterrc (or the graphql-schema-linter key of package.json): the project decides which rules run and the schema options",
+    "suppressions": {
+      "honoured": false,
+      "description": "none in the file: rules are turned off in the configuration or with the rules option"
+    }
+  },
+  "install": "graphql-schema-linter",
+  "text": {
+    "en": {
+      "label": "graphql-schema-linter (GraphQL)",
+      "purpose": "Checks GraphQL schema files against schema design rules: descriptions on types, fields and arguments, naming conventions, alphabetical order of fields, unused types and the Relay conventions.",
+      "limitation": "It lints a schema, not queries, and runs on one file at a time: a type defined in one file and used in another can be reported as unused. With no project configuration it runs every rule, including the Relay ones.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "graphql-schema-linter (GraphQL)",
+      "purpose": "Verifica arquivos de schema GraphQL contra regras de desenho de schema: descrições em tipos, campos e argumentos, convenções de nomes, ordem alfabética dos campos, tipos não usados e as convenções do Relay.",
+      "limitation": "Verifica um schema, não consultas, e roda em um arquivo por vez: um tipo definido em um arquivo e usado em outro pode ser apontado como não usado. Sem configuração do projeto roda todas as regras, inclusive as do Relay.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

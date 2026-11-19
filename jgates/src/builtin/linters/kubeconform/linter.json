@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "kubeconform",
+  "name": "kubeconform",
+  "sourceUrl": "https://github.com/yannh/kubeconform",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "kubeconform",
+    "versionRange": ">=0.8.0 <1.0.0"
+  },
+  "megalinter": [
+    "KUBERNETES_KUBECONFORM"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "kubernetes",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "content": {
+      "pattern": "(?<![\\s\\S])(?![\\s\\S]*\\{\\{[- ]*\\.(?:Values|Release|Chart|Capabilities|Files|Template)\\b)(?=[\\s\\S]*[\\s,{\"']?apiVersion['\"]?[ \\t]*:)(?=[\\s\\S]*(?:[\\s,{\"']kind['\"]?[ \\t]*:|apiVersion['\"]?[ \\t]*:[ \\t]*['\"]?[\\w.-]+/))",
+      "firstLine": false,
+      "names": [
+        "*.yml",
+        "*.yaml",
+        "*.json"
+      ]
+    }
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-output",
+      "json",
+      "-ignore-missing-schemas",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": true,
+    "readOnly": true,
+    "resources": {
+      "memoryMb": 512
+    }
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "items": "resources[]",
+    "fields": {
+      "file": "filename",
+      "rule": "status",
+      "message": "msg"
+    }
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "kubeconform runs with its own defaults and the schemas of the Kubernetes version it knows; the project has no configuration file for it, so nothing the project holds changes its rules",
+    "suppressions": {
+      "honoured": false,
+      "description": "not honored: kubeconform has no in-code suppression"
+    }
+  },
+  "install": "kubeconform",
+  "text": {
+    "en": {
+      "label": "kubeconform (Kubernetes manifests)",
+      "purpose": "Validates Kubernetes manifests (YAML and JSON) against the official JSON schema of each resource kind and API version: unknown fields, wrong types, missing required fields.",
+      "limitation": "It checks the shape of a resource, not whether it is a good idea, and it skips resource kinds it has no schema for (custom resources) instead of failing.",
+      "needs": "The network: it downloads the schema of each resource kind and version when it runs. No project dependencies."
+    },
+    "pt-BR": {
+      "label": "kubeconform (manifestos Kubernetes)",
+      "purpose": "Valida manifestos Kubernetes (YAML e JSON) contra o JSON schema oficial de cada tipo de recurso e versão de API: campos desconhecidos, tipos errados, campos obrigatórios ausentes.",
+      "limitation": "Verifica a forma de um recurso, não se ele é uma boa ideia, e ignora os tipos de recurso sem schema (recursos customizados) em vez de falhar.",
+      "needs": "A rede: ele baixa o schema de cada tipo de recurso e versão quando roda. Sem dependências do projeto."
+    }
+  }
+}

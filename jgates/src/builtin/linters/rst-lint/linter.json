@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "rst-lint",
+  "name": "rst-lint",
+  "sourceUrl": "https://github.com/twolfson/restructuredtext-lint",
+  "license": "Unlicense",
+  "program": {
+    "tool": "rst-lint",
+    "versionRange": ">=2.0.0 <3.0.0"
+  },
+  "megalinter": [
+    "RST_RST_LINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "rst",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".rst"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<level>[A-Z]+) (?<file>.+?):(?<line>\\d+) (?<message>.+)$",
+    "rule": "rst-lint.docutils"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "rst-lint has no project configuration: it reports what docutils reports",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: rst-lint has no in-file suppression"
+    }
+  },
+  "install": "rst-lint",
+  "text": {
+    "en": {
+      "label": "rst-lint (reStructuredText)",
+      "purpose": "Checks reStructuredText files with docutils and reports the syntax problems it finds: title underlines, indentation, malformed blocks and directives.",
+      "limitation": "It reports what docutils itself reports, with no rule names, and it does not know Sphinx roles or directives, so a Sphinx project may show false findings.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "rst-lint (reStructuredText)",
+      "purpose": "Verifica arquivos reStructuredText com o docutils e reporta os problemas de sintaxe que ele encontra: sublinhado de títulos, indentação, blocos e diretivas malformados.",
+      "limitation": "Reporta o que o próprio docutils reporta, sem nomes de regras, e não conhece papéis ou diretivas do Sphinx, então um projeto Sphinx pode mostrar achados falsos.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

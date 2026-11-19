@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "djlint",
+      "link": "djlint",
+      "path": "bin/djlint",
+      "version": [
+        "djlint",
+        "--version"
+      ]
+    }
+  ]
+}

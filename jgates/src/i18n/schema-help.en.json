@@ -125,5 +125,9 @@
   "h_de209dee2807": "generic-command: the declaration of the command (effects and evidence contract); the adapter checks it against generic-evidence.schema.json when the plan is built. This is what `jgates tools add-custom` writes.",
   "h_00ce78a80c79": "Discovery, components, includes and excludes of the workspace.",
   "h_d4d692930593": "Automatic detection of components. Default true; false keeps only the components declared here.",
-  "h_93106d75a87c": "Whether the checks run on this component. Default true."
+  "h_93106d75a87c": "Whether the checks run on this component. Default true.",
+  "h_f6f6257a06a8": "How far the profile's capability, category and component entries reach (ADR-0022): core (the tools JGates always had), main (also the main tool of each language and format) or extended (every tool). A tool above the tier is off with its reason until a tool:<id> entry switches it on. Absent: inherited from extends; core when no profile of the chain says one.",
+  "h_65299bfc3c60": "Built-in templates only (ADR-0022): true makes the template part of every project's configuration without being listed in jgates.yml, with activation detected when it has a match (always otherwise). A project switches it off by listing the same id with enabled: false or activation: manual.",
+  "h_dfb6756f6060": "Which profile runs the instance by default (ADR-0022): core (absent), main (from Balanced up) or extended (Strict). A tool:<id> entry switches it on under any profile.",
+  "h_793dd7cf894a": "Configuration evidence: the template is detected only when at least one of these files exists in the root of a component of the matched languages, or in the workspace root. A string is a path relative to that root (a `**` folder stands for any depth: `**/*.php` is a PHP file anywhere under the root, found by the file census); an object also asks for a line that starts with `contains` (after spaces), for a section of a shared file such as [tool.pytest.ini_options] in pyproject.toml."
 }

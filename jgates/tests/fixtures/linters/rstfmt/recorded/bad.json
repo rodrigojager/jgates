@@ -1,0 +1,17 @@
+{
+ "tool": "rstfmt",
+ "kind": "bad",
+ "version": "0.0.14",
+ "calls": [
+  {
+   "args": [
+    "--check",
+    "--",
+    "rstfmt_sample.rst"
+   ],
+   "exit": 1,
+   "stdout": "rstfmt_sample.rst is not correctly formatted!\n",
+   "stderr": ""
+  }
+ ]
+}

@@ -79,11 +79,14 @@ test("the new templates bring one instance of the right adapter and capability, 
     const item = getBuiltinTemplate(`builtin:${id}`);
     assert.ok(item, id);
     const tools = Object.values(item.value.config.tools);
-    assert.equal(tools.length, 1, id);
-    assert.equal(tools[0].adapter, want.adapter, id);
-    assert.deepEqual(tools[0].capabilities, [want.capability], id);
-    // Only the profile (strict: when available) turns the check on; standard and minimal stay as they were.
-    assert.equal(tools[0].enabled, undefined, id);
+    // The Python type check brings mypy and pyright side by side; every other template brings one instance.
+    assert.equal(tools.length, id === "python-mypy-defaults" ? 2 : 1, id);
+    for (const tool of tools) {
+      assert.equal(tool.adapter, want.adapter, id);
+      assert.deepEqual(tool.capabilities, [want.capability], id);
+      // Only the profile (strict: when available) turns the check on; standard and minimal stay as they were.
+      assert.equal(tool.enabled, undefined, id);
+    }
     assert.ok(item.value.match && (item.value.match.languages || item.value.match.files), `${id} is activated by evidence or language`);
   }
   // Sensible defaults: CodeQL for a language it supports, mutation bounded, mypy with its defaults.
@@ -225,7 +228,7 @@ test("python-mypy and python-mypy-defaults together do not conflict: the configu
   });
 });
 
-test("mypy without a configuration: withoutConfig defaults checks it with mypy's defaults; pyright configured is skipped", () => {
+test("mypy without a configuration: withoutConfig defaults checks mypy and pyright with their defaults, also where the other is configured", () => {
   withDir(pythonProject(null), (dir) => {
     const settings = buildCheckSettings({ tool: "mypy", config: { tools: { mypy: { adapter: "build-check", config: { checker: "mypy", withoutConfig: "defaults" } } } } });
     assert.deepEqual(settings.problems, []);
@@ -239,9 +242,18 @@ test("mypy without a configuration: withoutConfig defaults checks it with mypy's
     const skip = planUnits({ dir, env: process.env, checker: "mypy", componentRoot: null, settings: { checker: "mypy", tsconfig: null } });
     assert.equal(skip.units.length, 0);
     fs.writeFileSync(path.join(dir, "pyrightconfig.json"), "{}\n");
-    const pyright = planUnits({ dir, env: process.env, checker: "mypy", componentRoot: null, settings: { checker: "mypy", tsconfig: null, withoutConfig: "defaults" } });
-    assert.equal(pyright.units.length, 0);
-    assert.match(pyright.skipped[0].reason, /pyright/);
+    const both = planUnits({ dir, env: process.env, checker: "mypy", componentRoot: null, settings: { checker: "mypy", tsconfig: null, withoutConfig: "defaults" } });
+    assert.equal(both.skipped.length, 0, JSON.stringify(both.skipped));
+    assert.equal(both.units.length, 1, "mypy still runs with its defaults though pyright is configured");
+    // pyright without a configuration: defaults under withoutConfig defaults, none under skip.
+    fs.rmSync(path.join(dir, "pyrightconfig.json"));
+    const py = planUnits({ dir, env: process.env, checker: "pyright", componentRoot: null, settings: { checker: "pyright", tsconfig: null, withoutConfig: "defaults" } });
+    assert.equal(py.skipped.length, 0, JSON.stringify(py.skipped));
+    assert.equal(py.units.length, 1);
+    assert.equal(py.units[0].config, "");
+    assert.equal(planUnits({ dir, env: process.env, checker: "pyright", componentRoot: null, settings: { checker: "pyright", tsconfig: null } }).units.length, 0);
+    assert.equal(getBuiltinTemplate("builtin:python-mypy-defaults").value.config.tools.pyright.config.withoutConfig, "defaults");
+    assert.equal(getBuiltinTemplate("builtin:python-pyright").value.config.tools.pyright.config.withoutConfig, "skip");
   });
   const bad = buildCheckSettings({ tool: "mypy", config: { tools: { mypy: { config: { checker: "mypy", withoutConfig: "always" } } } } });
   assert.equal(bad.problems.length, 1);

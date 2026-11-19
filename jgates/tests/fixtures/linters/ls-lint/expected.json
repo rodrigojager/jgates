@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "kebabcase",
+      "file": "BadName.js"
+    }
+  ]
+}

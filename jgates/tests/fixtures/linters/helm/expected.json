@@ -1,0 +1,16 @@
+{
+  "files": [
+    "Chart.yaml",
+    "templates/configmap.yaml"
+  ],
+  "findings": [
+    {
+      "rule": "helm-lint",
+      "file": "Chart.yaml"
+    },
+    {
+      "rule": "helm-lint",
+      "file": "templates"
+    }
+  ]
+}

@@ -131,7 +131,14 @@ test("V2-107: three tiers over the implicit templates, explicit switches, and th
 
     // Essential: nothing of a tier above core runs; each says from which profile it runs.
     assert.ok(essential.groups.willRun.every((i) => i.tier === undefined), JSON.stringify(essential.groups.willRun.filter((i) => i.tier).map((i) => i.id)));
-    for (const [tool] of tiers) for (const i of itemsOf(essential, tool)) assert.equal(i.reason.code, "ABOVE_PROFILE_TIER", tool);
+    // A capability the Essential profile switches off by name (sast, dependencies, iac, ...) says so (DISABLED, with the
+    // entry that did it); every other tool above core says which profile runs it.
+    for (const [tool] of tiers) {
+      for (const i of itemsOf(essential, tool)) {
+        assert.ok(["ABOVE_PROFILE_TIER", "DISABLED"].includes(i.reason.code), `${tool}: ${i.reason.code}`);
+        assert.ok(!i.state.enabled && i.reason.message.length > 0, tool);
+      }
+    }
 
     // Implicit means the same plans as a project that lists every implicit template itself.
     const listed = workspace(OLD_ROOT + listImplicitTemplates().map((t) => `  - id: ${t.id}\n    source: ${t.ref}\n`).join(""));

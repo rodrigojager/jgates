@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "remark-lint",
+  "name": "remark-lint",
+  "sourceUrl": "https://github.com/remarkjs/remark-lint",
+  "license": "MIT",
+  "program": {
+    "tool": "remark-lint",
+    "command": "remark",
+    "versionRange": ">=12.0.1 <13.0.0"
+  },
+  "megalinter": [
+    "MARKDOWN_REMARK_LINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "markdown",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".md"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--no-stdout",
+      "--report",
+      "/opt/tools/node/remark-lint/node_modules/vfile-reporter-json/index.js",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "json",
+    "emptyIsClean": true,
+    "items": "[].messages[]",
+    "fields": {
+      "file": "^.path",
+      "line": "line",
+      "column": "column",
+      "rule": "ruleId",
+      "message": "reason"
+    }
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".remarkrc",
+      ".remarkrc.json",
+      ".remarkrc.yml",
+      ".remarkrc.yaml",
+      ".remarkrc.js",
+      ".remarkrc.cjs",
+      ".remarkrc.mjs",
+      ".remarkignore"
+    ],
+    "default": "remarkrc-default.json",
+    "args": [
+      "--rc-path",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "remark reads the project's .remarkrc* files and .remarkignore: the project decides the plugins and the files",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: <!--lint disable--> and <!--lint ignore--> comments",
+      "pattern": "<!--\\s*lint\\s+(?:disable|ignore|enable)",
+      "files": "\\.md$"
+    }
+  },
+  "install": "remark-lint",
+  "text": {
+    "en": {
+      "label": "remark-lint (Markdown)",
+      "purpose": "Checks Markdown files with the remark-lint rules of the recommended preset: unused or duplicate definitions, bare URLs, list and heading mistakes.",
+      "limitation": "Without a project configuration it runs the recommended preset of remark-lint; a project that wants other rules must provide a .remarkrc whose plugins are installed in the project.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "remark-lint (Markdown)",
+      "purpose": "Verifica arquivos Markdown com as regras do remark-lint do preset recomendado: definições não usadas ou duplicadas, URLs soltas, erros de listas e de títulos.",
+      "limitation": "Sem uma configuração do projeto roda o preset recomendado do remark-lint; um projeto que queira outras regras precisa fornecer um .remarkrc cujos plugins estejam instalados no projeto.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

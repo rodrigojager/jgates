@@ -58,6 +58,8 @@ A profile chooses the capabilities that count. The three built-in ones inherit f
 | `standard` (Balanced, the `init` default) | plus SAST, dependencies, duplication, IaC and personal data | `minimal` |
 | `strict` (Rigorous) | plus unit tests and coverage, required; and every other check for which a tool exists, in the "where a tool exists" mode (below) | `standard` |
 
+The [tool catalog](tools.en.md) lists the implicit templates, their file evidence and their default tiers. Core tools are available from Essential, main tools from Balanced and extended tools from Strict, subject to the capability and matching files. In `jgates config`, choose the profile and toggle individual tools. To select one for a run, use `--only tool:<id>`. After an upgrade, the **New checks** indicator identifies tools added to the installed catalog.
+
 ### Required, where a tool exists, or off
 
 Each capability of a profile has three modes. In the interface (`#/config`, the profiles screen) the selector reads **Required**, **Where a tool exists** and **Off**; in `.jgates/profiles.yml` they are `enabled: true`, `enabled: true` with `when: available`, and `enabled: false`:

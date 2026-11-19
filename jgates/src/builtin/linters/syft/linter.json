@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "syft",
+  "name": "syft",
+  "sourceUrl": "https://github.com/anchore/syft",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "syft",
+    "versionRange": ">=1.57.0 <2.0.0"
+  },
+  "megalinter": [
+    "REPOSITORY_SYFT"
+  ],
+  "place": {
+    "section": "other",
+    "group": "sbom",
+    "capability": "sbom",
+    "kind": "sbom",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "scan",
+      "dir:.",
+      "--quiet",
+      "-o",
+      "table"
+    ],
+    "env": {
+      "HOME": "/tmp",
+      "SYFT_CHECK_FOR_APP_UPDATE": "false"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "status",
+    "rule": "syft.no-sbom",
+    "level": "error"
+  },
+  "configuration": {
+    "files": [
+      ".syft.yaml",
+      ".syft.yml",
+      ".syft/config.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "syft reads the project's .syft.yaml (catalogers, exclusions, sources); without one it uses its own defaults, so the project decides what goes into the bill of materials",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the tool has no in-file suppression; paths are excluded in .syft.yaml"
+    }
+  },
+  "install": "syft",
+  "text": {
+    "en": {
+      "label": "syft (bill of materials)",
+      "purpose": "Catalogs the packages of the project (lockfiles, manifests, installed packages) into an SPDX software bill of materials, and fails when the bill of materials cannot be produced.",
+      "limitation": "It lists what the project contains and finds no vulnerability by itself: the check fails only when syft cannot read the project or its configuration, so a passing step means the bill of materials was produced.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "syft (lista de materiais)",
+      "purpose": "Cataloga os pacotes do projeto (lockfiles, manifestos, pacotes instalados) em uma lista de materiais de software SPDX e falha quando a lista não pode ser produzida.",
+      "limitation": "Lista o que o projeto contém e não encontra vulnerabilidade sozinho: a verificação só falha quando o syft não consegue ler o projeto ou a configuração, então um passo aprovado significa que a lista foi produzida.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

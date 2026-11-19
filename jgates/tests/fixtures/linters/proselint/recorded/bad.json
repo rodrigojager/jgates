@@ -1,0 +1,17 @@
+{
+ "tool": "proselint",
+ "kind": "bad",
+ "version": "0.16.0",
+ "calls": [
+  {
+   "args": [
+    "check",
+    "--",
+    "prose.md"
+   ],
+   "exit": 1,
+   "stdout": "/workspace/prose.md:3:11: uncomparables: Comparison of an uncomparable: 'very unique' is not comparable.\n/workspace/prose.md:3:11: weasel_words.very: Substitute 'damn' every time you're inclined to write 'very'; your editor will delete it and the writing will be just as it should be.\n",
+   "stderr": ":0: DeprecationWarning: /workspace/.proselintrc was found instead of a JSON file. Rename to /workspace/.proselintrc.json.\n"
+  }
+ ]
+}

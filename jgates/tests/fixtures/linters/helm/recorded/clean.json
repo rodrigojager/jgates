@@ -1,0 +1,16 @@
+{
+ "tool": "helm",
+ "kind": "clean",
+ "version": "4.3.2",
+ "calls": [
+  {
+   "args": [
+    "lint",
+    "/workspace"
+   ],
+   "exit": 0,
+   "stdout": "==> Linting /workspace\n\n1 chart(s) linted, 0 chart(s) failed\n",
+   "stderr": ""
+  }
+ ]
+}

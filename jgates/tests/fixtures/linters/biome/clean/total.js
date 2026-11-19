@@ -1,5 +1,5 @@
-function total(items) {
-  return items.length;
+function total (items) {
+  return items.length
 }
 
-export { total };
+export { total }

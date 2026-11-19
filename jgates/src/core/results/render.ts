@@ -132,16 +132,19 @@ export function findingLines(result: Pick<RunResult, "findings" | "runId">, t: T
   };
   const lines: string[] = [];
   let room = MAX_TEXT_FINDINGS;
+  // Keep at least one row visible for each category represented in the preview.
+  const reviewSlot = Number(review.length > 0);
   if (blocking.length > 0) {
+    const shown = blocking.slice(0, room - Number(informational.length > 0) - reviewSlot);
     lines.push(t("run_text_findings_title", { count: blocking.length }));
-    for (const f of blocking.slice(0, room)) lines.push(lineOf(f));
-    room = Math.max(0, room - blocking.length);
+    for (const f of shown) lines.push(lineOf(f));
+    room -= shown.length;
   }
-  // The findings that do not block come after the blocking ones, under their own heading.
   if (informational.length > 0) {
+    const shown = informational.slice(0, room - reviewSlot);
     lines.push(t("run_text_informational_title", { count: informational.length }));
-    for (const f of informational.slice(0, room)) lines.push(lineOf(f));
-    room = Math.max(0, room - informational.length);
+    for (const f of shown) lines.push(lineOf(f));
+    room -= shown.length;
   }
   if (review.length > 0) {
     lines.push(t("run_text_review_title", { count: review.length }));

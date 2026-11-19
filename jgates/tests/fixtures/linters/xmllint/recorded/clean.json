@@ -1,0 +1,17 @@
+{
+ "tool": "xmllint",
+ "kind": "clean",
+ "version": "20914",
+ "calls": [
+  {
+   "args": [
+    "--noout",
+    "--nonet",
+    "catalog.xml"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+{
+  "files": [
+    "jgates.yml",
+    "typos.md"
+  ],
+  "findings": [
+    {
+      "file": "typos.md",
+      "rule": "typo",
+      "line": 3
+    }
+  ]
+}

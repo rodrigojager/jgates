@@ -10,7 +10,7 @@ Esta página vai do zero até a primeira validação. As outras páginas desta p
 
 - Node 22 ou mais novo e Git, para rodar o próprio JGates.
 - Um motor de contêineres compatível com o Docker, rodando num sistema `linux/amd64`. Docker Desktop, Rancher Desktop, Podman Desktop ou o Docker Engine no Linux funcionam. O Docker Desktop tem termos de licença próprios, que dependem de quem o usa e de como; leia-os no site da Docker, ou escolha uma das alternativas. Para usar outro executável que não seja `docker`, escolha-o no passo Docker da configuração guiada (Docker, Podman ou outro executável; fica gravado nas preferências) ou defina `JGATES_CONTAINER_RUNTIME`, que vale acima da escolha gravada.
-- Memória para o motor: 4 GB ou mais é o recomendado (um passo pede 4 GB e 2 CPUs por padrão), e espaço em disco para a imagem de ferramentas: cerca de 2 GB para baixar e uns 6 GB descompactada.
+- Memória para o motor: 4 GB ou mais é o recomendado (um passo pede 4 GB e 2 CPUs por padrão), e espaço em disco para a imagem de ferramentas: cerca de 5 GB para baixar e uns 13 GB descompactada.
 - Mais nada. Nenhum scanner, linter, executor de testes ou runtime de linguagem do projeto é instalado na sua máquina: tudo vem na imagem de ferramentas.
 
 No Windows, o Docker Desktop precisa do WSL 2; veja [problemas comuns](troubleshooting.pt-BR.md#windows-e-wsl). O Linux é o sistema testado; o fluxo do primeiro uso também foi conferido à mão no Windows 10 (veja [limitações](limitations.pt-BR.md)), e o macOS não foi testado num Mac real.
@@ -45,18 +45,27 @@ npm install --global ./jgates-0.3.0.tgz
 jgates help
 ```
 
-No Windows, o `npm install --global` coloca `jgates`, `quality-gate` e `semantic-gate` em `%APPDATA%\npm`, uma pasta que o instalador do Node.js já adiciona ao `Path`: abra um terminal novo e o `jgates --version` responde de qualquer pasta. Para atualizar, rode `jgates update`; num clone, rode `npm pack` de novo e repita o `npm install --global` com o arquivo novo. Depois de uma atualização, o `jgates setup` baixa as ferramentas da versão nova.
+No Windows, o `npm install --global` coloca `jgates`, `quality-gate` e `semantic-gate` em `%APPDATA%\npm`, uma pasta que o instalador do Node.js já adiciona ao `Path`: abra um terminal novo e o `jgates --version` responde de qualquer pasta. Para atualizar, rode `jgates update`; num clone, rode `npm pack` de novo e repita o `npm install --global` com o arquivo novo. Depois de atualizar, reconstrua ou importe a imagem de ferramentas correspondente, se necessário.
 
 O `npm install --global git+https://github.com/rodrigojager/jgates` **não funciona**: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que depois apaga. Use a pasta com `--prefix`, a instalação dentro do projeto ou o tarball (veja [limitações](limitations.pt-BR.md)).
 
 ## Preparar a máquina
+
+Esta versão usa `jgates-tools:dev`, construída localmente. Com Docker e Buildx disponíveis, rode estes comandos na raiz de um clone do código-fonte do JGates:
+
+```bash
+npm ci
+npm --prefix jgates run image:build
+```
+
+Reserve pelo menos 38 GB livres para a construção e o cache. Se você já tiver um arquivo exportado da imagem correspondente, use `jgates setup --from <arquivo>`. Veja [máquinas offline](#máquinas-offline) para mais detalhes.
 
 ```bash
 jgates setup
 jgates status
 ```
 
-O `setup` prepara esta máquina em cinco passos e imprime cada um: **Engine** (acha o motor de contêineres e confere que ele responde), **Disk** (confere que há espaço para o download mais uma margem), **Image** (baixa a imagem de ferramentas na versão que este JGates fixa, com progresso), **Volumes** (cria os volumes compartilhados) e **Data** (baixa as bases de vulnerabilidades). Pode rodar de novo sem problema: uma máquina pronta termina em segundos. Sai com 0 quando a máquina está pronta e com 2 quando não está, e cada motivo tem um código e uma ação (veja a [lista de motivos](troubleshooting.pt-BR.md#códigos-de-motivo)).
+O `setup` prepara esta máquina em cinco passos e imprime cada um: **Engine** (acha o motor de contêineres e confere que ele responde), **Disk** (confere que há espaço para o download mais uma margem), **Image** (confere a imagem de ferramentas e a versão), **Volumes** (cria os volumes compartilhados) e **Data** (baixa as bases de vulnerabilidades). Pode rodar de novo sem problema: uma máquina pronta termina em segundos. Sai com 0 quando a máquina está pronta e com 2 quando não está, e cada motivo tem um código e uma ação (veja a [lista de motivos](troubleshooting.pt-BR.md#códigos-de-motivo)).
 
 - `--yes` inicia um motor parado quando o comando de início dele não pede senha de administrador, e espera por ele.
 - `--no-data` pula as bases de vulnerabilidades; as verificações que precisam delas ficam `incomplete` até você baixá-las (veja abaixo).
@@ -98,6 +107,8 @@ jgates config validate
 - `config validate` confere a sintaxe, o schema e as referências dos arquivos e aponta o arquivo e a linha de cada problema.
 
 Os arquivos do projeto são versionados com o código (`jgates.yml`, `.jgates/*.yml`, `.jgates/lock.json`). O que o JGates produz (execuções, rascunhos, planos) vai para a [pasta de dados](data-folder.pt-BR.md), fora do projeto, e as partes pesadas ficam no motor de contêineres.
+
+A imagem instalada inclui o catálogo de ferramentas integradas. Escolha Essencial, Equilibrado ou Rigoroso e consulte o plano para ver quais ferramentas encontraram arquivos compatíveis neste projeto. [Consulte o catálogo de ferramentas](tools.pt-BR.md).
 
 ## Preparar o que as verificações precisam
 
@@ -175,6 +186,8 @@ jgates run --plan ./plano.json --no-interactive
 ```
 
 Se o projeto ou o plano mudou depois de salvo, o `run --plan` recusa (`PLAN_STALE` ou `PLAN_TAMPERED`, saída 3) em vez de executar outra coisa.
+
+Etapas elegíveis de leitura podem rodar juntas até o limite de `execution.concurrency`. O modo automático usa a memória e as CPUs disponíveis no motor. Etapas que executam código do projeto, precisam gravar no workspace ou iniciam serviços rodam sozinhas. O modo de parada na primeira falha também roda em série. Reduza o paralelismo e tente novamente se uma etapa retornar `STEP_MEMORY_LIMIT`.
 
 ### Códigos de saída
 

@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "rstfmt",
+      "link": "rstfmt",
+      "path": "bin/rstfmt",
+      "version": [
+        "rstfmt",
+        "--version"
+      ]
+    }
+  ]
+}

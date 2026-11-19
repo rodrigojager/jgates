@@ -1,0 +1,12 @@
+{
+  "files": [
+    "hello.pl"
+  ],
+  "findings": [
+    {
+      "rule": "TestingAndDebugging::RequireUseStrict",
+      "file": "hello.pl",
+      "line": 2
+    }
+  ]
+}

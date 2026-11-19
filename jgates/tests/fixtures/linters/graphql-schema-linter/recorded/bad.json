@@ -1,0 +1,18 @@
+{
+ "tool": "graphql-schema-linter",
+ "kind": "bad",
+ "version": "3.0.1",
+ "calls": [
+  {
+   "args": [
+    "--format",
+    "json",
+    "--",
+    "schema.graphql"
+   ],
+   "exit": 1,
+   "stdout": "{\"errors\":[{\"message\":\"The object type `Query` is missing a description.\",\"location\":{\"line\":1,\"column\":1,\"file\":\"/workspace/schema.graphql\"},\"rule\":\"types-have-descriptions\"},{\"message\":\"A `PageInfo` object type is required as per the Relay spec.\",\"location\":{\"line\":1,\"column\":1,\"file\":\"/workspace/schema.graphql\"},\"rule\":\"relay-page-info-spec\"},{\"message\":\"The field `Query.hello` is missing a description.\",\"location\":{\"line\":2,\"column\":3,\"file\":\"/workspace/schema.graphql\"},\"rule\":\"fields-have-descriptions\"}]}",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "tool": "tofu-fmt",
+ "kind": "bad",
+ "version": "1.13.9",
+ "calls": [
+  {
+   "args": [
+    "fmt",
+    "-check",
+    "-list=true",
+    "-write=false",
+    "-no-color",
+    "--",
+    "fmt-me.tf"
+   ],
+   "exit": 3,
+   "stdout": "fmt-me.tf\n",
+   "stderr": ""
+  }
+ ]
+}

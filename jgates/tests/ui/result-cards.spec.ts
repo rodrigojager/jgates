@@ -436,7 +436,13 @@ for (const width of [1280, 375]) {
 
       await noSidewaysScroll(page, "run page");
       const height = await page.evaluate(() => document.documentElement.scrollHeight);
-      if (width === 1280) expect(height, "height of the run page at 1280 px").toBeLessThan(3000);
+      if (width === 1280) {
+        // Allow one collapsed disclosure for checks added since the previous validation.
+        const newChecks = page.locator('[data-testid="new-checks"][data-where="result"]');
+        await expect(newChecks).toBeVisible();
+        await expect(newChecks).not.toHaveAttribute("open", "");
+        expect(height, "height of the run page at 1280 px").toBeLessThan(3100);
+      }
 
       // No column is cut: every cell is inside the card of the table.
       const card = await page.locator(".vrun-steps-card").evaluate((e) => e.getBoundingClientRect().right);

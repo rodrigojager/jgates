@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "id": "python-pyright",
   "label": "Python with pyright",
-  "description": "Type checks Python components with pyright and the project own configuration. Comes in by evidence: only when pyright is configured (pyrightconfig.json or [tool.pyright] in pyproject.toml). pyright is supplied by the project environment and is never installed during a run.",
+  "description": "Type checks Python components with pyright and the project own configuration. Comes in by evidence: only when pyright is configured (pyrightconfig.json or [tool.pyright] in pyproject.toml). pyright is supplied by the project environment and is never installed during a run. Extends python-mypy-defaults (same pyright instance): where both are active, this one wins and the check is required, with the project's configuration only.",
   "extends": [
-    "builtin:base"
+    "builtin:python-mypy-defaults"
   ],
   "match": {
     "languages": [
@@ -27,7 +27,8 @@
           "typecheck"
         ],
         "config": {
-          "checker": "pyright"
+          "checker": "pyright",
+          "withoutConfig": "skip"
         }
       }
     }

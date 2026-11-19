@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { callBridge, type BridgeRequest } from "../../core/bridge/index.js";
 import { governedBridgeEnv } from "../../core/governed/env.js";
+import { stepViewOfPaths } from "../../core/runner/container.js";
 import type { AdapterContext, AdapterOutput } from "../../core/run/types.js";
 import { qualityBridgeManifest } from "./manifest.js";
 import { normalizeBridge } from "./normalize.js";
@@ -84,7 +85,15 @@ export async function executeBridge(context: AdapterContext, request: BridgeRequ
 
   // The bridge runs only where the sidecar is: inside the tools image (the step container of the run, or governed CI).
   // No other image is ever started for it.
-  const outcome = await callBridge(request, { cwd: context.runDir, env, stdoutFile: stdoutLog, stderrFile: stderrLog });
+  const roots = { workspace: context.workspacePath, runDir: context.runDir };
+  const view = (file: string): string => stepViewOfPaths(env, roots, file);
+  const stepRequest = {
+    ...request,
+    target: view(request.target),
+    outputDir: view(request.outputDir),
+    ...(typeof request.policyFile === "string" ? { policyFile: view(request.policyFile) } : {}),
+  };
+  const outcome = await callBridge(stepRequest, { cwd: context.runDir, env, stdoutFile: stdoutLog, stderrFile: stderrLog });
 
   // When nothing started (no interpreter, no sidecar) the runner wrote no log: the files still exist, empty.
   if (!fs.existsSync(stdoutLog)) writePrivate(stdoutLog, "");

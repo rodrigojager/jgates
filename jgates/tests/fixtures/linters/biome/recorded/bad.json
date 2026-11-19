@@ -13,7 +13,7 @@
     "total.js"
    ],
    "exit": 1,
-   "stdout": "{\"summary\":{\"changed\":0,\"unchanged\":1,\"matches\":0,\"duration\":7493295,\"errors\":1,\"warnings\":0,\"infos\":0,\"skipped\":0,\"suggestedFixesSkipped\":0,\"diagnosticsNotPrinted\":0,\"scannerDuration\":1999387},\"diagnostics\":[{\"severity\":\"error\",\"message\":\"This is an unexpected use of the debugger statement.\",\"category\":\"lint/suspicious/noDebugger\",\"location\":{\"path\":\"total.js\",\"start\":{\"line\":2,\"column\":3},\"end\":{\"line\":2,\"column\":12}},\"advices\":[]}],\"command\":\"lint\"}\n",
+   "stdout": "{\"summary\":{\"changed\":0,\"unchanged\":1,\"matches\":0,\"duration\":12735778,\"errors\":1,\"warnings\":0,\"infos\":0,\"skipped\":0,\"suggestedFixesSkipped\":0,\"diagnosticsNotPrinted\":0,\"scannerDuration\":1385022},\"diagnostics\":[{\"severity\":\"error\",\"message\":\"This is an unexpected use of the debugger statement.\",\"category\":\"lint/suspicious/noDebugger\",\"location\":{\"path\":\"total.js\",\"start\":{\"line\":2,\"column\":3},\"end\":{\"line\":2,\"column\":12}},\"advices\":[]}],\"command\":\"lint\"}\n",
    "stderr": "The `json` and `json-pretty` reporters are experimental and may change in patch releases.\nlint ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n  × Some errors were emitted while running checks.\n  \n\n"
   }
  ]

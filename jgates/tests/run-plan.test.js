@@ -6,6 +6,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { CORE_CAPABILITIES } from "../dist/core/catalog/index.js";
 
 // run executes exactly one plan: the one assembled now or the one received with --plan.
 
@@ -290,9 +291,9 @@ test("normalization from a plan: items the plan turned off are disabled with the
 test("an empty or not approvable plan never runs: run exits 3, creates no run and names the blocker (no approval of an empty plan)", () => {
   const p = project();
   try {
-    // Every check off for this run: the plan is empty with selected requirements (mypy and the formatters are in the tools image, so the
-    // project's typecheck plans it with its defaults and it is switched off too, like the history scan of Gitleaks).
-    const empty = p.cli("run", "--cwd", p.dir, "--skip", "tool:semgrep,tool:gitleaks,tool:osv-scanner,tool:trivy,tool:checkov,tool:jscpd,tool:file-size,tool:ruff,tool:builtin-pii,tool:tsc,tool:mypy,tool:ruff-format,tool:prettier,tool:gitleaks-history,tool:pytest,tool:pytest-integration,tool:mutmut","--no-interactive", "--json");
+    // Switch the entire catalog off for this run, including checks added by detected templates.
+    const skip = CORE_CAPABILITIES.map(({ id }) => `capability:${id}`).join(",");
+    const empty = p.cli("run", "--cwd", p.dir, "--skip", skip, "--no-interactive", "--json");
     assert.equal(empty.code, 3, empty.out + empty.err);
     const err = one(empty);
     assert.equal(err.error?.code ?? err.code, "PLAN_NOT_APPROVABLE");
@@ -302,7 +303,7 @@ test("an empty or not approvable plan never runs: run exits 3, creates no run an
 
     // The same plan saved with --out is refused by run --plan as well.
     const file = path.join(p.planDir, "vazio.json");
-    const saved = p.cli("plan", "--cwd", p.dir, "--skip", "tool:semgrep,tool:gitleaks,tool:osv-scanner,tool:trivy,tool:checkov,tool:jscpd,tool:file-size,tool:ruff,tool:builtin-pii,tool:tsc,tool:mypy,tool:ruff-format,tool:prettier,tool:gitleaks-history,tool:pytest,tool:pytest-integration,tool:mutmut","--out", file, "--no-interactive", "--json");
+    const saved = p.cli("plan", "--cwd", p.dir, "--skip", skip, "--out", file, "--no-interactive", "--json");
     assert.equal(saved.code, 3);
     if (fs.existsSync(file)) {
       const viaFile = p.cli("run", "--cwd", p.dir, "--plan", file, "--no-interactive", "--json");

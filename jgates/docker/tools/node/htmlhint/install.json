@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "htmlhint",
+      "link": "htmlhint",
+      "path": "node_modules/.bin/htmlhint",
+      "version": [
+        "htmlhint",
+        "--version"
+      ]
+    }
+  ]
+}

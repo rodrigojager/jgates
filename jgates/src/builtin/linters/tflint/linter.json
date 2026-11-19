@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "tflint",
+  "name": "tflint",
+  "sourceUrl": "https://github.com/terraform-linters/tflint",
+  "license": "MPL-2.0",
+  "program": {
+    "tool": "tflint",
+    "versionRange": ">=0.66.0 <1.0.0"
+  },
+  "megalinter": [
+    "TERRAFORM_TFLINT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "terraform",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".tf"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "--recursive",
+      "--format",
+      "sarif"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "resources": {
+      "memoryMb": 512
+    }
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      ".tflint.hcl"
+    ],
+    "default": "tflint-default.hcl",
+    "args": [
+      "--config",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "tflint reads the project .tflint.hcl; without one JGates passes its own configuration (the Terraform ruleset bundled in tflint, recommended preset, local modules only, terraform_required_providers off)",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # tflint-ignore: <rule> comments",
+      "pattern": "tflint-ignore",
+      "files": "\\.tf$"
+    }
+  },
+  "install": "tflint",
+  "text": {
+    "en": {
+      "label": "tflint (Terraform and OpenTofu)",
+      "purpose": "Lints Terraform and OpenTofu code: unused declarations, deprecated syntax, untyped variables, missing required versions and the other rules of the Terraform ruleset.",
+      "limitation": "It uses the Terraform ruleset bundled with tflint. Provider rulesets (AWS, Azure, Google) are plugins that tflint downloads, so they are not run. Only local modules are followed.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "tflint (Terraform e OpenTofu)",
+      "purpose": "Verifica código Terraform e OpenTofu: declarações sem uso, sintaxe obsoleta, variáveis sem tipo, versões exigidas ausentes e as demais regras do conjunto Terraform.",
+      "limitation": "Usa o conjunto de regras Terraform embutido no tflint. Os conjuntos de provedores (AWS, Azure, Google) são plugins que o tflint baixa, então não rodam. Só módulos locais são seguidos.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

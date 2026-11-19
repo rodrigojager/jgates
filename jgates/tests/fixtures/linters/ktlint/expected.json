@@ -6,7 +6,7 @@
     {
       "rule": "standard:no-wildcard-imports",
       "file": "Names.kt",
-      "line": 3
+      "line": 1
     }
   ]
 }

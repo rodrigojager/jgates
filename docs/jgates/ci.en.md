@@ -99,6 +99,8 @@ Some results depend on code the project controls, so they are not trusted:
 
 Suppressions written in the code (comments that silence a finding) become the step `jgates-ci.suppressions`, so they appear in the result instead of disappearing. Coverage reports that arrive inside the commit are refused, because the project supplied them.
 
+An enabled self-reported tool can fail the gate with findings even when the policy does not trust a clean result. Trusted descriptors use governed inputs. Governed runs skip the in-code suppression audit. Network-dependent steps require policy opt-in with `execution.network: allow`. For example, TruffleHog verification sends candidate credentials to their issuers, while Kingfisher detection-only mode runs without network access. See the [tool catalog](tools.en.md).
+
 ## Review findings and exit codes
 
 The Semgrep pack has four classes: `ERROR`, `WARNING`, ordinary `INFO` and **Review**.

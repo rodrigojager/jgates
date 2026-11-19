@@ -1,0 +1,24 @@
+{
+  "version": "4.0.21",
+  "url": "https://github.com/kubescape/kubescape/releases/download/v{version}/kubescape_{version}_linux_amd64.tar.gz",
+  "sha256": "f901b27b3143441eff8a1c57216794b0765df6e322fd62fb82f81c1c314086ae",
+  "archive": "tar.gz",
+  "extract": {
+    "kubescape": "kubescape",
+    "LICENSE": "LICENSE"
+  },
+  "executable": [
+    "kubescape"
+  ],
+  "provides": [
+    {
+      "name": "kubescape",
+      "link": "kubescape",
+      "path": "kubescape",
+      "version": [
+        "kubescape",
+        "version"
+      ]
+    }
+  ]
+}

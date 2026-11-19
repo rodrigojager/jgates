@@ -1,0 +1,12 @@
+{
+  "files": [
+    "htmlhint_sample.html"
+  ],
+  "findings": [
+    {
+      "rule": "doctype-first",
+      "file": "htmlhint_sample.html",
+      "line": 1
+    }
+  ]
+}

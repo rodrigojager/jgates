@@ -52,7 +52,7 @@ function build(variant: Variant): Built {
     fs.writeFileSync(path.join(engine, "objects.json"), JSON.stringify({ containers: [], volumes: [{ name: "jgates-data", labels: {} }], networks: [], images: [] }));
     const volume = path.join(engine, "volumes", "jgates-data");
     fs.mkdirSync(volume, { recursive: true });
-    const databases = Object.fromEntries(["trivy", "osv", "govulndb", "rustsec"].map((id) => [id, { fetchedAt, source: `fake://${id}` }]));
+    const databases = Object.fromEntries(["trivy", "osv", "govulndb", "rustsec", "grype", "kubescape"].map((id) => [id, { fetchedAt, source: `fake://${id}` }]));
     fs.writeFileSync(path.join(volume, "jgates-data.json"), JSON.stringify({ schemaVersion: 1, databases }));
   }
   return { fixture, engine };

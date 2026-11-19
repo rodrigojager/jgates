@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "python-mypy-defaults",
-  "label": "Python with mypy (defaults)",
-  "description": "Type checks Python components with mypy even without a mypy configuration: a component without one is checked with mypy's defaults (missing third-party stubs ignored); a component with mypy.ini, [tool.mypy] or [mypy] keeps its own configuration. Comes in by the Python language and runs only where typecheck is switched on (the strict profile turns it on when available); it never turns the check on by itself. mypy is supplied by the project environment and is never installed during a run.",
+  "label": "Python with mypy and pyright (defaults)",
+  "description": "Type checks Python components with mypy and with pyright even without a configuration: a component without one is checked with each checker's defaults (mypy: missing third-party stubs ignored); a component with mypy.ini, [tool.mypy] or [mypy] (mypy) or pyrightconfig.json or [tool.pyright] (pyright) keeps its own configuration. Both checkers run side by side, whichever the project configures. Comes in by the Python language and runs only where typecheck is switched on (the strict profile turns it on when available); it never turns the check on by itself. mypy and pyright are supplied by the project environment and is never installed during a run.",
   "extends": [
     "builtin:base"
   ],
@@ -20,6 +20,16 @@
         ],
         "config": {
           "checker": "mypy",
+          "withoutConfig": "defaults"
+        }
+      },
+      "pyright": {
+        "adapter": "build-check",
+        "capabilities": [
+          "typecheck"
+        ],
+        "config": {
+          "checker": "pyright",
           "withoutConfig": "defaults"
         }
       }

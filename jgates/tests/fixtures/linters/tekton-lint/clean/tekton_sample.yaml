@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-task
+spec:
+  params:
+    - name: unused
+      type: string
+  steps:
+    - name: build
+      image: alpine:3.20
+      script: |
+        #!/bin/sh
+        echo $(params.unused)
+---
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: tekton-sample
+spec:
+  params:
+    - name: unused
+      type: string
+  tasks:
+    - name: build
+      taskRef:
+        name: build-task
+      params:
+        - name: unused
+          value: $(params.unused)

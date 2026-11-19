@@ -1,0 +1,21 @@
+{
+ "tool": "yamllint",
+ "kind": "clean",
+ "version": "1.38.0",
+ "calls": [
+  {
+   "args": [
+    "--config-file",
+    "/output/linters/yamllint/yamllint-default.yml",
+    "--format",
+    "parsable",
+    "--",
+    "jgates.yml",
+    "yamllint_sample.yml"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

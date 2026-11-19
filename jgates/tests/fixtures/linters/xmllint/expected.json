@@ -1,0 +1,12 @@
+{
+  "files": [
+    "catalog.xml"
+  ],
+  "findings": [
+    {
+      "rule": "xml.not-well-formed",
+      "file": "catalog.xml",
+      "line": 4
+    }
+  ]
+}

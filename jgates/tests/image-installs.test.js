@@ -71,8 +71,14 @@ test("a malformed entry is named with its problem", () => {
 });
 
 test("the Dockerfile the build uses is docker/tools/Dockerfile with the parts inserted in name order", () => {
-  const plain = assembledDockerfile();
+  // A context without parts (the repository has parts since the wave): the assembled text is the file itself.
+  const bare = tmp("jgates-installs-bare-");
+  fs.copyFileSync(path.join(TOOLS_CONTEXT, "Dockerfile"), path.join(bare, "Dockerfile"));
+  const plain = assembledDockerfile(bare);
   assert.equal(plain, fs.readFileSync(path.join(TOOLS_CONTEXT, "Dockerfile"), "utf8"), "without parts the assembled text is the file");
+  // The repository's own parts are all inserted.
+  const real = assembledDockerfile();
+  for (const name of fs.readdirSync(path.join(TOOLS_CONTEXT, "parts")).filter((f) => f.endsWith(".Dockerfile")).map((f) => f.replace(/\.Dockerfile$/, ""))) assert.ok(real.includes(`AS part-${name}`), `the part ${name} is in the assembled Dockerfile`);
   // No tool is a list in the Dockerfile any more: the kinds are loops.
   for (const loop of ["/tmp/install/binaries/*.json", "/tmp/install/go/*.json", "/tmp/install/cargo/*.json", "/tmp/install/dotnet/*.json", "/tmp/install/apt/*.json", "/opt/tools/gem/*/Gemfile.lock", "/opt/tools/locks/python/*/*.txt", "/opt/tools/node/*/"]) assert.ok(plain.includes(loop), `the Dockerfile loops over ${loop}`);
   for (const gone of ["HADOLINT_VERSION", "TRIVY_VERSION", "GITLEAKS_VERSION", "DOTNET_STRYKER_VERSION", "link /opt/tools/node/eslint"]) assert.ok(!plain.includes(gone), `${gone} is no longer in the Dockerfile`);

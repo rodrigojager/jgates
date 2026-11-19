@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "libperl-critic-perl"
+  ],
+  "provides": [
+    {
+      "name": "perlcritic",
+      "path": "/usr/bin/perlcritic",
+      "version": [
+        "perlcritic",
+        "--version"
+      ],
+      "pattern": "(\\d+\\.\\d+(?:\\.\\d+)?)"
+    }
+  ]
+}

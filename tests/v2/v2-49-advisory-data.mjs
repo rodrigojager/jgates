@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 // V2-49 (fake engine): the vulnerability databases are the jgates-data volume, never the network.
-//   1. `jgates tools update-data` creates the labelled volume and refreshes the four databases in data containers (the only
+//   1. `jgates tools update-data` creates the labelled volume and refreshes the databases in data containers (the only
 //      containers with a network next to the volume mounted for writing); a database that fails keeps its place in the
 //      report with the error and the exit code is 2.
 //   2. With fresh data (1 day old), the plan records each database's fetch time (inputs.container.dataTimestamps) and
@@ -22,6 +22,7 @@ const MAIN = path.join(root, "jgates", "dist", "cli", "main.js");
 const FAKE = path.join(root, "jgates", "tests", "docker", "fake-docker.cjs");
 const CLI_VERSION = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 const DAY = 86_400_000;
+const DATABASES = ["trivy", "osv", "govulndb", "rustsec", "grype", "kubescape"];
 
 const made = [];
 const tmp = (prefix) => {
@@ -94,21 +95,22 @@ test("V2-49: scanners run offline with the data volume read-only, stale data is 
   assert.equal(updated.status, 0, updated.stdout + updated.stderr);
   const updateDoc = JSON.parse(updated.stdout);
   assert.equal(updateDoc.status, "OK");
-  assert.deepEqual(updateDoc.databases.map((d) => [d.id, d.ok]), [["trivy", true], ["osv", true], ["govulndb", true], ["rustsec", true]]);
+  assert.deepEqual(updateDoc.databases.map((d) => [d.id, d.ok]), DATABASES.map((id) => [id, true]));
   for (const d of updateDoc.databases) assert.match(d.fetchedAt, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/);
   const volume = objects().volumes.find((v) => v.name === "jgates-data");
   assert.ok(volume, "the data volume exists");
   assert.equal(volume.labels["org.jgates.managed"], "true");
   assert.equal(volume.labels["org.jgates.kind"], "data");
   const dataRuns = dockerCalls().filter((c) => c[0] === "run" && c.includes("org.jgates.kind=data") && c.includes("python3"));
-  assert.equal(dataRuns.length, 4, "one data container per database");
   for (const call of dataRuns) {
     assert.equal(flag(call, "--network"), "bridge", "the refresh is the one container with a network");
     assert.ok(mountsOf(call).includes("type=volume,src=jgates-data,dst=/data"), mountsOf(call).join(" | "));
     assert.ok(call.includes("--rm"));
   }
-  assert.deepEqual(dataRuns.map((c) => c.at(-1)), ["trivy", "osv", "govulndb", "rustsec"]);
-  assert.ok(Object.keys(JSON.parse(fs.readFileSync(statusFile, "utf8")).databases).length === 4, "the volume stores the fetch time of each database");
+  assert.deepEqual(dataRuns.map((c) => c.at(-1)), DATABASES, "one data container per database");
+  const stored = JSON.parse(fs.readFileSync(statusFile, "utf8")).databases;
+  assert.deepEqual(Object.keys(stored).sort(), [...DATABASES].sort(), "the volume stores each database");
+  for (const database of updateDoc.databases) assert.equal(stored[database.id].fetchedAt, database.fetchedAt);
 
   // A database that cannot be downloaded is reported with its error; the others are still refreshed; exit 2.
   engineScript({ FAKE_DOCKER_DATA_FAIL: "osv" });
@@ -125,8 +127,9 @@ test("V2-49: scanners run offline with the data volume read-only, stale data is 
   // 2. Fresh data: offline scanners with the volume read-only.
   const fresh = iso(Date.now() - DAY);
   seed({ trivy: fresh, osv: fresh, govulndb: fresh, rustsec: fresh });
+  const timestamps = (at) => ({ grype: null, kubescape: null, osv: at, trivy: at });
   const planned = planOf();
-  assert.deepEqual(planned.plan.inputs.container.dataTimestamps, { osv: fresh, trivy: fresh });
+  assert.deepEqual(planned.plan.inputs.container.dataTimestamps, timestamps(fresh));
   for (const tool of ["osv-scanner", "trivy"]) {
     const item = planned.plan.groups.willRun.find((i) => i.tool === tool);
     assert.ok(item, `${tool} in the plan`);
@@ -146,7 +149,7 @@ test("V2-49: scanners run offline with the data volume read-only, stale data is 
   for (const arg of ["--skip-db-update", "--offline-scan", "--skip-check-update"]) assert.ok(trivyStep.includes(arg), arg);
   assert.equal(trivyStep[trivyStep.indexOf("--cache-dir") + 1], "/data/trivy");
   // The result records each database's fetch time (the fake scanners write no report, so the stages end uninterpreted).
-  assert.deepEqual(ok.doc.provenance.container.dataTimestamps, { osv: fresh, trivy: fresh }, JSON.stringify(ok.doc.provenance));
+  assert.deepEqual(ok.doc.provenance.container.dataTimestamps, timestamps(fresh), JSON.stringify(ok.doc.provenance));
   const recorded = JSON.parse(fs.readFileSync(path.join(ok.doc.runDir, "data-status.json"), "utf8"));
   assert.equal(recorded.databases.osv.fetchedAt, fresh);
   assert.equal(recorded.maxAgeDays, 7);
@@ -164,7 +167,7 @@ test("V2-49: scanners run offline with the data volume read-only, stale data is 
     assert.equal(stage.execution.notRun.problems[0].code, "DATA_STALE");
     assert.match(stage.reason, /9 days old \(the limit is 7 days\)/);
   }
-  assert.deepEqual(stale.doc.provenance.container.dataTimestamps, { osv: old, trivy: old });
+  assert.deepEqual(stale.doc.provenance.container.dataTimestamps, timestamps(old));
   // A looser limit in the configuration lets the same data through.
   fs.appendFileSync(path.join(project, "jgates.yml"), "execution:\n  dataMaxAgeDays: 10\n");
   const loose = run();
@@ -181,7 +184,7 @@ test("V2-49: scanners run offline with the data volume read-only, stale data is 
 
   // 5. No volume at all: DATA_MISSING, incomplete, nothing started, and the plan records "never fetched".
   seed(null);
-  assert.deepEqual(planOf().plan.inputs.container.dataTimestamps, { osv: null, trivy: null });
+  assert.deepEqual(planOf().plan.inputs.container.dataTimestamps, timestamps(null));
   const missing = run();
   assert.equal(missing.r.status, 2, missing.r.stdout + missing.r.stderr);
   assert.equal(missing.doc.decision, "incomplete");

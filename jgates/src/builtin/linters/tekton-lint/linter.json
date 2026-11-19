@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "tekton-lint",
+  "name": "tekton-lint",
+  "sourceUrl": "https://github.com/IBM/tekton-lint",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "tekton-lint",
+    "versionRange": ">=1.3.0 <2.0.0"
+  },
+  "megalinter": [
+    "TEKTON_TEKTON_LINT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "tekton",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "content": {
+      "pattern": "apiVersion: tekton",
+      "firstLine": false,
+      "names": [
+        "*.yml",
+        "*.yaml"
+      ]
+    }
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format",
+      "json",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "emptyIsClean": true,
+    "fields": {
+      "file": "path",
+      "line": "loc.startLine",
+      "column": "loc.startColumn",
+      "rule": "rule",
+      "level": "level",
+      "message": "message"
+    }
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".tektonlintrc.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "tekton-lint reads the project's .tektonlintrc.yaml: the project decides the rules",
+    "suppressions": {
+      "honoured": false,
+      "description": "not honored: tekton-lint has no in-code suppression"
+    }
+  },
+  "install": "tekton-lint",
+  "text": {
+    "en": {
+      "label": "tekton-lint (Tekton pipelines)",
+      "purpose": "Checks Tekton Pipeline, Task and run manifests for mistakes: unknown task references, unused parameters, missing results, invalid dependencies between tasks.",
+      "limitation": "It checks Tekton resources only (YAML with apiVersion: tekton...), and it does not reach tasks the manifests pull from a remote catalog.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "tekton-lint (pipelines Tekton)",
+      "purpose": "Verifica manifestos Tekton de Pipeline, Task e execuções: referências a tasks desconhecidas, parâmetros não usados, results ausentes, dependências inválidas entre tasks.",
+      "limitation": "Verifica só recursos Tekton (YAML com apiVersion: tekton...) e não alcança tasks que os manifestos buscam em um catálogo remoto.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

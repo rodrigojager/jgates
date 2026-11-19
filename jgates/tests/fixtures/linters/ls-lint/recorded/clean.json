@@ -1,0 +1,16 @@
+{
+ "tool": "ls-lint",
+ "kind": "clean",
+ "version": "2.3.2",
+ "calls": [
+  {
+   "args": [
+    "--workdir",
+    "."
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

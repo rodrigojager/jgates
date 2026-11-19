@@ -29,6 +29,8 @@ jgates tools matrix
 
 `tools list` shows the categories, the capabilities, the adapters and the instances declared in `.jgates/tools.yml`. `tools inspect` shows one instance with its linked files. `tools matrix` prints the compatibility matrix (and `--json` brings the problems the consistency test checks).
 
+Built-in linters use file evidence such as an extension, filename or configuration marker. The descriptor supplies the command, output reader, default tier and CI trust classification. The individual tools run in the JGates tools image. [Browse the tool catalog](tools.en.md).
+
 ## Support levels
 
 Each instance shows how much JGates understands the tool:

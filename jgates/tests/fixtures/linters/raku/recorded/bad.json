@@ -1,0 +1,17 @@
+{
+ "tool": "raku",
+ "kind": "bad",
+ "version": "2024.09",
+ "calls": [
+  {
+   "args": [
+    "-c",
+    "--",
+    "greet.raku"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "===SORRY!=== Error while compiling /workspace/greet.raku\nVariable '$cunt' is not declared.  Did you mean '$count'?\nat /workspace/greet.raku:4\n------> say <HERE>$cunt;\n"
+  }
+ ]
+}

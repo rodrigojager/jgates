@@ -1,0 +1,11 @@
+{
+  "files": [
+    "rstfmt_sample.rst"
+  ],
+  "findings": [
+    {
+      "rule": "rstfmt.unformatted",
+      "file": "rstfmt_sample.rst"
+    }
+  ]
+}

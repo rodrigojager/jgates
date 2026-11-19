@@ -10,7 +10,7 @@ This page goes from zero to the first validation. The other pages in this folder
 
 - Node 22 or newer and Git, to run JGates itself.
 - A Docker-compatible container engine, running on a `linux/amd64` system. Docker Desktop, Rancher Desktop, Podman Desktop, or Docker Engine on Linux all work. Docker Desktop has license terms of its own that depend on who uses it and how; read them on Docker's site, or choose one of the alternatives. To use another executable than `docker`, choose it in the Docker step of the guided setup (Docker, Podman or another executable; saved in the preferences) or set `JGATES_CONTAINER_RUNTIME`, which wins over the saved choice.
-- Memory for the engine: 4 GB or more is recommended (a step asks for 4 GB and 2 CPUs by default), and room on the disk for the tools image: about 2 GB to download and around 6 GB unpacked.
+- Memory for the engine: 4 GB or more is recommended (a step asks for 4 GB and 2 CPUs by default), and room on the disk for the tools image: about 5 GB to download and around 13 GB unpacked.
 - Nothing else. No scanner, linter, test runner or language runtime of the project is installed on your machine: they all come in the tools image.
 
 On Windows, Docker Desktop needs WSL 2; see [common problems](troubleshooting.en.md#windows-and-wsl). Linux is the tested system; the first-run flow was also checked by hand on Windows 10 (see [limitations](limitations.en.md)), and macOS was not tested on a real Mac.
@@ -45,18 +45,27 @@ npm install --global ./jgates-0.3.0.tgz
 jgates help
 ```
 
-On Windows, `npm install --global` puts `jgates`, `quality-gate` and `semantic-gate` in `%APPDATA%\npm`, a folder the Node.js installer already adds to `Path`: open a new terminal and `jgates --version` answers from any folder. To update, run `jgates update`; in a clone, run `npm pack` again and repeat the `npm install --global` with the new file. After an update, `jgates setup` downloads the tools of the new version.
+On Windows, `npm install --global` puts `jgates`, `quality-gate` and `semantic-gate` in `%APPDATA%\npm`, a folder the Node.js installer already adds to `Path`: open a new terminal and `jgates --version` answers from any folder. To update, run `jgates update`; in a clone, run `npm pack` again and repeat the `npm install --global` with the new file. After updating, rebuild or import the matching tools image if needed.
 
 `npm install --global git+https://github.com/rodrigojager/jgates` **does not work**: for a global install of a git dependency, npm links the commands to a temporary clone that it then deletes. Use the folder with `--prefix`, the installation inside the project or the tarball (see [limitations](limitations.en.md)).
 
 ## Prepare the machine
+
+This version uses `jgates-tools:dev`, which is available as a local build. With Docker and Buildx available, run these commands from the root of a JGates source checkout:
+
+```bash
+npm ci
+npm --prefix jgates run image:build
+```
+
+Leave at least 38 GB free for the build and its cache. If you already have an export of the matching image, use `jgates setup --from <file>` instead. See [offline machines](#offline-machines) for details.
 
 ```bash
 jgates setup
 jgates status
 ```
 
-`setup` prepares this machine in five steps and prints each one: **Engine** (finds the container engine and checks that it answers), **Disk** (checks there is room for the download plus a margin), **Image** (downloads the tools image at the version this JGates pins, with progress), **Volumes** (creates the shared volumes) and **Data** (downloads the vulnerability databases). It is safe to run again: a ready machine finishes in seconds. It exits with 0 when the machine is ready and 2 when it is not, and each reason has a code and an action (see the [list of reasons](troubleshooting.en.md#reason-codes)).
+`setup` prepares this machine in five steps and prints each one: **Engine** (finds the container engine and checks that it answers), **Disk** (checks there is room for the download plus a margin), **Image** (checks the tools image and its version), **Volumes** (creates the shared volumes) and **Data** (downloads the vulnerability databases). It is safe to run again: a ready machine finishes in seconds. It exits with 0 when the machine is ready and 2 when it is not, and each reason has a code and an action (see the [list of reasons](troubleshooting.en.md#reason-codes)).
 
 - `--yes` starts a stopped engine when its start command needs no administrator password, and waits for it.
 - `--no-data` skips the vulnerability databases; the checks that need them stay `incomplete` until you download them (see below).
@@ -98,6 +107,8 @@ jgates config validate
 - `config validate` checks the syntax, schema and references of the files, and names the file and line of each problem.
 
 The project files are versioned with the code (`jgates.yml`, `.jgates/*.yml`, `.jgates/lock.json`). What JGates produces (runs, drafts, plans) goes to the [data folder](data-folder.en.md), outside the project, and the heavy parts live in the container engine.
+
+The installed image includes the built-in tool catalog. Choose Essential, Balanced or Strict, then check the plan to see which tools matched files in this project. [Browse the tool catalog](tools.en.md).
 
 ## Prepare what the checks need
 
@@ -175,6 +186,8 @@ jgates run --plan ./plano.json --no-interactive
 ```
 
 If the project or the plan changed after it was saved, `run --plan` refuses (`PLAN_STALE` or `PLAN_TAMPERED`, exit 3) instead of running something else.
+
+Eligible read-only steps can run together up to `execution.concurrency`. Auto uses the engine’s available memory and CPUs. Steps that run project code, need workspace writes or start services run alone. Fail-fast also runs serially. Lower concurrency and retry if a step returns `STEP_MEMORY_LIMIT`.
 
 ### Exit codes
 

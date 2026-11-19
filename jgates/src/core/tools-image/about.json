@@ -1,6 +1,11 @@
 {
   "description": "The words JGates says about each program of the tools image that is not a linter descriptor (a descriptor says its own: license, source, and a purpose from its place): the license (an SPDX expression, or the words of THIRD_PARTY_NOTICES.md), a note shown after it in parentheses (or `notice`, the whole license cell when the note sits inside it), the place its source is published and what it is for. src/core/tools-image/about.ts reads it, and scripts/gen-image-docs.mjs generates the THIRD_PARTY_NOTICES.md table of the tools image from it and the descriptors. `bundled` lists components shipped inside another tool that have a row of their own in that table.",
   "tools": {
+    "bundler": {
+      "license": "MIT",
+      "purpose": "package-manager",
+      "source": "https://github.com/rubygems/rubygems"
+    },
     "cargo": {
       "license": "MIT OR Apache-2.0",
       "purpose": "package-manager",
@@ -180,16 +185,31 @@
       "purpose": "vulnerabilities",
       "source": "https://github.com/google/osv-scanner"
     },
+    "php": {
+      "license": "PHP-3.01",
+      "purpose": "runtime",
+      "source": "https://github.com/php/php-src"
+    },
     "pkg-config": {
       "license": "ISC",
       "note": "pkgconf",
       "purpose": "build",
       "source": "https://github.com/pkgconf/pkgconf"
     },
+    "powershell": {
+      "license": "MIT",
+      "purpose": "runtime",
+      "source": "https://github.com/PowerShell/PowerShell"
+    },
     "prettier": {
       "license": "MIT",
       "purpose": "format",
       "source": "https://github.com/prettier/prettier"
+    },
+    "pyflakes": {
+      "license": "MIT",
+      "purpose": "lint",
+      "source": "https://github.com/PyCQA/pyflakes"
     },
     "pyright": {
       "license": "MIT",
@@ -220,6 +240,11 @@
       "license": "GPL-3.0-or-later",
       "purpose": "utility",
       "source": "https://github.com/RsyncProject/rsync"
+    },
+    "ruby": {
+      "license": "Ruby OR BSD-2-Clause",
+      "purpose": "runtime",
+      "source": "https://github.com/ruby/ruby"
     },
     "ruff": {
       "license": "MIT",

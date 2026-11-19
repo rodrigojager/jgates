@@ -1,8 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { MAIN, createFixture, openApp, pageGet, startServer, type Fixture, type UiServer } from "./support";
+import { parse as parseYaml } from "yaml";
+import { MAIN, createFixture, openApp, pageGet, reloadPage, startServer, type Fixture, type UiServer } from "./support";
 
 // The screens of the linter engine (PLAN-engine.md section 9, slice G5): the tools catalogue by section and group with
 // "this project" read from the file census, the profile editor with the tier of a tool (off above the profile's tier, with
@@ -68,8 +70,8 @@ function jgates(fixture: Fixture, ...args: string[]) {
 function useStrict(fixture: Fixture): void {
   const file = path.join(fixture.dir, "jgates.yml");
   const before = fs.readFileSync(file, "utf8");
-  const after = before.replace(/\bminimal\b/, "strict");
-  expect(after, "jgates.yml names the minimal profile once").not.toBe(before);
+  const after = before.replace(/^(\s*profile: )minimal$/m, "$1strict");
+  expect(after, "jgates.yml selects the minimal profile").not.toBe(before);
   fs.writeFileSync(file, after);
 }
 
@@ -95,16 +97,17 @@ test("the tools catalogue groups the engine's tools by section and group, and 't
     await expect(section.getByRole("heading", { level: 3 })).toContainText("Formatos");
     const group = section.locator('[data-testid="catalog-group"][data-group="markdown"]');
     await expect(group).toBeVisible();
-    // The group is closed and counted; opening it lists the three tools with their tier.
-    await expect(group.locator("summary")).toContainText("3");
-    await group.locator("summary").click();
+    const markdownCount = catalog.adapters.filter((a) => a.place?.section === "format" && a.place.group === "markdown" && a.relevance < 2).length;
+    await expect(group.locator("summary")).toContainText(new RegExp(`\\b${markdownCount} ferramentas\\b`));
+    await expect(group).not.toHaveAttribute("open", "");
+    await group.locator("summary").press("Enter");
     for (const id of MARKDOWN_TOOLS) await expect(group.locator(`[data-testid="catalog-card"][data-adapter="${id}"]`)).toBeVisible();
     await expect(group.locator('[data-adapter="markdownlint"] [data-testid="catalog-tier"]')).toHaveAttribute("data-tier", "main");
     await expect(group.locator('[data-adapter="rumdl"] [data-testid="catalog-tier"]')).toHaveAttribute("data-tier", "extended");
     await expect(group.locator('[data-adapter="rumdl"] [data-testid="catalog-purpose"]')).not.toBeEmpty();
 
     // The search box looks through the whole catalogue and opens the groups.
-    await page.getByRole("searchbox", { name: "Buscar ferramenta ou linguagem" }).fill("rumdl");
+    await page.getByRole("searchbox", { name: "Buscar ferramenta ou linguagem" }).pressSequentially("rumdl");
     await expect(page.locator('[data-testid="catalog-card"][data-adapter="rumdl"]')).toBeVisible();
     await expect(page.locator('[data-testid="catalog-card"][data-adapter="markdownlint"]')).toHaveCount(0);
   });
@@ -115,9 +118,10 @@ test("a project without Markdown files does not see the Markdown group until 'Al
   await withServer(page, plainFixture(), async ({ base }) => {
     await openTools(page, base);
     await expect(page.locator('[data-testid="catalog-group"][data-group="markdown"]')).toHaveCount(0);
-    await page.locator('input[name="tools-scope"][value="all"]').check();
+    await page.locator('input[name="tools-scope"][value="all"]').press("Space");
     await expect(page.locator('[data-testid="catalog-group"][data-group="markdown"]')).toBeVisible();
-    await page.locator('input[name="tools-scope"][value="project"]').check();
+    await expect.poll(() => page.getByTestId("catalog-card").count()).toBeGreaterThanOrEqual(140);
+    await page.locator('input[name="tools-scope"][value="project"]').press("Space");
     await expect(page.locator('[data-testid="catalog-group"][data-group="markdown"]')).toHaveCount(0);
     await expect(page.getByTestId("tools-scope-hidden")).toBeVisible();
   });
@@ -125,27 +129,32 @@ test("a project without Markdown files does not see the Markdown group until 'Al
 
 test("the profile editor shows a tool above the profile's tier as off with its reason, and its switch turns it on", async ({ page }) => {
   test.setTimeout(240_000);
-  await withServer(page, markdownFixture(), async ({ fixture, base }) => {
-    await page.getByRole("link", { name: /^(Configuração|Configuration)$/ }).first().click();
+  await withServer(page, markdownFixture(), async ({ fixture }) => {
+    await page.getByRole("link", { name: "Configuração", exact: true }).first().press("Enter");
     await expect(page.getByRole("heading", { name: "Perfis do projeto" })).toBeVisible();
-    await page.getByRole("button", { name: "Abrir a categoria Qualidade" }).click();
-    await page.locator('li.capability[data-capability="lint"] .tools-toggle').click();
-    const block = page.locator('.tool-block[data-tool="markdownlint"]');
-    const row = block.locator('[data-selector="tool:markdownlint"]');
+    const editBalanced = page.getByRole("button", { name: "Editar o perfil Equilibrado" });
+    await editBalanced.press("Enter");
+    await expect(editBalanced).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "Abrir a categoria Qualidade" }).press("Enter");
+    await page.locator('li.capability[data-capability="lint"] .tools-toggle').press("Enter");
+    const block = page.locator('.tool-block[data-tool="rumdl"]');
+    const row = block.locator('[data-selector="tool:rumdl"]');
     await expect(row).toBeVisible();
     await expect(row).toHaveAttribute("data-enabled", "false");
     const note = block.getByTestId("tool-tier");
     await expect(note).toHaveAttribute("data-above", "true");
-    await expect(note).toHaveAttribute("data-tier", "main");
-    await expect(note).toContainText("Equilibrado");
+    await expect(note).toHaveAttribute("data-tier", "extended");
+    await expect(note).toContainText("Rigoroso");
 
     // The switch is the user's own choice: it turns the tool on in this profile, written into the profile file.
-    await row.getByRole("switch").click();
+    await row.getByRole("switch").press("Space");
     await expect(row).toHaveAttribute("data-enabled", "true");
-    await expect.poll(() => fs.readFileSync(path.join(fixture.dir, ".jgates", "profiles.yml"), "utf8")).toContain("tool:markdownlint");
-    // Keyboard and Esc: the switch is a button with a name and no dialog traps the focus.
-    await row.getByRole("switch").focus();
+    const profilesFile = path.join(fixture.dir, ".jgates", "profiles.yml");
+    await expect.poll(() => parseYaml(fs.readFileSync(profilesFile, "utf8")).profiles.standard.checks["tool:rumdl"]?.enabled).toBe(true);
     await expect(row.getByRole("switch")).toBeFocused();
+    const changes = page.locator('[data-profile="standard"] .profile-changes');
+    await changes.locator("summary").press("Enter");
+    await expect(changes.getByRole("listitem").filter({ hasText: "tool:rumdl" })).toContainText("ligado");
   });
 });
 
@@ -156,13 +165,17 @@ test("the review collapses the 'will run' list by area with a count on each head
     await page.goto(`${base}#/validations/review`);
     const willRun = page.getByTestId("group-will-run");
     await expect(willRun).toBeVisible();
+    const heading = await willRun.getByRole("heading", { level: 2 }).innerText();
+    expect(Number(heading.match(/\((\d+)\)$/)?.[1])).toBeGreaterThanOrEqual(40);
     // The category holding the linters opens; the areas inside it stay closed, each with the number of its checks.
-    const area = willRun.locator('[data-testid="area-group"][data-area="markdown"]');
-    await willRun.locator("summary").first().click();
+    const quality = willRun.locator('[data-category-group="quality"]');
+    const area = quality.locator('[data-testid="area-group"][data-area="markdown"]');
+    await quality.locator(":scope > summary").press("Enter");
     await expect(area).toBeVisible();
     await expect(area.locator("summary")).toContainText(/\d/);
-    await expect(area.locator('[data-testid="plan-item"]')).toHaveCount(0);
-    await area.locator("summary").click();
+    await expect(area).not.toHaveAttribute("open", "");
+    await expect(area.getByTestId("plan-item").first()).toBeHidden();
+    await area.locator("summary").press("Enter");
     await expect(area.locator('[data-testid="plan-item"]').first()).toBeVisible();
   });
 });
@@ -184,9 +197,48 @@ test("the run screen groups the steps by area, opens the one that failed or runs
     // A group with a failed step starts open; one without stays closed until it is opened.
     if ((await area.getAttribute("data-failed")) === "true") await expect(area).toHaveAttribute("open", "");
     else {
-      await area.locator("summary").click();
+      await area.locator("summary").press("Enter");
       await expect(area.locator("tbody tr").first()).toBeVisible();
     }
+  });
+});
+
+test("a live run opens the active and failed areas and counts overlapping steps at 375 px in English", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.addInitScript(() => localStorage.setItem("jgates.language", "en"));
+  await withServer(page, markdownFixture("en"), async ({ base }) => {
+    const runId = "run_20261026T100000Z_aaaaaaaa";
+    const steps = [
+      { id: "actionlint#lint", label: "actionlint" },
+      { id: "markdownlint#lint", label: "markdownlint" },
+      { id: "rumdl#lint", label: "rumdl" },
+    ];
+    const records = [
+      ...steps.map((step) => ({ type: "step-started", data: { step: step.id, label: step.label, concurrency: 4 } })),
+      { type: "step-finished", data: { step: "actionlint#lint", status: "failed", durationMs: 200 } },
+    ];
+    const events = records.map((event, index) => ({
+      ...event, schemaVersion: 1, runId, sequence: index + 1, at: "2026-10-26T10:00:01.000Z",
+    }));
+    // Hold the executor's progress at the point where one area has failed and two steps overlap.
+    await page.route(`**/api/runs/${runId}/progress?*`, async (route) => {
+      const first = new URL(route.request().url()).searchParams.get("cursor") === "0";
+      await route.fulfill({ json: { runId, steps, events: first ? events : [], cursor: events.length, done: false } });
+    });
+    await page.goto(`${base}#/runs/${runId}`);
+    await expect(page.getByTestId("run-concurrency")).toHaveText("2 of up to 4 checks are running at the same time.");
+    const active = page.locator('[data-testid="run-area"][data-area="markdown"]');
+    const failed = page.locator('[data-testid="run-area"][data-area="github-actions"]');
+    await expect(active).toHaveAttribute("data-live", "true");
+    await expect(active).toHaveAttribute("open", "");
+    await expect(active.locator('tr[data-state="running"]')).toHaveCount(2);
+    await expect(failed).toHaveAttribute("data-failed", "true");
+    await expect(failed).toHaveAttribute("data-live", "false");
+    await expect(failed.getByRole("rowheader", { name: "actionlint" })).toBeVisible();
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(width).toBeLessThanOrEqual(375);
+    const axe = await new AxeBuilder({ page }).include('section[aria-labelledby="vrun-steps"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(axe.violations.map(({ id }) => id)).toEqual([]);
   });
 });
 
@@ -198,9 +250,10 @@ test("the overview and the result name the checks that are new since the last va
     expect([0, 1, 2]).toContain(first.status);
     useStrict(fixture);
     await page.goto(`${base}#/overview`);
+    await reloadPage(page);
     const onOverview = page.locator('[data-testid="new-checks"][data-where="overview"]');
     await expect(onOverview).toBeVisible();
-    await onOverview.locator("summary").click();
+    await onOverview.locator("summary").press("Enter");
     for (const id of MARKDOWN_TOOLS) await expect(onOverview.locator(`li[data-tool="${id}"]`)).toBeVisible();
 
     const second = jgates(fixture, "run");
@@ -209,7 +262,7 @@ test("the overview and the result name the checks that are new since the last va
     await page.goto(`${base}#/validations/result/${encodeURIComponent(runId)}`);
     const onResult = page.locator('[data-testid="new-checks"][data-where="result"]');
     await expect(onResult).toBeVisible();
-    await onResult.locator("summary").click();
+    await onResult.locator("summary").press("Enter");
     await expect(onResult.locator('li[data-tool="rumdl"]')).toBeVisible();
 
     // Nothing new once the project has validated with them: the overview no longer says it.
@@ -243,18 +296,25 @@ test("the result's tool filter can be searched when many tools reported", async 
   await withServer(page, markdownFixture(), async ({ fixture, base }) => {
     const run = jgates(fixture, "run");
     expect([0, 1, 2]).toContain(run.status);
-    const runId = (JSON.parse(run.stdout) as { runId: string }).runId;
+    const { runId, runDir } = JSON.parse(run.stdout) as { runId: string; runDir: string };
+    const resultFile = path.join(runDir, "result.json");
+    const result = JSON.parse(fs.readFileSync(resultFile, "utf8"));
+    const sample = result.findings.find((finding: { tool: string }) => finding.tool === "ruff");
+    expect(sample).toBeDefined();
+    const otherTools = ["actionlint", "hadolint", "markdownlint", "rumdl", "shellcheck", "yamllint", "taplo", "lychee"];
+    result.findings.push(...otherTools.map((tool, index) => ({
+      ...sample,
+      tool,
+      origin: tool,
+      fingerprint: `jgf1:${String(index + 1).repeat(64)}`,
+    })));
+    fs.writeFileSync(resultFile, JSON.stringify(result));
     await page.goto(`${base}#/validations/result/${encodeURIComponent(runId)}`);
     const select = page.getByTestId("filter-tool");
-    // With few tools the filter is the plain list; the search box appears from eight tools on and narrows that list.
-    const options = await select.locator("option").count();
     const search = page.getByTestId("filter-tool-search");
-    if (options - 1 > 8) {
-      await expect(search).toBeVisible();
-      await search.fill("ruff");
-      await expect(select.locator("option")).toHaveCount(2);
-    } else {
-      await expect(search).toHaveCount(0);
-    }
+    await expect(search).toBeVisible();
+    await search.pressSequentially("ruff");
+    await expect(select.locator("option")).toHaveCount(2);
+    await expect(select.locator('option[value="ruff"]')).toHaveCount(1);
   });
 });

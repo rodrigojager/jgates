@@ -139,6 +139,8 @@ async function withReproduction(language: "pt-BR" | "en", options: { withReprodu
     return startGateServer(fixture);
   })();
   try {
+    // Start in the fixture's language so the first-visit locale reload cannot replace the result navigation.
+    await page.addInitScript((locale) => localStorage.setItem("jgates.language", locale), language);
     const base = await openApp(page, server);
     await body({ page, base, fixture });
   } finally {

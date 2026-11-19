@@ -1,0 +1,5 @@
+{
+  "plugins": [
+    "/opt/tools/node/remark-lint/node_modules/remark-preset-lint-recommended/index.js"
+  ]
+}

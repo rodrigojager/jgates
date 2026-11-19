@@ -1,0 +1,16 @@
+{
+ "tool": "rst-lint",
+ "kind": "bad",
+ "version": "2.0.2",
+ "calls": [
+  {
+   "args": [
+    "--",
+    "rstlint_sample.rst"
+   ],
+   "exit": 2,
+   "stdout": "WARNING rstlint_sample.rst:2 Title underline too short.\n",
+   "stderr": ""
+  }
+ ]
+}

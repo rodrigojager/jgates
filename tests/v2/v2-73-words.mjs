@@ -210,12 +210,16 @@ test("V2-73 the forbidden claims are caught when planted", () => {
   assert.ok(!FORBIDDEN_CLAIMS.en.test("This map shows what was examined."));
 });
 
-test("V2-73 the built-in profiles, templates, categories, capabilities and adapters resolve through the catalogues in both languages", async () => {
+test("V2-73 built-in text resolves through the catalogues and descriptors in both languages", async () => {
   const { listBuiltinTemplates, listBuiltinProfiles, builtinProfileBody } = await load("builtin/index.js");
   const { builtinTemplateText, createCoreCatalog, localizedAdapterName } = await load("core/catalog/index.js");
   const { starterProfileText } = await load("core/profiles/index.js");
   const { builtinManifests } = await load("adapters/manifests.js");
+  const { loadLinters } = await load("adapters/linter/descriptor.js");
+  const { linterGroups } = await load("adapters/linter/derived.js");
   const { setLocale, getLocale } = await load("i18n/index.js");
+  const linters = new Map(loadLinters().map(({ descriptor }) => [descriptor.id, descriptor]));
+  const groups = new Map(linterGroups().map((group) => [group.templateId, group]));
   const texts = {};
   const previous = getLocale();
   try {
@@ -236,9 +240,10 @@ test("V2-73 the built-in profiles, templates, categories, capabilities and adapt
   const enKeys = new Set(catalogKeys("en"));
   const missing = [];
   for (const t of listBuiltinTemplates()) {
+    if (groups.has(t.id)) continue;
     for (const part of ["label", "description"]) for (const keys of [ptKeys, enKeys]) if (!keys.has(`template_${t.id}_${part}`)) missing.push(`template_${t.id}_${part}`);
   }
-  for (const m of builtinManifests()) for (const keys of [ptKeys, enKeys]) if (!keys.has(`adapter_${m.id}_name`)) missing.push(`adapter_${m.id}_name`);
+  for (const m of builtinManifests()) if (!linters.has(m.id)) for (const keys of [ptKeys, enKeys]) if (!keys.has(`adapter_${m.id}_name`)) missing.push(`adapter_${m.id}_name`);
   for (const category of texts.en.catalog.toDocument().categories) for (const part of ["label", "description"]) for (const keys of [ptKeys, enKeys]) if (!keys.has(`category_${category.id}_${part}`)) missing.push(`category_${category.id}_${part}`);
   for (const capability of texts.en.catalog.toDocument().capabilities) {
     if (capability.id.startsWith("x-custom:")) continue;
@@ -251,7 +256,16 @@ test("V2-73 the built-in profiles, templates, categories, capabilities and adapt
   for (const locale of ["pt-BR", "en"]) {
     const json = JSON.parse(fs.readFileSync(path.join(CORE_DIR, `catalog.${locale}.json`), "utf8"));
     for (const category of texts[locale].catalog.toDocument().categories) assert.equal(category.label, json[`category_${category.id}_label`], `${locale} category ${category.id}`);
-    for (const [id, name] of Object.entries(texts[locale].adapters)) assert.equal(name, json[`adapter_${id}_name`], `${locale} adapter ${id}`);
+    for (const [id, name] of Object.entries(texts[locale].adapters)) {
+      assert.equal(name, linters.get(id)?.text[locale].label ?? json[`adapter_${id}_name`], `${locale} adapter ${id}`);
+    }
+    for (const [id, group] of groups) {
+      const template = texts[locale].templates[id];
+      for (const { descriptor } of group.linters) {
+        assert.ok(template.label.includes(descriptor.text[locale].label), `${locale} template ${id}: ${descriptor.id} label`);
+        assert.ok(template.description.includes(descriptor.text[locale].purpose), `${locale} template ${id}: ${descriptor.id} purpose`);
+      }
+    }
   }
   // The two profile names the wizard and the rest of the UI share.
   assert.equal(texts["pt-BR"].profiles.minimal.label, "Essencial");

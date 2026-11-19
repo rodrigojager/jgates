@@ -11,7 +11,7 @@ Esta página reúne o que o JGates ainda não faz, o que não foi testado e os c
 - **O espelho do OSV cobre só npm, PyPI, Go, crates.io e NuGet.** Uma dependência de outro ecossistema não é coberta pelos dados offline do OSV; não leia um resultado limpo como prova para ela.
 - **O Trivy usa as verificações embutidas.** O pacote de verificações que o Trivy baixaria não é usado; valem as verificações de configuração que vêm dentro do binário, com a base de vulnerabilidades do volume `jgates-data`.
 - **Os testes e2e do Playwright rodam só no Chromium.** Os navegadores da versão do Playwright do projeto são buscados no volume de toolchains, e o JGates busca o Chromium; projetos de Firefox e WebKit não são executados.
-- **O primeiro download é grande.** A imagem tem cerca de 2 GB para baixar e uns 6 GB descompactada, mais as dependências de cada projeto e as bases de vulnerabilidades. Veja [armazenamento e limpeza](storage.pt-BR.md).
+- **O primeiro download é grande.** A imagem tem cerca de 5 GB para baixar e uns 13 GB descompactada, mais as dependências de cada projeto e as bases de vulnerabilidades. Veja [armazenamento e limpeza](storage.pt-BR.md).
 - **Os scripts de instalação rodam, mas no contêiner.** O passo de dependências executa os scripts de instalação dos pacotes (`postinstall` do npm, backends de build do Python) dentro do contêiner, com a rede ligada. Eles não alcançam o seu projeto nem a sua máquina, mas rodam, e a revisão diz isso. Veja [segurança](security.pt-BR.md#caches-compartilhados-e-scripts-de-instalação).
 - **Maiúsculas e minúsculas.** A cópia do projeto no volume diferencia maiúsculas de minúsculas, como no Linux. Um projeto que só funciona num sistema de arquivos que não diferencia falha no contêiner (veja [problemas comuns](troubleshooting.pt-BR.md#windows-e-wsl)).
 
@@ -32,17 +32,9 @@ O `npm install --global git+https://github.com/rodrigojager/jgates` **não funci
 - dentro de um projeto: `npm install git+https://github.com/rodrigojager/jgates`, e os comandos pelo `npx`;
 - global: `npm pack` num clone, seguido de `npm install --global ./jgates-<versão>.tgz`.
 
-## Java e PHP: só SAST
+## Verificações de Java e PHP
 
-O JGates reconhece Java e PHP, mas não tem stack para elas. O que roda num projeto Java ou PHP são as verificações que valem para qualquer projeto (segredos, tamanho de arquivo, dados pessoais, duplicação, varreduras de dependências e de infraestrutura) e, com o SAST ligado (não no perfil Essencial), o Semgrep com o pacote de regras do JGates, que tem regras para oito linguagens: JavaScript, TypeScript, Python, Go, C#, Rust, Java e PHP. O que continua faltando para Java e PHP:
-
-- não há template de componente, lint, verificação de tipos, testes, cobertura, teste de mutação nem preparo de dependências;
-- os dados de avisos offline cobrem só npm, PyPI, Go, crates.io e NuGet; por isso dependências vulneráveis de Maven ou Composer só são achadas pelo que o Trivy lê;
-- arquivos de template (Jinja, Blade, Razor, EJS, templates do Go, arquivos Vue) não são varridos, e o pacote lê arquivos HTML e de configuração só nos formatos que as suas regras nomeiam;
-- uma regra do pacote segue um valor só dentro de uma função: um valor que passa entre funções ou arquivos não é seguido, e cada família modela as bibliotecas nomeadas no cabeçalho do seu arquivo de regras, então a maioria das verificações vê um jeito de violar um requisito (são parciais, e o mapa ASVS diz o que cada uma deixa de fora);
-- uma linguagem para a qual o pacote não tem regra (Kotlin, Ruby e outras) aparece no plano como limitação da etapa do Semgrep, e o resultado registra quantos arquivos de cada linguagem a varredura cobriu.
-
-O modo dentro da imagem (o JGates rodando dentro da imagem de ferramentas, como num contêiner de CI) usa a cópia do pacote que está na imagem: ela continua com o pacote antigo, menor, até a imagem ser reconstruída. Um run iniciado no host usa sempre o pacote do JGates instalado.
+A presença de arquivos ativa o PMD para Java e o PHPStan para PHP nos perfis Equilibrado e Rigoroso. O Rigoroso também pode executar outras ferramentas para esses dois casos quando os arquivos e as configurações necessários estiverem presentes. Consulte o [catálogo de ferramentas](tools.pt-BR.md) para saber como cada ferramenta entra e quais são suas limitações. O Semgrep fornece SAST no Equilibrado e no Rigoroso. Java e PHP ainda precisam de executores de testes por componente, coleta de cobertura e preparo de dependências dedicados. Os dados de avisos offline não cobrem Maven nem Composer.
 
 ## Limites de Revisar e das notas de linguagem
 

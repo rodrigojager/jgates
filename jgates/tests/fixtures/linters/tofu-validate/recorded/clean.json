@@ -1,0 +1,17 @@
+{
+ "tool": "tofu-validate",
+ "kind": "clean",
+ "version": "1.13.9",
+ "calls": [
+  {
+   "args": [
+    "validate",
+    "-json",
+    "-no-color"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"format_version\": \"1.0\",\n  \"valid\": true,\n  \"error_count\": 0,\n  \"warning_count\": 0,\n  \"diagnostics\": []\n}\n",
+   "stderr": ""
+  }
+ ]
+}

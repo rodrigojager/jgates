@@ -293,7 +293,13 @@ export function makeLinterAdapter(linter: LoadedLinter): ExternalAdapter {
     if (unavailable) return all("blocked", unavailable.availability.reason ?? t("linter_blocked", { tool: d.name, detail: command.executable }));
     if (!contract) return all("error", t("linter_no_invocation", { tool }));
 
-    if (contract.defaultConfig) fs.copyFileSync(path.join(linter.dir, contract.defaultConfig), path.join(runToolDir, contract.defaultConfig));
+    const view = (p: string): string => stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, p);
+    // The default configuration: `{workspace}` in its text becomes the project's path as the tool sees it (/workspace in a
+    // step container, the snapshot's own path when jgates ci runs inside the tools image).
+    if (contract.defaultConfig) {
+      const text = fs.readFileSync(path.join(linter.dir, contract.defaultConfig), "utf8");
+      fs.writeFileSync(path.join(runToolDir, contract.defaultConfig), text.split("{workspace}").join(view(context.workspacePath)));
+    }
 
     // The calls: one per batch of files (files mode), else the one command.
     // each-file: in a step container, one container runs the loop over the files (sh); inside the tools image, one process per file.
@@ -301,7 +307,6 @@ export function makeLinterAdapter(linter: LoadedLinter): ExternalAdapter {
     const calls = linterCalls(d, contract, command, tokens, loop);
 
     const reader = await readerOf(d);
-    const view = (p: string): string => stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, p);
     const diagnostics: LintDiagnostic[] = [];
     const exitCodes: string[] = [];
     const transcript: string[] = [];

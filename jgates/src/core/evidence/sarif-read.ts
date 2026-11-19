@@ -57,15 +57,15 @@ export function severityBySecurityScore(value: number): NormalizedSeverity {
 }
 
 function uriToPath(uri: string, root: string): string {
-  let p = uri;
-  if (p.startsWith("file://")) p = decodeURIComponent(p.replace(/^file:\/\/\/?/, process.platform === "win32" ? "" : "/"));
-  else {
-    try {
-      p = decodeURIComponent(p);
-    } catch {
-      /* keep the raw text */
-    }
+  const fileUri = uri.startsWith("file://");
+  let p = fileUri ? uri.slice("file://".length) : uri;
+  try {
+    p = decodeURIComponent(p);
+  } catch {
+    /* keep the raw text */
   }
+  // The URI describes the tool's filesystem, which may differ from the host's.
+  if (fileUri) p = p.replace(/^\/(?=[A-Za-z]:\/)/, "");
   p = p.replace(/\\/g, "/").replace(/^\.\//, "");
   if (root && root !== "." && p.startsWith(`${root}/`)) return p;
   return root && root !== "." ? `${root}/${p}` : p;

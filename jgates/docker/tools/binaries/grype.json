@@ -1,0 +1,24 @@
+{
+  "version": "0.122.0",
+  "url": "https://github.com/anchore/grype/releases/download/v{version}/grype_{version}_linux_amd64.tar.gz",
+  "sha256": "e697e6f7224637df87e267e4318cc027feae99a8e1b80280241d32b9ee5d4920",
+  "archive": "tar.gz",
+  "extract": {
+    "grype": "grype",
+    "LICENSE": "LICENSE"
+  },
+  "executable": [
+    "grype"
+  ],
+  "provides": [
+    {
+      "name": "grype",
+      "link": "grype",
+      "path": "grype",
+      "version": [
+        "grype",
+        "version"
+      ]
+    }
+  ]
+}

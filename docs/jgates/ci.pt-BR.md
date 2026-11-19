@@ -99,6 +99,8 @@ Alguns resultados dependem de código que o projeto controla, então não são c
 
 As supressões escritas no código (comentários que silenciam um achado) viram a etapa `jgates-ci.suppressions`, então aparecem no resultado em vez de sumir. Relatórios de cobertura que chegam dentro do commit são recusados, porque foi o projeto que os forneceu.
 
+Uma ferramenta autodeclarada habilitada pode reprovar com achados mesmo quando a política não aceita um resultado limpo. Descritores confiáveis usam entradas controladas pela política. A execução governada pula a auditoria de supressões no código. Etapas que precisam de rede exigem autorização na política com `execution.network: allow`. A verificação do TruffleHog, por exemplo, envia possíveis credenciais aos emissores. O Kingfisher, em modo somente detecção, roda sem rede. [Consulte o catálogo de ferramentas](tools.pt-BR.md).
+
 ## Achados Revisar e códigos de saída
 
 O pacote Semgrep tem quatro classes: `ERROR`, `WARNING`, `INFO` comum e **Revisar**.

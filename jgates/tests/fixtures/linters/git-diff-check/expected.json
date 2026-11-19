@@ -1,0 +1,25 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "trailing whitespace",
+      "file": "merge-notes.txt",
+      "line": 1
+    },
+    {
+      "rule": "leftover conflict marker",
+      "file": "merge-notes.txt",
+      "line": 2
+    },
+    {
+      "rule": "leftover conflict marker",
+      "file": "merge-notes.txt",
+      "line": 4
+    },
+    {
+      "rule": "leftover conflict marker",
+      "file": "merge-notes.txt",
+      "line": 6
+    }
+  ]
+}

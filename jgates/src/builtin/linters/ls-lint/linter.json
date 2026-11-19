@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "ls-lint",
+  "name": "ls-lint",
+  "sourceUrl": "https://github.com/loeffel-io/ls-lint",
+  "license": "MIT",
+  "program": {
+    "tool": "ls-lint",
+    "versionRange": ">=2.0.0 <3.0.0"
+  },
+  "megalinter": [
+    "REPOSITORY_LS_LINT"
+  ],
+  "place": {
+    "section": "other",
+    "group": "repository",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true,
+    "requires": [
+      ".ls-lint.yml"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "--workdir",
+      "."
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?) failed for `[^`]*` (?<message>rules?: (?<rule>.+))$"
+  },
+  "configuration": {
+    "files": [
+      ".ls-lint.yml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "ls-lint enforces the file and folder naming rules the project writes in .ls-lint.yml; the project decides the rules",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: paths are excluded with the ignore list in .ls-lint.yml"
+    }
+  },
+  "install": "ls-lint",
+  "text": {
+    "en": {
+      "label": "ls-lint (file and folder names)",
+      "purpose": "Checks that file and folder names follow the naming rules of the project's .ls-lint.yml, such as kebab-case, snake_case, camelCase or a regular expression, per extension and folder.",
+      "limitation": "It only runs when the project has a .ls-lint.yml, and it checks names only, never file contents.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "ls-lint (nomes de arquivos e pastas)",
+      "purpose": "Verifica se os nomes de arquivos e pastas seguem as regras do .ls-lint.yml do projeto, como kebab-case, snake_case, camelCase ou uma expressão regular, por extensão e pasta.",
+      "limitation": "Só roda quando o projeto tem um .ls-lint.yml e verifica apenas nomes, nunca o conteúdo dos arquivos.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

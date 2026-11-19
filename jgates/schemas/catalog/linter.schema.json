@@ -144,7 +144,7 @@
       "required": ["files", "default"],
       "properties": {
         "files": { "description": "The project files the tool reads, at the workspace root (hashed into the plan).", "type": "array", "items": { "type": "string", "minLength": 1 } },
-        "default": { "description": "tool: the tool's own defaults; otherwise a file of the descriptor folder, copied into the run folder and passed with args when the project has none.", "type": "string", "pattern": "^(?:tool|[A-Za-z0-9][A-Za-z0-9._-]*)$" },
+        "default": { "description": "tool: the tool's own defaults; otherwise a file of the descriptor folder, copied into the run folder and passed with args when the project has none; {workspace} in its text becomes the project's path as the tool sees it.", "type": "string", "pattern": "^(?:tool|[A-Za-z0-9][A-Za-z0-9._-]*)$" },
         "args": { "description": "The arguments that pass the default file ({config}).", "type": "array", "items": { "type": "string" } },
         "ci": {
           "type": "object",

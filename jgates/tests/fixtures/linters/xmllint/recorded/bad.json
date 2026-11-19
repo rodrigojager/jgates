@@ -1,0 +1,17 @@
+{
+ "tool": "xmllint",
+ "kind": "bad",
+ "version": "20914",
+ "calls": [
+  {
+   "args": [
+    "--noout",
+    "--nonet",
+    "catalog.xml"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "catalog.xml:4: parser error : Opening and ending tag mismatch: item line 4 and entry\n  <item id=\"2\">Ink</entry>\n                          ^\n"
+  }
+ ]
+}

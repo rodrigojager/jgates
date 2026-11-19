@@ -122,7 +122,13 @@ const bridgeDeclared = (scanners: string): CapabilityEvidence => ({
 const HAND_EVIDENCE: Record<string, AdapterEvidence> = {
   "quality-bridge": {
     capabilities: {
-      lint: bridgeDeclared("MegaLinter"),
+      lint: {
+        tests: [],
+        notIntegrated: {
+          en: "The bridge's MegaLinter subcheck is disabled. JGates runs its own lint tools.",
+          ptBR: "A subverificação MegaLinter da ponte está desativada. O JGates executa suas próprias ferramentas de lint.",
+        },
+      },
       sast: bridgeDeclared("Semgrep"),
       secrets: bridgeDeclared("Gitleaks"),
       dependencies: bridgeDeclared("Trivy and OSV-Scanner"),
@@ -134,8 +140,8 @@ const HAND_EVIDENCE: Record<string, AdapterEvidence> = {
       "file-size": proven(["any"], t("core-followups.test.js", "the bridge's file-size budget")),
     },
     limitation: {
-      en: "Runs MegaLinter and the scanners through the bridge with the trusted configuration; the project's own linter configs are not used. Only file-size is proven in the default suite: the scanners need the Docker smoke of the bridge (sidecar image).",
-      ptBR: "Roda o MegaLinter e os scanners pela ponte com a configuração confiável; as configurações de linter do projeto não são usadas. Só file-size tem prova na suíte padrão: os scanners precisam do smoke com Docker da ponte (imagem do sidecar).",
+      en: "Governed CI uses the bridge for selected legacy checks with trusted configuration. The MegaLinter subcheck is disabled. The default suite proves file-size; the scanners require Docker acceptance coverage.",
+      ptBR: "O CI governado usa a ponte para verificações legadas selecionadas com configuração confiável. A subverificação MegaLinter está desativada. A suíte padrão comprova file-size. Os scanners exigem testes de aceitação com Docker.",
     },
     external: { en: "Python 3.11+, Docker image for MegaLinter", ptBR: "Python 3.11+, imagem Docker do MegaLinter" },
     otherTests: [t("run-bridge.test.js", "main fixture: one JSON result, valid, run kept outside the project"), t("run-bridge.test.js", "quick mode turns the external tools off")],
@@ -348,6 +354,7 @@ const HAND_EVIDENCE: Record<string, AdapterEvidence> = {
       iac: proven(["any"], TRIVY),
       secrets: proven(["any"], TRIVY),
       licenses: proven(["any"], t("core-followups.test.js", "Trivy licenses: the recorded license report of 0.72.0")),
+      sbom: proven(["any"], t("adapters-security.test.js", "Trivy 0.76.2 SBOM: the CycloneDX document is read, yields no finding and fails closed when cut or foreign [proves: trivy#sbom]")),
     },
     limitation: {
       en: "Runs in a container only; the vulnerability database is cached in the data folder and recorded with source and date.",

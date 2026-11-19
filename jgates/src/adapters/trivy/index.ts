@@ -13,11 +13,11 @@ import type { AdapterContext, AdapterOutput, ResultFinding, ResultStage } from "
 import { scanImage, trivyImageArgs, type TrivyImageTarget } from "./image.js";
 import { outputToken, planScanner, probeScannerImage, REPORT_FILE, runScanner, workspaceToken, type ScannerDefinition } from "../container-scanner/index.js";
 import { trivyManifest } from "./manifest.js";
-import { parseTrivyReport, trivyFacts } from "./normalize.js";
+import { parseTrivyReport, parseTrivySbom, trivyFacts } from "./normalize.js";
 import { databaseDir, recordedDatabaseFacts } from "../../core/data/index.js";
 
 export { trivyManifest } from "./manifest.js";
-export { databaseSource, parseTrivyReport, trivyFacts, TRIVY_DEFAULT_DB, TRIVY_SCHEMA_VERSION } from "./normalize.js";
+export { databaseSource, parseTrivyReport, parseTrivySbom, trivyFacts, TRIVY_DEFAULT_DB, TRIVY_SCHEMA_VERSION } from "./normalize.js";
 
 /** Trivy scanner of each capability. */
 export const TRIVY_SCANNERS: Record<string, string> = { dependencies: "vuln", iac: "misconfig", secrets: "secret", licenses: "license" };
@@ -70,6 +70,52 @@ export const trivyScanner: ScannerDefinition = {
   },
   parse: parseTrivyReport,
   facts: (outputDir, stderr) => recordedDatabaseFacts(outputDir, "trivy") ?? trivyFacts(databaseDir("trivy"), stderr),
+};
+
+/** File the SBOM instance writes in its output folder: the project's CycloneDX bill of materials, an artifact of the run. */
+export const SBOM_FILE = "sbom.cdx.json";
+
+/**
+ * The SBOM instance of the same adapter: `trivy fs --format cyclonedx` with no scanner, so no database is read and
+ * nothing is downloaded. The document is the product; a well-formed one has no finding.
+ */
+export const trivySbomScanner: ScannerDefinition = {
+  manifest: trivyManifest,
+  label: "trivy_sbom_label",
+  capabilities: ["sbom"],
+  documents: [{ binding: "config", native: ["trivy.yaml"] }],
+  report: SBOM_FILE,
+  args(input) {
+    const config = input.documents.config?.file ?? null;
+    return [
+      ...(config ? ["--config", workspaceToken(config)] : []),
+      "fs",
+      "--scanners=",
+      "--format",
+      "cyclonedx",
+      "--output",
+      `${input.out}/${SBOM_FILE}`,
+      "--exit-code",
+      "0",
+      "--cache-dir",
+      `${input.out}/cache`,
+      "--skip-check-update",
+      "--skip-java-db-update",
+      "--skip-version-check",
+      "--disable-telemetry",
+      "--no-progress",
+      ".",
+    ];
+  },
+  exitCodes: [0],
+  network: false,
+  conditions(_input, t) {
+    return [t("trivy_sbom_condition", { file: SBOM_FILE })];
+  },
+  limitations(_input, t) {
+    return [t("trivy_sbom_limitation")];
+  },
+  parse: parseTrivySbom,
 };
 
 const isRec = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -215,14 +261,24 @@ async function runTrivyImage(context: AdapterContext, plan: Plan, tool: string):
   };
 }
 
+/** Runs the SBOM instance and names the document itself, next to its folder, among the outputs of the run. */
+async function runTrivySbom(context: AdapterContext, plan: Plan, tool: string): Promise<AdapterOutput> {
+  const output = await runScanner(trivySbomScanner, context, plan, tool);
+  const file = path.join(context.outputsDir, trivyManifest.id, tool, SBOM_FILE);
+  if (!output.stages.every((s) => s.state === "completed") || !fs.existsSync(file)) return output;
+  return { ...output, outputs: [...output.outputs, path.relative(context.runDir, file).split(path.sep).join("/")] };
+}
+
 export const trivyAdapter: ExternalAdapter = {
   manifest: trivyManifest,
   plan: (input) => {
+    if (input.capability === "sbom") return planScanner(trivySbomScanner, input);
     const settings = trivyImageSettings(input);
     return settings.mode === "image" ? planTrivyImage(input, settings) : planScanner(trivyScanner, input);
   },
   run: (context, plan, tool) => {
     const invocation = plan.invocations.find((i) => i.adapter === trivyManifest.id && i.id === tool);
+    if (invocation?.command.args.includes("cyclonedx")) return runTrivySbom(context, plan, tool);
     return invocation?.command.args[0] === "image" || invocation?.command.args.length === 0 ? runTrivyImage(context, plan, tool) : runScanner(trivyScanner, context, plan, tool);
   },
 };

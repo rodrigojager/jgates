@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "rakudo"
+  ],
+  "provides": [
+    {
+      "name": "raku",
+      "path": "/usr/bin/raku",
+      "version": [
+        "raku",
+        "--version"
+      ],
+      "pattern": "v(\\d+\\.\\d+(?:\\.\\d+)?)"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "files": [
+    "prose.md"
+  ],
+  "findings": [
+    {
+      "rule": "uncomparables",
+      "file": "prose.md",
+      "line": 3
+    },
+    {
+      "rule": "weasel_words.very",
+      "file": "prose.md",
+      "line": 3
+    }
+  ]
+}

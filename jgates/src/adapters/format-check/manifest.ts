@@ -60,7 +60,8 @@ export const formatCheckManifest: AdapterManifest = {
   limitations: [
     "check mode only: no file is rewritten; the fix is the formatter's own write mode, run by the user",
     "the file list and the first location come from the formatter's text output; a run whose output or exit code the adapter cannot explain is an error, never a pass",
-    "dotnet format runs in whitespace mode with --folder: style and analyzer rules need a build and are not part of this check",
+    "dotnet format runs the full --verify-no-changes check (whitespace, style, analyzers) on a restored solution or project; with none it falls back to whitespace mode with --folder, because a run never restores (writes to) the project",
+    "prettier also has a data scope (the data-prettier template): it checks the *.json, *.yml and *.yaml files found anywhere in the project, whatever the language of the component; a project with none has nothing to check",
     "cargo fmt formats the crate of the component; a component without Cargo.toml is not checked",
   ],
   stackSupport: [
@@ -68,7 +69,7 @@ export const formatCheckManifest: AdapterManifest = {
     { capability: "format-check", stack: "typescript", state: "validated", prerequisites: ["prettier in the JGates tools image"], limitations: ["prettier --check; .prettierignore and .gitignore decide which files count"] },
     { capability: "format-check", stack: "go", state: "validated", prerequisites: ["gofmt (the Go toolchain) in the JGates tools image"], limitations: ["gofmt -l lists the files whose formatting differs; gofmt has no options of its own"] },
     { capability: "format-check", stack: "rust", state: "validated", prerequisites: ["cargo with rustfmt in the JGates tools image", "a Cargo.toml in the component"], limitations: ["cargo fmt --check with the project's rustfmt.toml"] },
-    { capability: "format-check", stack: "csharp", state: "validated", prerequisites: ["the .NET SDK (dotnet format) in the JGates tools image"], limitations: ["whitespace rules only (dotnet format whitespace), from the project's .editorconfig"] },
+    { capability: "format-check", stack: "csharp", state: "validated", prerequisites: ["the .NET SDK (dotnet format) in the JGates tools image"], limitations: ["full dotnet format check on a restored solution or project (C# and Visual Basic); whitespace rules only when none is restored"] },
   ],
   distribution: {
     mode: "customer-supplied",

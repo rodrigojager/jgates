@@ -1,0 +1,17 @@
+{
+  "files": [
+    "tekton_sample.yaml"
+  ],
+  "findings": [
+    {
+      "rule": "no-missing-resource",
+      "file": "tekton_sample.yaml",
+      "line": 12
+    },
+    {
+      "rule": "no-unused-param",
+      "file": "tekton_sample.yaml",
+      "line": 7
+    }
+  ]
+}

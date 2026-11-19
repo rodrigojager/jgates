@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "yamllint",
+      "link": "yamllint",
+      "path": "bin/yamllint",
+      "version": [
+        "yamllint",
+        "--version"
+      ]
+    }
+  ]
+}

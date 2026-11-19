@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "syft.no-sbom",
+      "file": "."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "files": [
+    "readme.md"
+  ],
+  "findings": [
+    {
+      "rule": "no-unused-definitions",
+      "file": "readme.md",
+      "line": 5
+    }
+  ]
+}

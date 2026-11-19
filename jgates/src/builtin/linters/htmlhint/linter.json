@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "htmlhint",
+  "name": "htmlhint",
+  "sourceUrl": "https://github.com/htmlhint/HTMLHint",
+  "license": "MIT",
+  "program": {
+    "tool": "htmlhint",
+    "versionRange": ">=1.9.2 <2.0.0"
+  },
+  "megalinter": [
+    "HTML_HTMLHINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "html",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".html",
+      ".htm"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format",
+      "unix",
+      "--nocolor",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+): (?<message>.+) \\[(?<level>[a-z]+)/(?<rule>[a-z0-9-]+)\\]$"
+  },
+  "configuration": {
+    "files": [
+      ".htmlhintrc"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "htmlhint reads the project's .htmlhintrc: the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: <!-- htmlhint ... --> comments that turn rules on or off",
+      "pattern": "<!--\\s*htmlhint\\b",
+      "files": "\\.html?$"
+    }
+  },
+  "install": "htmlhint",
+  "text": {
+    "en": {
+      "label": "HTMLHint (HTML)",
+      "purpose": "Checks HTML files for markup mistakes: a missing doctype, unclosed or badly paired tags, duplicate ids, attributes without double quotes, images without alt text.",
+      "limitation": "It checks markup only, not template syntax (Jinja, Django, Handlebars); a project that needs other rules provides a .htmlhintrc.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "HTMLHint (HTML)",
+      "purpose": "Verifica erros de marcação em arquivos HTML: doctype ausente, tags não fechadas ou mal pareadas, ids duplicados, atributos sem aspas duplas, imagens sem texto alternativo.",
+      "limitation": "Verifica só a marcação, não a sintaxe de templates (Jinja, Django, Handlebars); um projeto que precise de outras regras fornece um .htmlhintrc.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

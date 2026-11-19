@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "dustilock.dependency-confusion",
+      "file": "package.json"
+    }
+  ]
+}

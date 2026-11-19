@@ -29,6 +29,8 @@ jgates tools matrix
 
 `tools list` mostra as categorias, as capacidades, os adaptadores e as instâncias declaradas em `.jgates/tools.yml`. `tools inspect` mostra uma instância com os arquivos vinculados. `tools matrix` imprime a matriz de compatibilidade (e `--json` traz os problemas que o teste de consistência verifica).
 
+Os linters integrados usam evidências nos arquivos, como extensão, nome ou marcador de configuração. O descritor define o comando, o leitor da saída, a faixa de perfis e a classificação de confiança no CI. Cada ferramenta roda na imagem de ferramentas do JGates. [Consulte o catálogo de ferramentas](tools.pt-BR.md).
+
 ## Níveis de suporte
 
 Cada instância mostra o quanto o JGates entende da ferramenta:

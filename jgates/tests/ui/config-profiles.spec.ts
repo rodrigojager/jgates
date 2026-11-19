@@ -222,7 +222,10 @@ test("strict shows every capability with its mode (required, where a tool exists
     await page.getByRole("button", { name: "Editar o perfil Rigoroso" }).click();
     await expect(page.locator('[data-profile="strict"]')).toContainText("Em edição");
     for (const name of ["Qualidade", "Segurança", "Testes", "Arquitetura", "Dependências", "Infraestrutura"]) await page.getByRole("button", { name: `Abrir a categoria ${name}` }).click();
-    await expect(page.getByTestId("capability-mode")).toHaveCount(28);
+    await expect(page.getByTestId("capability-mode")).toHaveCount(31);
+    for (const capability of ["spelling", "links", "sbom"]) {
+      await expect(page.locator(`[data-selector="capability:${capability}"]`)).toHaveAttribute("data-mode", "available");
+    }
     await expect(page.getByTestId("capability-summary")).toContainText("vão rodar");
     const mutation = page.locator('[data-selector="capability:mutation"]');
     await expect(mutation).toHaveAttribute("data-mode", "available");

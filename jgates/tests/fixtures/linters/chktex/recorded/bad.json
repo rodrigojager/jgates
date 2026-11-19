@@ -1,0 +1,19 @@
+{
+ "tool": "chktex",
+ "kind": "bad",
+ "version": "1.7.9",
+ "calls": [
+  {
+   "args": [
+    "-q",
+    "-v0",
+    "-f",
+    "%f:%l:%c:%n:%m\n",
+    "paper.tex"
+   ],
+   "exit": 2,
+   "stdout": "paper.tex:3:12:11:You should use \\ldots to achieve an ellipsis.\n",
+   "stderr": ""
+  }
+ ]
+}

@@ -198,6 +198,8 @@ async function withProject(page: Page, language: "pt-BR" | "en", body: (ctx: { f
   let server: Awaited<ReturnType<typeof startServer>> | null = null;
   try {
     await writeRuns(fixture, language, options.semantic !== false, options.languages ?? []);
+    // Start in the fixture's language so the first-visit locale reload cannot replace the map navigation.
+    await page.addInitScript((locale) => localStorage.setItem("jgates.language", locale), language);
     server = await startServer(fixture);
     const url = await openApp(page, server);
     await body({ fixture, base: url, ids: mapping.ids });

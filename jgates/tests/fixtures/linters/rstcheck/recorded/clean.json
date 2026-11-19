@@ -1,0 +1,16 @@
+{
+ "tool": "rstcheck",
+ "kind": "clean",
+ "version": "6.3.1",
+ "calls": [
+  {
+   "args": [
+    "--",
+    "rstcheck_sample.rst"
+   ],
+   "exit": 0,
+   "stdout": "Success! No issues detected.\n",
+   "stderr": ""
+  }
+ ]
+}

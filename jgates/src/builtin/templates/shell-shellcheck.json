@@ -2,15 +2,16 @@
   "schemaVersion": 1,
   "id": "shell-shellcheck",
   "label": "Shell scripts with ShellCheck",
-  "description": "Lints shell scripts (*.sh, *.bash, *.ksh) with ShellCheck and the project's .shellcheckrc. Every issue is a located finding; nothing is rewritten. Comes in by evidence: only when a shell script sits at the root of the workspace; scripts in other folders are listed by the instance once it is declared in the configuration.",
+  "description": "Lints shell scripts (*.sh, *.bash, *.dash, *.ksh, and extensionless files whose first line is a shell shebang) with ShellCheck and the project's .shellcheckrc. Every issue is a located finding; nothing is rewritten. Comes in by evidence: a shell script with one of those extensions anywhere in the project; once active, shebang-only scripts are checked too.",
   "extends": [
     "builtin:base"
   ],
   "match": {
     "files": [
-      "*.sh",
-      "*.bash",
-      "*.ksh"
+      "**/*.sh",
+      "**/*.bash",
+      "**/*.dash",
+      "**/*.ksh"
     ]
   },
   "config": {

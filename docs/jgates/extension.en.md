@@ -8,6 +8,8 @@ An extension has two pieces, plus an optional third:
 2. **Register the tool** in `.jgates/tools.yml` with the `generic-command` adapter: the command, its arguments, how to read the result and what it checks.
 3. **A language JGates does not know** (optional): declare the component with that language in the Workspace screen, put its toolchain in the Dockerfile and register its tools. The component's checks then run like any other.
 
+Use a descriptor for a built-in linter whose program ships in the JGates image and whose file evidence and output match the descriptor engine. The descriptor declares activation, tier, output reader and trust. Use `generic-command` for a tool or command specific to your project. [Browse the built-in catalog](tools.en.md).
+
 ## Add a tool from the interface
 
 On the Tools screen, **Add tool** offers two paths: a tool from the catalog, and **Own**. The second is a dialog with six steps (keyboard first; `Esc` closes it and returns the focus):
@@ -57,11 +59,13 @@ tools:
 ARG JGATES_TOOLS
 FROM ${JGATES_TOOLS}
 USER root
-RUN UV_TOOL_DIR=/opt/jgates-ext/uv UV_TOOL_BIN_DIR=/usr/local/bin uv tool install --no-cache 'bandit==1.8.0'
+RUN UV_TOOL_DIR=/opt/jgates-ext/uv UV_TOOL_BIN_DIR=/usr/local/bin uv tool install --force --no-cache 'bandit==1.8.0'
 USER 10001:10001
 ```
 
 In the file, the placeholders are `{workspace}`, `{outputDir}` and `{componentRoot}`: `add-custom` writes them for what you type as `{workspace}`, `{output}` and `{component}`.
+
+An explicit pip install can replace an executable inherited from the base image inside your extension image. If an older Dockerfile fails because that executable already exists, add `--force` to its `uv tool install` command and rebuild.
 
 The Dockerfile must start with those two lines: JGates fills `JGATES_TOOLS` with the tools image it pins, and refuses a Dockerfile that does not. Keep the last line, so the tool runs as an unprivileged user. The image is named `jgates-ext-<workspace>:<hash>` and carries the JGates labels; projects with the same Dockerfile share it.
 

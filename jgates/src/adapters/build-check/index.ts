@@ -35,8 +35,8 @@ export interface BuildCheckSettings {
   checker: Checker | null;
   tsconfig: string | null;
   /**
-   * mypy only. "skip" (default): a Python component without a mypy configuration is not checked. "defaults": it is
-   * checked with mypy's defaults (missing third-party stubs ignored), unless it configures pyright instead.
+   * mypy and pyright. "skip" (default): a Python component without the checker's configuration is not checked.
+   * "defaults": it is checked with the checker's defaults (mypy: missing third-party stubs ignored).
    */
   withoutConfig: "skip" | "defaults";
   /** What the instance wrote that is not valid; the plan refuses it instead of guessing. */

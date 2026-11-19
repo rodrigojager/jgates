@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "vale",
+  "name": "Vale",
+  "sourceUrl": "https://github.com/vale-cli/vale",
+  "license": "MIT",
+  "program": {
+    "tool": "vale",
+    "versionRange": ">=3.27.0 <4.0.0"
+  },
+  "megalinter": [
+    "SPELL_VALE"
+  ],
+  "place": {
+    "section": "other",
+    "group": "spelling",
+    "capability": "spelling",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".md",
+      ".rst"
+    ],
+    "requires": [
+      ".vale.ini"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--output=line",
+      "--no-wrap",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+):(?<rule>[^:]+):(?<message>.+)$"
+  },
+  "configuration": {
+    "files": [
+      ".vale.ini",
+      "_vale.ini"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "Vale reads the project's .vale.ini: the project decides its styles, vocabularies and rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: vale off / vale on comments and vale Style.Rule = NO comments",
+      "pattern": "vale\\s+(?:off|on|[A-Za-z0-9_.]+\\s*=\\s*(?:YES|NO))"
+    }
+  },
+  "install": "vale",
+  "text": {
+    "en": {
+      "label": "Vale (prose style)",
+      "purpose": "A prose linter driven by styles: checks writing against the style guide the project configures (terminology, tone, repeated words, spelling).",
+      "limitation": "It runs only when the project has a .vale.ini, and its rules come from the styles that file names; styles the project does not ship in its StylesPath are not downloaded because the run has no network.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Vale (estilo de prosa)",
+      "purpose": "Um linter de prosa guiado por estilos: confere o texto com o guia de estilo que o projeto configura (terminologia, tom, palavras repetidas, ortografia).",
+      "limitation": "Só roda quando o projeto tem um .vale.ini, e as regras vêm dos estilos que esse arquivo nomeia; estilos que o projeto não traz em seu StylesPath não são baixados, pois a execução não tem rede.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

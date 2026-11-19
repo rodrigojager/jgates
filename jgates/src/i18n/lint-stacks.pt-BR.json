@@ -19,6 +19,6 @@
   "lint_limitation_golangci-lint": "golangci-lint run ./... com o .golangci.yml do projeto (os linters padrão sem ele); os módulos precisam estar no volume de dependências.",
   "lint_limitation_clippy": "O cargo clippy compila o crate offline e relata todo diagnóstico do compilador e do clippy; o clippy.toml e as tabelas [lints] do projeto definem os níveis.",
   "lint_limitation_dotnet-analyzers": "dotnet build com os analisadores .NET no nível recomendado, na única solução ou projeto do componente; o .editorconfig do projeto define as severidades.",
-  "lint_limitation_shellcheck": "ShellCheck sobre os arquivos *.sh, *.bash e *.ksh do workspace; o .shellcheckrc do projeto decide quais verificações contam.",
-  "lint_limitation_hadolint": "Hadolint sobre os Dockerfiles do workspace, sem construir nenhuma imagem; o .hadolint.yaml do projeto decide quais regras contam."
+  "lint_limitation_shellcheck": "ShellCheck sobre os arquivos *.sh, *.bash, *.dash e *.ksh em qualquer pasta do workspace, e os arquivos sem extensão com shebang de shell; o .shellcheckrc do projeto decide quais verificações contam.",
+  "lint_limitation_hadolint": "Hadolint sobre os Dockerfiles e Containerfiles em qualquer pasta do workspace, sem construir nenhuma imagem; o .hadolint.yaml do projeto decide quais regras contam."
 }

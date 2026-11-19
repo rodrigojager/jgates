@@ -1,7 +1,6 @@
 {
  "schemaVersion": 1,
  "source": "MegaLinter 9.6.0 descriptors, facts only",
- "allowPlanned": true,
  "entries": [
   {
    "id": "ACTION_ACTIONLINT",
@@ -18,9 +17,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T01",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "actionlint",
+    "slice": "T01"
    }
   },
   {
@@ -63,9 +62,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "ansible-lint",
+    "slice": "T02"
    }
   },
   {
@@ -91,9 +90,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T03",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "spectral",
+    "slice": "T03"
    }
   },
   {
@@ -112,9 +111,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T04",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "arm-ttk",
+    "slice": "T04"
    }
   },
   {
@@ -139,9 +138,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L01",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "bash-exec",
+    "slice": "L01"
    }
   },
   {
@@ -166,9 +165,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "E01",
-    "action": "complete"
+    "kind": "adapter",
+    "adapter": "shellcheck",
+    "slice": "E01"
    }
   },
   {
@@ -193,9 +192,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L01",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "shfmt",
+    "slice": "L01"
    }
   },
   {
@@ -212,9 +211,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T04",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "bicep",
+    "slice": "T04"
    }
   },
   {
@@ -232,9 +231,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "cppcheck",
+    "slice": "L02"
    }
   },
   {
@@ -252,9 +251,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "cpplint",
+    "slice": "L02"
    }
   },
   {
@@ -272,9 +271,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "clang-format",
+    "slice": "L02"
    }
   },
   {
@@ -294,9 +293,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L03",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "clj-kondo",
+    "slice": "L03"
    }
   },
   {
@@ -316,9 +315,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L03",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "cljstyle",
+    "slice": "L03"
    }
   },
   {
@@ -340,9 +339,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "cfn-lint",
+    "slice": "T05"
    }
   },
   {
@@ -359,9 +358,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L04",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "coffeelint",
+    "slice": "L04"
    }
   },
   {
@@ -404,9 +403,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "cppcheck",
+    "slice": "L02"
    }
   },
   {
@@ -433,9 +432,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "cpplint",
+    "slice": "L02"
    }
   },
   {
@@ -462,9 +461,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "clang-format",
+    "slice": "L02"
    }
   },
   {
@@ -481,9 +480,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "E02",
-    "action": "complete"
+    "kind": "adapter",
+    "adapter": "format-check",
+    "slice": "E02"
    }
   },
   {
@@ -504,9 +503,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "csharpier",
+    "slice": "L05"
    }
   },
   {
@@ -523,9 +522,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "roslynator",
+    "slice": "L05"
    }
   },
   {
@@ -544,9 +543,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F01",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "stylelint",
+    "slice": "F01"
    }
   },
   {
@@ -563,9 +562,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L06",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "dartanalyzer",
+    "slice": "L06"
    }
   },
   {
@@ -583,9 +582,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "E01",
-    "action": "complete"
+    "kind": "adapter",
+    "adapter": "hadolint",
+    "slice": "E01"
    }
   },
   {
@@ -604,9 +603,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T07",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "editorconfig-checker",
+    "slice": "T07"
    }
   },
   {
@@ -623,9 +622,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "dotenv-linter",
+    "slice": "F02"
    }
   },
   {
@@ -642,9 +641,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T08",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "gherkin-lint",
+    "slice": "T08"
    }
   },
   {
@@ -679,9 +678,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L07",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "revive",
+    "slice": "L07"
    }
   },
   {
@@ -698,9 +697,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F03",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "graphql-schema-linter",
+    "slice": "F03"
    }
   },
   {
@@ -722,9 +721,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L08",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "npm-groovy-lint",
+    "slice": "L08"
    }
   },
   {
@@ -742,9 +741,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F04",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "djlint",
+    "slice": "F04"
    }
   },
   {
@@ -762,9 +761,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F04",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "htmlhint",
+    "slice": "F04"
    }
   },
   {
@@ -781,9 +780,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L09",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "checkstyle",
+    "slice": "L09"
    }
   },
   {
@@ -800,9 +799,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L09",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "pmd",
+    "slice": "L09"
    }
   },
   {
@@ -851,9 +850,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L10",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "standard",
+    "slice": "L10"
    }
   },
   {
@@ -888,9 +887,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "jsonlint",
+    "slice": "F05"
    }
   },
   {
@@ -928,9 +927,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "v8r",
+    "slice": "F05"
    }
   },
   {
@@ -947,9 +946,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "E03",
-    "action": "complete"
+    "kind": "adapter",
+    "adapter": "format-check",
+    "slice": "E03"
    }
   },
   {
@@ -970,9 +969,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "npm-package-json-lint",
+    "slice": "F05"
    }
   },
   {
@@ -1021,9 +1020,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L11",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "ktlint",
+    "slice": "L11"
    }
   },
   {
@@ -1041,9 +1040,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L11",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "detekt",
+    "slice": "L11"
    }
   },
   {
@@ -1066,9 +1065,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T09",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "kubeconform",
+    "slice": "T09"
    }
   },
   {
@@ -1094,9 +1093,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T09",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "helm",
+    "slice": "T09"
    }
   },
   {
@@ -1122,9 +1121,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T09",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "kubescape",
+    "slice": "T09"
    }
   },
   {
@@ -1141,9 +1140,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F06",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "chktex",
+    "slice": "F06"
    }
   },
   {
@@ -1160,9 +1159,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L12",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "luacheck",
+    "slice": "L12"
    }
   },
   {
@@ -1179,9 +1178,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L12",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "selene",
+    "slice": "L12"
    }
   },
   {
@@ -1198,9 +1197,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L12",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "stylua",
+    "slice": "L12"
    }
   },
   {
@@ -1217,9 +1216,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T14",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "checkmake",
+    "slice": "T14"
    }
   },
   {
@@ -1236,9 +1235,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F07",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "markdownlint",
+    "slice": "F07"
    }
   },
   {
@@ -1255,9 +1254,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F12",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "remark-lint",
+    "slice": "F12"
    }
   },
   {
@@ -1274,9 +1273,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F07",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "markdown-table-formatter",
+    "slice": "F07"
    }
   },
   {
@@ -1293,9 +1292,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F07",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "rumdl",
+    "slice": "F07"
    }
   },
   {
@@ -1318,9 +1317,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L13",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "perlcritic",
+    "slice": "L13"
    }
   },
   {
@@ -1337,9 +1336,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L14",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "phpcs",
+    "slice": "L14"
    }
   },
   {
@@ -1356,9 +1355,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L14",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "phpstan",
+    "slice": "L14"
    }
   },
   {
@@ -1375,9 +1374,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L14",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "psalm",
+    "slice": "L14"
    }
   },
   {
@@ -1394,9 +1393,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L14",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "phplint",
+    "slice": "L14"
    }
   },
   {
@@ -1413,9 +1412,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L14",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "php-cs-fixer",
+    "slice": "L14"
    }
   },
   {
@@ -1438,9 +1437,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L15",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "psscriptanalyzer",
+    "slice": "L15"
    }
   },
   {
@@ -1463,9 +1462,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L15",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "psscriptanalyzer-formatter",
+    "slice": "L15"
    }
   },
   {
@@ -1482,9 +1481,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F08",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "protolint",
+    "slice": "F08"
    }
   },
   {
@@ -1501,9 +1500,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T15",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "puppet-lint",
+    "slice": "T15"
    }
   },
   {
@@ -1521,9 +1520,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L16",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "pylint",
+    "slice": "L16"
    }
   },
   {
@@ -1542,9 +1541,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L16",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "black",
+    "slice": "L16"
    }
   },
   {
@@ -1561,9 +1560,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L16",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "flake8",
+    "slice": "L16"
    }
   },
   {
@@ -1583,9 +1582,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L16",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "isort",
+    "slice": "L16"
    }
   },
   {
@@ -1604,9 +1603,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L16",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "bandit",
+    "slice": "L16"
    }
   },
   {
@@ -1624,9 +1623,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "E04",
-    "action": "complete"
+    "kind": "adapter",
+    "adapter": "build-check",
+    "slice": "E04"
    }
   },
   {
@@ -1643,9 +1642,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L16",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "nbqa",
+    "slice": "L16"
    }
   },
   {
@@ -1663,9 +1662,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "E04",
-    "action": "complete"
+    "kind": "adapter",
+    "adapter": "build-check",
+    "slice": "E04"
    }
   },
   {
@@ -1725,9 +1724,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L17",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "lintr",
+    "slice": "L17"
    }
   },
   {
@@ -1749,9 +1748,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L18",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "raku",
+    "slice": "L18"
    }
   },
   {
@@ -1782,9 +1781,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O03",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "devskim",
+    "slice": "O03"
    }
   },
   {
@@ -1799,9 +1798,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "dustilock",
+    "slice": "O02"
    }
   },
   {
@@ -1816,9 +1815,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O04",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "git-diff-check",
+    "slice": "O04"
    }
   },
   {
@@ -1849,9 +1848,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O01",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "betterleaks",
+    "slice": "O01"
    }
   },
   {
@@ -1866,9 +1865,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "grype",
+    "slice": "O02"
    }
   },
   {
@@ -1902,9 +1901,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O04",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "ls-lint",
+    "slice": "O04"
    }
   },
   {
@@ -1935,9 +1934,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O01",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "secretlint",
+    "slice": "O01"
    }
   },
   {
@@ -1968,9 +1967,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O02",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "syft",
+    "slice": "O02"
    }
   },
   {
@@ -2001,9 +2000,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "E05",
-    "action": "complete"
+    "kind": "adapter",
+    "adapter": "trivy",
+    "slice": "E05"
    }
   },
   {
@@ -2018,9 +2017,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O01",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "trufflehog",
+    "slice": "O01"
    }
   },
   {
@@ -2035,9 +2034,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O01",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "kingfisher",
+    "slice": "O01"
    }
   },
   {
@@ -2055,9 +2054,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T10",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "robocop",
+    "slice": "T10"
    }
   },
   {
@@ -2074,9 +2073,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F09",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "rst-lint",
+    "slice": "F09"
    }
   },
   {
@@ -2093,9 +2092,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F09",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "rstcheck",
+    "slice": "F09"
    }
   },
   {
@@ -2112,9 +2111,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F09",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "rstfmt",
+    "slice": "F09"
    }
   },
   {
@@ -2131,9 +2130,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L19",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "rubocop",
+    "slice": "L19"
    }
   },
   {
@@ -2166,9 +2165,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L21",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "code-analyzer-apex",
+    "slice": "L21"
    }
   },
   {
@@ -2183,9 +2182,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L21",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "code-analyzer-aura",
+    "slice": "L21"
    }
   },
   {
@@ -2200,9 +2199,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L21",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "code-analyzer-lwc",
+    "slice": "L21"
    }
   },
   {
@@ -2287,9 +2286,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L22",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "scalafix",
+    "slice": "L22"
    }
   },
   {
@@ -2308,9 +2307,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T11",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "snakemake",
+    "slice": "T11"
    }
   },
   {
@@ -2329,9 +2328,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T11",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "snakefmt",
+    "slice": "T11"
    }
   },
   {
@@ -2346,9 +2345,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "cspell",
+    "slice": "O05"
    }
   },
   {
@@ -2369,9 +2368,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "proselint",
+    "slice": "O05"
    }
   },
   {
@@ -2391,9 +2390,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "vale",
+    "slice": "O05"
    }
   },
   {
@@ -2421,9 +2420,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O06",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "lychee",
+    "slice": "O06"
    }
   },
   {
@@ -2453,9 +2452,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "O05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "codespell",
+    "slice": "O05"
    }
   },
   {
@@ -2474,9 +2473,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L23",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "sqlfluff",
+    "slice": "L23"
    }
   },
   {
@@ -2493,9 +2492,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L23",
-    "action": "new"
+    "kind": "excluded",
+    "reason": "fails the vulnerability gate: tsqllint 1.16.0, its latest release, ships System.Drawing.Common 4.7.0 (CVE-2021-24112, critical, fixed in 4.7.2); left out as decided in advance (PLAN-catalog section 3), as V1 had to",
+    "decided": "2026-11-17"
    }
   },
   {
@@ -2514,9 +2513,9 @@
     ]
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L24",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "swiftlint",
+    "slice": "L24"
    }
   },
   {
@@ -2536,9 +2535,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T12",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "tekton-lint",
+    "slice": "T12"
    }
   },
   {
@@ -2555,9 +2554,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T13",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "tflint",
+    "slice": "T13"
    }
   },
   {
@@ -2593,9 +2592,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T13",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "terragrunt",
+    "slice": "T13"
    }
   },
   {
@@ -2612,9 +2611,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "T13",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "tofu-fmt",
+    "slice": "T13"
    }
   },
   {
@@ -2693,9 +2692,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "L10",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "ts-standard",
+    "slice": "L10"
    }
   },
   {
@@ -2730,9 +2729,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "E02",
-    "action": "complete"
+    "kind": "adapter",
+    "adapter": "format-check",
+    "slice": "E02"
    }
   },
   {
@@ -2750,9 +2749,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F10",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "xmllint",
+    "slice": "F10"
    }
   },
   {
@@ -2770,9 +2769,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "E03",
-    "action": "complete"
+    "kind": "adapter",
+    "adapter": "format-check",
+    "slice": "E03"
    }
   },
   {
@@ -2790,9 +2789,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F11",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "yamllint",
+    "slice": "F11"
    }
   },
   {
@@ -2810,9 +2809,9 @@
     "onlyIfFileFound": []
    },
    "answer": {
-    "kind": "planned",
-    "slice": "F05",
-    "action": "new"
+    "kind": "descriptor",
+    "descriptor": "v8r",
+    "slice": "F05"
    }
   }
  ]

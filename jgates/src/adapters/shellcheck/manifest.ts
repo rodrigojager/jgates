@@ -26,7 +26,7 @@ const base: AdapterManifest = lintManifest({
   relativeCost: "low",
   license: "GPL-3.0-only",
   limitations: [
-    "checks the files named *.sh, *.bash or *.ksh, up to 500; scripts without that extension (a shebang only) are not found, and a workspace with more files is not applicable until the list is narrowed",
+    "checks the files named *.sh, *.bash, *.dash or *.ksh anywhere in the project, and extensionless files whose first line is a shell shebang, up to 500; a workspace with more files is not applicable until the list is narrowed",
     "ShellCheck reads every severity: errors, warnings, info and style findings are all blocking findings; the project's .shellcheckrc excludes the ones it does not want",
     "a script ShellCheck cannot parse is an error stage, never a pass",
   ],

@@ -120,7 +120,7 @@ test("tools matrix --json lists capability-by-stack rows keyed by adapter, capab
   const bridgeLint = row("quality-bridge#lint@any");
   assert.equal(bridgeLint.state, "customer-setup-required");
   assert.deepEqual(bridgeLint.evidence.tests, []);
-  assert.match(bridgeLint.evidence.note.en, /Docker smoke of the bridge/);
+  assert.match(bridgeLint.evidence.note.en, /MegaLinter subcheck is disabled/);
   // Every capability a manifest announces has at least one row.
   for (const a of doc.matrix.adapters) for (const c of a.capabilities) assert.ok(rows.some((r) => r.adapter === a.id && r.capability === c.id), `${a.id}#${c.id} has a row`);
   for (const a of doc.matrix.adapters) assert.ok(a.distribution && a.distribution.mode, `${a.id} has distribution metadata`);

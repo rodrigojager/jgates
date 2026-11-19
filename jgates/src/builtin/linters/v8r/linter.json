@@ -36,7 +36,8 @@
     ],
     "exit": {
       "clean": [
-        0
+        0,
+        98
       ],
       "findings": [
         99
@@ -48,7 +49,7 @@
   },
   "output": {
     "from": "stdout",
-    "reader": "json",
+    "reader": "custom",
     "items": "results[].errors[]",
     "fields": {
       "file": "^.fileLocation",

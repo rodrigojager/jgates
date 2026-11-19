@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "data-prettier",
+  "label": "JSON and YAML with prettier",
+  "description": "Checks the formatting of JSON and YAML files (*.json, *.yml, *.yaml) anywhere in the project with prettier --check and the project's own prettier configuration. The files prettier would reformat are located findings; nothing is rewritten. Comes in by evidence: a JSON or YAML file in any folder; runs where format-check is switched on (the strict profile turns it on when available).",
+  "extends": [
+    "builtin:base"
+  ],
+  "match": {
+    "files": [
+      "**/*.json",
+      "**/*.yml",
+      "**/*.yaml"
+    ]
+  },
+  "config": {
+    "tools": {
+      "prettier-data": {
+        "adapter": "format-check",
+        "capabilities": [
+          "format-check"
+        ],
+        "config": {
+          "formatter": "prettier",
+          "scope": "data"
+        }
+      }
+    }
+  }
+}

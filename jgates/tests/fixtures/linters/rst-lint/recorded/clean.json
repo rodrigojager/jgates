@@ -1,0 +1,16 @@
+{
+ "tool": "rst-lint",
+ "kind": "clean",
+ "version": "2.0.2",
+ "calls": [
+  {
+   "args": [
+    "--",
+    "rstlint_sample.rst"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

@@ -7,6 +7,6 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["/workspace/**/*.ts"],
-  "exclude": ["/workspace/**/node_modules", "/workspace/**/*.d.ts"]
+  "include": ["{workspace}/**/*.ts"],
+  "exclude": ["{workspace}/**/node_modules", "{workspace}/**/*.d.ts"]
 }

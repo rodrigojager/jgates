@@ -3,14 +3,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { translator } from "../../i18n/index.js";
-import { findFiles, makeLintAdapter, type LintSpec } from "../lint-common/index.js";
+import { activatedFiles, fileCensus } from "../linter/census.js";
+import { MAX_FILES, makeLintAdapter, type LintSpec } from "../lint-common/index.js";
 import { hadolintManifest } from "./manifest.js";
 import { parseHadolint } from "./normalize.js";
 
 export { hadolintManifest } from "./manifest.js";
 export { parseHadolint } from "./normalize.js";
 
-const DOCKERFILE = /^(?:Dockerfile(?:\..+)?|.+\.Dockerfile)$/i;
+/** The Dockerfiles anywhere in the project. */
+const ACTIVATION = { names: ["Dockerfile", "Containerfile", "*.Dockerfile", "Dockerfile.*"] };
 
 export const hadolintSpec: LintSpec = {
   manifest: hadolintManifest,
@@ -22,9 +24,9 @@ export const hadolintSpec: LintSpec = {
   executesProjectCode: false,
   prepare(scanDir) {
     const t = translator("lint-stacks");
-    const { files, tooMany } = findFiles(scanDir, (name) => DOCKERFILE.test(name));
-    if (tooMany) return { skip: t("lint_too_many_files", { tool: "hadolint", limit: files.length }) };
-    if (files.length === 0) return { skip: t("lint_no_files", { tool: "hadolint", kind: "Dockerfile" }) };
+    const files = activatedFiles(fileCensus(scanDir), ACTIVATION);
+    if (files.length > MAX_FILES) return { skip: t("lint_too_many_files", { tool: "hadolint", limit: MAX_FILES }) };
+    if (files.length === 0) return { skip: t("lint_no_files", { tool: "hadolint", kind: "Dockerfile, Containerfile" }) };
     return {
       args: ["--format", "json", "--failure-threshold", "style", "--no-color", ...files],
       env: { NO_COLOR: "1" },

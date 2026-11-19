@@ -1,0 +1,19 @@
+{
+ "tool": "kubeconform",
+ "kind": "clean",
+ "version": "0.8.0",
+ "calls": [
+  {
+   "args": [
+    "-output",
+    "json",
+    "-ignore-missing-schemas",
+    "--",
+    "kubeconform_deployment.yaml"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"resources\": []\n}\n",
+   "stderr": ""
+  }
+ ]
+}
