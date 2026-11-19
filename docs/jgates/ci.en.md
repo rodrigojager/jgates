@@ -48,7 +48,7 @@ Other options: `--head <commit>` (default: the checkout's HEAD), `--scope full|c
 
 ### The job runs in the tools image
 
-JGates is not published to any package registry, and nothing is installed in the job. The job runs **inside the JGates tools image**, pinned by digest, which already holds `jgates` and every tool. Keep the image in a registry your pipeline can read and name it by digest, never by a movable tag:
+The tools image includes JGates, so the job needs no installation step. The job runs **inside the JGates tools image**, pinned by digest, which already holds `jgates` and every tool. Keep the image in a registry your pipeline can read and name it by digest, never by a movable tag:
 
 ```yaml
 # GitHub Actions
@@ -57,7 +57,7 @@ container: <registry>/jgates-tools@sha256:<digest>
 # image: <registry>/jgates-tools@sha256:<digest>
 ```
 
-In the job JGates is in image mode: the same adapter commands run natively inside the container. The examples also set `JGATES_TOOLS_IMAGE_DIGEST` to the digest of that image, so a policy can check that the job runs the image this JGates version pins (see below). The tools image is not published to a registry yet; until it is, build or import it into your own registry (see [getting started](getting-started.en.md#offline-machines)).
+In the job JGates is in image mode: the same adapter commands run natively inside the container. The examples also set `JGATES_TOOLS_IMAGE_DIGEST` to the digest of that image, so a policy can check that the job runs the image this JGates version pins (see below). Find the public image and its digest in the [GitHub Release](https://github.com/rodrigojager/jgates/releases/latest). See [limitations](limitations.en.md) if the CI policy uses `execution.extensionImage: pinned`.
 
 ### Images and extensions
 

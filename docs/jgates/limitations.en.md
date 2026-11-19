@@ -22,7 +22,7 @@ This page gathers what JGates does not do yet, what was not tested and the contr
 - **Engines other than Docker.** The checks use the Docker command line. Rancher Desktop and Podman Desktop are expected to work through their `docker` command or `JGATES_CONTAINER_RUNTIME`, but only Docker was exercised.
 - **Screen reader and new Review screens.** Earlier accessibility checks used axe (WCAG 2.2 AA, no critical or serious violation in the light, dark and system themes), the keyboard and reduced motion. No real screen reader was used. The new Review controls have passed UI typechecks only; real keyboard/Esc, theme, language, responsive and axe verification is still pending.
 - **Direct installation from GitHub.** `npm install --prefix <folder> git+https://github.com/rodrigojager/jgates` and `npm install git+https://github.com/rodrigojager/jgates` inside a project were checked by hand with a local clone (`git+file://`, npm 11), including in a folder with a space in its path: `jgates --version` worked. They are not in the automatic suite, and the download from GitHub itself was not exercised. The path the suite tests is the `npm pack` tarball (see [getting started](getting-started.en.md)).
-- **The tools image is not published yet.** Until it is, the pin file holds the local image `jgates-tools:dev`; `jgates tools export` and `import` move an image between machines.
+- **The public tools image targets Linux x86-64 (`linux/amd64`).** For machines without registry access, use `jgates tools export` and `import` to transfer the image.
 
 ## Global installation from GitHub
 
@@ -102,7 +102,8 @@ What already works: `execution.failFast` (acts as `--fail-fast`), `execution.dat
 - **Scope of `jgates ci`.** `jgates ci` runs inside the container of the job (the tools image, pinned by digest). The scanners that read configuration or ignore files from the analyzed tree are left out of it, and the layer of the legacy quality gate bridge, with its packaged and trusted configuration, covers them. MegaLinter does not run there: the tools image has none, and the bridge's `megalinter` subcheck is always off, replaced by the linters that are JGates tools of their own.
 - **Self-reported results.** Tools that execute project code produce a `selfReported` result, which only approves if the policy trusts it (`execution.trustSelfReported`, default `false`).
 - **Activation in the policy templates.** In the policy repository use the `always` activation; activation by file lets the project turn the tool on or off.
-- **No proof on real pipelines.** The examples in `examples/ci` are tested as text and through the command; no GitHub or GitLab pipeline ran them end to end, and the tools image has not been published to a registry yet.
+- **No proof on real pipelines.** The examples in `examples/ci` are tested as text and through the command; no GitHub or GitLab pipeline ran them end to end.
+- **Registry digest in governed CI.** The first published image contains the pin from before the upload. Its bundled CLI cannot validate the registry digest when it runs inside the image under `execution.extensionImage: pinned`. Use the CLI from the corresponding release when that policy is required.
 
 ## Adapters
 

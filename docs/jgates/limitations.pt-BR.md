@@ -22,7 +22,7 @@ Esta página reúne o que o JGates ainda não faz, o que não foi testado e os c
 - **Motores que não são o Docker.** As verificações usam a linha de comando do Docker. Espera-se que o Rancher Desktop e o Podman Desktop funcionem pelo comando `docker` deles ou por `JGATES_CONTAINER_RUNTIME`, mas só o Docker foi exercitado.
 - **Leitor de tela e novas telas Revisar.** As verificações anteriores de acessibilidade usaram axe (WCAG 2.2 AA, nenhuma violação crítica ou séria nos temas claro, escuro e do sistema), teclado e movimento reduzido. Nenhum leitor de tela real foi usado. Os novos controles Revisar passaram só pela verificação de tipos da interface; a verificação real de teclado/Esc, tema, idioma, responsividade e axe continua pendente.
 - **Instalação direta do GitHub.** `npm install --prefix <pasta> git+https://github.com/rodrigojager/jgates` e `npm install git+https://github.com/rodrigojager/jgates` dentro de um projeto foram conferidos à mão com um clone local (`git+file://`, npm 11), inclusive numa pasta com espaço no caminho: `jgates --version` funcionou. Não estão na suíte automática, e o download do próprio GitHub não foi exercitado. O caminho que a suíte testa é o tarball do `npm pack` (veja [primeiros passos](getting-started.pt-BR.md)).
-- **A imagem de ferramentas ainda não foi publicada.** Até lá, o arquivo de pin guarda a imagem local `jgates-tools:dev`; o `jgates tools export` e o `import` levam uma imagem entre máquinas.
+- **A imagem pública de ferramentas é para Linux x86-64 (`linux/amd64`).** Para máquinas sem acesso ao registro, use `jgates tools export` e `import` para transferir a imagem.
 
 ## Instalação global pelo GitHub
 
@@ -102,7 +102,8 @@ O que já funciona: `execution.failFast` (age como `--fail-fast`), `execution.da
 - **Escopo do `jgates ci`.** O `jgates ci` roda dentro do contêiner do job (a imagem de ferramentas, fixada por digest). Os scanners que leem configuração ou arquivos de ignorar da árvore analisada ficam de fora, e a camada da ponte do quality gate antigo, com a configuração empacotada e confiável, os cobre. O MegaLinter não roda ali: a imagem de ferramentas não o tem, e a subverificação `megalinter` da ponte fica sempre desligada, substituída pelos linters que são ferramentas próprias do JGates.
 - **Resultados autodeclarados.** Ferramentas que executam código do projeto produzem um resultado `selfReported`, que só aprova se a política confiar nele (`execution.trustSelfReported`, padrão `false`).
 - **Ativação nos templates da política.** No repositório da política use a ativação `always`; a ativação por arquivo deixa o projeto ligar ou desligar a ferramenta.
-- **Sem prova em pipelines reais.** Os exemplos em `examples/ci` são testados como texto e pelo comando; nenhum pipeline do GitHub ou do GitLab os executou de ponta a ponta, e a imagem de ferramentas ainda não foi publicada num registro.
+- **Sem prova em pipelines reais.** Os exemplos em `examples/ci` são testados como texto e pelo comando; nenhum pipeline do GitHub ou do GitLab os executou de ponta a ponta.
+- **Digest do registro no CI governado.** A primeira imagem publicada contém a referência anterior ao envio. O CLI embutido não consegue validar o digest do registro quando roda dentro da imagem sob `execution.extensionImage: pinned`. Use o CLI da release correspondente quando essa política for exigida.
 
 ## Adaptadores
 

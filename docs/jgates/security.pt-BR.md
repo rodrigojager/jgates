@@ -112,7 +112,7 @@ jgates hooks uninstall <hook>
 
 ## Cadeia de suprimentos
 
-As dependências diretas ficam em versões travadas no lockfile, com origem e integridade conferidas; as ferramentas Python usam `==`; a imagem de ferramentas tem a base por digest e todo binário baixado enquanto ela é construída é conferido por `sha256`. O teste `jgates/tests/server-routes-security.test.js` confere essas travas (lockfile, digests das imagens, versões Python), e as licenças estão em `THIRD_PARTY_NOTICES.md`. Nenhum pacote é publicado: o produto é o repositório no GitHub.
+As dependências diretas ficam em versões travadas no lockfile, com origem e integridade conferidas; as ferramentas Python usam `==`; a imagem de ferramentas tem a base por digest e todo binário baixado enquanto ela é construída é conferido por `sha256`. O teste `jgates/tests/server-routes-security.test.js` confere essas travas (lockfile, digests das imagens, versões Python), e as licenças estão em `THIRD_PARTY_NOTICES.md`. Instale o CLI pelo repositório no GitHub ou por uma release. O setup baixa a imagem de ferramentas correspondente do GitHub Container Registry pelo digest.
 
 ## Resultado falso ou antigo
 

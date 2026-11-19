@@ -75,12 +75,12 @@ Some questions have answers a tool can check directly. Did a test fail? Did a se
 
 - Node 22 or newer and Git, to run JGates itself.
 - A Docker-compatible container engine on `linux/amd64` (Docker Desktop, Rancher Desktop, Podman Desktop or Docker Engine). Every check runs in a container of one JGates tools image, so no scanner, linter, test runner or language runtime of your project is installed on your machine. Docker Desktop has license terms of its own; read them, or use one of the alternatives.
-- With a shared export, expect about 5 GB to download the tools image and around 13 GB unpacked, plus the project's dependencies and the vulnerability databases, which also live in the engine (see [storage and cleanup](docs/jgates/storage.en.md)).
+- Expect about 5 GB to download the tools image and around 13 GB unpacked, plus the project's dependencies and the vulnerability databases, which also live in the engine (see [storage and cleanup](docs/jgates/storage.en.md)).
 - Linux was tested. On Windows 10 with Docker Desktop the first-run flow was checked by hand (see [limitations](docs/jgates/limitations.en.md)). macOS was not tested on a real Mac.
 
 ### Installation
 
-**Prepare the tools image first.** This version uses `jgates-tools:dev`. Build it from a source checkout or import it from a trusted JGates export. [Build or import the tools image](docs/jgates/getting-started.en.md#prepare-the-machine).
+The first `jgates setup` downloads the matching tools image from GitHub Container Registry. The image is public and Docker can download it without a GitHub login. [GitHub Release](https://github.com/rodrigojager/jgates/releases/latest).
 
 JGates is not published to the npm registry; it is installed from the repository on GitHub. In an empty folder or in your project's folder:
 
@@ -136,7 +136,7 @@ jgates plan
 jgates run
 ```
 
-- `setup` prepares the machine: it checks the container engine and the disk, checks the tools image and its version, creates the shared volumes and downloads the vulnerability databases. It is safe to run again. `status` shows whether the machine is ready (engine, image, data age, dependencies and services of the project, disk). `jgates doctor` keeps its own flow and classifies what the plan is missing; it never installs a tool on your machine.
+- `setup` prepares the machine: it checks the container engine and the disk, downloads and verifies the tools image if needed, creates the shared volumes and downloads the vulnerability databases. It is safe to run again. `status` shows whether the machine is ready (engine, image, data age, dependencies and services of the project, disk). `jgates doctor` keeps its own flow and classifies what the plan is missing; it never installs a tool on your machine.
 - `init` discovers the project's components and creates `jgates.yml` and `.jgates/profiles.yml`, which are versioned with the code. The profiles are `minimal`, `standard` and `strict`. The minimum test coverage is the project's own `fail_under` (`pyproject.toml`, `.coveragerc`...) unless the JGates policy sets another.
 - `plan` shows what will run, what is left out and the requirements without coverage, without executing anything.
 - `run` executes the plan and stores the result and the decision. The exit code tells the decision: 0 approved, 1 failed, 2 incomplete (something required could not be proven; it never becomes approved), 3 invalid usage or configuration, 4 internal error, 130 cancelled. When a run cannot start because the engine or the tools image is not ready, the result is incomplete and names the reason with its action (for example `jgates setup`); nothing is installed on your machine. At a terminal the run shows colors and a live line with the time of the running step; `--plain` prints one line per step (and one a minute while a long step works) for agents and logs. It ends with the file to read to fix: `agent-context.md` in the run folder (the same summary as the interface's "Copy to the agent" button), with `result.json` beside it.
@@ -281,12 +281,12 @@ O JGates pode usar o código de saída do comando para determinar se a verifica�
 
 - Node 22 ou mais novo e Git, para rodar o próprio JGates.
 - Um motor de contêineres compatível com o Docker em `linux/amd64` (Docker Desktop, Rancher Desktop, Podman Desktop ou Docker Engine). Toda verificação roda num contêiner de uma imagem de ferramentas do JGates, então nenhum scanner, linter, executor de testes ou runtime de linguagem do seu projeto é instalado na sua máquina. O Docker Desktop tem termos de licença próprios; leia-os, ou use uma das alternativas.
-- Com uma exportação compartilhada, reserve cerca de 5 GB para baixar a imagem de ferramentas e uns 13 GB de disco depois de descompactada, mais as dependências do projeto e as bases de vulnerabilidades, que também ficam no motor (veja [armazenamento e limpeza](docs/jgates/storage.pt-BR.md)).
+- Reserve cerca de 5 GB para baixar a imagem de ferramentas e uns 13 GB de disco depois de descompactada, mais as dependências do projeto e as bases de vulnerabilidades, que também ficam no motor (veja [armazenamento e limpeza](docs/jgates/storage.pt-BR.md)).
 - O Linux foi testado. No Windows 10 com Docker Desktop o fluxo do primeiro uso foi conferido à mão (veja [limitações](docs/jgates/limitations.pt-BR.md)). O macOS não foi testado num Mac real.
 
 ### Instalação
 
-**Prepare a imagem de ferramentas primeiro.** Esta versão usa `jgates-tools:dev`. Construa a imagem a partir de um clone do código-fonte ou importe um arquivo exportado por uma instalação confiável do JGates. [Construir ou importar a imagem de ferramentas](docs/jgates/getting-started.pt-BR.md#preparar-a-máquina).
+O primeiro `jgates setup` baixa a imagem de ferramentas correspondente pelo GitHub Container Registry. A imagem é pública e o Docker pode baixá-la sem login no GitHub. [Release no GitHub](https://github.com/rodrigojager/jgates/releases/latest).
 
 O JGates não é publicado no registro do npm; a instalação vem do repositório no GitHub. Numa pasta vazia ou na pasta do seu projeto:
 
@@ -342,7 +342,7 @@ jgates plan
 jgates run
 ```
 
-- `setup` prepara a máquina: confere o motor de contêineres e o disco, confere a imagem de ferramentas e a versão, cria os volumes compartilhados e baixa as bases de vulnerabilidades. Pode rodar de novo sem problema. `status` mostra se a máquina está pronta (motor, imagem, idade dos dados, dependências e serviços do projeto, disco). O `jgates doctor` mantém o fluxo próprio e classifica o que o plano não tem; ele nunca instala uma ferramenta na sua máquina.
+- `setup` prepara a máquina: confere o motor de contêineres e o disco, baixa e verifica a imagem de ferramentas se necessário, cria os volumes compartilhados e baixa as bases de vulnerabilidades. Pode rodar de novo sem problema. `status` mostra se a máquina está pronta (motor, imagem, idade dos dados, dependências e serviços do projeto, disco). O `jgates doctor` mantém o fluxo próprio e classifica o que o plano não tem; ele nunca instala uma ferramenta na sua máquina.
 - `init` descobre os componentes do projeto e cria `jgates.yml` e `.jgates/profiles.yml`, que ficam versionados com o código. Os perfis são `minimal`, `standard` e `strict`. A cobertura mínima de testes é o `fail_under` do próprio projeto (`pyproject.toml`, `.coveragerc`...), a menos que a política do JGates defina outra.
 - `plan` mostra o que vai executar, o que fica de fora e os requisitos sem cobertura, sem executar nada.
 - `run` executa o plano e grava o resultado e a decisão. O código de saída diz a decisão: 0 aprovado, 1 reprovado, 2 incompleto (algo exigido não pôde ser provado; nunca vira aprovado), 3 uso ou configuração inválidos, 4 erro interno, 130 cancelado. Quando um run não consegue começar porque o motor ou a imagem de ferramentas não está pronto, o resultado é incompleto e nomeia o motivo com a ação dele (por exemplo `jgates setup`); nada é instalado na sua máquina. Num terminal, o run mostra cores e uma linha viva com o tempo da etapa em andamento; `--plain` imprime uma linha por etapa (e uma por minuto enquanto uma etapa longa trabalha), para agentes e logs. Ele termina com o arquivo a ler para corrigir: `agent-context.md`, na pasta do run (o mesmo resumo do botão "Copiar para o agente" da interface), com o `result.json` ao lado.

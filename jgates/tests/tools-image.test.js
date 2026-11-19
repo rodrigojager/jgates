@@ -145,8 +145,13 @@ test("JGATES_TOOLS_IMAGE picks the image the preflight inspects; without it the 
 test("the pin file holds the image reference, id, version and size, and the package ships it", async () => {
   const { readToolsImagePin, toolsImageTarget } = await load("core", "tools-image", "index.js");
   const pin = readToolsImagePin();
-  assert.equal(pin.reference, "jgates-tools:dev");
   assert.match(pin.digest, /^sha256:[0-9a-f]{64}$/);
+  if (pin.published) {
+    assert.match(pin.reference, /^ghcr\.io\/.+\/jgates-tools@sha256:[0-9a-f]{64}$/);
+    assert.equal(pin.reference.split("@")[1], pin.digest);
+  } else {
+    assert.equal(pin.reference, "jgates-tools:dev");
+  }
   assert.ok(pin.imageVersion && pin.jgatesVersion && pin.sizeBytes > 0);
   assert.equal(pin.platform, "linux/amd64");
   assert.deepEqual(toolsImageTarget({ JGATES_TOOLS_IMAGE: "jgates-tools:dev" }, pin), { reference: "jgates-tools:dev", source: "env" });

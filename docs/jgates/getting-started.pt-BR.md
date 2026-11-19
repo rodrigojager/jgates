@@ -45,27 +45,20 @@ npm install --global ./jgates-0.3.0.tgz
 jgates help
 ```
 
-No Windows, o `npm install --global` coloca `jgates`, `quality-gate` e `semantic-gate` em `%APPDATA%\npm`, uma pasta que o instalador do Node.js já adiciona ao `Path`: abra um terminal novo e o `jgates --version` responde de qualquer pasta. Para atualizar, rode `jgates update`; num clone, rode `npm pack` de novo e repita o `npm install --global` com o arquivo novo. Depois de atualizar, reconstrua ou importe a imagem de ferramentas correspondente, se necessário.
+No Windows, o `npm install --global` coloca `jgates`, `quality-gate` e `semantic-gate` em `%APPDATA%\npm`, uma pasta que o instalador do Node.js já adiciona ao `Path`: abra um terminal novo e o `jgates --version` responde de qualquer pasta. Para atualizar, rode `jgates update`; num clone, rode `npm pack` de novo e repita o `npm install --global` com o arquivo novo. Depois de atualizar, rode `jgates setup` para preparar a imagem correspondente.
 
 O `npm install --global git+https://github.com/rodrigojager/jgates` **não funciona**: numa instalação global de uma dependência git, o npm liga os comandos a um clone temporário que depois apaga. Use a pasta com `--prefix`, a instalação dentro do projeto ou o tarball (veja [limitações](limitations.pt-BR.md)).
 
 ## Preparar a máquina
 
-Esta versão usa `jgates-tools:dev`, construída localmente. Com Docker e Buildx disponíveis, rode estes comandos na raiz de um clone do código-fonte do JGates:
-
-```bash
-npm ci
-npm --prefix jgates run image:build
-```
-
-Reserve pelo menos 38 GB livres para a construção e o cache. Se você já tiver um arquivo exportado da imagem correspondente, use `jgates setup --from <arquivo>`. Veja [máquinas offline](#máquinas-offline) para mais detalhes.
+A imagem de ferramentas é pública no GitHub Container Registry. O `jgates setup` baixa a imagem exata fixada pela versão, sem login no GitHub. Se você já tiver um arquivo exportado da imagem correspondente, veja [máquinas offline](#máquinas-offline).
 
 ```bash
 jgates setup
 jgates status
 ```
 
-O `setup` prepara esta máquina em cinco passos e imprime cada um: **Engine** (acha o motor de contêineres e confere que ele responde), **Disk** (confere que há espaço para o download mais uma margem), **Image** (confere a imagem de ferramentas e a versão), **Volumes** (cria os volumes compartilhados) e **Data** (baixa as bases de vulnerabilidades). Pode rodar de novo sem problema: uma máquina pronta termina em segundos. Sai com 0 quando a máquina está pronta e com 2 quando não está, e cada motivo tem um código e uma ação (veja a [lista de motivos](troubleshooting.pt-BR.md#códigos-de-motivo)).
+O `setup` prepara esta máquina em cinco passos e imprime cada um: **Engine** (acha o motor de contêineres e confere que ele responde), **Disk** (confere que há espaço para o download mais uma margem), **Image** (baixa e verifica a imagem de ferramentas se necessário), **Volumes** (cria os volumes compartilhados) e **Data** (baixa as bases de vulnerabilidades). Pode rodar de novo sem problema: uma máquina pronta termina em segundos. Sai com 0 quando a máquina está pronta e com 2 quando não está, e cada motivo tem um código e uma ação (veja a [lista de motivos](troubleshooting.pt-BR.md#códigos-de-motivo)).
 
 - `--yes` inicia um motor parado quando o comando de início dele não pede senha de administrador, e espera por ele.
 - `--no-data` pula as bases de vulnerabilidades; as verificações que precisam delas ficam `incomplete` até você baixá-las (veja abaixo).

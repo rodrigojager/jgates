@@ -48,7 +48,7 @@ Outras opções: `--head <commit>` (padrão: o HEAD do checkout), `--scope full|
 
 ### O job roda na imagem de ferramentas
 
-O JGates não é publicado em nenhum registro de pacotes, e nada é instalado no job. O job roda **dentro da imagem de ferramentas do JGates**, fixada por digest, que já tem o `jgates` e todas as ferramentas. Guarde a imagem num registro que o seu pipeline consiga ler e nomeie-a por digest, nunca por uma tag que se move:
+A imagem de ferramentas inclui o JGates, então o job dispensa uma etapa de instalação. O job roda **dentro da imagem de ferramentas do JGates**, fixada por digest, que já tem o `jgates` e todas as ferramentas. Guarde a imagem num registro que o seu pipeline consiga ler e nomeie-a por digest, nunca por uma tag que se move:
 
 ```yaml
 # GitHub Actions
@@ -57,7 +57,7 @@ container: <registry>/jgates-tools@sha256:<digest>
 # image: <registry>/jgates-tools@sha256:<digest>
 ```
 
-No job o JGates fica no modo dentro-da-imagem: os mesmos comandos dos adaptadores rodam nativamente dentro do contêiner. Os exemplos também definem `JGATES_TOOLS_IMAGE_DIGEST` com o digest dessa imagem, para que uma política possa conferir que o job roda a imagem que esta versão do JGates fixa (veja abaixo). A imagem de ferramentas ainda não foi publicada num registro; até lá, construa ou importe a imagem no seu próprio registro (veja [primeiros passos](getting-started.pt-BR.md#máquinas-offline)).
+No job o JGates fica no modo dentro-da-imagem: os mesmos comandos dos adaptadores rodam nativamente dentro do contêiner. Os exemplos também definem `JGATES_TOOLS_IMAGE_DIGEST` com o digest dessa imagem, para que uma política possa conferir que o job roda a imagem que esta versão do JGates fixa (veja abaixo). A [Release no GitHub](https://github.com/rodrigojager/jgates/releases/latest) traz a imagem pública e seu digest. Veja [limitações](limitations.pt-BR.md) se a política de CI usa `execution.extensionImage: pinned`.
 
 ### Imagens e extensões
 

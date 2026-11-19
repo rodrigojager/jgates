@@ -112,7 +112,7 @@ jgates hooks uninstall <hook>
 
 ## Supply chain
 
-Direct dependencies sit at versions pinned in the lockfile, with origin and integrity checked; the Python tools use `==`; the tools image has its base by digest and every binary downloaded while it is built is checked with `sha256`. The test `jgates/tests/server-routes-security.test.js` checks these pins (lockfile, image digests, Python versions), and the licenses are in `THIRD_PARTY_NOTICES.md`. No package is published: the product is the repository on GitHub.
+Direct dependencies sit at versions pinned in the lockfile, with origin and integrity checked; the Python tools use `==`; the tools image has its base by digest and every binary downloaded while it is built is checked with `sha256`. The test `jgates/tests/server-routes-security.test.js` checks these pins (lockfile, image digests, Python versions), and the licenses are in `THIRD_PARTY_NOTICES.md`. Install the CLI from the GitHub repository or a release. Setup downloads the matching tools image from GitHub Container Registry by digest.
 
 ## False or old result
 

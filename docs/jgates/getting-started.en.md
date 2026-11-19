@@ -45,27 +45,20 @@ npm install --global ./jgates-0.3.0.tgz
 jgates help
 ```
 
-On Windows, `npm install --global` puts `jgates`, `quality-gate` and `semantic-gate` in `%APPDATA%\npm`, a folder the Node.js installer already adds to `Path`: open a new terminal and `jgates --version` answers from any folder. To update, run `jgates update`; in a clone, run `npm pack` again and repeat the `npm install --global` with the new file. After updating, rebuild or import the matching tools image if needed.
+On Windows, `npm install --global` puts `jgates`, `quality-gate` and `semantic-gate` in `%APPDATA%\npm`, a folder the Node.js installer already adds to `Path`: open a new terminal and `jgates --version` answers from any folder. To update, run `jgates update`; in a clone, run `npm pack` again and repeat the `npm install --global` with the new file. After updating, run `jgates setup` to prepare the matching image.
 
 `npm install --global git+https://github.com/rodrigojager/jgates` **does not work**: for a global install of a git dependency, npm links the commands to a temporary clone that it then deletes. Use the folder with `--prefix`, the installation inside the project or the tarball (see [limitations](limitations.en.md)).
 
 ## Prepare the machine
 
-This version uses `jgates-tools:dev`, which is available as a local build. With Docker and Buildx available, run these commands from the root of a JGates source checkout:
-
-```bash
-npm ci
-npm --prefix jgates run image:build
-```
-
-Leave at least 38 GB free for the build and its cache. If you already have an export of the matching image, use `jgates setup --from <file>` instead. See [offline machines](#offline-machines) for details.
+The tools image is public on GitHub Container Registry. `jgates setup` downloads the exact image this version pins, without a GitHub login. If you already have an export of the matching image, see [offline machines](#offline-machines).
 
 ```bash
 jgates setup
 jgates status
 ```
 
-`setup` prepares this machine in five steps and prints each one: **Engine** (finds the container engine and checks that it answers), **Disk** (checks there is room for the download plus a margin), **Image** (checks the tools image and its version), **Volumes** (creates the shared volumes) and **Data** (downloads the vulnerability databases). It is safe to run again: a ready machine finishes in seconds. It exits with 0 when the machine is ready and 2 when it is not, and each reason has a code and an action (see the [list of reasons](troubleshooting.en.md#reason-codes)).
+`setup` prepares this machine in five steps and prints each one: **Engine** (finds the container engine and checks that it answers), **Disk** (checks there is room for the download plus a margin), **Image** (downloads and verifies the tools image if needed), **Volumes** (creates the shared volumes) and **Data** (downloads the vulnerability databases). It is safe to run again: a ready machine finishes in seconds. It exits with 0 when the machine is ready and 2 when it is not, and each reason has a code and an action (see the [list of reasons](troubleshooting.en.md#reason-codes)).
 
 - `--yes` starts a stopped engine when its start command needs no administrator password, and waits for it.
 - `--no-data` skips the vulnerability databases; the checks that need them stay `incomplete` until you download them (see below).

@@ -186,8 +186,7 @@ function loadImage(version, inputs, document) {
 
 /**
  * The pin of the built image (release/tools-image.json), from what the engine measured: the engine's image size is
- * what a pull transfers (compressed layers), the sum of the history entries is the unpacked size. The fields a person
- * keeps (published, name) are carried over.
+ * what a pull transfers (compressed layers), the sum of the history entries is the unpacked size.
  */
 export function pinOf({ previous, inspect, uncompressedBytes, version, document }) {
   const compressedBytes = Number(inspect.Size);
@@ -202,7 +201,7 @@ export function pinOf({ previous, inspect, uncompressedBytes, version, document 
     sizeBytes: compressedBytes,
     compressedBytes,
     uncompressedBytes,
-    published: previous?.published ?? false,
+    published: false,
   };
 }
 
@@ -229,9 +228,14 @@ function verify(expected, version) {
   console.log(`image:build: ${TAG} ${inspect.Id}`);
   console.log(`image:build: size ${(inspect.Size / 1e9).toFixed(2)} GB (engine image size), ${(uncompressed / 1e9).toFixed(2)} GB uncompressed (sum of the layers)`);
   console.log(`image:build: ${Object.keys(document.tools).length} tools ${JSON.stringify(document.tools)}`);
-  const pin = pinOf({ previous: readPin(), inspect, uncompressedBytes: uncompressed, version, document });
-  fs.writeFileSync(PIN_FILE, `${JSON.stringify(pin, null, 2)}\n`);
-  console.log(`image:build: wrote ${path.relative(repositoryRoot, PIN_FILE)} (${pin.compressedBytes} bytes compressed, ${pin.uncompressedBytes} unpacked)`);
+  const previous = readPin();
+  if (previous?.published) {
+    console.log(`image:build: kept the published pin. Set JGATES_TOOLS_IMAGE=${TAG} to use this local build.`);
+  } else {
+    const pin = pinOf({ previous, inspect, uncompressedBytes: uncompressed, version, document });
+    fs.writeFileSync(PIN_FILE, `${JSON.stringify(pin, null, 2)}\n`);
+    console.log(`image:build: wrote ${path.relative(repositoryRoot, PIN_FILE)} (${pin.compressedBytes} bytes compressed, ${pin.uncompressedBytes} unpacked)`);
+  }
 }
 
 async function main() {
