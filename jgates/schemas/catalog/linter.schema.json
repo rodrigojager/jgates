@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/catalog/linter.schema.json",
+  "title": "JGates linter descriptor",
+  "description": "One simple linter as data (jgates/src/builtin/linters/<id>/linter.json): who it is, which MegaLinter ids it answers for, where it sits in the catalogue, which files activate it, how it is called, how its output is read, how it is trusted under jgates ci, which install entry brings it into the tools image, and its texts in English and pt-BR. The linter engine derives the adapter, the registries, the trust table, the suppression kinds, the evidence entry and the templates from it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "name", "sourceUrl", "license", "program", "megalinter", "place", "activation", "run", "output", "configuration", "governed", "install", "text"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "description": "The tool's name in lowercase with hyphens; equal to the folder name.", "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "maxLength": 64 },
+    "name": { "description": "Display name of the tool.", "type": "string", "minLength": 1 },
+    "sourceUrl": { "type": "string", "pattern": "^https://" },
+    "license": { "description": "SPDX license expression, taken from the tool's repository.", "type": "string", "minLength": 1 },
+    "program": {
+      "description": "The program in the tools image.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "versionRange"],
+      "properties": {
+        "tool": { "description": "Its name in the image's image.json (the version is read there; nothing starts to learn it).", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$" },
+        "command": { "description": "The command on the image's PATH, when it is not the image.json name.", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$" },
+        "prefix": { "description": "Arguments that come before the tool's own (a subcommand the program always needs).", "type": "array", "items": { "type": "string" } },
+        "versionRange": { "description": "The accepted version range (semver).", "type": "string", "minLength": 1 }
+      }
+    },
+    "megalinter": {
+      "description": "The MegaLinter linter ids this tool answers for (the parity gate reads it). May be empty for a tool beyond the reference.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)+$" }
+    },
+    "place": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["section", "group", "capability", "kind", "tier"],
+      "properties": {
+        "section": { "enum": ["language", "format", "tooling", "other"] },
+        "group": { "description": "The catalogue group inside the section (php, markdown, terraform, secrets); tools of one group share a derived template and a smoke group.", "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "capability": { "description": "A capability id of the catalogue (lint, format-check, secrets, sast...).", "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "kind": { "enum": ["lint", "format", "scan", "sbom"] },
+        "tier": { "enum": ["main", "extended"] }
+      }
+    },
+    "activation": {
+      "description": "Which files make the tool apply. At least one of extensions, names, content or project.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "extensions": { "description": "File extensions with the dot, matched without case (.yml).", "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^\\.[A-Za-z0-9._+-]+$" } },
+        "names": { "description": "File name patterns (* is any text inside one name): Dockerfile, *.Dockerfile, .github/workflows/*.yml (a pattern with a folder matches the workspace-relative path).", "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "content": {
+          "description": "Files picked by their content (a shebang): candidates are the files the names list (default: every file without an extension).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pattern"],
+          "properties": {
+            "pattern": { "description": "A regular expression.", "type": "string", "minLength": 1 },
+            "firstLine": { "description": "Match the first line only (default true); false: the first 4 KiB.", "type": "boolean" },
+            "names": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "requires": { "description": "Only if one of these files exists at the workspace root (* allowed in the name): otherwise the tool does not apply, with the file as the reason.", "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "project": { "description": "The tool checks the whole project whatever its files.", "const": true }
+      },
+      "anyOf": [{ "required": ["extensions"] }, { "required": ["names"] }, { "required": ["content"] }, { "required": ["project"] }]
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "args", "exit", "executesProjectCode", "network", "readOnly"],
+      "properties": {
+        "mode": { "description": "files: one call with the files (in batches when the list is long); each-file: one call per file, all in one container; project: one call on the workspace.", "enum": ["files", "each-file", "project"] },
+        "args": { "description": "The tool's arguments. Tokens: {files} (files mode: where the files go, default at the end), {file} (each-file mode: the file, default at the end), {report} (the report file in the run folder), {config} (the default configuration when the project has none), {workspace}.", "type": "array", "items": { "type": "string" } },
+        "env": { "type": "object", "additionalProperties": { "type": "string" } },
+        "exit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["clean", "findings"],
+          "properties": {
+            "clean": { "description": "Exit codes that mean no finding (a code in both lists lets the report decide).", "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 0, "maximum": 255 } },
+            "findings": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 0, "maximum": 255 } }
+          }
+        },
+        "needsDependencies": { "description": "The tool needs the project's installed dependencies.", "type": "boolean" },
+        "executesProjectCode": { "type": "boolean" },
+        "network": { "type": "boolean" },
+        "readOnly": { "description": "The tool only reads the synchronized copy of the project (it may run beside other steps).", "type": "boolean" },
+        "workspaceWrites": { "description": "Project paths the tool writes and cannot be redirected.", "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "timeoutSeconds": { "type": "integer", "minimum": 1 },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "memoryMb": { "type": "integer", "minimum": 256 },
+            "cpus": { "type": "number", "exclusiveMinimum": 0 },
+            "tmpfsMb": { "type": "integer", "minimum": 16 }
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "reader"],
+      "properties": {
+        "from": { "enum": ["stdout", "stderr", "file"] },
+        "file": { "description": "With from: file, the report's name in the run folder (the {report} token of the arguments).", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+        "reader": { "enum": ["sarif", "checkstyle", "junit", "json", "lines", "files", "status", "custom"] },
+        "pattern": { "description": "lines: the pattern of one finding, with named groups file, line, column, level, rule, message; files: the pattern of a file line (group file), default the whole line.", "type": "string", "minLength": 1 },
+        "jsonLines": { "description": "json: one JSON document per line.", "type": "boolean" },
+        "emptyIsClean": { "description": "json: an empty output is no finding, for a tool that prints nothing instead of an empty list when it is clean (markdownlint's --json); the exit code must still be a clean one.", "type": "boolean" },
+        "items": { "description": "json: the path to the findings, with [] where a list is walked ([].messages[]).", "type": "string" },
+        "fields": {
+          "description": "json: the path of each field from a finding (^ climbs to the parent: ^.filePath; a number picks an item of a list: ruleNames.0).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "message"],
+          "properties": {
+            "file": { "type": "string", "minLength": 1 },
+            "line": { "type": "string", "minLength": 1 },
+            "column": { "type": "string", "minLength": 1 },
+            "rule": { "type": "string", "minLength": 1 },
+            "level": { "type": "string", "minLength": 1 },
+            "message": { "type": "string", "minLength": 1 }
+          }
+        },
+        "rule": { "description": "The rule id when the output carries none (files, status, or a lines pattern without a rule group).", "type": "string", "minLength": 1 },
+        "level": { "description": "The level when the output carries none.", "enum": ["error", "warning", "info"] },
+        "locationOptional": { "description": "sarif: a result without a location is accepted (it is placed on the workspace).", "type": "boolean" }
+      },
+      "allOf": [
+        { "if": { "properties": { "from": { "const": "file" } } }, "then": { "required": ["file"] } },
+        { "if": { "properties": { "reader": { "const": "lines" } } }, "then": { "required": ["pattern"] } },
+        { "if": { "properties": { "reader": { "const": "json" } } }, "then": { "required": ["fields"] } },
+        { "if": { "properties": { "reader": { "enum": ["files", "status"] } } }, "then": { "required": ["rule"] } }
+      ]
+    },
+    "severity": { "description": "The tool's levels (lowercase) mapped to error, warning or info; an unknown level is a warning.", "type": "object", "additionalProperties": { "enum": ["error", "warning", "info"] } },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files", "default"],
+      "properties": {
+        "files": { "description": "The project files the tool reads, at the workspace root (hashed into the plan).", "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "default": { "description": "tool: the tool's own defaults; otherwise a file of the descriptor folder, copied into the run folder and passed with args when the project has none; {workspace} in its text becomes the project's path as the tool sees it.", "type": "string", "pattern": "^(?:tool|[A-Za-z0-9][A-Za-z0-9._-]*)$" },
+        "args": { "description": "The arguments that pass the default file ({config}).", "type": "array", "items": { "type": "string" } },
+        "ci": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "args": { "description": "Arguments added under jgates ci.", "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "governed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["treatment", "config", "suppressions"],
+      "properties": {
+        "treatment": { "description": "self-reported unless the jgates ci arguments make the tool ignore the project's configuration and suppressions (trusted, proven by a test), or it cannot be governed (excluded).", "enum": ["trusted", "self-reported", "excluded"] },
+        "config": { "description": "Where the configuration comes from under jgates ci.", "type": "string", "minLength": 1 },
+        "suppressions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["honoured", "description"],
+          "properties": {
+            "honoured": { "type": "boolean" },
+            "description": { "type": "string", "minLength": 1 },
+            "pattern": { "description": "A regular expression that finds an in-code suppression of the tool.", "type": "string", "minLength": 1 },
+            "files": { "description": "A regular expression over the file path where the suppression means something.", "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "install": { "description": "The name of the tool's install entry in the image (PLAN-image.md section 3).", "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["en", "pt-BR"],
+      "properties": {
+        "en": { "$ref": "#/$defs/texts" },
+        "pt-BR": { "$ref": "#/$defs/texts" }
+      }
+    }
+  },
+  "$defs": {
+    "texts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "purpose", "limitation", "needs"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1 },
+        "purpose": { "type": "string", "minLength": 1 },
+        "limitation": { "type": "string", "minLength": 1 },
+        "needs": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

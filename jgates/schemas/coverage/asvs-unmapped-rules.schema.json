@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/coverage/asvs-unmapped-rules/1.json",
+  "title": "JGates ASVS unmapped rules",
+  "description": "The rules of the JGates Semgrep pack that no mapping entry uses, each with the reason, so a new rule cannot be forgotten in silence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "rules"],
+  "properties": {
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "reason"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^jgates\\.[a-z]+\\.[A-Za-z0-9_.-]+$" },
+          "requirement": { "type": "string", "pattern": "^V\\d+\\.\\d+\\.\\d+$", "description": "The requirement of the refused (rule, requirement) pair; without it the entry refuses every requirement the rule was written for." },
+          "reason": { "type": "string", "minLength": 3 }
+        }
+      }
+    }
+  }
+}

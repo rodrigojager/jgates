@@ -1,0 +1,269 @@
+# Group errors-logging for PHP. Libraries covered: error_log and syslog, PSR-3 loggers (Monolog and any $logger), the
+# Laravel Log facade and logger(), PHP exceptions (getTraceAsString, getTrace, getMessage, debug_backtrace) written to
+# the response with echo, print, exit/die, Symfony/Laravel/PSR-7 response objects, Guzzle clients and Laravel Http, and
+# the cURL extension. Taint sources of the redirect rule: PHP superglobals, Laravel request() and $request/$req input
+# methods, Symfony $request/$req bags (the request-variable convention of php-taint.yaml). The analysis stays inside one
+# function.
+rules:
+  - id: jgates.php.sensitive-data-logged
+    message: A value named like a password, secret, token or authorization header is given to a logging call, so it ends up in the log files. Log an identifier or a masked value instead.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - pattern-inside: error_log(...)
+          - pattern-inside: syslog($P, ...)
+          - pattern-inside: logger(...)
+          - patterns:
+              - pattern-inside: $LOGGER->$M(...)
+              - metavariable-regex:
+                  metavariable: $LOGGER
+                  regex: (?is).*log.*
+              - metavariable-regex:
+                  metavariable: $M
+                  regex: ^(debug|info|notice|warning|warn|error|critical|alert|emergency|log)$
+          - patterns:
+              - pattern-inside: $FACADE::$M(...)
+              - metavariable-regex:
+                  metavariable: $FACADE
+                  regex: ^\\?(Illuminate\\Support\\Facades\\)?Log$
+              - metavariable-regex:
+                  metavariable: $M
+                  regex: ^(debug|info|notice|warning|error|critical|alert|emergency|log)$
+      - pattern-either:
+          - patterns:
+              - pattern: $V
+              - metavariable-regex:
+                  metavariable: $V
+                  regex: (?i)^\$\w*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|authorization)\w*$
+          - patterns:
+              - pattern: $O->$P
+              - metavariable-regex:
+                  metavariable: $P
+                  regex: (?i)^\w*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|authorization)\w*$
+          - patterns:
+              - pattern: $A[$K]
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: (?i)^["']\w*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|authorization)\w*["']$
+          - patterns:
+              - pattern: "[..., $K => $X, ...]"
+              - pattern-not: "[..., $K => \"...\", ...]"
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: (?i)^["']\w*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|authorization)\w*["']$
+          - patterns:
+              - pattern: $R->header($H)
+              - metavariable-regex:
+                  metavariable: $H
+                  regex: (?i)^["']authorization["']$
+
+  - id: jgates.php.stack-trace-in-response
+    message: A stack trace is written to the HTTP response, which shows file paths and internals to the caller. Log the trace on the server and send a generic error message.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              echo ...;
+          - pattern-inside: print(...)
+          - pattern-inside: exit(...)
+          - pattern-inside: die(...)
+          - pattern-inside: new Response(...)
+          - pattern-inside: new JsonResponse(...)
+          - pattern-inside: new Symfony\Component\HttpFoundation\Response(...)
+          - pattern-inside: new Symfony\Component\HttpFoundation\JsonResponse(...)
+          - pattern-inside: response()->$M(...)
+          - pattern-inside: $R->getBody()->write(...)
+      - pattern-either:
+          - pattern: $E->getTraceAsString()
+          - pattern: $E->getTrace()
+          - pattern: debug_backtrace(...)
+
+  - id: jgates.php.error-detail-in-response
+    message: The message of a caught exception is written to the HTTP response, which can reveal queries, paths or other internals. Log the exception on the server and send a generic error message.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              echo ...;
+          - pattern-inside: print(...)
+          - pattern-inside: exit(...)
+          - pattern-inside: die(...)
+          - pattern-inside: new Response(...)
+          - pattern-inside: new JsonResponse(...)
+          - pattern-inside: response()->$M(...)
+          - pattern-inside: $R->getBody()->write(...)
+      - pattern: $E->getMessage()
+      - metavariable-regex:
+          metavariable: $E
+          regex: (?i)^\$(e|ex|exc|exception|err|error|t|th|throwable)$
+
+  - id: jgates.php.swallowed-exception
+    message: An exception is caught and dropped, with no log, no rethrow and no handling, so a failure disappears silently. Log it, rethrow it or handle it.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: error-handling
+      cwe: "CWE-390"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.3.4", "V16.5.3"]
+    pattern-either:
+      - pattern: |
+          try {
+            ...
+          } catch ($T $E) {
+          }
+      - pattern: |
+          try {
+            ...
+          } catch ($T $E) {
+            return;
+          }
+      - pattern: |
+          try {
+            ...
+          } catch ($T $E) {
+            return null;
+          }
+
+  - id: jgates.php.http-client-without-timeout
+    message: An outbound HTTP client is created with no timeout, and Guzzle and cURL wait forever by default, so one slow peer can hold a worker. Set a timeout (Guzzle 'timeout', cURL CURLOPT_TIMEOUT).
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: availability
+      cwe: "CWE-400"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.2", "V13.2.6", "V15.2.2"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: new GuzzleHttp\Client(...)
+              - pattern: new \GuzzleHttp\Client(...)
+          - pattern-not: new GuzzleHttp\Client([..., 'timeout' => $T, ...])
+          - pattern-not: new \GuzzleHttp\Client([..., 'timeout' => $T, ...])
+      - patterns:
+          - pattern: $H = curl_init(...);
+          - pattern-inside: |
+              function $F(...) {
+                ...
+              }
+          - pattern-not-inside: |
+              function $F(...) {
+                ...
+                curl_setopt($H, CURLOPT_TIMEOUT, ...);
+                ...
+              }
+          - pattern-not-inside: |
+              function $F(...) {
+                ...
+                curl_setopt($H, CURLOPT_TIMEOUT_MS, ...);
+                ...
+              }
+          - pattern-not-inside: |
+              function $F(...) {
+                ...
+                curl_setopt_array($H, [..., CURLOPT_TIMEOUT => $T, ...]);
+                ...
+              }
+          - pattern-not-inside: |
+              function $F(...) {
+                ...
+                curl_setopt_array($H, [..., CURLOPT_TIMEOUT_MS => $T, ...]);
+                ...
+              }
+
+  - id: jgates.php.outbound-request-follows-redirects
+    message: Request data selects an outbound address without a visible redirect restriction; Guzzle and Laravel Http follow redirects by default, so the first host may send the server to another one. Disable redirects here or confirm that client configuration disables them or that each hop is validated against allowed destinations.
+    severity: INFO
+    languages: [php]
+    mode: taint
+    metadata:
+      category: ssrf
+      class: review
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.2"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $C->request($VERB, $URL, ...)
+              - pattern: $C->requestAsync($VERB, $URL, ...)
+          - pattern-not: $C->request($VERB, $URL, [..., 'allow_redirects' => false, ...])
+          - pattern-not: $C->requestAsync($VERB, $URL, [..., 'allow_redirects' => false, ...])
+          - metavariable-regex:
+              metavariable: $C
+              regex: (?i)^\$(this->)?\w*(client|guzzle|http)\w*$
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: $C->$M($URL, ...)
+          - pattern-not: $C->$M($URL, [..., 'allow_redirects' => false, ...])
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|post|put|patch|delete|head|getAsync|postAsync|putAsync|patchAsync|deleteAsync)$
+          - metavariable-regex:
+              metavariable: $C
+              regex: (?i)^\$(this->)?\w*(client|guzzle|http)\w*$
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: Http::$M($URL, ...)
+          - pattern-not: Http::$M($URL, [..., 'allow_redirects' => false, ...])
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|post|put|patch|delete|head)$
+          - focus-metavariable: $URL

@@ -1,0 +1,432 @@
+# Signal rules of the JavaScript/TypeScript front: which technologies a project uses (jgates.js.uses-<tag>).
+# They are records of the scan, never findings: they feed the "not applicable" suggestions.
+# Each rule matches the import of the libraries that bring the technology into a project (ES import, require, dynamic
+# import), or the typical call or global where the platform needs no dependency. Imports are syntax, so a comment or
+# a string that only mentions a library does not match. They err on the side of matching: a module name that carries
+# the technology's own name (any package or local file called ...saml..., ...ldap..., ...mail...) counts.
+rules:
+  - id: jgates.js.uses-graphql
+    message: The project uses GraphQL.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: graphql
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(.*graphql.*|@apollo/.+|apollo-.+|apollo|urql|@urql/.+|@nestjs/apollo|mercurius.*|relay-runtime|react-relay|gql-tada|@pothos/.+|nexus|@gqty/.+|gqty|@envelop/.+|vue-apollo|@vue/apollo-.+|.+\.(graphqls?|gql))(/.*)?$'
+
+  - id: jgates.js.uses-websocket
+    message: The project uses WebSocket.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: websocket
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import "$M"
+              - pattern: import $X from "$M"
+              - pattern: import * as $X from "$M"
+              - pattern: import {...} from "$M"
+              - pattern: import $X, {...} from "$M"
+              - pattern: import $X, * as $Y from "$M"
+              - pattern: import type {...} from "$M"
+              - pattern: require("$M")
+              - pattern: import("$M")
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(.*websocket.*|ws|isomorphic-ws|socket\.io|socket\.io-.+|socket\.io/.+|@socket\.io/.+|engine\.io|engine\.io-.+|@nestjs/platform-ws|@nestjs/platform-socket\.io|uwebsockets\.js|uWebSockets\.js|sockjs|sockjs-client|@stomp/.+|faye|express-ws|koa-easy-ws|@microsoft/signalr|partysocket|rpc-websockets|subscriptions-transport-ws|@hapi/nes|primus|socketcluster|socketcluster-client|pusher-js|centrifuge|y-websocket|@hocuspocus/.+|@hono/node-ws|hono/ws|ws-.+|.+-ws)(/.*)?$'
+      - pattern: new WebSocket(...)
+      - pattern: new WebSocketServer(...)
+      - pattern: new WebSocketStream(...)
+      - pattern: new $W.WebSocket(...)
+      - pattern: new $W.WebSocketServer(...)
+      - pattern: new $W.Server(...)
+
+  - id: jgates.js.uses-webrtc
+    message: The project uses WebRTC.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: webrtc
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import "$M"
+              - pattern: import $X from "$M"
+              - pattern: import * as $X from "$M"
+              - pattern: import {...} from "$M"
+              - pattern: import $X, {...} from "$M"
+              - pattern: import $X, * as $Y from "$M"
+              - pattern: import type {...} from "$M"
+              - pattern: require("$M")
+              - pattern: import("$M")
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(.*webrtc.*|simple-peer|peerjs|peerjs-.+|wrtc|@roamhq/wrtc|node-datachannel|werift|@werift/.+|mediasoup|mediasoup-.+|livekit-client|livekit-server-sdk|@livekit/.+|twilio-video|@daily-co/.+|agora-rtc-sdk-ng|agora-rtc-react|openvidu-browser|sip\.js|jssip|kurento-client|janode|opentok|@opentok/.+|trystero|y-webrtc|@100mslive/.+|@whereby\.com/.+|@jitsi/.+|lib-jitsi-meet|@stream-io/video-.+)(/.*)?$'
+      - pattern: new RTCPeerConnection(...)
+      - pattern: new webkitRTCPeerConnection(...)
+      - pattern: new RTCSessionDescription(...)
+      - pattern: new RTCIceCandidate(...)
+      - pattern: $N.mediaDevices.getUserMedia(...)
+      - pattern: $N.mediaDevices.getDisplayMedia(...)
+
+  - id: jgates.js.uses-oauth-client
+    message: The project uses an OAuth or OpenID Connect client.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: oauth-client
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import "$M"
+              - pattern: import $X from "$M"
+              - pattern: import * as $X from "$M"
+              - pattern: import {...} from "$M"
+              - pattern: import $X, {...} from "$M"
+              - pattern: import $X, * as $Y from "$M"
+              - pattern: import type {...} from "$M"
+              - pattern: require("$M")
+              - pattern: import("$M")
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(?!(oidc-provider|node-oidc-provider|oauth2-server|@node-oauth/|express-oauth-server|express-oauth2-server|koa-oauth-server|oauth2orize|@jmondi/oauth2-server))(.*(oauth|oidc|openid).*|next-auth|@auth/.+|google-auth-library|googleapis|@azure/msal-.+|msal|auth0-js|auth0|@auth0/.+|grant|grant-.+|arctic|@badgateway/oauth2-client|@okta/.+|keycloak-js|keycloak-connect|@react-keycloak/.+|expo-auth-session|react-native-app-auth|passport-(google|github|facebook|twitter|microsoft|azure|apple|discord|linkedin|slack|spotify|gitlab|bitbucket|amazon|auth0|okta|keycloak|steam|twitch).*|@supabase/supabase-js|@supabase/auth-.+|@supabase/ssr|firebase/auth|@firebase/auth|@clerk/.+|@kinde-oss/.+|@descope/.+|@workos-inc/.+|@stytch/.+|@fusionauth/.+|@logto/.+|aws-amplify|aws-amplify/auth|@aws-amplify/auth|amazon-cognito-identity-js|better-auth|better-auth/.+|lucia|remix-auth|remix-auth-.+|angular-auth-oidc-client|@octokit/auth-.+|@react-oauth/.+|@azure/identity)(/.*)?$'
+      - pattern: new OAuth2Client(...)
+      - pattern: new OAuth2(...)
+      - pattern: new OAuth(...)
+      - pattern: new $X.OAuth2(...)
+      - pattern: |
+          {..., grant_type: $V, ...}
+      - pattern: |
+          {..., "grant_type": $V, ...}
+      - pattern: |
+          {..., response_type: $V, ...}
+      - pattern: |
+          {..., "response_type": $V, ...}
+
+  - id: jgates.js.uses-oauth-authorization-server
+    message: The project runs an OAuth or OpenID Connect authorization server.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: oauth-authorization-server
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(oidc-provider|node-oidc-provider|oauth2-server|oauth2-server-.+|@node-oauth/.+|express-oauth-server|express-oauth2-server|koa-oauth-server|koa2-oauth-server|oauth2orize|oauth2orize-.+|@jmondi/oauth2-server|@ory/hydra-client|@ory/hydra-client-fetch|supertokens-node|supertokens-node/recipe/oauth2provider|@boxyhq/.+|better-auth/plugins|better-auth/plugins/.+|@better-auth/oauth-provider|.+-oauth2-server|.+-oidc-provider|.+-authorization-server)(/.*)?$'
+
+  - id: jgates.js.uses-jwt
+    message: The project uses JSON Web Tokens.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: jwt
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(.*(jwt|jsonwebtoken|jwks).*|jose|jws|jwa|jwk-to-pem|jsrsasign|node-jose|@panva/jose|aws-jwt-verify|hono/jwt)(/.*)?$'
+
+  - id: jgates.js.uses-saml
+    message: The project uses SAML.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: saml
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(.*saml.*|@node-saml/.+|passport-wsfed-saml2|@boxyhq/saml-jackson|@ssoready/.+)(/.*)?$'
+
+  - id: jgates.js.uses-totp
+    message: The project uses time-based one-time passwords.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: totp
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(.*(totp|hotp|otplib|two-factor|2fa|mfa).*|speakeasy|otpauth|notp|authenticator|thirty-two|jsotp|rfc6238|otp|otp-.+|.+-otp|oslo/otp|@oslojs/otp)(/.*)?$'
+
+  - id: jgates.js.uses-ldap
+    message: The project uses LDAP.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: ldap
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(.*ldap.*|activedirectory|activedirectory2|passport-windowsauth|passport-activedirectory)(/.*)?$'
+
+  - id: jgates.js.uses-xml
+    message: The project parses or builds XML.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: xml
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import "$M"
+              - pattern: import $X from "$M"
+              - pattern: import * as $X from "$M"
+              - pattern: import {...} from "$M"
+              - pattern: import $X, {...} from "$M"
+              - pattern: import $X, * as $Y from "$M"
+              - pattern: import type {...} from "$M"
+              - pattern: require("$M")
+              - pattern: import("$M")
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(.*xml.*|sax|saxen|xpath|xpath-.+|soap|strong-soap|easy-soap-request|node-expat|xslt-processor|saxon-js|ltx|rss-parser|@xmpp/.+)(/.*)?$'
+      - pattern: new DOMParser(...)
+      - pattern: new XMLSerializer(...)
+      - pattern: new XSLTProcessor(...)
+      - pattern: |
+          {..., xmlMode: true, ...}
+
+  - id: jgates.js.uses-latex
+    message: The project renders or compiles LaTeX or TeX math.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: latex
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(.*(katex|mathjax|latex).*|temml|remark-math|rehype-math.*|markdown-it-texmath|texzilla|tex-to-svg|node-tex|tectonic|asciimath2tex|mathlive|mathquill)(/.*)?$'
+
+  - id: jgates.js.uses-memcache
+    message: The project uses Memcached.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: memcache
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(.*memcache.*|memjs|mc|amazon-elasticache-cluster-client)(/.*)?$'
+
+  - id: jgates.js.uses-mail
+    message: The project sends or reads email.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: mail
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(.*(mail|smtp|imap|pop3|sendgrid|postmark|sparkpost|mandrill|brevo|sendinblue).*|resend|@react-email/.+|react-email|@aws-sdk/client-ses|@aws-sdk/client-sesv2|@azure/communication-email|@getbrevo/.+|@novu/.+|haraka|wildduck)(/.*)?$'
+
+  - id: jgates.js.uses-templates
+    message: The project renders server-side or string templates.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: templates
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import "$M"
+              - pattern: import $X from "$M"
+              - pattern: import * as $X from "$M"
+              - pattern: import {...} from "$M"
+              - pattern: import $X, {...} from "$M"
+              - pattern: import $X, * as $Y from "$M"
+              - pattern: import type {...} from "$M"
+              - pattern: require("$M")
+              - pattern: import("$M")
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(ejs|ejs-.+|express-ejs-layouts|koa-ejs|pug|pug-.+|koa-pug|jade|handlebars|handlebars-.+|handlebars/.+|hbs|express-handlebars|express-hbs|@fastify/view|point-of-view|koa-views|mustache|mustache-.+|hogan\.js|nunjucks|nunjucks-.+|express-nunjucks|dot|dot-.+|doT|ect|eta|squirrelly|liquidjs|liquid|twig|twig-.+|twing|swig|swig-templates|marko|marko/.+|@marko/.+|art-template|lodash\.template|lodash/template|underscore\.template|consolidate|dustjs-linkedin|dustjs-.+|velocityjs|haml|hamljs|vash|edge\.js|@adonisjs/view|mjml|jsrender|template-.+|.+-template-engine|.+-templating)(/.*)?$'
+      - pattern: _.template(...)
+      - pattern: $A.set("view engine", ...)
+      - pattern: $R.render("$T", ...)
+
+  - id: jgates.js.uses-file-upload
+    message: The project handles file uploads.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: file-upload
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import "$M"
+              - pattern: import $X from "$M"
+              - pattern: import * as $X from "$M"
+              - pattern: import {...} from "$M"
+              - pattern: import $X, {...} from "$M"
+              - pattern: import $X, * as $Y from "$M"
+              - pattern: import type {...} from "$M"
+              - pattern: require("$M")
+              - pattern: import("$M")
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(.*(upload|multipart|formidable|busboy|dropzone|filepond).*|multer|multer-.+|@koa/multer|koa-multer|multiparty|koa-body|koa-better-body|@uppy/.+|uppy|tus-js-client|@tus/.+|plupload|@aws-sdk/lib-storage|@vercel/blob|@vercel/blob/.+|cloudinary)(/.*)?$'
+      - pattern: FileInterceptor(...)
+      - pattern: FilesInterceptor(...)
+      - pattern: AnyFilesInterceptor(...)
+      - pattern: FileFieldsInterceptor(...)
+      - pattern: $R.formData()
+      - pattern: <input ... type="file" ... />
+
+  - id: jgates.js.uses-archives
+    message: The project reads or writes archives or compressed streams.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: archives
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import "$M"
+          - pattern: import $X from "$M"
+          - pattern: import * as $X from "$M"
+          - pattern: import {...} from "$M"
+          - pattern: import $X, {...} from "$M"
+          - pattern: import $X, * as $Y from "$M"
+          - pattern: import type {...} from "$M"
+          - pattern: require("$M")
+          - pattern: import("$M")
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^((node:)?zlib|adm-zip|jszip|archiver|archiver-.+|unzipper|unzip|unzip-stream|yauzl|yauzl-.+|yazl|tar|tar-stream|tar-fs|tar-pack|extract-zip|decompress|decompress-.+|zip-stream|compressing|node-stream-zip|node-7z|7zip-bin|node-unrar-js|unrar|fflate|pako|gunzip-maybe|unbzip2-stream|lzma|lzma-native|@zip\.js/.+|zip-a-folder|easy-zip|minizlib)(/.*)?$'
+
+  - id: jgates.js.uses-browser-dom
+    message: The project runs code in a browser or against a DOM.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      signal: browser-dom
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import "$M"
+              - pattern: import $X from "$M"
+              - pattern: import * as $X from "$M"
+              - pattern: import {...} from "$M"
+              - pattern: import $X, {...} from "$M"
+              - pattern: import $X, * as $Y from "$M"
+              - pattern: import type {...} from "$M"
+              - pattern: require("$M")
+              - pattern: import("$M")
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^(react|react-dom|react-dom/.+|preact|preact/.+|vue|@vue/.+|svelte|solid-js|solid-js/web|lit|lit-html|lit-element|alpinejs|htmx\.org|@angular/core|@angular/platform-browser|jquery|jsdom|happy-dom|dompurify|isomorphic-dompurify|@hotwired/.+|stimulus|backbone|mithril|knockout|d3|bootstrap)(/.*)?$'
+      - pattern: document.$X
+      - pattern: window.$X
+      - pattern: new XMLHttpRequest(...)
+      - pattern: localStorage.$M(...)
+      - pattern: sessionStorage.$M(...)
+      - pattern: <$T ...>...</$T>
+      - pattern: <$T ... />

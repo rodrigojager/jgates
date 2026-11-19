@@ -19,15 +19,22 @@ interface Compare {
   head: string;
   comparable: boolean;
   warnings: Array<{ code: string; message: string }>;
-  counts: { new: number; resolved: number; kept: number };
+  counts: { new: number; resolved: number; kept: number; newReview?: number; keptReview?: number; resolvedReview?: number; newInformational?: number; keptInformational?: number; resolvedInformational?: number };
   new: Brief[];
   resolved: Brief[];
   kept: Brief[];
+  newReview?: Brief[];
+  keptReview?: Brief[];
+  resolvedReview?: Brief[];
+  newInformational?: Brief[];
+  keptInformational?: Brief[];
+  resolvedInformational?: Brief[];
 }
 
-function FindingList({ id, title, tone, items, total }: { id: string; title: string; tone: "green" | "red" | "blue"; items: Brief[]; total: number }) {
+/** `group` is the id of the enclosing heading, so the same title in several groups still names each section apart. */
+function FindingList({ id, title, tone, items, total, group }: { id: string; title: string; tone: "green" | "red" | "blue"; items: Brief[]; total: number; group?: string }) {
   return (
-    <section className="stack" aria-labelledby={id} data-compare={id}>
+    <section className="stack" aria-labelledby={group ? `${id} ${group}` : id} data-compare={id}>
       <h3 id={id}>
         {title} <Pill tone={tone}>{total}</Pill>
       </h3>
@@ -96,6 +103,22 @@ export function Comparison({ base, head, onClose }: { base: string; head: string
         <FindingList id="new" title={t("history_compare_new")} tone="red" items={d.new} total={d.counts.new} />
         <FindingList id="kept" title={t("history_compare_kept")} tone="blue" items={d.kept} total={d.counts.kept} />
       </div>
+      <section className="stack" aria-labelledby="history-compare-informational">
+        <h3 id="history-compare-informational">{t("history_informational_heading")}</h3>
+        <div className="history-columns">
+          <FindingList id="resolved-informational" title={t("history_compare_resolved")} tone="green" items={d.resolvedInformational ?? []} total={d.counts.resolvedInformational ?? 0} group="history-compare-informational" />
+          <FindingList id="new-informational" title={t("history_compare_new")} tone="blue" items={d.newInformational ?? []} total={d.counts.newInformational ?? 0} group="history-compare-informational" />
+          <FindingList id="kept-informational" title={t("history_compare_kept")} tone="blue" items={d.keptInformational ?? []} total={d.counts.keptInformational ?? 0} group="history-compare-informational" />
+        </div>
+      </section>
+      <section className="stack" aria-labelledby="history-compare-review" data-testid="history-compare-review">
+        <h3 id="history-compare-review">{t("history_review_heading")}</h3>
+        <div className="history-columns">
+          <FindingList id="resolved-review" title={t("history_compare_resolved")} tone="green" items={d.resolvedReview ?? []} total={d.counts.resolvedReview ?? 0} group="history-compare-review" />
+          <FindingList id="new-review" title={t("history_compare_new")} tone="blue" items={d.newReview ?? []} total={d.counts.newReview ?? 0} group="history-compare-review" />
+          <FindingList id="kept-review" title={t("history_compare_kept")} tone="blue" items={d.keptReview ?? []} total={d.counts.keptReview ?? 0} group="history-compare-review" />
+        </div>
+      </section>
     </section>
   );
 }

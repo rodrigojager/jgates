@@ -289,6 +289,54 @@ test("an attached Quality report is current only for the same source; stale or l
   assert.deepEqual(fs.readdirSync(path.join(p.home, "workspaces", ws.id, "runs")).sort(), ["run_20260101T000000Z_0000aaaa", "run_20260102T000000Z_0000bbbb"]);
 });
 
+test("the API settles a cancelled Semantic run when its own stop is delayed past the grace period", async () => {
+  const p = workspace("hang");
+  const { semanticRunRoutes } = await load("server/routes/semantic-runs.js");
+  const { workspaceId } = await load("core/ids/index.js");
+  const routes = semanticRunRoutes({ cancelGraceMs: 10 });
+  const route = (method, routePath) => routes.find((r) => r.method === method && r.path === routePath);
+  const server = { home: p.home, workspace: { id: workspaceId(p.dir), path: p.dir, name: "api" }, log: () => undefined };
+  // Delay the child's periodic work (including observing cancellation), not the server's grace timer.
+  const preload = path.join(tmp("jg-semrun-slow-"), "slow-timers.mjs");
+  fs.writeFileSync(preload, [
+    "const interval = globalThis.setInterval;",
+    "globalThis.setInterval = (callback, ms, ...args) => interval(callback, Math.max(ms, 60000), ...args);",
+  ].join("\n"));
+  const previousHome = process.env.JGATES_HOME;
+  const previousOptions = process.env.NODE_OPTIONS;
+  process.env.JGATES_HOME = p.home;
+  process.env.NODE_OPTIONS = `${previousOptions ?? ""} --import=${pathToFileURL(preload).href}`;
+  try {
+    const started = await route("POST", "/api/semantic/runs").handler({ body: {}, server });
+    assert.equal(started.status, 202);
+    const runId = started.json.run.runId;
+    pids.push(await until(() => p.providerPid(), 60_000, "the delayed provider to start"));
+    const cancel = await route("POST", "/api/semantic/runs/:id/cancel").handler({ params: { id: runId }, server });
+    assert.equal(cancel.status, 202);
+    const one = await until(() => {
+      const response = route("GET", "/api/semantic/runs/:id").handler({ params: { id: runId }, server });
+      return response.json.run.lifecycle === "settled" ? response.json.run : null;
+    }, 10_000, "the forcibly cancelled run to settle");
+    assert.equal(one.result.decision, "cancelled");
+    assert.equal(one.result.exitCode, 130);
+    assert.equal(one.identity.outcome.decision, "cancelled");
+    assert.equal(one.result.partial, undefined);
+    const validResult = validator("result/result.schema.json");
+    assert.equal(validResult(one.result), true, JSON.stringify(validResult.errors));
+    const events = await route("GET", "/api/semantic/runs/:id/events").handler({ params: { id: runId }, query: { cursor: "0" }, server });
+    assert.equal(events.json.live, false);
+    assert.equal(events.json.done, true);
+    assert.equal(events.json.events.at(-1).type, "run-finished");
+    assert.deepEqual(events.json.events.map((e) => e.sequence), events.json.events.map((_, i) => i + 1));
+    await assert.rejects(async () => route("POST", "/api/semantic/runs/:id/cancel").handler({ params: { id: runId }, server }), (e) => e.code === "RUN_NOT_ACTIVE");
+  } finally {
+    if (previousHome === undefined) delete process.env.JGATES_HOME;
+    else process.env.JGATES_HOME = previousHome;
+    if (previousOptions === undefined) delete process.env.NODE_OPTIONS;
+    else process.env.NODE_OPTIONS = previousOptions;
+  }
+});
+
 test("the API starts, follows and cancels a Semantic run through the same service", async () => {
   const p = workspace("hang");
   const { routes } = await load("server/routes/semantic-runs.js");

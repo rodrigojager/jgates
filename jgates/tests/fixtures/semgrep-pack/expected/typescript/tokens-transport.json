@@ -1,0 +1,14 @@
+{
+  "files": ["tokens-transport.ts"],
+  "ruleIds": [
+    "jgates.js.jwt-key-from-token-header",
+    "jgates.js.jwt-expiry-not-validated",
+    "jgates.js.jwt-audience-not-validated",
+    "jgates.js.oauth-request-without-state",
+    "jgates.js.tls-old-protocol-version",
+    "jgates.js.tls-weak-cipher-suite",
+    "jgates.js.cleartext-http-url",
+    "jgates.js.mtls-client-certificate-not-verified",
+    "jgates.js.tls-verification-disabled"
+  ]
+}

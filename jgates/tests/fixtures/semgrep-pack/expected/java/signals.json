@@ -1,0 +1,1 @@
+{ "files": ["Signals.java"], "signals": ["graphql", "websocket", "webrtc", "oauth-client", "oauth-authorization-server", "jwt", "saml", "totp", "ldap", "xml", "memcache", "mail", "templates", "file-upload", "archives", "browser-dom"] }

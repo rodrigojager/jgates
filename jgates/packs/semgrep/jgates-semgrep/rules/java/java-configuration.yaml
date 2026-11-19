@@ -1,0 +1,128 @@
+# Configuration hardening for Java: debug switches, exposed documentation and monitoring endpoints, directory
+# listing, version headers, mass assignment and serializers that output every field.
+# Libraries covered: Spring Boot and Spring Security (SpringApplicationBuilder, WebDataBinder, HttpSecurity matchers,
+# EndpointRequest), the Servlet API (response headers), Jetty (ResourceHandler, HttpConfiguration), Tomcat and Jetty
+# default servlet init parameters, Undertow (ResourceHandler), Struts and Wicket and Vaadin development switches,
+# Apache Commons BeanUtils and Jackson (ObjectMapper, JsonAutoDetect). The analysis stays inside one method.
+rules:
+  - id: jgates.java.debug-mode-enabled
+    message: A framework debug or development mode is switched on in code, which shows detailed errors and internals to users. Leave the switch off (or set it only under a development-only profile) and use the production setting.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: configuration
+      cwe: "CWE-489"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.2"]
+    patterns:
+      - pattern-either:
+          - pattern: System.setProperty("debug", "true")
+          - pattern: System.setProperty("struts.devMode", "true")
+          - pattern: $B.properties("debug=true", ...)
+          - pattern: $A.setConfigurationType(RuntimeConfigurationType.DEVELOPMENT)
+          - pattern: $V.setProductionMode(false)
+      - pattern-not-inside:
+          patterns:
+            - pattern: |
+                if ($COND) {
+                  ...
+                }
+            - metavariable-regex:
+                metavariable: $COND
+                regex: (?is).*(dev|local|debug|test).*
+
+  - id: jgates.java.docs-or-monitoring-endpoint-exposed
+    message: An API documentation, profiling or monitoring endpoint is opened to everyone with permitAll(). Require a role for it (hasRole) or serve it only on a separate management port or in a development profile.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.5"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: $C.$M($PATH, ...).permitAll()
+              - metavariable-regex:
+                  metavariable: $M
+                  regex: (requestMatchers|antMatchers|mvcMatchers)
+              - metavariable-regex:
+                  metavariable: $PATH
+                  regex: .*(actuator(?!/(health|info)\b)|swagger-ui|v3/api-docs|v2/api-docs|swagger-resources|h2-console|jolokia|heapdump).*
+          - pattern: $C.$M(EndpointRequest.toAnyEndpoint(), ...).permitAll()
+
+  - id: jgates.java.directory-listing-enabled
+    message: A static file handler is set to list the contents of directories, which shows file names a visitor was not meant to find. Turn the listing off (false) and serve only named files.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: configuration
+      cwe: "CWE-548"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.3"]
+    pattern-either:
+      - pattern: $H.setDirectoriesListed(true)
+      - pattern: $H.setDirectoryListingEnabled(true)
+      - patterns:
+          - pattern: $W.$M($K, "true")
+          - metavariable-regex:
+              metavariable: $M
+              regex: (setInitParameter|addInitParameter)
+          - metavariable-regex:
+              metavariable: $K
+              regex: .*(listings|dirAllowed).*
+
+  - id: jgates.java.version-header-exposed
+    message: A response header or server setting states the framework or server in use (X-Powered-By and similar), which helps an attacker pick known flaws. Do not send the header, and set sendServerVersion and sendXPoweredBy to false.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: configuration
+      cwe: "CWE-497"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.6"]
+    pattern-either:
+      - patterns:
+          - pattern: $R.$M($K, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: (setHeader|addHeader|header)
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i).*(x-powered-by|x-aspnet-version|x-generator).*
+      - pattern: $C.setSendServerVersion(true)
+      - pattern: $C.setSendXPoweredBy(true)
+
+  - id: jgates.java.mass-assignment
+    message: A bean is filled from the whole request parameter map, or the data binder's default protection is cleared, so a caller can set fields it was never offered. Copy named fields from a purpose-built input object, or list them with setAllowedFields.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-915"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.3"]
+    pattern-either:
+      - pattern: BeanUtils.populate($BEAN, $REQ.getParameterMap())
+      - pattern: $M.convertValue($REQ.getParameterMap(), ...)
+      - pattern: $B.setDisallowedFields()
+
+  - id: jgates.java.serializer-exposes-all-fields
+    message: A Jackson serializer is told to output every field of a model, private ones included, so a field added later leaks without a review. Keep the default visibility and expose fields with @JsonProperty, or return a dedicated response type.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-213"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.1"]
+    pattern-either:
+      - pattern-regex: '@JsonAutoDetect\([^)]*fieldVisibility\s*=\s*(JsonAutoDetect\.)?Visibility\.ANY'
+      - pattern-regex: '\.(setVisibility|visibility)\(\s*PropertyAccessor\.(FIELD|ALL)\s*,\s*(JsonAutoDetect\.)?Visibility\.ANY\s*\)'

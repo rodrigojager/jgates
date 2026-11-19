@@ -1,0 +1,17 @@
+{
+  "files": ["src/crypto-params.rs"],
+  "ruleIds": [
+    "jgates.rust.weak-key-size",
+    "jgates.rust.rsa-key-below-3072",
+    "jgates.rust.static-iv-or-nonce",
+    "jgates.rust.cipher-mode-without-authentication",
+    "jgates.rust.weak-kdf-parameters",
+    "jgates.rust.password-hash-with-fast-hash",
+    "jgates.rust.timing-unsafe-comparison",
+    "jgates.rust.weak-signature-hash",
+    "jgates.rust.weak-dh-parameters",
+    "jgates.rust.hardcoded-encryption-key",
+    "jgates.rust.insecure-random-for-secret",
+    "jgates.rust.uuid-as-secret-token"
+  ]
+}

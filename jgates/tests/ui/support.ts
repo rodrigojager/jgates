@@ -311,6 +311,21 @@ export async function openApp(page: import("@playwright/test").Page, server: UiS
   return page.url().split("#")[0] as string;
 }
 
+/**
+ * Reloads the page. On a first visit in a language other than the cached one the app reloads itself once (see
+ * syncLocaleWithPreferences); a reload of the test that meets that one is aborted, so it is asked again.
+ */
+export async function reloadPage(page: import("@playwright/test").Page): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await page.reload();
+      return;
+    } catch (error) {
+      if (attempt >= 3 || !String(error).includes("ERR_ABORTED")) throw error;
+    }
+  }
+}
+
 /** GET of a server route from the page (same origin, with the session cookie). */
 export async function pageGet<T = any>(page: import("@playwright/test").Page, route: string): Promise<T> {
   return page.evaluate(async (r) => (await fetch(r, { headers: { accept: "application/json" } })).json(), route) as Promise<T>;
@@ -318,8 +333,19 @@ export async function pageGet<T = any>(page: import("@playwright/test").Page, ro
 
 // ---- Wizard fixture ----------------------------------------------------------------------------------------------------
 const FAKE = path.join(REPO, "jgates", "tests", "docker", "fake-docker.cjs");
+const FAKE_HOST_DISK = path.join(REPO, "jgates", "tests", "setup", "fake-host-disk.cjs").replaceAll("\\", "/");
 const CLI_VERSION = JSON.parse(fs.readFileSync(path.join(REPO, "package.json"), "utf8")).version as string;
 const PINNED = `registry.example.test/jgates/jgates-tools@sha256:${"ab".repeat(32)}`;
+
+/**
+ * A simulated machine has a simulated disk too (as in jgates/tests/setup/fake-host-disk.mjs): the production DISK_LOW
+ * guard still runs, but it measures the fake machine, never the free space of the computer running the tests. Every
+ * fixture whose fake engine downloads the tools image needs it.
+ */
+export function simulateHostDisk(fixture: Fixture, freeMb = 100_000): void {
+  fixture.env.JGATES_TEST_HOST_DISK_MB = String(freeMb);
+  fixture.env.NODE_OPTIONS = `${fixture.env.NODE_OPTIONS ?? ""} --require ${JSON.stringify(FAKE_HOST_DISK)}`.trim();
+}
 
 /** A project without jgates.yml, served with the fake engine (not in-image): the image exists once it was pulled. */
 export function wizardFixture(language: "pt-BR" | "en"): Fixture {
@@ -344,6 +370,7 @@ export function wizardFixture(language: "pt-BR" | "en"): Fixture {
   fixture.env.JGATES_CONTAINER_RUNTIME = runtime;
   fixture.env.JGATES_TOOLS_IMAGE = PINNED;
   fixture.env.JGATES_NO_CACHE = "1";
+  simulateHostDisk(fixture);
   fs.writeFileSync(path.join(fixture.home, "preferences.json"), `${JSON.stringify({ schemaVersion: 1, theme: "system", language }, null, 2)}\n`, { mode: 0o600 });
   return fixture;
 }

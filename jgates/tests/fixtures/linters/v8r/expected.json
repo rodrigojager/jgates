@@ -1,0 +1,21 @@
+{
+  "files": [
+    ".github/workflows/v8r-sample.yml",
+    "jgates.yml",
+    "tsconfig.json"
+  ],
+  "findings": [
+    {
+      "rule": "type",
+      "file": ".github/workflows/v8r-sample.yml"
+    },
+    {
+      "rule": "type",
+      "file": "tsconfig.json"
+    },
+    {
+      "rule": "anyOf",
+      "file": "tsconfig.json"
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "bicep",
+  "name": "Bicep linter",
+  "sourceUrl": "https://github.com/Azure/bicep",
+  "license": "MIT",
+  "program": {
+    "tool": "bicep",
+    "versionRange": ">=0.49.0 <1.0.0"
+  },
+  "megalinter": [
+    "BICEP_BICEP_LINTER"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "bicep",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".bicep"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "lint",
+      "--diagnostics-format",
+      "sarif",
+      "--",
+      "{files}"
+    ],
+    "env": {
+      "HOME": "/tmp",
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+      "DOTNET_NOLOGO": "1"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      "bicepconfig.json"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "The Bicep linter reads the project's bicepconfig.json (rule levels under analyzers.core.rules): the project decides the rules and their severity",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: #disable-next-line <rule> directives in the Bicep file",
+      "pattern": "#disable-next-line",
+      "files": "\\.bicep$"
+    }
+  },
+  "install": "bicep",
+  "text": {
+    "en": {
+      "label": "Bicep linter",
+      "purpose": "The Bicep command line's built-in linter: compiles Bicep files and reports syntax errors and best-practice rules such as unused parameters, hard-coded URLs and insecure defaults.",
+      "limitation": "It lints each .bicep file with the rules of the project's bicepconfig.json (or the defaults). Modules restored from a registry are not fetched: a file that needs one reports that as a diagnostic.",
+      "needs": "Nothing beyond the tools image (the Bicep CLI is in it): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Linter do Bicep",
+      "purpose": "O linter embutido na linha de comando do Bicep: compila arquivos Bicep e aponta erros de sintaxe e regras de boas práticas, como parâmetros sem uso, URLs fixas no código e padrões inseguros.",
+      "limitation": "Verifica cada arquivo .bicep com as regras do bicepconfig.json do projeto (ou as padrão). Módulos de um registro não são baixados: o arquivo que precisa de um recebe um diagnóstico.",
+      "needs": "Nada além da imagem de ferramentas (a CLI do Bicep já está nela): sem rede e sem as dependências do projeto."
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+ "tool": "stylelint",
+ "kind": "bad",
+ "version": "18.0.0",
+ "calls": [
+  {
+   "args": [
+    "--config",
+    "/output/linters/stylelint/stylelint-default.json",
+    "--config-basedir",
+    "/opt/tools/node/stylelint",
+    "--formatter",
+    "json",
+    "--output-file",
+    "/output/linters/stylelint/stylelint.json",
+    "--no-color",
+    "--",
+    "stylelint_sample.css"
+   ],
+   "exit": 2,
+   "stdout": "",
+   "stderr": "[{\"source\":\"/workspace/stylelint_sample.css\",\"deprecations\":[],\"invalidOptionWarnings\":[],\"parseErrors\":[],\"errored\":true,\"warnings\":[{\"line\":2,\"column\":10,\"endLine\":2,\"endColumn\":17,\"rule\":\"color-hex-length\",\"severity\":\"error\",\"text\":\"Expected \\\"#ffffff\\\" to be \\\"#fff\\\" (color-hex-length)\"}]}]",
+   "reportPath": "/output/linters/stylelint/stylelint.json",
+   "report": "[{\"source\":\"/workspace/stylelint_sample.css\",\"deprecations\":[],\"invalidOptionWarnings\":[],\"parseErrors\":[],\"errored\":true,\"warnings\":[{\"line\":2,\"column\":10,\"endLine\":2,\"endColumn\":17,\"rule\":\"color-hex-length\",\"severity\":\"error\",\"text\":\"Expected \\\"#ffffff\\\" to be \\\"#fff\\\" (color-hex-length)\"}]}]"
+  }
+ ]
+}

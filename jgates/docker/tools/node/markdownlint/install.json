@@ -1,0 +1,14 @@
+{
+  "provides": [
+    {
+      "name": "markdownlint",
+      "link": "markdownlint",
+      "path": "node_modules/.bin/markdownlint",
+      "version": [
+        "markdownlint",
+        "--version"
+      ],
+      "package": "markdownlint-cli"
+    }
+  ]
+}

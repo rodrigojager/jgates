@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "isort",
+      "link": "isort",
+      "path": "bin/isort",
+      "version": [
+        "isort",
+        "--version"
+      ]
+    }
+  ]
+}

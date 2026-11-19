@@ -2,7 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020Module from "ajv/dist/2020.js";
-import { translator } from "../../i18n/index.js";
+import { linterById, linterTexts } from "../../adapters/linter/descriptor.js";
+import { linterGroups, linterTemplateText } from "../../adapters/linter/derived.js";
+import { getLocale, translator } from "../../i18n/index.js";
 
 export interface CatalogEntry {
   id: string;
@@ -275,6 +277,9 @@ export const CORE_CAPABILITIES: CatalogEntry[] = [
   cap("supply-chain", "dependencies", "Cadeia de suprimentos", "Procedência e execução de pacotes nos lockfiles: scripts de instalação, hashes de integridade ausentes, registros não públicos ou não fixados, fontes git sem commit fixo e pacotes descontinuados. O que exige rede fica desconhecido, nunca limpo."),
   cap("dast", "security", "Segurança em execução (DAST)", "Evidência de segurança obtida de um alvo em execução configurado: varredura passiva por padrão, ativa só quando permitida explicitamente."),
   cap("file-size", "quality", "Tamanho de arquivo", "Limite de linhas por arquivo.", { unit: "lines" }),
+  cap("spelling", "quality", "Ortografia e redação", "Erros de ortografia em código, comentários e documentos, e estilo de redação em documentos."),
+  cap("links", "quality", "Links quebrados", "Links em documentos e código que apontam para uma página ou um arquivo que não existe."),
+  cap("sbom", "dependencies", "Lista de materiais (SBOM)", "A lista de materiais do projeto: os pacotes de que ele depende, com suas versões, produzida como um documento padrão."),
 ];
 
 /** The label and description of a core entry in the current language; the text above is the fallback. */
@@ -291,8 +296,10 @@ function localized(kind: "category" | "capability", entry: CatalogEntry): Catalo
   };
 }
 
-/** The name of a built-in adapter in the current language (adapter_<id>_name in the catalog area), or the manifest's. */
+/** The name of a built-in adapter from its descriptor or the catalogue in the current language. */
 export function localizedAdapterName(id: string, fallback: string): string {
+  const linter = linterById(id);
+  if (linter) return linterTexts(linter.descriptor, getLocale()).label;
   const key = `adapter_${id}_name`;
   const value = translator("catalog")(key);
   return value === key ? fallback : value;
@@ -306,13 +313,14 @@ export function subcheckLabel(adapterId: string, sub: { id: string; label: strin
 }
 
 /**
- * The label and description of a built-in template in the current language (template_<id>_* in the catalog area),
- * or the text of its file. A project's own templates keep the text written in their file.
+ * The localized text of a generated or file-based built-in template. A project's own templates keep their file text.
  */
 export function builtinTemplateText(source: string, value: { label?: unknown; description?: unknown }): { label: string | null; description: string | null } {
   const own = { label: typeof value.label === "string" ? value.label : null, description: typeof value.description === "string" ? value.description : null };
   if (!source.startsWith("builtin:")) return own;
   const id = source.slice("builtin:".length);
+  const group = linterGroups().find((item) => item.templateId === id);
+  if (group) return linterTemplateText(group, getLocale());
   const t = translator("catalog");
   const text = (key: string, fallback: string | null) => {
     const v = t(key);

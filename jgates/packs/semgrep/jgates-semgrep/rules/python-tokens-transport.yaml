@@ -1,0 +1,229 @@
+# Python rules, group tokens-transport. Libraries covered: PyJWT and python-jose (`jwt.decode`,
+# `jwt.get_unverified_header`), the standard library `ssl`, pyOpenSSL (`SSL`), urllib3 (`create_urllib3_context`),
+# `requests`, `httpx` and `urllib.request`.
+rules:
+  - id: jgates.python.jwt-algorithm-not-restricted
+    message: The accepted token algorithm is not fixed by the application (it allows "none" or follows the token's own header). Pass a fixed list of the algorithms you issue, for example algorithms=["RS256"].
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.2"]
+    pattern-either:
+      - patterns:
+          - pattern: jwt.decode(..., algorithms=[..., "$A", ...], ...)
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i)^["']?none["']?$
+      - pattern: jwt.decode(..., algorithms=[jwt.get_unverified_header(...)["alg"]], ...)
+      - pattern: jwt.decode(..., algorithms=[jwt.get_unverified_header(...).get("alg")], ...)
+      - patterns:
+          - pattern: jwt.decode(..., algorithms=[$H["alg"]], ...)
+          - pattern-inside: |
+              $H = jwt.get_unverified_header(...)
+              ...
+      - patterns:
+          - pattern: jwt.decode(..., algorithms=[$H.get("alg")], ...)
+          - pattern-inside: |
+              $H = jwt.get_unverified_header(...)
+              ...
+      - patterns:
+          - pattern: jwt.decode(..., algorithms=[$ALG], ...)
+          - pattern-inside: |
+              $H = jwt.get_unverified_header(...)
+              ...
+              $ALG = $H["alg"]
+              ...
+
+  - id: jgates.python.jwt-key-from-token-header
+    message: The key that verifies a token is fetched from an address named by the token's own header, so a forger chooses the key. Take the key or key-set address from your configuration and look the key up by its key id only.
+    severity: WARNING
+    languages: [python]
+    mode: taint
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.3"]
+    pattern-sources:
+      - pattern: jwt.get_unverified_header(...)["jku"]
+      - pattern: jwt.get_unverified_header(...)["x5u"]
+      - pattern: jwt.get_unverified_header(...).get("jku")
+      - pattern: jwt.get_unverified_header(...).get("x5u")
+      - pattern: $H["jku"]
+      - pattern: $H["x5u"]
+      - pattern: $H.get("jku")
+      - pattern: $H.get("x5u")
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: requests.$M($URL, ...)
+              - pattern: httpx.$M($URL, ...)
+              - pattern: urllib.request.urlopen($URL, ...)
+              - pattern: urlopen($URL, ...)
+              - pattern: jwt.PyJWKClient($URL, ...)
+              - pattern: PyJWKClient($URL, ...)
+          - focus-metavariable: $URL
+
+  - id: jgates.python.jwt-expiry-not-validated
+    message: Expiry validation of the token is switched off, so a stolen token works forever. Leave verify_exp on and issue short-lived tokens.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-613"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.1"]
+    pattern-either:
+      - pattern: 'jwt.decode(..., options={..., "verify_exp": False, ...}, ...)'
+      - pattern: jwt.decode(..., verify_exp=False, ...)
+      - patterns:
+          - pattern: jwt.decode(..., options=$O, ...)
+          - pattern-inside: |
+              $O = {..., "verify_exp": False, ...}
+              ...
+
+  - id: jgates.python.jwt-audience-not-validated
+    message: Token audience validation is explicitly switched off, so a token issued for another service can be accepted here. Leave verify_aud on and pass audience="<this service>" to the decode call.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-287"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.3", "V10.3.1"]
+    pattern-either:
+      - pattern: 'jwt.decode(..., options={..., "verify_aud": False, ...}, ...)'
+      - pattern: jwt.decode(..., verify_aud=False, ...)
+
+  - id: jgates.python.jwt-audience-not-validated-by-default
+    message: No expected audience is visible in this token decode call. Pass audience="<this service>" or confirm where the decoded audience is checked against this service before the claims are trusted.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-287"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.3", "V10.3.1"]
+      class: review
+    patterns:
+      - pattern: jwt.decode(..., algorithms=..., ...)
+      - pattern-not: jwt.decode(..., audience=..., ...)
+      - pattern-not: jwt.decode(..., aud=..., ...)
+      - pattern-not: jwt.decode(..., **$K)
+      - pattern-not: 'jwt.decode(..., options={..., "verify_signature": False, ...}, ...)'
+      - pattern-not: jwt.decode(..., verify=False, ...)
+      - pattern-not: 'jwt.decode(..., options={..., "verify_aud": False, ...}, ...)'
+      - pattern-not: jwt.decode(..., verify_aud=False, ...)
+
+  - id: jgates.python.oauth-request-without-state
+    message: An OAuth authorization URL is built with no visible state value or PKCE code challenge. Add a random state (or a code_challenge) and check it on return, or confirm that the OAuth client adds and validates this binding elsewhere.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V10.2.1"]
+      class: review
+    pattern-either:
+      - pattern-regex: (?i)f?["'][^"'\n]*response_type=(?:code|token)(?![^"'\n]*(?:state=|code_challenge=))[^"'\n]*client_id=(?![^"'\n]*(?:state=|code_challenge=))[^"'\n]*["']
+      - pattern-regex: (?i)f?["'][^"'\n]*client_id=(?![^"'\n]*(?:state=|code_challenge=))[^"'\n]*response_type=(?:code|token)(?![^"'\n]*(?:state=|code_challenge=))[^"'\n]*["']
+      - patterns:
+          - pattern: 'urlencode({..., "response_type": ..., ...}, ...)'
+          - pattern-not: 'urlencode({..., "state": ..., ...}, ...)'
+          - pattern-not: 'urlencode({..., "code_challenge": ..., ...}, ...)'
+
+  - id: jgates.python.tls-old-protocol-version
+    message: This TLS configuration allows SSL 3, TLS 1.0 or TLS 1.1, which are broken or retired. Use ssl.PROTOCOL_TLS_CLIENT / PROTOCOL_TLS_SERVER and set minimum_version to ssl.TLSVersion.TLSv1_2 or higher.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: transport
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.1"]
+    pattern-either:
+      - pattern: ssl.PROTOCOL_SSLv2
+      - pattern: ssl.PROTOCOL_SSLv3
+      - pattern: ssl.PROTOCOL_TLSv1
+      - pattern: ssl.PROTOCOL_TLSv1_1
+      - pattern: ssl.TLSVersion.SSLv3
+      - pattern: ssl.TLSVersion.TLSv1
+      - pattern: ssl.TLSVersion.TLSv1_1
+      - pattern: SSL.SSLv3_METHOD
+      - pattern: SSL.TLSv1_METHOD
+      - pattern: SSL.TLSv1_1_METHOD
+      - pattern: $C.options &= ~ssl.OP_NO_SSLv3
+      - pattern: $C.options &= ~ssl.OP_NO_TLSv1
+      - pattern: $C.options &= ~ssl.OP_NO_TLSv1_1
+
+  - id: jgates.python.tls-weak-cipher-suite
+    message: The cipher suite list names null, export, RC4, DES or 3DES suites, which give no or little protection. Use the library defaults, or a list of AEAD suites such as "ECDHE+AESGCM:ECDHE+CHACHA20".
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: transport
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.2"]
+    patterns:
+      - pattern-either:
+          - pattern: $C.set_ciphers("$S")
+          - pattern: $C.set_ciphers("$S", ...)
+          - pattern: $C.set_cipher_list("$S")
+          - pattern: $C.set_cipher_list(b"$S")
+          - pattern: urllib3.util.ssl_.create_urllib3_context(..., ciphers="$S", ...)
+          - pattern: create_urllib3_context(..., ciphers="$S", ...)
+      - metavariable-regex:
+          metavariable: $S
+          regex: (?is)^["']?(?:[^"']*:)?[+@]?(?![!\-])[A-Za-z0-9_+@=-]*(?:NULL|EXPORT|RC4|DES)[A-Za-z0-9_+@=-]*(?::[^"']*)?["']?$
+
+  - id: jgates.python.cleartext-http-url
+    message: A network client is given a clear-text HTTP or FTP address, so the traffic travels in clear text. Use the secure HTTPS (or SFTP) address of the same service.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.2.1", "V12.3.1", "V12.3.3"]
+    patterns:
+      - pattern-either:
+          - pattern: requests.$M("$U", ...)
+          - pattern: requests.request($METH, "$U", ...)
+          - pattern: requests.$M(..., url="$U", ...)
+          - pattern: httpx.$M("$U", ...)
+          - pattern: httpx.request($METH, "$U", ...)
+          - pattern: urllib.request.urlopen("$U", ...)
+          - pattern: urllib.request.Request("$U", ...)
+          - pattern: urllib.request.urlretrieve("$U", ...)
+          - pattern: urlopen("$U", ...)
+      - metavariable-regex:
+          metavariable: $U
+          regex: (?i)^["']?(?:http|ftp)://(?!(?:localhost|127\.\d+\.\d+\.\d+|\[?::1\]?|0\.0\.0\.0)(?:[:/]|$|["']))
+
+  - id: jgates.python.mtls-client-certificate-not-verified
+    message: The server asks for a client certificate but a callback accepts every certificate, so mutual TLS authenticates nobody. Return the verification result the library hands to the callback (or pass no callback and load the trusted CA).
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: transport
+      cwe: "CWE-295"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.3"]
+    pattern-either:
+      - pattern: '$C.set_verify($MODE, lambda $...ARGS: True)'
+      - pattern: '$C.set_verify($MODE, lambda $...ARGS: 1)'

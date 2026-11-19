@@ -1,0 +1,231 @@
+{
+  "version": "5.0.0",
+  "chapter": "V2",
+  "entries": [
+    {
+      "requirement": "V2.1.1",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V2.1.2",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V2.1.3",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V2.2.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Business logic",
+          "covers": "Missing or lax validation of values that drive business decisions (negative, zero, overflow, type coercion), read by a model.",
+          "misses": "It finds gaps in the paths the model read and cannot show that every input is validated.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the handlers of the source for positive validation of their input against rules the code itself defines.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V2.2.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for validation that exists only on the client side and is not repeated by the server.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V2.2.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for checks that related fields are consistent with each other.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V2.3.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Business logic",
+          "covers": "Skipping or reordering steps of a flow and replaying a completed flow, read by a model.",
+          "misses": "It finds violations in the paths the model read and cannot show every flow enforces its order.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block names step skipping and state machine violations, which is the weakness of flows that accept steps out of order.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V2.3.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Business logic",
+          "covers": "Quantities and amounts manipulated past what a flow should accept (negative, zero, overflowing or mis-typed values), read by a model.",
+          "misses": "The limits the business documented are not in the repository, so the model checks that some limit exists, not that it is the documented one.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for business limits and the places that enforce or skip them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V2.3.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Business logic",
+          "covers": "Partial failure in a multi-step operation and whether earlier steps are rolled back, read by a model.",
+          "misses": "Sampled reading; it does not confirm that a database transaction wraps the whole operation.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block asks what happens when a later step fails after an earlier one succeeded, which is what an all-or-nothing operation prevents.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V2.3.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Business logic",
+          "covers": "Concurrent operations that break limited resources through check-then-act races, read by a model.",
+          "misses": "Sampled reading; it does not prove a lock exists on every scarce resource.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block asks for race conditions on non-atomic check-then-act operations, which is how limited resources get double-booked.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V2.3.5",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V2.4.1",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V2.4.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "business-logic"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A reading of the project's source by a model against this requirement.",
+          "misses": "It reads the files the model was given and says only what it found there: behaviour at run time, code outside the scope and the parts of a flow the model did not read stay unexamined.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An AI reading of the source for flows that enforce a minimum interval or reject submissions that arrive too fast.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "provides": [
+    {
+      "name": "npm-groovy-lint",
+      "link": "npm-groovy-lint",
+      "path": "node_modules/.bin/npm-groovy-lint",
+      "version": [
+        "npm-groovy-lint",
+        "--version"
+      ],
+      "pattern": "npm-groovy-lint version (\\d+\\.\\d+\\.\\d+)"
+    }
+  ]
+}

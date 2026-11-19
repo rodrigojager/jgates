@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "snakefmt",
+  "name": "snakefmt",
+  "sourceUrl": "https://github.com/snakemake/snakefmt",
+  "license": "MIT",
+  "program": {
+    "tool": "snakefmt",
+    "versionRange": ">=2.0.0 <3.0.0"
+  },
+  "megalinter": [
+    "SNAKEMAKE_SNAKEFMT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "snakemake",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".smk"
+    ],
+    "names": [
+      "Snakefile"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--check",
+      "--compact-diff",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^=====> (?<message>Diff for (?<file>.+)) <=====$",
+    "rule": "snakefmt.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".snakefmt.toml",
+      "pyproject.toml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "snakefmt reads .snakefmt.toml or the [tool.snakefmt] table of pyproject.toml (line length, black options, include and exclude patterns): the project decides the format",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: snakefmt has no suppression of the check; # fmt: off regions are kept as written"
+    }
+  },
+  "install": "snakefmt",
+  "text": {
+    "en": {
+      "label": "snakefmt (Snakemake format)",
+      "purpose": "Checks that Snakemake workflows are formatted the way snakefmt writes them (black style for the Python parts, a fixed layout for rules). It only reports the difference; it never rewrites a file.",
+      "limitation": "It runs with --check, so nothing is written; it formats with its own defaults or the project's .snakefmt.toml.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "snakefmt (formato Snakemake)",
+      "purpose": "Confere se os fluxos Snakemake estão formatados como o snakefmt os escreve (estilo black nas partes em Python, layout fixo nas regras). Só informa a diferença; nunca reescreve um arquivo.",
+      "limitation": "Roda com --check, então nada é escrito; formata com os padrões próprios ou o .snakefmt.toml do projeto.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

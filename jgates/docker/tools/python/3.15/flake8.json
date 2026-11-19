@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "flake8",
+      "link": "flake8",
+      "path": "bin/flake8",
+      "version": [
+        "flake8",
+        "--version"
+      ]
+    }
+  ]
+}

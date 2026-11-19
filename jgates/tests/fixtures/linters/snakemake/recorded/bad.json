@@ -1,0 +1,19 @@
+{
+ "tool": "snakemake",
+ "kind": "bad",
+ "version": "9.27.2",
+ "calls": [
+  {
+   "args": [
+    "--directory",
+    "/tmp",
+    "--lint",
+    "--snakefile",
+    "Snakefile"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "Lints for rule make (line 1, /workspace/Snakefile):\n    * No log directive defined:\n      Without a log directive, all output will be printed to the terminal. In\n      distributed environments, this means that errors are harder to discover.\n      In local environments, output of concurrent jobs will be mixed and become\n      unreadable.\n      Also see:\n      https://snakemake.readthedocs.io/en/stable/snakefiles/rules.html#log-files\n    * Specify a conda environment or container for each rule.:\n      This way, the used software for each specific step is documented, and the\n      workflow can be executed on any machine without prerequisites.\n      Also see:\n      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#integrated-package-management\n      https://snakemake.readthedocs.io/en/latest/snakefiles/deployment.html#running-jobs-in-containers\n\n"
+  }
+ ]
+}

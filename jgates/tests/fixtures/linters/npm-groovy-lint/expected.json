@@ -1,0 +1,17 @@
+{
+  "files": [
+    "Pipeline.groovy"
+  ],
+  "findings": [
+    {
+      "rule": "UnnecessaryGroovyImport",
+      "file": "Pipeline.groovy",
+      "line": 1
+    },
+    {
+      "rule": "UnusedImport",
+      "file": "Pipeline.groovy",
+      "line": 1
+    }
+  ]
+}

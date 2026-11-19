@@ -1,0 +1,19 @@
+{
+ "tool": "ts-standard",
+ "kind": "bad",
+ "version": "12.0.2",
+ "calls": [
+  {
+   "args": [
+    "--project",
+    "/output/linters/ts-standard/tsconfig.json",
+    "--verbose",
+    "--",
+    "ts-std-sample.ts"
+   ],
+   "exit": 1,
+   "stdout": "  /workspace/ts-std-sample.ts:2:10: Strings must use singlequote. (@typescript-eslint/quotes)\n",
+   "stderr": "ts-standard: Standard for TypeScript! (https://github.com/standard/ts-standard)\nts-standard: Run `ts-standard --fix` to automatically fix some problems.\n"
+  }
+ ]
+}

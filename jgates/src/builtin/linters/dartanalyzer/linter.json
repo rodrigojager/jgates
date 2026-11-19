@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "dartanalyzer",
+  "name": "dart analyze",
+  "sourceUrl": "https://github.com/dart-lang/sdk",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "dart",
+    "prefix": [
+      "analyze"
+    ],
+    "versionRange": ">=3.14.1 <4.0.0"
+  },
+  "megalinter": [
+    "DART_DARTANALYZER"
+  ],
+  "place": {
+    "section": "language",
+    "group": "dart",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".dart"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format=machine",
+      "--fatal-infos",
+      "--fatal-warnings",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2,
+        3
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<level>[A-Z]+)\\|[A-Z_]+\\|(?<rule>[A-Z_]+)\\|(?<file>[^|\\n]+)\\|(?<line>\\d+)\\|(?<column>\\d+)\\|\\d+\\|(?<message>.+)$"
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning",
+    "info": "info"
+  },
+  "configuration": {
+    "files": [
+      "analysis_options.yaml",
+      "pubspec.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "dart analyze reads the project's analysis_options.yaml: the project decides the lints and the severities",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: // ignore: and // ignore_for_file: comments",
+      "pattern": "//\\s*ignore(?:_for_file)?:",
+      "files": "\\.dart$"
+    }
+  },
+  "install": "dart-sdk",
+  "text": {
+    "en": {
+      "label": "dart analyze (Dart)",
+      "purpose": "The Dart SDK's static analyzer: type errors, unused code, deprecated APIs and the lints of the project's analysis_options.yaml.",
+      "limitation": "The project's packages are not fetched (no pub get), so imports of third-party packages cannot be resolved and are reported as errors; it fails on infos and warnings too, as MegaLinter did.",
+      "needs": "The Dart SDK of the tools image: no network at run time and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "dart analyze (Dart)",
+      "purpose": "O analisador estático do SDK do Dart: erros de tipo, código não usado, APIs obsoletas e os lints do analysis_options.yaml do projeto.",
+      "limitation": "Os pacotes do projeto não são baixados (sem pub get), então imports de pacotes de terceiros não são resolvidos e aparecem como erros; falha também em infos e avisos, como o MegaLinter fazia.",
+      "needs": "O SDK do Dart da imagem de ferramentas: sem rede na execução e sem as dependências do projeto."
+    }
+  }
+}

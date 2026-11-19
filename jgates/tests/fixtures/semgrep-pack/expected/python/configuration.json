@@ -1,0 +1,11 @@
+{
+  "files": ["configuration.py"],
+  "ruleIds": [
+    "jgates.python.debug-mode-enabled",
+    "jgates.python.docs-or-monitoring-endpoint-exposed",
+    "jgates.python.directory-listing-enabled",
+    "jgates.python.version-header-exposed",
+    "jgates.python.mass-assignment",
+    "jgates.python.serializer-exposes-all-fields"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "files": ["CryptoParams.java"],
+  "ruleIds": [
+    "jgates.java.weak-key-size",
+    "jgates.java.rsa-key-below-3072",
+    "jgates.java.static-iv-or-nonce",
+    "jgates.java.cipher-mode-without-authentication",
+    "jgates.java.weak-kdf-parameters",
+    "jgates.java.password-hash-with-fast-hash",
+    "jgates.java.timing-unsafe-comparison",
+    "jgates.java.weak-signature-hash",
+    "jgates.java.weak-dh-parameters",
+    "jgates.java.hardcoded-encryption-key",
+    "jgates.java.insecure-random-for-secret",
+    "jgates.java.uuid-as-secret-token"
+  ]
+}

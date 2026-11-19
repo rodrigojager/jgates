@@ -1,0 +1,19 @@
+{
+ "tool": "htmlhint",
+ "kind": "bad",
+ "version": "1.9.2",
+ "calls": [
+  {
+   "args": [
+    "--format",
+    "unix",
+    "--nocolor",
+    "--",
+    "htmlhint_sample.html"
+   ],
+   "exit": 1,
+   "stdout": "/workspace/htmlhint_sample.html:1:1: Doctype must be declared before any non-comment content. [error/doctype-first]\n\n1 problems\n",
+   "stderr": ""
+  }
+ ]
+}

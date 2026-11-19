@@ -1,0 +1,207 @@
+# Original JGates rules. Intra-procedural request sources: PHP superglobals,
+# Laravel request() and $request/$req input/query/post/cookie/file methods,
+# Symfony $request/$req get() and query/request/cookies/files/headers bags.
+# Object sources intentionally require the conventional request/req variable name.
+# Only request-controlled $_SERVER keys are sources, not server configuration.
+rules:
+  - id: jgates.php.sql-string-building
+    message: Request data reaches a raw SQL statement. Bind values with prepared statements instead of concatenating or interpolating SQL.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-89"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.4"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sinks:
+      - patterns:
+          - pattern: "mysqli_query($CONNECTION, $SQL, ...)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "$PDO->query($SQL, ...)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "$PDO->exec($SQL)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "DB::raw($SQL)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "DB::whereRaw($SQL, ...)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "$BUILDER->whereRaw($SQL, ...)"
+          - focus-metavariable: $SQL
+      - patterns:
+          - pattern: "DB::select($SQL, ...)"
+          - focus-metavariable: $SQL
+
+  - id: jgates.php.os-command-injection
+    message: Request data reaches a shell command. Select a fixed executable and pass validated arguments without a shell.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.5"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sinks:
+      - patterns:
+          - pattern: "exec($COMMAND, ...)"
+          - focus-metavariable: $COMMAND
+      - patterns:
+          - pattern: "system($COMMAND, ...)"
+          - focus-metavariable: $COMMAND
+      - patterns:
+          - pattern: "shell_exec($COMMAND, ...)"
+          - focus-metavariable: $COMMAND
+      - patterns:
+          - pattern: "passthru($COMMAND, ...)"
+          - focus-metavariable: $COMMAND
+      - patterns:
+          - pattern: proc_open($COMMAND, ...)
+          - pattern-not: proc_open([...], ...)
+          - focus-metavariable: $COMMAND
+      - pattern: '`...`'
+
+  - id: jgates.php.dynamic-code-execution
+    message: Request data reaches eval or a string assertion. Replace executable text with explicit application logic.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-95"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.2"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sinks:
+      - patterns:
+          - pattern: "eval($CODE)"
+          - focus-metavariable: $CODE
+      - patterns:
+          - pattern: "assert($LEFT . $RIGHT, ...)"
+          - focus-metavariable: $LEFT
+      - patterns:
+          - pattern: "assert($LEFT . $RIGHT, ...)"
+          - focus-metavariable: $RIGHT
+      - patterns:
+          - pattern: "assert((string) $CODE, ...)"
+          - focus-metavariable: $CODE
+
+  - id: jgates.php.preg-replace-eval
+    message: The legacy preg_replace e modifier executes replacement text as PHP code. Use preg_replace_callback with a fixed callback.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: injection
+      cwe: "CWE-95"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.2"]
+    patterns:
+      - pattern: preg_replace($REGEX, $REPLACEMENT, $SUBJECT, ...)
+      - metavariable-regex:
+          metavariable: $REGEX
+          regex: (?i).*[/\#~%!][imsxuADSUXJu]*e[imsxuADSUXJu]*["']?$
+

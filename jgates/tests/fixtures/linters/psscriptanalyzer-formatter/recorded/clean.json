@@ -1,0 +1,20 @@
+{
+ "tool": "psscriptanalyzer-formatter",
+ "kind": "clean",
+ "version": "1.25.0",
+ "calls": [
+  {
+   "args": [
+    "-NoLogo",
+    "-NoProfile",
+    "-NonInteractive",
+    "-CommandWithArgs",
+    "$ErrorActionPreference = 'Stop'; Import-Module /opt/tools/parts/powershell/modules/PSScriptAnalyzer/PSScriptAnalyzer.psd1; $settings = @{}; if (Test-Path -LiteralPath '.powershell-formatter.psd1') { $settings.Settings = (Resolve-Path -LiteralPath '.powershell-formatter.psd1').Path }; foreach ($file in $args) { $text = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $file).Path); $formatted = Invoke-Formatter -ScriptDefinition $text @settings; if ($formatted -ne $text) { $file } }",
+    "format-me.ps1"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

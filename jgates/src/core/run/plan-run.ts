@@ -9,7 +9,7 @@ import type { DisableOrigin } from "../contract/index.js";
 import { normalizeBridge } from "../../adapters/quality-bridge/normalize.js";
 import { runBridgeFromPlan, subchecksFromPlan } from "../../adapters/quality-bridge/from-plan.js";
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
-import { manifestResources } from "../../adapters/manifests.js";
+import { builtinManifests, manifestResources } from "../../adapters/manifests.js";
 import { ADAPTER_ID as BRIDGE_ID } from "../../adapters/quality-bridge/requirements.js";
 import { sidecarAvailability } from "../bridge/index.js";
 import { translator } from "../../i18n/index.js";
@@ -151,6 +151,27 @@ function timeoutOf(items: PlanItem[]): { timeoutSeconds?: number } {
   return seconds.length > 0 ? { timeoutSeconds: Math.min(...seconds) } : {};
 }
 
+/**
+ * An adapter that runs several tools (the descriptor engine) says per tool whether the tool only reads the project; its
+ * answer wins over its manifest. Built-in adapters with one tool say it in their manifest (effects.onlyReadsProject).
+ */
+export interface ReadOnlyAwareAdapter {
+  onlyReadsProject?(plan: Plan, tool: string): boolean | undefined;
+}
+
+/**
+ * `readOnly` when the step only reads the synchronized copy of the project (ADR-0023): its adapter says so (per tool or
+ * in its manifest) and no item of the step executes project code, may change code or writes into the workspace. Such a
+ * step may run beside others; every other step runs alone.
+ */
+function readOnlyOf(adapter: object | undefined, adapterId: string, plan: Plan, tool: string, items: PlanItem[]): { readOnly?: true } {
+  if (items.length === 0) return {};
+  if (items.some((i) => i.effects.executesProjectCode || i.effects.mayChangeCode || i.effects.workspaceWrites.length > 0)) return {};
+  const perTool = (adapter as ReadOnlyAwareAdapter | undefined)?.onlyReadsProject?.(plan, tool);
+  const declared = perTool ?? builtinManifests().find((m) => m.id === adapterId)?.effects.onlyReadsProject === true;
+  return declared ? { readOnly: true } : {};
+}
+
 /** The `resources` of the adapter's manifest, as a step field (nothing when the manifest has none). */
 function resourcesOf(adapterId: string): { resources?: NonNullable<ReturnType<typeof manifestResources>> } {
   const resources = manifestResources(adapterId);
@@ -197,6 +218,7 @@ export function planSteps(context: AdapterContext, plan: Plan): CacheableStep[] 
       network: networkOf(items),
       ...timeoutOf(items),
       ...resourcesOf(invocation.adapter),
+      ...readOnlyOf(adapter, invocation.adapter, plan, invocation.id, items),
       cacheSubject: cacheSubject(plan, hashes, invocation, items),
     });
   }

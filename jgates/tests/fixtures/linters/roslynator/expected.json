@@ -1,0 +1,17 @@
+{
+  "files": [
+    "Calc.csproj"
+  ],
+  "findings": [
+    {
+      "rule": "CA1050",
+      "file": "Calc.cs",
+      "line": 1
+    },
+    {
+      "rule": "CA1822",
+      "file": "Calc.cs",
+      "line": 3
+    }
+  ]
+}

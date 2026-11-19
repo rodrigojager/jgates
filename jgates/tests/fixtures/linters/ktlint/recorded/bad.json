@@ -1,0 +1,20 @@
+{
+ "tool": "ktlint",
+ "kind": "bad",
+ "version": "1.8.0",
+ "calls": [
+  {
+   "args": [
+    "--relative",
+    "--reporter=sarif,output=/output/linters/ktlint/ktlint.sarif",
+    "--",
+    "Names.kt"
+   ],
+   "exit": 1,
+   "stdout": "23:19:20.386 [main] INFO com.pinterest.ktlint.cli.internal.ReporterAggregator -- \"sarif\" report written to ../output/linters/ktlint/ktlint.sarif\n",
+   "stderr": "",
+   "reportPath": "/output/linters/ktlint/ktlint.sarif",
+   "report": "{\n  \"$schema\": \"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json\",\n  \"version\": \"2.1.0\",\n  \"runs\": [\n    {\n      \"originalUriBaseIds\": {\n        \"%SRCROOT%\": {\n          \"uri\": \"file:///tmp/home/\"\n        }\n      },\n      \"results\": [\n        {\n          \"level\": \"error\",\n          \"locations\": [\n            {\n              \"physicalLocation\": {\n                \"artifactLocation\": {\n                  \"uri\": \"Names.kt\",\n                  \"uriBaseId\": \"%SRCROOT%\"\n                },\n                \"region\": {\n                  \"startColumn\": 1,\n                  \"startLine\": 1\n                }\n              }\n            }\n          ],\n          \"message\": {\n            \"text\": \"Wildcard import\"\n          },\n          \"ruleId\": \"standard:no-wildcard-imports\"\n        }\n      ],\n      \"tool\": {\n        \"driver\": {\n          \"downloadUri\": \"https://github.com/pinterest/ktlint/releases/tag/1.8.0\",\n          \"fullName\": \"ktlint\",\n          \"informationUri\": \"https://github.com/pinterest/ktlint/\",\n          \"language\": \"en\",\n          \"name\": \"ktlint\",\n          \"organization\": \"pinterest\",\n          \"rules\": [\n          ],\n          \"semanticVersion\": \"1.8.0\",\n          \"version\": \"1.8.0\"\n        }\n      }\n    }\n  ]\n}\n\n"
+  }
+ ]
+}

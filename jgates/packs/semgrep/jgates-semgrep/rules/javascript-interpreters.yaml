@@ -1,0 +1,262 @@
+# Interpreter injection (LDAP, XPath, templates, XML entities, XSLT, LaTeX, mail headers) for JavaScript and TypeScript.
+# Sources: Express-style req.query, req.body, req.params, req.headers, req.cookies.
+# Sinks cover: ldapjs and ldapts searches, the xpath package, ejs, pug, handlebars, nunjucks, mustache and lodash
+# templates, libxmljs parsers, libxslt, xslt-processor and SaxonJS stylesheets, LaTeX started through child_process,
+# and mail header lines built as text.
+rules:
+  - id: jgates.js.ldap-injection
+    message: LDAP filter or DN text is built from the incoming request and used in a search. Escape each value with ldap-escape (ldapEscape.filter or ldapEscape.dn) or build the filter with the library's filter objects.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-90"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.6"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+    pattern-sanitizers:
+      - pattern: ldapEscape.filter(...)
+      - pattern: ldapEscape.dn(...)
+      - pattern: ldapEscape.filter`...`
+      - pattern: ldapEscape.dn`...`
+    pattern-sinks:
+      - patterns:
+          - pattern: '$CLIENT.search($BASE, { ..., filter: $F, ... }, ...)'
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $CLIENT.search($BASE, ...)
+          - focus-metavariable: $BASE
+      - patterns:
+          - pattern: $CLIENT.bind($DN, ...)
+          - focus-metavariable: $DN
+      - patterns:
+          - pattern: $CLIENT.compare($DN, ...)
+          - metavariable-regex:
+              metavariable: $CLIENT
+              regex: ^(?!(bcrypt|bcryptjs|argon2|scrypt|crypto)$)
+          - focus-metavariable: $DN
+
+  - id: jgates.js.xpath-injection
+    message: An XPath expression is built from the incoming request and evaluated. Keep the expression a literal and pass the value as an XPath variable (xpath.parse(expression).select({ node, variables })).
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-643"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.7"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+    pattern-sinks:
+      - patterns:
+          - pattern: xpath.select($E, ...)
+          - focus-metavariable: $E
+      - patterns:
+          - pattern: xpath.select1($E, ...)
+          - focus-metavariable: $E
+      - patterns:
+          - pattern: xpath.evaluate($E, ...)
+          - focus-metavariable: $E
+      - patterns:
+          - pattern: xpath.parse($E)
+          - focus-metavariable: $E
+      - patterns:
+          - pattern: xpath.useNamespaces(...)($E, ...)
+          - focus-metavariable: $E
+
+  - id: jgates.js.template-from-request
+    message: A template source (not its data) is built from the incoming request and compiled or rendered, so the requester can run template code. Keep the template a fixed file or literal and pass the request as data.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1336"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.7"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+    pattern-sinks:
+      - patterns:
+          - pattern: ejs.render($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: ejs.compile($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: pug.render($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: pug.compile($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: Handlebars.compile($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: handlebars.compile($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: nunjucks.renderString($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: nunjucks.compile($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: new nunjucks.Template($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: Mustache.render($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: _.template($T, ...)
+          - focus-metavariable: $T
+
+  - id: jgates.js.xml-external-entity
+    message: An XML parser is configured to resolve external entities or load the DTD, so a crafted document can read files or reach internal hosts. Leave noent and dtdload off (the defaults) or parse with a library that has no entity expansion.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: xxe
+      cwe: "CWE-611"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.5.1"]
+    patterns:
+      - pattern-either:
+          - pattern: '$LIB.parseXml($X, { ..., noent: true, ... })'
+          - pattern: '$LIB.parseXmlString($X, { ..., noent: true, ... })'
+          - pattern: '$LIB.parseXml($X, { ..., dtdload: true, ... })'
+          - pattern: '$LIB.parseXmlString($X, { ..., dtdload: true, ... })'
+          - pattern: '$LIB.parseXml($X, { ..., dtdvalid: true, ... })'
+          - pattern: '$LIB.parseXmlString($X, { ..., dtdvalid: true, ... })'
+          - pattern: 'parseXml($X, { ..., noent: true, ... })'
+          - pattern: 'parseXmlString($X, { ..., noent: true, ... })'
+          - pattern: 'parseXml($X, { ..., dtdload: true, ... })'
+          - pattern: 'parseXmlString($X, { ..., dtdload: true, ... })'
+      - metavariable-regex:
+          metavariable: $LIB
+          regex: ^(libxmljs2?|libxml)$
+
+  - id: jgates.js.xslt-from-request
+    message: A stylesheet that comes from the incoming request is compiled or applied, which lets the requester run XSLT extension functions and read files. Load the stylesheet from a fixed file.
+    severity: WARNING
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-91"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+    pattern-sinks:
+      - patterns:
+          - pattern: libxslt.parse($S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: libxslt.parseFile($S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: xsltProcess($DOC, $S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: 'SaxonJS.transform({ ..., stylesheetText: $S, ... }, ...)'
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: 'SaxonJS.transform({ ..., stylesheetFileName: $S, ... }, ...)'
+          - focus-metavariable: $S
+
+  - id: jgates.js.latex-shell-escape
+    message: A LaTeX program is started with the shell-escape or write18 switch, so a document can run shell commands. Drop the switch (or pass -no-shell-escape) and compile with the restricted default.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.8"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $F($CMD, ...)
+                  - pattern: $CP.$F($CMD, ...)
+              - metavariable-regex:
+                  metavariable: $F
+                  regex: ^(exec|execSync|spawn|spawnSync|execFile|execFileSync)$
+              - metavariable-regex:
+                  metavariable: $CMD
+                  regex: (?s)^(?=.*tex)(?!.*\bno-shell-escape).*-(shell-escape|enable-write18)
+          - patterns:
+              - pattern-either:
+                  - pattern: $F($PROG, [..., $ARG, ...], ...)
+                  - pattern: $CP.$F($PROG, [..., $ARG, ...], ...)
+              - metavariable-regex:
+                  metavariable: $F
+                  regex: ^(spawn|spawnSync|execFile|execFileSync)$
+              - metavariable-regex:
+                  metavariable: $PROG
+                  regex: (?i).*tex
+              - metavariable-regex:
+                  metavariable: $ARG
+                  regex: ^["'`]?--?(shell-escape|enable-write18)["'`]?$
+
+  - id: jgates.js.mail-header-injection
+    message: Request data is placed in a mail header line (recipient, subject or sender) of a message built as text, so a line break in it adds headers or recipients. Remove CR and LF from the value, or pass the fields to the mail library as separate properties.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.11"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: req.headers
+      - pattern: req.cookies
+    pattern-sanitizers:
+      - pattern: $S.replace(/[\r\n]+/g, ...)
+      - pattern: $S.replace(/[\r\n]/g, ...)
+      - pattern: $S.replace(/\r|\n/g, ...)
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              `$H${$X}...`
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^(to|cc|bcc|from|reply-to|subject):\s*$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $H + $X
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["'](to|cc|bcc|from|reply-to|subject):\s*["']$
+          - focus-metavariable: $X

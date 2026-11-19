@@ -114,10 +114,8 @@ function configFor(checker: Checker, workspace: string, c: Candidate, settings: 
     case "pyright": {
       const found = pythonConfig(dir, checker);
       if (found) return { config: joinRel(c.componentRoot, found.file), text: found.text };
-      // mypy with its defaults where the instance asks for it, unless the component chose pyright instead.
-      if (checker === "mypy" && settings.withoutConfig === "defaults") {
-        return pythonConfig(dir, "pyright") ? { skip: t("build_check_skip_pyright_configured") } : { config: "", text: "" };
-      }
+      // The checker's own defaults where the instance asks for it; pyright configured does not step mypy aside.
+      if (settings.withoutConfig === "defaults") return { config: "", text: "" };
       return { skip: t("build_check_skip_no_python_config", { checker }) };
     }
     case "go":
@@ -147,7 +145,7 @@ function stepsFor(checker: Checker, probe: CheckerProbe, unitId: string, config:
       return [{ id: "mypy", label: defaults.length > 0 ? "mypy (defaults)" : "mypy", executable, args: ["--show-column-numbers", "--no-error-summary", "--no-pretty", "--no-color-output", "--cache-dir", cache, ...defaults, ...(ownTargets ? [] : ["."])], env: { NO_COLOR: "1", PYTHONDONTWRITEBYTECODE: "1" } }];
     }
     case "pyright":
-      return [{ id: "pyright", label: "pyright", executable, args: ["--outputjson"], env: { NO_COLOR: "1", PYRIGHT_PYTHON_IGNORE_WARNINGS: "1", PYTHONDONTWRITEBYTECODE: "1" } }];
+      return [{ id: "pyright", label: config.config === "" ? "pyright (defaults)" : "pyright", executable, args: ["--outputjson"], env: { NO_COLOR: "1", PYRIGHT_PYTHON_IGNORE_WARNINGS: "1", PYTHONDONTWRITEBYTECODE: "1" } }];
     case "go": {
       // The run never reaches the network or downloads a toolchain: GOPROXY=off, GOTOOLCHAIN=local.
       const env = { GOPROXY: "off", GOTOOLCHAIN: "local", NO_COLOR: "1" };

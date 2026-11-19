@@ -1,0 +1,15 @@
+{
+  "tool": "git-diff-check",
+  "version": "2.47.3",
+  "args": [
+    "diff",
+    "--no-index",
+    "--check",
+    "--",
+    "/srv",
+    "."
+  ],
+  "exit": 3,
+  "stdout": "./.git/info/metadata.txt:1: trailing whitespace.\n+git metadata  \n",
+  "stderr": ""
+}

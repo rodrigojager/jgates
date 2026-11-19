@@ -1,0 +1,14 @@
+{
+  "version": "14.4.0",
+  "provides": [
+    {
+      "name": "checkstyle",
+      "link": "checkstyle",
+      "path": "checkstyle",
+      "version": [
+        "checkstyle",
+        "--version"
+      ]
+    }
+  ]
+}

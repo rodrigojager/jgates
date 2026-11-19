@@ -1,0 +1,14 @@
+{
+  "version": "1.182.1",
+  "results": [
+    {
+      "check_id": "rules.jgates.python.weak-cipher",
+      "path": "src/app.py",
+      "start": { "line": 8, "col": 1, "offset": 0 },
+      "end": { "line": 8, "col": 30, "offset": 0 },
+      "extra": { "message": "recorded finding of a pack rule that does not block", "severity": "INFO", "metadata": {} }
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["src/app.py"], "skipped": [] }
+}

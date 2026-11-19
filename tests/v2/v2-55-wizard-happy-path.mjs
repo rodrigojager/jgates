@@ -8,6 +8,7 @@ import { once } from "node:events";
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { fakeHostDiskEnv } from "../../jgates/tests/setup/fake-host-disk.mjs";
 
 // V2-55 (fake engine): the first-run wizard's happy path, through the server API only.
 //   - the six steps run in order (Docker, Ferramentas, Projeto, Perfil, Dependências, Revisão): a step that is not the
@@ -168,7 +169,7 @@ test("V2-55: the wizard's six steps in order, the pull in the background while s
 
   let ui = null;
   try {
-    ui = await startUi(env, project);
+    ui = await startUi(fakeHostDiskEnv(env), project);
     let call = await session(ui);
 
     // The wizard is open at step 1, with the six steps in order; only step 1 can be shown.
@@ -283,7 +284,7 @@ test("V2-55: the wizard's six steps in order, the pull in the background while s
 
     // The UI server restarts: the wizard resumes at the same step, with the same choices.
     await stopUi(ui);
-    ui = await startUi(env, project);
+    ui = await startUi(fakeHostDiskEnv(env), project);
     call = await session(ui);
     const resumed = await call("GET", "/api/setup");
     assert.equal(resumed.status, 200, resumed.text);

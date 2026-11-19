@@ -1,0 +1,12 @@
+{
+  "files": [
+    "rstcheck_sample.rst"
+  ],
+  "findings": [
+    {
+      "rule": "rstcheck.docutils",
+      "file": "rstcheck_sample.rst",
+      "line": 2
+    }
+  ]
+}

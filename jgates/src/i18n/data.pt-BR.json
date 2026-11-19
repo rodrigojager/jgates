@@ -8,6 +8,6 @@
   "data_update_summary_failed": "{failed, plural, one {# base não foi atualizada} other {# bases não foram atualizadas}}.",
   "data_update_blocked": "Nada foi atualizado: {reason}",
   "data_unknown_database": "Base desconhecida {name}; escolha uma entre: {known}.",
-  "data_option_database": "Com tools update-data: atualiza só esta base (trivy, osv, govulndb ou rustsec); repita separando por vírgulas.",
+  "data_option_database": "Com tools update-data: atualiza só esta base (trivy, osv, govulndb, rustsec, grype ou kubescape); repita separando por vírgulas.",
   "data_engine_error": "O motor de contêineres recusou a atualização: {error}"
 }

@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "rst-lint",
+      "link": "rst-lint",
+      "path": "bin/rst-lint",
+      "version": [
+        "rst-lint",
+        "--version"
+      ]
+    }
+  ]
+}

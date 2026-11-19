@@ -1,0 +1,391 @@
+# Group crypto-params for C#: key sizes, IVs and nonces, cipher modes, key derivation, comparison and randomness.
+# Libraries covered: System.Security.Cryptography (RSA, DSA, ECCurve, Aes, AesGcm, AesCcm, ChaCha20Poly1305, HMAC*,
+# Rfc2898DeriveBytes, CryptographicOperations), Microsoft.IdentityModel.Tokens, ASP.NET Core Identity
+# PasswordHasherOptions, BCrypt.Net, Konscious Argon2, Scrypt.NET and BouncyCastle (block cipher modes, DH generator).
+rules:
+  - id: jgates.csharp.weak-key-size
+    message: An RSA or DSA key is generated with fewer than 2048 bits, or an elliptic curve is smaller than 224 bits, so it can be factored or broken. Generate RSA keys with at least 3072 bits, or use the NIST P-256 curve.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: RSA.Create($N)
+              - pattern: new RSACryptoServiceProvider($N)
+              - pattern: new RSACryptoServiceProvider($N, ...)
+              - pattern: DSA.Create($N)
+              - pattern: new DSACryptoServiceProvider($N)
+              - pattern: new DSACryptoServiceProvider($N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+      - patterns:
+          - pattern: $R.KeySize = $N;
+          - metavariable-regex:
+              metavariable: $R
+              regex: (?i).*(rsa|dsa)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+      - patterns:
+          - pattern: ECCurve.CreateFromFriendlyName($C)
+          - metavariable-regex:
+              metavariable: $C
+              regex: ^@?"(sec[pt]1\d\d|sect2[01]\d|prime192|brainpoolP(1\d\d|2[01]\d|22[0-3]))
+      - patterns:
+          - pattern: ECCurve.NamedCurves.$C
+          - metavariable-regex:
+              metavariable: $C
+              regex: ^brainpoolP(160|192)(r1|t1)$
+
+  - id: jgates.csharp.rsa-key-below-3072
+    message: An RSA key is generated with 2048 to 3071 bits. That is still accepted, but the standard asks for 3072 bits or more for new keys. Generate the key with 3072 or 4096 bits.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: RSA.Create($N)
+              - pattern: new RSACryptoServiceProvider($N)
+              - pattern: new RSACryptoServiceProvider($N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N >= 2048 and $N < 3072
+      - patterns:
+          - pattern: $R.KeySize = $N;
+          - metavariable-regex:
+              metavariable: $R
+              regex: (?i).*rsa
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N >= 2048 and $N < 3072
+
+  - id: jgates.csharp.static-iv-or-nonce
+    message: A cipher gets an initialization vector or nonce that is a literal or all zeros, so equal messages give equal ciphertext and an AEAD key can be broken by nonce reuse. Generate a fresh one for each message with RandomNumberGenerator.GetBytes or aes.GenerateIV().
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-329"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.4"]
+    pattern-either:
+      - pattern: $A.IV = new byte[$N];
+      - pattern: $A.IV = new byte[] { ... };
+      - pattern: $A.IV = Encoding.$E.GetBytes("...");
+      - pattern: $A.IV = Convert.FromBase64String("...");
+      - pattern: $A.CreateEncryptor($K, new byte[$N])
+      - pattern: $A.CreateEncryptor($K, new byte[] { ... })
+      - pattern: $A.CreateEncryptor($K, Encoding.$E.GetBytes("..."))
+      - pattern: $G.Encrypt(new byte[$N], ...)
+      - pattern: $G.Encrypt(new byte[] { ... }, ...)
+      - pattern: $G.Encrypt(Encoding.$E.GetBytes("..."), ...)
+
+  - id: jgates.csharp.cipher-mode-without-authentication
+    message: A block cipher mode without authentication (CBC, CFB, OFB or CTR) is selected, so the ciphertext can be changed without detection unless a MAC follows. Prefer AesGcm or ChaCha20Poly1305, or add an HMAC checked before decrypting.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.3"]
+    pattern-either:
+      - pattern: $A.Mode = CipherMode.CBC;
+      - pattern: $A.Mode = CipherMode.CFB;
+      - pattern: $A.Mode = CipherMode.OFB;
+      - pattern: $A.EncryptCbc(...)
+      - pattern: $A.EncryptCfb(...)
+      - pattern: new CbcBlockCipher(...)
+      - pattern: new CfbBlockCipher(...)
+      - pattern: new OfbBlockCipher(...)
+      - pattern: new SicBlockCipher(...)
+
+  - id: jgates.csharp.weak-kdf-parameters
+    message: A password hashing or key derivation call uses a work factor below the floor (PBKDF2 under 100000 iterations, bcrypt cost under 10, scrypt N under 16384, Argon2 under 19 MiB or 2 passes), so stolen hashes fall to guessing quickly. Raise the factor, or use Rfc2898DeriveBytes.Pbkdf2 with at least 600000 SHA-256 iterations.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V11.4.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: new Rfc2898DeriveBytes($P, $S, $N)
+              - pattern: new Rfc2898DeriveBytes($P, $S, $N, ...)
+              - pattern: Rfc2898DeriveBytes.Pbkdf2($P, $S, $N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 100000
+      - patterns:
+          - pattern-either:
+              - pattern: BCrypt.HashPassword($P, $N)
+              - pattern: BCrypt.Net.BCrypt.HashPassword($P, $N)
+              - pattern: BCrypt.EnhancedHashPassword($P, $N)
+              - pattern: BCrypt.Net.BCrypt.EnhancedHashPassword($P, $N)
+              - pattern: BCrypt.GenerateSalt($N)
+              - pattern: BCrypt.Net.BCrypt.GenerateSalt($N)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 10
+      - patterns:
+          - pattern: new ScryptEncoder($N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 16384
+      - patterns:
+          - pattern-either:
+              - pattern: $O.IterationCount = $N;
+              - pattern: new PasswordHasherOptions { ..., IterationCount = $N, ... }
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 100000
+      - pattern-regex: \bnew\s+Argon2(id|i|d)\b[^;]*\bIterations\s*=\s*[01]\b
+      - pattern-regex: \bnew\s+Argon2(id|i|d)\b[^;]*\bMemorySize\s*=\s*(\d{1,4}|1[0-8]\d{3})\b
+
+  - id: jgates.csharp.weak-kdf-parameters-by-default
+    message: Rfc2898DeriveBytes is created without an iteration count. This overload uses a low default work factor; set an explicit count of at least 600000 with SHA-256 or confirm that this derivation is not used to protect passwords.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V11.4.4"]
+      class: review
+    pattern: new Rfc2898DeriveBytes($P, $S)
+
+  - id: jgates.csharp.password-hash-with-fast-hash
+    message: A password is hashed with a plain, fast hash function, so a stolen hash can be guessed at billions per second. Use a password hashing function such as Rfc2898DeriveBytes.Pbkdf2, bcrypt or Argon2.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $HASH.HashData(Encoding.$E.GetBytes($P))
+                  - pattern: $HASH.HashData($P)
+              - metavariable-regex:
+                  metavariable: $HASH
+                  regex: ^(MD5|SHA1|SHA256|SHA384|SHA512)$
+          - patterns:
+              - pattern-either:
+                  - pattern: $H.ComputeHash(Encoding.$E.GetBytes($P))
+                  - pattern: $H.ComputeHash(Encoding.$E.GetBytes($P + ...))
+                  - pattern: $H.ComputeHash(Encoding.$E.GetBytes(... + $P))
+              - metavariable-regex:
+                  metavariable: $H
+                  regex: (?i)^(?!.*mac).*(md5|sha\d*|hash|crypt).*$
+      - metavariable-regex:
+          metavariable: $P
+          regex: (?i).*(password|passwd|pwd|passphrase|senha)
+
+  - id: jgates.csharp.timing-unsafe-comparison
+    message: A MAC, digest or signature is compared with the ordinary equality, which stops at the first different byte and leaks how much matched. Compare with CryptographicOperations.FixedTimeEquals.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-208"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.4"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $A == $B
+                  - pattern: $A != $B
+                  - pattern: $A.SequenceEqual($B)
+                  - pattern: $A.Equals($B)
+                  - pattern: string.Equals($A, $B)
+              - metavariable-regex:
+                  metavariable: $A
+                  regex: (?i).*(hmac|signature|digest|(^|[^a-z])mac([^a-z]|$)|[a-z]mac$|computedhash|expectedhash|calculatedhash|receivedhash|providedhash)
+          - patterns:
+              - pattern-either:
+                  - pattern: $A == $B
+                  - pattern: $A != $B
+                  - pattern: $A.SequenceEqual($B)
+                  - pattern: $A.Equals($B)
+                  - pattern: string.Equals($A, $B)
+              - metavariable-regex:
+                  metavariable: $B
+                  regex: (?i).*(hmac|signature|digest|(^|[^a-z])mac([^a-z]|$)|[a-z]mac$|computedhash|expectedhash|calculatedhash|receivedhash|providedhash)
+      - pattern-not: $X == null
+      - pattern-not: $X != null
+      - pattern-not: null == $X
+      - pattern-not: null != $X
+
+  - id: jgates.csharp.weak-signature-hash
+    message: A signature or MAC is made or verified with MD5 or SHA-1, which are broken for this use because collisions can be forged. Use SHA-256 or stronger, for example HashAlgorithmName.SHA256 or HMACSHA256.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-328"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $K.$M(..., HashAlgorithmName.SHA1, ...)
+              - pattern: $K.$M(..., HashAlgorithmName.MD5, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(SignData|SignHash|VerifyData|VerifyHash|TrySignData|TrySignHash)$
+      - pattern: new HMACSHA1(...)
+      - pattern: new HMACMD5(...)
+      - pattern: HMACSHA1.HashData(...)
+      - pattern: HMACMD5.HashData(...)
+      - pattern: SecurityAlgorithms.HmacSha1Signature
+      - pattern: SecurityAlgorithms.RsaSha1Signature
+      - pattern: SecurityAlgorithms.HmacSha1
+      - pattern: SecurityAlgorithms.RsaSha1
+      - pattern: SecurityAlgorithms.EcdsaSha1
+
+  - id: jgates.csharp.weak-dh-parameters
+    message: Diffie-Hellman parameters are generated with fewer than 2048 bits, so the key exchange can be broken with a discrete logarithm attack. Generate at least 2048-bit parameters or use an elliptic curve exchange such as ECDiffieHellman with P-256.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.6.2"]
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $G = new DHParametersGenerator();
+              ...
+              $G.Init($N, ...);
+          - pattern: |
+              var $G = new DHParametersGenerator();
+              ...
+              $G.Init($N, ...);
+          - pattern: |
+              $TY $G = new DHParametersGenerator();
+              ...
+              $G.Init($N, ...);
+      - metavariable-comparison:
+          metavariable: $N
+          comparison: $N < 2048
+
+  - id: jgates.csharp.hardcoded-encryption-key
+    message: A literal is used as the key of a cipher, a MAC or a token signature, so anyone with the source or the binary can decrypt or forge data. Load the key from a secret store or an environment variable, or generate it with RandomNumberGenerator.GetBytes.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-321"
+      author: JGates
+      subdimension: secrets
+      asvs_requirements: ["V13.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $A.Key = $KEY;
+          - pattern: $A.CreateEncryptor($KEY, ...)
+          - pattern: $A.CreateDecryptor($KEY, ...)
+          - pattern: new AesGcm($KEY)
+          - pattern: new AesGcm($KEY, ...)
+          - pattern: new AesCcm($KEY)
+          - pattern: new ChaCha20Poly1305($KEY)
+          - pattern: new SymmetricSecurityKey($KEY)
+          - patterns:
+              - pattern-either:
+                  - pattern: new $H($KEY)
+                  - pattern: $H.HashData($KEY, ...)
+              - metavariable-regex:
+                  metavariable: $H
+                  regex: ^HMAC(SHA(1|256|384|512)|MD5)$
+      - metavariable-pattern:
+          metavariable: $KEY
+          pattern-either:
+            - pattern: Encoding.$E.GetBytes("...")
+            - pattern: Convert.FromBase64String("...")
+            - pattern: Convert.FromHexString("...")
+            - pattern: new byte[] { ... }
+
+  - id: jgates.csharp.insecure-random-for-secret
+    message: The non-cryptographic System.Random feeds a value named like a token, secret, password, code, nonce, salt or key, so the value can be predicted. Use RandomNumberGenerator.GetBytes or RandomNumberGenerator.GetInt32.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-338"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1", "V7.2.3", "V6.5.3", "V6.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $T = <... new Random(...).$M(...) ...>;
+          - pattern: var $T = <... new Random(...).$M(...) ...>;
+          - pattern: $TY $T = <... new Random(...).$M(...) ...>;
+          - pattern: $T = <... Random.Shared.$M(...) ...>;
+          - pattern: var $T = <... Random.Shared.$M(...) ...>;
+          - pattern: $TY $T = <... Random.Shared.$M(...) ...>;
+          - patterns:
+              - pattern-either:
+                  - pattern: $T = <... $R.$M(...) ...>;
+                  - pattern: var $T = <... $R.$M(...) ...>;
+                  - pattern: $TY $T = <... $R.$M(...) ...>;
+              - metavariable-regex:
+                  metavariable: $R
+                  regex: (?i).*(rand|rnd|random)
+              - metavariable-regex:
+                  metavariable: $M
+                  regex: ^Next
+          - pattern: $R.NextBytes($T)
+          - pattern: new Random(...).NextBytes($T)
+          - pattern: Random.Shared.NextBytes($T)
+      - metavariable-regex:
+          metavariable: $T
+          regex: (?i).*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|(reset|verification|activation|confirmation|auth)_?code|(encryption|secret|signing|aes|hmac)_?key)
+
+  - id: jgates.csharp.uuid-as-secret-token
+    message: A GUID is used as a token, secret, password, nonce, salt or key. A GUID is built for uniqueness, not for secrecy, and does not carry enough guaranteed randomness. Use RandomNumberGenerator.GetBytes and encode the bytes.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-330"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $T = <... Guid.NewGuid() ...>;
+          - pattern: var $T = <... Guid.NewGuid() ...>;
+          - pattern: $TY $T = <... Guid.NewGuid() ...>;
+          - pattern: $T = <... Guid.CreateVersion7() ...>;
+          - pattern: var $T = <... Guid.CreateVersion7() ...>;
+          - pattern: $TY $T = <... Guid.CreateVersion7() ...>;
+      - metavariable-regex:
+          metavariable: $T
+          regex: (?i).*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|(reset|verification|activation|confirmation|auth)_?code|(encryption|secret|signing|aes|hmac)_?key)

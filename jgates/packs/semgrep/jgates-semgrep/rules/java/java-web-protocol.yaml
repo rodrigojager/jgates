@@ -1,0 +1,360 @@
+# Group web-protocol for Java. Libraries covered: Spring Security (headers configurer, HSTS, frame options, content
+# security policy), servlet and Spring response headers, Spring WebSocket and STOMP, Jakarta WebSocket, java.net.http
+# WebSocket, Java-WebSocket, OkHttp, graphql-java and Spring GraphQL, servlet and Spring redirects, JAX-RS responses.
+# Taint sources: HttpServletRequest getters, Spring MVC parameters annotated @RequestParam, @PathVariable,
+# @RequestBody or @RequestHeader, and JAX-RS parameters annotated @QueryParam, @PathParam, @FormParam or
+# @HeaderParam. The analysis stays inside one method.
+rules:
+  - id: jgates.java.security-headers-disabled
+    message: A security header is switched off or weakened (frame options, content type options, HSTS, or the whole headers configurer, or an HSTS max-age under one year). Keep the header on, with an HSTS max-age of at least one year.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.1", "V3.4.3", "V3.4.4", "V3.4.6"]
+    patterns:
+      - pattern-either:
+          - pattern: $X.frameOptions().disable()
+          - pattern: $X.contentTypeOptions().disable()
+          - pattern: $X.httpStrictTransportSecurity().disable()
+          - pattern: $X.headers().disable()
+          - pattern: $X.frameOptions($F -> $F.disable())
+          - pattern: $X.contentTypeOptions($F -> $F.disable())
+          - pattern: $X.httpStrictTransportSecurity($F -> $F.disable())
+          - pattern: $X.headers($F -> $F.disable())
+          - pattern: $X.frameOptions($C::disable)
+          - pattern: $X.contentTypeOptions($C::disable)
+          - pattern: $X.httpStrictTransportSecurity($C::disable)
+          - pattern: $X.headers($C::disable)
+          - patterns:
+              - pattern: $H.maxAgeInSeconds($N)
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N < 31536000
+
+  - id: jgates.java.csp-unsafe-directive
+    message: A Content-Security-Policy allows inline or eval script execution, or any script source. Use nonces or hashes and list the script origins you trust.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.3"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $R.setHeader("$N", "$V")
+                  - pattern: $R.addHeader("$N", "$V")
+                  - pattern: $R.header("$N", "$V")
+                  - pattern: $R.add("$N", "$V")
+                  - pattern: $R.set("$N", "$V")
+              - metavariable-regex:
+                  metavariable: $N
+                  regex: (?i)^content-security-policy$
+          - pattern: $X.contentSecurityPolicy("$V")
+          - pattern: $X.policyDirectives("$V")
+      - metavariable-regex:
+          metavariable: $V
+          regex: (?i).*(script-src|script-src-elem|default-src)[^;]*('unsafe-inline'|'unsafe-eval'|\s\*(\s|;|$)|\s(https?|data):(\s|;|$))
+
+  - id: jgates.java.websocket-without-tls
+    message: A WebSocket connection is opened to a plain ws:// address that is not the local machine, so traffic travels unencrypted. Use a wss:// address.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $C.connectToServer($E, URI.create("$U"))
+          - pattern: $C.connectToServer($E, new URI("$U"))
+          - pattern: $C.connectToServer($E, $CFG, URI.create("$U"))
+          - pattern: $C.connectToServer($E, $CFG, new URI("$U"))
+          - pattern: $B.buildAsync(URI.create("$U"), $L)
+          - pattern: $B.buildAsync(new URI("$U"), $L)
+          - pattern: $C.doHandshake($H, "$U", ...)
+          - pattern: (WebSocketClient $C).execute($H, "$U", ...)
+          - pattern: (WebSocketStompClient $C).connect("$U", ...)
+          - pattern: (WebSocketStompClient $C).connectAsync("$U", ...)
+          - pattern: new WebSocketClient(new URI("$U"), ...) { ... }
+          - pattern: new WebSocketClient(URI.create("$U"), ...) { ... }
+          - pattern: new Request.Builder().url("$U")
+      - metavariable-regex:
+          metavariable: $U
+          regex: (?i)^ws://(?!(localhost|127\.0\.0\.1|\[::1\])([:/]|$))
+
+  - id: jgates.java.websocket-origin-not-checked
+    message: A WebSocket server accepts connections from every origin, so any web page can open one for a signed-in user. Compare the Origin header with an allow-list.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-1385"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.4.2"]
+    pattern-either:
+      - pattern: |
+          boolean checkOrigin(String $O) { return true; }
+      - pattern: $REG.addHandler(...). ... .setAllowedOrigins(..., "*", ...)
+      - pattern: $REG.addHandler(...). ... .setAllowedOriginPatterns(..., "*", ...)
+      - pattern: $REG.addEndpoint(...). ... .setAllowedOrigins(..., "*", ...)
+      - pattern: $REG.addEndpoint(...). ... .setAllowedOriginPatterns(..., "*", ...)
+      - pattern: (WebSocketHandlerRegistration $R).setAllowedOrigins(..., "*", ...)
+      - pattern: (WebSocketHandlerRegistration $R).setAllowedOriginPatterns(..., "*", ...)
+      - pattern: (StompWebSocketEndpointRegistration $R).setAllowedOrigins(..., "*", ...)
+      - pattern: (StompWebSocketEndpointRegistration $R).setAllowedOriginPatterns(..., "*", ...)
+
+  - id: jgates.java.graphql-without-depth-limit
+    message: A GraphQL server is created without a depth limit, so one query can ask for unbounded work. Add MaxQueryDepthInstrumentation (or a complexity limit) to the server.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: availability
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: GraphQL.newGraphQL(...). ... .build()
+          - pattern: GraphQlSource.schemaResourceBuilder(). ... .build()
+          - pattern: GraphQlSource.builder(...). ... .build()
+      - pattern-not: GraphQL.newGraphQL(...). ... .instrumentation(new MaxQueryDepthInstrumentation(...)). ... .build()
+      - pattern-not: GraphQL.newGraphQL(...). ... .instrumentation(new MaxQueryComplexityInstrumentation(...)). ... .build()
+      - pattern-not: GraphQL.newGraphQL(...). ... .instrumentation(new ChainedInstrumentation(...)). ... .build()
+      - pattern-not: GraphQlSource.schemaResourceBuilder(). ... .instrumentation(...). ... .build()
+      - pattern-not: GraphQlSource.builder(...). ... .instrumentation(...). ... .build()
+
+  - id: jgates.java.graphql-introspection-enabled
+    message: A graphql-java server is built without a visible schema introspection restriction; introspection is enabled by default. Restrict schema field visibility with NoIntrospectionGraphqlFieldVisibility, or confirm that access controls elsewhere intentionally limit who can explore the schema.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.2"]
+      class: review
+    patterns:
+      - pattern: GraphQL.newGraphQL($SCHEMA). ... .build()
+      - pattern-not-inside: |
+          $RET $M(...) {
+            ...
+            GraphQLSchema $SCHEMA = GraphQLSchema.newSchema(...). ... .codeRegistry(GraphQLCodeRegistry.newCodeRegistry(...). ... .fieldVisibility(NoIntrospectionGraphqlFieldVisibility.NO_INTROSPECTION_FIELD_VISIBILITY). ... .build()). ... .build();
+            ...
+          }
+
+  - id: jgates.java.open-redirect
+    message: The redirect target comes from the incoming request, so an attacker can send users to another site. Redirect only to a target found in an allow-list, or to a path you build yourself.
+    severity: ERROR
+    languages: [java]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-601"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V3.7.2"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getParameter(...)
+      - pattern: (HttpServletRequest $REQ).getHeader(...)
+      - pattern: (HttpServletRequest $REQ).getQueryString(...)
+      - pattern: (HttpServletRequest $REQ).getPathInfo(...)
+      - pattern: (HttpServletRequest $REQ).getRequestURI(...)
+      - pattern: (HttpServletRequest $REQ).getParameterValues(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathVariable $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestBody $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @PathParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @FormParam(...) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam(...) $T $P, ...) {
+                ...
+              }
+    pattern-sanitizers:
+      - pattern: validateRedirect(...)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              if ($A.contains($P)) {
+                ...
+              }
+    pattern-sinks:
+      - patterns:
+          - pattern: $R.sendRedirect($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $R.setHeader("Location", $U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $R.addHeader("Location", $U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: |
+              "redirect:" + $U
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: new RedirectView($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $X.location(URI.create($U))
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $X.location(new URI($U))
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Response.seeOther(URI.create($U))
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Response.temporaryRedirect(URI.create($U))
+          - focus-metavariable: $U
+
+  - id: jgates.java.client-ip-from-forwarded-header
+    message: A forwarding header is read as a client address; its trustworthiness depends on the proxy configuration. Confirm that only known proxies can reach the application and that they strip and replace client-supplied forwarding headers, or use getRemoteAddr with trusted-proxy handling configured in the container.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-348"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.4", "V4.1.3"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: $R.getHeader("$H")
+          - pattern: $R.getHeaders("$H")
+          - pattern: $R.getFirst("$H")
+          - pattern: $R.getHeaderString("$H")
+          - pattern: |
+              $RET $M(..., @RequestHeader("$H") $T $P, ...) {
+                ...
+              }
+          - pattern: |
+              $RET $M(..., @RequestHeader(value = "$H", ...) $T $P, ...) {
+                ...
+              }
+          - pattern: |
+              $RET $M(..., @RequestHeader(name = "$H", ...) $T $P, ...) {
+                ...
+              }
+          - pattern: |
+              $RET $M(..., @HeaderParam("$H") $T $P, ...) {
+                ...
+              }
+      - metavariable-regex:
+          metavariable: $H
+          regex: (?i)^(x-forwarded-for|x-real-ip|x-client-ip|x-originating-ip|forwarded)$
+
+  - id: jgates.java.host-header-in-url
+    message: The request's Host header is used to build an absolute URL, and the client controls that header. Build links from a configured base URL.
+    severity: WARNING
+    languages: [java]
+    mode: taint
+    metadata:
+      category: authorization
+      cwe: "CWE-644"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.1.3"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getHeader("Host")
+      - pattern: (HttpServletRequest $REQ).getHeader("X-Forwarded-Host")
+      - pattern: (HttpServletRequest $REQ).getServerName()
+    pattern-sinks:
+      - patterns:
+          - pattern: |
+              "$S" + $H
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^https?://$
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: String.format("$S", ..., $H, ...)
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^https?://.*
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: new URL($S, $H, ...)
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: $B.host($H)
+          - focus-metavariable: $H
+      - patterns:
+          - pattern: $B.setHost($H)
+          - focus-metavariable: $H

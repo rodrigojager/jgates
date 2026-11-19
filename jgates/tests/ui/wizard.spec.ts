@@ -185,7 +185,9 @@ async function walk(page: Page, fixture: Fixture, text: Texts, narrow: boolean):
   await expect(heading).toBeFocused();
   // What will be on the machine: the image with its tools, the security databases, the totals.
   await expect(wizard.getByTestId("wizard-image")).toContainText("jgates-tools");
-  await expect(wizard.getByTestId("wizard-data").locator("[data-database]")).toHaveCount(4);
+  const databases = wizard.getByTestId("wizard-data");
+  await expect(databases.locator("[data-database]")).toHaveCount(6);
+  for (const id of ["grype", "kubescape"]) await expect(databases.locator(`[data-database="${id}"]`)).toBeVisible();
   await expect(wizard.getByTestId("wizard-totals")).not.toHaveText("");
   // No download runs yet: the button is "Continuar" (D29).
   await expect(nav.getByRole("button", { name: text.next, exact: true })).toBeVisible();

@@ -49,7 +49,9 @@ function parityProblems(dir) {
     for (const key of Object.keys(pt)) if (!(key in en)) bad.push(`${path.relative(root, file)}: missing ${key}`);
     for (const key of Object.keys(en)) {
       if (key in pt && typeof en[key] === "string" && typeof pt[key] === "string") {
-        const params = (text) => [...text.matchAll(/\{(\w+)(?:,|\})/g)].map((m) => m[1]).sort().join(",");
+        // A brace right after an ICU plural selector (`=0 {none}`, `other {#}`) opens a branch body, not a placeholder.
+        const params = (text) =>
+          [...text.matchAll(/(?<!(?:=\d+|\b(?:zero|one|two|few|many|other))\s*)\{(\w+)(?:,|\})/g)].map((m) => m[1]).sort().join(",");
         if (params(en[key]) !== params(pt[key])) bad.push(`${path.relative(root, sibling)}: ${key} does not use the placeholders of the English text`);
       }
     }
@@ -114,6 +116,24 @@ test("V2-73 the parity scan fails on a key missing in one language", () => {
   }
 });
 
+test("V2-73 the placeholder scan reads ICU plural branches as text and still fails on a renamed placeholder", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-v2-73-"));
+  try {
+    const write = (en, pt) => {
+      fs.writeFileSync(path.join(dir, "m.en.json"), JSON.stringify({ k: en }));
+      fs.writeFileSync(path.join(dir, "m.pt-BR.json"), JSON.stringify({ k: pt }));
+    };
+    write("{count, plural, =0 {none} one {# item} other {#}}", "{count, plural, =0 {nenhuma} one {# item} other {#}}");
+    assert.deepEqual(parityProblems(dir), []);
+    write("{count, plural, =0 {none} other {# in {area}}}", "{count, plural, =0 {nenhuma} other {# em {zona}}}");
+    const found = parityProblems(dir);
+    assert.equal(found.length, 1, found.join("\n"));
+    assert.match(found[0], /k does not use the placeholders/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("V2-73 no route under jgates/src/server/routes writes a user-facing string in code", () => {
   const files = fs.readdirSync(ROUTES_DIR).filter((n) => n.endsWith(".ts"));
   assert.ok(files.length >= 30, `expected the routes, found ${files.length}`);
@@ -148,12 +168,58 @@ test("V2-73 no message of the core, the server or the UI has a parenthesized plu
   }
 });
 
-test("V2-73 the built-in profiles, templates, categories, capabilities and adapters resolve through the catalogues in both languages", async () => {
+// The words of the ASVS coverage change (glossary: informational finding, suggestion, hardening, ASVS review). Each
+// must exist in the catalogues of its language; the forbidden claims of the map must exist in none.
+const ASVS_WORDS = {
+  en: [/informational finding/i, /does not block the validation/i, /\bsuggestion\b/i, /no sign of/i, /\bhardening\b/i, /ASVS review/i],
+  "pt-BR": [/achado informativo/i, /não bloqueia a validação/i, /\bsugest(ão|ões)\b/i, /nenhum sinal de/i, /\bendurecimento\b/i, /revisão ASVS/i],
+};
+const FORBIDDEN_CLAIMS = { en: /\b(compliant|conformant|certified)\b/i, "pt-BR": /\b(conformidade|certificad[oa]s?)\b/i };
+
+function catalogueText(locale) {
+  const parts = [];
+  for (const file of messageFiles(CORE_DIR).concat(messageFiles(UI_DIR))) {
+    if (!file.endsWith(`.${locale}.json`)) continue;
+    for (const value of Object.values(JSON.parse(fs.readFileSync(file, "utf8")))) if (typeof value === "string") parts.push(value);
+  }
+  return parts;
+}
+
+test("V2-73 the words of the ASVS coverage exist in both languages and no message claims conformance, certification or a percentage", () => {
+  for (const locale of ["en", "pt-BR"]) {
+    const strings = catalogueText(locale);
+    const all = strings.join("\n");
+    for (const word of ASVS_WORDS[locale]) assert.match(all, word, `${locale}: no message carries ${word}`);
+    const claims = strings.filter((s) => FORBIDDEN_CLAIMS[locale].test(s) && !/\b(never|nunca)\b/i.test(s));
+    assert.deepEqual(claims.map((s) => s.slice(0, 90)), [], `${locale}: a message claims conformance or certification`);
+  }
+  // The ASVS coverage catalogue never shows a percentage.
+  for (const locale of ["en", "pt-BR"]) {
+    const file = path.join(CORE_DIR, `coverage.${locale}.json`);
+    const withPercent = Object.entries(JSON.parse(fs.readFileSync(file, "utf8"))).filter(([, v]) => typeof v === "string" && /\d\s?%/.test(v));
+    assert.deepEqual(withPercent.map(([k]) => k), [], `${locale}: a coverage message shows a percentage`);
+  }
+});
+
+test("V2-73 the forbidden claims are caught when planted", () => {
+  assert.ok(FORBIDDEN_CLAIMS.en.test("The project is compliant."));
+  assert.ok(FORBIDDEN_CLAIMS.en.test("conformant"));
+  assert.ok(FORBIDDEN_CLAIMS.en.test("certified"));
+  assert.ok(FORBIDDEN_CLAIMS["pt-BR"].test("Em conformidade com o padrão."));
+  assert.ok(FORBIDDEN_CLAIMS["pt-BR"].test("projeto certificado"));
+  assert.ok(!FORBIDDEN_CLAIMS.en.test("This map shows what was examined."));
+});
+
+test("V2-73 built-in text resolves through the catalogues and descriptors in both languages", async () => {
   const { listBuiltinTemplates, listBuiltinProfiles, builtinProfileBody } = await load("builtin/index.js");
   const { builtinTemplateText, createCoreCatalog, localizedAdapterName } = await load("core/catalog/index.js");
   const { starterProfileText } = await load("core/profiles/index.js");
   const { builtinManifests } = await load("adapters/manifests.js");
+  const { loadLinters } = await load("adapters/linter/descriptor.js");
+  const { linterGroups } = await load("adapters/linter/derived.js");
   const { setLocale, getLocale } = await load("i18n/index.js");
+  const linters = new Map(loadLinters().map(({ descriptor }) => [descriptor.id, descriptor]));
+  const groups = new Map(linterGroups().map((group) => [group.templateId, group]));
   const texts = {};
   const previous = getLocale();
   try {
@@ -174,9 +240,10 @@ test("V2-73 the built-in profiles, templates, categories, capabilities and adapt
   const enKeys = new Set(catalogKeys("en"));
   const missing = [];
   for (const t of listBuiltinTemplates()) {
+    if (groups.has(t.id)) continue;
     for (const part of ["label", "description"]) for (const keys of [ptKeys, enKeys]) if (!keys.has(`template_${t.id}_${part}`)) missing.push(`template_${t.id}_${part}`);
   }
-  for (const m of builtinManifests()) for (const keys of [ptKeys, enKeys]) if (!keys.has(`adapter_${m.id}_name`)) missing.push(`adapter_${m.id}_name`);
+  for (const m of builtinManifests()) if (!linters.has(m.id)) for (const keys of [ptKeys, enKeys]) if (!keys.has(`adapter_${m.id}_name`)) missing.push(`adapter_${m.id}_name`);
   for (const category of texts.en.catalog.toDocument().categories) for (const part of ["label", "description"]) for (const keys of [ptKeys, enKeys]) if (!keys.has(`category_${category.id}_${part}`)) missing.push(`category_${category.id}_${part}`);
   for (const capability of texts.en.catalog.toDocument().capabilities) {
     if (capability.id.startsWith("x-custom:")) continue;
@@ -189,7 +256,16 @@ test("V2-73 the built-in profiles, templates, categories, capabilities and adapt
   for (const locale of ["pt-BR", "en"]) {
     const json = JSON.parse(fs.readFileSync(path.join(CORE_DIR, `catalog.${locale}.json`), "utf8"));
     for (const category of texts[locale].catalog.toDocument().categories) assert.equal(category.label, json[`category_${category.id}_label`], `${locale} category ${category.id}`);
-    for (const [id, name] of Object.entries(texts[locale].adapters)) assert.equal(name, json[`adapter_${id}_name`], `${locale} adapter ${id}`);
+    for (const [id, name] of Object.entries(texts[locale].adapters)) {
+      assert.equal(name, linters.get(id)?.text[locale].label ?? json[`adapter_${id}_name`], `${locale} adapter ${id}`);
+    }
+    for (const [id, group] of groups) {
+      const template = texts[locale].templates[id];
+      for (const { descriptor } of group.linters) {
+        assert.ok(template.label.includes(descriptor.text[locale].label), `${locale} template ${id}: ${descriptor.id} label`);
+        assert.ok(template.description.includes(descriptor.text[locale].purpose), `${locale} template ${id}: ${descriptor.id} purpose`);
+      }
+    }
   }
   // The two profile names the wizard and the rest of the UI share.
   assert.equal(texts["pt-BR"].profiles.minimal.label, "Essencial");

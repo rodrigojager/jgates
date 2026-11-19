@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "robocop",
+  "name": "Robocop",
+  "sourceUrl": "https://github.com/MarketSquare/robotframework-robocop",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "robocop",
+    "prefix": [
+      "check"
+    ],
+    "versionRange": ">=9.4.0 <10.0.0"
+  },
+  "megalinter": [
+    "ROBOTFRAMEWORK_ROBOCOP"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "robot-framework",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".robot",
+      ".resource"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--no-cache",
+      "--reports",
+      "sarif",
+      "--configure",
+      "sarif.output_path={report}",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "file",
+    "file": "robocop.sarif",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      "robocop.toml",
+      "pyproject.toml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "Robocop reads the project's robocop.toml and the [tool.robocop] table of pyproject.toml: the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # robocop: off, # robocop: disable=rule and # robocop: ignore comments",
+      "pattern": "robocop:\\s*(?:off|on|disable|enable|ignore)",
+      "files": "\\.(?:robot|resource)$"
+    }
+  },
+  "install": "robocop",
+  "text": {
+    "en": {
+      "label": "Robocop (Robot Framework)",
+      "purpose": "Lints Robot Framework test suites and resource files for mistakes and bad practice: missing documentation, naming, duplicated keywords, unused variables, overly long keywords.",
+      "limitation": "Run in check mode only: it never fixes the project. Project-wide rules (such as unused keywords) and library analysis stay at the tool's defaults, and libraries are not imported.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Robocop (Robot Framework)",
+      "purpose": "Verifica suítes de teste e arquivos de recurso do Robot Framework quanto a erros e más práticas: documentação ausente, nomes, keywords duplicadas, variáveis sem uso, keywords longas demais.",
+      "limitation": "Roda só no modo de verificação: nunca corrige o projeto. As regras de projeto inteiro (como keywords sem uso) e a análise de bibliotecas ficam no padrão da ferramenta, e as bibliotecas não são importadas.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

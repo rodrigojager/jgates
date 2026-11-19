@@ -1,0 +1,18 @@
+{
+ "tool": "tekton-lint",
+ "kind": "bad",
+ "version": "1.3.0",
+ "calls": [
+  {
+   "args": [
+    "--format",
+    "json",
+    "--",
+    "tekton_sample.yaml"
+   ],
+   "exit": 1,
+   "stdout": "[{\"message\":\"Pipeline 'tekton-sample' references task 'build-task' but the referenced task cannot be found. To fix this, include all the task definitions to the lint task for this pipeline.\",\"rule\":\"no-missing-resource\",\"level\":\"error\",\"path\":\"tekton_sample.yaml\",\"loc\":{\"range\":[183,193,194],\"startLine\":12,\"startColumn\":15,\"endLine\":12,\"endColumn\":25}},{\"message\":\"Pipeline 'tekton-sample' defines parameter 'unused', but it's not used anywhere in the spec\",\"rule\":\"no-unused-param\",\"level\":\"warning\",\"path\":\"tekton_sample.yaml\",\"loc\":{\"range\":[95,127,127],\"startLine\":7,\"startColumn\":7,\"endLine\":9,\"endColumn\":1}}]\n",
+   "stderr": ""
+  }
+ ]
+}

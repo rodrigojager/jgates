@@ -1,0 +1,2 @@
+# parallelism must be a number: syft refuses this configuration and produces no bill of materials
+parallelism: many

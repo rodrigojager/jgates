@@ -1,0 +1,12 @@
+{
+  "files": [
+    "check.lua"
+  ],
+  "findings": [
+    {
+      "rule": "W211",
+      "file": "check.lua",
+      "line": 1
+    }
+  ]
+}

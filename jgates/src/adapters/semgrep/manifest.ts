@@ -46,6 +46,8 @@ export const semgrepManifest: AdapterManifest = {
     needsService: false,
     usesAi: false,
     needsLicense: false,
+    // Reads the synchronized copy of the project only: its step may run beside others (ADR-0023).
+    onlyReadsProject: true,
   },
   redirection: {
     flags: ["--output", "--metrics=off", "--disable-version-check"],
@@ -60,10 +62,15 @@ export const semgrepManifest: AdapterManifest = {
   license: "LGPL-2.1",
   kind: "tool",
   stackSupport: [
-    { capability: "sast", stack: "python", state: "validated", prerequisites: ["Semgrep from the JGates tools image", "local rules in the project or prepared with tools prepare"] },
+    { capability: "sast", stack: "python", state: "validated", prerequisites: ["Semgrep from the JGates tools image", "tools.<id>.rulePack: jgates (bundled JGates pack), local rules in the project or rules prepared with tools prepare"] },
     { capability: "sast", stack: "javascript", state: "validated", prerequisites: ["Semgrep from the JGates tools image", "tools.<id>.rulePack: jgates (bundled JGates pack) or local rules"] },
     { capability: "sast", stack: "typescript", state: "validated", prerequisites: ["Semgrep from the JGates tools image", "tools.<id>.rulePack: jgates (bundled JGates pack) or local rules"] },
-    { capability: "sast", stack: "any", state: "customer-setup-required", prerequisites: ["Semgrep from the JGates tools image", "local rules for the language, supplied by the customer or prepared with tools prepare"], limitations: ["Only a Python fixture is proven; other languages depend on the rules the customer supplies.", "Official semgrep-rules are never shipped: tools prepare fetches registry rules for the customer's own use."] },
+    { capability: "sast", stack: "go", state: "validated", prerequisites: ["Semgrep from the JGates tools image", "tools.<id>.rulePack: jgates (bundled JGates pack) or local rules"] },
+    { capability: "sast", stack: "csharp", state: "validated", prerequisites: ["Semgrep from the JGates tools image", "tools.<id>.rulePack: jgates (bundled JGates pack) or local rules"] },
+    { capability: "sast", stack: "rust", state: "validated", prerequisites: ["Semgrep from the JGates tools image", "tools.<id>.rulePack: jgates (bundled JGates pack) or local rules"] },
+    { capability: "sast", stack: "java", state: "validated", prerequisites: ["Semgrep from the JGates tools image", "tools.<id>.rulePack: jgates (bundled JGates pack) or local rules"], limitations: ["SAST only: Java has no component template, so no lint, type check, tests or dependency preparation run for it."] },
+    { capability: "sast", stack: "php", state: "validated", prerequisites: ["Semgrep from the JGates tools image", "tools.<id>.rulePack: jgates (bundled JGates pack) or local rules"], limitations: ["SAST only: PHP has no component template, so no lint, type check, tests or dependency preparation run for it."] },
+    { capability: "sast", stack: "any", state: "customer-setup-required", prerequisites: ["Semgrep from the JGates tools image", "local rules for the language, supplied by the customer or prepared with tools prepare"], limitations: ["The bundled pack has rules for JavaScript, TypeScript, Python, Go, C#, Rust, Java and PHP; any other language depends on the rules the customer supplies.", "Official semgrep-rules are never shipped: tools prepare fetches registry rules for the customer's own use."] },
   ],
   distribution: {
     mode: "customer-supplied",

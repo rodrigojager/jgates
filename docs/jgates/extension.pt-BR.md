@@ -8,6 +8,8 @@ Uma extensão tem duas partes, mais uma opcional:
 2. **Registrar a ferramenta** no `.jgates/tools.yml` com o adaptador `generic-command`: o comando, os argumentos, como ler o resultado e o que ela verifica.
 3. **Uma linguagem que o JGates não conhece** (opcional): declare o componente com essa linguagem na tela Workspace, ponha o toolchain dela no Dockerfile e registre as ferramentas. As verificações do componente passam a rodar como as demais.
 
+Use um descritor para um linter integrado cujo programa venha na imagem do JGates e cujas evidências e formato de saída sejam compatíveis com o motor de descritores. O descritor define a ativação, a faixa de perfis, o leitor da saída e a confiança. Use `generic-command` para uma ferramenta ou um comando específico do seu projeto. [Consulte o catálogo integrado](tools.pt-BR.md).
+
 ## Adicionar uma ferramenta pela interface
 
 Na tela Ferramentas, **Adicionar ferramenta** oferece dois caminhos: uma ferramenta do catálogo e **Própria**. O segundo é um diálogo de seis passos (teclado primeiro; `Esc` fecha e devolve o foco):
@@ -57,11 +59,13 @@ tools:
 ARG JGATES_TOOLS
 FROM ${JGATES_TOOLS}
 USER root
-RUN UV_TOOL_DIR=/opt/jgates-ext/uv UV_TOOL_BIN_DIR=/usr/local/bin uv tool install --no-cache 'bandit==1.8.0'
+RUN UV_TOOL_DIR=/opt/jgates-ext/uv UV_TOOL_BIN_DIR=/usr/local/bin uv tool install --force --no-cache 'bandit==1.8.0'
 USER 10001:10001
 ```
 
 No arquivo, os marcadores são `{workspace}`, `{outputDir}` e `{componentRoot}`: o `add-custom` os escreve no lugar do que você digita como `{workspace}`, `{output}` e `{component}`.
+
+Uma instalação explícita via pip pode substituir, na sua imagem de extensão, um executável herdado da imagem base. Se a compilação de um Dockerfile antigo falhar porque o executável já existe, acrescente `--force` ao comando `uv tool install` e reconstrua a imagem.
 
 O Dockerfile precisa começar com essas duas linhas: o JGates preenche `JGATES_TOOLS` com a imagem de ferramentas que ele fixa, e recusa um Dockerfile que não as tenha. Mantenha a última linha, para a ferramenta rodar com um usuário sem privilégios. A imagem se chama `jgates-ext-<workspace>:<hash>` e leva os rótulos do JGates; projetos com o mesmo Dockerfile a compartilham.
 

@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "cpplint",
+      "link": "cpplint",
+      "path": "bin/cpplint",
+      "version": [
+        "cpplint",
+        "--version"
+      ]
+    }
+  ]
+}

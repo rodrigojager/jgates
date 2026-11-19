@@ -221,6 +221,8 @@ function buildView(source: ConfigSource, ref: string) {
               // "available" written for the tool itself (on only where it can run): the row offers the three states.
               when: pair?.when ?? null,
               alsoCapabilities: tool.capabilities.filter((c) => c !== capability.id),
+              // ADR-0022: a tool above the profile's tier is off with the reason ABOVE_TIER; its own switch turns it on.
+              tier: tool.tier,
               rules,
             };
           });

@@ -1,0 +1,262 @@
+# Signal rules of the Rust front: which technologies a project uses (jgates.rust.uses-<tag>).
+# They are records of the scan, never findings: they feed the "not applicable" suggestions.
+# Each rule matches the `use` (or `extern crate`) of the crates that bring the technology into a Rust project, or the
+# typical module of the standard library where no dependency is needed. Imports are syntax, so a comment or a string
+# that only mentions a crate does not match. A path written in full at the call site without a `use` is not seen.
+# The tag "latex" has no signal in Rust: no crate is common enough to list with confidence.
+rules:
+  - id: jgates.rust.uses-graphql
+    message: The project uses GraphQL.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: graphql
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:graphql[a-z0-9_]*|[a-z0-9_]*_graphql[a-z0-9_]*|juniper[a-z0-9_]*|cynic[a-z0-9_]*|apollo_[a-z0-9_]+|seaography[a-z0-9_]*|gql_[a-z0-9_]+|[a-z0-9_]+_gql|hasura[a-z0-9_]*)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-websocket
+    message: The project uses WebSocket.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: websocket
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '(?s)^(::)?(?:(?:(?:tokio_|async_)?tungstenite[a-z0-9_]*|tokio_websockets|fastwebsockets|websocket[a-z0-9_]*|ws|ws_[a-z0-9_]+|[a-z0-9_]+_ws|[a-z0-9_]+_websockets?|actix_ws|actix_web_actors|soketto|yawc|socketioxide[a-z0-9_]*|rust_socketio|rocket_ws|tide_websockets|ewebsock|hyper_tungstenite)(?:::|$|\s)|gloo_net::.*[Ww]eb[Ss]ocket|web_sys::.*WebSocket|(?:axum|axum_extra|warp|poem|salvo|actix_web)::.*[Ww]eb[Ss]ocket|(?:axum|axum_extra|warp)::.*\bws\b)'
+
+  - id: jgates.rust.uses-webrtc
+    message: The project uses WebRTC.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: webrtc
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '(?s)^(::)?(?:(?:webrtc[a-z0-9_]*|rtc|str0m|datachannel[a-z0-9_]*|libdatachannel|livekit[a-z0-9_]*|mediasoup[a-z0-9_]*|matchbox_(?:socket|signaling)|gstreamer_webrtc|gst_webrtc|rheomesh|[a-z0-9_]+_webrtc)(?:::|$|\s)|web_sys::.*Rtc[A-Z])'
+
+  - id: jgates.rust.uses-oauth-client
+    message: The project uses OAuth 2.0 or OpenID Connect as a client.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: oauth-client
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:oauth2[a-z0-9_]*|oauth1[a-z0-9_]*|oauth_[a-z0-9_]+|[a-z0-9_]+_oauth[a-z0-9_]*|openidconnect|openid|oidc[a-z0-9_]*|[a-z0-9_]+_oidc[a-z0-9_]*|yup_oauth2|rocket_oauth2|reqwest_oauth1|async_oauth2|aliri_[a-z0-9_]+|graph_oauth|goauth|mas_oidc_client|tower_oauth2[a-z0-9_]*|actix_web_httpauth)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-oauth-authorization-server
+    message: The project runs an OAuth 2.0 or OpenID Connect authorization server.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: oauth-authorization-server
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:oxide_auth[a-z0-9_]*|oauth2_server[a-z0-9_]*|oauth_server[a-z0-9_]*|oidc_server[a-z0-9_]*|oidc_provider[a-z0-9_]*|openid_provider[a-z0-9_]*|authorization_server[a-z0-9_]*)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-jwt
+    message: The project uses JSON Web Tokens.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: jwt
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:jsonwebtoken[a-z0-9_]*|jwt[a-z0-9_]*|[a-z0-9_]+_jwt[a-z0-9_]*|jose[a-z0-9_]*|josekit|jwtk|frank_jwt|alcoholic_jwt|jwks[a-z0-9_]*|jsonwebkey[a-z0-9_]*|biscuit|biscuit_auth|compact_jwt|jws|jwk|aliri[a-z0-9_]*|frank_jwt)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-saml
+    message: The project uses SAML.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: saml
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:samael|saml[a-z0-9_]*|[a-z0-9_]+_saml[a-z0-9_]*|rsaml|libsaml|rust_saml|xmlsec[a-z0-9_]*)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-totp
+    message: The project uses time-based or counter-based one-time passwords.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: totp
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '(?s)^(::)?(?:totp[a-z0-9_]*|[a-z0-9_]+_totp[a-z0-9_]*|hotp[a-z0-9_]*|otpauth[a-z0-9_]*|otp|otp_[a-z0-9_]+|oath|oath_[a-z0-9_]+|google_authenticator|twofactor|two_factor[a-z0-9_]*|rotp|time_otp|libreauth::(?:oath|\{[^}]*\boath\b))(?:::|$|\s)'
+
+  - id: jgates.rust.uses-ldap
+    message: The project uses LDAP.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: ldap
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:ldap[a-z0-9_]*|[a-z0-9_]+_ldap[a-z0-9_]*|openldap[a-z0-9_]*|rust_ldap[a-z0-9_]*)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-xml
+    message: The project parses or builds XML.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: xml
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:xml[a-z0-9_]*|[a-z0-9_]+_xml[a-z0-9_]*|quick_xml|roxmltree|minidom|sxd_[a-z0-9_]+|libxml[a-z0-9_]*|xot|xrust|yaserde[a-z0-9_]*|treexml|elementtree|strong_xml|xsd[a-z0-9_]*|fast_xml|xml5ever|xmlparser|xmlwriter|xmltree|xmlem|xmlrpc|c14n|rss|atom_syndication|svg|usvg)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-memcache
+    message: The project uses Memcached.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: memcache
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:memcache[a-z0-9_]*|[a-z0-9_]+_memcache[a-z0-9_]*|memcached[a-z0-9_]*|[a-z0-9_]+_memcached[a-z0-9_]*|async_memcached|mcrouter[a-z0-9_]*)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-mail
+    message: The project sends or reads e-mail.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: mail
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:lettre[a-z0-9_]*|mail[a-z0-9_]*|[a-z0-9_]+_mail[a-z0-9_]*|email|email_[a-z0-9_]+|emailmessage|async_smtp|smtp[a-z0-9_]*|[a-z0-9_]+_smtp[a-z0-9_]*|samotop[a-z0-9_]*|imap[a-z0-9_]*|async_imap|pop3[a-z0-9_]*|sendgrid[a-z0-9_]*|postmark[a-z0-9_]*|aws_sdk_ses[a-z0-9_]*|resend_rs|sparkpost|sendinblue[a-z0-9_]*|melib|maildir|sendmail[a-z0-9_]*|mandrill[a-z0-9_]*|brevo[a-z0-9_]*|mrml|loops_rs)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-templates
+    message: The project renders server-side templates.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: templates
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:tera[a-z0-9_]*|askama[a-z0-9_]*|handlebars[a-z0-9_]*|minijinja[a-z0-9_]*|maud[a-z0-9_]*|sailfish[a-z0-9_]*|liquid[a-z0-9_]*|upon|tinytemplate|ructe|rinja[a-z0-9_]*|horrorshow|markup|mustache|ramhorns|rocket_dyn_templates|axum_template|tide_tera|tide_handlebars|gtmpl[a-z0-9_]*|stpl|templr|hypertext|jinja[a-z0-9_]*|[a-z0-9_]+_template[a-z0-9_]*|template[a-z0-9_]*|actix_web_tera)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-file-upload
+    message: The project accepts file uploads.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: file-upload
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '(?s)^(::)?(?:(?i:[a-z0-9_]*multipart[a-z0-9_]*|multer|[a-z0-9_]*upload[a-z0-9_]*|formdata|form_data|[a-z0-9_]+_form_data)(?:::|$|\s)|(?:axum|axum_extra|actix_web|poem|warp|rocket|salvo|tide|hyper|gotham)(?:_[a-z0-9]+)?::.*(?:(?i:multipart|upload)|(?-i:TempFile|FilePart)))'
+
+  - id: jgates.rust.uses-archives
+    message: The project reads or writes archive or compressed files.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: archives
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:zip[a-z0-9_]*|[a-z0-9_]+_zip[a-z0-9_]*|flate2|tar|tar_[a-z0-9_]+|[a-z0-9_]+_tar|tokio_tar|async_tar|binstall_tar|bzip2[a-z0-9_]*|xz2?|xz2|lzma[a-z0-9_]*|liblzma[a-z0-9_]*|lzzzz|zstd[a-z0-9_]*|ruzstd|lz4[a-z0-9_]*|sevenz[a-z0-9_]*|unrar[a-z0-9_]*|libarchive[a-z0-9_]*|compress_tools|async_zip|async_compression|brotli[a-z0-9_]*|miniz_oxide|snap|libflate[a-z0-9_]*|deflate|inflate|cpio|rc_zip[a-z0-9_]*|piz|gzip[a-z0-9_]*|zlib[a-z0-9_]*|libz_sys|compression|ar|uncompress|unzip[a-z0-9_]*|fastzip|archive[a-z0-9_]*|[a-z0-9_]+_archive[a-z0-9_]*)(?:::|$|\s)'
+
+  - id: jgates.rust.uses-browser-dom
+    message: The project runs Rust in the browser and touches the DOM.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      signal: browser-dom
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: use $M;
+          - pattern: pub use $M;
+          - pattern: extern crate $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: '^(::)?(?:web_sys|js_sys|wasm_bindgen[a-z0-9_]*|gloo[a-z0-9_]*|yew[a-z0-9_]*|leptos[a-z0-9_]*|dioxus[a-z0-9_]*|sycamore[a-z0-9_]*|seed|dominator|stdweb|percy_dom|mogwai[a-z0-9_]*|sauron[a-z0-9_]*|console_error_panic_hook|trunk[a-z0-9_]*|web_view|yew_[a-z0-9_]+)(?:::|$|\s)'

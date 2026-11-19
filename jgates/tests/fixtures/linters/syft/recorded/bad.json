@@ -1,0 +1,19 @@
+{
+ "tool": "syft",
+ "kind": "bad",
+ "version": "1.57.2",
+ "calls": [
+  {
+   "args": [
+    "scan",
+    "dir:.",
+    "--quiet",
+    "-o",
+    "table"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+{
+  "files": [
+    "lint.tf"
+  ],
+  "findings": [
+    {
+      "rule": "terraform_deprecated_interpolation",
+      "file": "lint.tf",
+      "line": 8
+    },
+    {
+      "rule": "terraform_required_version",
+      "file": "lint.tf"
+    },
+    {
+      "rule": "terraform_typed_variables",
+      "file": "lint.tf",
+      "line": 5
+    },
+    {
+      "rule": "terraform_unused_declarations",
+      "file": "lint.tf",
+      "line": 1
+    }
+  ]
+}

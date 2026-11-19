@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-npm-groovy-lint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of npm-groovy-lint in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "npm-groovy-lint": "19.0.1"
+  }
+}

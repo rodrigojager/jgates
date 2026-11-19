@@ -1,0 +1,493 @@
+# Rust crypto-params: key sizes, IVs and nonces, cipher modes, key derivation parameters, constant-time comparison,
+# signature hashes, hardcoded keys and randomness for secrets.
+# Libraries covered: openssl (Rsa, Dsa, Dh, EcGroup, Cipher, symm, Signer, PKey, pbkdf2_hmac), rsa and RustCrypto
+# (RsaPrivateKey, Pkcs1v15Sign, SigningKey, aead Nonce, cbc, ctr, cfb-mode, ofb, hmac, pbkdf2, scrypt, argon2, sha2),
+# ring (pbkdf2, hmac, aead Nonce, digest), bcrypt, jsonwebtoken (EncodingKey, DecodingKey), rand (SmallRng, seed_from_u64),
+# fastrand, uuid.
+# Left out: none; CP-5 weak-cipher-mode is jgates.rust.weak-cipher in rust-crypto-auth.yaml.
+rules:
+  - id: jgates.rust.weak-key-size
+    message: An RSA or DSA key under 2048 bits, or an elliptic curve under 224 bits, can be broken with modest resources. Generate RSA keys of at least 3072 bits (2048 at the least) and use curves such as P-256 or Ed25519.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: Rsa::generate($BITS)
+              - pattern: Rsa::generate_with_e($BITS, $E)
+              - pattern: rsa::Rsa::generate($BITS)
+              - pattern: openssl::rsa::Rsa::generate($BITS)
+              - pattern: Dsa::generate($BITS)
+              - pattern: dsa::Dsa::generate($BITS)
+              - pattern: openssl::dsa::Dsa::generate($BITS)
+              - pattern: RsaPrivateKey::new($RNG, $BITS)
+              - pattern: rsa::RsaPrivateKey::new($RNG, $BITS)
+              - pattern: RsaPrivateKey::new_with_exp($RNG, $BITS, $E)
+          - metavariable-comparison:
+              metavariable: $BITS
+              comparison: $BITS < 2048
+      - patterns:
+          - pattern-either:
+              - pattern: EcGroup::from_curve_name(Nid::$CURVE)
+              - pattern: EcGroup::from_curve_name(nid::Nid::$CURVE)
+              - pattern: EcGroup::from_curve_name(openssl::nid::Nid::$CURVE)
+          - metavariable-regex:
+              metavariable: $CURVE
+              regex: ^(SECP112R1|SECP112R2|SECP128R1|SECP128R2|SECP160K1|SECP160R1|SECP160R2|SECP192K1|X9_62_PRIME192V1|X9_62_PRIME192V2|X9_62_PRIME192V3|SECT113R1|SECT113R2|SECT131R1|SECT131R2|SECT163K1|SECT163R1|SECT163R2|SECT193R1|SECT193R2|X9_62_C2PNB163V1|X9_62_C2PNB163V2|X9_62_C2PNB163V3)$
+
+  - id: jgates.rust.rsa-key-below-3072
+    message: An RSA key of 2048 to 3071 bits is accepted today but is below the 3072 bits the standard recommends for new keys. Generate RSA keys of at least 3072 bits.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3"]
+    patterns:
+      - pattern-either:
+          - pattern: Rsa::generate($BITS)
+          - pattern: Rsa::generate_with_e($BITS, $E)
+          - pattern: rsa::Rsa::generate($BITS)
+          - pattern: openssl::rsa::Rsa::generate($BITS)
+          - pattern: RsaPrivateKey::new($RNG, $BITS)
+          - pattern: rsa::RsaPrivateKey::new($RNG, $BITS)
+          - pattern: RsaPrivateKey::new_with_exp($RNG, $BITS, $E)
+      - metavariable-comparison:
+          metavariable: $BITS
+          comparison: $BITS >= 2048 and $BITS < 3072
+
+  - id: jgates.rust.static-iv-or-nonce
+    message: A literal, zeroed or constant IV or nonce given to a cipher breaks the cipher (a repeated nonce leaks the plaintext relationship and, with GCM, the authentication key). Generate a fresh random nonce for every message with the operating system generator, for example OsRng, and store it beside the ciphertext.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-329"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.4"]
+    patterns:
+      - pattern-either:
+          - pattern: Nonce::from_slice($IV)
+          - pattern: XNonce::from_slice($IV)
+          - pattern: aead::Nonce::from_slice($IV)
+          - pattern: Nonce::assume_unique_for_key($IV)
+          - pattern: aead::Nonce::assume_unique_for_key($IV)
+          - pattern: symm::encrypt($CIPHER, $KEY, Some($IV), $DATA)
+          - pattern: symm::decrypt($CIPHER, $KEY, Some($IV), $DATA)
+          - pattern: encrypt($CIPHER, $KEY, Some($IV), $DATA)
+          - pattern: decrypt($CIPHER, $KEY, Some($IV), $DATA)
+          - pattern: symm::encrypt_aead($CIPHER, $KEY, Some($IV), $AAD, $DATA, $TAG)
+          - pattern: encrypt_aead($CIPHER, $KEY, Some($IV), $AAD, $DATA, $TAG)
+          - pattern: Crypter::new($CIPHER, $MODE, $KEY, Some($IV))
+          - pattern: symm::Crypter::new($CIPHER, $MODE, $KEY, Some($IV))
+          - pattern: $CIPHER::new_from_slices($KEY, $IV)
+          - pattern: cbc::Encryptor::<$A>::new($KEY, $IV)
+          - pattern: cbc::Decryptor::<$A>::new($KEY, $IV)
+      - metavariable-pattern:
+          metavariable: $IV
+          pattern-either:
+            - pattern: b"..."
+            - pattern: '"...".as_bytes()'
+            - patterns:
+                - pattern: "[$X; $N]"
+                - metavariable-regex:
+                    metavariable: $X
+                    regex: ^[0-9]
+            - patterns:
+                - pattern: "[$X, ...]"
+                - metavariable-regex:
+                    metavariable: $X
+                    regex: ^[0-9]
+
+  - id: jgates.rust.cipher-mode-without-authentication
+    message: CBC, CTR, CFB and OFB give confidentiality only; an attacker can alter the ciphertext without detection unless a MAC is checked before decryption. Prefer an authenticated mode such as AES-GCM or ChaCha20-Poly1305, or add and verify an HMAC.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.3"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: Cipher::$MODE()
+              - pattern: symm::Cipher::$MODE()
+              - pattern: openssl::symm::Cipher::$MODE()
+          - metavariable-regex:
+              metavariable: $MODE
+              regex: ^aes_(128|192|256)_(cbc|ctr|cfb1|cfb8|cfb128|ofb)$
+      - pattern: cbc::Encryptor::<$A>::new(...)
+      - pattern: cbc::Decryptor::<$A>::new(...)
+      - pattern: cbc::Encryptor::<$A>::new_from_slices(...)
+      - pattern: cbc::Decryptor::<$A>::new_from_slices(...)
+      - pattern: ctr::Ctr128BE::<$A>::new(...)
+      - pattern: ctr::Ctr64BE::<$A>::new(...)
+      - pattern: ctr::Ctr32BE::<$A>::new(...)
+      - pattern: ctr::Ctr128LE::<$A>::new(...)
+      - pattern: cfb_mode::Encryptor::<$A>::new(...)
+      - pattern: cfb_mode::Decryptor::<$A>::new(...)
+      - pattern: ofb::Ofb::<$A>::new(...)
+
+  - id: jgates.rust.weak-kdf-parameters
+    message: A password hashing or key derivation work factor below the floor (PBKDF2 under 100000 iterations, bcrypt cost under 10, scrypt log2 N under 14, Argon2 under 19 MiB of memory or under 2 passes) makes guessing cheap. Use Argon2id with the recommended parameters, or raise the work factor.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V11.4.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: pbkdf2_hmac($PW, $SALT, $N, $MD, $OUT)
+              - pattern: openssl::pkcs5::pbkdf2_hmac($PW, $SALT, $N, $MD, $OUT)
+              - pattern: pbkdf2_hmac::<$H>($PW, $SALT, $N, $OUT)
+              - pattern: pbkdf2::pbkdf2_hmac::<$H>($PW, $SALT, $N, $OUT)
+              - pattern: pbkdf2::pbkdf2::<$M>($PW, $SALT, $N, $OUT)
+              - pattern: pbkdf2($PW, $SALT, $N, $OUT)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 100000
+      - patterns:
+          - pattern-either:
+              - pattern: pbkdf2::derive($ALG, NonZeroU32::new($N).unwrap(), $SALT, $PW, $OUT)
+              - pattern: pbkdf2::derive($ALG, NonZeroU32::new($N).expect($MSG), $SALT, $PW, $OUT)
+              - pattern: pbkdf2::derive($ALG, std::num::NonZeroU32::new($N).unwrap(), $SALT, $PW, $OUT)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 100000
+      - patterns:
+          - pattern-either:
+              - pattern: bcrypt::hash($PW, $COST)
+              - pattern: bcrypt::hash_with_salt($PW, $COST, $SALT)
+              - pattern: bcrypt::hash_with_result($PW, $COST)
+          - metavariable-comparison:
+              metavariable: $COST
+              comparison: $COST < 10
+      - patterns:
+          - pattern-either:
+              - pattern: scrypt::Params::new($LOGN, ...)
+              - pattern: ScryptParams::new($LOGN, ...)
+          - metavariable-comparison:
+              metavariable: $LOGN
+              comparison: $LOGN < 14
+      - patterns:
+          - pattern-either:
+              - pattern: Argon2::new($ALG, $VER, Params::new($MEM, $T, $P, $OUT).unwrap())
+              - pattern: Argon2::new($ALG, $VER, argon2::Params::new($MEM, $T, $P, $OUT).unwrap())
+              - pattern: argon2::Params::new($MEM, $T, $P, $OUT)
+          - metavariable-comparison:
+              metavariable: $MEM
+              comparison: $MEM < 19456
+      - patterns:
+          - pattern-either:
+              - pattern: Argon2::new($ALG, $VER, Params::new($MEM, $T, $P, $OUT).unwrap())
+              - pattern: Argon2::new($ALG, $VER, argon2::Params::new($MEM, $T, $P, $OUT).unwrap())
+              - pattern: argon2::Params::new($MEM, $T, $P, $OUT)
+          - metavariable-comparison:
+              metavariable: $T
+              comparison: $T < 2
+
+  - id: jgates.rust.password-hash-with-fast-hash
+    message: A password given to a plain hash function can be guessed billions of times per second. Store passwords with a slow, salted password hash such as Argon2id, scrypt or bcrypt.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $H::digest($ARG)
+                  - pattern: $H::new().chain_update($ARG)
+                  - pattern: $H::new().chain($ARG)
+              - metavariable-regex:
+                  metavariable: $H
+                  regex: ^(Sha(1|224|256|384|512|512_224|512_256)|Sha3_(224|256|384|512)|Md5|Md4|Blake2b512|Blake2s256|Blake2b|Blake2s|Ripemd160|Whirlpool)$
+          - pattern: md5::compute($ARG)
+          - pattern: digest::digest($ALG, $ARG)
+          - pattern: ring::digest::digest($ALG, $ARG)
+          - pattern: hash($MD, $ARG)
+          - pattern: openssl::hash::hash($MD, $ARG)
+          - patterns:
+              - pattern: $HASHER.update($ARG)
+              - pattern-inside: |
+                  let mut $HASHER = $H::new();
+                  ...
+              - metavariable-regex:
+                  metavariable: $H
+                  regex: ^(Sha(1|224|256|384|512|512_224|512_256)|Sha3_(224|256|384|512)|Md5|Md4|Blake2b512|Blake2s256|Blake2b|Blake2s|Ripemd160|Whirlpool)$
+      - metavariable-regex:
+          metavariable: $ARG
+          regex: (?is)^.*(password|passwd|pwd|passphrase|senha)
+
+  - id: jgates.rust.timing-unsafe-comparison
+    message: A MAC, digest or signature compared with == leaks, through the time it takes, how many leading bytes were right. Compare with a constant-time function such as subtle's ct_eq, the MAC's verify_slice, or ring's constant_time::verify_slice_eq.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-208"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $X == $Y
+              - pattern: $X != $Y
+          - metavariable-regex:
+              metavariable: $X
+              regex: (?i)^[&*]?(\w+\.)*(\w*_)?(mac|hmac|digest|signature|sig|tag|hash|checksum)(_bytes|_hex|_b64|_vec|_value)?(\.as_\w+\(\)|\.to_\w+\(\)|\.clone\(\))?$
+          - pattern-not: $X == None
+          - pattern-not: $X != None
+          - pattern-not: $X == ""
+          - pattern-not: $X != ""
+      - patterns:
+          - pattern-either:
+              - pattern: $X == $Y
+              - pattern: $X != $Y
+          - metavariable-regex:
+              metavariable: $Y
+              regex: (?i)^[&*]?(\w+\.)*(\w*_)?(mac|hmac|digest|signature|sig|tag|hash|checksum)(_bytes|_hex|_b64|_vec|_value)?(\.as_\w+\(\)|\.to_\w+\(\)|\.clone\(\))?$
+          - pattern-not: $X == None
+          - pattern-not: $X != None
+          - pattern-not: $X == ""
+          - pattern-not: $X != ""
+      - pattern: $M.finalize().into_bytes() == $Y
+      - pattern: $M.finalize().into_bytes() != $Y
+      - pattern: $X == $M.finalize().into_bytes()
+      - pattern: $X != $M.finalize().into_bytes()
+      - pattern: $M.finalize().into_bytes().as_slice() == $Y
+      - pattern: $M.finalize().into_bytes().as_slice() != $Y
+      - pattern: $M.finalize().as_ref() == $Y
+      - pattern: $M.finalize().as_ref() != $Y
+
+  - id: jgates.rust.weak-signature-hash
+    message: A signature or MAC made or verified with MD5 or SHA-1 can be forged through collisions. Use SHA-256 or stronger, for example HMAC-SHA256 or RSA/ECDSA with SHA-256.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-328"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.3", "V11.6.1"]
+    pattern-either:
+      - pattern: Hmac::<Md5>::new_from_slice(...)
+      - pattern: Hmac::<Sha1>::new_from_slice(...)
+      - pattern: Hmac::<Md5>::new(...)
+      - pattern: Hmac::<Sha1>::new(...)
+      - pattern: SimpleHmac::<Md5>::new_from_slice(...)
+      - pattern: SimpleHmac::<Sha1>::new_from_slice(...)
+      - pattern: Pkcs1v15Sign::new::<Md5>()
+      - pattern: Pkcs1v15Sign::new::<Sha1>()
+      - pattern: rsa::Pkcs1v15Sign::new::<Md5>()
+      - pattern: rsa::Pkcs1v15Sign::new::<Sha1>()
+      - pattern: Pss::new::<Md5>()
+      - pattern: Pss::new::<Sha1>()
+      - pattern: SigningKey::<Md5>::new(...)
+      - pattern: SigningKey::<Sha1>::new(...)
+      - pattern: VerifyingKey::<Md5>::new(...)
+      - pattern: VerifyingKey::<Sha1>::new(...)
+      - pattern: hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY
+      - pattern: signature::RSA_PKCS1_2048_8192_SHA1_FOR_LEGACY_USE_ONLY
+      - pattern: signature::RSA_PKCS1_1024_8192_SHA1_FOR_LEGACY_USE_ONLY
+      - pattern: signature::ECDSA_P256_SHA1_FOR_LEGACY_USE_ONLY
+      - pattern: Signer::new(MessageDigest::md5(), $KEY)
+      - pattern: Signer::new(MessageDigest::sha1(), $KEY)
+      - pattern: Verifier::new(MessageDigest::md5(), $KEY)
+      - pattern: Verifier::new(MessageDigest::sha1(), $KEY)
+      - pattern: Signer::new(openssl::hash::MessageDigest::md5(), $KEY)
+      - pattern: Signer::new(openssl::hash::MessageDigest::sha1(), $KEY)
+      - pattern: Verifier::new(openssl::hash::MessageDigest::md5(), $KEY)
+      - pattern: Verifier::new(openssl::hash::MessageDigest::sha1(), $KEY)
+
+  - id: jgates.rust.weak-dh-parameters
+    message: Diffie-Hellman parameters under 2048 bits can be broken with modest resources. Use a group of at least 2048 bits (for example Dh::get_2048_256 or an RFC 7919 group) or an elliptic-curve exchange such as X25519.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.6.2"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: Dh::generate_params($BITS, $G)
+              - pattern: dh::Dh::generate_params($BITS, $G)
+              - pattern: openssl::dh::Dh::generate_params($BITS, $G)
+          - metavariable-comparison:
+              metavariable: $BITS
+              comparison: $BITS < 2048
+      - pattern: Dh::get_1024_160()
+      - pattern: dh::Dh::get_1024_160()
+      - pattern: openssl::dh::Dh::get_1024_160()
+
+  - id: jgates.rust.hardcoded-encryption-key
+    message: A literal used as the key of a cipher, a MAC or a token signature ends up in the source and in every binary built from it. Load the key from a secret store or the environment, or generate it and keep it outside the code.
+    severity: ERROR
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-321"
+      author: JGates
+      subdimension: secrets
+      asvs_requirements: ["V13.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: Key::<$C>::from_slice($KEY)
+          - pattern: GenericArray::from_slice($KEY)
+          - pattern: $C::new_from_slice($KEY)
+          - pattern: Hmac::<$H>::new_from_slice($KEY)
+          - pattern: $C::new_from_slices($KEY, $IV)
+          - pattern: EncodingKey::from_secret($KEY)
+          - pattern: DecodingKey::from_secret($KEY)
+          - pattern: jsonwebtoken::EncodingKey::from_secret($KEY)
+          - pattern: jsonwebtoken::DecodingKey::from_secret($KEY)
+          - pattern: hmac::Key::new($ALG, $KEY)
+          - pattern: ring::hmac::Key::new($ALG, $KEY)
+          - pattern: UnboundKey::new($ALG, $KEY)
+          - pattern: aead::UnboundKey::new($ALG, $KEY)
+          - pattern: PKey::hmac($KEY)
+          - pattern: symm::encrypt($CIPHER, $KEY, $IV, $DATA)
+          - pattern: symm::decrypt($CIPHER, $KEY, $IV, $DATA)
+          - pattern: encrypt($CIPHER, $KEY, $IV, $DATA)
+          - pattern: decrypt($CIPHER, $KEY, $IV, $DATA)
+          - pattern: Crypter::new($CIPHER, $MODE, $KEY, $IV)
+          - pattern: symm::Crypter::new($CIPHER, $MODE, $KEY, $IV)
+      - metavariable-pattern:
+          metavariable: $KEY
+          pattern-either:
+            - pattern: b"..."
+            - pattern: '"...".as_bytes()'
+            - pattern: '"...".as_ref()'
+            - pattern: '"...".to_string().as_bytes()'
+            - patterns:
+                - pattern: "[$X; $N]"
+                - metavariable-regex:
+                    metavariable: $X
+                    regex: ^[0-9]
+            - patterns:
+                - pattern: "[$X, ...]"
+                - metavariable-regex:
+                    metavariable: $X
+                    regex: ^[0-9]
+
+  - id: jgates.rust.insecure-random-for-secret
+    message: A non-cryptographic generator (SmallRng, a seed_from_u64 generator, fastrand) is predictable, so a token, secret, password, code, nonce, salt or key drawn from it can be guessed. Draw it from the operating system generator, for example OsRng or rand::thread_rng().
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-338"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1", "V7.2.3", "V6.5.3", "V6.4.1"]
+    pattern-sources:
+      - pattern: SmallRng::from_entropy()
+      - pattern: SmallRng::from_os_rng()
+      - pattern: SmallRng::from_rng(...)
+      - pattern: SmallRng::from_seed(...)
+      - pattern: rngs::SmallRng::from_entropy()
+      - pattern: rand::rngs::SmallRng::from_entropy()
+      - pattern: $T::seed_from_u64(...)
+      - pattern: fastrand::$F(...)
+      - pattern: fastrand::Rng::$F(...)
+      - pattern: Pcg32::$F(...)
+      - pattern: Pcg64::$F(...)
+      - pattern: Xoshiro256PlusPlus::$F(...)
+      - pattern: XorShiftRng::$F(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: let $NAME = $S;
+              - pattern: let mut $NAME = $S;
+              - pattern: "let $NAME: $T = $S;"
+              - pattern: "let mut $NAME: $T = $S;"
+              - pattern: $NAME = $S;
+              - pattern: $OBJ.$NAME = $S;
+          - focus-metavariable: $S
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)^(\w*_)?(token|secret|password|passwd|pwd|passphrase|nonce|salt|otp|csrf|session_?id|api_?key|private_?key|secret_?key|signing_?key|encryption_?key|master_?key|auth_?key|reset_?code|verification_?code|activation_?code|auth_?code|jwt|senha|segredo)(_\w+)?$
+      # A generator drawn from inside a closure of the initializer (for example (0..32).map(|_| rng.gen_range(..)).collect()).
+      - patterns:
+          - pattern-either:
+              - pattern: $R.sample(...)
+              - pattern: $R.gen_range(...)
+              - pattern: $R.random_range(...)
+              - pattern: $R.gen()
+              - pattern: $R.gen::<$T>()
+              - pattern: $R.random()
+              - pattern: $R.random::<$T>()
+          - focus-metavariable: $R
+          - pattern-either:
+              - pattern-inside: |
+                  let $NAME = ...;
+              - pattern-inside: |
+                  let mut $NAME = ...;
+              - pattern-inside: |
+                  let $NAME: $TY = ...;
+              - pattern-inside: |
+                  let mut $NAME: $TY = ...;
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)^(\w*_)?(token|secret|password|passwd|pwd|passphrase|nonce|salt|otp|csrf|session_?id|api_?key|private_?key|secret_?key|signing_?key|encryption_?key|master_?key|auth_?key|reset_?code|verification_?code|activation_?code|auth_?code|jwt|senha|segredo)(_\w+)?$
+      - patterns:
+          - pattern-either:
+              - pattern: $R.fill_bytes(&mut $NAME)
+              - pattern: $R.fill(&mut $NAME)
+              - pattern: $R.try_fill_bytes(&mut $NAME)
+          - focus-metavariable: $R
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)^(\w*_)?(token|secret|password|passwd|pwd|passphrase|nonce|salt|otp|csrf|session_?id|api_?key|private_?key|secret_?key|signing_?key|encryption_?key|master_?key|auth_?key|reset_?code|verification_?code|activation_?code|auth_?code|jwt|senha|segredo)(_\w+)?$
+
+  - id: jgates.rust.uuid-as-secret-token
+    message: A random UUID is built for uniqueness, not as a secret; its layout fixes bits and some libraries and generators make it predictable. Use 32 random bytes from the operating system generator, encoded as hex or base64url, for a token, secret, password reset code, nonce or key.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-330"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1"]
+    patterns:
+      - pattern-either:
+          - pattern: let $NAME = $RHS;
+          - pattern: let mut $NAME = $RHS;
+          - pattern: "let $NAME: $T = $RHS;"
+          - pattern: $NAME = $RHS;
+          - pattern: $OBJ.$NAME = $RHS;
+      - metavariable-pattern:
+          metavariable: $RHS
+          pattern-either:
+            - pattern: Uuid::new_v4()
+            - pattern: uuid::Uuid::new_v4()
+            - pattern: Uuid::new_v7(...)
+            - pattern: uuid::Uuid::new_v7(...)
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i)^(\w*_)?(token|secret|password|passwd|pwd|passphrase|nonce|salt|otp|csrf|session_?id|api_?key|private_?key|secret_?key|signing_?key|encryption_?key|master_?key|auth_?key|reset_?code|verification_?code|activation_?code|auth_?code|jwt|senha|segredo)(_\w+)?$

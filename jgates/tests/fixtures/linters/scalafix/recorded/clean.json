@@ -1,0 +1,18 @@
+{
+ "tool": "scalafix",
+ "kind": "clean",
+ "version": "0.14.10",
+ "calls": [
+  {
+   "args": [
+    "--config",
+    "/output/linters/scalafix/scalafix-default.conf",
+    "--check",
+    "Counter.scala"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "rubocop",
+      "link": "rubocop",
+      "path": "bin/rubocop",
+      "version": [
+        "rubocop",
+        "--version"
+      ]
+    }
+  ]
+}

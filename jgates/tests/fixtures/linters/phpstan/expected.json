@@ -1,0 +1,12 @@
+{
+  "files": [
+    "Undefined.php"
+  ],
+  "findings": [
+    {
+      "file": "Undefined.php",
+      "line": 11,
+      "rule": "function.notFound"
+    }
+  ]
+}

@@ -276,7 +276,7 @@ test("V2-69: the wizard's steps 1 to 3 give the machine's requirements, the runt
     }
     assert.equal(image.tools.find((x) => x.name === "ruff").purposeText, "Finds bugs and style problems");
     const databases = tools.json.data.databases;
-    assert.deepEqual(databases.map((d) => d.id), ["trivy", "osv", "govulndb", "rustsec"]);
+    assert.deepEqual(databases.map((d) => d.id), ["trivy", "osv", "govulndb", "rustsec", "grype", "kubescape"]);
     for (const d of databases) {
       assert.ok(d.name.length > 2 && d.source.length > 5 && d.sizeBytes > 0 && d.usedBy.length > 2, JSON.stringify(d));
       assert.equal(d.state, "missing", "no data before the image");

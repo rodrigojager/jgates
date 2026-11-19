@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "chktex",
+  "name": "chktex",
+  "sourceUrl": "https://www.nongnu.org/chktex/",
+  "license": "GPL-2.0-or-later",
+  "program": {
+    "tool": "chktex",
+    "versionRange": ">=1.7.0 <2.0.0"
+  },
+  "megalinter": [
+    "LATEX_CHKTEX"
+  ],
+  "place": {
+    "section": "format",
+    "group": "latex",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".tex"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-q",
+      "-v0",
+      "-f",
+      "%f:%l:%c:%n:%m\n",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+):(?<rule>\\d+):(?<message>.+)$",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".chktexrc"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "chktex reads the project's .chktexrc: the project decides which warnings are on and the commands it knows",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: % chktex <n> and % chktex-file <n> comments",
+      "pattern": "%\\s*chktex(?:-file)?\\s+\\d+",
+      "files": "\\.tex$"
+    }
+  },
+  "install": "chktex",
+  "text": {
+    "en": {
+      "label": "chktex (LaTeX)",
+      "purpose": "Checks LaTeX documents for typographic and syntax mistakes: wrong dashes and ellipses, missing non-breaking spaces, unmatched delimiters and bad command spacing.",
+      "limitation": "It reads the source without running TeX, so it does not see errors that only appear when the document is compiled. Without a .chktexrc it uses its built-in defaults.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "chktex (LaTeX)",
+      "purpose": "Verifica documentos LaTeX em busca de erros tipográficos e de sintaxe: travessões e reticências errados, espaços não separáveis ausentes, delimitadores sem par e espaçamento ruim de comandos.",
+      "limitation": "Lê o código-fonte sem executar o TeX, então não vê erros que só aparecem na compilação do documento. Sem um .chktexrc usa os padrões embutidos.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

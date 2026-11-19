@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "chktex"
+  ],
+  "provides": [
+    {
+      "name": "chktex",
+      "path": "/usr/bin/chktex",
+      "version": [
+        "chktex",
+        "--version"
+      ],
+      "pattern": "ChkTeX v(\\S+)"
+    }
+  ]
+}

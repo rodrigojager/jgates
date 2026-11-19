@@ -1,0 +1,12 @@
+{
+  "files": [
+    "greet.raku"
+  ],
+  "findings": [
+    {
+      "rule": "compile-error",
+      "file": "greet.raku",
+      "line": 4
+    }
+  ]
+}

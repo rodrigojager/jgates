@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "puppet-lint",
+  "name": "puppet-lint",
+  "sourceUrl": "https://github.com/puppetlabs/puppet-lint",
+  "license": "MIT",
+  "program": {
+    "tool": "puppet-lint",
+    "versionRange": ">=5.1.0 <6.0.0"
+  },
+  "megalinter": [
+    "PUPPET_PUPPET_LINT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "puppet",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".pp"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--fail-on-warnings",
+      "--log-format",
+      "%{path}:%{line}:%{column}:%{kind}:%{check}:%{message}",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+):(?<level>warning|error|fixed):(?<rule>[a-z0-9_]+):(?<message>.+)$",
+    "level": "warning"
+  },
+  "severity": {
+    "warning": "warning",
+    "error": "error",
+    "fixed": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".puppet-lint.rc"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "puppet-lint reads the project's .puppet-lint.rc (disabled checks, ignored paths, the log format is set by JGates): the project decides the checks",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: lint:ignore:<check> and lint:endignore comments",
+      "pattern": "lint:(?:ignore|endignore)",
+      "files": "\\.pp$"
+    }
+  },
+  "install": "puppet-lint",
+  "text": {
+    "en": {
+      "label": "puppet-lint (Puppet)",
+      "purpose": "Checks Puppet manifests against the Puppet style guide: quoting, arrow alignment, documentation, variable and class naming, and risky constructs.",
+      "limitation": "It only reads the manifest text and does not compile the catalog, so it cannot tell whether the code applies. Without a project .puppet-lint.rc it runs every default check.",
+      "needs": "Nothing beyond the tools image (Ruby and the gem come with it): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "puppet-lint (Puppet)",
+      "purpose": "Verifica os manifestos Puppet contra o guia de estilo do Puppet: aspas, alinhamento de setas, documentação, nomes de variáveis e classes e construções arriscadas.",
+      "limitation": "Lê apenas o texto do manifesto e não compila o catálogo, então não diz se o código se aplica. Sem um .puppet-lint.rc do projeto, roda todas as verificações padrão.",
+      "needs": "Nada além da imagem de ferramentas (o Ruby e a gem vêm com ela): sem rede e sem dependências do projeto."
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "files": [
+    "Counter.java"
+  ],
+  "findings": [
+    {
+      "rule": "UnnecessaryImport",
+      "file": "Counter.java",
+      "line": 3
+    }
+  ]
+}
+

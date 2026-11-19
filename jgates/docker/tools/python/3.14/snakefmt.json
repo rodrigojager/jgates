@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "snakefmt",
+      "link": "snakefmt",
+      "path": "bin/snakefmt",
+      "version": [
+        "snakefmt",
+        "--version"
+      ]
+    }
+  ]
+}

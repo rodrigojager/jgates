@@ -7,11 +7,12 @@ import { ErrorNotice, Loading, Pill } from "../../components/common";
 import { Heartbeat } from "../../components/Heartbeat";
 import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
+import { areaLabel, groupByArea, useToolAreas } from "../../components/tool-areas";
 import type { ScreenMeta } from "../../registry";
-import { ResultView, formatDuration, stageName, stateText, type DomainFilter } from "../validations-result/ResultView";
+import { ResultView, approvedWithWaiversText, isApprovedWithWaivers, formatDuration, stageName, stateText, type DomainFilter } from "../validations-result/ResultView";
 import { RunPhases } from "./phases";
 import { StepLogPanel } from "./step-log";
-import "./run-summary.css";
+import "../../components/run-summary.css";
 
 // Runs are opened by the id the server gave (job_...) or by the id of a stored run (run_...); the route stays /runs/:id.
 export const screen: ScreenMeta = { id: "validations-run", path: "/runs/:id", area: "validations", order: 40 };
@@ -185,6 +186,30 @@ function StepRow({ row: r, runId }: { row: Row; runId: string | null }) {
   );
 }
 
+/** The steps of one list as a table; each row opens its logs. */
+function StepTable({ rows, runId, label }: { rows: Row[]; runId: string | null; label: string }) {
+  return (
+    <div className="card flat table-wrap vrun-steps-card">
+      <table className="stack-table" aria-label={label}>
+        <thead>
+          <tr>
+            <th scope="col">{t("vrun_col_step")}</th>
+            <th scope="col">{t("vrun_col_state")}</th>
+            <th scope="col">{t("vrun_col_why")}</th>
+            <th scope="col">{t("vrun_col_duration")}</th>
+            <th scope="col">{t("vrun_col_log")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <StepRow key={r.id} row={r} runId={runId} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function RunScreen({ params }: { params: Record<string, string> }) {
   const id = params.id as string;
   const [job, setJob] = useState<any | null>(null);
@@ -301,6 +326,18 @@ export default function RunScreen({ params }: { params: Record<string, string> }
 
   const rows = useMemo(() => rowsFrom(steps, events), [steps, events]);
   const running = job?.state === "running";
+  const areaOf = useToolAreas();
+  // The steps of the engine's tools by area; a step's id begins with its tool instance (<tool>#<capability>).
+  const areas = useMemo(() => groupByArea(rows, (r) => areaOf(r.id.split("#")[0])), [rows, areaOf]);
+  // The number of steps that may run at once is the one the executor reports on its step-started events.
+  const limit = useMemo(() => {
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i] as StepEvent;
+      if (e.type === "step-started" && typeof e.data.concurrency === "number") return e.data.concurrency as number;
+    }
+    return null;
+  }, [events]);
+  const runningNow = rows.filter((r) => r.state === "running").length;
 
   // A clock for the elapsed times while the run is running.
   useEffect(() => {
@@ -314,8 +351,11 @@ export default function RunScreen({ params }: { params: Record<string, string> }
   const uiState = job?.state === "crashed" ? "crashed" : final?.result && job?.state === "running" ? "finished" : (job?.state ?? "running");
   // A run that ended with a decision other than "passed" never reads as a bare "Finished": it names the decision.
   const decision = typeof final?.result?.decision === "string" ? (final.result.decision as string) : null;
-  const endedLabel =
-    uiState === "finished" && decision && decision !== "passed" ? tOr(`vres_decision_${decision}`, decision) : tOr(`vrun_state_${uiState}`, uiState);
+  // A run that passed with waivers says so in the ended state too, with its own icon colour, never a plain "Finished".
+  const withWaivers = uiState === "finished" && decision === "passed" && isApprovedWithWaivers(final?.result?.approval);
+  const endedLabel = withWaivers
+    ? approvedWithWaiversText(final?.result?.approval)
+    : uiState === "finished" && decision && decision !== "passed" ? tOr(`vres_decision_${decision}`, decision) : tOr(`vrun_state_${uiState}`, uiState);
   const startedAt: string | undefined = job?.startedAt ?? events[0]?.at;
   const elapsed = since(startedAt, now);
   const currentStart = current ? [...events].reverse().find((e) => e.type === "step-started" && e.data.step === current.id)?.at : undefined;
@@ -346,8 +386,8 @@ export default function RunScreen({ params }: { params: Record<string, string> }
         <section className="run-summary" data-running={running} aria-label={t("vrun_summary")}>
           <div className="run-summary-header">
             <div className="run-summary-state" role="status">
-              <span className={running ? "run-summary-spinner" : "run-summary-icon"} data-state={uiState} aria-hidden="true">
-                {running ? null : <Icon name={uiState === "finished" ? "check" : uiState === "cancelled" ? "stop" : "alert"} />}
+              <span className={running ? "run-summary-spinner" : "run-summary-icon"} data-state={withWaivers ? "waivers" : uiState} aria-hidden="true">
+                {running ? null : <Icon name={withWaivers ? "info" : uiState === "finished" ? "check" : uiState === "cancelled" ? "stop" : "alert"} />}
               </span>
               <strong data-testid="run-state" data-state={uiState}>
                 {endedLabel}
@@ -416,24 +456,33 @@ export default function RunScreen({ params }: { params: Record<string, string> }
       {job && rows.length > 0 ? (
         <section className="stack" aria-labelledby="vrun-steps">
           <h2 id="vrun-steps">{t("vrun_steps")}</h2>
-          <div className="card flat table-wrap vrun-steps-card">
-            <table className="stack-table" aria-label={t("vrun_progress_label")}>
-              <thead>
-                <tr>
-                  <th scope="col">{t("vrun_col_step")}</th>
-                  <th scope="col">{t("vrun_col_state")}</th>
-                  <th scope="col">{t("vrun_col_why")}</th>
-                  <th scope="col">{t("vrun_col_duration")}</th>
-                  <th scope="col">{t("vrun_col_log")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <StepRow key={r.id} row={r} runId={runId} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {limit !== null ? (
+            // ADR-0023: how many steps may share the machine, and how many do right now.
+            <p className="small" data-testid="run-concurrency" data-limit={limit} data-running={runningNow}>
+              {limit === 1 ? t("vrun_concurrency_one") : running ? t("vrun_concurrency_now", { running: runningNow, limit }) : t("vrun_concurrency_limit", { limit })}
+            </p>
+          ) : null}
+          {areas.every((g) => g.id === "") ? (
+            <StepTable rows={rows} runId={runId} label={t("vrun_progress_label")} />
+          ) : (
+            // Steps by area (PHP, Markdown, secrets...) with a count; the area that is running or failed is open.
+            areas.map((g) => {
+              const doneCount = g.items.filter((r) => r.state !== "pending" && r.state !== "running").length;
+              const failedCount = g.items.filter((r) => r.state === "error" || r.state === "timeout").length;
+              const live = g.items.some((r) => r.state === "running");
+              const name = g.id === "" ? t("vrun_area_other") : areaLabel(g.id);
+              return (
+                <details key={`${g.section}/${g.id}`} className="capst-group" data-testid="run-area" data-area={g.id || "other"} data-live={live} data-failed={failedCount > 0} open={live || failedCount > 0 || undefined}>
+                  <summary>
+                    <strong>{name}</strong>
+                    <span className="small muted"> · {t("vrun_area_count", { done: doneCount, total: g.items.length })}</span>
+                    {failedCount > 0 ? <span className="small"> · {t("vrun_area_failed", { count: failedCount })}</span> : null}
+                  </summary>
+                  <StepTable rows={g.items} runId={runId} label={`${t("vrun_progress_label")}: ${name}`} />
+                </details>
+              );
+            })
+          )}
         </section>
       ) : null}
       {job ? (

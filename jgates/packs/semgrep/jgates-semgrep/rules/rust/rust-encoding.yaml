@@ -1,0 +1,281 @@
+# Encoding rules for Rust. Request sources: parameters of an async handler typed as axum or actix-web extractors
+# (Query, Path, Form, Json, with or without web::), as in rust-taint.yaml.
+# Sinks: the regex crate constructors (Regex, RegexBuilder, RegexSet, bytes::Regex).
+rules:
+  - id: jgates.rust.regex-from-request
+    message: Request data is compiled as a regular expression. Pass it through regex::escape before it becomes part of a pattern.
+    severity: WARNING
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.9"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: regex::escape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: Regex::new($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: regex::Regex::new($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: RegexBuilder::new($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: regex::RegexBuilder::new($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: regex::bytes::Regex::new($X)
+          - focus-metavariable: $X
+
+  - id: jgates.rust.csv-formula-injection
+    message: Request data reaches a CSV field, where spreadsheet software can interpret a leading formula character. Prefix untrusted fields with a single quote before writing them.
+    severity: WARNING
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1236"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.10"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: 'async fn $F(..., Query($P): Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Path($P): Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Form($P): Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Json($P): Json<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Json<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Json<$T>, ...) { ... }'
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: format!("'{}", ...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  let mut $W = csv::Writer::from_writer(...);
+                  ...
+              - pattern-inside: |
+                  let mut $W = csv::Writer::from_path(...).unwrap();
+                  ...
+          - pattern-either:
+              - pattern: $W.write_record($X)
+              - pattern: $W.write_field($X)
+              - pattern: $W.serialize($X)
+          - focus-metavariable: $X
+
+  - id: jgates.rust.memcache-key-from-request
+    message: Request data is used as a memcache key. Hash the value before using it as a key to prevent protocol characters or attacker-chosen keys from changing cache operations.
+    severity: WARNING
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.9"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: 'async fn $F(..., Query($P): Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Path($P): Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Form($P): Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Json($P): Json<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Json<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Json<$T>, ...) { ... }'
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: blake3::hash(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-inside: |
+              let $C = memcache::Client::connect(...).unwrap();
+              ...
+          - pattern: $C.$M($K, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|gets|set|add|replace|delete|increment|decrement|touch|append|prepend|cas)$
+          - focus-metavariable: $K
+
+  - id: jgates.rust.double-decoding
+    message: A decoder is applied to the result of the same decoder. Decoding twice can reveal characters hidden from validation after the first decode; decode once and then validate.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: injection
+      cwe: "CWE-174"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.1.1"]
+    pattern-either:
+      - pattern: urlencoding::decode(&urlencoding::decode($X).unwrap())
+      - pattern: html_escape::decode_html_entities(&html_escape::decode_html_entities($X))
+      - pattern: base64::decode(base64::decode($X).unwrap())
+      - pattern: |
+          let $A = urlencoding::decode($X).unwrap();
+          ...
+          let $B = urlencoding::decode(&$A).unwrap();
+
+  - id: jgates.rust.markdown-raw-html-enabled
+    message: Comrak is explicitly configured to allow raw HTML and dangerous links. Keep the unsafe rendering option false or sanitize the generated HTML before serving it.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    pattern-either:
+      - pattern: $O.render.unsafe_ = true
+      - pattern: $O.render.r#unsafe = true
+
+  - id: jgates.rust.markdown-raw-html-enabled-by-default
+    message: Pulldown-cmark renders HTML without a visible sanitizer on this output. If the Markdown can be untrusted, sanitize the output with ammonia or confirm where equivalent protection is applied.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+      class: review
+    patterns:
+      - pattern: pulldown_cmark::html::push_html(&mut $OUT, $P)
+      - pattern-not-inside: |
+          fn $F(...) {
+            ...
+            ammonia::clean(&$OUT);
+            ...
+          }
+      - pattern-not-inside: |
+          fn $F(...) {
+            ...
+            let $SAFE = ammonia::clean(&$OUT);
+            ...
+          }
+
+  - id: jgates.rust.url-parameter-unencoded
+    message: Request data is formatted into a URL without visible URL encoding. Encode each value with urlencoding::encode or confirm that the value is already constrained for this URL component.
+    severity: INFO
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.2"]
+      class: review
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: 'async fn $F(..., Query($P): Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Path($P): Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Form($P): Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Json($P): Json<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Json<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Json<$T>, ...) { ... }'
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: urlencoding::encode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: format!($FMT, ..., $X, ...)
+          - metavariable-regex:
+              metavariable: $FMT
+              regex: '^"https?://.*[?/].*\{'
+          - focus-metavariable: $X
+
+  - id: jgates.rust.json-built-by-concatenation
+    message: Request data is formatted into JSON text without visible serialization. Build a serde_json value and serialize it, or confirm that escaping is guaranteed before this interpolation.
+    severity: INFO
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.3"]
+      class: review
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: 'async fn $F(..., Query($P): Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Path($P): Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Form($P): Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., Json($P): Json<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: Json<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Query<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Path<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Form<$T>, ...) { ... }'
+              - pattern-inside: 'async fn $F(..., $P: web::Json<$T>, ...) { ... }'
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: serde_json::to_string(...)
+      - pattern: serde_json::json!(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: format!($FMT, ..., $X, ...)
+          - metavariable-regex:
+              metavariable: $FMT
+              regex: '^"\s*\{\{.*\\"\{\}'
+          - focus-metavariable: $X

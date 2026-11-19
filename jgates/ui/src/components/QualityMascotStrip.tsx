@@ -1,8 +1,10 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { MascotDomain, MascotSnapshot } from "../../../src/core/mascots/index";
 import type { MascotGallery } from "../mascots/actors/renderer";
-import { Icon, type IconName } from "./icons";
+import type { IconName } from "./icons";
+import { MascotStatus, type MascotTone } from "./MascotStatus";
 import { t } from "../i18n";
+import "./mascot-strip.css";
 import "./quality-mascots.css";
 
 // A remounted historical view must not replay an already observed celebration.
@@ -30,6 +32,9 @@ function newCanvas(): HTMLCanvasElement {
   return canvas;
 }
 const statusIcons: Record<string, IconName> = { waiting: "info", processing: "refresh", passed: "check", failed: "alert", incomplete: "info", blocked: "lock", error: "x", timeout: "alert", cancelled: "stop", finished: "check", disabled: "power", not_applicable: "info", invalid: "settings" };
+const statusTones: Record<string, MascotTone> = { passed: "passed", failed: "failed", error: "failed", processing: "busy", disabled: "dim", not_applicable: "dim" };
+// A check still waiting its turn in a run reads as a warning; in a configuration "waiting" means enabled.
+const toneOf = (context: string, status: string): MascotTone => (context === "run" && status === "waiting" ? "alert" : statusTones[status] ?? "neutral");
 
 /**
  * The strip of the six categories. While its data is on the way (`loading`) it holds the room it will take, so what is
@@ -164,18 +169,18 @@ export function QualityMascotStrip({ snapshot, onSelect, loading = false }: { sn
   return (
     <section ref={root} className="quality-mascots" aria-label={t(snapshot.context === "run" ? "mascot_run" : "mascot_configuration")} data-testid="quality-mascots" data-context={snapshot.context}>
       <div ref={slot} className="quality-mascots-canvas-slot" />
-      <div className="quality-mascots-grid">
+      <div className="quality-mascots-grid mascot-strip-grid">
         {snapshot.domains.map((d) => (
-          <div key={d.domain} className="quality-mascot" data-domain={d.domain} data-status={d.status} data-selection={d.selection}>
-            <div className="quality-mascot-viewport" data-viewport={d.domain} aria-hidden="true" />
+          <div key={d.domain} className="quality-mascot mascot-strip-item" data-domain={d.domain} data-status={d.status} data-selection={d.selection}>
+            <div className="quality-mascot-viewport mascot-strip-viewport" data-viewport={d.domain} aria-hidden="true" />
             <strong>{t(`mascot_domain_${d.domain}`)}</strong>
-            <span className="quality-mascot-status" data-status={d.status}><Icon name={snapshot.context === "run" && d.status === "waiting" ? "hourglass" : (statusIcons[d.status] ?? "info")} /> {t(snapshot.context === "configuration" && d.status === "waiting" ? "mascot_enabled" : `mascot_status_${d.status}`)}</span>
+            <MascotStatus className="quality-mascot-status" status={d.status} tone={toneOf(snapshot.context, d.status)} icon={snapshot.context === "run" && d.status === "waiting" ? "hourglass" : (statusIcons[d.status] ?? "info")} label={t(snapshot.context === "configuration" && d.status === "waiting" ? "mascot_enabled" : `mascot_status_${d.status}`)} />
             {(d.status === "processing" || d.status === "waiting") && (d.hasFindings || d.hasWarnings) ? <small>{t(d.hasFindings ? "mascot_partial_findings" : "mascot_warnings")}</small> : null}
             {d.progress ? <small>{t("mascot_checks", { completed: d.progress.completed, total: d.progress.total })}</small> : null}
             {d.excluded ? <small>{t("mascot_excluded", { count: d.excluded })}</small> : null}
             {d.runOnlyExcluded ? <small>{t("mascot_run_excluded", { count: d.runOnlyExcluded })}</small> : null}
             {d.coverageGap ? <small>{t("mascot_gap")}</small> : null}
-            <ul className="quality-mascot-subs" aria-label={t("mascot_subdimensions")} data-testid={`quality-mascot-subs-${d.domain}`}>
+            <ul className="quality-mascot-subs mascot-strip-lines"aria-label={t("mascot_subdimensions")} data-testid={`quality-mascot-subs-${d.domain}`}>
               {d.subdimensions.map((s) => <li key={s.id} data-sub={s.id} data-covered={s.covered} data-status={s.status}>{t(`mascot_sub_${s.id}`)}{s.covered ? "" : ` · ${t("mascot_sub_not_covered")}`}</li>)}
             </ul>
             <button type="button" className="quality-mascot-details" aria-expanded={open === d.domain} aria-controls={`${id}-${d.domain}`} onClick={() => {

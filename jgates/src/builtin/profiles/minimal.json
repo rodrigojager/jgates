@@ -4,6 +4,7 @@
     "minimal": {
       "label": "Essencial",
       "description": "O mínimo antes de cada commit: lint, tamanho de arquivo e segredos.",
+      "tier": "core",
       "checks": {
         "capability:file-size": { "enabled": true },
         "capability:lint": { "enabled": true, "when": "available" },

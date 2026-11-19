@@ -5,6 +5,10 @@
   "format_check_label_rustfmt": "Format check (cargo fmt)",
   "format_check_label_dotnet": "Format check (dotnet format)",
   "format_check_setting_formatter": "The instance {tool} must set formatter to one of {allowed}; it has \"{value}\".",
+  "format_check_setting_scope": "The instance {tool} sets scope to \"{value}\"; it must be component or data.",
+  "format_check_setting_scope_formatter": "The instance {tool} sets scope data with the formatter {value}; only prettier has a data scope (JSON and YAML files).",
+  "format_check_no_data_files": "No JSON or YAML file (*.json, *.yml, *.yaml) was found in the project, so prettier has nothing to check.",
+  "format_check_limitation_prettier_data": "prettier --check on the JSON and YAML files found anywhere in the project (*.json, *.yml, *.yaml; dependency, build and cache folders are skipped), with the project's prettier configuration; .prettierignore decides which files count.",
   "format_check_missing": "{formatter} is not in the JGates tools image ({detail}). Download the tools of this JGates version (jgates setup); JGates never installs a tool on your machine.",
   "format_check_probe_failed": "{formatter} at {path} did not answer its version query.",
   "format_check_no_manifest": "No {file} was found in the component, so cargo fmt has no crate to check.",
@@ -20,5 +24,6 @@
   "format_check_limitation_prettier": "prettier --check with the project's configuration; .prettierignore and .gitignore decide which files count.",
   "format_check_limitation_gofmt": "gofmt -l lists the files whose formatting differs; gofmt has no options of its own.",
   "format_check_limitation_rustfmt": "cargo fmt --check formats the crate of the component with the project's rustfmt.toml.",
-  "format_check_limitation_dotnet": "dotnet format whitespace only (the rules of the project's .editorconfig); style and analyzer rules need a build and are not checked."
+  "format_check_limitation_dotnet": "dotnet format whitespace only (the rules of the project's .editorconfig): the component has no restored solution or project, and a run never writes to the project, so style and analyzer rules are not checked. Restore the project to get the full check.",
+  "format_check_limitation_dotnet_full": "dotnet format --verify-no-changes on the restored solution or project: whitespace, style and analyzers, with the rules of the project's .editorconfig. It runs with --no-restore, so the project must already be restored."
 }

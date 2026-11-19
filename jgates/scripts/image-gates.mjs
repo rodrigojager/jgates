@@ -2,16 +2,21 @@
 //   versions   /etc/jgates/image.json matches the pins of the Dockerfile and every adapter's toolVersionRange accepts
 //              the shipped version;
 //   licenses   an SPDX SBOM of the image made by the image's own Trivy, every component checked against
-//              docker/tools/license-policy.json (AGPL and unknown licenses fail);
+//              docker/tools/license-policy.json (AGPL and unknown licenses fail), and the declared license of every
+//              linter descriptor checked against the same policy (a GPL static binary is seen there);
 //   forbidden  no official semgrep rules, no CodeQL, no vulnerability database, no credential-looking file (a walk of
 //              the image filesystem plus gitleaks over the places a credential could be left);
-//   size       at most 7 GB uncompressed and 3 GB compressed; above it the five largest layers are listed;
+//   size       a report, never a failure (ADR-0020: no size budget): compressed and unpacked size, the ten largest
+//              layers and the difference from the previous report;
 //   scan       Trivy vulnerability scan of the image filesystem; a critical finding with a fix fails;
 //   smoke      `jgates ci` in `in-image` mode on a known-bad and a clean project of every validated row of the matrix
-//              (JGATES_SMOKE_GROUPS=a,b runs only those groups; JGATES_SMOKE_DIST mounts a working-tree build).
+//              and one group per linter descriptor group (lint-<group>, scan-<group>) from the descriptors' fixtures
+//              (--group a,b or JGATES_SMOKE_GROUPS=a,b runs only those groups; JGATES_SMOKE_DIST mounts a
+//              working-tree build).
 // Reports (SBOM, license report, scan report, one JSON per gate) go to the output folder.
 //
-// Usage (host):    node image-gates.mjs run [--image jgates-tools:dev] [--out <dir>] [--only gate,gate]
+// Usage (host):    node image-gates.mjs run [--image jgates-tools:dev] [--out <dir>] [--only gate,gate] [--group id,id]
+//                  (npm --prefix jgates run image:gates -- --only smoke --group lint-docker: one smoke group alone)
 // In the image:    node /gate/image-gates.mjs scan-forbidden <root> | smoke      (mounted read-only by `run`)
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
@@ -19,6 +24,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { assembledDockerfile, findInstall, installPins, readInstalls } from "./image-installs.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const packageRoot = path.resolve(here, "..");
@@ -26,7 +32,17 @@ export const repositoryRoot = path.resolve(packageRoot, "..");
 const toolsContext = path.join(packageRoot, "docker", "tools");
 const GB = 1024 ** 3;
 const DEFAULT_OUT = path.resolve(repositoryRoot, "..", "_work", "00-tmp", "v2-container-image");
-export const DEFAULT_BUDGET = { uncompressedBytes: 7 * GB, compressedBytes: 3 * GB };
+export const LINTERS_DIR = path.join(packageRoot, "src", "builtin", "linters");
+
+/** The linter descriptors (src/builtin/linters/<id>/linter.json), read as data: no build is needed. */
+export function readDescriptors(dir = LINTERS_DIR) {
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((id) => fs.existsSync(path.join(dir, id, "linter.json")))
+    .sort()
+    .map((id) => JSON.parse(fs.readFileSync(path.join(dir, id, "linter.json"), "utf8")));
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // 1. Versions
@@ -64,7 +80,19 @@ export function dockerfilePins(dockerfileText) {
   return pins;
 }
 
-/** Loads the built adapter manifests (jgates/dist/adapters/<id>/manifest.js) and the range checker of the CLI. */
+/**
+ * Every pin the image is built with: the toolchains' build arguments of the assembled Dockerfile and the pins of the
+ * install entries (the version of a binaries, go, cargo, dotnet or parts entry; the locked version of a Python, Node or
+ * Ruby package).
+ */
+export function imagePins({ dockerfileText = assembledDockerfile(), entries = readInstalls().entries } = {}) {
+  return { ...dockerfilePins(dockerfileText), ...installPins(entries) };
+}
+
+/**
+ * Loads the built adapter manifests (jgates/dist/adapters/<id>/manifest.js), the manifests of the linter descriptors
+ * (the engine of dist/adapters/linter) and the range checker of the CLI.
+ */
 export async function loadManifests(dist = path.join(packageRoot, "dist")) {
   const adaptersDir = path.join(dist, "adapters");
   const manifests = [];
@@ -75,6 +103,12 @@ export async function loadManifests(dist = path.join(packageRoot, "dist")) {
     for (const value of Object.values(module)) {
       if (value && typeof value === "object" && typeof value.toolName === "string" && "toolVersionRange" in value) manifests.push(value);
     }
+  }
+  const engine = path.join(adaptersDir, "linter", "index.js");
+  if (fs.existsSync(engine)) {
+    const { linterManifests } = await import(pathToFileURL(engine).href);
+    const seen = new Set(manifests.map((m) => m.id));
+    for (const manifest of linterManifests()) if (!seen.has(manifest.id)) manifests.push(manifest);
   }
   const semver = await import(pathToFileURL(path.join(dist, "core", "prepare", "semver.js")).href);
   return { manifests, satisfiesRange: semver.satisfiesRange };
@@ -195,6 +229,7 @@ export function compilePolicy(policy) {
     toolLevel: new Set(policy.declaredByTool.packageTypes),
     gpl: new Set((policy.gplPackages ?? []).map((entry) => entry.name)),
     resolved: new Map(Object.entries(policy.resolved ?? {})),
+    named: new Map((policy.namedExceptions ?? []).map((entry) => [entry.name, norm(entry.license)])),
   };
 }
 
@@ -211,6 +246,8 @@ export function judgeExpression(expression, compiled, { names = new Map(), osPac
     const name = id.startsWith("LicenseRef-") ? (names.get(id) ?? id) : id;
     const hit = compiled.forbidden.find((rx) => rx.test(name));
     if (hit) {
+      // A named exception of the policy: this one component, with exactly this license, decided by the user.
+      if (packageName && compiled.named.get(packageName) === norm(name)) return true;
       reasons.push(`${name}: forbidden (${hit.source})`);
       return false;
     }
@@ -313,6 +350,38 @@ export function checkLicenses({ sbom, policy }) {
   };
 }
 
+/**
+ * The declared license of every linter descriptor against the policy. A component the SBOM cannot see (a static binary
+ * carries no license data) is seen here: GPL is accepted only for a tool named in gplPackages or installed from
+ * Debian main (an apt entry), a forbidden license only for the tool a namedExceptions entry names, and an identifier
+ * outside the allow-list fails. `entries`: the install entries (the descriptor's `install` field names one).
+ */
+export function checkDescriptorLicenses({ descriptors, policy, entries = [] }) {
+  const compiled = compilePolicy(policy);
+  const findings = [];
+  for (const descriptor of descriptors) {
+    const install = findInstall(entries, descriptor.install ?? "");
+    const osPackage = install?.kind === "apt";
+    const names = [descriptor.id, descriptor.program?.tool, descriptor.install].filter(Boolean);
+    const gplName = names.find((name) => compiled.gpl.has(name));
+    const namedName = names.find((name) => compiled.named.has(name));
+    const verdict = judgeExpression(String(descriptor.license ?? ""), compiled, { osPackage, packageName: namedName ?? gplName ?? descriptor.id });
+    if (!verdict.ok) findings.push({ kind: "descriptor-license", tool: descriptor.id, license: descriptor.license, reasons: verdict.reasons, message: `${descriptor.id} [${descriptor.license}]: ${verdict.reasons.join("; ")}` });
+  }
+  return { gate: "descriptor-licenses", passed: findings.length === 0, checked: descriptors.length, findings };
+}
+
+/** The install entry a descriptor names must exist and provide the descriptor's program (a tool cannot be half-added). */
+export function checkDescriptorInstalls({ descriptors, entries }) {
+  const findings = [];
+  for (const descriptor of descriptors) {
+    const install = entries.find((entry) => entry.name === descriptor.install);
+    if (!install) findings.push({ kind: "install-missing", tool: descriptor.id, message: `${descriptor.id}: no install entry named ${descriptor.install} under jgates/docker/tools/ (PLAN-image.md section 3)` });
+    else if (!install.provides.some((provide) => provide.name === descriptor.program?.tool)) findings.push({ kind: "program-not-provided", tool: descriptor.id, message: `${descriptor.id}: the install entry ${install.file} does not provide ${descriptor.program?.tool} (its image.json name)` });
+  }
+  return { passed: findings.length === 0, findings };
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // 3. Forbidden content
 // ---------------------------------------------------------------------------------------------------------------------
@@ -413,17 +482,24 @@ export function scanForbidden(root, { prefix = "", allow = [], allowPatterns = [
 // 4. Size
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** `layers`: [{size, createdBy}] (bytes); `compressedBytes`: what a registry pull transfers. */
-export function checkSize({ layers, compressedBytes, budget = DEFAULT_BUDGET }) {
+/**
+ * The size report (ADR-0020: the image has no size budget, so this never fails). `layers`: [{size, createdBy}] (bytes);
+ * `compressedBytes`: what a registry pull transfers; `previous`: the last report ({uncompressedBytes, compressedBytes}),
+ * whose difference is shown.
+ */
+export function checkSize({ layers, compressedBytes, previous = null }) {
   const uncompressed = layers.reduce((sum, layer) => sum + layer.size, 0);
   const largest = [...layers]
     .sort((a, b) => b.size - a.size)
-    .slice(0, 5)
+    .slice(0, 10)
     .map((layer) => ({ sizeBytes: layer.size, size: formatBytes(layer.size), createdBy: String(layer.createdBy ?? "").replace(/\s+/g, " ").slice(0, 160) }));
-  const findings = [];
-  if (uncompressed > budget.uncompressedBytes) findings.push({ kind: "uncompressed-over-budget", message: `uncompressed size ${formatBytes(uncompressed)} is above the budget of ${formatBytes(budget.uncompressedBytes)}` });
-  if (compressedBytes !== undefined && compressedBytes > budget.compressedBytes) findings.push({ kind: "compressed-over-budget", message: `compressed size ${formatBytes(compressedBytes)} is above the budget of ${formatBytes(budget.compressedBytes)}` });
-  return { gate: "size", passed: findings.length === 0, uncompressedBytes: uncompressed, compressedBytes: compressedBytes ?? null, budget, findings, largestLayers: largest };
+  const delta = (now, before) => (typeof before === "number" && typeof now === "number" ? now - before : null);
+  const difference = previous
+    ? { uncompressedBytes: delta(uncompressed, previous.uncompressedBytes), compressedBytes: delta(compressedBytes ?? null, previous.compressedBytes) }
+    : null;
+  const signed = (bytes) => (bytes === null ? "?" : `${bytes >= 0 ? "+" : "-"}${formatBytes(Math.abs(bytes))}`);
+  const summary = `unpacked ${formatBytes(uncompressed)}, compressed ${compressedBytes === undefined ? "?" : formatBytes(compressedBytes)}${difference ? ` (${signed(difference.uncompressedBytes)} unpacked, ${signed(difference.compressedBytes)} compressed since the previous report)` : ""}`;
+  return { gate: "size", passed: true, report: true, uncompressedBytes: uncompressed, compressedBytes: compressedBytes ?? null, difference, summary, findings: [], largestLayers: largest };
 }
 
 export function formatBytes(bytes) {
@@ -537,7 +613,8 @@ export const SMOKE_GROUPS = [
   {
     id: "semgrep",
     caps: ["sast"],
-    covers: rowsOf("semgrep", ["sast"], ["python", "javascript", "typescript"]),
+    // The twin projects hold one folder per language of the pack, so the one run proves every row.
+    covers: rowsOf("semgrep", ["sast"], ["python", "javascript", "typescript", "go", "csharp", "rust", "java", "php"]),
     tools: tools("semgrep", "semgrep", ["sast"], "    rulePack: jgates\n"),
     bad: { copy: "semgrep-pack/vulnerable" },
     clean: { copy: "semgrep-pack/clean" },
@@ -671,6 +748,44 @@ export const SMOKE_GROUPS = [
   },
 ];
 
+/**
+ * One smoke group per linter descriptor group (section/group), from the descriptors' fixtures (PLAN-engine.md section
+ * 8): the bad project holds every tool's bad fixture and must fail with a finding of each tool, the clean one holds the
+ * clean twins and must pass. The group's id is its derived template (lint-markdown, scan-secrets); the policy switches
+ * on that template and each tool by name (a tool above the profile's tier runs only when named). Fixtures of two tools
+ * of one group must not share a file name.
+ */
+export function linterSmokeGroups(descriptors = readDescriptors()) {
+  const groups = new Map();
+  // A tool whose row is exempt (it needs the network or a data volume the offline smoke does not have) joins no group.
+  for (const d of descriptors.filter((d) => !SMOKE_EXEMPT[`${d.id}#${d.place.capability}@any`])) {
+    const key = `${d.place.section}/${d.place.group}`;
+    groups.set(key, [...(groups.get(key) ?? []), d]);
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, ds]) => {
+      const first = ds[0];
+      const id = `${first.place.section === "other" ? "scan" : "lint"}-${first.place.group}`;
+      const caps = [...new Set(ds.map((d) => d.place.capability))];
+      return {
+        id,
+        caps,
+        covers: ds.map((d) => `${d.id}#${d.place.capability}@any`),
+        templates: [id],
+        toolsOn: ds.map((d) => d.id),
+        eachTool: true,
+        bad: { copy: ds.map((d) => ({ from: `linters/${d.id}/bad`, to: "." })) },
+        clean: { copy: ds.map((d) => ({ from: `linters/${d.id}/clean`, to: "." })) },
+      };
+    });
+}
+
+/** Every smoke group: the fixed ones and one per linter descriptor group. */
+export function allSmokeGroups(descriptors = readDescriptors()) {
+  return [...SMOKE_GROUPS, ...linterSmokeGroups(descriptors)];
+}
+
 /** Rows that cannot run through `jgates ci` in an offline container with no services, each with the reason. */
 export const SMOKE_EXEMPT = {
   "go-test#properties@go": "the property library (rapid) is a dependency of the project, installed by the dependencies phase",
@@ -699,6 +814,12 @@ export const SMOKE_EXEMPT = {
   "performance#performance@python": "pytest-benchmark runs on the project's own pytest, a dependency installed by the dependencies phase into the dependency volume",
   "performance#performance@rust": "criterion is a crate of the project: it needs the dependency volume or the network",
   "performance#performance@csharp": "BenchmarkDotNet is a NuGet package of the project: it needs the dependency volume or the network",
+  // Linter descriptors (their rows are `<id>#<capability>@any`; an exempt one joins no derived group).
+  "v8r#lint@any": "downloads the SchemaStore catalog and the schemas while it runs: needs the network",
+  "kubeconform#lint@any": "downloads the schema of each resource kind while it runs: needs the network",
+  "dustilock#supply-chain@any": "asks the public package registries whether each name exists: needs the network",
+  "grype#dependencies@any": "needs the vulnerability database of the data volume (jgates-data), which an offline container does not have",
+  "kubescape#lint@any": "needs its control definitions from the data volume (jgates-data), which an offline container does not have",
 };
 
 /** Rows of the legacy quality gate's bridge, kept by the governed path and proven by the file-size projects. */
@@ -709,7 +830,7 @@ const BRIDGE_ROWS = new Set(["quality-bridge#file-size@any"]);
  * trust table (adapter -> {treatment}). Returns the rows with no group and no reason (`missing`), the rows of adapters a
  * policy is refused from using (`refused`), the exempt ones and the unknown names in the tables (`stale`).
  */
-export function smokeCoverage({ rows, trust, groups = SMOKE_GROUPS, exempt = SMOKE_EXEMPT }) {
+export function smokeCoverage({ rows, trust, groups = allSmokeGroups(), exempt = SMOKE_EXEMPT }) {
   const validated = rows.filter((row) => row.state === "validated");
   const covered = new Set([...groups.flatMap((group) => group.covers), ...BRIDGE_ROWS]);
   const refused = [];
@@ -730,12 +851,28 @@ function copyFixture(root, relative, target) {
   fs.cpSync(path.join(root, ...relative.split("/")), target, { recursive: true });
 }
 
-/** Writes the project of one side (bad or clean) of a group. */
-function writeProject(dir, side, fixtures) {
+/**
+ * Writes the project of one side (bad or clean) of a group. `executables`: the paths under tests/fixtures that Git
+ * records as executable. A folder bind-mounted from Windows shows every file as executable, so each copied file gets the
+ * mode Git records (what bash-exec checks); without the list (null) the copied modes stay.
+ */
+function writeProject(dir, side, fixtures, executables = null) {
   fs.mkdirSync(dir, { recursive: true });
   for (const entry of [side.copy ?? []].flat()) {
     const { from, to } = typeof entry === "string" ? { from: entry, to: "." } : entry;
-    copyFixture(fixtures, from, path.join(dir, ...to.split("/")));
+    const source = path.join(fixtures, ...from.split("/"));
+    const target = path.join(dir, ...to.split("/"));
+    copyFixture(fixtures, from, target);
+    if (!executables || !fs.statSync(source).isDirectory()) continue;
+    // Only the files this entry brought: walk its source and set the modes of their copies.
+    const walk = (folder, relative) => {
+      for (const item of fs.readdirSync(folder, { withFileTypes: true })) {
+        const rel = relative ? `${relative}/${item.name}` : item.name;
+        if (item.isDirectory()) walk(path.join(folder, item.name), rel);
+        else if (item.isFile()) fs.chmodSync(path.join(target, ...rel.split("/")), executables.has(`${from}/${rel}`) ? 0o755 : 0o644);
+      }
+    };
+    walk(source, "");
   }
   if (side.files) writeTree(dir, side.files);
   if (side.overlay) writeTree(dir, side.overlay);
@@ -745,7 +882,10 @@ function writeProject(dir, side, fixtures) {
 function writePolicy(dir, group) {
   // jgates ci always keeps the quality gate's file-size budgets on (POLICY_BUDGETS_DISABLED otherwise).
   const on = new Set(["file-size", ...group.caps]);
-  const checks = [...new Set([...PROFILE_CAPABILITIES, ...group.caps])].map((capability) => `      capability:${capability}:\n        enabled: ${on.has(capability)}\n`).join("");
+  const checks = [
+    ...[...new Set([...PROFILE_CAPABILITIES, ...group.caps])].map((capability) => `      capability:${capability}:\n        enabled: ${on.has(capability)}\n`),
+    ...(group.toolsOn ?? []).map((tool) => `      tool:${tool}:\n        enabled: true\n`),
+  ].join("");
   const templates = [{ id: "base", source: "builtin:base", activation: "always" }, ...(group.templates ?? []).map((id) => ({ id, source: `builtin:${id}`, activation: "always" }))];
   const list = templates.map((t) => `  - id: ${t.id}\n    source: ${t.source}\n    activation: ${t.activation}\n`).join("");
   const files = {
@@ -788,22 +928,25 @@ const SETTLED = new Set(["completed", "not_applicable", "disabled", "skipped"]);
  * Judges one project. The known-bad side must fail with a finding of the adapters the group proves; the clean side must
  * have none, with every stage of those adapters settled and at least one completed (a tool that errors, is blocked or is
  * missing is never a pass). An "incomplete" decision is fine on the clean side only because a self-reported adapter never
- * satisfies a requirement under jgates ci: it can fail the run, and that is what the bad side shows.
+ * satisfies a requirement under jgates ci: it can fail the run, and that is what the bad side shows. With `eachTool`
+ * (the groups of the linter descriptors) the bad side needs a finding of every adapter of the group, not of one.
  */
-const summarize = (project, ran, document, expected, adapters = null) => {
+export const summarize = (project, ran, document, expected, adapters = null, eachTool = false) => {
   const decision = document?.decision ?? null;
   const stages = (document?.stages ?? []).filter((s) => s.kind !== "composite");
   const ownStages = adapters ? stages.filter((s) => adapters.includes(s.adapter)) : stages;
   const findings = document?.findings ?? [];
   const ownFindings = adapters ? findings.filter((f) => adapters.includes(f.origin) || adapters.includes(f.tool)) : findings;
   const unsettled = ownStages.filter((s) => !SETTLED.has(s.state));
+  const silent = eachTool && adapters ? adapters.filter((a) => !ownFindings.some((f) => f.origin === a || f.tool === a)) : [];
   const ok =
     expected === "failed"
-      ? decision === "failed" && ownFindings.length > 0
+      ? decision === "failed" && ownFindings.length > 0 && silent.length === 0
       : (decision === "passed" || decision === "incomplete") && findings.length === 0 && unsettled.length === 0 && ownStages.some((s) => s.state === "completed");
   return {
     id: project,
     expected,
+    ...(expected === "failed" && silent.length > 0 ? { withoutFinding: silent } : {}),
     decision,
     complete: document?.complete ?? null,
     exitCode: ran.status,
@@ -819,8 +962,11 @@ const summarize = (project, ran, document, expected, adapters = null) => {
  * Runs inside the image: `jgates ci` on every smoke project. `groups` and `fixtures` come from the host (the groups
  * file and the read-only mount of tests/fixtures); `only` names the group ids to run (all by default).
  */
-export function smokeInImage({ groups = SMOKE_GROUPS, fixtures = "/fixtures", only, work = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-smoke-")) } = {}) {
+export function smokeInImage({ groups = SMOKE_GROUPS, fixtures = "/fixtures", only, executables = null, work = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-smoke-")) } = {}) {
   const results = [];
+  // The image user's home (/tmp/home) lives on the /tmp tmpfs, empty at the start: tools that need an existing home
+  // (dotnet, NuGet) would otherwise depend on an earlier group having created it.
+  if (process.env.HOME) fs.mkdirSync(process.env.HOME, { recursive: true });
   const home = path.join(work, "home");
   fs.mkdirSync(home, { recursive: true });
   // 1. The legacy bridge's file-size subcheck and the PII scan: per stack a clean and a known-bad project, with a budget of 20 lines.
@@ -846,13 +992,13 @@ export function smokeInImage({ groups = SMOKE_GROUPS, fixtures = "/fixtures", on
     writePolicy(policyDir, group);
     for (const [side, expected] of [["bad", "failed"], ["clean", "passed"]]) {
       const dir = path.join(work, `${group.id}-${side}`);
-      writeProject(dir, group[side], fixtures);
+      writeProject(dir, group[side], fixtures, executables);
       git(dir, "init", "-q");
       git(dir, "add", "-A");
       git(dir, "commit", "-qm", "smoke");
       const started = Date.now();
       const { ran, document } = runCi(dir, policyDir, home, 20 * 60_000);
-      results.push({ ...summarize(`${group.id}/${side}`, ran, document, expected, [...new Set(group.covers.map((row) => row.split("#")[0]))]), group: group.id, seconds: Math.round((Date.now() - started) / 1000) });
+      results.push({ ...summarize(`${group.id}/${side}`, ran, document, expected, [...new Set(group.covers.map((row) => row.split("#")[0]))], group.eachTool === true), group: group.id, seconds: Math.round((Date.now() - started) / 1000) });
       fs.rmSync(dir, { recursive: true, force: true });
     }
   }
@@ -873,8 +1019,9 @@ function docker(args, { input, allowFailure = false, timeout = 60 * 60_000 } = {
 }
 
 const hostPath = (p) => path.resolve(p);
-const MOUNT_SELF = (script) => ["-v", `${hostPath(script)}:/gate/image-gates.mjs:ro`];
-const BASE_RUN = ["run", "--rm", "--pull", "never", "--init", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--label", "org.jgates.managed=true", "--label", "org.jgates.kind=helper"];
+// The gates that run inside the image get this script and the module it imports (image-installs.mjs), side by side.
+const MOUNT_SELF = (script) => ["-v", `${hostPath(script)}:/gate/image-gates.mjs:ro`, "-v", `${hostPath(path.join(path.dirname(script), "image-installs.mjs"))}:/gate/image-installs.mjs:ro`];
+const BASE_RUN = ["run", "--rm", "--pull", "never", "--init", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--label", "org.jgates.managed=true", "--label", "org.jgates.kind=helper", "--label", "jproject.project=jgates"];
 
 function writeReport(outDir, name, document) {
   fs.writeFileSync(path.join(outDir, name), `${JSON.stringify(document, null, 2)}\n`);
@@ -885,7 +1032,7 @@ const self = fileURLToPath(import.meta.url);
 async function gateVersions({ image, outDir }) {
   const imageJson = JSON.parse(docker([...BASE_RUN, "--network", "none", image, "cat", "/etc/jgates/image.json"]).out);
   const { manifests, satisfiesRange } = await loadManifests();
-  const pins = dockerfilePins(fs.readFileSync(path.join(toolsContext, "Dockerfile"), "utf8"));
+  const pins = imagePins();
   const result = checkVersions({ imageJson, manifests, satisfiesRange, pins });
   writeReport(outDir, "image.json", imageJson);
   writeReport(outDir, "versions-report.json", result);
@@ -909,9 +1056,13 @@ async function gateLicenses({ image, outDir }) {
   const ran = trivyRun({ image, outDir, memory: "4g", args: ["--scanners", "license", "--license-full", "--format", "spdx-json", "--output", "/out/sbom.spdx.json"] });
   if (ran.code !== 0 || !fs.existsSync(sbomPath)) return { gate: "licenses", passed: false, findings: [{ kind: "sbom-failed", message: `Trivy could not write the SBOM: ${ran.err.trim().slice(-600)}` }] };
   const sbom = JSON.parse(fs.readFileSync(sbomPath, "utf8"));
-  const result = checkLicenses({ sbom, policy: loadPolicy() });
-  writeReport(outDir, "license-report.json", result);
-  return result;
+  const policy = loadPolicy();
+  const result = checkLicenses({ sbom, policy });
+  // The descriptors' declared licenses: what the SBOM cannot see in a static binary.
+  const descriptors = checkDescriptorLicenses({ descriptors: readDescriptors(), policy, entries: readInstalls().entries });
+  const combined = { ...result, passed: result.passed && descriptors.passed, descriptors, findings: descriptors.findings };
+  writeReport(outDir, "license-report.json", combined);
+  return combined;
 }
 
 async function gateScan({ image, outDir }) {
@@ -934,9 +1085,30 @@ async function gateSize({ image, outDir }) {
   const history = docker(["history", "--no-trunc", "--human=false", "--format", "{{json .}}", image]).out.split("\n").filter(Boolean).map((line) => JSON.parse(line));
   const layers = history.map((row) => ({ size: Number(row.Size), createdBy: row.CreatedBy }));
   const inspect = JSON.parse(docker(["image", "inspect", image]).out)[0];
-  const result = checkSize({ layers, compressedBytes: inspect.Size });
+  const reportPath = path.join(outDir, "size-report.json");
+  let previous = null;
+  try {
+    previous = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+  } catch {
+    previous = null;
+  }
+  const result = checkSize({ layers, compressedBytes: inspect.Size, previous });
   writeReport(outDir, "size-report.json", result);
+  console.log(`image:gates: size ${result.summary}`);
   return result;
+}
+
+let smokeOnly = null;
+
+/** The paths under tests/fixtures that Git records with mode 100755 (relative to tests/fixtures, with /). */
+export function fixtureExecutables() {
+  const listed = spawnSync("git", ["ls-files", "-s", "--", "tests/fixtures"], { cwd: packageRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  if (listed.status !== 0) throw new Error(`git ls-files could not list the fixtures: ${listed.stderr.trim()}`);
+  return listed.stdout
+    .split("\n")
+    .map((line) => line.match(/^100755 \S+ \d+\t(.+)$/)?.[1])
+    .filter(Boolean)
+    .map((file) => file.replace(/^tests\/fixtures\//, ""));
 }
 
 async function gateSmoke({ image, outDir }) {
@@ -944,13 +1116,22 @@ async function gateSmoke({ image, outDir }) {
   const dist = path.join(packageRoot, "dist");
   const matrix = await import(pathToFileURL(path.join(dist, "core", "matrix", "index.js")).href);
   const governed = await import(pathToFileURL(path.join(dist, "core", "governed", "trust.js")).href);
-  const coverage = smokeCoverage({ rows: matrix.buildMatrix().rows, trust: governed.ADAPTER_TRUST });
+  const groups = allSmokeGroups();
+  const coverage = smokeCoverage({ rows: matrix.buildMatrix().rows, trust: governed.ADAPTER_TRUST, groups });
   const problems = [
     ...coverage.missing.map((key) => ({ kind: "row-without-smoke", message: `the validated row ${key} has no smoke group and no stated reason (add one to SMOKE_GROUPS or SMOKE_EXEMPT)` })),
     ...coverage.stale.map((key) => ({ kind: "unknown-row", message: `${key} is named by the smoke tables but is not a validated row of the matrix` })),
   ];
-  const only = process.env.JGATES_SMOKE_GROUPS?.split(",").filter(Boolean);
-  const mounts = ["-v", `${hostPath(path.join(packageRoot, "tests", "fixtures"))}:/fixtures:ro`];
+  const only = (smokeOnly ?? process.env.JGATES_SMOKE_GROUPS)?.split(",").filter(Boolean);
+  const unknown = (only ?? []).filter((id) => id !== "bridge" && !groups.some((group) => group.id === id));
+  if (unknown.length > 0) problems.push(...unknown.map((id) => ({ kind: "unknown-group", message: `no smoke group ${id} (known: bridge, ${groups.map((g) => g.id).join(", ")})` })));
+  // The groups travel to the container as a file: the derived ones are computed here, from the descriptors.
+  const groupsFile = path.join(outDir, "smoke-groups.json");
+  fs.writeFileSync(groupsFile, `${JSON.stringify(groups)}\n`);
+  // The fixture files Git records as executable (a Windows bind mount shows every file as executable).
+  const modesFile = path.join(outDir, "smoke-modes.json");
+  fs.writeFileSync(modesFile, `${JSON.stringify(fixtureExecutables())}\n`);
+  const mounts = ["-v", `${hostPath(path.join(packageRoot, "tests", "fixtures"))}:/fixtures:ro`, "-v", `${hostPath(groupsFile)}:/gate/smoke-groups.json:ro`, "-v", `${hostPath(modesFile)}:/gate/smoke-modes.json:ro`];
   // Development: the CLI baked into the image is replaced by the build of this working tree (a real build bakes it in).
   if (process.env.JGATES_SMOKE_DIST) mounts.push("-v", `${hostPath(process.env.JGATES_SMOKE_DIST)}:/opt/jgates/jgates/dist:ro`);
   const ran = docker([...BASE_RUN, "--network", "none", "--read-only", "--tmpfs", "/tmp:exec,uid=10001,gid=10001,size=4g", "--memory", "6g", ...MOUNT_SELF(self), ...mounts, ...(only ? ["-e", `JGATES_SMOKE_GROUPS=${only.join(",")}`] : []), image, "node", "/gate/image-gates.mjs", "smoke"], { allowFailure: true, timeout: 4 * 60 * 60_000 });
@@ -962,7 +1143,7 @@ async function gateSmoke({ image, outDir }) {
   }
   result.findings = [...(result.findings ?? []), ...problems];
   result.passed = result.passed === true && problems.length === 0;
-  result.coverage = { groups: SMOKE_GROUPS.length, refused: coverage.refused, exempt: coverage.exempt };
+  result.coverage = { groups: groups.length, refused: coverage.refused, exempt: coverage.exempt, ...(only ? { only } : {}) };
   writeReport(outDir, "smoke-report.json", result);
   return result;
 }
@@ -970,8 +1151,9 @@ async function gateSmoke({ image, outDir }) {
 export const GATES = { versions: gateVersions, licenses: gateLicenses, forbidden: gateForbidden, size: gateSize, scan: gateScan, smoke: gateSmoke };
 
 /** Runs the gates (all of them, in order, even after a failure) and writes `gates-report.json`. */
-export async function runGates({ image = "jgates-tools:dev", outDir = DEFAULT_OUT, only } = {}) {
+export async function runGates({ image = "jgates-tools:dev", outDir = DEFAULT_OUT, only, groups } = {}) {
   fs.mkdirSync(outDir, { recursive: true });
+  smokeOnly = groups?.length ? groups.join(",") : null;
   const chosen = only?.length ? only : process.env.JGATES_IMAGE_GATES?.split(",").filter(Boolean);
   const names = chosen?.length ? chosen : Object.keys(GATES);
   const results = [];
@@ -1055,13 +1237,19 @@ if (process.argv[1] && path.resolve(process.argv[1]) === self) {
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } else if (command === "smoke") {
     const only = process.env.JGATES_SMOKE_GROUPS?.split(",").filter(Boolean);
-    process.stdout.write(`${JSON.stringify(smokeInImage({ ...(only?.length ? { only } : {}) }))}\n`);
+    const groupsFile = "/gate/smoke-groups.json";
+    const groups = fs.existsSync(groupsFile) ? JSON.parse(fs.readFileSync(groupsFile, "utf8")) : SMOKE_GROUPS;
+    const modesFile = "/gate/smoke-modes.json";
+    const executables = fs.existsSync(modesFile) ? new Set(JSON.parse(fs.readFileSync(modesFile, "utf8"))) : null;
+    process.stdout.write(`${JSON.stringify(smokeInImage({ groups, executables, ...(only?.length ? { only } : {}) }))}\n`);
   } else if (command === "run") {
-    const only = option(rest, "only")?.split(",");
-    const summary = await runGates({ image: option(rest, "image") ?? "jgates-tools:dev", outDir: option(rest, "out") ?? DEFAULT_OUT, only });
+    const groups = option(rest, "group")?.split(",").filter(Boolean);
+    // A smoke group alone: --group without --only runs the smoke gate only.
+    const only = option(rest, "only")?.split(",") ?? (groups?.length ? ["smoke"] : undefined);
+    const summary = await runGates({ image: option(rest, "image") ?? "jgates-tools:dev", outDir: option(rest, "out") ?? DEFAULT_OUT, only, groups });
     process.exitCode = summary.passed ? 0 : 1;
   } else {
-    console.error("usage: image-gates.mjs run [--image <ref>] [--out <dir>] [--only gate,gate] | scan-forbidden <root> [--allow a,b] | smoke");
+    console.error("usage: image-gates.mjs run [--image <ref>] [--out <dir>] [--only gate,gate] [--group id,id] | scan-forbidden <root> [--allow a,b] | smoke");
     process.exitCode = 2;
   }
 }

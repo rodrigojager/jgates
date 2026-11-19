@@ -7,6 +7,8 @@
 .history-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 .history-actions {display: flex; flex-wrap: wrap; gap: 6px; }
 .history-actions .btn { white-space: normal; font-size: 12px; padding: 6px 10px; }
-.history-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.history-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 18px; }
+.history-columns > section { min-width: 0; }
+[data-testid="history-compare"] { overflow-wrap: anywhere; }
 .history-findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .history-findings li { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); overflow-wrap: anywhere; }

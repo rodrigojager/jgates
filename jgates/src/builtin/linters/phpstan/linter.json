@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "phpstan",
+  "name": "phpstan",
+  "sourceUrl": "https://github.com/phpstan/phpstan",
+  "license": "MIT",
+  "program": {
+    "tool": "phpstan",
+    "versionRange": ">=2.0.0 <3.0.0"
+  },
+  "megalinter": [
+    "PHP_PHPSTAN"
+  ],
+  "place": {
+    "section": "language",
+    "group": "php",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".php"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "analyse",
+      "--no-progress",
+      "--no-ansi",
+      "--memory-limit=1G",
+      "--error-format=checkstyle",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "checkstyle"
+  },
+  "configuration": {
+    "files": [
+      "phpstan.neon",
+      "phpstan.neon.dist",
+      "phpstan.dist.neon"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "phpstan reads the project's phpstan.neon (or phpstan.neon.dist): the project decides the level, the paths and the ignored errors",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: @phpstan-ignore comments and the ignoreErrors of the configuration",
+      "pattern": "@phpstan-ignore",
+      "files": "\\.php$"
+    }
+  },
+  "install": "phpstan",
+  "text": {
+    "en": {
+      "label": "PHPStan (PHP)",
+      "purpose": "Static analysis of PHP: finds calls to functions that do not exist, wrong types, undefined variables and dead code without running the program.",
+      "limitation": "Without a project configuration it analyses at level 0, its default. It runs without the project's Composer dependencies (as MegaLinter did), so classes that come from vendor/ are unknown to it.",
+      "needs": "Nothing beyond the tools image (PHP and the tool's phar): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "PHPStan (PHP)",
+      "purpose": "Análise estática de PHP: acha chamadas a funções que não existem, tipos errados, variáveis indefinidas e código morto sem executar o programa.",
+      "limitation": "Sem configuração do projeto analisa no nível 0, o seu padrão. Roda sem as dependências do Composer do projeto (como o MegaLinter fazia), então classes que vêm de vendor/ são desconhecidas para ela.",
+      "needs": "Nada além da imagem de ferramentas (PHP e o phar da ferramenta): sem rede e sem as dependências do projeto."
+    }
+  }
+}

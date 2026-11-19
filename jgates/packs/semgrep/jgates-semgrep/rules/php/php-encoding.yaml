@@ -1,0 +1,471 @@
+# Original JGates rules. Intra-procedural request sources: PHP superglobals,
+# Laravel request() and $request/$req input/query/post/cookie/file methods,
+# Symfony $request/$req get() and query/request/cookies/files/headers bags.
+# Object sources intentionally require the conventional request/req variable name.
+# Only request-controlled $_SERVER keys are sources, not server configuration.
+# Regular expression sinks: preg_* functions and the mb_ereg family. Format sinks:
+# printf, sprintf, vprintf, vsprintf, fprintf.
+rules:
+  - id: jgates.php.regex-from-request
+    message: Request data is used as a regular expression. Escape it with preg_quote (passing the delimiter) before building the pattern.
+    severity: WARNING
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.9", "V1.3.12"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: preg_quote(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: "preg_match($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_match_all($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_replace($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_replace_callback($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_split($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "preg_grep($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "mb_ereg($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "mb_eregi($RE, ...)"
+          - focus-metavariable: $RE
+      - patterns:
+          - pattern: "mb_ereg_replace($RE, ...)"
+          - focus-metavariable: $RE
+
+  - id: jgates.php.redos-nested-quantifier
+    message: This regular expression has a quantified group that itself ends in a quantifier, which can backtrack catastrophically. Rewrite it without the nested quantifier, for example with an atomic or possessive form.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.12"]
+    patterns:
+      - pattern-either:
+          - pattern: preg_match($RE, ...)
+          - pattern: preg_match_all($RE, ...)
+          - pattern: preg_replace($RE, ...)
+          - pattern: preg_replace_callback($RE, ...)
+          - pattern: preg_split($RE, ...)
+          - pattern: preg_grep($RE, ...)
+      - focus-metavariable: $RE
+      - metavariable-regex:
+          metavariable: $RE
+          regex: (?s)^["'].*[^()\\][+*]\)[+*].*$
+
+  - id: jgates.php.format-string-from-request
+    message: Request data is used as the format string of a formatting function. Use a constant format string and pass the request data as an argument.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-134"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.10"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: str_replace("%", "%%", ...)
+    pattern-sinks:
+      - patterns:
+          - pattern: "printf($F, ...)"
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: "sprintf($F, ...)"
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: "vprintf($F, ...)"
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: "vsprintf($F, ...)"
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: "fprintf($H, $F, ...)"
+          - focus-metavariable: $F
+
+  - id: jgates.php.csv-formula-injection
+    message: Request data is written to a CSV field and may be interpreted as a spreadsheet formula. Prefix untrusted fields with a single quote before writing them.
+    severity: WARNING
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1236"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.10"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: "\"'\" . $X"
+    pattern-sinks:
+      - patterns:
+          - pattern: fputcsv($STREAM, $FIELDS, ...)
+          - focus-metavariable: $FIELDS
+
+  - id: jgates.php.memcache-key-from-request
+    message: Request data is used as a memcache key. Hash the value or encode spaces and control characters before using it as a protocol key.
+    severity: WARNING
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.9"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: hash("sha256", ...)
+      - pattern: rawurlencode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $CACHE = new Memcache(...);
+                  ...
+              - pattern-inside: |
+                  $CACHE = new Memcached(...);
+                  ...
+          - pattern: $CACHE->$METHOD($KEY, ...)
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: ^(get|set|add|replace|delete|increment|decrement|append|prepend|touch)$
+          - focus-metavariable: $KEY
+
+  - id: jgates.php.double-decoding
+    message: The same decoder is applied twice to a value. Repeated decoding can bypass validation performed after the first decode; decode once, then validate.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: injection
+      cwe: "CWE-174"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.1.1"]
+    pattern-either:
+      - pattern: urldecode(urldecode($X))
+      - pattern: rawurldecode(rawurldecode($X))
+      - pattern: html_entity_decode(html_entity_decode($X, ...), ...)
+      - pattern: htmlspecialchars_decode(htmlspecialchars_decode($X, ...), ...)
+      - pattern: base64_decode(base64_decode($X, ...), ...)
+      - patterns:
+          - pattern-inside: |
+              $FIRST = urldecode($X);
+              ...
+          - pattern: urldecode($FIRST)
+
+  - id: jgates.php.markdown-raw-html-enabled
+    message: A Markdown renderer explicitly allows raw HTML or disables safe mode. Escape raw HTML or sanitize the output with an allow-list sanitizer before rendering it.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    pattern-either:
+      - pattern: "new League\\CommonMark\\CommonMarkConverter(['html_input' => 'allow', ...], ...)"
+      - pattern: "new League\\CommonMark\\Environment\\Environment(['html_input' => 'allow', ...], ...)"
+      - patterns:
+          - pattern-inside: |
+              $MD = new Parsedown(...);
+              ...
+          - pattern: $MD->setSafeMode(false)
+
+  - id: jgates.php.markdown-raw-html-enabled-by-default
+    message: Parsedown renders Markdown without a visible safe-mode setting or output sanitizer in this function. If protection is not supplied elsewhere, enable setSafeMode(true) or sanitize the resulting HTML.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+      class: review
+    patterns:
+      - pattern-inside: |
+          function $F(...) {
+            ...
+            $MD = new Parsedown(...);
+            ...
+          }
+      - pattern: $MD->text(...)
+      - pattern-not-inside: |
+          function $F(...) {
+            ...
+            $MD->setSafeMode(true);
+            ...
+          }
+      - pattern-not-inside: |
+          function $F(...) {
+            ...
+            $MD->setSafeMode(false);
+            ...
+          }
+      - pattern-not-inside: |
+          function $F(...) {
+            ...
+            $HTML = $MD->text(...);
+            ...
+            $PURIFIER = new HTMLPurifier(...);
+            ...
+            $PURIFIER->purify($HTML);
+            ...
+          }
+      - pattern-not-inside: $PURIFIER->purify(...)
+
+  - id: jgates.php.url-parameter-unencoded
+    message: Request data is joined into URL text without a visible URL encoder. Confirm whether encoding happens elsewhere; otherwise use rawurlencode for a component or http_build_query for the query.
+    severity: INFO
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.2"]
+      class: review
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: rawurlencode(...)
+      - pattern: urlencode(...)
+      - pattern: http_build_query(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: '"$BASE" . $VALUE'
+          - metavariable-regex:
+              metavariable: $BASE
+              regex: ^["']?https?://.*[?=/&]
+          - focus-metavariable: $VALUE
+
+  - id: jgates.php.json-built-by-concatenation
+    message: Request data is joined into JSON text without a visible serializer. Confirm whether the value is already serialized; otherwise build an array or object and use json_encode.
+    severity: INFO
+    languages: [php]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.3"]
+      class: review
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: json_encode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: '"$PREFIX" . $VALUE'
+          - metavariable-regex:
+              metavariable: $PREFIX
+              regex: ^["']?\s*(?:\{.*:\s*"?|\[\s*"?)
+          - focus-metavariable: $VALUE

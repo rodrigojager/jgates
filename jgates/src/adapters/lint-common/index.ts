@@ -17,6 +17,7 @@ import { satisfiesRange } from "../../core/prepare/semver.js";
 import { DEFAULT_ENV_ALLOWLIST, runSpec, substituteTokens, type ExecutionResult } from "../../core/runner/index.js";
 import { stepViewOfPaths } from "../../core/runner/container.js";
 import type { AdapterContext, AdapterOutput, ResultFinding, ResultStage } from "../../core/run/types.js";
+import { SKIPPED_FOLDERS } from "../linter/census.js";
 
 export type LintLevel = "error" | "warning" | "info" | "style";
 
@@ -81,8 +82,8 @@ const ENV_ALLOWLIST: readonly string[] = [...DEFAULT_ENV_ALLOWLIST, ...TOOLCHAIN
 export const num = (v: string | undefined): number | undefined => (v === undefined ? undefined : Number.parseInt(v, 10));
 export const isRec = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** Folders no lint pass enters: dependencies, build output, caches and tool state. */
-const SKIPPED_FOLDERS = new Set(["node_modules", "vendor", "target", "bin", "obj", "dist", "build", "out", "venv", "__pycache__", "third_party"]);
+/** Folders no lint pass enters: dependencies, build output, caches and tool state (shared with the linter engine's census). */
+export { SKIPPED_FOLDERS };
 /** Beyond this many files the command line gets too long to be a reviewable plan: the plan says so instead of cutting the list. */
 export const MAX_FILES = 500;
 
@@ -152,7 +153,8 @@ export function workspaceRelative(printed: string, workspace: string, cwd: strin
 
 const SEVERITY: Record<LintLevel, "high" | "medium" | "low"> = { error: "high", warning: "medium", info: "low", style: "low" };
 
-export function toFindings(spec: LintSpec, diagnostics: LintDiagnostic[], opts: { stageId: string; version: string | null; workspace: string; cwd: string }): ResultFinding[] {
+/** `category` is the finding's category (default lint): the linter engine gives its tool's capability (secrets, sast...). */
+export function toFindings(spec: Pick<LintSpec, "manifest" | "tool" | "normalizePath">, diagnostics: LintDiagnostic[], opts: { stageId: string; version: string | null; workspace: string; cwd: string; category?: string }): ResultFinding[] {
   const seen = new Set<string>();
   const out: ResultFinding[] = [];
   for (const d of diagnostics) {
@@ -166,7 +168,7 @@ export function toFindings(spec: LintSpec, diagnostics: LintDiagnostic[], opts: 
       tool: spec.tool,
       ...(opts.version ? { toolVersion: opts.version } : {}),
       ruleId: d.ruleId,
-      category: "lint",
+      category: opts.category ?? "lint",
       severity: d.level,
       normalizedSeverity: SEVERITY[d.level],
       message: d.message,

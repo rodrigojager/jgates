@@ -2,6 +2,8 @@ import { Pill } from "../../components/common";
 import { formatDateTime } from "../../components/format";
 import { Icon } from "../../components/icons";
 import { formatLocale, t, tOr } from "../../i18n";
+import { AsvsReviewResults, type AsvsReviewReport } from "./AsvsReview";
+import { useReproduction, type ReproFinding, type ReproReport } from "./Reproduction";
 
 /** The report of GET /api/semantic/runs/:id/report (server/routes/semantic-views.ts). */
 export interface SemanticReport {
@@ -27,7 +29,13 @@ export interface SemanticReport {
   };
   scope: { subjects: number; toExamine: number; covered: number; repositoryFiles: number; claim: string | null; completion: number | null; repositoryCoverage: number | null; inheritedCoverage: string | null };
   investigation: { basis: string | null; subjects: number; examined: number; notExamined: number; gaps: Array<Record<string, unknown>> } | null;
-  findings: Array<{ severity: string; confirmation: string; category: string; message: string; path: string | null; line: number | null }>;
+  findings: Array<{ severity: string; confirmation: string; category: string; message: string; path: string | null; line: number | null } & ReproFinding>;
+  /** The ASVS review's answers (null when the run did not run that method). */
+  asvsReview?: AsvsReviewReport | null;
+  /** The run's methods read source code, so its needs-validation findings can be reproduced. */
+  reproducible?: boolean;
+  /** The reproduction state of the findings (and, for a reproduction run, the run it reproduces). */
+  reproduction?: ReproReport["reproduction"];
   confirmation: Record<string, number>;
   severity: Record<string, number>;
   usage: {
@@ -78,6 +86,8 @@ export function SemanticResultsView({ report }: { report: SemanticReport }) {
   const decision = report.decision ?? "-";
   const u = report.units;
   const exhausted = report.usage.budget?.exhausted ?? null;
+  const repro = useReproduction(report);
+  const showReproduction = repro.offered || report.findings.some((f) => f.reproduction && f.reproduction.state !== "none");
   return (
     <div className="stack" data-testid="semantic-results" data-decision={decision}>
       <section className="card flat stack" aria-labelledby="semres-outcome">
@@ -113,6 +123,8 @@ export function SemanticResultsView({ report }: { report: SemanticReport }) {
         </div>
       </section>
 
+      {report.asvsReview ? <AsvsReviewResults review={report.asvsReview} /> : null}
+
       <section className="card flat stack" aria-labelledby="semres-coverage">
         <h2 id="semres-coverage">{t("semres_coverage_title")}</h2>
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
@@ -143,6 +155,9 @@ export function SemanticResultsView({ report }: { report: SemanticReport }) {
       <section className="card flat stack" aria-labelledby="semres-findings">
         <h2 id="semres-findings">{t("semres_findings_title")}</h2>
         <p className="muted small">{t("semres_findings_lead")}</p>
+        {repro.note}
+        {repro.all}
+        {repro.panel}
         <div className="row wrap" style={{ gap: 6 }} data-testid="semres-confirmation">
           {(["confirmed", "needs-validation", "rejected"] as const).map((c) => (
             <Pill key={c} tone={CONFIRMATION_TONE[c]}>
@@ -161,6 +176,7 @@ export function SemanticResultsView({ report }: { report: SemanticReport }) {
                   <th scope="col">{t("semres_col_severity")}</th>
                   <th scope="col">{t("semres_col_confirmation")}</th>
                   <th scope="col">{t("semres_col_location")}</th>
+                  {showReproduction ? <th scope="col">{t("semres_col_reproduction")}</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -175,6 +191,7 @@ export function SemanticResultsView({ report }: { report: SemanticReport }) {
                       <Pill tone={CONFIRMATION_TONE[f.confirmation] ?? "blue"}>{tOr(`semres_confirmation_${f.confirmation}`, f.confirmation)}</Pill>
                     </td>
                     <td>{f.path ? <code>{f.line !== null ? `${f.path}:${f.line}` : f.path}</code> : "-"}</td>
+                    {showReproduction ? <td>{repro.cell(f)}</td> : null}
                   </tr>
                 ))}
               </tbody>

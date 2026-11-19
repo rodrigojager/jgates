@@ -11,6 +11,10 @@ import { readSemanticState, semanticPackageAvailable } from "../../adapters/sema
 import { translator } from "../../i18n/index.js";
 // The registry of investigation modules (importing it registers every built-in module, the security-audit baseline too).
 import { investigationModuleFor, SEMANTIC_MODULES, unavailableModules } from "../semantic-modules/index.js";
+import { REPRODUCTION_METHOD, confirmByReproductionModule } from "../semantic-modules/reproduction/index.js";
+import { ASVS_REVIEW_METHOD, ASVS_REVIEW_REFUSALS } from "../semantic-modules/asvs-review/index.js";
+import { DEFAULT_CALLS, type InvestigationModule } from "../semantic-executor/index.js";
+import { TEST_RECIPES } from "../regressions/runner.js";
 import { prepareScopeRun, resolveSemanticScope, scopeControls, type ScopeControls, type ScopeRequest, type SemanticPurpose, type SemanticRigor, type SemanticScopeResolution } from "../semantic-scope/index.js";
 import { semanticRunsDir } from "./store.js";
 
@@ -32,8 +36,11 @@ export function methodAvailable(id: string): boolean {
 }
 /** Methods that read the review context from the working tree (a context-only call, or a module's host tools). */
 const WORKING_TREE_METHODS: ReadonlySet<string> = new Set([GENERAL_REVIEW, SECURITY_AUDIT]);
-/** At most this many methods in one selection (each one becomes its own Semantic run). */
-export const MAX_SELECTED_METHODS = 9;
+/**
+ * At most this many methods in one selection (each one becomes its own Semantic run): every method of the catalog, so
+ * a method added to the registry is selectable together with the others without touching this limit.
+ */
+export const MAX_SELECTED_METHODS = SEMANTIC_MODULES.length;
 /** A method ID as the CLI, the API and the UI accept it. */
 export const METHOD_ID_PATTERN = "^[a-z][a-z0-9-]{1,63}$";
 
@@ -87,6 +94,54 @@ export interface PlannedMethod {
   applicability: MethodApplicability;
 }
 
+/** Which earlier run (and, optionally, which of its findings) confirm-by-reproduction starts from (CLI --from, --finding). */
+export interface ReproductionSelection {
+  /** The earlier Semantic run (sem_...); null: the newest earlier run with a needs-validation finding. */
+  from: string | null;
+  /** Candidate IDs of that run (C1...); empty: every needs-validation finding. */
+  findings: string[];
+}
+
+/**
+ * What a confirm-by-reproduction run will do, shown before it starts: how many findings it will try, the model calls it
+ * may spend (the budget of the run) and that it runs the project's tests in a container without network.
+ */
+export interface ReproductionPlan extends ReproductionSelection {
+  /** The earlier run the preview resolved (null when none could be). */
+  seedRun: string | null;
+  /** Findings the run will try (the run narrows it again to those with prepared dependencies). */
+  findingsToTry: number;
+  /** Findings of the earlier run it will not try, with the reason code each. */
+  skipped: Array<{ candidateId: string; code: string }>;
+  /** The model calls (and tokens) the run may spend at most. */
+  budget: { maxCalls: number; maxTokens: number | null };
+  /** Where the reproducers run: an ephemeral container of the tools image, without network, never on the host. */
+  execution: { where: "container"; network: "none"; host: false; runners: string[] };
+}
+
+/**
+ * What an asvs-review run will review, shown before it starts (the cost confirmation): the requirements of the project's
+ * ASVS level that the latest Quality run's map does not show as examined by a deterministic check and that are not
+ * recorded as not applicable, by chapter (one review context each), and the model calls the run may spend.
+ */
+export interface AsvsReviewPlan {
+  /** The Quality run whose map decided what is not examined (null when the plan was refused). */
+  qualityRun: string | null;
+  asvsVersion: string | null;
+  level: number | null;
+  /** How many requirements the run will review. */
+  count: number;
+  /** The requirement ids, in the order of the release file. */
+  requirements: string[];
+  /** The review units: one chapter each, one fresh context each. */
+  units: Array<{ id: string; requirements: string[] }>;
+  /** The model calls (and tokens) the run may spend at most. */
+  budget: { maxCalls: number; maxTokens: number | null };
+}
+
+/** The candidate ID form --finding accepts. */
+export const FINDING_ID_PATTERN = "^C[0-9]{1,4}$";
+
 export interface SemanticBudget {
   maxCalls: number | null;
   maxTokens: number | null;
@@ -133,6 +188,10 @@ export interface SemanticPlan {
   quality: { requirement: "none"; attached: string | null };
   ready: boolean;
   blockers: Array<{ code: string; message: string }>;
+  /** Only when confirm-by-reproduction is planned: what it starts from and what it will cost (absent in older plans). */
+  reproduction?: ReproductionPlan | null;
+  /** Only when asvs-review is planned: which requirements it reviews and what it may cost (absent in older plans). */
+  asvsReview?: AsvsReviewPlan | null;
 }
 
 export interface SemanticPlanRequest {
@@ -149,17 +208,49 @@ export interface SemanticPlanRequest {
   scope?: ScopeRequest | null;
   /** Methods named explicitly (in order); absent or empty: the purpose's methods. */
   methods?: readonly string[] | null;
+  /** The earlier run (and findings) confirm-by-reproduction starts from; only with that method. */
+  reproduction?: Partial<ReproductionSelection> | null;
+}
+
+/** The module of a planned method: confirm-by-reproduction with the plan's selection, else the registered module. */
+export function moduleForMethod(id: string, reproduction: ReproductionSelection | null | undefined): InvestigationModule | null {
+  const registered = investigationModuleFor([id]);
+  if (id !== REPRODUCTION_METHOD || !registered || !reproduction) return registered;
+  return confirmByReproductionModule({ ...(reproduction.from ? { from: reproduction.from } : {}), ...(reproduction.findings.length > 0 ? { findings: reproduction.findings } : {}) });
+}
+
+/** The module a plan runs (one method per run), with the plan's reproduction selection. */
+export function moduleForPlan(plan: Pick<SemanticPlan, "methods" | "reproduction">): InvestigationModule | null {
+  const ids = plan.methods.map((m) => m.id);
+  if (ids.length === 1 && ids[0] === REPRODUCTION_METHOD) return moduleForMethod(REPRODUCTION_METHOD, plan.reproduction ?? null);
+  return investigationModuleFor(ids);
+}
+
+/** The selection of a request, normalized (null when nothing was named), or the problem it has. */
+function reproductionSelection(raw: SemanticPlanRequest["reproduction"]): { value: ReproductionSelection | null } | { problem: string } {
+  if (!raw) return { value: null };
+  const from = typeof raw.from === "string" && raw.from.trim() !== "" ? raw.from.trim() : null;
+  const findings = [...new Set((raw.findings ?? []).map((f) => String(f).trim()).filter((f) => f !== ""))];
+  if (from !== null && !/^sem_[0-9]{8}T[0-9]{6}Z_[0-9a-f]{8}$/.test(from)) return { problem: from };
+  const bad = findings.find((f) => !new RegExp(FINDING_ID_PATTERN).test(f));
+  if (bad !== undefined) return { problem: bad };
+  if (from === null && findings.length === 0) return { value: null };
+  return { value: { from, findings } };
 }
 
 /**
  * The applicability of each method, as its module's own check answers on this scope (host-only, nothing is sent): the
  * same check the run does before any context starts, here without the run's provider settings (their read refusals).
  */
-function previewApplicability(ids: readonly string[], options: { workspacePath: string; resolution: SemanticScopeResolution; rigor: SemanticRigor; env: NodeJS.ProcessEnv; home: string; wsId: string }): Map<string, MethodApplicability> {
+function previewApplicability(
+  ids: readonly string[],
+  options: { workspacePath: string; resolution: SemanticScopeResolution; rigor: SemanticRigor; env: NodeJS.ProcessEnv; home: string; wsId: string; reproduction: ReproductionSelection | null; records?: Map<string, Record<string, unknown>> },
+): Map<string, MethodApplicability> {
   const out = new Map<string, MethodApplicability>();
-  const checked = ids.filter((id) => typeof investigationModuleFor([id])?.applicability === "function");
+  const moduleOf = (id: string): InvestigationModule | null => moduleForMethod(id, options.reproduction);
+  const checked = ids.filter((id) => typeof moduleOf(id)?.applicability === "function");
   for (const id of ids) {
-    const module = investigationModuleFor([id]);
+    const module = moduleOf(id);
     if (!methodAvailable(id)) out.set(id, { state: "unchecked", reason: "the method is not available in this build" });
     else if (!module?.applicability) out.set(id, { state: "always" });
   }
@@ -186,9 +277,10 @@ function previewApplicability(ids: readonly string[], options: { workspacePath: 
   // A folder that is never created: a module that looks at earlier runs sees the workspace's Semantic history.
   const runDir = path.join(semanticRunsDir(options.home, options.wsId), "plan-preview");
   for (const id of checked) {
-    const module = investigationModuleFor([id]);
+    const module = moduleOf(id);
     try {
-      const answer = module!.applicability!({ scope: prep, rigor: options.rigor, runDir, workspacePath: options.workspacePath, env: options.env, readableFiles: () => prep.guard.readable(), readable, readFile });
+      const answer = module!.applicability!({ scope: prep, rigor: options.rigor, runDir, workspacePath: options.workspacePath, env: options.env, home: options.home, readableFiles: () => prep.guard.readable(), readable, readFile });
+      if (answer.applicable && answer.record) options.records?.set(id, answer.record);
       out.set(id, answer.applicable ? { state: "applicable" } : { state: "not-applicable", code: answer.code, missing: answer.missing, reason: answer.reason.slice(0, 600) });
     } catch (error) {
       out.set(id, { state: "error", code: "APPLICABILITY_CHECK_FAILED", reason: error instanceof Error ? error.message.slice(0, 300) : String(error) });
@@ -261,7 +353,51 @@ export function buildSemanticPlan(request: SemanticPlanRequest): SemanticPlan {
   if (resolution.blockers.length === 0 && !resolution.workingTreeMatchesTarget && methodIds.some((id) => WORKING_TREE_METHODS.has(id))) {
     blockers.push({ code: "SCOPE_TARGET_NOT_CHECKED_OUT", message: ts("scope_plan_target_not_checked_out") });
   }
-  const applicability = previewApplicability(methodIds, { workspacePath, resolution, rigor, env, home, wsId });
+  // confirm-by-reproduction starts from an earlier run only when asked for: the selection never turns the method on.
+  const selected = reproductionSelection(request.reproduction);
+  const reproductionPlanned = methodIds.includes(REPRODUCTION_METHOD);
+  if ("problem" in selected) blockers.push({ code: "SEMANTIC_REPRODUCTION_BAD_SELECTION", message: t("semantic_blocker_reproduction_bad_selection", { value: selected.problem.slice(0, 90) }) });
+  else if (selected.value && !reproductionPlanned) blockers.push({ code: "SEMANTIC_REPRODUCTION_WITHOUT_METHOD", message: t("semantic_blocker_reproduction_without_method", { method: REPRODUCTION_METHOD }) });
+  const selection: ReproductionSelection | null = reproductionPlanned ? ("value" in selected && selected.value ? selected.value : { from: null, findings: [] }) : null;
+  const records = new Map<string, Record<string, unknown>>();
+  const applicability = previewApplicability(methodIds, { workspacePath, resolution, rigor, env, home, wsId, reproduction: selection, records });
+  let reproduction: ReproductionPlan | null = null;
+  if (selection) {
+    const record = records.get(REPRODUCTION_METHOD) ?? null;
+    const seedRun = record && typeof record.seedRun === "object" && record.seedRun !== null ? (record.seedRun as { runId?: unknown }).runId : null;
+    const skipped = Array.isArray(record?.skipped) ? (record.skipped as Array<{ candidateId?: unknown; code?: unknown }>) : [];
+    reproduction = {
+      ...selection,
+      seedRun: typeof seedRun === "string" ? seedRun : null,
+      findingsToTry: Array.isArray(record?.findings) ? record.findings.length : 0,
+      skipped: skipped.map((s) => ({ candidateId: String(s.candidateId ?? "-"), code: String(s.code ?? "-") })),
+      budget: { maxCalls: budget.maxCalls ?? DEFAULT_CALLS[rigor], maxTokens: budget.maxTokens },
+      execution: { where: "container", network: "none", host: false, runners: Object.keys(TEST_RECIPES) },
+    };
+  }
+  // asvs-review reviews what the latest Quality run's map left unexamined: without that run (or with nothing left) the
+  // plan is refused with the reason, before anything is sent.
+  let asvsReview: AsvsReviewPlan | null = null;
+  if (methodIds.includes(ASVS_REVIEW_METHOD)) {
+    const a = applicability.get(ASVS_REVIEW_METHOD);
+    const record = records.get(ASVS_REVIEW_METHOD) ?? null;
+    if (a?.state === "not-applicable" && a.code && (ASVS_REVIEW_REFUSALS as readonly string[]).includes(a.code)) {
+      blockers.push({ code: a.code, message: t(`semantic_blocker_${a.code.toLowerCase()}`, { method: ASVS_REVIEW_METHOD, detail: a.reason ?? "-" }) });
+    } else if (a?.state === "error") {
+      blockers.push({ code: a.code ?? "APPLICABILITY_CHECK_FAILED", message: t("semantic_blocker_asvs_review_check_failed", { method: ASVS_REVIEW_METHOD, detail: a.reason ?? "-" }) });
+    }
+    const units = Array.isArray(record?.units) ? (record.units as Array<{ id?: unknown; requirements?: unknown }>).map((u) => ({ id: String(u.id ?? "-"), requirements: Array.isArray(u.requirements) ? u.requirements.map(String) : [] })) : [];
+    const requirements = units.flatMap((u) => u.requirements);
+    asvsReview = {
+      qualityRun: typeof record?.qualityRun === "string" ? record.qualityRun : null,
+      asvsVersion: typeof record?.asvsVersion === "string" ? record.asvsVersion : null,
+      level: typeof record?.level === "number" ? record.level : null,
+      count: requirements.length,
+      requirements,
+      units,
+      budget: { maxCalls: budget.maxCalls ?? DEFAULT_CALLS[rigor], maxTokens: budget.maxTokens },
+    };
+  }
   const methods: PlannedMethod[] = methodIds.map((id) => {
     const info = catalog.find((m) => m.id === id);
     return { id, title: info?.title ?? id, available: methodAvailable(id), selectedBy: methodSelection, applicability: applicability.get(id) ?? { state: "unchecked" } };
@@ -269,7 +405,8 @@ export function buildSemanticPlan(request: SemanticPlanRequest): SemanticPlan {
   const scope = { controls: scopeControls(purpose), resolution };
   // The hash covers what decides the run: the method IDs, never the applicability preview (the run checks it again).
   // The purpose is only a shortcut for a method list, so it never enters the hash: `--purpose security` and `--method security-audit` plan the same run.
-  const planHash = contentHash({ v: 2, gate: "semantic", workspace: workspacePath, methods: methodIds.map((id) => ({ id })), settings, quality: attached, rigor, budget, scopeHash: resolution.scopeHash });
+  // The earlier run a reproduction starts from decides that run too (only then: other plans keep their hash).
+  const planHash = contentHash({ v: 2, gate: "semantic", workspace: workspacePath, methods: methodIds.map((id) => ({ id })), settings, quality: attached, rigor, budget, scopeHash: resolution.scopeHash, ...(selection && (selection.from || selection.findings.length > 0) ? { reproduction: selection } : {}) });
   return {
     schemaVersion: 1,
     gate: "semantic",
@@ -287,5 +424,7 @@ export function buildSemanticPlan(request: SemanticPlanRequest): SemanticPlan {
     quality: { requirement: "none", attached },
     ready: blockers.length === 0,
     blockers,
+    ...(reproduction ? { reproduction } : {}),
+    ...(asvsReview ? { asvsReview } : {}),
   };
 }

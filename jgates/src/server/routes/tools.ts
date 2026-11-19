@@ -16,6 +16,8 @@ import { createCoreCatalog } from "../../core/catalog/index.js";
 import { CustomToolError, INSTALL_METHODS, REPORT_FORMATS, hasExtension, installLines, planCustomTool, writeCustomTool, type CustomToolErrorCode, type CustomToolRequest } from "../../core/extension/index.js";
 import { engineCommand, engineRuntime, inspectImage, type EngineContext } from "../../core/engine/index.js";
 import { imageToolCatalogue, NOT_IMAGE_TOOLS } from "../../core/tools-image/index.js";
+import { loadLinters } from "../../adapters/linter/descriptor.js";
+import { activatedFiles, fileCensus, requiredFilePresent } from "../../adapters/linter/census.js";
 import fs from "node:fs";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
@@ -263,14 +265,31 @@ export const routes: RouteDefinition[] = [
       // The retired quality bridge is not a catalogue entry; what ships in the image says so, with its version.
       const modes = new Map(buildMatrix().adapters.map((a) => [a.id, a.distribution?.mode ?? null]));
       const languages = projectLanguages(server.projectDir);
+      // The engine's tools say where they belong (section, group, tier, what they are for) and what they are for in both
+      // languages; "this project" for them is the file census (a PHP project sees the PHP tools), not the languages.
+      const engine = new Map(loadLinters().map((l) => [l.descriptor.id, l.descriptor]));
+      const census = engine.size > 0 ? fileCensus(server.projectDir) : null;
       const adapters = toolCatalog()
         .filter((a) => !RETIRED_ADAPTERS.has(a.adapter))
-        .map((a) => ({
-          ...a,
-          origin: originOf(a.adapter, a.toolName, image?.tools ?? {}, modes.get(a.adapter) ?? null),
-          // 0: for a language of this project; 1: for any language; 2: for other languages only.
-          relevance: a.languages.length === 0 ? 1 : a.languages.some((l) => languages.has(languageKey(l))) ? 0 : 2,
-        }));
+        .map((a) => {
+          const d = engine.get(a.adapter);
+          const base = {
+            ...a,
+            origin: originOf(a.adapter, a.toolName, image?.tools ?? {}, modes.get(a.adapter) ?? null),
+            // 0: for a language of this project; 1: for any language; 2: for other languages only.
+            relevance: a.languages.length === 0 ? 1 : a.languages.some((l) => languages.has(languageKey(l))) ? 0 : 2,
+          };
+          if (!d || !census) return base;
+          const needs = d.activation.requires ?? [];
+          const here = (needs.length === 0 || requiredFilePresent(census, needs) !== null) && (d.activation.project === true || activatedFiles(census, d.activation).length > 0);
+          return {
+            ...base,
+            relevance: here ? 0 : 2,
+            place: { section: d.place.section, group: d.place.group, tier: d.place.tier, kind: d.place.kind },
+            purpose: { en: d.text.en.purpose, "pt-BR": d.text["pt-BR"].purpose },
+            network: d.run.network,
+          };
+        });
       return { status: 200, json: { schemaVersion: 1, status: "OK", projectLanguages: [...languages].sort(), adapters } };
     },
   },

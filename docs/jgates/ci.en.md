@@ -4,7 +4,7 @@ In CI the rules are not decided by the code being checked. `jgates ci` takes the
 
 ## The model
 
-- **Locally** you edit everything: `jgates.yml`, profiles, templates, waivers. It is your work area, and `jgates run` obeys it.
+- **Locally** you edit everything: `jgates.yml`, profiles, templates, waivers (`.jgates/waivers.json`). It is your work area, and `jgates run` obeys it.
 - **In CI** only the owner of the pipeline defines the rules. The configuration comes from the policy folder (`--policy` or `JGATES_POLICY_DIR`), and the project's own `jgates.yml` and `.jgates/` are never read.
 - The policy is pinned by `JGATES_POLICY_SHA256`, a protected CI variable. If the hash of the policy folder differs, nothing runs (exit 3).
 - The commit is analyzed in a clean copy, so files that are not in the commit do not count.
@@ -39,6 +39,8 @@ The command in both is the same:
 ```bash
 jgates ci --policy <policy-folder> --sarif jgates.sarif
 ```
+
+`jgates ci` is unchanged by the project waivers: it applies only the waivers of the pinned policy, never the project's `.jgates/waivers.json`, and it refuses `--waiver` and `--no-waivers`. For a deploy flow outside the governed mode that must accept no waiver at all, run `jgates run --no-waivers`.
 
 The policy is checked out **outside** the project: on GitHub, two `actions/checkout` steps (`path: project` and `path: policy`) and the command runs in `project`; on GitLab, the project is `$CI_PROJECT_DIR` and the policy is cloned into `$CI_BUILDS_DIR`. A policy inside the analyzed project is refused with `POLICY_INSIDE_PROJECT`.
 
@@ -76,7 +78,7 @@ The services of the project follow the policy too: a host bind mount, a privileg
 
 Exit 3, before anything runs:
 
-- `--skip`, `--only`, `--waiver`, `--no-cache`, `--plan`, `--path` and `--template`: the job cannot choose its own rules;
+- `--skip`, `--only`, `--waiver`, `--no-waivers`, `--no-cache`, `--plan`, `--path` and `--template`: the job cannot choose its own rules;
 - `--bridge-mode quick` or `offline`, and `--scope paths`;
 - a policy without `JGATES_POLICY_SHA256`, with a different hash, with symbolic links or with references outside its folder;
 - a quality policy that turns off or loosens the mandatory budgets;
@@ -93,9 +95,20 @@ Some results depend on code the project controls, so they are not trusted:
 | --- | --- |
 | trusted | The tool reads the code without running it. Counts normally. |
 | self-reported | The tool executes project code (tests, linters that load project files). The result is marked `selfReported` and only approves if the policy sets `execution.trustSelfReported: true` (default: false). |
-| excluded | Tools that read configuration or ignore files from the analyzed tree by themselves. The native scanners (gitleaks, trivy, osv-scanner, checkov, jscpd, dependency-cruiser, import-linter) do not run on their own in `jgates ci`: the hardened quality gate bridge already covers them. Of MegaLinter only the verified linters run, the ones listed as `trusted` or `self-reported` in `quality-gate/sidecar/config/megalinter-linters.json`; the others are left out. |
+| excluded | Tools that read configuration or ignore files from the analyzed tree by themselves. The native scanners (gitleaks, trivy, osv-scanner, checkov, jscpd, dependency-cruiser, import-linter) do not run on their own in `jgates ci`: the hardened quality gate bridge already covers them. MegaLinter does not run: the tools image has none, and its linters are JGates tools of their own, each `trusted` or `self-reported` by its descriptor (the bridge's `megalinter` subcheck is always off and is not reported as missing). |
 
 Suppressions written in the code (comments that silence a finding) become the step `jgates-ci.suppressions`, so they appear in the result instead of disappearing. Coverage reports that arrive inside the commit are refused, because the project supplied them.
+
+An enabled self-reported tool can fail the gate with findings even when the policy does not trust a clean result. Trusted descriptors use governed inputs. Governed runs skip the in-code suppression audit. Network-dependent steps require policy opt-in with `execution.network: allow`. For example, TruffleHog verification sends candidate credentials to their issuers, while Kingfisher detection-only mode runs without network access. See the [tool catalog](tools.en.md).
+
+## Review findings and exit codes
+
+The Semgrep pack has four classes: `ERROR`, `WARNING`, ordinary `INFO` and **Review**.
+Review findings appear under **To review**, separately from blocking and informational findings. They never block
+and never change the exit code, including governed CI, any profile and any rigor. **Mark as reviewed** is a
+per-occurrence waiver action, not approval of an ASVS requirement, and Review alone never produces
+"approved with N waivers". Governed CI still accepts only the pinned policy's waivers, never the project's.
+See [Quality integrations](quality-integrations.en.md) and [the ASVS map](asvs-coverage.en.md).
 
 ## Protect the pipeline
 

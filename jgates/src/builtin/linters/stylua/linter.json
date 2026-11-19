@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "stylua",
+  "name": "StyLua",
+  "sourceUrl": "https://github.com/JohnnyMorganz/StyLua",
+  "license": "MPL-2.0",
+  "program": {
+    "tool": "stylua",
+    "versionRange": ">=2.0.0 <3.0.0"
+  },
+  "megalinter": [
+    "LUA_STYLUA"
+  ],
+  "place": {
+    "section": "language",
+    "group": "lua",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".lua"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--check",
+      "--output-format",
+      "summary",
+      "--color",
+      "Never",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "files",
+    "pattern": "^(?<file>.+\\.lua)$",
+    "rule": "stylua.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      "stylua.toml",
+      ".stylua.toml",
+      ".editorconfig"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "StyLua reads the project's stylua.toml or .stylua.toml (and .editorconfig when it has no file of its own): the project decides the layout",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: -- stylua: ignore comments",
+      "pattern": "--\\s*stylua:\\s*ignore",
+      "files": "\\.lua$"
+    }
+  },
+  "install": "stylua",
+  "text": {
+    "en": {
+      "label": "StyLua (Lua formatting)",
+      "purpose": "Checks that Lua files follow StyLua's layout (spacing, quotes, line width, call parentheses); a file StyLua would rewrite is reported.",
+      "limitation": "It names the file, not the line; run StyLua locally without --check to rewrite the files. Without a stylua.toml it uses its own defaults.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "StyLua (formatação de Lua)",
+      "purpose": "Verifica se os arquivos Lua seguem o layout do StyLua (espaçamento, aspas, largura de linha, parênteses de chamadas); um arquivo que o StyLua reescreveria é apontado.",
+      "limitation": "Aponta o arquivo, não a linha; rode o StyLua localmente sem --check para reescrever os arquivos. Sem um stylua.toml ele usa os próprios padrões.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

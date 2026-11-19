@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "checkov",
+      "link": "checkov",
+      "path": "bin/checkov",
+      "version": [
+        "checkov",
+        "--version"
+      ]
+    }
+  ]
+}

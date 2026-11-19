@@ -1,0 +1,24 @@
+{
+  "version": "1.7.12",
+  "url": "https://github.com/rhysd/actionlint/releases/download/v{version}/actionlint_{version}_linux_amd64.tar.gz",
+  "sha256": "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8",
+  "archive": "tar.gz",
+  "extract": {
+    "actionlint": "actionlint",
+    "LICENSE.txt": "LICENSE.txt"
+  },
+  "executable": [
+    "actionlint"
+  ],
+  "provides": [
+    {
+      "name": "actionlint",
+      "link": "actionlint",
+      "path": "actionlint",
+      "version": [
+        "actionlint",
+        "-version"
+      ]
+    }
+  ]
+}

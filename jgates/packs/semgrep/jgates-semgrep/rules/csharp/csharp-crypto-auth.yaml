@@ -1,0 +1,68 @@
+rules:
+  - id: jgates.csharp.weak-hash
+    message: MD5 and SHA-1 are broken for security use. Use SHA-256 or a password hashing function.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.1"]
+    pattern-either:
+      - pattern: MD5.Create()
+      - pattern: SHA1.Create()
+      - pattern: MD5.HashData(...)
+      - pattern: SHA1.HashData(...)
+      - pattern: new MD5CryptoServiceProvider(...)
+      - pattern: new SHA1CryptoServiceProvider(...)
+      - pattern: new SHA1Managed(...)
+      - pattern: HashAlgorithm.Create("MD5")
+      - pattern: HashAlgorithm.Create("SHA1")
+
+  - id: jgates.csharp.weak-cipher
+    message: DES, 3DES, RC2 and the ECB mode are weak. Use AES-GCM or ChaCha20-Poly1305.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.1", "V11.3.2"]
+    pattern-either:
+      - pattern: DES.Create()
+      - pattern: TripleDES.Create()
+      - pattern: RC2.Create()
+      - pattern: new DESCryptoServiceProvider(...)
+      - pattern: new TripleDESCryptoServiceProvider(...)
+      - pattern: new RC2CryptoServiceProvider(...)
+      - pattern: $C.Mode = CipherMode.ECB;
+
+  - id: jgates.csharp.tls-verification-disabled
+    message: Certificate validation is turned off. Keep validation on and trust a private CA through the certificate store.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-295"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.3.2"]
+    pattern-either:
+      - pattern-regex: ServerCertificate(Custom)?ValidationCallback\s*\+?=\s*(\([^)]*\)|\w+)\s*=>\s*true\b
+      - pattern-regex: ServerCertificateCustomValidationCallback\s*=\s*HttpClientHandler\.DangerousAcceptAnyServerCertificateValidator
+
+  - id: jgates.csharp.token-validation-disabled
+    message: A token check is switched off, so a forged or expired token can be accepted. Keep every validation flag on.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V6.8.2", "V9.1.1", "V9.2.1", "V9.2.3", "V10.3.1"]
+    pattern-either:
+      - pattern-regex: Validate(IssuerSigningKey|Issuer|Audience|Lifetime)\s*=\s*false\b
+      - pattern-regex: RequireSignedTokens\s*=\s*false\b

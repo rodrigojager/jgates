@@ -1,0 +1,27 @@
+openapi: 3.0.3
+info:
+  title: Sample API
+  version: 1.0.0
+  description: A small sample API.
+  contact:
+    name: Sample team
+    url: https://example.com/contact
+  license:
+    name: MIT
+    url: https://opensource.org/license/mit
+servers:
+  - url: https://api.example.com
+tags:
+  - name: health
+    description: Health checks.
+paths:
+  /ping:
+    get:
+      operationId: ping
+      summary: Ping the service
+      description: Returns pong.
+      tags:
+        - health
+      responses:
+        '200':
+          description: pong

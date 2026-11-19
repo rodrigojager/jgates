@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "psscriptanalyzer-formatter",
+  "name": "PSScriptAnalyzer formatter",
+  "sourceUrl": "https://github.com/PowerShell/PSScriptAnalyzer",
+  "license": "MIT",
+  "program": {
+    "tool": "psscriptanalyzer",
+    "command": "pwsh",
+    "versionRange": ">=1.25.0 <2.0.0"
+  },
+  "megalinter": [
+    "POWERSHELL_POWERSHELL_FORMATTER"
+  ],
+  "place": {
+    "section": "language",
+    "group": "powershell",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".ps1",
+      ".psm1",
+      ".psd1",
+      ".ps1xml",
+      ".pssc",
+      ".psrc",
+      ".cdxml"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-CommandWithArgs",
+      "$ErrorActionPreference = 'Stop'; Import-Module /opt/tools/parts/powershell/modules/PSScriptAnalyzer/PSScriptAnalyzer.psd1; $settings = @{}; if (Test-Path -LiteralPath '.powershell-formatter.psd1') { $settings.Settings = (Resolve-Path -LiteralPath '.powershell-formatter.psd1').Path }; foreach ($file in $args) { $text = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $file).Path); $formatted = Invoke-Formatter -ScriptDefinition $text @settings; if ($formatted -ne $text) { $file } }",
+      "{files}"
+    ],
+    "env": {
+      "HOME": "/tmp",
+      "POWERSHELL_TELEMETRY_OPTOUT": "1",
+      "POWERSHELL_UPDATECHECK": "Off",
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "files",
+    "rule": "psscriptanalyzer-formatter.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".powershell-formatter.psd1"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "the formatter reads the project's .powershell-formatter.psd1 settings file, else the module's default code-formatting preset: the project decides the layout",
+    "suppressions": {
+      "honoured": false,
+      "description": "not honored: the formatter has no in-code suppression"
+    }
+  },
+  "install": "powershell",
+  "text": {
+    "en": {
+      "label": "PSScriptAnalyzer formatter (PowerShell)",
+      "purpose": "Checks that PowerShell files already have the layout the PSScriptAnalyzer formatter would give them: indentation, braces, spacing and casing.",
+      "limitation": "It only reports the files the formatter would change and never rewrites them; it reads the project's .powershell-formatter.psd1 when there is one, else the default preset.",
+      "needs": "Nothing beyond the tools image (PowerShell and the module are in it): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Formatador PSScriptAnalyzer (PowerShell)",
+      "purpose": "Confere se os arquivos PowerShell já têm o layout que o formatador do PSScriptAnalyzer daria: indentação, chaves, espaçamento e maiúsculas.",
+      "limitation": "Só informa os arquivos que o formatador mudaria e nunca os reescreve; lê o .powershell-formatter.psd1 do projeto quando existe, senão o preset padrão.",
+      "needs": "Nada além da imagem de ferramentas (o PowerShell e o módulo já estão nela): sem rede e sem as dependências do projeto."
+    }
+  }
+}

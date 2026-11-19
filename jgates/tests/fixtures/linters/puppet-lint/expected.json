@@ -1,0 +1,12 @@
+{
+  "files": [
+    "motd/manifests/init.pp"
+  ],
+  "findings": [
+    {
+      "rule": "double_quoted_strings",
+      "file": "motd/manifests/init.pp",
+      "line": 5
+    }
+  ]
+}

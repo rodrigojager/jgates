@@ -22,6 +22,23 @@ function git(dir, ...args) {
   return spawnSync("git", args, { cwd: dir, encoding: "utf8" });
 }
 
+test("fixture teardown requests bounded native retries without changing its target or recursive/force semantics", (t) => {
+  const calls = [];
+  t.mock.method(fs, "rmSync", (...args) => calls.push(args));
+  removeFixture("exact-fixture-path");
+  assert.deepEqual(calls, [["exact-fixture-path", { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }]]);
+});
+
+for (const code of ["EPERM", "EIO"]) {
+  test(`fixture teardown propagates ${code === "EPERM" ? "exhausted transient" : "unrelated"} errors unchanged`, (t) => {
+    const error = Object.assign(new Error("fixture removal failed"), { code });
+    let calls = 0;
+    t.mock.method(fs, "rmSync", () => { calls++; throw error; });
+    assert.throws(() => removeFixture("exact-fixture-path"), (thrown) => thrown === error);
+    assert.equal(calls, 1, "the fixture delegates bounded retries to Node; it never swallows or restarts failed removal");
+  });
+}
+
 test("main fixture has the three components, each with its stack manifest", () => {
   const { dir } = createMainFixture();
   try {

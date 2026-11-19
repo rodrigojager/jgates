@@ -1,0 +1,288 @@
+# Errors, logging and availability for Go.
+# Libraries covered: log, log/slog, logrus, zap (including the sugared logger) and zerolog for the logging rules;
+# net/http (http.Error, ResponseWriter, http.Client), gin, echo and fiber for the response rules; runtime/debug for
+# stack traces.
+rules:
+  - id: jgates.go.sensitive-data-logged
+    message: A value named like a password, a secret, a token or an authorization header is passed to a logging call, so it ends up in the log files. Log an identifier or a masked form instead, or leave the value out.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $L.$M(..., $X, ...)
+          - pattern: $L.$M(..., fmt.Sprintf(..., $X, ...), ...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: (?i)^([A-Za-z_]\w*\.)*(log|slog|logger|\w*logger|logrus|sugar|sugared|zap|zlog)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(Print|Printf|Println|Fatal|Fatalf|Fatalln|Panic|Panicf|Panicln|Debug|Debugf|Debugw|Info|Infof|Infow|Warn|Warnf|Warnw|Warning|Warningf|Error|Errorf|Errorw|DPanic|DPanicf|DPanicw|Log|DebugContext|InfoContext|WarnContext|ErrorContext)$
+      - metavariable-regex:
+          metavariable: $X
+          regex: ^([A-Za-z_]\w*\.)*((?i:(\w*_)?(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(_\w*)?)|[a-z]*(Password|Passwd|Passphrase|Senha|Secret|ApiKey|APIKey|PrivateKey|ClientSecret|Segredo|Token|JWT|Jwt|SessionID|SessionId|OTP|Otp|Nonce|Salt|CSRF|Csrf|ResetCode|VerificationCode|ActivationCode|SSN|CPF|CNPJ|CardNumber|CVV|IBAN|Authorization)([A-Z]\w*)?)$
+
+  - id: jgates.go.sensitive-data-logged-key
+    message: A value is logged under a key named like a password, a secret, a token or an authorization header, so it ends up in the log files. Log an identifier or a masked form instead, or leave the field out.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: $L.$M(..., $K, $V, ...)
+              - metavariable-regex:
+                  metavariable: $L
+                  regex: (?i)^([A-Za-z_]\w*\.)*(log|slog|logger|\w*logger|logrus|sugar|sugared|zap|zlog)$
+              - metavariable-regex:
+                  metavariable: $M
+                  regex: ^(Debugw|Infow|Warnw|Errorw|DPanicw|Debug|Info|Warn|Error|Log|DebugContext|InfoContext|WarnContext|ErrorContext|WithField)$
+          - patterns:
+              - pattern: $Z.$F($K, $V)
+              - metavariable-regex:
+                  metavariable: $Z
+                  regex: ^(zap|slog|log|zlog)$
+              - metavariable-regex:
+                  metavariable: $F
+                  regex: ^(String|Any|Reflect|Stringer|Str|Interface)$
+          - patterns:
+              - pattern: $Z.Str($K, $V)
+      - metavariable-regex:
+          metavariable: $K
+          regex: ^"(?i:(\w*_)?(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(_\w*)?)"$
+      - metavariable-regex:
+          metavariable: $V
+          regex: ^[^"`]
+
+  - id: jgates.go.sensitive-data-logged-header
+    message: The Authorization header of the request is passed to a logging call, so the credential ends up in the log files. Log the request path or a request id instead.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $L.$M(..., $R.Header.Get("Authorization"), ...)
+          - pattern: $L.$M(..., $R.Header["Authorization"], ...)
+          - pattern: $L.$M(..., $R.GetHeader("Authorization"), ...)
+          - pattern: $L.$M(..., $R.Get("Authorization"), ...)
+          - pattern: $L.$M(..., $R.Request().Header.Get("Authorization"), ...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: (?i)^([A-Za-z_]\w*\.)*(log|slog|logger|\w*logger|logrus|sugar|sugared|zap|zlog)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(Print|Printf|Println|Fatal|Fatalf|Fatalln|Panic|Panicf|Panicln|Debug|Debugf|Debugw|Info|Infof|Infow|Warn|Warnf|Warnw|Warning|Warningf|Error|Errorf|Errorw|DPanic|DPanicf|DPanicw|Log|DebugContext|InfoContext|WarnContext|ErrorContext)$
+
+  - id: jgates.go.stack-trace-in-response
+    message: A stack trace is written to the HTTP response, which tells the caller about the code and the server. Log the trace on the server and return a generic error message.
+    severity: ERROR
+    languages: [go]
+    mode: taint
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    pattern-sources:
+      - pattern: debug.Stack()
+    pattern-sinks:
+      - patterns:
+          - pattern: $W.Write($X)
+          - metavariable-regex:
+              metavariable: $W
+              regex: (?i)^(w|rw|res|resp|response|writer|wr|\w*\.Response|\w*\.Writer|\w*ResponseWriter)$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: fmt.Fprint($W, $X, ...)
+          - metavariable-regex:
+              metavariable: $W
+              regex: (?i)^(w|rw|res|resp|response|writer|wr|\w*\.Response|\w*\.Writer|\w*ResponseWriter)$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: fmt.Fprintf($W, $F, ..., $X, ...)
+          - metavariable-regex:
+              metavariable: $W
+              regex: (?i)^(w|rw|res|resp|response|writer|wr|\w*\.Response|\w*\.Writer|\w*ResponseWriter)$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: io.WriteString($W, $X)
+          - metavariable-regex:
+              metavariable: $W
+              regex: (?i)^(w|rw|res|resp|response|writer|wr|\w*\.Response|\w*\.Writer|\w*ResponseWriter)$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: http.Error($W, $X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $C.String($N, $X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $C.JSON($N, $X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $C.Data($N, $T, $X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $C.SendString($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $C.Send($X)
+          - focus-metavariable: $X
+
+  - id: jgates.go.error-detail-in-response
+    message: The message of an error is written to the HTTP response, which can expose paths, queries and internals. Log the error on the server and return a generic error message.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    patterns:
+      - pattern-either:
+          - pattern: http.Error($W, $E.Error(), ...)
+          - patterns:
+              - pattern-either:
+                  - pattern: fmt.Fprint($W, $E.Error(), ...)
+                  - pattern: fmt.Fprintf($W, $F, ..., $E.Error(), ...)
+                  - pattern: fmt.Fprintf($W, $F, ..., $E, ...)
+                  - pattern: io.WriteString($W, $E.Error())
+                  - pattern: $W.Write([]byte($E.Error()))
+              - metavariable-regex:
+                  metavariable: $W
+                  regex: (?i)^(w|rw|res|resp|response|writer|wr|\w*\.Response|\w*\.Writer|\w*ResponseWriter)$
+          - pattern: $C.String($N, $E.Error(), ...)
+          - pattern: '$C.JSON($N, gin.H{..., "$K": $E.Error(), ...})'
+          - pattern: '$C.JSON($N, gin.H{..., "$K": $E, ...})'
+          - pattern: '$C.JSON(fiber.Map{..., "$K": $E.Error(), ...})'
+          - pattern: '$C.JSON($N, map[string]string{..., "$K": $E.Error(), ...})'
+          - pattern: $C.SendString($E.Error())
+      - metavariable-regex:
+          metavariable: $E
+          regex: ^(err|e|error|\w+Err|\w+_err)$
+
+  - id: jgates.go.swallowed-exception
+    message: An error is checked and then dropped, with no log, no handling and no return of the error, so the failure goes unseen. Log it, handle it or return it to the caller.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: error-handling
+      cwe: "CWE-390"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.3.4", "V16.5.3"]
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if $E != nil {
+              }
+          - pattern: |
+              if $S; $E != nil {
+              }
+          - pattern: |
+              if $E != nil {
+                return nil
+              }
+      - metavariable-regex:
+          metavariable: $E
+          regex: ^(err|e|\w+Err|\w+_err|err\w*)$
+
+  - id: jgates.go.outbound-request-follows-redirects
+    message: An address from the incoming request is passed to an HTTP client without a visible redirect policy, so redirects are followed by default. If no other protection validates each hop, the first host can redirect the server to another address; set CheckRedirect to reject redirects or confirm where each destination is checked.
+    severity: INFO
+    languages: [go]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.2"]
+      class: review
+    pattern-sources:
+      - patterns:
+          - pattern-inside: |
+              func $F(..., $R *http.Request, ...) {
+                ...
+              }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.Header.Get(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: http.$M($URL, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Get|Head|Post|PostForm)$
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: $CLIENT.$M($URL, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Get|Head|Post|PostForm)$
+          - pattern-either:
+              - pattern-inside: |
+                  $CLIENT := &http.Client{...}
+                  ...
+              - pattern-inside: |
+                  $CLIENT := http.Client{...}
+                  ...
+          - pattern-not-inside: |
+              $CLIENT := &http.Client{..., CheckRedirect: $POLICY, ...}
+              ...
+          - pattern-not-inside: |
+              $CLIENT := http.Client{..., CheckRedirect: $POLICY, ...}
+              ...
+          - pattern-not-inside: |
+              $CLIENT.CheckRedirect = $POLICY
+              ...
+          - focus-metavariable: $URL
+
+  - id: jgates.go.http-client-without-timeout
+    message: An outbound HTTP call is made with no timeout, and this library waits forever by default, so one slow server can hang the goroutine. Use an http.Client with a Timeout, or a request with a context deadline.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: availability
+      cwe: "CWE-400"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.2", "V13.2.6", "V15.2.2"]
+    pattern-either:
+      - patterns:
+          - pattern: http.$M(...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Get|Post|PostForm|Head)$
+      - patterns:
+          - pattern: http.DefaultClient.$M(...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(Do|Get|Post|PostForm|Head)$
+      - patterns:
+          - pattern-either:
+              - pattern: 'http.Client{...}'
+              - pattern: '&http.Client{...}'
+          - pattern-not: 'http.Client{..., Timeout: $T, ...}'
+          - pattern-not: '&http.Client{..., Timeout: $T, ...}'
+      - pattern: 'http.Client{..., Timeout: 0, ...}'
+      - pattern: '&http.Client{..., Timeout: 0, ...}'

@@ -30,7 +30,7 @@ const tmp = (prefix) => {
  * { stdout, stderr, code } | "hang" }). On Windows it is an npm-style .cmd shim (so the shim path is exercised), on
  * POSIX an executable script with node in the shebang.
  */
-function stubCli(dir, name, behaviour) {
+function stubCli(dir, name, behaviour, logFile) {
   const script = path.join(dir, "node_modules", name, "cli.js");
   fs.mkdirSync(path.dirname(script), { recursive: true });
   fs.writeFileSync(
@@ -38,6 +38,8 @@ function stubCli(dir, name, behaviour) {
     [
       `const table = ${JSON.stringify(behaviour)};`,
       `const key = process.argv.slice(2).join(" ");`,
+      // Every start of the stub is recorded (one line per process), so a test can count the processes.
+      logFile ? `require("node:fs").appendFileSync(${JSON.stringify(logFile)}, ${JSON.stringify(name)} + " " + key + "\\n");` : "",
       `const b = table[key];`,
       `if (b === "hang") { setInterval(() => {}, 1000); }`,
       `else if (!b) { process.stderr.write("unknown command " + key + "\\n"); process.exit(2); }`,
@@ -296,4 +298,129 @@ test("saving the project's provider patches jgates.yml > extensions.semantic-gat
   } finally {
     delete process.env.JGATES_POLICY_DIR;
   }
+});
+
+// ---- the detection cache (DC1) ----------------------------------------------------------------------------------------
+
+const STUB_VARS = ["PATH", "Path", "HOME", "USERPROFILE", "CODEX_HOME", "CLAUDE_CONFIG_DIR", "XDG_CONFIG_HOME"];
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+/** How many stub processes of `name` ran (every line of the log is one start), optionally only for one argument line. */
+const starts = (log, name, args) => (fs.existsSync(log) ? fs.readFileSync(log, "utf8").split("\n") : []).filter((l) => (args === undefined ? l.startsWith(`${name} `) : l === `${name} ${args}`)).length;
+
+test("the route answers from the detection cache: one start of the CLIs for two requests, refresh and only=<id> replace entries, the login drops one", async () => {
+  const { routes } = await mod("server/routes/providers.js");
+  const { setTerminalSpawner, clearCliStatusCache } = await mod("core/providers/cli-status.js");
+  const status = routes.find((r) => r.method === "GET" && r.path === "/api/providers/cli-status");
+  const login = routes.find((r) => r.method === "POST" && r.path === "/api/providers/:name/login");
+  const bin = tmp("jgates-cli-cache-");
+  const log = path.join(bin, "starts.log");
+  stubCli(bin, "claude", { "--version": { stdout: "2.1.321 (Claude Code)\n" }, "auth status": CLAUDE_OK }, log);
+  stubCli(bin, "codex", { "--version": { stdout: "codex-cli 0.167.0\n" }, "login status": { stdout: "Logged in using ChatGPT\n" }, "debug models": { stdout: JSON.stringify({ models: [{ slug: "gpt-listed", visibility: "list" }] }) } }, log);
+  const { env } = stubEnv(bin);
+  const saved = Object.fromEntries(STUB_VARS.map((k) => [k, process.env[k]]));
+  try {
+    for (const k of STUB_VARS) process.env[k] = env[k];
+    clearCliStatusCache();
+    const by = (answer) => Object.fromEntries(answer.json.providers.map((p) => [p.id, p]));
+
+    const first = await status.handler({ query: {} });
+    const afterFirst = starts(log, "claude") + starts(log, "codex");
+    assert.ok(afterFirst >= 5, "the first request started the stubs: version and status of both, the model listing of codex");
+    assert.equal(starts(log, "codex", "debug models"), 1, "the model listing is part of the same detection");
+    const firstBy = by(first);
+    for (const id of ["claude-code", "codex-cli", "opencode", "gemini-cli"]) assert.match(firstBy[id].checkedAt, /^\d{4}-\d\d-\d\dT/, `${id} carries its checkedAt`);
+    assert.deepEqual(firstBy["codex-cli"].models.list, ["gpt-listed"]);
+
+    // A second request, whole or with the models: no process at all, the same checkedAt, the same models.
+    const second = await status.handler({ query: {} });
+    assert.equal(starts(log, "claude") + starts(log, "codex"), afterFirst, "the second request starts no CLI");
+    assert.deepEqual(second.json.providers, first.json.providers);
+    const fast = await status.handler({ query: { models: "0" } });
+    assert.ok(fast.json.providers.every((p) => p.models === null), "models=0 leaves the listings out of a cached answer");
+    assert.equal(fast.json.providers.find((p) => p.id === "codex-cli").checkedAt, firstBy["codex-cli"].checkedAt);
+    assert.equal(starts(log, "codex", "debug models"), 1, "the model list did not run again (no 60-second cache of its own)");
+
+    // refresh=1 detects all of them again and replaces the entries.
+    await sleep(15);
+    const refreshed = await status.handler({ query: { refresh: "1" } });
+    assert.equal(starts(log, "claude") + starts(log, "codex"), afterFirst * 2, "refresh=1 starts every CLI again");
+    assert.notEqual(by(refreshed)["codex-cli"].checkedAt, firstBy["codex-cli"].checkedAt);
+    const again = await status.handler({ query: {} });
+    assert.deepEqual(again.json.providers, refreshed.json.providers, "the refreshed entries are what the cache holds now");
+
+    // only=<id>&refresh=1 replaces one entry and leaves the others.
+    await sleep(15);
+    const total = starts(log, "claude") + starts(log, "codex");
+    const claudeRuns = starts(log, "claude");
+    const one = await status.handler({ query: { only: "codex-cli", refresh: "1" } });
+    assert.equal(one.json.providers.length, 1);
+    assert.equal(starts(log, "claude"), claudeRuns, "claude is untouched");
+    assert.equal(starts(log, "claude") + starts(log, "codex"), total + 3, "only codex ran again: version, status, model listing");
+    const all = by(await status.handler({ query: {} }));
+    assert.equal(all["claude-code"].checkedAt, by(refreshed)["claude-code"].checkedAt, "the other entries were left alone");
+    assert.equal(all["codex-cli"].checkedAt, one.json.providers[0].checkedAt);
+    assert.notEqual(all["codex-cli"].checkedAt, by(refreshed)["codex-cli"].checkedAt);
+
+    // The login route drops that CLI's entry: the next request detects only that CLI again.
+    setTerminalSpawner(async () => {});
+    const claudeBefore = starts(log, "claude");
+    const codexBefore = starts(log, "codex");
+    const loginAnswer = await login.handler({ params: { name: "codex-cli" }, server: { policyMode: false, log() {} } });
+    assert.equal(loginAnswer.json.opened, true);
+    await sleep(15);
+    const afterLogin = by(await status.handler({ query: {} }));
+    assert.equal(starts(log, "claude"), claudeBefore, "claude's entry stayed");
+    assert.equal(starts(log, "codex"), codexBefore + 3, "codex was detected again after its login terminal opened");
+    assert.notEqual(afterLogin["codex-cli"].checkedAt, all["codex-cli"].checkedAt);
+    assert.equal(afterLogin["claude-code"].checkedAt, all["claude-code"].checkedAt);
+  } finally {
+    setTerminalSpawner(null);
+    for (const [k, v] of Object.entries(saved)) if (v === undefined) delete process.env[k];
+    else process.env[k] = v;
+  }
+});
+
+test("a detection that hangs or fails is never cached, and two requests at once start the CLIs once", async () => {
+  const { cachedCliProvidersStatus, clearCliStatusCache } = await mod("core/providers/cli-status.js");
+  clearCliStatusCache();
+  const bin = tmp("jgates-cli-nocache-");
+  const log = path.join(bin, "starts.log");
+  // claude: its status command hangs (TIMEOUT). codex: its model listing fails (COMMAND_FAILED). opencode: answers fully.
+  stubCli(bin, "claude", { "--version": { stdout: "2.1.321 (Claude Code)\n" }, "auth status": "hang" }, log);
+  stubCli(bin, "codex", { "--version": { stdout: "codex-cli 0.167.0\n" }, "login status": { stdout: "Logged in using ChatGPT\n" }, "debug models": { stderr: "boom\n", code: 3 } }, log);
+  stubCli(bin, "opencode", { "--version": { stdout: "v2.2.5\n" }, "auth list": { stdout: "1 credentials\n" }, models: { stdout: "openai/gpt-x\n" } }, log);
+  const { env } = stubEnv(bin);
+  const options = { env, timeoutMs: 1_500, modelsTimeoutMs: 5_000 };
+
+  const first = await cachedCliProvidersStatus(options);
+  const by = Object.fromEntries(first.providers.map((p) => [p.id, p]));
+  assert.equal(by["claude-code"].login.reason, "TIMEOUT");
+  assert.equal(by["codex-cli"].models.problem, "COMMAND_FAILED");
+  const claudeRuns = starts(log, "claude");
+  const codexRuns = starts(log, "codex");
+  const opencodeRuns = starts(log, "opencode");
+  await cachedCliProvidersStatus(options);
+  assert.equal(starts(log, "claude"), claudeRuns * 2, "a CLI whose status hung is detected again");
+  assert.equal(starts(log, "codex"), codexRuns * 2, "a CLI whose model listing failed is detected again");
+  assert.equal(starts(log, "opencode"), opencodeRuns, "a CLI that answered stays cached");
+
+  // Two requests at once on a cold cache share one detection.
+  clearCliStatusCache();
+  const before = starts(log, "opencode");
+  const [a, b] = await Promise.all([cachedCliProvidersStatus({ ...options, only: ["opencode"] }), cachedCliProvidersStatus({ ...options, only: ["opencode"] })]);
+  assert.equal(starts(log, "opencode"), before + opencodeRuns, "one detection, not two");
+  assert.equal(a.providers[0].checkedAt, b.providers[0].checkedAt);
+});
+
+test("jgates providers detects live: cliProvidersStatus ignores the cache", async () => {
+  const { cachedCliProvidersStatus, cliProvidersStatus, clearCliStatusCache } = await mod("core/providers/cli-status.js");
+  clearCliStatusCache();
+  const bin = tmp("jgates-cli-live-");
+  const log = path.join(bin, "starts.log");
+  stubCli(bin, "opencode", { "--version": { stdout: "v2.2.5\n" }, "auth list": { stdout: "1 credentials\n" }, models: { stdout: "openai/gpt-x\n" } }, log);
+  const { env } = stubEnv(bin);
+  await cachedCliProvidersStatus({ env, only: ["opencode"] });
+  const warm = starts(log, "opencode");
+  await cliProvidersStatus({ env, only: ["opencode"], models: false });
+  assert.ok(starts(log, "opencode") > warm, "the live detection started the CLI although the cache is warm");
 });

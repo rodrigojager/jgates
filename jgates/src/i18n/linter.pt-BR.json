@@ -1,0 +1,16 @@
+{
+  "linter_requires": "{tool} só roda onde existe a configuração dele, e nenhuma foi encontrada na raiz do workspace ({files}): não se aplica aqui.",
+  "linter_no_files": "Nenhum arquivo que o {tool} verifica foi encontrado no workspace: não se aplica aqui.",
+  "linter_missing": "{tool} não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
+  "linter_condition_read_only": "Somente leitura: a ferramenta relata o que encontra e não reescreve nada.",
+  "linter_no_invocation": "O plano não tem invocação para a instância {tool}.",
+  "linter_blocked": "{tool} não pôde rodar: {detail}",
+  "linter_cancelled": "A execução foi cancelada; {tool} foi parado e a saída parcial ficou nos logs.",
+  "linter_timeout": "{tool} passou do limite de {seconds} s e foi encerrado.",
+  "linter_exit_error": "{tool} terminou com o código {code} sem um resultado que o JGates consiga ler: {detail}",
+  "linter_truncated": "a saída foi truncada",
+  "linter_each_file_loop": "o laço sobre os arquivos não terminou",
+  "linter_each_file_markers": "a saída do laço sobre os arquivos não nomeia todos os arquivos",
+  "linter_no_report": "o relatório {file} não foi escrito",
+  "linter_reason_completed": "{tool} {version}: {count, plural, one {# achado} other {# achados}}"
+}

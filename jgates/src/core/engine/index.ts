@@ -72,6 +72,7 @@ export interface EngineLabelInput {
 export function engineLabels(input: EngineLabelInput): Record<string, string> {
   return {
     ...(input.extra ?? {}),
+    "jproject.project": "jgates",
     [LABEL_MANAGED]: "true",
     [LABEL_KIND]: input.kind,
     [LABEL_VERSION]: input.version,

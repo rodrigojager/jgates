@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "kingfisher",
+  "name": "kingfisher",
+  "sourceUrl": "https://github.com/mongodb/kingfisher",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "kingfisher",
+    "versionRange": ">=2.19.0 <3.0.0"
+  },
+  "megalinter": [
+    "REPOSITORY_KINGFISHER"
+  ],
+  "place": {
+    "section": "other",
+    "group": "secrets",
+    "capability": "secrets",
+    "kind": "scan",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "scan",
+      "--git-history",
+      "none",
+      "--no-validate",
+      "--no-update-check",
+      "--no-rule-cache",
+      "--redact",
+      "--quiet",
+      "--format",
+      "sarif",
+      "--output",
+      "{report}",
+      "{workspace}"
+    ],
+    "env": {
+      "HOME": "/tmp"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        200
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "file",
+    "file": "kingfisher.sarif",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "kingfisher runs with its built-in rules; the project has no configuration file for it, so the project does not choose the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: a kingfisher:ignore comment on the line",
+      "pattern": "kingfisher:ignore",
+      "files": ".*"
+    }
+  },
+  "install": "kingfisher",
+  "text": {
+    "en": {
+      "label": "kingfisher (secrets)",
+      "purpose": "Scans the project's files for secrets with its built-in rules for cloud, source-control, payment and other service credentials. The secret itself is hidden in the report.",
+      "limitation": "It scans the files of the project, not its Git history, and does not check a found secret against its provider (that is switched off, so every finding is unconfirmed). It has no project configuration file.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "kingfisher (segredos)",
+      "purpose": "Procura nos arquivos do projeto segredos, com regras embutidas para credenciais de nuvem, controle de versão, pagamento e outros serviços. O segredo em si fica oculto no relatório.",
+      "limitation": "Examina os arquivos do projeto, não o histórico do Git, e não confere o segredo encontrado com o provedor (isso fica desligado, então todo achado é não confirmado). Não tem arquivo de configuração do projeto.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

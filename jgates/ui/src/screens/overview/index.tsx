@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatRunWhen } from "../../components/format";
 import { fetchEnvironmentState, useRecheckOnFocus, type EnvironmentReason, type EnvironmentState } from "../../api/environment";
+import { NewChecks } from "../../components/NewChecks";
 import { DoctorAvatar } from "../../components/DoctorAvatar";
 import { PrerequisitesBar } from "../../components/PrerequisitesBar";
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
@@ -9,6 +10,7 @@ import { ErrorNotice, Loading, Pill, useAsync } from "../../components/common";
 import { Icon, type IconName } from "../../components/icons";
 import { getLocale, t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
+import { approvedWithWaiversText, isApprovedWithWaivers, type Approval } from "../validations-result/ResultView";
 import "./overview.css";
 
 export const screen: ScreenMeta = { id: "overview", path: "/overview", area: "overview", order: 0, icon: "home" };
@@ -25,6 +27,8 @@ interface Stage {
 interface LastRun {
   runId: string;
   decision: string;
+  /** "Approved with N waivers" numbers, computed by the server. */
+  approval?: Approval;
   complete?: boolean;
   partial?: boolean;
   /** Partial and its process still beats: the run is going on now. */
@@ -54,6 +58,8 @@ interface Overview {
   plan: { planHash: string | null; approvable: boolean; blocked: string | null; uncovered: Array<{ selector: string; category: string | null; reason: string; message: string }> };
   categories: Category[];
   lastRun: LastRun | null;
+  /** The checks of the plan that the last finished validation did not run (empty without a validation before). */
+  newChecks?: Array<{ tool: string; label: string }>;
   /** What to do after a validation that did not pass: read its result. */
   nextStep?: { kind: "open-result"; runId: string; decision: string; route: string } | null;
 }
@@ -109,12 +115,14 @@ function LastRunCard({ run, image }: { run: LastRun | null; image: { id?: string
     );
   }
   const decision = run.running ? "running" : run.decision in DECISION_TONE ? run.decision : "unknown";
+  // A run that passed with waivers is "Approved with N waivers" here too, never a plain approval.
+  const withWaivers = !run.running && run.decision === "passed" && isApprovedWithWaivers(run.approval);
   return (
     <div className="card" data-testid="last-run">
       <div className="between">
-        <Pill tone={run.running ? "blue" : (DECISION_TONE[run.decision] ?? "blue")}>
-          <Icon name={run.running ? "refresh" : run.decision === "passed" ? "check" : "alert"} />
-          {t(`overview_decision_${decision}`)}
+        <Pill tone={run.running || withWaivers ? "blue" : (DECISION_TONE[run.decision] ?? "blue")}>
+          <Icon name={run.running ? "refresh" : withWaivers ? "info" : run.decision === "passed" ? "check" : "alert"} />
+          <span data-testid="last-run-decision" data-kind={withWaivers ? "passed-waivers" : decision}>{withWaivers ? approvedWithWaiversText(run.approval as Approval) : t(`overview_decision_${decision}`)}</span>
         </Pill>
         <span className="small muted">{runWhen(run.runId)}</span>
       </div>
@@ -385,6 +393,11 @@ export default function OverviewScreen() {
         <div>
           <h1>{t("overview_title")}</h1>
           <p>{t("overview_subtitle")}</p>
+          <p className="small">
+            <a href="#/validations/coverage/asvs" data-testid="asvs-link">
+              {t("overview_asvs_link")}
+            </a>
+          </p>
         </div>
         <a className="btn primary" href="#/validations/choose" data-testid="new-run">
           <Icon name="play" />
@@ -448,6 +461,7 @@ export default function OverviewScreen() {
                   {t("overview_history")} <Icon name="chevron" />
                 </a>
               </div>
+              <NewChecks checks={data.newChecks} where="overview" />
               <LastRunCard run={data.lastRun} image={env && env.sections.image.state === "ready" ? (env.sections.image as { id?: string; version?: string }) : null} />
             </section>
             <section>

@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "shellcheck"
+  ],
+  "provides": [
+    {
+      "name": "shellcheck",
+      "path": "/usr/bin/shellcheck",
+      "version": [
+        "shellcheck",
+        "--version"
+      ],
+      "pattern": "version: (\\S+)"
+    }
+  ]
+}

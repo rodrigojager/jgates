@@ -1,0 +1,10 @@
+{
+  "files": ["files.php"],
+  "ruleIds": [
+    "jgates.php.upload-client-filename-in-path",
+    "jgates.php.archive-extraction-unchecked",
+    "jgates.php.request-body-without-size-limit",
+    "jgates.php.upload-content-type-trusted",
+    "jgates.php.content-disposition-from-request"
+  ]
+}

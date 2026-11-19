@@ -3,14 +3,19 @@
 import fs from "node:fs";
 import path from "node:path";
 import { translator } from "../../i18n/index.js";
-import { findFiles, makeLintAdapter, type LintSpec } from "../lint-common/index.js";
+import { activatedFiles, fileCensus } from "../linter/census.js";
+import { MAX_FILES, makeLintAdapter, type LintSpec } from "../lint-common/index.js";
 import { shellcheckManifest } from "./manifest.js";
 import { parseShellcheck } from "./normalize.js";
 
 export { shellcheckManifest } from "./manifest.js";
 export { parseShellcheck } from "./normalize.js";
 
-const SCRIPT = /\.(?:sh|bash|ksh)$/i;
+/** The shell scripts anywhere in the project: by extension, or (files with no extension) by a first line that is a shell shebang. */
+const ACTIVATION = {
+  extensions: [".sh", ".bash", ".dash", ".ksh"],
+  content: { pattern: "^#!\\s*(?:/usr/bin/env\\s+(?:-S\\s+)?)?(?:/\\S+/)?(?:ba|da|k)?sh(?:\\s|$)", firstLine: true },
+};
 
 export const shellcheckSpec: LintSpec = {
   manifest: shellcheckManifest,
@@ -22,9 +27,9 @@ export const shellcheckSpec: LintSpec = {
   executesProjectCode: false,
   prepare(scanDir) {
     const t = translator("lint-stacks");
-    const { files, tooMany } = findFiles(scanDir, (name) => SCRIPT.test(name));
-    if (tooMany) return { skip: t("lint_too_many_files", { tool: "shellcheck", limit: files.length }) };
-    if (files.length === 0) return { skip: t("lint_no_files", { tool: "shellcheck", kind: "*.sh, *.bash, *.ksh" }) };
+    const files = activatedFiles(fileCensus(scanDir), ACTIVATION);
+    if (files.length > MAX_FILES) return { skip: t("lint_too_many_files", { tool: "shellcheck", limit: MAX_FILES }) };
+    if (files.length === 0) return { skip: t("lint_no_files", { tool: "shellcheck", kind: "*.sh, *.bash, *.dash, *.ksh, shell shebang" }) };
     return {
       args: ["--format", "json1", "--color=never", "--", ...files],
       env: { NO_COLOR: "1" },

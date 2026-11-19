@@ -46,6 +46,11 @@ const loaded = (async () => {
   }
 })();
 
+// The root of the run waits for every import before its first test. Otherwise, when a name pattern filters out the
+// test below, the root ends while a case test is still running and runs the cases' `after` hooks (their temporary
+// folders are removed under the running test).
+test.before(() => loaded);
+
 test("acceptance harness imports every case module", async (t) => {
   await loaded;
   t.diagnostic(`case modules found: ${caseFiles.length}, imported: ${caseFiles.length - failures.length}`);

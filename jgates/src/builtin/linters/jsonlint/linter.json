@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "jsonlint",
+  "name": "jsonlint",
+  "sourceUrl": "https://github.com/prantlf/jsonlint",
+  "license": "MIT",
+  "program": {
+    "tool": "jsonlint",
+    "versionRange": ">=17.0.0 <18.0.0"
+  },
+  "megalinter": [
+    "JSON_JSONLINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "json",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".json"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--quiet",
+      "--compact",
+      "--continue",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?): line (?<line>\\d+), col (?<column>\\d+), (?<message>.+)$",
+    "rule": "syntax",
+    "level": "error"
+  },
+  "configuration": {
+    "files": [
+      ".jsonlintrc",
+      ".jsonlintrc.json",
+      ".jsonlintrc.js",
+      ".jsonlintrc.cjs",
+      ".jsonlintrc.yaml",
+      ".jsonlintrc.yml",
+      "package.json"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "jsonlint reads the project's .jsonlintrc (or the jsonlint key of package.json): the project decides the accepted dialect (comments, trailing commas, duplicate keys) and the schema",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: JSON has no comments; a file is accepted or rejected by the parsing options of the configuration"
+    }
+  },
+  "install": "jsonlint",
+  "text": {
+    "en": {
+      "label": "jsonlint (JSON)",
+      "purpose": "Checks that JSON files are valid JSON: reports the line and column of the first syntax error, such as a trailing comma, a missing quote or an unclosed bracket.",
+      "limitation": "It checks syntax only (and a schema or duplicate keys when the project's .jsonlintrc asks for it); it does not check what the data means. Without a project configuration it accepts strict JSON, so JSON with comments is reported.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "jsonlint (JSON)",
+      "purpose": "Verifica se os arquivos JSON são JSON válido: informa a linha e a coluna do primeiro erro de sintaxe, como vírgula sobrando, aspas faltando ou colchete não fechado.",
+      "limitation": "Verifica só a sintaxe (e um schema ou chaves duplicadas quando o .jsonlintrc do projeto pede); não verifica o que os dados significam. Sem configuração do projeto aceita JSON estrito, então JSON com comentários é reportado.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+ "tool": "v8r",
+ "kind": "bad",
+ "version": "6.1.0",
+ "calls": [
+  {
+   "args": [
+    "--ignore-errors",
+    "--output-format",
+    "json",
+    ".github/workflows/v8r-sample.yml",
+    "jgates.yml",
+    "tsconfig.json"
+   ],
+   "exit": 99,
+   "stdout": "{\n  \"results\": [\n    {\n      \"fileLocation\": \".github/workflows/v8r-sample.yml\",\n      \"documentIndex\": null,\n      \"schemaLocation\": \"https://www.schemastore.org/github-workflow.json\",\n      \"valid\": false,\n      \"errors\": [\n        {\n          \"instancePath\": \"/jobs\",\n          \"schemaPath\": \"#/properties/jobs/type\",\n          \"keyword\": \"type\",\n          \"params\": {\n            \"type\": \"object\"\n          },\n          \"message\": \"must be object\"\n        }\n      ],\n      \"code\": 99\n    },\n    {\n      \"fileLocation\": \"jgates.yml\",\n      \"documentIndex\": null,\n      \"schemaLocation\": null,\n      \"valid\": null,\n      \"errors\": [],\n      \"code\": 1\n    },\n    {\n      \"fileLocation\": \"tsconfig.json\",\n      \"documentIndex\": null,\n      \"schemaLocation\": \"https://www.schemastore.org/tsconfig.json\",\n      \"valid\": false,\n      \"errors\": [\n        {\n          \"instancePath\": \"/compilerOptions/strict\",\n          \"schemaPath\": \"#/definitions/compilerOptionsDefinition/properties/compilerOptions/anyOf/0/properties/strict/anyOf/0/type\",\n          \"keyword\": \"type\",\n          \"params\": {\n            \"type\": \"boolean\"\n          },\n          \"message\": \"must be boolean\"\n        },\n        {\n          \"instancePath\": \"/compilerOptions/strict\",\n          \"schemaPath\": \"#/definitions/compilerOptionsDefinition/properties/compilerOptions/anyOf/0/properties/strict/anyOf/1/type\",\n          \"keyword\": \"type\",\n          \"params\": {\n            \"type\": \"null\"\n          },\n          \"message\": \"must be null\"\n        },\n        {\n          \"instancePath\": \"/compilerOptions/strict\",\n          \"schemaPath\": \"#/definitions/compilerOptionsDefinition/properties/compilerOptions/anyOf/0/properties/strict/anyOf\",\n          \"keyword\": \"anyOf\",\n          \"params\": {},\n          \"message\": \"must match a schema in anyOf\"\n        },\n        {\n          \"instancePath\": \"/compilerOptions\",\n          \"schemaPath\": \"#/definitions/compilerOptionsDefinition/properties/compilerOptions/anyOf/1/type\",\n          \"keyword\": \"type\",\n          \"params\": {\n            \"type\": \"null\"\n          },\n          \"message\": \"must be null\"\n        },\n        {\n          \"instancePath\": \"/compilerOptions\",\n          \"schemaPath\": \"#/definitions/compilerOptionsDefinition/properties/compilerOptions/anyOf\",\n          \"keyword\": \"anyOf\",\n          \"params\": {},\n          \"message\": \"must match a schema in anyOf\"\n        }\n      ],\n      \"code\": 99\n    }\n  ]\n}\n",
+   "stderr": "ℹ No config file found\nℹ Pre-warming the cache\nℹ Processing .github/workflows/v8r-sample.yml\nℹ Found schema in https://www.schemastore.org/api/json/catalog.json ...\nℹ Validating .github/workflows/v8r-sample.yml against schema from https://www.schemastore.org/github-workflow.json ...\n✖ .github/workflows/v8r-sample.yml is invalid\n\nℹ Processing jgates.yml\n✖ Could not find a schema to validate jgates.yml\n\nℹ Processing tsconfig.json\nℹ Found schema in https://www.schemastore.org/api/json/catalog.json ...\nℹ Validating tsconfig.json against schema from https://www.schemastore.org/tsconfig.json ...\n✖ tsconfig.json is invalid\n\n"
+  }
+ ]
+}

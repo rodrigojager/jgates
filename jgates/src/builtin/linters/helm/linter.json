@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "helm",
+  "name": "helm",
+  "sourceUrl": "https://github.com/helm/helm",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "helm",
+    "versionRange": ">=4.3.2 <5.0.0"
+  },
+  "megalinter": [
+    "KUBERNETES_HELM"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "helm",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "content": {
+      "pattern": "apiVersion:|kustomize\\.config\\.k8s\\.io|tekton",
+      "firstLine": false,
+      "names": [
+        "*.yml",
+        "*.yaml",
+        "*.json"
+      ]
+    },
+    "requires": [
+      "Chart.yml",
+      "Chart.yaml"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "lint",
+      "{workspace}"
+    ],
+    "env": {
+      "HELM_CACHE_HOME": "/tmp/helm/cache",
+      "HELM_CONFIG_HOME": "/tmp/helm/config",
+      "HELM_DATA_HOME": "/tmp/helm/data"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "resources": {
+      "memoryMb": 512
+    }
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^\\[(?<level>ERROR|WARNING|INFO)\\]\\s+(?<file>[^:\\s]+):\\s*(?<message>.*)$",
+    "rule": "helm-lint"
+  },
+  "configuration": {
+    "files": [
+      "values.yaml",
+      "values.yml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "helm lint reads the chart (Chart.yaml, values.yaml and the templates) and nothing else; there is no separate configuration for the checks",
+    "suppressions": {
+      "honoured": false,
+      "description": "not honored: helm lint has no in-code suppression"
+    }
+  },
+  "install": "helm",
+  "text": {
+    "en": {
+      "label": "helm lint (Helm charts)",
+      "purpose": "Checks a Helm chart: a valid Chart.yaml, templates that render, and the structure and best practices the chart must follow.",
+      "limitation": "It lints the chart at the project's root with its default values and does not fetch chart dependencies; it never installs anything into a cluster.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies. It only applies to a project that has a Chart.yaml at its root."
+    },
+    "pt-BR": {
+      "label": "helm lint (charts Helm)",
+      "purpose": "Verifica um chart Helm: um Chart.yaml válido, templates que renderizam e a estrutura e as boas práticas que o chart deve seguir.",
+      "limitation": "Verifica o chart na raiz do projeto com seus valores padrão e não baixa as dependências do chart; nunca instala nada em um cluster.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem dependências do projeto. Só se aplica a um projeto com um Chart.yaml na raiz."
+    }
+  }
+}

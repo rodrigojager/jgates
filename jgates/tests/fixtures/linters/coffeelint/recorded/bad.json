@@ -1,0 +1,18 @@
+{
+ "tool": "coffeelint",
+ "kind": "bad",
+ "version": "5.2.15",
+ "calls": [
+  {
+   "args": [
+    "--reporter",
+    "checkstyle",
+    "--",
+    "greeter.coffee"
+   ],
+   "exit": 1,
+   "stdout": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<checkstyle version=\"4.3\">\n<file name=\"greeter.coffee\">\n<error line=\"3\"\n    severity=\"error\"\n    message=\"Line contains a trailing semicolon\"\n    source=\"coffeelint\"/>\n</file>\n</checkstyle>\n",
+   "stderr": ""
+  }
+ ]
+}

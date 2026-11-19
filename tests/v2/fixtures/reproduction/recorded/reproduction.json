@@ -1,0 +1,55 @@
+{
+  "note": "Container runs of the reproducers of confirm-by-reproduction, replayed by jgates/tests/fixtures/semantic-test-runner/replay-engine.cjs (JGATES_RUNNER_RECORDINGS). Written by hand in the form pytest prints with the runner's options (-q --no-header -rfE --color=no --tb=short); the real-engine acceptance (V2-85) records the tools image's own output.",
+  "runs": [
+    {
+      "id": "discount-bound-fails",
+      "runner": "pytest",
+      "file": ".jgates/regressions/test_discount_bound.py",
+      "dependencies": true,
+      "when": [{ "path": ".jgates/regressions/test_discount_bound.py", "contains": "case: discount-bound" }, { "path": "src/pricing.py", "contains": "total - total * percent / 100" }],
+      "stdout": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_______________ test_discount_never_makes_the_total_negative ________________\n/workspace/.jgates/regressions/test_discount_bound.py:6: in test_discount_never_makes_the_total_negative\n    assert apply_discount(100, 120) >= 0\nE   assert -20.0 >= 0\n=========================== short test summary info ============================\nFAILED .jgates/regressions/test_discount_bound.py::test_discount_never_makes_the_total_negative - assert -20.0 >= 0\n1 failed in 0.04s\n",
+      "stderr": "",
+      "exitCode": 1
+    },
+    {
+      "id": "reserve-limit-passes",
+      "runner": "pytest",
+      "file": ".jgates/regressions/test_reserve_limit.py",
+      "dependencies": true,
+      "when": [{ "path": ".jgates/regressions/test_reserve_limit.py", "contains": "case: reserve-limit" }],
+      "stdout": ".                                                                        [100%]\n1 passed in 0.02s\n",
+      "stderr": "",
+      "exitCode": 0
+    },
+    {
+      "id": "token-expiry-does-not-load",
+      "runner": "pytest",
+      "file": ".jgates/regressions/test_token_expiry.py",
+      "dependencies": true,
+      "when": [{ "path": ".jgates/regressions/test_token_expiry.py", "contains": "case: token-expiry" }],
+      "stdout": "\n==================================== ERRORS ====================================\n__________ ERROR collecting .jgates/regressions/test_token_expiry.py ___________\nImportError while importing test module '/workspace/.jgates/regressions/test_token_expiry.py'.\nE   ImportError: cannot import name 'expire_token' from 'src.auth' (/workspace/src/auth.py)\n=========================== short test summary info ============================\nERROR .jgates/regressions/test_token_expiry.py\n1 error in 0.09s\n",
+      "stderr": "",
+      "exitCode": 2
+    },
+    {
+      "id": "discount-rounding-fails",
+      "runner": "pytest",
+      "file": ".jgates/regressions/test_discount_rounding.py",
+      "dependencies": true,
+      "when": [{ "path": ".jgates/regressions/test_discount_rounding.py", "contains": "case: discount-rounding" }],
+      "stdout": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_______________________ test_discount_rounds_to_cents ________________________\n/workspace/.jgates/regressions/test_discount_rounding.py:6: in test_discount_rounds_to_cents\n    assert apply_discount(10, 33) == 6.7\nE   assert 6.699999999999999 == 6.7\n=========================== short test summary info ============================\nFAILED .jgates/regressions/test_discount_rounding.py::test_discount_rounds_to_cents - assert 6.699999999999999 == 6.7\n1 failed in 0.03s\n",
+      "stderr": "",
+      "exitCode": 1
+    },
+    {
+      "id": "reserve-clock-fails",
+      "runner": "pytest",
+      "file": ".jgates/regressions/test_reserve_clock.py",
+      "dependencies": true,
+      "when": [{ "path": ".jgates/regressions/test_reserve_clock.py", "contains": "case: reserve-clock" }],
+      "stdout": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________ test_reserve_is_fast _____________________________\n/workspace/.jgates/regressions/test_reserve_clock.py:10: in test_reserve_is_fast\n    assert time.monotonic() - started < 0.000001\nE   assert 2.1e-05 < 1e-06\n=========================== short test summary info ============================\nFAILED .jgates/regressions/test_reserve_clock.py::test_reserve_is_fast - assert 2.1e-05 < 1e-06\n1 failed in 0.03s\n",
+      "stderr": "",
+      "exitCode": 1
+    }
+  ]
+}

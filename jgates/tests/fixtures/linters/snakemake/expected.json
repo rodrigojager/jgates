@@ -1,0 +1,17 @@
+{
+  "files": [
+    "Snakefile"
+  ],
+  "findings": [
+    {
+      "rule": "no-log-directive-defined",
+      "file": "Snakefile",
+      "line": 1
+    },
+    {
+      "rule": "specify-a-conda-environment-or-container-for-each-rule",
+      "file": "Snakefile",
+      "line": 1
+    }
+  ]
+}

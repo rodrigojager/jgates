@@ -1,0 +1,668 @@
+{
+  "version": "5.0.0",
+  "chapter": "V15",
+  "entries": [
+    {
+      "requirement": "V15.1.1",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V15.1.2",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V15.1.3",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V15.1.4",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V15.1.5",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V15.2.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [
+        {
+          "unit": "capability",
+          "id": "osv-scanner#dependencies",
+          "covers": "Components of the lockfiles and manifests that carry a published advisory in the OSV database, the sign that a component was left behind.",
+          "misses": "The documented update and remediation time frames themselves (a person's policy), components with no published advisory, and anything resolved only at install or deploy time.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "trivy#dependencies",
+          "covers": "Components of the lockfiles and manifests that carry a published vulnerability, with the fixed version when there is one.",
+          "misses": "The documented time frames for updates (they are a person's policy), components with no published advisory, and packages added at build or deploy time.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "govulncheck#dependencies",
+          "covers": "Go modules with a published vulnerability whose vulnerable function the program actually reaches.",
+          "misses": "The documented update time frames, vulnerable modules the call analysis cannot prove reachable, and non-Go components.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "cargo-audit#dependencies",
+          "covers": "Rust crates of Cargo.lock listed in the RustSec advisory database, yanked crates included.",
+          "misses": "The documented update time frames, crates with no advisory yet, and non-Rust components.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "dotnet-vulnerable#dependencies",
+          "covers": "NuGet packages, direct and transitive, that the .NET tooling reports as vulnerable.",
+          "misses": "The documented update time frames, packages with no advisory, and anything outside NuGet.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A component with a published advisory that is still in the project is the visible sign of a breached remediation window. The tools find the advisory, not the project's own deadline, so each check is partial.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V15.2.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.http-client-without-timeout",
+          "covers": "axios requests made without a timeout, which wait forever by default and let one stalled server hold the work.",
+          "misses": "Other HTTP clients (fetch, got, node-fetch), a timeout set by a shared client factory or an interceptor, and every other time-consuming or resource-hungry function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.http-client-without-timeout",
+          "covers": "Outbound HTTP calls of the common Python client libraries made without a timeout argument.",
+          "misses": "A timeout set on a session, an adapter or a wrapper defined elsewhere, other libraries, and every other resource-demanding function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.http-client-without-timeout",
+          "covers": "Go HTTP clients and calls built without a timeout, where the default client waits forever.",
+          "misses": "A deadline carried by a context passed through several functions, a shared client built elsewhere, and every other resource-demanding function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.http-client-without-timeout",
+          "covers": "Java outbound clients (the JDK HttpClient, RestTemplate, Apache HttpClient, HttpURLConnection) built or used without a timeout.",
+          "misses": "Timeouts configured through a shared bean or container settings, other clients, and every other resource-demanding function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.http-client-without-timeout",
+          "covers": "PHP outbound HTTP calls made without a timeout option.",
+          "misses": "A timeout set in the client's shared configuration, php.ini limits, and every other resource-demanding function.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.http-client-without-timeout",
+          "covers": "reqwest clients and calls, blocking and async, built without a timeout.",
+          "misses": "A timeout set on the request elsewhere than the same expression, other clients, and every other resource-demanding function.",
+          "depth": "partial"
+        }
+      ],
+      "why": "An outbound call that never times out is one concrete way a slow dependency exhausts the service's workers, which this item guards against. The rules see only that case; rate limits, size limits and queue bounds stay outside.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V15.2.3",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V15.2.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "SUPPLY-CHAIN-AND-RELEASE.md#Dependency source and namespace confusion",
+          "covers": "Resolver settings, source priority and lockfile use that let a package name resolve from an unintended registry.",
+          "misses": "Registry-side controls and transitive dependencies resolved only at install time.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "supply-chain#supply-chain",
+          "findingRules": [
+            "supply-chain/unpinned-registry",
+            "supply-chain/unpinned-source",
+            "supply-chain/missing-integrity"
+          ],
+          "covers": "Lockfile entries of npm and Python that resolve from a registry host outside the trusted list, from a git or URL source, or with no integrity hash, which is where a name can be taken by another party.",
+          "misses": "Registry-side controls such as namespace reservation, ecosystems with no lockfile reader (only npm and Python lockfiles are read, and requirements.txt only when the lockfiles setting names it), and resolver settings outside the lockfiles.",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zizmor#ci-cd",
+          "findingRules": [
+            "unpinned-uses",
+            "ref-confusion",
+            "impostor-commit"
+          ],
+          "covers": "Workflow references to actions that are not pinned to an immutable commit (the offline audit unpinned-uses); when the instance runs online, two more audits of the stage count: a name that is both a branch and a tag (ref-confusion) and a pinned commit that does not belong to the action's own repository (impostor-commit).",
+          "misses": "Package resolution inside the build steps, registries chosen by the runner's environment, and, in the default offline mode, the two audits that need the GitHub API: a clean default run says nothing about ref confusion or impostor commits.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The ledger block reads the resolver configuration; the supply-chain tool reads the lockfiles for sources and integrity that leave a name open to substitution, and the workflow audit does the same for pipeline references. The tool identifiers were read in the adapters' normalizers (the supply-chain analyzer and the zizmor ident); the zizmor audit names are those of its documentation, and two of the three need its online mode.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V15.2.5",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V15.3.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.serializer-exposes-all-fields",
+          "covers": "Points at a model returned through res/response json or send, including toJSON/toObject, after await create, findById or findOne in the same sequence.",
+          "misses": "Serialization exclusions or a safe model type may protect fields where the rule cannot see them; other query and response forms, helpers and cross-function flows are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.serializer-exposes-all-fields",
+          "covers": "Points at an object returned by a JSON response call in a function containing a GORM-style First or Find load into that object.",
+          "misses": "Serialization tags or a dedicated response type may protect fields where the rule cannot see them; other loading and response forms and cross-function flows are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.serializer-exposes-all-fields",
+          "covers": "Points at return Ok(model) or Json(model) in a block that loads the model through Find or awaited FindAsync.",
+          "misses": "Serializer configuration, model exclusions or a safe response type may protect fields where the rule cannot see them; other query and response forms and cross-function flows are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.serializer-exposes-all-fields",
+          "covers": "Points at HttpResponse::Ok().json(model) in a function with a first or load query using ? to obtain that model.",
+          "misses": "Serde exclusions or a safe response type may protect fields where the rule cannot see them; other extraction, loading and response forms are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.serializer-exposes-all-fields",
+          "covers": "ModelSerializer or HyperlinkedModelSerializer classes with fields = \"__all__\", declaring every model field for serialization.",
+          "misses": "Handlers that return a model object directly, serializers whose field list is built dynamically, and fields that are listed but should not be.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.serializer-exposes-all-fields",
+          "covers": "Jackson configured to see every field of a model, private ones included.",
+          "misses": "Entities returned straight from a controller with default visibility, other serialization libraries, and listed fields that should stay private.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.serializer-exposes-all-fields",
+          "covers": "PHP resources or serializers declared to output the whole model.",
+          "misses": "Models returned directly as JSON, a hidden-attribute list that is too short, and other frameworks.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Existing declared-all serializers remain partial checks. The JavaScript, Go, C# and Rust rules only point at whole-model responses whose exclusions need confirmation; these Review checks never examine the requirement or prove that private fields are returned.",
+      "review": {
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V15.3.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Server-side fetches of caller-influenced URLs, including how redirects are followed.",
+          "misses": "Fixed trusted URLs whose redirect setting is a plain client option, and HTTP clients configured outside the repository.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.outbound-request-follows-redirects",
+          "covers": "Points at request-derived URLs reaching Guzzle/client-named request or verb calls or Laravel Http verb calls without a literal allow_redirects=false option.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them, such as shared client configuration; fixed URLs, other clients and cross-function flows are not modeled. Intended redirect functionality needs confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.outbound-request-follows-redirects",
+          "covers": "Points at Flask/Django-style request data reaching Requests get, post, put, patch, delete, options or request URL arguments without an allow_redirects argument or expanded keyword arguments.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them; HEAD, sessions, other clients, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.outbound-request-follows-redirects",
+          "covers": "Points at Express-style request data reaching fetch without a redirect option or axios verb calls without maxRedirects in the modeled literal options.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them, including shared axios configuration; other clients, dynamic option forms, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.outbound-request-follows-redirects",
+          "covers": "Points at net/http request inputs reaching http Get, Head, Post or PostForm, or matching calls on a locally constructed http.Client with no visible CheckRedirect field or assignment.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them, including a changed DefaultClient; other clients, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.outbound-request-follows-redirects",
+          "covers": "Points at modeled request inputs or public string parameters reaching URL arguments of GetAsync, GetStringAsync, GetStreamAsync, GetByteArrayAsync, PostAsync, PutAsync or DeleteAsync on a locally constructed parameterless HttpClient.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them; public string parameters need not be request-controlled. Injected clients, custom handlers, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.outbound-request-follows-redirects",
+          "covers": "Points at modeled actix/axum Query or Json inputs reaching reqwest get or blocking get, or verb calls on a client built with ? or unwrap from a reqwest builder lacking redirect().",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them; other extractor signatures, builders, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.outbound-request-follows-redirects",
+          "covers": "Points at servlet parameters or headers tainting a typed HttpURLConnection used through getInputStream, getResponseCode or connect without a visible setInstanceFollowRedirects call.",
+          "misses": "Redirect restrictions or destination validation may exist where the rule cannot see them, including a global redirect setting; other clients, fixed URLs and cross-function flows are not modeled. Intended redirects need confirmation. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block reads redirect handling. The seven language rules only point at request-influenced outbound calls with no modeled local redirect restriction; these Review checks never examine the requirement, and do not decide whether redirects are intended.",
+      "review": {
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V15.3.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Access control",
+          "covers": "Request-body fields that override what the permission model meant to restrict, the pattern of binding client input straight to a stored object.",
+          "misses": "Every framework binding feature by name; it is a model's reading, not a rule per framework.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.mass-assignment",
+          "covers": "A model created or updated from the whole request body in JavaScript and TypeScript.",
+          "misses": "A body copied into a variable first, ORMs other than the ones the rule names, and fields filtered by a middleware.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.mass-assignment-schema-open",
+          "covers": "Model schemas that accept fields they do not declare, so request data can store any field.",
+          "misses": "Schemas built dynamically, validation done before the model, and ORMs the rule does not model.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.mass-assignment",
+          "covers": "Models built or updated from the whole request body and forms declared open to every field.",
+          "misses": "Dictionaries unpacked after passing through a function, allow-lists applied elsewhere, and frameworks not modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.mass-assignment",
+          "covers": "Points at TryUpdateModelAsync(model[, literal prefix]), TryUpdateModel(model) or UpdateModel(model) without property allowlist arguments in the modeled calls.",
+          "misses": "Binding restrictions or a safe input type may protect fields where the rule cannot see them; entities bound as action parameters, other overloads and sensitive DTO fields are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.mass-assignment",
+          "covers": "Points at ShouldBindJSON or BindJSON into an object in a function that also passes that object to Save or Create.",
+          "misses": "A dedicated input type, binding exclusions or an allowlist may protect fields where the rule cannot see them; other binding and persistence calls, cross-function flows and action-specific permissions are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.mass-assignment",
+          "covers": "Points at a web::Json or actix_web::web::Json handler input passed directly through into_inner to a Diesel-style insert_into(...).values(&...) call.",
+          "misses": "A dedicated input type or field restrictions may protect fields where the rule cannot see them; other extractors, updates, binding shapes and cross-function flows are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.mass-assignment",
+          "covers": "Beans filled from the whole request parameter map, or a data binder whose default protection is cleared.",
+          "misses": "Binding through annotations on the entity, DTOs with sensitive fields, and frameworks other than the ones modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.mass-assignment",
+          "covers": "Models filled from the whole request, or declared open to every attribute.",
+          "misses": "A fillable list that is too wide, guarded models that are filled with unvetted keys elsewhere, and other frameworks.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block and existing explicit patterns address request fields reaching models. C#, Go and Rust rules only point at binding and persistence shapes whose field restrictions need confirmation; these Review checks never examine the requirement.",
+      "review": {
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V15.3.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Host and forwarded-header trust",
+          "covers": "Trust placed in forwarded-address headers and how the application derives the client address from them.",
+          "misses": "The proxy and web server configuration outside the repository, and how the chain is deployed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.client-ip-from-forwarded-header",
+          "covers": "Points at headers indexing or get, header and getHeader calls for the modeled forwarding-header names in JavaScript and TypeScript.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish how the value is used. Framework trust-proxy settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.client-ip-from-forwarded-header",
+          "covers": "Points at headers, META or environ indexing and get calls for the modeled forwarded-for, real-IP and Forwarded names.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish how the value is used. Middleware settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.client-ip-from-forwarded-header",
+          "covers": "Points at Headers indexing, TryGetValue, GetCommaSeparatedValues or ContainsKey for modeled forwarding-header names, including presence tests that do not consume the value.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish use as an address. Middleware settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.client-ip-from-forwarded-header",
+          "covers": "Points at Header.Get, Header.Values, Header indexing, GetHeader or Get calls for the modeled forwarding-header names.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish the receiver's type or how the value is used. Router trust settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.client-ip-from-forwarded-header",
+          "covers": "Points at getHeader, getHeaders, getFirst or getHeaderString calls and modeled Spring RequestHeader or JAX-RS HeaderParam parameters for forwarding-header names.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish how the value is used. Container settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.client-ip-from-forwarded-header",
+          "covers": "Points at modeled forwarding-header keys in $_SERVER, header/getHeader APIs, getallheaders or apache_request_headers indexing.",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; it does not establish how the value is used. Framework trust settings, helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.client-ip-from-forwarded-header",
+          "covers": "Points at get or get_all calls for modeled forwarding-header names and at actix-style connection_info().realip_remote_addr().",
+          "misses": "Trusted-proxy protection may exist where the rule cannot see it; generic get receivers need not be HTTP headers and the rule does not establish use in a security decision. Other helpers and the deployed proxy chain are outside this Review prompt, which never examines the requirement.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block reads forwarded-header trust. The seven language rules only point at header-access shapes whose trusted-proxy boundary is not visible; they do not prove use in a security decision or an untrusted deployment. These Review checks never examine the requirement.",
+      "review": {
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V15.3.5",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.loose-comparison-of-secret",
+          "covers": "Points at == or != comparisons with a secret-named identifier or member, excluding comparisons with null or undefined.",
+          "misses": "Operand type guarantees may exist where the rule cannot see them; two strings are not coerced. Other names, strict comparisons, comparator calls and timing safety are not assessed. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.loose-comparison-of-secret",
+          "covers": "A hash, token or password compared with PHP's type-juggling equality, where a string that looks like a number can match another.",
+          "misses": "Loose comparisons of values the rule does not name as secrets, type confusion in other languages, and checks of variable types before use.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The PHP rule addresses type-juggling equality on secret-like values. The JavaScript rule only points at loose comparisons whose operand types need confirmation; it is Review and never examines the requirement or assesses timing safety.",
+      "review": {
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V15.3.6",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "CLIENT-SIDE.md#Prototype pollution and gadget chain",
+          "covers": "Recursive merges and path writes that let an attacker-chosen key reach prototype state, with the gadget that uses it.",
+          "misses": "JavaScript that is never reached by this reading, and a defensive style (such as using maps) that is absent but harmless.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.prototype-pollution",
+          "covers": "A property name taken from the request that is used to reach into an object and assign a value, with no check of the reserved names.",
+          "misses": "Names that reach the write through another function, key checks written in a form the rule does not recognize, a function that merely mentions the reserved name anywhere is treated as guarded, and server code that is not JavaScript.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.prototype-pollution-recursive-merge",
+          "covers": "Hand-written recursive merges that copy every key of their source without skipping the reserved names.",
+          "misses": "Merge functions of libraries (their versions are a dependency question), merges using another loop shape, merges into objects without a prototype, and a function that merely mentions the reserved name anywhere is treated as guarded.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "languages": {
+          "only": [
+            "javascript",
+            "typescript"
+          ]
+        }
+      },
+      "why": "Prototype pollution exists in JavaScript and TypeScript only; the audit block and the two rules look for the write and the unguarded merge that cause it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V15.3.7",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source for places where a parameter can arrive from several sources (query, body, cookie, header) with no rule on which one wins.",
+          "misses": "What the framework or a proxy does with repeated parameters at run time, and code the model did not read.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern tells which source a framework prefers for a repeated parameter; reading how handlers pick their inputs is a judgment the AI review can make and a person must still check.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V15.4.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "MEMORY-SAFETY-AND-BINARY.md#Shared-state races and TOCTOU",
+          "covers": "Shared caches, lazy initialization and teardown reached by concurrent paths without a guard.",
+          "misses": "Races that need a schedule the reading cannot show; the block is written for native targets and reads less well on managed runtimes.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block looks for state shared between concurrent paths that lacks the guard, which is the weakness this item names.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V15.4.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "ATTACK-CLASSES.md#Resource and file handling",
+          "covers": "Races between a check and the use on file operations.",
+          "misses": "Permission checks followed by a separate action on non-file resources.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "MEMORY-SAFETY-AND-BINARY.md#Shared-state races and TOCTOU",
+          "covers": "Checks on state that concurrent paths can invalidate before use.",
+          "misses": "Races without a security-relevant state change, which the block leaves unconfirmed.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Both audit blocks name the gap between a check and its use as the thing to hunt.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V15.4.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "MEMORY-SAFETY-AND-BINARY.md#Lock-order, deadlock, and starvation",
+          "covers": "Inconsistent lock acquisition order and locks held across callbacks or blocking calls.",
+          "misses": "Where lock logic lives (whether outside code can alter it) and cases that cannot be triggered by bounded input.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block hunts deadlocks from lock ordering, which is the stuck-thread half of this item.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V15.4.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Worker, pool, and priority starvation",
+          "covers": "Shared pools and locks where one workload holds a slot others need.",
+          "misses": "Whether thread pools or priorities are used by design, which this block does not judge.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit block looks for starvation of shared workers, the failure this item guards against.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    }
+  ]
+}

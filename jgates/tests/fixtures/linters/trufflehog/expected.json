@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "Github",
+      "file": "trufflehog-deploy.sh",
+      "line": 4
+    }
+  ]
+}

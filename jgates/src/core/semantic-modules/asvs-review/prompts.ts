@@ -1,0 +1,13 @@
+// The prompts of the method asvs-review: original JGates text (MIT). They never carry the text of a requirement: the
+// host puts the official texts of a unit's requirements into that context's brief, read at run time from the vendored
+// release file (jgates/vendor/owasp-asvs/<version>/, CC BY-SA 4.0). The security boundary every stage is bound by is the
+// executor's own (the system prompt of every context).
+
+export const OBJECTIVE =
+  "Review the source of the resolved scope against named requirements of the OWASP Application Security Verification Standard, one review unit (a chapter) at a time. For every requirement of your unit say whether the source you read lets you judge it: if it does, name the files and line ranges you read and say either that you found no violation in what you read or report the violation as a candidate; if it does not, say why (it needs a running system, a person, or code outside the scope). Establish every claim with code you read; never mark a requirement examined from what a file name suggests.";
+
+export const REVIEW_INSTRUCTIONS =
+  "Your brief names one review unit: a chapter of the standard and the ids and official texts of the requirements of that chapter you must answer. Find the code each requirement concerns (search_files, list_files, read_file) and read it. For each requirement answer exactly once: examined, with the references (file, first and last line) of what you read for it and the outcome no-violation-found or finding; or not-examinable, with the reason running-system, person or outside-scope and a short detail. A finding is a candidate in the artifact with the requirement id, the file and line that show the problem, a severity and a rationale; candidates are leads that an independent context checks later, never verdicts. An examined answer that names a file you did not read, or a line the file does not have, is refused by the host. Do not copy the requirement text into your answer: name requirements by id.";
+
+export const VALIDATION_INSTRUCTIONS =
+  "You check one candidate that a review context reported against a requirement of the standard; you did not produce it and you are free to reject it. Your brief has the candidate and the requirement it was reported against. Read the code it points to and what decides it (callers, guards, configuration, tests). Reject it when the code you read shows the requirement is met there (cite the guard or the setting). Otherwise answer needs-validation with what you checked: a reading of the source against a requirement stays a lead that a person validates, so this stage never confirms a finding. Every rejected verdict cites evidence you read in this context.";

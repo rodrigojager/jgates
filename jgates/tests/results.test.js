@@ -70,7 +70,7 @@ function finding(over = {}) {
   };
 }
 
-async function doRun(ws, home, { findings = [], state = "completed", blockingViolations, disabled, selection, waivers } = {}) {
+async function doRun(ws, home, { findings = [], state = "completed", blockingViolations, disabled, selection, waivers, policy } = {}) {
   return run.executeRun({
     workspacePath: ws,
     home,
@@ -81,6 +81,7 @@ async function doRun(ws, home, { findings = [], state = "completed", blockingVio
     ...(selection ? { selection } : {}),
     ...(disabled ? { disabled } : {}),
     ...(waivers ? { waivers } : {}),
+    ...(policy ? { policy } : {}),
     execute: async () => ({
       stages: [{ id: "fake", kind: "step", adapter: "fake", state, ...(blockingViolations !== undefined ? { blockingViolations } : {}) }],
       requirements: [{ id: "fake", required: true }],
@@ -259,4 +260,247 @@ test("waivers: an expired waiver does not apply, a live one does, and a waiver n
   } finally {
     rm(ws, home);
   }
+});
+
+// Waivers per occurrence (PLAN-waivers.md sections 2 and 4).
+
+function writeFiles(dir, files) {
+  for (const [name, text] of Object.entries(files)) {
+    fs.mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
+    fs.writeFileSync(path.join(dir, name), text);
+  }
+}
+
+const NOW = new Date("2026-11-14T12:00:00Z");
+const lint = (line, over = {}) => finding({ tool: "ruff", ruleId: "F401", category: "lint", location: { path: "src/app.py", line }, ...over });
+
+test("anchor: a finding with a file and a line gets jga1; none without a line, for an unreadable file, for secrets and personal data; never the line text", async () => {
+  const ws = tmp("jg-res-ws-");
+  const home = tmp("jg-res-home-");
+  try {
+    const source = "import os\nimport sys\nTOKEN = 'abc'\n";
+    writeFiles(ws, { "src/app.py": source });
+    const findings = [
+      lint(1),
+      lint(2),
+      finding({ tool: "ruff", ruleId: "E999", category: "lint", location: { path: "src/app.py" } }),
+      lint(3, { location: { path: "missing/nowhere.py", line: 3 } }),
+      finding({ tool: "gitleaks", ruleId: "generic-api-key", category: "secrets", location: { path: "src/app.py", line: 3 } }),
+      finding({ tool: "builtin-pii", ruleId: "pii.cpf", category: "pii", location: { path: "src/app.py", line: 3 } }),
+    ];
+    const result = await doRun(ws, home, { findings });
+    assert.ok(validateResult(result), JSON.stringify(validateResult.errors));
+    const [a, b, noLine, unreadable, secret, pii] = result.findings;
+    assert.match(a.anchor, /^jga1:[0-9a-f]{32}$/);
+    assert.match(b.anchor, /^jga1:[0-9a-f]{32}$/);
+    assert.notEqual(a.anchor, b.anchor);
+    for (const f of [noLine, unreadable, secret, pii]) assert.equal(f.anchor, undefined, JSON.stringify(f));
+    // Only the hash is kept: no line text anywhere in the finding.
+    const text = JSON.stringify(result.findings);
+    for (const line of source.split("\n").filter(Boolean)) assert.ok(!text.includes(line), `the line "${line}" leaked`);
+    assert.ok(!text.includes("TOKEN"));
+    // The SARIF export does not carry the anchor.
+    assert.ok(!JSON.stringify(results.toSarif(result)).includes("jga1:"));
+    // Lines inserted above keep the anchors (the text and the position among equal lines are what counts).
+    writeFiles(ws, { "src/app.py": `# header\n\n${source}` });
+    const shifted = await doRun(ws, home, { findings: [lint(3), lint(4)] });
+    assert.deepEqual(shifted.findings.map((f) => f.anchor), [a.anchor, b.anchor]);
+  } finally {
+    rm(ws, home);
+  }
+});
+
+test("fingerprint v1: the values of a fixed fixture are byte-identical to those before the anchors existed", () => {
+  const fixture = () => [
+    finding({ tool: "ruff", ruleId: "F401", location: { path: "src/app.py", line: 9 } }),
+    finding({ tool: "ruff", ruleId: "F401", location: { path: "src/app.py", line: 3 } }),
+    finding({ tool: "gitleaks", ruleId: "generic-api-key", location: { path: ".\\config\\settings.py", line: 2 } }),
+  ];
+  const expected = ["jgf1:a632b2cf2e111c9125d719b53bc5b1f8", "jgf1:018fa1ca9562b2de4840beebc7eb4661", "jgf1:9eac7e36d7710eba01b18534ade5424d"];
+  assert.deepEqual(results.assignFingerprints(fixture()).map((f) => f.fingerprint), expected);
+  // Computing anchors next to them changes nothing.
+  const lineOf = () => "import os";
+  assert.deepEqual(results.finalizeFindings({ findings: fixture(), stages: [] }, [], NOW, { lineOf }).findings.map((f) => f.fingerprint), expected);
+});
+
+test("waivers: by rule and path, by path, and by fingerprint alone match exactly as before", () => {
+  const base = [
+    finding({ ruleId: "r1", location: { path: "src/a.ts", line: 1 } }),
+    finding({ ruleId: "r1", location: { path: "lib/b.ts", line: 1 } }),
+    finding({ ruleId: "r2", location: { path: "src/c.ts", line: 4 } }),
+  ];
+  const waivedBy = (waivers, findings = base) => results.finalizeFindings({ findings, stages: [] }, waivers, NOW).findings.map((f) => f.waived);
+  assert.deepEqual(waivedBy([{ rule: "r1", path: "src/*", reason: "x" }]), [true, false, false]);
+  assert.deepEqual(waivedBy([{ rule: "r1", reason: "x" }]), [true, true, false]);
+  assert.deepEqual(waivedBy([{ path: "src/*", reason: "x" }]), [true, false, true]);
+  const ruleAndPath = results.finalizeFindings({ findings: base, stages: [] }, [{ rule: "r1", path: "src/*", reason: "x" }], NOW).findings[0];
+  assert.equal(ruleAndPath.waiverId, "r1@src/*");
+  assert.equal(ruleAndPath.waiverSource, "project");
+  // A hand-written waiver with only a fingerprint has no guard: one more finding of the rule in the file changes nothing.
+  const target = results.assignFingerprints(base)[2].fingerprint;
+  const more = [...base, finding({ ruleId: "r2", location: { path: "src/c.ts", line: 10 } })];
+  const out = results.finalizeFindings({ findings: more, stages: [] }, [{ fingerprint: target, reason: "x" }], NOW);
+  assert.deepEqual(out.findings.map((f) => f.waived), [false, false, true, false]);
+  assert.deepEqual(out.waivers.stale, []);
+  assert.equal(out.findings[2].waiverId, target);
+});
+
+test("waivers: the project's file comes before --waiver and the first match wins", () => {
+  const findings = [finding({ ruleId: "r1", location: { path: "a.ts", line: 1 } }), finding({ ruleId: "r2", location: { path: "b.ts", line: 1 } })];
+  const fileWaivers = results.parseWaivers({ waivers: [{ rule: "r1", reason: "from the file" }] }).waivers;
+  const flagOne = results.parseWaiverFlag("rule=r1;reason=from the flag");
+  const flagTwo = results.parseWaiverFlag("rule=r2;reason=only the flag");
+  assert.equal(flagOne.waiver.source, "flag");
+  const combined = results.combineWaivers(fileWaivers, [flagOne.waiver, flagTwo.waiver]);
+  assert.deepEqual(combined.map((w) => w.source), ["project", "flag", "flag"]);
+  const out = results.finalizeFindings({ findings, stages: [] }, combined, NOW);
+  assert.equal(out.findings[0].waiverReason, "from the file");
+  assert.equal(out.findings[0].waiverSource, "project");
+  assert.equal(out.findings[1].waiverReason, "only the flag");
+  assert.equal(out.findings[1].waiverSource, "flag");
+  assert.deepEqual(out.waivers.applied.map((e) => [e.source, e.rule, e.findings]), [["project", "r1", 1], ["flag", "r2", 1]]);
+  assert.deepEqual(out.waivers.unmatched.map((e) => [e.source, e.reason]), [["flag", "from the flag"]]);
+});
+
+test("waivers: result.json records what the waivers did, each waived finding says where its waiver came from, and the document validates", async () => {
+  const ws = tmp("jg-res-ws-");
+  const home = tmp("jg-res-home-");
+  try {
+    writeFiles(ws, { "src/a.ts": "one();\ntwo();\n", "src/b.ts": "three();\nfour();\n", "src/c.ts": "five();\n" });
+    const findings = [
+      finding({ ruleId: "r1", category: "lint", blocking: true, blockingReason: "blocking-category", location: { path: "src/a.ts", line: 1 } }),
+      finding({ ruleId: "r1", category: "lint", location: { path: "src/b.ts", line: 2 } }),
+      finding({ ruleId: "r3", category: "lint", location: { path: "src/c.ts", line: 1 } }),
+    ];
+    // An occurrence waiver made from the first run's r3 finding, plus hand-written entries.
+    const first = await doRun(ws, home, { findings, blockingViolations: 1 });
+    assert.equal(first.waivers.count, 0);
+    assert.deepEqual(first.waivers.applied, []);
+    const entry = results.occurrenceWaiver(first, first.findings[2], { reason: "false positive", expires: "2999-12-31", created: "2026-11-14" });
+    assert.deepEqual(Object.keys(entry), ["tool", "rule", "path", "fingerprint", "anchor", "occurrences", "line", "reason", "created", "expires"]);
+    assert.equal(entry.anchor, first.findings[2].anchor);
+    assert.equal(entry.occurrences, 1);
+    writeFiles(ws, {
+      ".jgates/waivers.json": `${JSON.stringify({
+        waivers: [
+          { rule: "r1", path: "src/*", reason: "accepted", expires: "2999-12-31" },
+          entry,
+          { rule: "r9", reason: "matches nothing" },
+          { rule: "r1", reason: "old", expires: "2000-01-01" },
+        ],
+      })}\n`,
+    });
+    const result = await doRun(ws, home, { findings, blockingViolations: 1 });
+    assert.equal(result.decision, "passed");
+    const w = result.waivers;
+    assert.equal(w.count, 2);
+    assert.equal(w.findings, 3);
+    assert.deepEqual(w.applied.map((e) => [e.source, e.rule, e.findings]), [["project", "r1", 2], ["project", "r3", 1]]);
+    assert.deepEqual(w.applied[0], { source: "project", id: "r1@src/*", rule: "r1", path: "src/*", reason: "accepted", expires: "2999-12-31", findings: 2 });
+    const occurrence = w.applied[1];
+    assert.equal(occurrence.path, "src/c.ts");
+    assert.equal(occurrence.line, 1);
+    assert.equal(occurrence.reason, "false positive");
+    assert.equal(occurrence.expires, "2999-12-31");
+    assert.equal(occurrence.created, "2026-11-14");
+    assert.deepEqual(w.unmatched.map((e) => e.rule), ["r9"]);
+    assert.deepEqual(w.expired.map((e) => e.reason), ["old"]);
+    assert.deepEqual(w.stale, []);
+    assert.deepEqual(w.refused, []);
+    assert.equal(w.problem, undefined);
+    for (const f of result.findings) {
+      assert.equal(f.waived, true);
+      assert.equal(f.waiverSource, "project");
+      assert.equal(f.waiverExpires, "2999-12-31");
+    }
+    // The waivers in force are in the provenance, outside the identity.
+    assert.equal(result.provenance.waivers.count, 4);
+    assert.match(result.provenance.waivers.sha256, /^sha256:[0-9a-f]{64}$/);
+    const onDisk = JSON.parse(fs.readFileSync(path.join(result.runDir, "result.json"), "utf8"));
+    assert.deepEqual(onDisk.waivers, w);
+    assert.ok(validateResult(onDisk), JSON.stringify(validateResult.errors));
+
+    // A result written before these fields existed still validates and compares.
+    const old = structuredClone(onDisk);
+    delete old.waivers;
+    delete old.provenance.waivers;
+    for (const f of old.findings) {
+      delete f.anchor;
+      delete f.waiverSource;
+      delete f.waiverExpires;
+    }
+    assert.ok(validateResult(old), JSON.stringify(validateResult.errors));
+    assert.equal(results.compareWithPrevious(onDisk, old).waiversChanged, false);
+    // Different waivers in force between two validations: the comparison says so.
+    assert.equal(results.compareWithPrevious(onDisk, first).waiversChanged, true);
+    assert.ok(results.compareWithPrevious(onDisk, first).changed.includes("waivers"));
+    assert.equal(results.compareWithPrevious(onDisk, onDisk).waiversChanged, false);
+  } finally {
+    rm(ws, home);
+  }
+});
+
+test("waivers: an unreadable .jgates/waivers.json is reported in waivers.problem and the findings stay active", async () => {
+  const ws = tmp("jg-res-ws-");
+  const home = tmp("jg-res-home-");
+  try {
+    writeFiles(ws, { ".jgates/waivers.json": "{ not json", "k.ts": "x\n" });
+    const blocking = finding({ ruleId: "r1", blocking: true, blockingReason: "blocking-category", location: { path: "k.ts", line: 1 } });
+    const result = await doRun(ws, home, { findings: [blocking], blockingViolations: 1 });
+    assert.equal(result.waivers.problem.file, ".jgates/waivers.json");
+    assert.ok(result.waivers.problem.message.length > 0);
+    assert.equal(result.findings[0].waived, false);
+    assert.equal(result.decision, "failed");
+    assert.ok(validateResult(result), JSON.stringify(validateResult.errors));
+    // Same with --waiver given: the file's problem is still reported, and the flag still applies.
+    const flag = results.parseWaiverFlag("rule=r1;reason=ad hoc").waiver;
+    const withFlag = await doRun(ws, home, { findings: [blocking], blockingViolations: 1, waivers: results.combineWaivers([], [flag]) });
+    assert.equal(withFlag.waivers.problem.file, ".jgates/waivers.json");
+    assert.equal(withFlag.findings[0].waiverSource, "flag");
+  } finally {
+    rm(ws, home);
+  }
+});
+
+test("waivers: a governed run marks what the pinned policy waived with waiverSource policy and never reads the project's file", async () => {
+  const ws = tmp("jg-res-ws-");
+  const home = tmp("jg-res-home-");
+  try {
+    writeFiles(ws, { ".jgates/waivers.json": "{ not json", "k.ts": "x\n" });
+    const policy = { sha256: "a".repeat(64), files: [], source: { dir: ws, from: "option" }, qualityPolicy: { file: null, sha256: "b".repeat(64) } };
+    const result = await doRun(ws, home, {
+      findings: [finding({ ruleId: "r1", location: { path: "k.ts", line: 1 } })],
+      waivers: [{ rule: "r1", reason: "approved by the policy" }],
+      policy,
+    });
+    assert.equal(result.findings[0].waived, true);
+    assert.equal(result.findings[0].waiverSource, "policy");
+    assert.deepEqual(result.waivers.applied.map((e) => e.source), ["policy"]);
+    assert.equal(result.waivers.problem, undefined, "the project's file is not read by a governed run");
+    assert.ok(validateResult(result), JSON.stringify(validateResult.errors));
+  } finally {
+    rm(ws, home);
+  }
+});
+
+test("waivers: an occurrence waiver without anchor keeps the count guard; an anchored one goes stale when its line changes", () => {
+  const secret = (line) => finding({ tool: "gitleaks", ruleId: "generic-api-key", category: "secrets", location: { path: "conf.py", line } });
+  const two = results.finalizeFindings({ findings: [secret(2), secret(5)], stages: [] }, [], NOW);
+  const entry = results.occurrenceWaiver(two, two.findings[1], { reason: "test key", expires: "2999-12-31", created: "2026-11-14" });
+  assert.equal(entry.anchor, undefined);
+  assert.equal(entry.occurrences, 2);
+  const same = results.classifyWaivers(two, [entry], NOW)[0];
+  assert.deepEqual([same.state, same.matched], ["live", 1]);
+  const three = results.finalizeFindings({ findings: [secret(2), secret(5), secret(9)], stages: [] }, [entry], NOW);
+  assert.deepEqual(three.findings.map((f) => f.waived), [false, false, false]);
+  assert.deepEqual(three.waivers.stale.map((e) => e.cause), ["count-changed"]);
+
+  const lines = { 1: "a = 1", 2: "b = 2" };
+  const lineOf = (_p, n) => lines[n] ?? null;
+  const first = results.finalizeFindings({ findings: [lint(1), lint(2)], stages: [] }, [], NOW, { lineOf });
+  const anchored = results.occurrenceWaiver(first, first.findings[1], { reason: "fp", expires: "2999-12-31", created: "2026-11-14" });
+  lines[2] = "b = 3";
+  const changed = results.finalizeFindings({ findings: [lint(1), lint(2)], stages: [] }, [anchored], NOW, { lineOf });
+  assert.deepEqual(changed.findings.map((f) => f.waived), [false, false]);
+  assert.deepEqual(changed.waivers.stale.map((e) => e.cause), ["line-changed"]);
 });

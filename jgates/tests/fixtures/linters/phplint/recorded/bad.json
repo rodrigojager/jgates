@@ -1,0 +1,20 @@
+{
+ "tool": "phplint",
+ "kind": "bad",
+ "version": "9.8.2",
+ "calls": [
+  {
+   "args": [
+    "lint",
+    "--no-cache",
+    "--no-progress",
+    "--no-ansi",
+    "--",
+    "Syntax.php"
+   ],
+   "exit": 1,
+   "stdout": "\nPHPLint Console Application version dev-main (b8f8ad7) by overtrue and contributors.\n\nRuntime       : PHP 8.4.27\nConfiguration : No config file loaded\n\n\n [ERROR] 1 file, 1 failure                                                      \n\n1. /workspace/Syntax.php:9\n     6| \n     7| final class Syntax\n     8| {\n  >  9|     public function value(: int\n    10|     {\n    11|         return 1;\n    12|     }\n\n unexpected token \":\", expecting variable in line 9\n\n\nMetadata Information\n--------------------\n\n[application_version] PHPLint Console Application {\"semantic_version\":\"dev-main\",\"pretty_version\":\"dev-main\",\"reference\":\"b8f8ad7306170c61142dc72487c58b7e667a0132\"}\n[current_configuration] Current configuration settings {\"configuration\":\"\",\"no-configuration\":true,\"path\":[\"/workspace/Syntax.php\"],\"exclude\":[],\"file-extensions\":[\"php\"],\"jobs\":1,\"no-cache\":true,\"cache-dir\":\".phplint.cache\",\"cache-ttl\":3600,\"cache-adapter\":\"Filesystem\",\"no-progress\":true,\"progress\":\"auto\",\"output-file\":null,\"output-format\":[\"console\"],\"warning\":false,\"memory-limit\":-1,\"ignore-exit-code\":false,\"bootstrap\":\"\",\"dry-run\":false,\"profile\":\"auto\",\"env\":\"dev\",\"extensions\":[\"cache_manager\",\"diagnose_manager\",\"output_manager\",\"profile_manager\",\"progress_manager\"],\"mode\":\"off\"}\n\n [OK] The Diagnose Manager has finished successfully.                           \n\n",
+   "stderr": ""
+  }
+ ]
+}

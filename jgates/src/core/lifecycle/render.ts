@@ -19,8 +19,18 @@ function reasonLines(reason: LifecycleReason, t: ReturnType<typeof translator>, 
 export function renderStatus(report: StatusReport, locale?: string): string {
   const t = translator("lifecycle", locale);
   const lines: string[] = [report.ready ? t("lifecycle_status_ready") : t("lifecycle_status_not_ready")];
+  // The number of checks that run at the same time: configured, or automatic with the limits of a check it assumed.
+  const concurrencyLine = (): string | null => {
+    const c = report.concurrency;
+    if (!c) return null;
+    return c.source === "configuration"
+      ? t("lifecycle_status_concurrency_configured", { value: c.value, automatic: c.automatic })
+      : t("lifecycle_status_concurrency_automatic", { value: c.value, memory: formatMegabytes(c.step.memoryMb, locale), cpus: c.step.cpus });
+  };
   if (report.mode === "in-image") {
     lines.push(t("lifecycle_status_in_image"));
+    const concurrency = concurrencyLine();
+    if (concurrency) lines.push(concurrency);
     return lines.join("\n") + "\n";
   }
   const e = report.engine;
@@ -29,6 +39,10 @@ export function renderStatus(report: StatusReport, locale?: string): string {
       ? t("lifecycle_status_engine", { state: t(`lifecycle_state_${e.state}`), version: e.serverVersion ?? "?", platform: `${e.os ?? "?"}/${e.arch ?? "?"}`, memory: formatMegabytes(e.memoryMb ?? 0, locale), cpus: e.cpus ?? 0 })
       : t("lifecycle_status_engine_down", { state: t(`lifecycle_state_${e.state}`) }),
   );
+  if (e.state === "ready" || e.state === "low-memory") {
+    const concurrency = concurrencyLine();
+    if (concurrency) lines.push(concurrency);
+  }
   lines.push(t("lifecycle_status_image", { image: report.image.reference, state: t(`lifecycle_state_image_${report.image.state}`), version: report.image.version ?? "-" }));
   lines.push(report.extension.images.length === 0 ? t("lifecycle_status_extension_none") : t("lifecycle_status_extension", { count: report.extension.images.length, names: report.extension.images.map((i) => i.name).join(", ") }));
   lines.push(t("lifecycle_status_data_header", { max: report.data.maxAgeDays }));

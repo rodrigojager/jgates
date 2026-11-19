@@ -58,6 +58,8 @@ Um perfil escolhe as capacidades que contam. Os três embutidos se herdam:
 | `standard` (Equilibrado, o padrão do `init`) | mais SAST, dependências, duplicação, IaC e dados pessoais | `minimal` |
 | `strict` (Rigoroso) | mais testes unitários e cobertura, obrigatórios; e todas as outras verificações para as quais existe ferramenta, no modo "onde houver ferramenta" (abaixo) | `standard` |
 
+O [catálogo de ferramentas](tools.pt-BR.md) lista os templates implícitos, suas evidências e suas faixas de perfis. A faixa básica entra a partir do Essencial, a principal a partir do Equilibrado e a estendida a partir do Rigoroso, conforme a capacidade e os arquivos encontrados. Em `jgates config`, escolha o perfil e alterne ferramentas individuais. Para selecionar uma ferramenta em uma execução, use `--only tool:<id>`. Depois de uma atualização, o indicador **Verificações novas** identifica as ferramentas adicionadas ao catálogo instalado.
+
 ### Obrigatória, onde houver ferramenta ou desligada
 
 Cada capacidade de um perfil tem três modos. Na interface (`#/config`, tela de perfis) o seletor mostra **Obrigatória**, **Onde houver ferramenta** e **Desligada**; no `.jgates/profiles.yml` são `enabled: true`, `enabled: true` com `when: available` e `enabled: false`:

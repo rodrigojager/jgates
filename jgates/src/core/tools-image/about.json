@@ -1,0 +1,374 @@
+{
+  "description": "The words JGates says about each program of the tools image that is not a linter descriptor (a descriptor says its own: license, source, and a purpose from its place): the license (an SPDX expression, or the words of THIRD_PARTY_NOTICES.md), a note shown after it in parentheses (or `notice`, the whole license cell when the note sits inside it), the place its source is published and what it is for. src/core/tools-image/about.ts reads it, and scripts/gen-image-docs.mjs generates the THIRD_PARTY_NOTICES.md table of the tools image from it and the descriptors. `bundled` lists components shipped inside another tool that have a row of their own in that table.",
+  "tools": {
+    "bundler": {
+      "license": "MIT",
+      "purpose": "package-manager",
+      "source": "https://github.com/rubygems/rubygems"
+    },
+    "cargo": {
+      "license": "MIT OR Apache-2.0",
+      "purpose": "package-manager",
+      "source": "https://github.com/rust-lang/cargo"
+    },
+    "cargo-audit": {
+      "license": "Apache-2.0 OR MIT",
+      "purpose": "vulnerabilities",
+      "source": "https://github.com/rustsec/rustsec"
+    },
+    "cargo-llvm-cov": {
+      "license": "Apache-2.0 OR MIT",
+      "note": "with the rustup `llvm-tools` component: Apache-2.0 WITH LLVM-exception",
+      "purpose": "coverage",
+      "source": "https://github.com/taiki-e/cargo-llvm-cov"
+    },
+    "checkov": {
+      "license": "Apache-2.0",
+      "purpose": "iac",
+      "source": "https://github.com/bridgecrewio/checkov"
+    },
+    "clippy": {
+      "license": "MIT OR Apache-2.0",
+      "purpose": "lint",
+      "source": "https://github.com/rust-lang/rust-clippy"
+    },
+    "corepack": {
+      "license": "MIT",
+      "purpose": "package-manager",
+      "source": "https://github.com/nodejs/corepack"
+    },
+    "coverage": {
+      "license": "Apache-2.0",
+      "purpose": "coverage",
+      "source": "https://github.com/nedbat/coveragepy"
+    },
+    "curl": {
+      "license": "curl",
+      "purpose": "utility",
+      "source": "https://github.com/curl/curl"
+    },
+    "dependency-cruiser": {
+      "license": "MIT",
+      "purpose": "architecture",
+      "source": "https://github.com/sverweij/dependency-cruiser"
+    },
+    "dotnet": {
+      "license": "MIT",
+      "purpose": "runtime",
+      "source": "https://github.com/dotnet/sdk"
+    },
+    "dotnet-ef": {
+      "license": "MIT",
+      "note": "EF Core command-line tools",
+      "purpose": "migrations",
+      "source": "https://github.com/dotnet/efcore"
+    },
+    "dotnet-format": {
+      "license": "MIT",
+      "purpose": "format",
+      "source": "https://github.com/dotnet/format"
+    },
+    "dotnet-stryker": {
+      "license": "Apache-2.0",
+      "note": "Stryker.NET; its bundled assemblies are covered by the tool",
+      "purpose": "mutation",
+      "source": "https://github.com/stryker-mutator/stryker-net"
+    },
+    "eslint": {
+      "license": "MIT",
+      "purpose": "lint",
+      "source": "https://github.com/eslint/eslint"
+    },
+    "fast-check": {
+      "license": "MIT",
+      "purpose": "tests",
+      "source": "https://github.com/dubzzz/fast-check"
+    },
+    "gcc": {
+      "license": "GPL-3.0-or-later with the GCC Runtime Library Exception",
+      "purpose": "build",
+      "source": "https://gcc.gnu.org/git.html"
+    },
+    "git": {
+      "license": "GPL-2.0-only",
+      "purpose": "utility",
+      "source": "https://git.kernel.org/pub/scm/git/git.git"
+    },
+    "gitleaks": {
+      "license": "MIT",
+      "purpose": "secrets",
+      "source": "https://github.com/gitleaks/gitleaks"
+    },
+    "go": {
+      "license": "BSD-3-Clause",
+      "purpose": "runtime",
+      "source": "https://github.com/golang/go"
+    },
+    "golangci-lint": {
+      "license": "GPL-3.0",
+      "purpose": "lint",
+      "source": "https://github.com/golangci/golangci-lint"
+    },
+    "govulncheck": {
+      "license": "BSD-3-Clause",
+      "purpose": "vulnerabilities",
+      "source": "https://github.com/golang/vuln"
+    },
+    "hadolint": {
+      "license": "GPL-3.0",
+      "purpose": "iac",
+      "source": "https://github.com/hadolint/hadolint"
+    },
+    "hypothesis": {
+      "license": "MPL-2.0",
+      "purpose": "tests",
+      "source": "https://github.com/HypothesisWorks/hypothesis"
+    },
+    "import-linter": {
+      "license": "BSD-2-Clause",
+      "purpose": "architecture",
+      "source": "https://github.com/seddonym/import-linter"
+    },
+    "java": {
+      "license": "GPL-2.0-only with the Classpath Exception",
+      "note": "Eclipse Temurin JRE",
+      "purpose": "runtime",
+      "source": "https://github.com/adoptium/jdk21u"
+    },
+    "jgates": {
+      "license": "MIT",
+      "purpose": "jgates",
+      "source": "https://github.com/rodrigojager/jgates"
+    },
+    "jq": {
+      "license": "MIT",
+      "purpose": "utility",
+      "source": "https://github.com/jqlang/jq"
+    },
+    "jscpd": {
+      "license": "MIT",
+      "purpose": "duplication",
+      "source": "https://github.com/kucherenko/jscpd"
+    },
+    "make": {
+      "license": "GPL-3.0-or-later",
+      "purpose": "build",
+      "source": "https://git.savannah.gnu.org/cgit/make.git"
+    },
+    "mutmut": {
+      "license": "BSD-3-Clause",
+      "purpose": "mutation",
+      "source": "https://github.com/boxed/mutmut"
+    },
+    "mypy": {
+      "license": "MIT",
+      "purpose": "types",
+      "source": "https://github.com/python/mypy"
+    },
+    "node": {
+      "license": "MIT",
+      "purpose": "runtime",
+      "source": "https://github.com/nodejs/node"
+    },
+    "npm": {
+      "license": "Artistic-2.0",
+      "purpose": "package-manager",
+      "source": "https://github.com/npm/cli"
+    },
+    "oasdiff": {
+      "license": "Apache-2.0",
+      "purpose": "api",
+      "source": "https://github.com/oasdiff/oasdiff"
+    },
+    "osv-scanner": {
+      "license": "Apache-2.0",
+      "purpose": "vulnerabilities",
+      "source": "https://github.com/google/osv-scanner"
+    },
+    "php": {
+      "license": "PHP-3.01",
+      "purpose": "runtime",
+      "source": "https://github.com/php/php-src"
+    },
+    "pkg-config": {
+      "license": "ISC",
+      "note": "pkgconf",
+      "purpose": "build",
+      "source": "https://github.com/pkgconf/pkgconf"
+    },
+    "powershell": {
+      "license": "MIT",
+      "purpose": "runtime",
+      "source": "https://github.com/PowerShell/PowerShell"
+    },
+    "prettier": {
+      "license": "MIT",
+      "purpose": "format",
+      "source": "https://github.com/prettier/prettier"
+    },
+    "pyflakes": {
+      "license": "MIT",
+      "purpose": "lint",
+      "source": "https://github.com/PyCQA/pyflakes"
+    },
+    "pyright": {
+      "license": "MIT",
+      "purpose": "types",
+      "source": "https://github.com/microsoft/pyright"
+    },
+    "pytest": {
+      "license": "MIT",
+      "purpose": "tests",
+      "source": "https://github.com/pytest-dev/pytest"
+    },
+    "pytest-cov": {
+      "license": "MIT",
+      "purpose": "coverage",
+      "source": "https://github.com/pytest-dev/pytest-cov"
+    },
+    "python": {
+      "license": "PSF-2.0",
+      "purpose": "runtime",
+      "source": "https://github.com/python/cpython"
+    },
+    "quality-sidecar": {
+      "license": "MIT",
+      "purpose": "jgates",
+      "source": "https://github.com/rodrigojager/jgates"
+    },
+    "rsync": {
+      "license": "GPL-3.0-or-later",
+      "purpose": "utility",
+      "source": "https://github.com/RsyncProject/rsync"
+    },
+    "ruby": {
+      "license": "Ruby OR BSD-2-Clause",
+      "purpose": "runtime",
+      "source": "https://github.com/ruby/ruby"
+    },
+    "ruff": {
+      "license": "MIT",
+      "purpose": "lint",
+      "source": "https://github.com/astral-sh/ruff"
+    },
+    "rustc": {
+      "license": "MIT OR Apache-2.0",
+      "purpose": "runtime",
+      "source": "https://github.com/rust-lang/rust"
+    },
+    "rustfmt": {
+      "license": "MIT OR Apache-2.0",
+      "purpose": "format",
+      "source": "https://github.com/rust-lang/rustfmt"
+    },
+    "rustup": {
+      "license": "MIT OR Apache-2.0",
+      "purpose": "package-manager",
+      "source": "https://github.com/rust-lang/rustup"
+    },
+    "schemathesis": {
+      "license": "MIT",
+      "purpose": "api",
+      "source": "https://github.com/schemathesis/schemathesis"
+    },
+    "semgrep": {
+      "license": "LGPL-2.1-only",
+      "note": "engine only, no Registry rules",
+      "purpose": "sast",
+      "source": "https://github.com/semgrep/semgrep"
+    },
+    "shellcheck": {
+      "license": "GPL-3.0-or-later",
+      "purpose": "lint",
+      "source": "https://github.com/koalaman/shellcheck"
+    },
+    "squawk": {
+      "license": "Apache-2.0",
+      "purpose": "migrations",
+      "source": "https://github.com/sbdchd/squawk"
+    },
+    "stryker": {
+      "license": "Apache-2.0",
+      "purpose": "mutation",
+      "source": "https://github.com/stryker-mutator/stryker-js"
+    },
+    "stryker-jest-runner": {
+      "license": "Apache-2.0",
+      "purpose": "mutation",
+      "source": "https://github.com/stryker-mutator/stryker-js"
+    },
+    "stryker-vitest-runner": {
+      "license": "Apache-2.0",
+      "purpose": "mutation",
+      "source": "https://github.com/stryker-mutator/stryker-js"
+    },
+    "tini": {
+      "license": "MIT",
+      "purpose": "utility",
+      "source": "https://github.com/krallin/tini"
+    },
+    "tomlkit": {
+      "license": "MIT",
+      "purpose": "utility",
+      "source": "https://github.com/python-poetry/tomlkit"
+    },
+    "trivy": {
+      "license": "Apache-2.0",
+      "purpose": "vulnerabilities",
+      "source": "https://github.com/aquasecurity/trivy"
+    },
+    "typescript": {
+      "license": "Apache-2.0",
+      "purpose": "types",
+      "source": "https://github.com/microsoft/TypeScript"
+    },
+    "typescript-eslint": {
+      "license": "MIT",
+      "purpose": "lint",
+      "source": "https://github.com/typescript-eslint/typescript-eslint"
+    },
+    "unzip": {
+      "license": "Info-ZIP",
+      "purpose": "utility",
+      "source": "https://sourceforge.net/projects/infozip/"
+    },
+    "uv": {
+      "license": "MIT OR Apache-2.0",
+      "purpose": "package-manager",
+      "source": "https://github.com/astral-sh/uv"
+    },
+    "vitest": {
+      "license": "MIT",
+      "purpose": "tests",
+      "source": "https://github.com/vitest-dev/vitest"
+    },
+    "vitest-coverage-v8": {
+      "license": "MIT",
+      "purpose": "coverage",
+      "source": "https://github.com/vitest-dev/vitest"
+    },
+    "xz": {
+      "license": "0BSD and GPL-2.0-or-later",
+      "notice": "0BSD (liblzma) and GPL-2.0-or-later (xz tools)",
+      "purpose": "utility",
+      "source": "https://github.com/tukaani-project/xz"
+    },
+    "zap": {
+      "license": "Apache-2.0",
+      "purpose": "dast",
+      "source": "https://github.com/zaproxy/zaproxy"
+    },
+    "zizmor": {
+      "license": "MIT",
+      "purpose": "workflows",
+      "source": "https://github.com/zizmorcore/zizmor"
+    }
+  },
+  "bundled": {
+    "libgit2": {
+      "license": "GPL-2.0-only WITH GCC-exception-2.0",
+      "note": "the libgit2 linking exception; bundled unmodified by Stryker.NET through LibGit2Sharp",
+      "source": "https://github.com/libgit2/libgit2"
+    }
+  }
+}

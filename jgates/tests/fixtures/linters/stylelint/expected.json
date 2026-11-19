@@ -1,0 +1,12 @@
+{
+  "files": [
+    "stylelint_sample.css"
+  ],
+  "findings": [
+    {
+      "rule": "color-hex-length",
+      "file": "stylelint_sample.css",
+      "line": 2
+    }
+  ]
+}

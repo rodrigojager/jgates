@@ -74,13 +74,18 @@ const pin = (overrides = {}) => ({ schemaVersion: 1, name: "jgates-tools", refer
 
 test("the disk the download needs is compressed + unpacked + 10 %", async () => {
   const { diskRequirement } = await load("core", "lifecycle", "index.js");
-  const real = diskRequirement(pin({ compressedBytes: 1_930_000_000, uncompressedBytes: 5_580_000_000 }));
-  assert.equal(real.totalBytes, Math.ceil((1_930_000_000 + 5_580_000_000) * 1.1));
+  // The package's pin, with the two sizes the image build measured and wrote (scripts/image-build.mjs).
+  const shipped = JSON.parse(fs.readFileSync(path.join(packageRoot, "release", "tools-image.json"), "utf8"));
+  assert.ok(shipped.compressedBytes > 0 && shipped.uncompressedBytes > shipped.compressedBytes, "the pin carries both measured sizes");
+  const real = diskRequirement(shipped);
+  assert.equal(real.compressedBytes, shipped.compressedBytes);
+  assert.equal(real.uncompressedBytes, shipped.uncompressedBytes);
+  assert.equal(real.totalBytes, Math.ceil((shipped.compressedBytes + shipped.uncompressedBytes) * 1.1));
   assert.equal(real.totalMb, Math.ceil(real.totalBytes / 1048576));
-  // Without the unpacked size the ratio measured on the first complete image is used.
+  // A pin written before the build measured the unpacked size: estimated with the ratio of the first complete image (2.9).
   const estimated = diskRequirement(pin());
   assert.equal(estimated.compressedBytes, 1_930_000_000);
-  assert.ok(estimated.uncompressedBytes > 5_500_000_000 && estimated.uncompressedBytes < 5_700_000_000, String(estimated.uncompressedBytes));
+  assert.equal(estimated.uncompressedBytes, Math.round(1_930_000_000 * 2.9));
 });
 
 test("not enough free disk is DISK_LOW before anything is downloaded", async () => {

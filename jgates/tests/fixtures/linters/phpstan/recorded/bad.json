@@ -1,0 +1,21 @@
+{
+ "tool": "phpstan",
+ "kind": "bad",
+ "version": "2.3.6",
+ "calls": [
+  {
+   "args": [
+    "analyse",
+    "--no-progress",
+    "--no-ansi",
+    "--memory-limit=1G",
+    "--error-format=checkstyle",
+    "--",
+    "Undefined.php"
+   ],
+   "exit": 1,
+   "stdout": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<checkstyle>\n<file name=\"Undefined.php\">\n  <error line=\"11\" column=\"1\" severity=\"error\" message=\"Function missing_function not found.\" source=\"function.notFound\" />\n</file>\n</checkstyle>\n",
+   "stderr": "\n ! [NOTE] PHPStan runs without PHPStan Turbo.                                   \n !        With PHPStan Turbo, analysis is up to 60% faster.                     \n !        Install PHPStan with Composer: composer require --dev phpstan/phpstan \n !        Or install PHPStan Turbo with PIE: pie install phpstan/turbo:2.3.6    \n\n"
+  }
+ ]
+}

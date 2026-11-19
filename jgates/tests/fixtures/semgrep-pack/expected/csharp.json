@@ -1,0 +1,17 @@
+{
+  "files": ["Controllers.cs"],
+  "ruleIds": [
+    "jgates.csharp.sql-string-building",
+    "jgates.csharp.os-command-injection",
+    "jgates.csharp.ssrf",
+    "jgates.csharp.path-traversal",
+    "jgates.csharp.reflected-xss",
+    "jgates.csharp.raw-html-non-literal",
+    "jgates.csharp.weak-hash",
+    "jgates.csharp.weak-cipher",
+    "jgates.csharp.tls-verification-disabled",
+    "jgates.csharp.token-validation-disabled",
+    "jgates.csharp.unsafe-deserialization",
+    "jgates.csharp.xml-external-entity"
+  ]
+}

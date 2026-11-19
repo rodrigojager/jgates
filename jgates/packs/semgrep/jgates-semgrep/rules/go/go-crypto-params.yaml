@@ -1,0 +1,404 @@
+# Go crypto-params: key sizes, IVs and nonces, cipher modes, key derivation parameters,
+# constant-time comparison, signature hashes, hardcoded keys and randomness for secrets.
+# Libraries covered: crypto/rsa, crypto/dsa, crypto/cipher, crypto/aes, crypto/hmac, crypto/x509, crypto/md5,
+# crypto/sha1, crypto/sha256, crypto/sha512, golang.org/x/crypto (bcrypt, scrypt, argon2, pbkdf2, chacha20poly1305),
+# crypto/pbkdf2, bytes, math/rand, google/uuid, golang-jwt (SignedString).
+# Left out: weak-dh-parameters (the Go standard library has no Diffie-Hellman parameter generation).
+rules:
+  - id: jgates.go.weak-key-size
+    message: An RSA or DSA key under 2048 bits can be broken with modest resources. Generate RSA keys of at least 3072 bits (2048 at the least) and use curves such as P-256 or Ed25519.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: rsa.GenerateKey($R, $N)
+              - pattern: rsa.GenerateMultiPrimeKey($R, $P, $N)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+      - pattern: dsa.GenerateParameters($PARAMS, $R, dsa.L1024N160)
+
+  - id: jgates.go.rsa-key-below-3072
+    message: An RSA key of 2048 to 3071 bits is accepted today but is below the 3072 bits the standard recommends for new keys. Generate RSA keys of at least 3072 bits.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3"]
+    patterns:
+      - pattern-either:
+          - pattern: rsa.GenerateKey($R, $N)
+          - pattern: rsa.GenerateMultiPrimeKey($R, $P, $N)
+      - metavariable-comparison:
+          metavariable: $N
+          comparison: $N >= 2048 and $N < 3072
+
+  - id: jgates.go.static-iv-or-nonce
+    message: A literal, zeroed or constant IV or nonce is given to a cipher, so identical plaintexts give identical ciphertexts and a nonce reused with the same key breaks the cipher. Fill a fresh IV or nonce from crypto/rand for every message.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-329"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern: cipher.$F($B, $IV)
+                  - metavariable-regex:
+                      metavariable: $F
+                      regex: ^(NewCBCEncrypter|NewCBCDecrypter|NewCFBEncrypter|NewCFBDecrypter|NewCTR|NewOFB)$
+              - pattern: $G.Seal($D, $IV, ...)
+              - pattern: $G.Open($D, $IV, ...)
+          - metavariable-pattern:
+              metavariable: $IV
+              pattern-either:
+                - pattern: '[]byte("...")'
+                - pattern: '[]byte{...}'
+                - pattern: make([]byte, ...)
+                - pattern: bytes.Repeat(...)
+      - patterns:
+          - pattern-either:
+              - patterns:
+                  - pattern: cipher.$F($B, $IV)
+                  - metavariable-regex:
+                      metavariable: $F
+                      regex: ^(NewCBCEncrypter|NewCBCDecrypter|NewCFBEncrypter|NewCFBDecrypter|NewCTR|NewOFB)$
+              - pattern: $G.Seal($D, $IV, ...)
+              - pattern: $G.Open($D, $IV, ...)
+          - pattern-either:
+              - pattern-inside: |
+                  $IV := []byte("...")
+                  ...
+              - pattern-inside: |
+                  $IV := []byte{...}
+                  ...
+              - pattern-inside: |
+                  $IV := make([]byte, ...)
+                  ...
+          - pattern-not-inside: |
+              $IV := make([]byte, ...)
+              ...
+              rand.Read($IV)
+              ...
+          - pattern-not-inside: |
+              $IV := make([]byte, ...)
+              ...
+              io.ReadFull($R, $IV)
+              ...
+          - pattern-not-inside: |
+              $IV := make([]byte, ...)
+              ...
+              if _, $E := rand.Read($IV); $COND { ... }
+              ...
+          - pattern-not-inside: |
+              $IV := make([]byte, ...)
+              ...
+              if _, $E := io.ReadFull($R, $IV); $COND { ... }
+              ...
+          - pattern-not-inside: |
+              $IV := make([]byte, ...)
+              ...
+              copy($IV, ...)
+              ...
+
+  - id: jgates.go.cipher-mode-without-authentication
+    message: CBC, CTR, CFB and OFB encrypt without authenticating the data, and the rule cannot see whether a MAC follows. Prefer an authenticated mode such as AES-GCM (cipher.NewGCM) or ChaCha20-Poly1305, or add an HMAC over the ciphertext.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.3"]
+    patterns:
+      - pattern: cipher.$F(...)
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(NewCBCEncrypter|NewCBCDecrypter|NewCFBEncrypter|NewCFBDecrypter|NewCTR|NewOFB)$
+
+  - id: jgates.go.weak-cipher-mode
+    message: RSA encryption with PKCS#1 v1.5 padding is open to padding-oracle attacks. Use RSA-OAEP (rsa.EncryptOAEP, rsa.DecryptOAEP) for public-key encryption, and AES-GCM for bulk data.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.1"]
+    pattern-either:
+      - pattern: rsa.EncryptPKCS1v15(...)
+      - pattern: rsa.DecryptPKCS1v15(...)
+      - pattern: rsa.DecryptPKCS1v15SessionKey(...)
+
+  - id: jgates.go.weak-kdf-parameters
+    message: A password hashing or key derivation call uses a literal work factor under the floor (PBKDF2 under 100000 iterations, bcrypt cost under 10, scrypt N under 16384, Argon2 under 19 MiB of memory or under 2 passes). Raise the work factor to the current recommendation.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V11.4.4"]
+    pattern-either:
+      - patterns:
+          - pattern: pbkdf2.Key($P, $S, $N, $L, $H)
+          - metavariable-regex:
+              metavariable: $H
+              regex: ^(sha1|sha256|sha512|sha3|md5)\.\w+$
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 100000
+      - patterns:
+          - pattern: pbkdf2.Key($H, $P, $S, $N, $L)
+          - metavariable-regex:
+              metavariable: $H
+              regex: ^(sha1|sha256|sha512|sha3|md5)\.\w+$
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 100000
+      - patterns:
+          - pattern: bcrypt.GenerateFromPassword($P, $N)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 10
+      - pattern: bcrypt.GenerateFromPassword($P, bcrypt.MinCost)
+      - patterns:
+          - pattern: scrypt.Key($P, $S, $N, $R, $PP, $L)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 16384
+      - patterns:
+          - pattern-either:
+              - pattern: argon2.IDKey($P, $S, $T, $M, $TH, $L)
+              - pattern: argon2.Key($P, $S, $T, $M, $TH, $L)
+          - metavariable-comparison:
+              metavariable: $T
+              comparison: $T < 2
+      - patterns:
+          - pattern-either:
+              - pattern: argon2.IDKey($P, $S, $T, $M, $TH, $L)
+              - pattern: argon2.Key($P, $S, $T, $M, $TH, $L)
+          - metavariable-comparison:
+              metavariable: $M
+              comparison: $M < 19456
+
+  - id: jgates.go.password-hash-with-fast-hash
+    message: A password is hashed with a plain, fast hash function, so a stolen database can be cracked at billions of guesses per second. Use a password hashing function such as bcrypt, scrypt or Argon2.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2"]
+    patterns:
+      - pattern-either:
+          - pattern: $H.$F([]byte($X))
+          - pattern: $H.$F([]byte($O.$X))
+          - pattern: $H.$F([]byte($X + $A))
+          - pattern: $H.$F([]byte($O.$X + $A))
+          - pattern: $H.$F([]byte($A + $X))
+          - pattern: $H.$F([]byte($A + $O.$X))
+          - pattern: $H.$F([]byte(fmt.Sprintf(..., $X)))
+          - pattern: $H.$F([]byte(fmt.Sprintf(..., $O.$X)))
+          - pattern: |
+              $OBJ := $H.New()
+              ...
+              $OBJ.Write([]byte($X))
+          - pattern: |
+              $OBJ := $H.New()
+              ...
+              $OBJ.Write([]byte($O.$X))
+          - pattern: |
+              $OBJ := $H.New()
+              ...
+              io.WriteString($OBJ, $X)
+          - pattern: |
+              $OBJ := $H.New()
+              ...
+              io.WriteString($OBJ, $O.$X)
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i)^[\w.]*(password|passwd|pwd|passphrase|senha)\w*$
+      - metavariable-regex:
+          metavariable: $H
+          regex: ^(md5|sha1|sha256|sha512|sha3)$
+
+  - id: jgates.go.timing-unsafe-comparison
+    message: A MAC, digest or signature is compared with == or bytes.Equal, which stop at the first differing byte and leak how much matched. Compare with hmac.Equal or subtle.ConstantTimeCompare.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-208"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.4"]
+    pattern-either:
+      - pattern: bytes.Equal($H.Sum(nil), $Y)
+      - pattern: bytes.Equal($Y, $H.Sum(nil))
+      - pattern: hex.EncodeToString($H.Sum(nil)) == $Y
+      - pattern: hex.EncodeToString($H.Sum(nil)) != $Y
+      - pattern: $Y == hex.EncodeToString($H.Sum(nil))
+      - pattern: $Y != hex.EncodeToString($H.Sum(nil))
+      - pattern: string($H.Sum(nil)) == $Y
+      - pattern: string($H.Sum(nil)) != $Y
+      - patterns:
+          - pattern-either:
+              - pattern: $R.Header.Get($NAME) == $Y
+              - pattern: $R.Header.Get($NAME) != $Y
+              - pattern: $Y == $R.Header.Get($NAME)
+              - pattern: $Y != $R.Header.Get($NAME)
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)(signature|hmac|digest)
+          - metavariable-regex:
+              metavariable: $Y
+              regex: ^(?!nil$|""$|\d)
+      - patterns:
+          - pattern-either:
+              - pattern: bytes.Equal($X, $Y)
+              - pattern: bytes.Equal($O.$X, $Y)
+              - pattern: $X == $Y
+              - pattern: $O.$X == $Y
+              - pattern: $X != $Y
+              - pattern: $O.$X != $Y
+              - pattern: bytes.Equal($Y, $X)
+              - pattern: bytes.Equal($Y, $O.$X)
+              - pattern: $Y == $X
+              - pattern: $Y == $O.$X
+              - pattern: $Y != $X
+              - pattern: $Y != $O.$X
+          - metavariable-regex:
+              metavariable: $X
+              regex: ^(?!(err|Err))\w*(mac|MAC|Mac|digest|Digest|signature|Signature|sig|Sig|hmac|HMAC)$
+          - metavariable-regex:
+              metavariable: $Y
+              regex: ^(?!nil$|""$|\d|err|Err)
+
+  - id: jgates.go.weak-signature-hash
+    message: A signature or MAC is made or verified with MD5 or SHA-1, which are broken for this use. Use SHA-256 or stronger.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-328"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.3", "V11.6.1"]
+    pattern-either:
+      - pattern: hmac.New(md5.New, ...)
+      - pattern: hmac.New(sha1.New, ...)
+      - pattern: rsa.SignPKCS1v15($R, $K, crypto.MD5, ...)
+      - pattern: rsa.SignPKCS1v15($R, $K, crypto.SHA1, ...)
+      - pattern: rsa.VerifyPKCS1v15($K, crypto.MD5, ...)
+      - pattern: rsa.VerifyPKCS1v15($K, crypto.SHA1, ...)
+      - pattern: rsa.SignPSS($R, $K, crypto.MD5, ...)
+      - pattern: rsa.SignPSS($R, $K, crypto.SHA1, ...)
+      - pattern: rsa.VerifyPSS($K, crypto.MD5, ...)
+      - pattern: rsa.VerifyPSS($K, crypto.SHA1, ...)
+      - pattern: x509.SHA1WithRSA
+      - pattern: x509.MD5WithRSA
+      - pattern: x509.ECDSAWithSHA1
+      - pattern: x509.DSAWithSHA1
+
+  - id: jgates.go.hardcoded-encryption-key
+    message: A string literal is used as the key of a cipher, a MAC or a token signature, so anyone with the source holds the key. Load the key from a secret store or the environment, or generate it.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-321"
+      author: JGates
+      subdimension: secrets
+      asvs_requirements: ["V13.3.1"]
+    pattern-either:
+      - pattern: aes.NewCipher([]byte("..."))
+      - pattern: hmac.New($H, []byte("..."))
+      - pattern: chacha20poly1305.New([]byte("..."))
+      - pattern: chacha20poly1305.NewX([]byte("..."))
+      - pattern: $T.SignedString([]byte("..."))
+      - pattern: |
+          $K := []byte("...")
+          ...
+          aes.NewCipher($K)
+      - pattern: |
+          $K := []byte("...")
+          ...
+          hmac.New($H, $K)
+      - pattern: |
+          $K := []byte("...")
+          ...
+          $T.SignedString($K)
+      - pattern: |
+          $K := []byte("...")
+          ...
+          chacha20poly1305.New($K)
+
+  - id: jgates.go.insecure-random-for-secret
+    message: The non-cryptographic math/rand package feeds a value named like a token, secret, password, code, nonce, salt or key, and its output can be predicted. Use crypto/rand (rand.Read into a byte slice, or rand.Int with rand.Reader).
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-338"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1", "V7.2.3", "V6.5.3", "V6.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $X := <... rand.$F(...) ...>
+          - pattern: $X = <... rand.$F(...) ...>
+          - pattern: $O.$X = <... rand.$F(...) ...>
+          - pattern: '$S{..., $X: <... rand.$F(...) ...>, ...}'
+      - pattern-not: $X := <... rand.Int($R, $M) ...>
+      - pattern-not: $X = <... rand.Int($R, $M) ...>
+      - pattern-not: $O.$X = <... rand.Int($R, $M) ...>
+      - pattern-not: '$S{..., $X: <... rand.Int($R, $M) ...>, ...}'
+      - metavariable-regex:
+          metavariable: $X
+          regex: ^([\w.]*\.)?((\w*_)?(?i:token|secret|password|passwd|pwd|passphrase|nonce|salt|otp|csrf|session_?id|api_?key|jwt|code|key)|\w*[a-z0-9](Token|Secret|Password|Passwd|Pwd|Passphrase|Nonce|Salt|Otp|OTP|Csrf|CSRF|SessionID|SessionId|APIKey|ApiKey|Jwt|JWT|Code|Key))$
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(Int|Intn|Int31|Int31n|Int63|Int63n|IntN|Int32|Int32N|Int64|Int64N|Uint32|Uint32N|Uint64|Uint64N|UintN|Float32|Float64|Perm|ExpFloat64|NormFloat64|Shuffle)$
+
+  - id: jgates.go.uuid-as-secret-token
+    message: A UUID is used as a token, secret, nonce or similar value. UUIDs are identifiers, not a designed source of secrecy (version 1 is predictable). Draw secret values from crypto/rand.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-330"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $X := <... uuid.$F(...) ...>
+          - pattern: $X = <... uuid.$F(...) ...>
+          - pattern: $O.$X = <... uuid.$F(...) ...>
+          - pattern: '$S{..., $X: <... uuid.$F(...) ...>, ...}'
+      - metavariable-regex:
+          metavariable: $X
+          regex: ^([\w.]*\.)?((\w*_)?(?i:token|secret|api_?key|nonce|salt|otp|csrf|session_?id|jwt|reset_?code|verification_?code|activation_?code)|\w*[a-z0-9](Token|Secret|Nonce|Salt|Otp|OTP|Csrf|CSRF|SessionID|SessionId|APIKey|ApiKey|Jwt|JWT|ResetCode|VerificationCode|ActivationCode))$
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(New|NewString|NewRandom|NewV1|NewV4|Must)$

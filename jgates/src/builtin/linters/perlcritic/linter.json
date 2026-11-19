@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "perlcritic",
+  "name": "Perl::Critic",
+  "sourceUrl": "https://github.com/Perl-Critic/Perl-Critic",
+  "license": "Artistic-1.0-Perl OR GPL-1.0-or-later",
+  "program": {
+    "tool": "perlcritic",
+    "versionRange": ">=1.150 <2.0.0"
+  },
+  "megalinter": [
+    "PERL_PERLCRITIC"
+  ],
+  "place": {
+    "section": "language",
+    "group": "perl",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".pl",
+      ".pm",
+      ".t"
+    ],
+    "content": {
+      "pattern": "^#!/usr/bin/(?:env )?perl"
+    }
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--nocolor",
+      "--verbose",
+      "%f:%l:%c:%p:%m\n",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>[^:\\n]+):(?<line>\\d+):(?<column>\\d+):(?<rule>\\w+(?:::\\w+)*):(?<message>.+)$",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".perlcriticrc"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "perlcritic reads the project's .perlcriticrc (or the file named by PERLCRITIC): the project decides the policies and the severity",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: ## no critic comments",
+      "pattern": "##?\\s*no\\s+critic",
+      "files": "\\.(?:pl|pm|t)$"
+    }
+  },
+  "install": "perlcritic",
+  "text": {
+    "en": {
+      "label": "Perl::Critic (Perl)",
+      "purpose": "A static analyser for Perl source that checks it against the Perl Best Practices policies: strictness, warnings, unsafe constructs and style.",
+      "limitation": "It reads the source without running it; by default it reports only the gentlest severity level (5) unless the project's .perlcriticrc asks for more.",
+      "needs": "Nothing beyond the tools image (the Perl runtime comes with it): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Perl::Critic (Perl)",
+      "purpose": "Um analisador estático de código Perl que o confere com as políticas do Perl Best Practices: strict, warnings, construções inseguras e estilo.",
+      "limitation": "Lê o código sem executá-lo; por padrão só relata o nível de severidade mais brando (5), a menos que o .perlcriticrc do projeto peça mais.",
+      "needs": "Nada além da imagem de ferramentas (o Perl vem com ela): sem rede e sem as dependências do projeto."
+    }
+  }
+}

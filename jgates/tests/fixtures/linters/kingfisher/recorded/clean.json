@@ -1,0 +1,29 @@
+{
+ "tool": "kingfisher",
+ "kind": "clean",
+ "version": "2.19.1",
+ "calls": [
+  {
+   "args": [
+    "scan",
+    "--git-history",
+    "none",
+    "--no-validate",
+    "--no-update-check",
+    "--no-rule-cache",
+    "--redact",
+    "--quiet",
+    "--format",
+    "sarif",
+    "--output",
+    "/output/linters/kingfisher/kingfisher.sarif",
+    "/workspace"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "",
+   "reportPath": "/output/linters/kingfisher/kingfisher.sarif",
+   "report": "{\n  \"version\": \"2.1.0\",\n  \"$schema\": \"https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json\",\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"name\": \"kingfisher\",\n          \"semanticVersion\": \"2.19.1\",\n          \"fullName\": \"Kingfisher 2.19.1\",\n          \"informationUri\": \"https://github.com/mongodb/kingfisher\",\n          \"downloadUri\": \"https://github.com/mongodb/kingfisher\",\n          \"shortDescription\": {\n            \"text\": \"MongoDB's blazingly fast and accurate secret scanning, validation, blast radius mapping, and secret revocation tool\"\n          },\n          \"rules\": []\n        }\n      },\n      \"results\": [],\n      \"properties\": {\n        \"repository_audit\": {\n          \"schema\": \"kingfisher.repository-audit.v1\",\n          \"run_id\": \"e6dc0219-8977-402c-b6d8-4ab07ad2b845\",\n          \"started_at\": \"2026-11-18T10:39:48.354846995+00:00\",\n          \"completed_at\": \"2026-11-18T10:39:55.549Z\",\n          \"duration_seconds\": 7.154745303,\n          \"summary\": {\n            \"discovered\": 1,\n            \"fetch_succeeded\": 0,\n            \"fetch_failed\": 0,\n            \"scan_succeeded\": 1,\n            \"scan_partial\": 0,\n            \"scan_failed\": 0,\n            \"pending\": 0\n          },\n          \"repositories\": [\n            {\n              \"key\": \"local:/workspace\",\n              \"repository\": \"/workspace\",\n              \"source\": \"local\",\n              \"discovered_at\": \"2026-11-18T10:39:48.982Z\",\n              \"fetch\": {\n                \"status\": \"not_applicable\"\n              },\n              \"scan\": {\n                \"status\": \"completed\",\n                \"started_at\": \"2026-11-18T10:39:55.247Z\",\n                \"completed_at\": \"2026-11-18T10:39:55.549Z\",\n                \"duration_seconds\": 0.301596443\n              },\n              \"git\": {\n                \"scope\": \"working_tree\",\n                \"tip_ref\": \"HEAD\",\n                \"shallow\": false\n              },\n              \"stats\": {\n                \"findings\": 0,\n                \"blobs_scanned\": 21,\n                \"bytes_scanned\": 30124\n              }\n            }\n          ]\n        }\n      }\n    }\n  ]\n}\n"
+  }
+ ]
+}

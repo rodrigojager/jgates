@@ -58,6 +58,17 @@ test('the JGates Semgrep rule pack ships with its license and record', () => {
   assert.ok(files.some((f) => f.startsWith(`${dir}/rules/`) && f.endsWith('.yaml')), 'the pack carries rule files');
 });
 
+test('the ASVS data ships unchanged with its license and the mapping pack with its record', () => {
+  const data = 'jgates/vendor/owasp-asvs';
+  for (const name of ['LICENSE', 'NOTICE.md', 'jgates-pack.json', '5.0.0/OWASP_Application_Security_Verification_Standard_5.0.0_en.flat.json']) assert.ok(has(`${data}/${name}`), `${data}/${name} is in the package`);
+  const record = JSON.parse(fs.readFileSync(path.join(root, data, 'jgates-pack.json'), 'utf8'));
+  assert.equal(record.source.revision, '5cf9b032440be53ce345ab3c130fda46ba1ce7a2');
+  assert.equal(record.spdx, 'CC-BY-SA-4.0');
+  const map = 'jgates/packs/asvs/jgates-asvs-map';
+  for (const name of ['LICENSE', 'NOTICE.md', 'jgates-pack.json', '5.0.0/unmapped-rules.json']) assert.ok(has(`${map}/${name}`), `${map}/${name} is in the package`);
+  for (let n = 1; n <= 17; n++) assert.ok(has(`${map}/5.0.0/V${String(n).padStart(2, '0')}.json`), `chapter file V${n} is in the package`);
+});
+
 test('credentials, keys and the official Semgrep rules are not in the package', () => {
   const credential = (f) => /(^|\/)\.env($|\.)/.test(f) || /\.(pem|key|p12|pfx|jks|keystore)$/i.test(f) || /(^|\/)id_(rsa|ed25519|ecdsa)/.test(f) || /(^|\/)\.npmrc$/.test(f) || /(^|\/)(secrets?|credentials)\.(json|ya?ml|txt)$/i.test(f);
   assert.deepEqual(files.filter(credential), [], 'no credential or key file is packed');

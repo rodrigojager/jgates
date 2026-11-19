@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "ts-standard",
+      "link": "ts-standard",
+      "path": "node_modules/.bin/ts-standard",
+      "version": [
+        "ts-standard",
+        "--version"
+      ]
+    }
+  ]
+}

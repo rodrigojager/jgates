@@ -1,0 +1,16 @@
+{
+  "crate": "cargo-audit",
+  "version": "0.22.2",
+  "provides": [
+    {
+      "name": "cargo-audit",
+      "link": "cargo-audit",
+      "path": "bin/cargo-audit",
+      "version": [
+        "cargo",
+        "audit",
+        "--version"
+      ]
+    }
+  ]
+}

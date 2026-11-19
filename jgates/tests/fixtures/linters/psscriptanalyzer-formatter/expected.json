@@ -1,0 +1,11 @@
+{
+  "files": [
+    "format-me.ps1"
+  ],
+  "findings": [
+    {
+      "rule": "psscriptanalyzer-formatter.unformatted",
+      "file": "format-me.ps1"
+    }
+  ]
+}

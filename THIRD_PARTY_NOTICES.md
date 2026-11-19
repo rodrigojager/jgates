@@ -121,6 +121,13 @@ LGPLv3 or MPL), by `quality-gate/scripts/build-codespell-pt-br.py`; keep that no
 travel with it; provenance in `jgates-pack.json`). No rule is copied from another collection, and the official
 Semgrep registry rules are never bundled. Semgrep itself (LGPL-2.1) is customer-supplied.
 
+The pack has rules for nine kinds of file (JavaScript/TypeScript, Python, Go, C#, Rust, Java, PHP, HTML files and
+configuration files) in eleven groups (interpreters, encoding, cookies-cors, web-protocol, files, passwords-sessions,
+tokens-transport, crypto-params, errors-logging, configuration and signals, besides the earlier injection, taint, XSS,
+crypto-auth and deserialization files), for the classes injection (SQL, command, XSS, XXE), SSRF, path traversal, weak
+cryptography and TLS, insecure deserialization, authorization, passwords and sessions, cookies and CORS, file handling,
+error handling and configuration. It was last verified with Semgrep 1.184.0.
+
 ## Quality integrations added in V2
 
 None of these tools is bundled in the npm package. They are customer-supplied or prepared by `jgates doctor --fix` from
@@ -167,84 +174,204 @@ whose record does not state its modifications and obligations. The Semantic meth
 `variant-analysis` and `insecure-defaults` (`jgates/src/core/semantic-modules/`) read this material as data at run time;
 the `cross-component` method and the root-cause correlation are original JGates work.
 
+## OWASP ASVS requirement text (CC BY-SA 4.0)
+
+`jgates/vendor/owasp-asvs` carries the official requirements of the OWASP Application Security Verification Standard
+5.0.0 from [OWASP/ASVS](https://github.com/OWASP/ASVS), release `v5.0.0_release`, commit
+`5cf9b032440be53ce345ab3c130fda46ba1ce7a2`, copyright © 2008-2025 The OWASP Foundation, under the Creative Commons
+Attribution-ShareAlike 4.0 International license (CC-BY-SA-4.0). The release file is shipped unchanged, byte for byte
+(SHA-256 `8201b20eec2908c3380ac600c91c8ba746346fbb808859366abb232027532311`), in English; it is not translated or
+adapted. The license applies to that folder only: JGates' code, screens and the mapping pack
+(`jgates/packs/asvs/jgates-asvs-map`, original MIT work that refers to requirements by id and never quotes them) keep
+their own license. Its `LICENSE` (the full license text), `NOTICE.md` (attribution, source, file hash, the statement
+that nothing was changed) and `jgates-pack.json` travel with it. Wherever JGates shows or exports the requirement text
+it prints the attribution line "Requirement text: OWASP ASVS 5.0.0, © The OWASP Foundation, CC BY-SA 4.0".
+
 ## Tools shipped in the tools image (jgates-tools)
 
 Every tool listed in /etc/jgates/image.json of the image, with its license and the place its source is published.
 Tools are installed unmodified, from the pinned release or package, and run only as separate processes: JGates never
-links to them. The GPL tools (git, make, rsync, shellcheck, hadolint, golangci-lint, gcc, the Java runtime with its
-Classpath Exception) are shipped unmodified; their source is available at the URL of the row and, for Debian packages,
-from Debian. The image carries the license and notice files of what it ships in /usr/share/jgates/notices/
-(this file, the JGates license, the license files of the Python and Node packages of the tool environments, and the
-Debian copyright files). The image build checks every component of its SPDX SBOM against
-jgates/docker/tools/license-policy.json: AGPL and unknown licenses fail the build. Never in the image: CodeQL,
-the official Semgrep rules, vulnerability databases, MegaLinter, credentials.
+links to them. The GPL and AGPL tools (their rows say so) are shipped unmodified; their source is available at the URL
+of the row and, for Debian packages, from Debian. The image carries the license and notice files of what it ships in
+/usr/share/jgates/notices/ (this file, the JGates license, the license files of the Python and Node packages of the tool
+environments and of the other install entries, and the Debian copyright files). The image build checks every component
+of its SPDX SBOM against jgates/docker/tools/license-policy.json, and the license each linter descriptor declares
+against the same policy: AGPL and unknown licenses fail the build, except a tool the policy names one by one with the
+user's decision (trufflehog, AGPL-3.0, accepted on 2026-11-17). On 2026-11-18 the user accepted these components by name: PMD's own BSD-style license (the `pmd-*` libraries of PMD and of the
+Salesforce Code Analyzer), the `json` gem (Ruby license, offered with BSD-2-Clause), docutils (public domain,
+BSD-3-Clause and GPL-3.0-or-later, imported by the reStructuredText linters) and `controlsfx-mr-jar` (MIT, by the
+user's statement; the jar carries no license data). The table below is generated
+(`npm --prefix jgates run image:docs`). Never in the image: CodeQL, the official Semgrep rules, vulnerability databases,
+MegaLinter, credentials.
 
 | Tool | License | Source |
 | --- | --- | --- |
+| `actionlint` | MIT | <https://github.com/rhysd/actionlint> |
+| `ansible-lint` | GPL-3.0-only | <https://github.com/ansible/ansible-lint> |
+| `arm-ttk` | MIT | <https://github.com/Azure/arm-ttk> |
+| `bandit` | Apache-2.0 | <https://github.com/PyCQA/bandit> |
+| `bash` | GPL-3.0-or-later | <https://www.gnu.org/software/bash/> |
+| `betterleaks` | MIT | <https://github.com/betterleaks/betterleaks> |
+| `bicep` | MIT | <https://github.com/Azure/bicep> |
+| `biome` | MIT OR Apache-2.0 | <https://github.com/biomejs/biome> |
+| `black` | MIT | <https://github.com/psf/black> |
+| `bundler` | MIT | <https://github.com/rubygems/rubygems> |
 | `cargo` | MIT OR Apache-2.0 | <https://github.com/rust-lang/cargo> |
 | `cargo-audit` | Apache-2.0 OR MIT | <https://github.com/rustsec/rustsec> |
 | `cargo-llvm-cov` | Apache-2.0 OR MIT (with the rustup `llvm-tools` component: Apache-2.0 WITH LLVM-exception) | <https://github.com/taiki-e/cargo-llvm-cov> |
+| `cfn-lint` | MIT-0 | <https://github.com/aws-cloudformation/cfn-lint> |
+| `checkmake` | MIT | <https://github.com/checkmake/checkmake> |
 | `checkov` | Apache-2.0 | <https://github.com/bridgecrewio/checkov> |
+| `checkstyle` | LGPL-2.1-or-later | <https://github.com/checkstyle/checkstyle> |
+| `chktex` | GPL-2.0-or-later | <https://www.nongnu.org/chktex/> |
+| `clang-format` | Apache-2.0 WITH LLVM-exception | <https://github.com/llvm/llvm-project> |
 | `clippy` | MIT OR Apache-2.0 | <https://github.com/rust-lang/rust-clippy> |
+| `clj-kondo` | EPL-1.0 | <https://github.com/clj-kondo/clj-kondo> |
+| `cljstyle` | EPL-1.0 | <https://github.com/greglook/cljstyle> |
+| `codespell` | GPL-2.0-only | <https://github.com/codespell-project/codespell> |
+| `coffeelint` | MIT | <https://github.com/coffeelint/coffeelint> |
 | `corepack` | MIT | <https://github.com/nodejs/corepack> |
 | `coverage` | Apache-2.0 | <https://github.com/nedbat/coveragepy> |
+| `cppcheck` | GPL-3.0-or-later | <https://cppcheck.sourceforge.io/> |
+| `cpplint` | BSD-3-Clause | <https://github.com/cpplint/cpplint> |
+| `csharpier` | MIT | <https://github.com/belav/csharpier> |
+| `cspell` | MIT | <https://github.com/streetsidesoftware/cspell> |
 | `curl` | curl | <https://github.com/curl/curl> |
+| `dart` | BSD-3-Clause | <https://github.com/dart-lang/sdk> |
 | `dependency-cruiser` | MIT | <https://github.com/sverweij/dependency-cruiser> |
+| `detekt-cli` | Apache-2.0 | <https://github.com/detekt/detekt> |
+| `devskim` | MIT | <https://github.com/microsoft/DevSkim> |
+| `djlint` | GPL-3.0-only | <https://github.com/djlint/djLint> |
+| `dotenv-linter` | MIT | <https://github.com/dotenv-linter/dotenv-linter> |
 | `dotnet` | MIT | <https://github.com/dotnet/sdk> |
+| `dotnet-ef` | MIT (EF Core command-line tools) | <https://github.com/dotnet/efcore> |
 | `dotnet-format` | MIT | <https://github.com/dotnet/format> |
 | `dotnet-stryker` | Apache-2.0 (Stryker.NET; its bundled assemblies are covered by the tool) | <https://github.com/stryker-mutator/stryker-net> |
-| `libgit2` | GPL-2.0-only WITH GCC-exception-2.0 (the libgit2 linking exception; bundled unmodified by Stryker.NET through LibGit2Sharp) | <https://github.com/libgit2/libgit2> |
-| `dotnet-ef` | MIT (EF Core command-line tools) | <https://github.com/dotnet/efcore> |
+| `dustilock` | Apache-2.0 | <https://github.com/checkmarx/dustilock> |
+| `editorconfig-checker` | MIT | <https://github.com/editorconfig-checker/editorconfig-checker> |
 | `eslint` | MIT | <https://github.com/eslint/eslint> |
 | `fast-check` | MIT | <https://github.com/dubzzz/fast-check> |
+| `flake8` | MIT | <https://github.com/PyCQA/flake8> |
 | `gcc` | GPL-3.0-or-later with the GCC Runtime Library Exception | <https://gcc.gnu.org/git.html> |
+| `gherkin-lint` | ISC | <https://github.com/vsiakka/gherkin-lint> |
 | `git` | GPL-2.0-only | <https://git.kernel.org/pub/scm/git/git.git> |
+| `git-diff-check` | GPL-2.0-only | <https://github.com/git/git> |
 | `gitleaks` | MIT | <https://github.com/gitleaks/gitleaks> |
 | `go` | BSD-3-Clause | <https://github.com/golang/go> |
 | `golangci-lint` | GPL-3.0 | <https://github.com/golangci/golangci-lint> |
 | `govulncheck` | BSD-3-Clause | <https://github.com/golang/vuln> |
+| `graphql-schema-linter` | MIT | <https://github.com/cjoudrey/graphql-schema-linter> |
+| `grype` | Apache-2.0 | <https://github.com/anchore/grype> |
 | `hadolint` | GPL-3.0 | <https://github.com/hadolint/hadolint> |
+| `helm` | Apache-2.0 | <https://github.com/helm/helm> |
+| `htmlhint` | MIT | <https://github.com/htmlhint/HTMLHint> |
 | `hypothesis` | MPL-2.0 | <https://github.com/HypothesisWorks/hypothesis> |
 | `import-linter` | BSD-2-Clause | <https://github.com/seddonym/import-linter> |
+| `isort` | MIT | <https://github.com/PyCQA/isort> |
 | `java` | GPL-2.0-only with the Classpath Exception (Eclipse Temurin JRE) | <https://github.com/adoptium/jdk21u> |
 | `jgates` | MIT | <https://github.com/rodrigojager/jgates> |
 | `jq` | MIT | <https://github.com/jqlang/jq> |
 | `jscpd` | MIT | <https://github.com/kucherenko/jscpd> |
+| `jsonlint` | MIT | <https://github.com/prantlf/jsonlint> |
+| `kingfisher` | Apache-2.0 | <https://github.com/mongodb/kingfisher> |
+| `ktlint` | MIT | <https://github.com/pinterest/ktlint> |
+| `kubeconform` | Apache-2.0 | <https://github.com/yannh/kubeconform> |
+| `kubescape` | Apache-2.0 | <https://github.com/kubescape/kubescape> |
+| `libgit2` | GPL-2.0-only WITH GCC-exception-2.0 (the libgit2 linking exception; bundled unmodified by Stryker.NET through LibGit2Sharp) | <https://github.com/libgit2/libgit2> |
+| `lintr` | MIT | <https://github.com/r-lib/lintr> |
+| `ls-lint` | MIT | <https://github.com/loeffel-io/ls-lint> |
+| `luacheck` | MIT | <https://github.com/lunarmodules/luacheck> |
+| `lychee` | Apache-2.0 | <https://github.com/lycheeverse/lychee> |
 | `make` | GPL-3.0-or-later | <https://git.savannah.gnu.org/cgit/make.git> |
+| `markdown-table-formatter` | MIT | <https://github.com/nvuillam/markdown-table-formatter> |
+| `markdownlint` | MIT | <https://github.com/igorshubovych/markdownlint-cli> |
 | `mutmut` | BSD-3-Clause | <https://github.com/boxed/mutmut> |
 | `mypy` | MIT | <https://github.com/python/mypy> |
+| `nbqa` | MIT | <https://github.com/nbQA-dev/nbQA> |
 | `node` | MIT | <https://github.com/nodejs/node> |
 | `npm` | Artistic-2.0 | <https://github.com/npm/cli> |
+| `npm-groovy-lint` | MIT | <https://github.com/nvuillam/npm-groovy-lint> |
+| `npmPkgJsonLint` | MIT | <https://github.com/tclindner/npm-package-json-lint> |
 | `oasdiff` | Apache-2.0 | <https://github.com/oasdiff/oasdiff> |
 | `osv-scanner` | Apache-2.0 | <https://github.com/google/osv-scanner> |
+| `perlcritic` | Artistic-1.0-Perl OR GPL-1.0-or-later | <https://github.com/Perl-Critic/Perl-Critic> |
+| `php` | PHP-3.01 | <https://github.com/php/php-src> |
+| `php-cs-fixer` | MIT | <https://github.com/PHP-CS-Fixer/PHP-CS-Fixer> |
+| `phpcs` | BSD-3-Clause | <https://github.com/PHPCSStandards/PHP_CodeSniffer> |
+| `phplint` | MIT | <https://github.com/overtrue/phplint> |
+| `phpstan` | MIT | <https://github.com/phpstan/phpstan> |
 | `pkg-config` | ISC (pkgconf) | <https://github.com/pkgconf/pkgconf> |
+| `pmd` | BSD-2-Clause | <https://github.com/pmd/pmd> |
+| `powershell` | MIT | <https://github.com/PowerShell/PowerShell> |
 | `prettier` | MIT | <https://github.com/prettier/prettier> |
+| `proselint` | BSD-3-Clause | <https://github.com/amperser/proselint> |
+| `protolint` | MIT | <https://github.com/yoheimuta/protolint> |
+| `psalm` | MIT | <https://github.com/vimeo/psalm> |
+| `psscriptanalyzer` | MIT | <https://github.com/PowerShell/PSScriptAnalyzer> |
+| `puppet-lint` | MIT | <https://github.com/puppetlabs/puppet-lint> |
+| `pyflakes` | MIT | <https://github.com/PyCQA/pyflakes> |
+| `pylint` | GPL-2.0-or-later | <https://github.com/pylint-dev/pylint> |
 | `pyright` | MIT | <https://github.com/microsoft/pyright> |
 | `pytest` | MIT | <https://github.com/pytest-dev/pytest> |
 | `pytest-cov` | MIT | <https://github.com/pytest-dev/pytest-cov> |
 | `python` | PSF-2.0 | <https://github.com/python/cpython> |
 | `quality-sidecar` | MIT | <https://github.com/rodrigojager/jgates> |
+| `raku` | Artistic-2.0 | <https://github.com/rakudo/rakudo> |
+| `remark-lint` | MIT | <https://github.com/remarkjs/remark-lint> |
+| `revive` | MIT | <https://github.com/mgechev/revive> |
+| `robocop` | Apache-2.0 | <https://github.com/MarketSquare/robotframework-robocop> |
+| `roslynator` | Apache-2.0 | <https://github.com/dotnet/roslynator> |
+| `rst-lint` | Unlicense | <https://github.com/twolfson/restructuredtext-lint> |
+| `rstcheck` | MIT | <https://github.com/rstcheck/rstcheck> |
+| `rstfmt` | MIT | <https://github.com/dzhu/rstfmt> |
 | `rsync` | GPL-3.0-or-later | <https://github.com/RsyncProject/rsync> |
+| `rubocop` | MIT | <https://github.com/rubocop/rubocop> |
+| `ruby` | Ruby OR BSD-2-Clause | <https://github.com/ruby/ruby> |
 | `ruff` | MIT | <https://github.com/astral-sh/ruff> |
+| `rumdl` | MIT | <https://github.com/rvben/rumdl> |
 | `rustc` | MIT OR Apache-2.0 | <https://github.com/rust-lang/rust> |
 | `rustfmt` | MIT OR Apache-2.0 | <https://github.com/rust-lang/rustfmt> |
 | `rustup` | MIT OR Apache-2.0 | <https://github.com/rust-lang/rustup> |
+| `scalafix` | BSD-3-Clause | <https://github.com/scalacenter/scalafix> |
 | `schemathesis` | MIT | <https://github.com/schemathesis/schemathesis> |
+| `secretlint` | MIT | <https://github.com/secretlint/secretlint> |
+| `selene` | MPL-2.0 | <https://github.com/Kampfkarren/selene> |
 | `semgrep` | LGPL-2.1-only (engine only, no Registry rules) | <https://github.com/semgrep/semgrep> |
+| `sf` | BSD-3-Clause | <https://github.com/forcedotcom/code-analyzer> |
 | `shellcheck` | GPL-3.0-or-later | <https://github.com/koalaman/shellcheck> |
+| `shfmt` | BSD-3-Clause | <https://github.com/mvdan/sh> |
+| `snakefmt` | MIT | <https://github.com/snakemake/snakefmt> |
+| `snakemake` | MIT | <https://github.com/snakemake/snakemake> |
+| `spectral` | Apache-2.0 | <https://github.com/stoplightio/spectral> |
+| `sqlfluff` | MIT | <https://github.com/sqlfluff/sqlfluff> |
 | `squawk` | Apache-2.0 | <https://github.com/sbdchd/squawk> |
+| `standard` | MIT | <https://github.com/standard/standard> |
 | `stryker` | Apache-2.0 | <https://github.com/stryker-mutator/stryker-js> |
 | `stryker-jest-runner` | Apache-2.0 | <https://github.com/stryker-mutator/stryker-js> |
 | `stryker-vitest-runner` | Apache-2.0 | <https://github.com/stryker-mutator/stryker-js> |
+| `stylelint` | MIT | <https://github.com/stylelint/stylelint> |
+| `stylua` | MPL-2.0 | <https://github.com/JohnnyMorganz/StyLua> |
+| `swiftlint` | MIT | <https://github.com/realm/SwiftLint> |
+| `syft` | Apache-2.0 | <https://github.com/anchore/syft> |
+| `tekton-lint` | Apache-2.0 | <https://github.com/IBM/tekton-lint> |
+| `terragrunt` | MIT | <https://github.com/gruntwork-io/terragrunt> |
+| `tflint` | MPL-2.0 | <https://github.com/terraform-linters/tflint> |
 | `tini` | MIT | <https://github.com/krallin/tini> |
+| `tofu` | MPL-2.0 | <https://github.com/opentofu/opentofu> |
 | `tomlkit` | MIT | <https://github.com/python-poetry/tomlkit> |
 | `trivy` | Apache-2.0 | <https://github.com/aquasecurity/trivy> |
+| `trufflehog` | AGPL-3.0-only | <https://github.com/trufflesecurity/trufflehog> |
+| `ts-standard` | MIT | <https://github.com/standard/ts-standard> |
 | `typescript` | Apache-2.0 | <https://github.com/microsoft/TypeScript> |
 | `typescript-eslint` | MIT | <https://github.com/typescript-eslint/typescript-eslint> |
 | `unzip` | Info-ZIP | <https://sourceforge.net/projects/infozip/> |
 | `uv` | MIT OR Apache-2.0 | <https://github.com/astral-sh/uv> |
+| `v8r` | MIT | <https://github.com/chris48s/v8r> |
+| `vale` | MIT | <https://github.com/vale-cli/vale> |
 | `vitest` | MIT | <https://github.com/vitest-dev/vitest> |
 | `vitest-coverage-v8` | MIT | <https://github.com/vitest-dev/vitest> |
+| `xmllint` | MIT | <https://gitlab.gnome.org/GNOME/libxml2/-/wikis/home> |
 | `xz` | 0BSD (liblzma) and GPL-2.0-or-later (xz tools) | <https://github.com/tukaani-project/xz> |
+| `yamllint` | GPL-3.0-or-later | <https://github.com/adrienverge/yamllint> |
 | `zap` | Apache-2.0 | <https://github.com/zaproxy/zaproxy> |
 | `zizmor` | MIT | <https://github.com/zizmorcore/zizmor> |

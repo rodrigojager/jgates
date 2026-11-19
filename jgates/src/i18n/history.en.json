@@ -1,4 +1,5 @@
 {
+  "history_findings_counts": "{blocking} blocking, {informational} informational and {review} to review",
   "history_description": "Lists the runs of the workspace (including those of an old relinked path); reduced rounds show as partial.",
   "history_option_cwd": "Workspace folder (default: the current folder).",
   "history_option_limit": "Maximum number of runs (default 20).",

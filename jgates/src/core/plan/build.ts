@@ -38,9 +38,10 @@ import { externalAdapter, type ExternalAdapter, type ExternalPlan } from "./adap
 import { entityStates } from "../../adapters/builtin-pii/settings.js";
 import { profileLabelText } from "../profiles/index.js";
 import { invalidToolConfigs } from "./config-validity.js";
-import { governExternalPlan } from "../governed/plan.js";
+import { governExternalPlan, governedNetworkExclusion } from "../governed/plan.js";
 import { diffPlans } from "./diff.js";
 import { readLastPlan } from "./store.js";
+import { newSinceLastRun } from "./arrivals.js";
 import { planDependencies } from "../deps/plan.js";
 import { planServices } from "../services/plan.js";
 import { databaseOfItem, readDataTimestampsSync, type DatabaseId } from "../data/index.js";
@@ -111,11 +112,11 @@ function containerInputs(env: NodeJS.ProcessEnv, given: BuildPlanOptions["contai
 
 /** Body of the plan without the fields outside the hash. */
 export function planBody(plan: Plan | PlanBody): PlanBody {
-  const { planHash: _h, createdAt: _c, changes: _d, ...body } = plan as Plan;
+  const { planHash: _h, createdAt: _c, changes: _d, newSinceLastRun: _n, ...body } = plan as Plan;
   return body as PlanBody;
 }
 
-/** Hash of the plan: content hash of everything except planHash, createdAt and changes. */
+/** Hash of the plan: content hash of everything except planHash, createdAt, changes and newSinceLastRun. */
 export function computePlanHash(plan: Plan | PlanBody): string {
   return contentHash(planBody(plan));
 }
@@ -583,19 +584,23 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     const sub = subId ? subchecks.get(subId) : undefined;
     const subPlan = subId ? subPlans.get(subId) : undefined;
     // On only "when available" with its tool missing here: it does not run and never blocks (reported apart).
+    const ext = externals.get(p.tool.id);
+    const networkExclusion = policy && ext && isOn(p) ? governedNetworkExclusion(ext.adapter.manifest.id, ext.plan, networkPolicy) : null;
     const notHere = isOn(p) && missingHere(p);
-    const on = isOn(p) && !notHere;
+    const on = isOn(p) && !notHere && networkExclusion === null;
     const onlyDecision: SelectionDecision = { selector: "--only", value: false, layer: "call", source: "--only", file: null, path: null, pointer: "", specificity: 0 };
     const decision = p.onlyExcluded ? onlyDecision : p.eff.decision;
     const reason = p.onlyExcluded ? "ONLY_EXCLUDED" : p.eff.reason;
     const origin = stateOrigin(decision, reason);
-    const ext = externals.get(p.tool.id);
     const executable = bridge || ext !== undefined;
     const adapterId = bridge ? ADAPTER_ID : (ext?.adapter.manifest.id ?? null);
     const id = `${p.tool.id}#${p.capability}`;
     let reasonCode: string;
     let reasonMessage: string;
-    if (notHere) {
+    if (networkExclusion !== null) {
+      reasonCode = "GOVERNED_NETWORK_EXCLUDED";
+      reasonMessage = networkExclusion;
+    } else if (notHere) {
       reasonCode = "NOT_AVAILABLE_HERE";
       reasonMessage = t("plan_reason_not_available_here", { tool: p.tool.id, reason: ext?.plan.availability.reason ?? "-" });
     } else if (on && !executable) {
@@ -611,6 +616,10 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     } else if (reason === "ONLY_EXCLUDED") {
       reasonCode = "ONLY_EXCLUDED";
       reasonMessage = t("plan_reason_only", { only: request.only.join(", ") });
+    } else if (reason === "ABOVE_TIER") {
+      // Above the profile's tier (ADR-0022): listed, off, with the profile that runs it and the way to switch it on.
+      reasonCode = "ABOVE_PROFILE_TIER";
+      reasonMessage = t(p.tool.tier === "main" ? "plan_reason_above_tier_main" : "plan_reason_above_tier_extended", { tool: p.tool.id });
     } else if (reason === "NOT_SELECTED" || !decision) {
       reasonCode = "NOT_SELECTED";
       reasonMessage = t("plan_reason_not_selected");
@@ -655,6 +664,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
         command: itemCommand ? { executable: itemCommand.executable, args: itemCommand.args, stdin: itemCommand.stdin } : null,
       }),
       tool: p.tool.id,
+      ...(p.tool.tier !== "core" ? { tier: p.tool.tier } : {}),
       adapter: adapterId,
       subcheck: subId,
       label: (sub ? subcheckLabel(ADAPTER_ID, sub) : null) ?? ext?.plan.label ?? p.tool.id,
@@ -1018,7 +1028,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
     // The fetch time of every advisory database a planned check reads (null: never fetched), so the plan hash and the
     // provenance of the results change when the data does.
     if (options.container?.dataTimestamps === undefined) {
-      const needed = new Set(unique.map((item) => databaseOfItem(item)).filter((id): id is DatabaseId => id !== null));
+      const needed = new Set(willRun.map((item) => databaseOfItem(item)).filter((id): id is DatabaseId => id !== null));
       if (needed.size > 0) {
         const fetched = readDataTimestampsSync(env, options.version ?? readVersion());
         container.dataTimestamps = sortedRecord(Object.fromEntries([...needed].map((id) => [id, fetched[id] ?? null])));
@@ -1068,7 +1078,7 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
       adapters: { ...(bridgePairs.length > 0 ? { [ADAPTER_ID]: qualityBridgeManifest.adapterVersion } : {}), ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.id, e.adapter.manifest.adapterVersion])) },
       tools: { ...(bridgePairs.length > 0 ? { [qualityBridgeManifest.toolName]: runtime.toolVersion } : {}), ...Object.fromEntries([...externals.values()].map((e) => [e.adapter.manifest.toolName, e.plan.toolVersion])) },
     },
-    profile: effective.profile ? { id: effective.profile.id, label: profileLabelText(effective.profile.id, effective.profile.label), chain: effective.profile.chain.map((c) => ({ ...c })) } : null,
+    profile: effective.profile ? { id: effective.profile.id, label: profileLabelText(effective.profile.id, effective.profile.label), chain: effective.profile.chain.map((c) => ({ ...c })), tier: selEff.tier } : null,
     // The references as full commit ids (the request keeps them as typed): a plan of HEAD~1 stays the plan of that commit.
     scope: { requested: request.scope, effective: effectiveScope, paths: request.paths, base: refs.base, head: refs.head, note: scopeNote },
     selection: { request, overrides: overridesOut, reduced },
@@ -1111,8 +1121,11 @@ function buildPlanFrom(source: string, workspaceDir: string, options: BuildPlanO
   const clean = JSON.parse(JSON.stringify(body)) as PlanBody;
   const plan: Plan = { ...clean, planHash: computePlanHash(clean), createdAt: (options.now ?? new Date()).toISOString(), changes: null };
   if (options.compare !== false) {
-    const previous = readLastPlan(options.home ?? resolveHome({ env }), wsId);
+    const home = options.home ?? resolveHome({ env });
+    const previous = readLastPlan(home, wsId);
     if (previous) plan.changes = diffPlans(previous, plan);
+    // The tools that arrived since the last run (an upgrade brings new tools, ADR-0022); not part of the hash.
+    plan.newSinceLastRun = newSinceLastRun(home, wsId, clean.groups.willRun);
   }
   return { ok: true, plan };
 }

@@ -1,0 +1,15 @@
+{
+ "tool": "dustilock",
+ "kind": "bad",
+ "version": "1.2.0",
+ "calls": [
+  {
+   "args": [
+    "-r"
+   ],
+   "exit": 1,
+   "stdout": "DustiLock started\nscanning directory \"/workspace\" (recursive=true) ...\nscanning \"/workspace/package.json\"\n",
+   "stderr": "error - npm package \"jgates-no-such-package-q7x2\" is available for public registration. /workspace/package.json\none or more packages are available for public registration\n"
+  }
+ ]
+}

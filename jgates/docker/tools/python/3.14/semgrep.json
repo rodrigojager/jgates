@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "semgrep",
+      "link": "semgrep",
+      "path": "bin/semgrep",
+      "version": [
+        "semgrep",
+        "--version"
+      ]
+    }
+  ]
+}

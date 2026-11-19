@@ -1,0 +1,255 @@
+# Group framework for configuration files (CG-1, CG-2, CG-8 to CG-11). Every rule uses language generic with a regular
+# expression, because the formats are line oriented (properties, ini, .htaccess, nginx, .env), attribute oriented
+# (web.config) or indented text (YAML, read by indentation: a key and the keys indented below it). A rule reads only
+# the files its `paths` list names, plus the fixtures `config-framework.*` beside this file; the fixtures with the
+# extensions yml, yaml and json are not written because Semgrep would load them as rule files when it is given this folder.
+# Formats read, per rule:
+#   cookie-without-secure, cookie-without-httponly: php.ini, .user.ini and .htaccess (php_flag / php_value), nginx and
+#     Apache httpd .conf files, web.config, application.properties and application.yml (Spring), Symfony
+#     config/packages YAML, Laravel config/session.php and .env files.
+#   stack-trace-in-response: php.ini and .htaccess, web.config, appsettings.json (.NET), application.properties and
+#     application.yml (Spring).
+#   debug-mode-enabled: .env files, php.ini and .htaccess, web.config, application.properties and a top-level debug key
+#     of application.yml (Spring), Laravel config/app.php.
+#   csrf-protection-disabled: Symfony config/packages YAML and PHP files, .env files.
+#   graphql-introspection-enabled: application.properties and application.yml (Spring GraphQL, DGS), Symfony API
+#     Platform YAML, .env files.
+#   docs-or-monitoring-endpoint-exposed: application.properties and application.yml (Spring Boot Actuator), .env files.
+#   security-headers-disabled: nginx and Apache httpd .conf files, .htaccess and web.config.
+# Not written: CSRF switches of Spring, Laravel and ASP.NET (they are code, not configuration), security headers in
+# Symfony and Spring (set in code or by a bundle).
+rules:
+  - id: jgates.config.cookie-without-secure
+    message: The session cookie is configured without the Secure flag, so the browser sends it over plain HTTP too and a network observer can read it. Set the Secure flag on the session cookie (for example session.cookie_secure = 1, server.servlet.session.cookie.secure=true, framework.session.cookie_secure, requireSSL="true").
+    severity: WARNING
+    languages: [generic]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      subdimension: authorization
+      author: JGates
+      asvs_requirements: ["V3.3.1"]
+    paths:
+      include:
+        - "**/php.ini"
+        - "**/php*.ini"
+        - "**/.user.ini"
+        - "**/.htaccess"
+        - "**/*.conf"
+        - "**/web.config"
+        - "**/web.*.config"
+        - "**/application*.properties"
+        - "**/application*.yml"
+        - "**/application*.yaml"
+        - "**/config/packages/**/*.yaml"
+        - "**/config/packages/**/*.yml"
+        - "**/config/session.php"
+        - "**/.env"
+        - "**/*.env"
+        - "**/config-framework.*"
+    pattern-either:
+      - pattern-regex: '(?im)^[ \t]*(?:php_(?:admin_)?(?:flag|value)[ \t]+)?session\.cookie_secure[ \t]*=?[ \t]*"?(?:0|off|false|no)"?[ \t\r]*(?:;.*)?$'
+      - pattern-regex: '(?im)^[ \t]*server\.(?:servlet|reactive)\.session\.cookie\.secure[ \t]*[=:][ \t]*["'']?false\b'
+      - pattern-regex: '(?im)^([ \t]*)cookie:[ \t]*\r?\n(?:\1[ \t]+.*\r?\n|[ \t]*\r?\n)*?\1[ \t]+secure:[ \t]*["'']?false\b'
+      - pattern-regex: '(?im)^[ \t]*cookie_secure:[ \t]*["'']?false\b'
+      - pattern-regex: '(?i)<(?:httpCookies|forms)\b[^>]*\brequireSSL[ \t]*=[ \t]*"false"'
+      - pattern-regex: '(?im)^[ \t]*[''"]secure[''"][ \t]*=>[ \t]*false\b'
+      - pattern-regex: '(?im)^[ \t]*proxy_cookie_flags[ \t]+[^;]*\bnosecure\b'
+      - pattern-regex: '(?im)^[ \t]*(?:export[ \t]+)?SESSION_SECURE_COOKIE[ \t]*=[ \t]*["'']?(?:false|0|no|off)\b'
+
+  - id: jgates.config.cookie-without-httponly
+    message: The session cookie is configured without the HttpOnly flag, so a script running in the page can read it and a cross-site scripting flaw becomes a session theft. Set the HttpOnly flag on the session cookie (for example session.cookie_httponly = 1, server.servlet.session.cookie.http-only=true, framework.session.cookie_httponly).
+    severity: WARNING
+    languages: [generic]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      subdimension: authorization
+      author: JGates
+      asvs_requirements: ["V3.3.4"]
+    paths:
+      include:
+        - "**/php.ini"
+        - "**/php*.ini"
+        - "**/.user.ini"
+        - "**/.htaccess"
+        - "**/*.conf"
+        - "**/web.config"
+        - "**/web.*.config"
+        - "**/application*.properties"
+        - "**/application*.yml"
+        - "**/application*.yaml"
+        - "**/config/packages/**/*.yaml"
+        - "**/config/packages/**/*.yml"
+        - "**/config/session.php"
+        - "**/.env"
+        - "**/*.env"
+        - "**/config-framework.*"
+    pattern-either:
+      - pattern-regex: '(?im)^[ \t]*(?:php_(?:admin_)?(?:flag|value)[ \t]+)?session\.cookie_httponly[ \t]*=?[ \t]*"?(?:0|off|false|no)"?[ \t\r]*(?:;.*)?$'
+      - pattern-regex: '(?im)^[ \t]*server\.(?:servlet|reactive)\.session\.cookie\.http[-_]?only[ \t]*[=:][ \t]*["'']?false\b'
+      - pattern-regex: '(?im)^([ \t]*)cookie:[ \t]*\r?\n(?:\1[ \t]+.*\r?\n|[ \t]*\r?\n)*?\1[ \t]+http[-_]?only:[ \t]*["'']?false\b'
+      - pattern-regex: '(?im)^[ \t]*cookie_httponly:[ \t]*["'']?false\b'
+      - pattern-regex: '(?i)<httpCookies\b[^>]*\bhttpOnlyCookies[ \t]*=[ \t]*"false"'
+      - pattern-regex: '(?im)^[ \t]*[''"]http_only[''"][ \t]*=>[ \t]*false\b'
+      - pattern-regex: '(?im)^[ \t]*proxy_cookie_flags[ \t]+[^;]*\bnohttponly\b'
+      - pattern-regex: '(?im)^[ \t]*(?:export[ \t]+)?SESSION_HTTP_ONLY[ \t]*=[ \t]*["'']?(?:false|0|no|off)\b'
+
+  - id: jgates.config.stack-trace-in-response
+    message: The framework is configured to send error detail (stack traces, exception names or messages) to the client, which tells an attacker about the code and its libraries. Turn the detail off in production (display_errors = Off, customErrors mode RemoteOnly or On, server.error.include-stacktrace=never) and log it on the server.
+    severity: WARNING
+    languages: [generic]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      subdimension: hardening
+      author: JGates
+      asvs_requirements: ["V16.5.1"]
+    paths:
+      include:
+        - "**/php.ini"
+        - "**/php*.ini"
+        - "**/.user.ini"
+        - "**/.htaccess"
+        - "**/web.config"
+        - "**/web.*.config"
+        - "**/appsettings*.json"
+        - "**/application*.properties"
+        - "**/application*.yml"
+        - "**/application*.yaml"
+        - "**/config-framework.*"
+    pattern-either:
+      - pattern-regex: '(?im)^[ \t]*(?:php_(?:admin_)?(?:flag|value)[ \t]+)?display_errors[ \t]*=?[ \t]*"?(?:1|on|true|yes|stdout|stderr)"?[ \t\r]*(?:;.*)?$'
+      - pattern-regex: '(?i)<customErrors\b[^>]*\bmode[ \t]*=[ \t]*"Off"'
+      - pattern-regex: '(?i)<httpErrors\b[^>]*\berrorMode[ \t]*=[ \t]*"Detailed"'
+      - pattern-regex: '(?im)^[ \t]*"DetailedErrors"[ \t]*:[ \t]*true\b'
+      - pattern-regex: '(?im)^[ \t]*server\.error\.(?:include-(?:stacktrace|message|binding-errors)[ \t]*[=:][ \t]*["'']?(?:always|on_param)|include-exception[ \t]*[=:][ \t]*["'']?true)\b'
+      - pattern-regex: '(?im)^([ \t]*)error:[ \t]*\r?\n(?:\1[ \t]+.*\r?\n|[ \t]*\r?\n)*?\1[ \t]+(?:include-(?:stacktrace|message|binding-errors):[ \t]*["'']?(?:always|on_param)|include-exception:[ \t]*["'']?true)\b'
+
+  - id: jgates.config.debug-mode-enabled
+    message: A framework debug mode is switched on in a configuration file (an application debug flag, ASP.NET compilation debug, Xdebug remote debugging), which exposes internals and slows or opens the service. Keep debug off in the configuration that ships (APP_DEBUG=false, debug="false") and turn it on only in a local development file.
+    severity: WARNING
+    languages: [generic]
+    metadata:
+      category: configuration
+      cwe: "CWE-489"
+      subdimension: hardening
+      author: JGates
+      asvs_requirements: ["V13.4.2"]
+    paths:
+      include:
+        - "**/.env"
+        - "**/*.env"
+        - "**/php.ini"
+        - "**/php*.ini"
+        - "**/.user.ini"
+        - "**/.htaccess"
+        - "**/web.config"
+        - "**/web.*.config"
+        - "**/application*.properties"
+        - "**/application*.yml"
+        - "**/application*.yaml"
+        - "**/config/app.php"
+        - "**/config-framework.*"
+    pattern-either:
+      - pattern-regex: '(?im)^[ \t]*(?:export[ \t]+)?(?:APP_DEBUG|FLASK_DEBUG|DJANGO_DEBUG|SYMFONY_DEBUG)[ \t]*=[ \t]*["'']?(?:true|1|yes|on)\b'
+      - pattern-regex: '(?im)^debug[ \t]*[=:][ \t]*["'']?true\b'
+      - pattern-regex: '(?im)^[ \t]*[''"]debug[''"][ \t]*=>[ \t]*true\b'
+      - pattern-regex: '(?i)<compilation\b[^>]*\bdebug[ \t]*=[ \t]*"true"'
+      - pattern-regex: '(?im)^[ \t]*xdebug\.(?:remote_enable[ \t]*=[ \t]*"?(?:1|on|true|yes)\b|mode[ \t]*=[ \t]*"?[a-z,]*\bdebug\b)'
+
+  - id: jgates.config.csrf-protection-disabled
+    message: Request-forgery protection is switched off in the framework configuration, so a page on another site can make the browser send state-changing requests with the user's cookies. Leave the framework's CSRF protection on (framework.csrf_protection, enable_csrf on the login firewall) and exempt only the routes that use token authentication.
+    severity: ERROR
+    languages: [generic]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      subdimension: authorization
+      author: JGates
+      asvs_requirements: ["V3.5.1"]
+    paths:
+      include:
+        - "**/config/packages/**/*.php"
+        - "**/config/packages/**/*.yaml"
+        - "**/config/packages/**/*.yml"
+        - "**/.env"
+        - "**/*.env"
+        - "**/config-framework.*"
+    pattern-either:
+      - pattern-regex: '(?im)[''"](?:csrf_protection|enable_csrf)[''"][ \t]*=>[ \t]*false\b'
+      - pattern-regex: '(?im)->csrfProtection\([ \t]*\)[ \t\r\n]*->enabled\([ \t]*false[ \t]*\)'
+      - pattern-regex: '(?im)^[ \t]*(?:csrf_protection|enable_csrf):[ \t]*["'']?false\b'
+      - pattern-regex: '(?im)^([ \t]*)csrf_protection:[ \t]*\r?\n(?:\1[ \t]+.*\r?\n|[ \t]*\r?\n)*?\1[ \t]+enabled:[ \t]*["'']?false\b'
+      - pattern-regex: '(?im)^[ \t]*(?:export[ \t]+)?(?:WTF_CSRF_ENABLED|CSRF_ENABLED)[ \t]*=[ \t]*["'']?(?:false|0|no|off)\b'
+
+  - id: jgates.config.graphql-introspection-enabled
+    message: GraphQL schema introspection is switched on in the framework configuration, so anyone who reaches the endpoint can read the full schema, including types and fields meant for internal use. Switch introspection off in production, or expose it only to authenticated developers.
+    severity: INFO
+    languages: [generic]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      subdimension: hardening
+      author: JGates
+      asvs_requirements: ["V4.3.2"]
+    paths:
+      include:
+        - "**/application*.properties"
+        - "**/application*.yml"
+        - "**/application*.yaml"
+        - "**/config/packages/**/*.yaml"
+        - "**/config/packages/**/*.yml"
+        - "**/.env"
+        - "**/*.env"
+        - "**/config-framework.*"
+    pattern-either:
+      - pattern-regex: '(?im)^[ \t]*(?:spring\.graphql\.schema\.introspection\.enabled|dgs\.graphql\.introspection\.enabled|graphql\.introspection\.enabled)[ \t]*[=:][ \t]*["'']?true\b'
+      - pattern-regex: '(?im)^([ \t]*)introspection:[ \t]*\r?\n(?:\1[ \t]+.*\r?\n|[ \t]*\r?\n)*?\1[ \t]+enabled:[ \t]*["'']?true\b'
+      - pattern-regex: '(?im)^[ \t]*(?:export[ \t]+)?(?:GRAPHQL_INTROSPECTION(?:_ENABLED)?|APOLLO_INTROSPECTION)[ \t]*=[ \t]*["'']?(?:true|1|yes|on)\b'
+
+  - id: jgates.config.docs-or-monitoring-endpoint-exposed
+    message: Every management endpoint is exposed over the web (the wildcard), which publishes the environment, configuration properties, heap dumps and metrics to whoever can reach the port. List only the endpoints that are needed (health, info) or serve the management port on an internal interface.
+    severity: INFO
+    languages: [generic]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      subdimension: hardening
+      author: JGates
+      asvs_requirements: ["V13.4.5"]
+    paths:
+      include:
+        - "**/application*.properties"
+        - "**/application*.yml"
+        - "**/application*.yaml"
+        - "**/.env"
+        - "**/*.env"
+        - "**/config-framework.*"
+    pattern-either:
+      - pattern-regex: '(?im)^[ \t]*management\.endpoints\.web\.exposure\.include[ \t]*[=:][ \t]*["'']?(?:[a-z0-9,. \t-]*,[ \t]*)?\*'
+      - pattern-regex: '(?im)^([ \t]*)exposure:[ \t]*\r?\n(?:\1[ \t]+.*\r?\n|[ \t]*\r?\n)*?\1[ \t]+include:[ \t]*["'']?(?:[a-z0-9,. \t-]*,[ \t]*)?\*'
+      - pattern-regex: '(?im)^[ \t]*(?:export[ \t]+)?MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE[ \t]*=[ \t]*["'']?(?:[a-z0-9,. \t-]*,[ \t]*)?\*'
+
+  - id: jgates.config.security-headers-disabled
+    message: A security response header is removed or weakened in the server configuration (clickjacking, content-type sniffing, content security policy, referrer policy, or Strict-Transport-Security removed or set to a max-age under one year). Keep the header set and give HSTS a max-age of at least 31536000.
+    severity: WARNING
+    languages: [generic]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      subdimension: hardening
+      author: JGates
+      asvs_requirements: ["V3.4.1", "V3.4.3", "V3.4.4", "V3.4.6"]
+    paths:
+      include:
+        - "**/*.conf"
+        - "**/.htaccess"
+        - "**/web.config"
+        - "**/web.*.config"
+        - "**/config-framework.*"
+    pattern-either:
+      - pattern-regex: '(?im)^[ \t]*Header[ \t]+(?:(?:always|onsuccess)[ \t]+)*unset[ \t]+"?(?:X-Frame-Options|X-Content-Type-Options|Content-Security-Policy|Strict-Transport-Security|Referrer-Policy)\b'
+      - pattern-regex: '(?im)^[ \t]*more_clear_headers[ \t]+[^;]*(?:X-Frame-Options|X-Content-Type-Options|Content-Security-Policy|Strict-Transport-Security|Referrer-Policy)'
+      - pattern-regex: '(?i)<remove[ \t]+name[ \t]*=[ \t]*"(?:X-Frame-Options|X-Content-Type-Options|Content-Security-Policy|Strict-Transport-Security|Referrer-Policy)"'
+      - pattern-regex: '(?im)^[ \t]*(?:Header[ \t]+(?:(?:always|onsuccess)[ \t]+)*(?:set|append|merge)|add_header)[ \t]+"?Strict-Transport-Security"?[ \t]+"?[^"\r\n;]*?max-age=(?:[0-9]{1,7}|[12][0-9]{7}|30[0-9]{6}|31[0-4][0-9]{5}|315[0-2][0-9]{4}|3153[0-5][0-9]{3})(?![0-9])'

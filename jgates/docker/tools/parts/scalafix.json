@@ -1,0 +1,14 @@
+{
+  "version": "0.14.10",
+  "provides": [
+    {
+      "name": "scalafix",
+      "link": "scalafix",
+      "path": "scalafix",
+      "version": [
+        "scalafix",
+        "--version"
+      ]
+    }
+  ]
+}

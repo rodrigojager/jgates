@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "graphql-schema-linter",
+      "link": "graphql-schema-linter",
+      "path": "node_modules/.bin/graphql-schema-linter",
+      "version": [
+        "graphql-schema-linter",
+        "--version"
+      ]
+    }
+  ]
+}

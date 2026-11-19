@@ -1,0 +1,5 @@
+"""Does not load: the file has a syntax error, so pytest cannot collect it."""
+from inventory import total
+
+def test_never_collected(:
+    assert total([]) == 0

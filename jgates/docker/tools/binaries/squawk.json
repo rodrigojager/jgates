@@ -1,0 +1,18 @@
+{
+  "version": "2.72.0",
+  "url": "https://github.com/sbdchd/squawk/releases/download/v{version}/squawk-linux-x64",
+  "sha256": "a61661808119a82515565503111099b070c869f73698f61cb1785de5d0c8b11a",
+  "archive": "file",
+  "save": "squawk",
+  "provides": [
+    {
+      "name": "squawk",
+      "link": "squawk",
+      "path": "squawk",
+      "version": [
+        "squawk",
+        "--version"
+      ]
+    }
+  ]
+}

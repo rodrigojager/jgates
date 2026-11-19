@@ -1,6 +1,8 @@
 // Complementary Semantic methods B (property reasoning, post-patch validation, supply-chain assessment), the explicit
-// method selection of `jgates semantic` (CLI, API, plan applicability), the sandbox and the regression proposals. Every
-// model answer is scripted through the real executor and the mock provider; no test spends tokens.
+// method selection of `jgates semantic` (CLI, API, plan applicability), the test-file runner and the regression
+// proposals. Every model answer is scripted through the real executor and the mock provider; no test spends tokens.
+// Tests the methods execute run in containers of the tools image: here the fake engine replays recorded container runs
+// (tests/v2/fixtures/complementary-b/recorded/semantic-tests.json), so no test file runs on the host.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -160,6 +162,7 @@ test("the API takes the same method selection: plan, scope preview with applicab
 
 test("property reasoning: a violated bound invariant is confirmed in a fresh context, its property test is recorded as a proposal, and the project is not touched", async () => {
   const ws = H.setupWorkspace("compb-property", { "src/paginate.js": PAGINATE_BAD });
+  Object.assign(ws.env, H.containerEnv(ws));
   try {
     const before = treeHash(ws.dir);
     const model = H.propertyAnalyst(["src/paginate.js", "jgates.yml"]);
@@ -186,13 +189,19 @@ test("property reasoning: a violated bound invariant is confirmed in a fresh con
     assert.equal(proposals[0].execution, null, "the method never executed it");
     assert.equal(treeHash(ws.dir), before, "a proposal never enters the project by itself");
 
-    // Validation runs it in the sandbox on an isolated copy: it fails on the bad source (it shows the defect), writes nothing.
+    // Validation runs it in a container on an isolated copy: it fails on the bad source (it shows the defect), writes nothing.
     const listed = regressions.findProposal(ws.home, path.basename(path.dirname(path.dirname(result.runDir))), `${result.runId}/P1`);
-    const validation = regressions.validateProposal(ws.dir, listed, { workDir: path.join(ws.root, "work"), env: ws.env });
-    assert.equal(validation.run.executed, true);
+    const validation = await regressions.validateProposal(ws.dir, listed, { workDir: path.join(ws.root, "work"), env: ws.env, home: ws.home });
+    assert.equal(validation.run.executed, true, validation.run.reason);
     assert.equal(validation.run.outcome, "failed");
     assert.equal(validation.detectsDefect, true);
-    assert.deepEqual(validation.run.permissions, { read: validation.run.permissions.read, write: false, network: false, childProcess: false });
+    assert.equal(validation.runtime.mode, "container");
+    assert.equal(validation.runtime.image, H.TOOLS_IMAGE_ID);
+    assert.equal(validation.run.container.network, "none");
+    assert.equal(validation.run.container.readOnlyTree, true);
+    assert.deepEqual(H.replayedTests(ws).map((r) => r.recording), ["paginate-bound-too-large"]);
+    const [container] = H.testContainers(ws);
+    assert.ok(container.mounts.every((m) => !String(m.src).startsWith(ws.dir)), "the project folder is never mounted");
     assert.equal(treeHash(ws.dir), before);
   } finally {
     ws.cleanup();
@@ -254,6 +263,8 @@ function patchWorkspace(prefix) {
   const ws = H.setupWorkspace(prefix, { "src/paginate.js": PAGINATE_BAD, "src/format.js": H.FORMAT, "test/format.test.mjs": H.FORMAT_TEST });
   const base = ws.git("rev-parse", "HEAD");
   const scope = { mode: "incremental", base, context: { allow: ["test/format.test.mjs", "src/format.js"] } };
+  // The tests run in containers of the tools image; the fake engine replays the recorded runs.
+  Object.assign(ws.env, H.containerEnv(ws));
   return { ws, base, scope };
 }
 
@@ -278,7 +289,10 @@ test("post-patch validation: the reproducer fails before and passes after the pa
     assert.equal(v.after.outcome, "passed");
     assert.deepEqual(v.neighbours.map((n) => [n.path, n.before.outcome, n.after.outcome, n.regression]), [["test/format.test.mjs", "passed", "passed", false]]);
     const ex = readJson(path.join(result.runDir, modules.postPatch.EXECUTION_FILE));
-    assert.equal(ex.before.permissions.network, false);
+    assert.equal(ex.before.container.mode, "container");
+    assert.equal(ex.before.container.network, "none");
+    assert.equal(ex.before.container.image, H.TOOLS_IMAGE_ID);
+    assert.equal(H.testContainers(ws).length, 4, "the reproducer and the nearby test at both ends");
     assert.match(ex.before.output, /not ok 1/);
     assert.doesNotMatch(ex.before.output, new RegExp(ws.root.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")), "fixture paths are not kept");
     // The reproducer the model wrote, observed failing before and passing after, is a proposal with that evidence.
@@ -319,7 +333,7 @@ test("post-patch validation: a patch that does not fix the defect and breaks a n
   }
 });
 
-test("post-patch validation never claims a reproduction without execution: a reproducer that cannot run, a missing sandbox, and a run with nothing executed", async () => {
+test("post-patch validation never claims a reproduction without execution: a reproducer that cannot run, a missing container engine, and a run with nothing executed", async () => {
   const { ws, scope } = patchWorkspace("compb-patch-noexec");
   try {
     fs.writeFileSync(path.join(ws.dir, "src/paginate.js"), PAGINATE_GOOD);
@@ -335,20 +349,21 @@ test("post-patch validation never claims a reproduction without execution: a rep
     assert.equal(first.investigation.candidates[0].details.kind, "not-reproduced");
     assert.notEqual(first.result.decision, "passed");
 
-    // No sandboxed runtime: the method does not apply; nothing is sent, nothing is claimed.
+    // No container engine: the method does not apply, with the engine's own code; nothing is sent, nothing is claimed.
     const model = H.forbidden();
-    const env = { ...ws.env, JGATES_SANDBOX_NODE: path.join(ws.root, "missing-node.exe") };
+    const env = { ...ws.env, JGATES_CONTAINER_RUNTIME: path.join(ws.root, "missing-engine") };
     const { buildSemanticPlan, executeSemanticRun } = semantic;
     const plan = buildSemanticPlan({ workspacePath: ws.dir, home: ws.home, env, scope });
-    const noSandbox = await executeSemanticRun({ workspacePath: ws.dir, home: ws.home, env, version: "0.0.0-test", plan, cancelPollMs: 50, investigation: { module: modules.postPatch.postPatchModule(), deps: { script: model.script } } });
+    const noEngine = await executeSemanticRun({ workspacePath: ws.dir, home: ws.home, env, version: "0.0.0-test", plan, cancelPollMs: 50, investigation: { module: modules.postPatch.postPatchModule(), deps: { script: model.script } } });
     assert.deepEqual(model.calls, []);
-    assert.equal(noSandbox.semanticRun.outcome.investigation.applicability.code, "POST_PATCH_NO_SANDBOX");
-    assert.ok(!fs.existsSync(path.join(noSandbox.runDir, modules.postPatch.VALIDATION_FILE)));
+    assert.equal(noEngine.semanticRun.outcome.code, "METHOD_NOT_APPLICABLE");
+    assert.equal(noEngine.semanticRun.outcome.investigation.applicability.code, "ENGINE_NOT_INSTALLED");
+    assert.ok(!fs.existsSync(path.join(noEngine.runDir, modules.postPatch.VALIDATION_FILE)));
 
     // The report step refuses to write a validation when the reproducer never ran.
     const m = modules.postPatch.postPatchModule();
     assert.throws(
-      () => m.finalize({ stages: [], accepted: { reproducer: { execution: { executed: false, reason: "the sandbox process could not start" } } }, candidates: [], runDir: ws.root, now: new Date(), inputs: undefined }),
+      () => m.finalize({ stages: [], accepted: { reproducer: { execution: { executed: false, reason: "the test could not start" } } }, candidates: [], runDir: ws.root, now: new Date(), inputs: undefined }),
       /claims nothing without execution/,
     );
   } finally {
@@ -356,27 +371,75 @@ test("post-patch validation never claims a reproduction without execution: a rep
   }
 });
 
-test("the sandbox refuses writes, network and processes, and a runtime without the permission model executes nothing", () => {
-  const dir = path.join(fs.mkdtempSync(path.join(process.env.TEMP ?? process.env.TMPDIR ?? "/tmp", "compb-sbx-")), "fx");
+test("the test-file runner starts one container of the tools image per file under the step contract, mounts prepared dependencies read-only, and runs nothing without an engine or the image", async () => {
+  const ws = H.setupWorkspace("compb-runner", { "src/format.js": H.FORMAT });
+  Object.assign(ws.env, H.containerEnv(ws));
+  const { workspaceId } = await H.load("core/ids/index.js");
+  const wsId = workspaceId(ws.dir);
+  const files = [
+    { path: "src/format.js", content: H.FORMAT },
+    { path: "test/format.test.mjs", content: H.FORMAT_TEST },
+  ];
   try {
-    const probe = [
-      'import test from "node:test";',
-      'import assert from "node:assert/strict";',
-      'import fs from "node:fs";',
-      'import { spawnSync } from "node:child_process";',
-      'test("writes are refused", () => { assert.throws(() => fs.writeFileSync("x.txt", "1"), { code: "ERR_ACCESS_DENIED" }); });',
-      'test("processes are refused", () => { assert.throws(() => spawnSync(process.execPath, ["-v"]), { code: "ERR_ACCESS_DENIED" }); });',
-      'test("the network is refused", () => { assert.equal(process.permission.has("net"), false); });',
-      "",
-    ].join("\n");
-    const fx = regressions.writeFixture(dir, [{ path: "probe.test.mjs", content: probe }]);
-    const run = regressions.runSandboxedTest(fx.dir, "probe.test.mjs");
+    const prepared = await regressions.testEnvironment({ env: ws.env, home: ws.home, workspace: wsId, run: "compb-runner" });
+    assert.equal(prepared.ok, true, prepared.reason);
+    const { environment } = prepared;
+    assert.deepEqual(regressions.dependencyMountPoints(environment, regressions.TEST_RECIPES["node:test"]), [], "no dependencies prepared yet");
+    const fx = regressions.writeFixture(path.join(ws.root, "fx"), files);
+    const run = await regressions.runTestFile(environment, fx, "test/format.test.mjs");
+    assert.equal(run.executed, true, run.reason);
     assert.equal(run.outcome, "passed", run.output);
-    assert.equal(run.tests.total, 3);
-    const none = regressions.runSandboxedTest(fx.dir, "probe.test.mjs", { env: { ...process.env, JGATES_SANDBOX_NODE: path.join(dir, "no-node") } });
-    assert.equal(none.executed, false);
-    assert.equal(none.outcome, "not-run");
+    assert.equal(run.tests.total, 1);
+    assert.deepEqual({ ...run.container, name: "-", user: "-" }, { mode: "container", image: H.TOOLS_IMAGE_ID, name: "-", network: "none", readOnlyTree: true, readOnlyRoot: true, user: "-", limits: { memoryMb: 1024, cpus: 1, pids: 256, tmpfsMb: 64, timeoutSeconds: 60 }, dependencies: [] });
+    const [c] = H.testContainers(ws);
+    assert.equal(c.name, run.container.name);
+    assert.equal(c.network, "none");
+    assert.equal(c.readOnlyRoot, true);
+    assert.deepEqual(c.capDrop, ["ALL"]);
+    assert.ok(c.user && !/^(root|0)(:|$)/.test(c.user), `never root: ${c.user}`);
+    assert.equal(c.user, run.container.user);
+    assert.deepEqual([c.memory, c.cpus, c.pids], ["1024m", "1", "256"]);
+    assert.ok(c.args.includes("--rm"));
+    assert.deepEqual(
+      { managed: c.labels["org.jgates.managed"], kind: c.labels["org.jgates.kind"], workspace: c.labels["org.jgates.workspace"], run: c.labels["org.jgates.run"], runner: c.labels["org.jgates.test-runner"] },
+      { managed: "true", kind: "step", workspace: wsId, run: "compb-runner", runner: "node:test" },
+    );
+    assert.deepEqual(c.mounts, [{ type: "bind", src: path.resolve(fx.dir), dst: "/workspace", readonly: true }], "only the fixture, read-only; never the project folder");
+    assert.equal(c.image, H.TOOLS_IMAGE_ID);
+    assert.deepEqual(c.command, ["node", "--test-reporter=tap", "test/format.test.mjs"]);
+
+    // A test that needs a package while the workspace's dependencies are not prepared ends as error with that reason.
+    const needs = 'import test from "node:test";\nimport assert from "node:assert/strict";\nimport leftPad from "left-pad";\ntest("left-pad pads", () => assert.equal(leftPad("1", 3, "0"), "001"));\n';
+    const rel = ".jgates/regressions/paginate-pages.test.mjs";
+    const fx2 = regressions.writeFixture(path.join(ws.root, "fx2"), [...files, { path: rel, content: needs }]);
+    const missing = await regressions.runTestFile(environment, fx2, rel);
+    assert.equal(missing.executed, true);
+    assert.equal(missing.outcome, "error");
+    assert.equal(missing.dependenciesMissing, true);
+    assert.match(missing.reason, /^DEPENDENCIES_NOT_PREPARED: the test needs the package left-pad/);
+    assert.doesNotMatch(missing.output, /\/workspace\//, "container paths are masked");
+
+    // Once prepared, the dependency volume is mounted read-only on an empty node_modules of the fixture.
+    const volume = await H.prepareDependencies(ws);
+    const withDeps = await regressions.testEnvironment({ env: ws.env, home: ws.home, workspace: wsId, run: "compb-runner" });
+    const points = regressions.dependencyMountPoints(withDeps.environment, regressions.TEST_RECIPES["node:test"]);
+    assert.deepEqual(points, ["node_modules"]);
+    const fx3 = regressions.writeFixture(path.join(ws.root, "fx3"), [...files, { path: rel, content: needs }], { mountPoints: points });
+    assert.deepEqual(fs.readdirSync(path.join(fx3.dir, "node_modules")), []);
+    const resolved = await regressions.runTestFile(withDeps.environment, fx3, rel);
+    assert.equal(resolved.outcome, "passed", resolved.output);
+    assert.deepEqual(resolved.container.dependencies, [{ volume, target: "/workspace/node_modules" }]);
+    assert.deepEqual(H.testContainers(ws).at(-1).mounts.at(-1), { type: "volume", src: volume, dst: "/workspace/node_modules", readonly: true });
+
+    // A file no recipe runs, no engine, no image: nothing is started.
+    const before = H.testContainers(ws).length;
+    assert.equal((await regressions.runTestFile(environment, fx, "src/format.py")).outcome, "not-run");
+    const noEngine = await regressions.testRuntime({ ...ws.env, JGATES_CONTAINER_RUNTIME: path.join(ws.root, "missing-engine") });
+    assert.deepEqual([noEngine.ok, noEngine.code], [false, "ENGINE_NOT_INSTALLED"]);
+    const noImage = await regressions.testRuntime({ ...ws.env, ...H.containerEnv(ws, { env: { FAKE_DOCKER_LABELS: "none" } }) });
+    assert.deepEqual([noImage.ok, noImage.code], [false, "IMAGE_MISSING"]);
+    assert.equal(H.testContainers(ws).length, before);
   } finally {
-    regressions.removeFixture(path.dirname(dir));
+    ws.cleanup();
   }
 });

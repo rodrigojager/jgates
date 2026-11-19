@@ -1,0 +1,19 @@
+{
+ "tool": "snakemake",
+ "kind": "clean",
+ "version": "9.27.2",
+ "calls": [
+  {
+   "args": [
+    "--directory",
+    "/tmp",
+    "--lint",
+    "--snakefile",
+    "Snakefile"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "Congratulations, your workflow is in a good condition!\n"
+  }
+ ]
+}

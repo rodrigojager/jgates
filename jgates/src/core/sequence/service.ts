@@ -97,6 +97,8 @@ export interface SequenceRunOptions extends SequenceCommon {
   /** The plan of the combined selection (buildGatePlan), already built. */
   plan: GatePlan;
   request: SequenceRequest;
+  /** `--no-waivers`: a reused Quality run that was approved with waivers does not stand in (it would hide the refusal). */
+  noWaivers?: boolean;
   runQuality: QualityExecutor;
 }
 
@@ -282,7 +284,7 @@ export async function executeSequence(opts: SequenceRunOptions): Promise<Sequenc
       } catch {
         current = null;
       }
-      reuse = current ? findEquivalentQuality(home, workspace.id, qualityPlan, current, opts.version) : { state: "executed", reusedFrom: null, rejected: null, message: t("sequence_reuse_none") };
+      reuse = current ? findEquivalentQuality(home, workspace.id, qualityPlan, current, opts.version, { noWaivers: opts.noWaivers === true }) : { state: "executed", reusedFrom: null, rejected: null, message: t("sequence_reuse_none") };
       if (reuse.state === "reused" && reuse.reusedFrom) {
         qualityRunId = reuse.reusedFrom.runId;
         state.record = { ...state.record, runs: [{ gate: "quality", runId: qualityRunId }] };

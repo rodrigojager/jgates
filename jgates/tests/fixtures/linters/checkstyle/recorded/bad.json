@@ -1,0 +1,23 @@
+{
+ "tool": "checkstyle",
+ "kind": "bad",
+ "version": "14.4.0",
+ "calls": [
+  {
+   "args": [
+    "-c",
+    "/sun_checks.xml",
+    "-f",
+    "xml",
+    "-o",
+    "/output/linters/checkstyle/checkstyle.xml",
+    "Tally.java"
+   ],
+   "exit": 6,
+   "stdout": "",
+   "stderr": "Checkstyle ends with 6 errors.\n",
+   "reportPath": "/output/linters/checkstyle/checkstyle.xml",
+   "report": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<checkstyle version=\"14.4.0\">\n<file name=\"/workspace/Tally.java\">\n<error line=\"1\" severity=\"error\" message=\"Missing package-info.java file.\" source=\"com.puppycrawl.tools.checkstyle.checks.javadoc.JavadocPackageCheck\"/>\n<error line=\"2\" column=\"5\" severity=\"error\" message=\"Missing a Javadoc comment for &apos;total&apos;.\" source=\"com.puppycrawl.tools.checkstyle.checks.javadoc.JavadocVariableCheck\"/>\n<error line=\"2\" column=\"9\" severity=\"error\" message=\"Variable &apos;total&apos; must be private and have accessor methods.\" source=\"com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck\"/>\n<error line=\"4\" column=\"5\" severity=\"error\" message=\"Class &apos;Tally&apos; looks like designed for extension (can be subclassed), but the method &apos;add&apos; does not have javadoc that explains how to do that safely. If class is not designed for extension consider making the class &apos;Tally&apos; final or making the method &apos;add&apos; static/final/abstract/empty, or adding allowed annotation for the method.\" source=\"com.puppycrawl.tools.checkstyle.checks.design.DesignForExtensionCheck\"/>\n<error line=\"4\" column=\"5\" severity=\"error\" message=\"Missing a Javadoc comment for &apos;add&apos;.\" source=\"com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocMethodCheck\"/>\n<error line=\"4\" column=\"20\" severity=\"error\" message=\"Parameter n should be final.\" source=\"com.puppycrawl.tools.checkstyle.checks.FinalParametersCheck\"/>\n</file>\n</checkstyle>\n"
+  }
+ ]
+}

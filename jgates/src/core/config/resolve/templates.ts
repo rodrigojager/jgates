@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { censusHasEvidence } from "../../../adapters/linter/census.js";
 import { canonicalJson } from "../../ids/index.js";
 import { translator, type Translator } from "../../../i18n/index.js";
 import { getBuiltinTemplate, isBuiltinRef, listBuiltinTemplates } from "../../../builtin/index.js";
@@ -86,6 +87,8 @@ export class TemplateGraph {
    * `contains` is given, has a line that starts with that text after spaces. Only reads, at most 1 MiB.
    */
   hasEvidence(rel: string, contains: string | null): boolean {
+    // A `**` folder ("**/*.php", "src/**/Dockerfile") asks for a file at any depth: the file census answers.
+    if (rel.includes("**/")) return censusHasEvidence(this.realDir, rel, contains);
     // A `*` in the last segment (".github/workflows/*.yml") asks for any file of that folder that fits the name.
     const slash = rel.lastIndexOf("/");
     const leaf = rel.slice(slash + 1);

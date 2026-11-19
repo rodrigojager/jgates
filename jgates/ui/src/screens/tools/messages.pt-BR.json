@@ -239,5 +239,12 @@
   "tools_category_infrastructure": "Infraestrutura",
   "tools_category_custom": "Verificações próprias",
   "tools_group_count": "{count, plural, one {# ferramenta} other {# ferramentas}}",
-  "tools_group_hint": "Os grupos começam fechados: abra um para ver as ferramentas."
+  "tools_group_hint": "Os grupos começam fechados: abra um para ver as ferramentas.",
+  "tools_section_language": "Linguagens",
+  "tools_section_format": "Formatos e arquivos de dados",
+  "tools_section_tooling": "Ferramentas e infraestrutura",
+  "tools_section_other": "Outras verificações",
+  "tools_tier_main": "Roda do perfil Equilibrado para cima",
+  "tools_tier_extended": "Roda no perfil Rigoroso",
+  "tools_card_network": "Usa a rede"
 }

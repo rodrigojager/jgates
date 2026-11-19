@@ -21,6 +21,8 @@ import { workspaceId } from "../ids/index.js";
 import { formatBytes, formatMegabytes, resolveReason, type ReasonAction } from "../reasons/index.js";
 import { dockerInstallRecipe, dockerStartRecipe, detectSystem, previewOf, type RecipePreview } from "../install/index.js";
 import { stepMode } from "../runner/in-image.js";
+import { chooseConcurrency, type ConcurrencyFacts } from "../runner/concurrency.js";
+import { concurrencyFacts, configuredConcurrency } from "../run/concurrency.js";
 import { IMAGE_VERSION_LABEL, readToolsImagePin, toolsImageTarget, type ToolsImagePin } from "../tools-image/index.js";
 
 export interface LifecycleReason {
@@ -63,6 +65,16 @@ export interface StatusReport {
     published: boolean;
   };
   extension: { images: Array<{ name: string; sizeBytes: number }> };
+  /**
+   * The number of checks that only read the project run at the same time (ADR-0023): the one the configuration sets, or
+   * the automatic one from the engine's memory and CPUs and the limits of a check (never above 8).
+   */
+  concurrency: {
+    value: number;
+    source: "configuration" | "automatic";
+    automatic: number;
+    step: { memoryMb: number; cpus: number };
+  };
   data: {
     /** fresh: every database is within the limit; stale or missing: at least one is not. */
     state: "fresh" | "stale" | "missing";
@@ -102,6 +114,12 @@ export interface StatusOptions {
 }
 
 export const engineContextOf = (env: NodeJS.ProcessEnv): EngineContext => ({ runtime: engineRuntime(env), runnerOptions: { parentEnv: env } });
+
+/** The number of checks at a time a run of this project would use, with the automatic number for these facts. */
+function concurrencyOf(projectDir: string | null, facts: ConcurrencyFacts): StatusReport["concurrency"] {
+  const choice = chooseConcurrency(projectDir ? configuredConcurrency(projectDir) : null, facts);
+  return { value: choice.value, source: choice.source, automatic: choice.automatic, step: choice.step };
+}
 
 const ENGINE_STATE: Record<EngineReasonCode, EngineState> = {
   ENGINE_NOT_INSTALLED: "not-installed",
@@ -181,6 +199,7 @@ export async function collectStatus(options: StatusOptions): Promise<StatusRepor
       mode: "in-image",
       ready: true,
       engine: { state: "ready", runtime: "-", ...EMPTY_FACTS },
+      concurrency: concurrencyOf(projectDir, concurrencyFacts(env)),
       image: { ...base.image, state: "ready", id: null, version: options.version },
       reasons: [],
       warnings: [],
@@ -199,12 +218,13 @@ export async function collectStatus(options: StatusOptions): Promise<StatusRepor
     memoryMb: facts.memoryMb,
     cpus: facts.cpus,
   };
+  const concurrency = concurrencyOf(projectDir, { memoryMb: facts.memoryMb, cpus: facts.cpus });
   const reasons: LifecycleReason[] = [];
   const warnings: LifecycleReason[] = [];
   if (engineBlock) reasons.push(engineBlock);
   const disk = { ...base.disk, freeMb: facts.diskFreeMb };
   if (engine.state === "not-installed" || engine.state === "stopped" || engine.state === "unsupported") {
-    return { ...base, mode: "container", ready: false, engine, image: { ...base.image, state: "unknown", id: null, version: null }, disk, reasons, warnings };
+    return { ...base, mode: "container", ready: false, engine, concurrency, image: { ...base.image, state: "unknown", id: null, version: null }, disk, reasons, warnings };
   }
 
   const found = inspectImageSync(target.reference, context);
@@ -270,6 +290,7 @@ export async function collectStatus(options: StatusOptions): Promise<StatusRepor
     mode: "container",
     ready: !blocking,
     engine,
+    concurrency,
     image: { ...base.image, state: imageState, id: found?.id ?? null, version },
     extension,
     data,

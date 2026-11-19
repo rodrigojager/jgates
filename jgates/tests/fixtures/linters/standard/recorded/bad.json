@@ -1,0 +1,17 @@
+{
+ "tool": "standard",
+ "kind": "bad",
+ "version": "17.1.2",
+ "calls": [
+  {
+   "args": [
+    "--verbose",
+    "--",
+    "std-sample.js"
+   ],
+   "exit": 1,
+   "stdout": "  /workspace/std-sample.js:1:17: Strings must use singlequote. (quotes)\n",
+   "stderr": "standard: Use JavaScript Standard Style (https://standardjs.com)\nstandard: Run `standard --fix` to automatically fix some problems.\n"
+  }
+ ]
+}

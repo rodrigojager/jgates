@@ -15,6 +15,7 @@ import { GateTargetChoice, savedRequest, targetProblem, type ChooseSelection } f
 import { networkLine } from "../validations-review/network";
 import { NotRunningList, PendingPreparations, type NotRunningGroup, type PendingPreparation } from "../validations-review/not-running";
 import { EMPTY_REQUEST, planBody, writeRequest, type ValidationRequest } from "../validations-review/request";
+import { WaiversSection, hasWaiversToShow, type WaiverListing } from "../validations-review/waivers";
 import { advance, fetchSetup } from "./api";
 import { EquivalentCommand, StepNav, useJob } from "./parts";
 import type { StepProps } from "./Wizard";
@@ -37,6 +38,7 @@ interface PlanAnswer {
     catalog?: { categories: Array<{ id: string; label: string }>; capabilities: Array<{ id: string; label: string; category: string }> } | null;
     notRunning?: { total: number; groups: NotRunningGroup[] };
     preparations?: PendingPreparation[];
+    waivers?: WaiverListing;
   };
 }
 
@@ -215,6 +217,7 @@ export function ReviewStep({ view, act, apply, busy, back, finished }: StepProps
             </div>
           ))}
           {review.notRunning ? <NotRunningList groups={review.notRunning.groups} total={review.notRunning.total} ctx={ctx} headingId="wizard-not-running" level={2} /> : null}
+          {hasWaiversToShow(review.waivers) ? <WaiversSection listing={review.waivers as WaiverListing} headingId="wizard-waivers" level={2} /> : null}
           {blockers.length > 0 && !waiting ? (
             <div className="notice warn" role="alert">
               <Icon name="alert" />

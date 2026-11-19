@@ -1,0 +1,22 @@
+{
+  "files": [
+    "schema.graphql"
+  ],
+  "findings": [
+    {
+      "rule": "types-have-descriptions",
+      "file": "schema.graphql",
+      "line": 1
+    },
+    {
+      "rule": "relay-page-info-spec",
+      "file": "schema.graphql",
+      "line": 1
+    },
+    {
+      "rule": "fields-have-descriptions",
+      "file": "schema.graphql",
+      "line": 2
+    }
+  ]
+}

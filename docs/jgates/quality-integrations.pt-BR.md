@@ -29,7 +29,7 @@ registro legal, e o lugar onde a ferramenta roda é sempre a imagem de ferrament
 
 | Integração | Capacidade | De onde vem | Stacks e observações |
 | --- | --- | --- | --- |
-| Semgrep com o pacote de regras do JGates | `sast` | O Semgrep está na imagem de ferramentas; o pacote é distribuído | `tools.<id>.rulePack: jgates` seleciona o pacote (`jgates/packs/semgrep/jgates-semgrep`, regras originais do JGates, MIT). Validado para Python, JavaScript e TypeScript. As regras oficiais do registro do Semgrep nunca são distribuídas e não estão na imagem. |
+| Semgrep com o pacote de regras do JGates | `sast` | O Semgrep está na imagem de ferramentas; o pacote é distribuído | `tools.<id>.rulePack: jgates` seleciona o pacote (`jgates/packs/semgrep/jgates-semgrep`, regras originais do JGates, MIT). O pacote tem regras originais para oito linguagens (JavaScript, TypeScript, Python, Go, C#, Rust, Java e PHP) e para arquivos HTML e de configuração (veja abaixo), incluindo XSS, e cada uma é validada pelos gêmeos vulnerável e limpo da sua linguagem. Java e PHP também contam com linters ativados por arquivos, como PMD e PHPStan. Consulte o [catálogo de ferramentas](tools.pt-BR.md) para ver os perfis e as limitações. No perfil Essencial, o SAST fica desligado. O plano nomeia as linguagens que o pacote cobre e as do projeto que ele não tem; o resultado registra quantos arquivos de cada linguagem foram varridos. O modo dentro da imagem mantém a cópia antiga do pacote que está na imagem até ela ser reconstruída. As regras oficiais do registro do Semgrep nunca são distribuídas e não estão na imagem. |
 | zizmor | `ci-cd` | Na imagem de ferramentas | Audita workflows do GitHub Actions. |
 | oasdiff | `api-compatibility` | Na imagem de ferramentas | Precisa de um arquivo OpenAPI 3 e de uma referência git ou arquivo como base. Sem extração de contrato a partir do código. |
 | Verificação de build | `typecheck` | Na imagem de ferramentas; vale a versão do próprio projeto | Validado para TypeScript, Python, Go, Rust e C#; JavaScript, F# e Visual Basic não são suportados. O template `typescript-tsc` ativa em qualquer `tsconfig.json`. |
@@ -47,6 +47,43 @@ Para uma ferramenta que você mesmo prepara, o adaptador, as versões suportadas
 prontidão já vêm prontos; o `jgates status` e o plano informam o que falta. Nada é baixado enquanto uma execução está em
 andamento. Para uma ferramenta ou linguagem que não está na tabela, veja [suas próprias ferramentas](extension.pt-BR.md).
 
+## O pacote de regras: grupos e tipos de arquivo
+
+O pacote Semgrep do JGates tem regras originais, chamadas `jgates.<tipo>.<nome>`, para **nove tipos de arquivo**: Python,
+JavaScript (também TypeScript), Go, C#, Rust, Java, PHP, arquivos HTML (`.html`, `.htm`) e arquivos de configuração
+(ajustes de servidor, de framework e de aplicação, como `.conf`, `.properties`, `.ini`, `.htaccess`, `web.config`,
+`application.yml` e `appsettings.json`). Templates (Jinja, Blade, Razor, EJS, templates do Go, arquivos Vue) não são
+lidos. Os arquivos de regras de um tipo de arquivo se dividem em **onze grupos**: interpreters, encoding, cookies-cors,
+web-protocol, files, passwords-sessions, tokens-transport, crypto-params, errors-logging, configuration e signals. Os
+arquivos anteriores (injection, taint, XSS, crypto-auth e deserialization) continuam como eram; os arquivos HTML têm um
+grupo de marcação e os arquivos de configuração têm um grupo de servidor e um de framework. As bibliotecas que cada
+família cobre estão no cabeçalho do seu arquivo de regras.
+
+- **Quatro classes.** O pacote tem 711 verificações: 277 `ERROR`, 229 `WARNING`, 116 `INFO` comuns e 89 **Revisar**.
+  As outras 113 regras são sinais, não achados (824 regras no total).
+- **O que bloqueia.** `ERROR` e `WARNING` descrevem risco explícito no código encontrado, por exemplo a verificação
+  de certificado TLS desligada, e bloqueiam nos rigores Equilibrado e Rigoroso como todo achado bloqueante.
+  Revisar aponta uma proteção não visível onde a regra procura quando o comportamento arriscado é o padrão da biblioteca,
+  por exemplo uma requisição de saída sem restrição visível de redirecionamento.
+- **Informativos.** Uma verificação `INFO` comum enuncia uma política do padrão que muitos projetos sólidos não
+  seguem. O resultado dela é um **achado informativo**: aparece, é contado à parte, é rotulado "não bloqueia a validação"
+  e nunca pode ser dispensado.
+- **Revisar.** Uma regra Revisar usa `severity: INFO` e `metadata.class: review`, mas seu achado não é informativo.
+  Aparece em **Para revisar**, contado separadamente dos bloqueantes e informativos nos resultados, histórico e
+  comparações. Nunca bloqueia em nenhum perfil, rigor ou modo, nunca muda o código de saída e nunca examina um requisito
+  ASVS. Pede que uma pessoa examine a ocorrência; não estabelece uma vulnerabilidade.
+  **Marcar como revisado** registra seu motivo e data final como dispensa por ocorrência no `.jgates/waivers.json`
+  do projeto (`jgates waivers add` no CLI). Retira a ocorrência de Para revisar e a lista como revisada com as dispensas;
+  Revisar sozinho nunca produz "aprovado com N dispensas". Dispensas vencidas ou desatualizadas, e
+  `jgates run --no-waivers`, devolvem a ocorrência a Para revisar.
+- **Sinais.** O grupo `signals` tem regras minúsculas (`jgates.<tipo>.uses-<etiqueta>`) que só registram que uma varredura
+  viu uma tecnologia (GraphQL, WebSocket, JWT, XML, e-mail e semelhantes). Os resultados delas nunca são achados; o [mapa
+  de cobertura ASVS](asvs-coverage.pt-BR.md) as usa para sugerir "não se aplica".
+- **Requisitos.** Cada regra nomeia os requisitos do ASVS para os quais foi escrita. É uma declaração de intenção: só o
+  mapeamento revisado faz uma verificação contar no mapa.
+- **Motor.** As regras foram escritas para o Semgrep 1.100 ou mais novo e verificadas por último com o Semgrep 1.184.0 (a
+  versão da imagem de ferramentas).
+
 ## Subdimensões do Quality
 
 Os seis domínios dos mascotes se organizam em subdimensões. Elas só organizam a apresentação: uma verificação tem um
@@ -54,11 +91,16 @@ domínio primário e uma subdimensão, então nenhuma execução é contada duas
 selecionada aparece como não coberta.
 
 - Quality: lint, types, builds, maintainability, reliability, api-compatibility.
-- Security: injection, authorization, tenant-isolation, secrets, cryptography, privacy, business-logic, runtime-evidence.
+- Security: injection, authorization, tenant-isolation, secrets, cryptography, privacy, business-logic, runtime-evidence, hardening (configuração, tratamento de erros e disponibilidade; "endurecimento" na interface).
 - Dependencies: vulnerabilities, licenses, supply-chain.
 - Tests: unit-integration, contracts, properties, mutation, regressions, post-patch.
 - Architecture: layer-boundaries, cycles, cross-module-effects, invariants.
 - Infrastructure: iac, ci-cd, deployment, images.
+
+As subdimensões de Security também são a segunda forma de ler o [mapa de cobertura ASVS](asvs-coverage.pt-BR.md): cada
+requisito mapeado nomeia as suas subdimensões, e as regras do pacote Semgrep que acompanha o JGates e as verificações do
+Gitleaks, do ZAP e de dependências só alimentam o mapa quando realmente rodaram. O mapa diz o que foi examinado, nunca
+que um projeto atende ao padrão.
 
 ## Limitações
 

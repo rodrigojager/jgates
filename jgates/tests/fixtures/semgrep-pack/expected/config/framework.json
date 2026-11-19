@@ -1,0 +1,26 @@
+{
+  "files": [
+    "framework/application.properties",
+    "framework/application.yml",
+    "framework/nginx.conf",
+    "framework/php.ini",
+    "framework/.htaccess",
+    "framework/web.config",
+    "framework/appsettings.json",
+    "framework/app.env",
+    "framework/laravel/config/session.php",
+    "framework/laravel/config/app.php",
+    "framework/symfony/config/packages/framework.yaml",
+    "framework/symfony/config/packages/security.php"
+  ],
+  "ruleIds": [
+    "jgates.config.cookie-without-secure",
+    "jgates.config.cookie-without-httponly",
+    "jgates.config.stack-trace-in-response",
+    "jgates.config.debug-mode-enabled",
+    "jgates.config.csrf-protection-disabled",
+    "jgates.config.graphql-introspection-enabled",
+    "jgates.config.docs-or-monitoring-endpoint-exposed",
+    "jgates.config.security-headers-disabled"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "jgates-tools-graphql-schema-linter",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of graphql-schema-linter (with its graphql peer dependency) in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "graphql": "16.15.0",
+    "graphql-schema-linter": "3.0.1"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "git"
+  ],
+  "provides": [
+    {
+      "name": "git-diff-check",
+      "path": "/usr/bin/git",
+      "version": [
+        "git",
+        "--version"
+      ],
+      "pattern": "version (\\d+\\.\\d+\\.\\d+)"
+    }
+  ]
+}

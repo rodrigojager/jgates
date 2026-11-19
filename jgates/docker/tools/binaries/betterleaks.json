@@ -1,0 +1,24 @@
+{
+  "version": "1.10.1",
+  "url": "https://github.com/betterleaks/betterleaks/releases/download/v{version}/betterleaks_{version}_linux_x64.tar.gz",
+  "sha256": "c174b42d7aa60caf58c0c3e555c0e4bed01fe6b0d99a412bce777b5af4ce913e",
+  "archive": "tar.gz",
+  "extract": {
+    "betterleaks": "betterleaks",
+    "LICENSE": "LICENSE"
+  },
+  "executable": [
+    "betterleaks"
+  ],
+  "provides": [
+    {
+      "name": "betterleaks",
+      "link": "betterleaks",
+      "path": "betterleaks",
+      "version": [
+        "betterleaks",
+        "version"
+      ]
+    }
+  ]
+}

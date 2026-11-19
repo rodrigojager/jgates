@@ -1,0 +1,11 @@
+{
+  "files": ["Interpreters.cs"],
+  "ruleIds": [
+    "jgates.csharp.ldap-injection",
+    "jgates.csharp.xpath-injection",
+    "jgates.csharp.template-from-request",
+    "jgates.csharp.dynamic-code-execution",
+    "jgates.csharp.xslt-from-request",
+    "jgates.csharp.latex-shell-escape"
+  ]
+}

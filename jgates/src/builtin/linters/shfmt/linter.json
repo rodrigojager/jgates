@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "shfmt",
+  "name": "shfmt",
+  "sourceUrl": "https://github.com/mvdan/sh",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "shfmt",
+    "versionRange": ">=3.0.0 <4.0.0"
+  },
+  "megalinter": [
+    "BASH_SHFMT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "bash",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".sh",
+      ".bash",
+      ".dash",
+      ".ksh"
+    ],
+    "content": {
+      "pattern": "^#!(?:/usr/bin/env bash|/bin/bash|/bin/sh)"
+    }
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-d",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "files",
+    "pattern": "^\\+\\+\\+ (?<file>[^\\t]+)",
+    "rule": "shfmt.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".editorconfig"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "shfmt reads the project's .editorconfig (indent style and size, switch and binary-operator layout): the project decides the format",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the tool has no in-file suppression"
+    }
+  },
+  "install": "shfmt",
+  "text": {
+    "en": {
+      "label": "shfmt (shell format)",
+      "purpose": "Checks that shell scripts are formatted the way shfmt writes them: indentation, spacing and line layout. It only reports the difference; it never rewrites a file.",
+      "limitation": "It reports files that differ from shfmt's layout, not the lines one by one; without an .editorconfig it uses tabs for indentation. A script it cannot parse is reported too.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "shfmt (formato de shell)",
+      "purpose": "Verifica se os scripts de shell estão formatados como o shfmt os escreveria: indentação, espaçamento e disposição das linhas. Só relata a diferença; nunca reescreve um arquivo.",
+      "limitation": "Relata os arquivos que diferem do formato do shfmt, não linha por linha; sem um .editorconfig usa tabs na indentação. Um script que ele não consegue analisar também é relatado.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

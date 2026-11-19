@@ -1,0 +1,4 @@
+{
+  "files": ["encoding.ts"],
+  "ruleIds": ["jgates.js.regex-from-request", "jgates.js.redos-nested-quantifier", "jgates.js.format-string-from-request", "jgates.js.markdown-raw-html-enabled", "jgates.js.csv-formula-injection", "jgates.js.memcache-key-from-request", "jgates.js.double-decoding", "jgates.js.url-parameter-unencoded", "jgates.js.json-built-by-concatenation"]
+}

@@ -1,0 +1,23 @@
+{
+  "version": "2.6.0",
+  "url": "https://github.com/JohnnyMorganz/StyLua/releases/download/v{version}/stylua-linux-x86_64.zip",
+  "sha256": "a485f72bbfa22e4642e77a84b5edc2611a5cab7477b34e2e709dd8f78e919895",
+  "archive": "zip",
+  "extract": {
+    "stylua": "stylua"
+  },
+  "executable": [
+    "stylua"
+  ],
+  "provides": [
+    {
+      "name": "stylua",
+      "link": "stylua",
+      "path": "stylua",
+      "version": [
+        "stylua",
+        "--version"
+      ]
+    }
+  ]
+}

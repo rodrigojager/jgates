@@ -1,0 +1,422 @@
+# Cookies, CORS, request forgery, JSONP and sensitive data in URLs for PHP.
+# Libraries covered: the PHP built-ins (setcookie, session_set_cookie_params, ini_set session options, header),
+# Symfony (Cookie, JsonResponse, Request headers, form csrf_protection), Laravel (cookie(), VerifyCsrfToken,
+# withoutMiddleware, response()->jsonp, config/cors.php arrays), PSR-7 responses (withHeader, getHeaderLine) and
+# Guzzle query options. The analysis stays inside one function or one file.
+rules:
+  - id: jgates.php.cookie-without-secure
+    message: The cookie Secure protection is explicitly disabled, so a browser may send the cookie over plain HTTP. Set the Secure option to true.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+    pattern-either:
+      - pattern: setcookie($N, $V, [..., 'secure' => false, ...])
+      - pattern: setcookie($N, $V, [..., "secure" => false, ...])
+      - pattern: setcookie($N, $V, $E, $P, $D, false, ...)
+      - pattern: session_set_cookie_params([..., 'secure' => false, ...])
+      - pattern: session_set_cookie_params([..., "secure" => false, ...])
+      - pattern: session_set_cookie_params($L, $P, $D, false, ...)
+      - patterns:
+          - pattern: ini_set("session.cookie_secure", $V)
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?i)^["']?(0|false|off|no|)["']?$
+      - pattern: new Cookie($N, $V, $E, $P, $D, false, ...)
+      - pattern: $C->withSecure(false)
+      - pattern: cookie($N, $V, $M, $P, $D, false, ...)
+
+  - id: jgates.php.cookie-without-secure-by-default
+    message: A cookie is set without the Secure option. If no other configuration adds it, the cookie can travel over plain HTTP; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern: setcookie($N, $V, [...])
+          - pattern-not: setcookie($N, $V, [..., 'secure' => $S, ...])
+          - pattern-not: setcookie($N, $V, [..., "secure" => $S, ...])
+      - patterns:
+          - pattern-either:
+              - pattern: setcookie($N, $V)
+              - pattern: setcookie($N, $V, $E)
+              - pattern: setcookie($N, $V, $E, $P)
+              - pattern: setcookie($N, $V, $E, $P, $D)
+          - pattern-not: setcookie($N, "", ...)
+          - pattern-not: setcookie($N, $V, [...])
+          - pattern-not-regex: '(?i)\bsecure:'
+          - pattern-not-regex: (?i)\$\w*(opt|param)\w*\s*\)
+      - patterns:
+          - pattern: session_set_cookie_params([...])
+          - pattern-not: session_set_cookie_params([..., 'secure' => $S, ...])
+          - pattern-not: session_set_cookie_params([..., "secure" => $S, ...])
+      - pattern: session_set_cookie_params($L, $P, $D)
+      - patterns:
+          - pattern: header($H, ...)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?is)^["']set-cookie:(?!.*;\s*secure\b).*
+
+  - id: jgates.php.cookie-without-httponly
+    message: The cookie HttpOnly protection is explicitly disabled, so page scripts can read the cookie. Set the HttpOnly option to true when browser code does not need the cookie.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+    pattern-either:
+      - pattern: setcookie($N, $V, [..., 'httponly' => false, ...])
+      - pattern: setcookie($N, $V, [..., "httponly" => false, ...])
+      - pattern: setcookie($N, $V, $E, $P, $D, $S, false)
+      - pattern: session_set_cookie_params([..., 'httponly' => false, ...])
+      - pattern: session_set_cookie_params([..., "httponly" => false, ...])
+      - pattern: session_set_cookie_params($L, $P, $D, $S, false)
+      - patterns:
+          - pattern: ini_set("session.cookie_httponly", $V)
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?i)^["']?(0|false|off|no|)["']?$
+      - pattern: new Cookie($N, $V, $E, $P, $D, $S, false, ...)
+      - pattern: $C->withHttpOnly(false)
+      - pattern: cookie($N, $V, $M, $P, $D, $S, false, ...)
+
+  - id: jgates.php.cookie-without-httponly-by-default
+    message: A cookie is set without the HttpOnly option. If no other configuration adds it, page scripts can read the cookie; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern: setcookie($N, $V, [...])
+          - pattern-not: setcookie($N, $V, [..., 'httponly' => $S, ...])
+          - pattern-not: setcookie($N, $V, [..., "httponly" => $S, ...])
+      - patterns:
+          - pattern-either:
+              - pattern: setcookie($N, $V)
+              - pattern: setcookie($N, $V, $E)
+              - pattern: setcookie($N, $V, $E, $P)
+              - pattern: setcookie($N, $V, $E, $P, $D)
+              - pattern: setcookie($N, $V, $E, $P, $D, $S)
+          - pattern-not: setcookie($N, "", ...)
+          - pattern-not: setcookie($N, $V, [...])
+          - pattern-not-regex: '(?i)\bhttponly:'
+          - pattern-not-regex: (?i)\$\w*(opt|param)\w*\s*\)
+      - patterns:
+          - pattern: session_set_cookie_params([...])
+          - pattern-not: session_set_cookie_params([..., 'httponly' => $S, ...])
+          - pattern-not: session_set_cookie_params([..., "httponly" => $S, ...])
+      - pattern: session_set_cookie_params($L, $P, $D, $S)
+      - patterns:
+          - pattern: header($H, ...)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?is)^["']set-cookie:(?!.*;\s*httponly\b).*
+
+  - id: jgates.php.cookie-without-samesite
+    message: A cookie is written with SameSite set to None, or without SameSite where the API sends none, so it travels on cross-site requests. Pass the options array to setcookie() with 'samesite' => 'Lax' (or Strict).
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.2"]
+    pattern-either:
+      - patterns:
+          - pattern: setcookie($N, $V, [...])
+          - pattern-not: setcookie($N, $V, [..., 'samesite' => $S, ...])
+          - pattern-not: setcookie($N, $V, [..., "samesite" => $S, ...])
+      - patterns:
+          - pattern-either:
+              - pattern: setcookie($N, $V, [..., 'samesite' => $S, ...])
+              - pattern: setcookie($N, $V, [..., "samesite" => $S, ...])
+              - pattern: session_set_cookie_params([..., 'samesite' => $S, ...])
+              - pattern: session_set_cookie_params([..., "samesite" => $S, ...])
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?i)^(["']none["']|["']?)$
+      - patterns:
+          - pattern-either:
+              - pattern: setcookie($N, $V)
+              - pattern: setcookie($N, $V, $E)
+              - pattern: setcookie($N, $V, $E, $P)
+              - pattern: setcookie($N, $V, $E, $P, $D)
+              - pattern: setcookie($N, $V, $E, $P, $D, $S)
+              - pattern: setcookie($N, $V, $E, $P, $D, $S, $H)
+          - pattern-not: setcookie($N, "", ...)
+          - pattern-not: setcookie($N, $V, [...])
+          - pattern-not-regex: (?i)samesite
+          - pattern-not-regex: (?i)\$\w*(opt|param)\w*\s*\)
+      - patterns:
+          - pattern: session_set_cookie_params([...])
+          - pattern-not: session_set_cookie_params([..., 'samesite' => $S, ...])
+          - pattern-not: session_set_cookie_params([..., "samesite" => $S, ...])
+      - patterns:
+          - pattern: session_set_cookie_params($L, ...)
+          - pattern-not: session_set_cookie_params([...])
+      - patterns:
+          - pattern: ini_set("session.cookie_samesite", $V)
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?i)^["']?(none|)["']?$
+      - patterns:
+          - pattern-either:
+              - pattern: $C->withSameSite($V)
+              - pattern: new Cookie($N, $V0, $E, $P, $D, $S, $H, $R, $V)
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?i)^(["']none["']|.*SAMESITE_NONE|null)$
+      - patterns:
+          - pattern: header($H, ...)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?is)^["']set-cookie:(?!.*;\s*samesite=(lax|strict)).*
+
+  - id: jgates.php.cookie-name-without-prefix
+    message: A cookie name starts with neither __Host- nor __Secure-, so the browser does not enforce the attributes the name promises. Use the __Host- prefix for session cookies.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.3", "V3.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: setcookie($N, ...)
+          - pattern: session_name($N)
+          - pattern: new Cookie($N, ...)
+          - pattern: Cookie::create($N, ...)
+          - pattern: cookie($N, ...)
+      - metavariable-regex:
+          metavariable: $N
+          regex: '^["''](?!__Host-|__Secure-).+'
+
+  - id: jgates.php.cors-any-origin-with-credentials
+    message: CORS allows every origin together with credentials, so any site can read authenticated responses. List the trusted origins instead of a wildcard.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: authorization
+      cwe: "CWE-942"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - patterns:
+          - pattern: 'header("Access-Control-Allow-Origin: *", ...)'
+          - pattern-inside: |
+              function $F(...) {
+                ...
+                header("Access-Control-Allow-Credentials: true", ...);
+                ...
+              }
+      - pattern-regex: withHeader\(\s*['"]Access-Control-Allow-Origin['"]\s*,\s*['"]\*['"]\s*\)[^;]*withHeader\(\s*['"]Access-Control-Allow-Credentials['"]\s*,\s*['"]true['"]
+      - pattern-regex: withHeader\(\s*['"]Access-Control-Allow-Credentials['"]\s*,\s*['"]true['"]\s*\)[^;]*withHeader\(\s*['"]Access-Control-Allow-Origin['"]\s*,\s*['"]\*['"]
+      - pattern: '[..., "allowed_origins" => [..., "*", ...], ..., "supports_credentials" => true, ...]'
+      - pattern: '[..., "supports_credentials" => true, ..., "allowed_origins" => [..., "*", ...], ...]'
+
+  - id: jgates.php.cors-origin-reflected
+    mode: taint
+    message: The request's Origin header is copied into the allow-origin response header, so every site is trusted. Compare the origin with an allow-list (in_array with strict comparison) and answer only for a listed one.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-sources:
+      - pattern: $_SERVER["HTTP_ORIGIN"]
+      - pattern: $R->headers->get("Origin")
+      - pattern: $R->getHeaderLine("Origin")
+      - pattern: $R->header("Origin")
+      - pattern: $R->getHeader("Origin")
+      - pattern: getallheaders()["Origin"]
+      - pattern: apache_request_headers()["Origin"]
+    pattern-sinks:
+      - patterns:
+          - pattern: header($H, ...)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?is).*Access-Control-Allow-Origin.*
+          - focus-metavariable: $H
+      - patterns:
+          - pattern-either:
+              - pattern: $R->withHeader("Access-Control-Allow-Origin", $X)
+              - pattern: $R->headers->set("Access-Control-Allow-Origin", $X)
+              - pattern: $R->header("Access-Control-Allow-Origin", $X)
+              - pattern: $R->setHeader("Access-Control-Allow-Origin", $X)
+          - focus-metavariable: $X
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $O
+          - pattern-inside: |
+              if (in_array($O, ...)) {
+                ...
+              }
+      - patterns:
+          - pattern: $O
+          - pattern-inside: |
+              if (isset($ALLOWED[$O])) {
+                ...
+              }
+
+  - id: jgates.php.cors-origin-reflected-allow-all
+    message: The allowed-origin patterns of the CORS configuration accept every origin, so every site is trusted. List the trusted origins or anchor each pattern to a fixed host.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    patterns:
+      - pattern: '[..., "allowed_origins_patterns" => [..., $P, ...], ...]'
+      - metavariable-regex:
+          metavariable: $P
+          regex: ^["'][#/~]\^?\.[*+]\$?[#/~][a-z]*["']$
+      - focus-metavariable: $P
+
+  - id: jgates.php.csrf-protection-disabled
+    message: Request-forgery protection is switched off for every request, so state-changing calls accept forged cross-site requests. Keep the CSRF middleware or form token on and exclude only a narrow, named endpoint.
+    severity: ERROR
+    languages: [php]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.1"]
+    pattern-either:
+      - patterns:
+          - pattern-regex: \$except\s*=\s*\[[^\]]*['"]\*['"][^\]]*\]
+          - pattern-inside: |
+              class $C extends $P {
+                ...
+              }
+          - metavariable-regex:
+              metavariable: $P
+              regex: .*(VerifyCsrfToken|ValidateCsrfToken|PreventRequestForgery)
+      - patterns:
+          - pattern-regex: \$except\s*=\s*\[[^\]]*['"]\*['"][^\]]*\]
+          - pattern-inside: |
+              class $C extends $P {
+                ...
+              }
+          - metavariable-regex:
+              metavariable: $C
+              regex: .*(VerifyCsrfToken|ValidateCsrfToken|PreventRequestForgery)
+      - pattern: $R->withoutMiddleware(VerifyCsrfToken::class)
+      - pattern: $R->withoutMiddleware([..., VerifyCsrfToken::class, ...])
+      - pattern: $R->withoutMiddleware(ValidateCsrfToken::class)
+      - pattern: $R->withoutMiddleware([..., ValidateCsrfToken::class, ...])
+      - pattern: '$M->validateCsrfTokens(except: ["*"])'
+      - pattern: '$M->validateCsrfTokens(except: [..., "*", ...])'
+      - pattern: '[..., "csrf_protection" => false, ...]'
+
+  - id: jgates.php.jsonp-enabled
+    message: The framework's JSONP support wraps the response in a caller-chosen callback, which lets any page run the endpoint as a script and read its data. Return plain JSON and use CORS for cross-origin reads.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern-either:
+      - pattern: response()->jsonp(...)
+      - pattern: $R->withCallback(...)
+      - pattern: (new JsonResponse(...))->setCallback(...)
+      - patterns:
+          - pattern: $R->setCallback(...)
+          - pattern-inside: |
+              $R = new JsonResponse(...);
+              ...
+
+  - id: jgates.php.jsonp-enabled-callback
+    mode: taint
+    message: A callback name from the request is wrapped around the response body (JSONP), which lets any page run the endpoint as a script and read its data. Return plain JSON and use CORS for cross-origin reads.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $_GET[$K]
+              - pattern: $_REQUEST[$K]
+              - pattern: $R->query($K)
+              - pattern: $R->input($K)
+              - pattern: $R->query->get($K)
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["'](callback|jsonp|jsonpcallback)["']$
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: echo $X;
+              - pattern: print $X;
+              - pattern: $B->write($X)
+              - pattern: new Response($X, ...)
+          - focus-metavariable: $X
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $O
+          - pattern-inside: |
+              if (preg_match($RE, $O)) {
+                ...
+              }
+
+  - id: jgates.php.sensitive-query-parameter
+    message: A URL carries a password, secret or API key in its query string, where logs, history and referrers keep it. Send it in a header or the request body.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V14.2.1"]
+    pattern-either:
+      - pattern-regex: (?i)["'][^"'\n]*[?&](password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)=
+      - patterns:
+          - pattern: http_build_query([..., $K => $V, ...])
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["'](password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)["']$
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: '[..., "query" => [..., $K => $V, ...], ...]'
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["'](password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)["']$
+          - focus-metavariable: $K

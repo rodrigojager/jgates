@@ -1,0 +1,15 @@
+{
+  "files": ["TokensTransport.java"],
+  "ruleIds": [
+    "jgates.java.jwt-signature-not-verified",
+    "jgates.java.jwt-algorithm-not-restricted",
+    "jgates.java.jwt-key-from-token-header",
+    "jgates.java.jwt-expiry-not-validated",
+    "jgates.java.jwt-audience-not-validated",
+    "jgates.java.oauth-request-without-state",
+    "jgates.java.tls-old-protocol-version",
+    "jgates.java.tls-weak-cipher-suite",
+    "jgates.java.cleartext-http-url",
+    "jgates.java.mtls-client-certificate-not-verified"
+  ]
+}

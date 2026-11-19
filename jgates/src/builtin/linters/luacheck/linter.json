@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "luacheck",
+  "name": "luacheck",
+  "sourceUrl": "https://github.com/lunarmodules/luacheck",
+  "license": "MIT",
+  "program": {
+    "tool": "luacheck",
+    "versionRange": ">=1.0.0 <2.0.0"
+  },
+  "megalinter": [
+    "LUA_LUACHECK"
+  ],
+  "place": {
+    "section": "language",
+    "group": "lua",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".lua"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--formatter",
+      "plain",
+      "--codes",
+      "--no-color",
+      "--no-cache",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+): \\((?<rule>[EW]\\d+)\\) (?<message>.+)$",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".luacheckrc"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "luacheck reads the project's .luacheckrc: the project decides the globals, the ignored warnings and the standard library",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: -- luacheck: ignore comments",
+      "pattern": "--\\s*luacheck:\\s*(?:ignore|push|pop|globals|no )",
+      "files": "\\.lua$"
+    }
+  },
+  "install": "luacheck",
+  "text": {
+    "en": {
+      "label": "luacheck (Lua)",
+      "purpose": "Checks Lua files for unused variables, undefined globals, shadowing, unreachable code and other mistakes a compiler does not report.",
+      "limitation": "It runs without its cache (--no-cache), so nothing is written next to the sources. Without a .luacheckrc it knows only the standard Lua globals, so a project that targets another environment (Neovim, Love2D, Roblox) needs the configuration to avoid undefined-global findings.",
+      "needs": "Nothing beyond the tools image (Lua comes with the Debian package): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "luacheck (Lua)",
+      "purpose": "Verifica arquivos Lua em busca de variáveis não usadas, globais indefinidas, sombreamento, código inalcançável e outros erros que o compilador não aponta.",
+      "limitation": "Roda sem o seu cache (--no-cache), então nada é escrito ao lado dos fontes. Sem um .luacheckrc ele conhece só as globais padrão do Lua, então um projeto para outro ambiente (Neovim, Love2D, Roblox) precisa da configuração para evitar achados de global indefinida.",
+      "needs": "Nada além da imagem de ferramentas (o Lua vem com o pacote Debian): sem rede e sem as dependências do projeto."
+    }
+  }
+}

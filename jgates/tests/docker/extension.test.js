@@ -79,7 +79,7 @@ test("a pip tool installed in the project's own image runs through `jgates tools
     "--json",
   ]);
   assert.equal(added.status, 0, added.stdout + added.stderr);
-  assert.match(fs.readFileSync(path.join(project, ".jgates", "image", "Dockerfile"), "utf8"), /uv tool install --no-cache 'bandit\[sarif\]==1\.8\.6'/);
+  assert.match(fs.readFileSync(path.join(project, ".jgates", "image", "Dockerfile"), "utf8"), /uv tool install --force --no-cache 'bandit\[sarif\]==1\.8\.6'/);
 
   // The first `tools test` builds the image (the plan said EXTENSION_OUTDATED) and runs the tool in it.
   const tested = cli(["tools", "test", "bandit", "--json"]);

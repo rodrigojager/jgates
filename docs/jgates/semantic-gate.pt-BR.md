@@ -318,6 +318,12 @@ Quando o mascaramento impede o envio, `result.semantic.code` diz por quê: `MASK
 
 Um provider indisponível, um timeout, um orçamento esgotado ou um bloqueio do mascaramento nunca aprovam nem reprovam o gate. A interface mostra o estado do semantic gate num cartão em Ferramentas, que edita os campos essenciais como descrito em [preferências e conexões](#preferências-e-conexões).
 
+## Tentar reproduzir um achado
+
+Um achado que uma execução Semantic não conseguiu resolver continua `needs-validation`. Depois você pode pedir ao JGates que tente reproduzi-lo: no resultado Semantic (a tela da execução quando ela termina, ou o **Histórico semântico** e então a execução), cada achado `needs-validation` de um método que lê o código tem **Tentar reproduzir**, e o topo da lista tem **Tentar reproduzir todos (N)**. Nada começa nesse clique: antes, uma confirmação diz quantos achados serão tentados, o máximo de chamadas ao modelo que a tentativa pode gastar e que ela roda os testes do projeto em um contêiner sem rede. Só **Confirmar e iniciar** começa uma execução Semantic do método `confirm-by-reproduction` (veja [os métodos Semantic](semantic-methods.pt-BR.md#confirmar-por-reprodução)), que você acompanha como qualquer outra. No terminal: `jgates semantic run --method confirm-by-reproduction --from <sem_...> [--finding C1]`.
+
+Quando termina, o resultado anterior mostra cada achado tentado: **confirmado por execução**, com um link para a execução da reprodução, o teste e a saída (segredos mascarados), ou **reprodução tentada** com o motivo, ainda `needs-validation`. Uma reprodução que falha nunca rejeita um achado nem reduz a sua gravidade; a execução anterior não é reescrita. A ação fica desabilitada, com o motivo, para um achado cujo arquivo nenhum executor de testes aceito (pytest, `node:test`) roda, e para todos os achados quando não há motor de contêineres pronto ou as dependências do projeto não estão preparadas (a tela então oferece **Preparar dependências**).
+
 ## Limites
 
 - O smoke com um provider real ainda não foi feito; os testes usam um provider falso e não gastam tokens. Veja [limitações](limitations.pt-BR.md).

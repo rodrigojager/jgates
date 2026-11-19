@@ -12,7 +12,7 @@ checkboxes, General review checked by default. `--purpose general-review` and `-
 for `--method general-review` and `--method security-audit`; with both, the methods win. A method that needs an input the run does not have (a patch, a lockfile) is reported `unavailable` with a reason code
 (`METHOD_NOT_APPLICABLE` and the method's own code), spends no model call and is never shown as favorable.
 
-## The nine methods
+## The eleven methods
 
 | Method | Selected | What it does |
 | --- | --- | --- |
@@ -25,6 +25,39 @@ for `--method general-review` and `--method security-audit`; with both, the meth
 | `property-reasoning` | on request | States the invariants of boundary, authorization and parsing code, argues each against the code and proposes property tests. Original JGates work. |
 | `post-patch-validation` | on request | Does the reproducer fail before a patch and pass after it? The host runs it, not the model. Original JGates work. |
 | `supply-chain-assessment` | on request | Interprets the install-time and provenance signals of the lockfiles. Original JGates work. |
+| `confirm-by-reproduction` | only when you ask, after a run | Tries to reproduce the `needs-validation` findings of an earlier run with a test that runs in a container. Original JGates work. |
+| `asvs-review` | only when you ask, after a Quality run | An AI review of the source against the ASVS requirements that no deterministic check examined, one answer per requirement. Original JGates work. |
+
+### Confirm by reproduction
+
+The tenth method starts from a finished Semantic run of a method that reads source code and tries to settle its `needs-validation` findings by execution. Nothing reproduces unless you ask: no profile, template or default turns it on. On the Semantic result each such finding has **Try to reproduce** and the list has **Try to reproduce all (N)**; the terminal does the same:
+
+```bash
+jgates semantic run --method confirm-by-reproduction --from <sem_...> [--finding C1]
+```
+
+- The cost is shown before anything starts: how many findings it will try, the most model calls it may spend (the budget of the run), and that it runs the project's tests in a container without network.
+- One context per finding writes a single test in the project's test framework (pytest or `node:test`) that fails while the defect exists. The host, not the model, places it in a copy of the project and runs it in an ephemeral container of the tools image: no network, no root, a read-only tree and limits on memory, processes and time. A second, fresh context judges whether the failure is the defect the finding describes, a defect of the test or the environment.
+- A finding is **confirmed by execution** (evidence basis `execution`) only when the test ran, failed, and the judgment attributes the failure to the defect. The earlier run is never rewritten: its result shows the finding as confirmed, with a link to the reproduction run, the test and its masked output.
+- Anything else (the test passed, did not load, was refused, the environment failed, the budget ended) leaves the finding `needs-validation` and shows "reproduction attempted" with the reason. **A failed reproduction never rejects a finding and never lowers its severity.**
+- A test that reproduced becomes a regression test proposal, applied only by `jgates regressions incorporate <id> --approve`.
+- It is not applicable, with a reason code and no model call, when there is no container engine or tools image, when the dependencies of the finding's component are not prepared (`jgates deps prepare`), when no supported runner (pytest, `node:test`) runs the finding's file (`TEST_RUNNER_NOT_SUPPORTED`; Jest, Vitest, `go test`, `cargo test` and `dotnet test` are not supported yet) or when the earlier run has no `needs-validation` finding. The screen then shows the action disabled with the reason.
+- It is never part of `jgates ci`, and the Quality decision is untouched.
+
+### ASVS review
+
+The eleventh method reads the source against the OWASP ASVS requirements that the latest Quality run's coverage map does not show as examined by a deterministic check and that you did not record as not applicable. Nothing runs it unless you ask: no profile, template or default selects it, and `jgates ci` never runs it. Choose **ASVS review** in the method list of the Semantic screens (it can be ticked with the keyboard, like the others), or in the terminal:
+
+```bash
+jgates semantic plan --method asvs-review
+jgates semantic run --method asvs-review
+```
+
+- Before anything starts, the plan says how many requirements it will review (by ASVS chapter, one fresh context each), the Quality run whose map decided that, and the most model calls it may spend. The screen asks you to confirm that cost before **Start** is enabled.
+- It needs a finished Quality run. Without one it is not applicable, with the reason `ASVS_REVIEW_NO_QUALITY_RUN` and no model call: validate the project first. It is also not applicable, with a reason, when nothing is left to review or the coverage map cannot be read.
+- For each requirement the model answers **examined** (the files and lines it read, and whether it found a violation) or **not examinable** with the reason: it concerns the running system, it concerns a person or process, or it is outside the scope. The host rejects an examined answer that names a file the context did not read or a line the file does not have; that answer counts for nothing and its reason is kept in the run's gaps.
+- The result lists the requirements examined and those not examinable, with their reasons, and says that this is an AI review of the source. A candidate violation is a lead that stays `needs-validation` until a person validates it.
+- The ASVS map counts an examined answer apart from the deterministic checks, as an AI review of the source, and only where a reviewed mapping entry allows it; a not-examinable answer gives nothing. It is never a statement that a requirement is met.
 
 ## Sources, pins and attribution
 
@@ -45,11 +78,18 @@ jgates tools distribution
 
 - A confirmed finding from a source-reading method carries the evidence basis `source-argument`: the model argued it from
   the code. It is never presented as reproduced.
-- No method executes project code. The one exception is `post-patch-validation`, which runs the reproducer and nearby
-  tests in isolated before and after fixtures under a sandbox that cannot write, use the network or start processes;
-  only that method may claim `reproduced` or `fixed`, and only when the run executed.
+- No method executes project code on the host. Two methods run tests, always in containers of the tools image without
+  network (a read-only tree, no root, limits on memory, processes and time): `post-patch-validation` runs the reproducer
+  and nearby tests in isolated before and after fixtures (`jgates regressions validate` runs a proposed test the same
+  way), and `confirm-by-reproduction` runs one test per finding on the current code. Only those two may claim
+  `reproduced`, `fixed` or the evidence basis `execution`, and only when the run executed. Without a usable container
+  engine they are not applicable and nothing is claimed.
 - Repository text, scanner output and imported reports are untrusted data. File access goes through a host guard that
   refuses exclusions and paths outside the scope; every refusal is recorded and lowers the affected verdicts to
   `needs-validation`.
-- `property-reasoning` and `post-patch-validation` may propose regression tests. They are applied only by
+- `property-reasoning`, `post-patch-validation` and `confirm-by-reproduction` may propose regression tests. They are applied only by
   `jgates regressions incorporate <id> --approve`.
+- The security audit's coverage ledger feeds the [ASVS coverage map](asvs-coverage.en.md): a requirement is examined by
+  it only when units of its attack-class block were examined in that run, always with the basis "AI review of the
+  source", counted apart from the deterministic checks. A unit that a model proposed as not applicable never makes a
+  requirement not applicable.

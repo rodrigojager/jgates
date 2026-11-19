@@ -1,0 +1,10 @@
+{
+  "files": ["interpreters.go"],
+  "ruleIds": [
+    "jgates.go.ldap-injection",
+    "jgates.go.xpath-injection",
+    "jgates.go.template-from-request",
+    "jgates.go.latex-shell-escape",
+    "jgates.go.mail-header-injection"
+  ]
+}

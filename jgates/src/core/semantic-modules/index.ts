@@ -12,6 +12,8 @@ import { CROSS_COMPONENT_METHOD, crossComponentModule } from "./cross-component/
 import { PROPERTY_METHOD, propertyReasoningModule } from "./property/index.js";
 import { POST_PATCH_METHOD, postPatchModule } from "./post-patch/index.js";
 import { SUPPLY_CHAIN_METHOD, supplyChainModule } from "./supply-chain/index.js";
+import { REPRODUCTION_METHOD, confirmByReproductionModule } from "./reproduction/index.js";
+import { ASVS_REVIEW_METHOD, asvsReviewModule } from "./asvs-review/index.js";
 
 export interface SemanticModuleEntry {
   method: string;
@@ -33,6 +35,12 @@ export const SEMANTIC_MODULES: readonly SemanticModuleEntry[] = [
   { method: PROPERTY_METHOD, create: () => propertyReasoningModule() },
   { method: POST_PATCH_METHOD, create: () => postPatchModule() },
   { method: SUPPLY_CHAIN_METHOD, create: () => supplyChainModule() },
+  // Confirm by reproduction executes a reproducer per needs-validation finding of an earlier run, on request only: no
+  // purpose, profile, template or default selects it (see the module header).
+  { method: REPRODUCTION_METHOD, create: () => confirmByReproductionModule() },
+  // The ASVS review reads the source against the requirements no deterministic check examined, on request only: no
+  // purpose, profile, template or default selects it (see the module header).
+  { method: ASVS_REVIEW_METHOD, create: () => asvsReviewModule() },
 ];
 
 /** Methods whose module could not be built, with the reason. */
@@ -57,3 +65,5 @@ export * as complementaryVendor from "./complementary/vendor.js";
 export * as propertyReasoning from "./property/index.js";
 export * as postPatch from "./post-patch/index.js";
 export * as supplyChain from "./supply-chain/index.js";
+export * as reproduction from "./reproduction/index.js";
+export * as asvsReview from "./asvs-review/index.js";

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "xmllint",
+  "name": "xmllint",
+  "sourceUrl": "https://gitlab.gnome.org/GNOME/libxml2/-/wikis/home",
+  "license": "MIT",
+  "program": {
+    "tool": "xmllint",
+    "versionRange": ">=20900.0.0"
+  },
+  "megalinter": [
+    "XML_XMLLINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "xml",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".xml",
+      ".xsd"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--noout",
+      "--nonet",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^(?<file>[^:\\n]+):(?<line>\\d+): (?:[a-zA-Z/ ]+ )?(?:error|warning) : (?<message>.+)$",
+    "rule": "xml.not-well-formed",
+    "level": "error"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "xmllint takes no configuration file: it checks that each file is well-formed XML, and never fetches anything from the network",
+    "suppressions": {
+      "honoured": false,
+      "description": "not honored: xmllint has no suppression comments"
+    }
+  },
+  "install": "xmllint",
+  "text": {
+    "en": {
+      "label": "xmllint (XML)",
+      "purpose": "Checks that XML and XSD files are well-formed: mismatched or unclosed tags, bad characters, broken entities and encoding errors.",
+      "limitation": "It checks syntax only. It does not validate a file against a schema or a DTD, so a well-formed file with the wrong structure passes.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "xmllint (XML)",
+      "purpose": "Verifica se arquivos XML e XSD estão bem formados: tags divergentes ou não fechadas, caracteres inválidos, entidades quebradas e erros de codificação.",
+      "limitation": "Verifica apenas a sintaxe. Não valida o arquivo contra um schema ou DTD, então um arquivo bem formado com a estrutura errada passa.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

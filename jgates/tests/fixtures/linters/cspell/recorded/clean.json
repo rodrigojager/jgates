@@ -1,0 +1,23 @@
+{
+ "tool": "cspell",
+ "kind": "clean",
+ "version": "10.5.1",
+ "calls": [
+  {
+   "args": [
+    "--config",
+    "/output/linters/cspell/cspell-default.json",
+    "--no-progress",
+    "--no-summary",
+    "--no-color",
+    "--no-cache",
+    "--",
+    "jgates.yml",
+    "words.md"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

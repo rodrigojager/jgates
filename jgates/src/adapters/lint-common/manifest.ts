@@ -21,9 +21,18 @@ export interface LintManifestInput {
   sourceUrl: string;
   acquisition: string[];
   setup: string[];
+  /** The capability (default lint) and its catalogue category (default quality): the linter engine's tools give theirs. */
+  capability?: string;
+  category?: string;
+  /** The tool needs the network (default false). */
+  usesNetwork?: boolean;
+  /** Step container resources when the defaults do not fit. */
+  resources?: AdapterManifest["resources"];
+  /** The default is workspace and component; the linter engine's tools check the workspace. */
+  granularity?: AdapterManifest["granularity"];
 }
 
-/** The manifest of a stack lint adapter: capability lint, one tool of the JGates tools image, read-only. */
+/** The manifest of a stack lint adapter: capability lint (or the one given), one tool of the JGates tools image, read-only. */
 export function lintManifest(input: LintManifestInput): AdapterManifest {
   return {
     schemaVersion: 1,
@@ -36,9 +45,9 @@ export function lintManifest(input: LintManifestInput): AdapterManifest {
     runtimes: ["native", "container"],
     platforms: ["linux", "darwin", "win32"],
     cpuArchitectures: ["x64", "arm64"],
-    categories: ["quality"],
-    capabilities: ["lint"],
-    granularity: ["workspace", "component"],
+    categories: [input.category ?? "quality"],
+    capabilities: [input.capability ?? "lint"],
+    granularity: input.granularity ?? ["workspace", "component"],
     minimumContext: ["workspace"],
     configFiles: [{ format: "other", discovery: input.configDiscovery, precedence: input.configPrecedence }],
     editing: { implemented: ["text"], tested: [] },
@@ -48,7 +57,7 @@ export function lintManifest(input: LintManifestInput): AdapterManifest {
       writesOutputs: true,
       mayChangeCode: false,
       executesProjectCode: input.executesProjectCode,
-      usesNetwork: false,
+      usesNetwork: input.usesNetwork === true,
       needsService: false,
       usesAi: false,
       needsLicense: false,
@@ -60,6 +69,7 @@ export function lintManifest(input: LintManifestInput): AdapterManifest {
       unavoidableWorkspaceWrites: input.unavoidableWorkspaceWrites ?? [],
     },
     toggles: { togglable: [], perRunByFlag: false },
+    ...(input.resources ? { resources: input.resources } : {}),
     relativeCost: input.relativeCost,
     origin: "builtin",
     license: input.license,

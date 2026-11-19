@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "black",
+      "link": "black",
+      "path": "bin/black",
+      "version": [
+        "black",
+        "--version"
+      ]
+    }
+  ]
+}

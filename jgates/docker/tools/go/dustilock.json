@@ -1,0 +1,17 @@
+{
+  "note": "dustilock has no version flag; its version is read from the module build information go install embeds in the binary.",
+  "module": "github.com/checkmarx/dustilock",
+  "version": "1.2.0",
+  "provides": [
+    {
+      "name": "dustilock",
+      "link": "dustilock",
+      "path": "dustilock",
+      "version": [
+        "sh",
+        "-c",
+        "grep -a -o -E 'checkmarx/dustilock[[:space:]]+v[0-9]+[.][0-9]+[.][0-9]+' \"$(command -v dustilock)\" | head -n 1"
+      ]
+    }
+  ]
+}

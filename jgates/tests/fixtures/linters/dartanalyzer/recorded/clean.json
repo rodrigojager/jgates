@@ -1,0 +1,20 @@
+{
+ "tool": "dartanalyzer",
+ "kind": "clean",
+ "version": "3.14.1",
+ "calls": [
+  {
+   "args": [
+    "analyze",
+    "--format=machine",
+    "--fatal-infos",
+    "--fatal-warnings",
+    "--",
+    "main.dart"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

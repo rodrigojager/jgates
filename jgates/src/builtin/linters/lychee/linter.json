@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "lychee",
+  "name": "lychee",
+  "sourceUrl": "https://github.com/lycheeverse/lychee",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "lychee",
+    "versionRange": ">=0.24.2 <1.0.0"
+  },
+  "megalinter": [
+    "SPELL_LYCHEE"
+  ],
+  "place": {
+    "section": "other",
+    "group": "links",
+    "capability": "links",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".md",
+      ".mdx",
+      ".markdown",
+      ".html",
+      ".htm",
+      ".rst",
+      ".txt",
+      ".json",
+      ".jsonc",
+      ".json5",
+      ".yaml",
+      ".yml"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format",
+      "junit",
+      "--no-progress",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": true,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "junit",
+    "rule": "broken-link"
+  },
+  "configuration": {
+    "files": [
+      "lychee.toml",
+      ".lycheeignore"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "lychee reads lychee.toml and .lycheeignore in the folder it runs from: the project decides the URLs to skip, the accepted status codes, the timeouts and the retries",
+    "suppressions": {
+      "honoured": false,
+      "description": "none in the file: a link is skipped through .lycheeignore or the exclude patterns of lychee.toml"
+    }
+  },
+  "install": "lychee",
+  "text": {
+    "en": {
+      "label": "lychee (links)",
+      "purpose": "Finds broken links in Markdown, HTML, reStructuredText, text, JSON and YAML files: web addresses that do not answer, local files and anchors that do not exist, and mail addresses that are not valid.",
+      "limitation": "A web link is checked at the moment of the run, so a site that is down, slow or blocks automated requests is reported as broken. It does not judge whether the target says what the text claims.",
+      "needs": "Network at run time: it requests every web link it finds. Where the network is not allowed the step is not run. No project dependencies."
+    },
+    "pt-BR": {
+      "label": "lychee (links)",
+      "purpose": "Encontra links quebrados em arquivos Markdown, HTML, reStructuredText, texto, JSON e YAML: endereços web que não respondem, arquivos locais e âncoras que não existem e endereços de e-mail inválidos.",
+      "limitation": "Um link web é verificado no momento da execução, então um site fora do ar, lento ou que bloqueia requisições automáticas é reportado como quebrado. Não avalia se o destino diz o que o texto afirma.",
+      "needs": "Rede durante a execução: requisita cada link web que encontra. Onde a rede não é permitida o passo não roda. Sem as dependências do projeto."
+    }
+  }
+}

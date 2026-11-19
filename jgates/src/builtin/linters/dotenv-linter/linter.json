@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "dotenv-linter",
+  "name": "dotenv-linter",
+  "sourceUrl": "https://github.com/dotenv-linter/dotenv-linter",
+  "license": "MIT",
+  "program": {
+    "tool": "dotenv-linter",
+    "versionRange": ">=4.0.0 <5.0.0"
+  },
+  "megalinter": [
+    "ENV_DOTENV_LINTER"
+  ],
+  "place": {
+    "section": "format",
+    "group": "dotenv",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".env"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "check",
+      "--plain",
+      "--skip-updates",
+      "--quiet",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+) (?<rule>\\w+): (?<message>.+)$"
+  },
+  "configuration": {
+    "files": [
+      ".dotenv-linter.toml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "dotenv-linter applies its built-in checks to each .env file; the project decides which checks are skipped, by comment inside the file",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # dotenv-linter:off comments",
+      "pattern": "dotenv-linter:(off|on)",
+      "files": "\\.env$"
+    }
+  },
+  "install": "dotenv-linter",
+  "text": {
+    "en": {
+      "label": "dotenv-linter (.env files)",
+      "purpose": "Checks .env files for mistakes: lowercase or duplicated keys, spaces around the equals sign, unordered keys, trailing whitespace, a missing final newline and values that break when loaded.",
+      "limitation": "It checks the shape of the file, not whether the values are right or the secrets are safe. It applies every built-in check unless the file turns one off.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "dotenv-linter (arquivos .env)",
+      "purpose": "Verifica arquivos .env: chaves em minúsculas ou duplicadas, espaços ao redor do sinal de igual, chaves fora de ordem, espaços no fim da linha, falta de quebra de linha final e valores que quebram ao carregar.",
+      "limitation": "Verifica o formato do arquivo, não se os valores estão certos nem se os segredos estão seguros. Aplica todas as verificações embutidas, a menos que o arquivo desligue alguma.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/coverage/asvs-review-ledger/1.json",
+  "title": "JGates ASVS review ledger",
+  "description": "evidence/asvs-review/requirements-ledger.json of a Semantic run of the method asvs-review: one answer per requirement the run reviewed, by id only (never the requirement text). examined: the files and lines the model read, and either no violation found in what was read or the Semantic findings it raised; not-examinable: why the source cannot answer it (a running system, a person, or code outside the scope). The ASVS coverage map counts an examined answer only when the run finished, the ledger is valid and every file reference names a file of the workspace; anything else counts for nothing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "method", "asvsVersion", "level", "requirements"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "asvs-review-ledger" },
+    "method": { "const": "asvs-review" },
+    "asvsVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "level": { "enum": [1, 2, 3] },
+    "requirements": {
+      "type": "array",
+      "description": "One answer per requirement id; an id appears once.",
+      "items": { "$ref": "#/$defs/answer" }
+    }
+  },
+  "$defs": {
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "answer"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^V\\d{1,2}\\.\\d+\\.\\d+$" },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 64, "description": "The review unit of the run that answered (a chapter id such as V6)." },
+        "answer": { "enum": ["examined", "not-examinable"] },
+        "references": {
+          "type": "array",
+          "description": "The files and lines read, relative to the workspace root with forward slashes.",
+          "items": { "$ref": "#/$defs/reference" }
+        },
+        "outcome": {
+          "description": "examined: no-violation-found (no violation found in what was read) or finding (the Semantic findings named in findings).",
+          "enum": ["no-violation-found", "finding"]
+        },
+        "findings": {
+          "type": "array",
+          "description": "The fingerprints of the Semantic findings of the run this answer raised.",
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 }
+        },
+        "reason": {
+          "description": "not-examinable: running-system (it needs a running system), person (it needs a person: a document, a process, an operational setting) or outside-scope (it needs code outside the reviewed scope).",
+          "enum": ["running-system", "person", "outside-scope"]
+        },
+        "detail": { "type": "string", "minLength": 1, "maxLength": 500 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "answer": { "const": "examined" } } },
+          "then": {
+            "required": ["references", "outcome"],
+            "properties": { "references": { "type": "array", "minItems": 1 }, "outcome": true },
+            "not": { "properties": { "reason": true }, "required": ["reason"] }
+          },
+          "else": {
+            "required": ["reason"],
+            "properties": { "reason": true },
+            "allOf": [{ "not": { "properties": { "outcome": true }, "required": ["outcome"] } }, { "not": { "properties": { "findings": true }, "required": ["findings"] } }]
+          }
+        },
+        {
+          "if": { "properties": { "outcome": { "const": "finding" } }, "required": ["outcome"] },
+          "then": { "required": ["findings"], "properties": { "findings": { "type": "array", "minItems": 1 } } },
+          "else": { "not": { "properties": { "findings": true }, "required": ["findings"] } }
+        }
+      ]
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "startLine", "endLine"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^(?![/\\\\])(?![A-Za-z]:)[^\\\\]+$" },
+        "startLine": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

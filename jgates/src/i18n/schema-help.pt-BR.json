@@ -125,5 +125,9 @@
   "h_de209dee2807": "generic-command: a declaração do comando (efeitos e contrato de evidência); o adaptador a confere com generic-evidence.schema.json quando o plano é montado. É o que `jgates tools add-custom` escreve.",
   "h_00ce78a80c79": "Descoberta, componentes, inclusões e exclusões do workspace.",
   "h_d4d692930593": "Detecção automática de componentes. Padrão true; false mantém só os componentes declarados aqui.",
-  "h_93106d75a87c": "Se as verificações rodam neste componente. Padrão true."
+  "h_93106d75a87c": "Se as verificações rodam neste componente. Padrão true.",
+  "h_f6f6257a06a8": "Alcance das entradas de capacidade, categoria e componente do perfil (ADR-0022): core (as ferramentas que o JGates sempre teve), main (inclui a principal ferramenta de cada linguagem e formato) ou extended (todas as ferramentas). Acima desse nível, uma ferramenta fica desativada com o motivo indicado até que uma entrada tool:<id> a ative. Quando omitido, herda de extends. Se nenhum perfil da cadeia definir um nível, usa core.",
+  "h_65299bfc3c60": "Somente templates integrados (ADR-0022): true inclui o template na configuração de todos os projetos sem precisar listá-lo em jgates.yml. A ativação é detected quando há um match e always nos demais casos. Para desativá-lo, o projeto lista o mesmo id com enabled: false ou activation: manual.",
+  "h_dfb6756f6060": "Perfil que executa a instância por padrão (ADR-0022): core (quando omitido), main (a partir de Equilibrado) ou extended (Rigoroso). Uma entrada tool:<id> ativa a instância em qualquer perfil.",
+  "h_793dd7cf894a": "Evidência de configuração: o template só é detectado quando pelo menos um destes arquivos existe na raiz de um componente das linguagens correspondentes ou na raiz do workspace. Uma string indica um caminho relativo a essa raiz (a pasta `**` aceita qualquer profundidade: `**/*.php` indica um arquivo PHP em qualquer pasta abaixo da raiz, localizado pelo inventário de arquivos). Um objeto também exige uma linha que comece com `contains` após os espaços, como o cabeçalho [tool.pytest.ini_options] em pyproject.toml."
 }

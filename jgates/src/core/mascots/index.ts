@@ -18,7 +18,7 @@ export type MascotStatus = "waiting" | "processing" | "passed" | "failed" | "inc
  */
 export const MASCOT_SUBDIMENSIONS: Readonly<Record<MascotDomain, readonly string[]>> = {
   quality: ["lint", "types", "builds", "maintainability", "reliability", "api-compatibility"],
-  security: ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence"],
+  security: ["injection", "authorization", "tenant-isolation", "secrets", "cryptography", "privacy", "business-logic", "runtime-evidence", "hardening"],
   dependencies: ["vulnerabilities", "licenses", "supply-chain"],
   tests: ["unit-integration", "contracts", "properties", "mutation", "regressions", "post-patch"],
   architecture: ["layer-boundaries", "cycles", "cross-module-effects", "invariants"],
@@ -32,6 +32,9 @@ const CAPABILITY_PLACEMENT: Readonly<Record<string, { domain: MascotDomain; sub:
   typecheck: { domain: "quality", sub: "types" },
   duplication: { domain: "quality", sub: "maintainability" },
   "file-size": { domain: "quality", sub: "maintainability" },
+  spelling: { domain: "quality", sub: "maintainability" },
+  links: { domain: "quality", sub: "reliability" },
+  sbom: { domain: "dependencies", sub: "supply-chain" },
   performance: { domain: "quality", sub: "reliability" },
   "api-compatibility": { domain: "quality", sub: "api-compatibility" },
   sast: { domain: "security", sub: "injection" },

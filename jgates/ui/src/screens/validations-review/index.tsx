@@ -9,12 +9,14 @@ import { useToast } from "../../components/Toast";
 import { useShell } from "../../app/shell-context";
 import { currentQuery } from "../../app/route";
 import { t, tOr } from "../../i18n";
+import { areaLabel, groupByArea, useToolAreas, type ToolArea } from "../../components/tool-areas";
 import type { ScreenMeta } from "../../registry";
 import { PendingDrafts } from "../tool-area/editbar/pending";
 import { TOOLS_DOWNLOAD, blockersOf, unavailableItems, type Blocker } from "./blockers";
 import { CapabilityStates, capabilityStates } from "./capability-states";
 import { networkLine } from "./network";
 import { equivalentCommand, planBody, readRequest, sequenceBody, writeRequest } from "./request";
+import { WaiversSection, applyingWaivers, hasWaiversToShow, type WaiverListing } from "./waivers";
 
 export const screen: ScreenMeta = { id: "validations-review", path: "/validations/review", area: "validations", navLabel: "vrev_nav", navPath: "/validations/review", order: 32, icon: "plan" };
 
@@ -83,6 +85,32 @@ function ItemList({ items, label }: { items: any[]; label: string }) {
   );
 }
 
+/**
+ * The items of one category, collapsed by area (PHP, Markdown, secrets...) with a count on each header, so that forty
+ * linters are forty lines behind a few headers and not a wall. The checks without an area of their own stay listed.
+ */
+function AreaItemList({ items, label, areaOf }: { items: any[]; label: string; areaOf: (adapter: string | null | undefined) => ToolArea | null }) {
+  const groups = groupByArea(items, (i) => areaOf(i.adapter));
+  if (groups.every((g) => g.id === "")) return <ItemList items={items} label={label} />;
+  return (
+    <div className="stack tight">
+      {groups.map((g) =>
+        g.id === "" ? (
+          <ItemList key="none" items={g.items} label={label} />
+        ) : (
+          <details key={`${g.section}/${g.id}`} className="capst-group" data-testid="area-group" data-area={g.id}>
+            <summary>
+              <strong>{areaLabel(g.id)}</strong>
+              <span className="small muted"> · {t("vrev_group_items", { count: g.items.length })}</span>
+            </summary>
+            <ItemList items={g.items} label={`${label}: ${areaLabel(g.id)}`} />
+          </details>
+        ),
+      )}
+    </div>
+  );
+}
+
 function groupByCategory(items: any[]): Array<[string | null, any[]]> {
   const map = new Map<string | null, any[]>();
   for (const item of items) {
@@ -119,6 +147,7 @@ function TieNote({ tie }: { tie: any }) {
 
 export default function ReviewScreen() {
   const { info } = useShell();
+  const areaOf = useToolAreas();
   const toast = useToast();
   const [request, setRequest] = useState(() => readRequest());
   const body = useMemo(() => planBody(request), [request]);
@@ -176,6 +205,12 @@ export default function ReviewScreen() {
       setRequest(next);
     },
   };
+  // The project's waivers: only for a Quality validation, and only when the file has something to show.
+  const waivers: WaiverListing | null = review.waivers ?? null;
+  const showWaivers = request.gates !== "semantic" && hasWaiversToShow(waivers);
+  const [waiverCount, setWaiverCount] = useState<WaiverListing | null>(null);
+  useEffect(() => setWaiverCount(null), [waivers]);
+  const waiversApplying = applyingWaivers(waiverCount ?? waivers);
   const concurrency = review.execution?.concurrency;
   const env = useEnvironmentForReview(version);
   const prepSteps = plan ? preparationSteps(plan, env) : [];
@@ -296,6 +331,14 @@ export default function ReviewScreen() {
                 <dd>{concurrency === 1 || concurrency === null || concurrency === undefined ? t("vrev_concurrency_one") : t("vrev_concurrency_many", { n: concurrency })}</dd>
                 <dt>{t("vrev_network")}</dt>
                 <dd data-testid="review-network">{networkLine(plan, [...prepSteps.map((s) => ({ name: t(`vrev_prep_name_${s.id}`), network: s.network, done: s.done })), ...((review.preparations ?? []) as Array<{ id: string; label: string; network: "none" | "bridge" }>).filter((p) => p.id !== "dependencies").map((p) => ({ name: p.label, network: p.network }))])}</dd>
+                {showWaivers ? (
+                  <>
+                    <dt>{t("wvr_summary_label")}</dt>
+                    <dd data-testid="review-waivers-count" data-count={waiversApplying}>
+                      {t("wvr_summary_value", { count: waiversApplying })}
+                    </dd>
+                  </>
+                ) : null}
                 <dt>{t("vrev_estimate")}</dt>
                 <dd>{review.estimate ? t("vrev_estimate_value", { time: formatDuration(review.estimate.ms), runs: review.estimate.runs }) : t("vrev_estimate_none")}</dd>
                 <dt>{t("plan_hash")}</dt>
@@ -408,7 +451,7 @@ export default function ReviewScreen() {
                     <strong>{catLabel(category)}</strong>
                     <span className="small muted"> · {t("vrev_group_items", { count: items.length })}</span>
                   </summary>
-                  <ItemList items={items} label={catLabel(category)} />
+                  <AreaItemList items={items} label={catLabel(category)} areaOf={areaOf} />
                 </details>
               ))
             )}
@@ -466,6 +509,8 @@ export default function ReviewScreen() {
             </div>
             </details>
           </section>
+
+          {showWaivers ? <WaiversSection listing={waivers as WaiverListing} onListing={setWaiverCount} headingId="vrev-waivers" /> : null}
 
           <section className="card flat stack" aria-labelledby="vrev-terminal">
             <h2 id="vrev-terminal">{t("vrev_terminal_title")}</h2>

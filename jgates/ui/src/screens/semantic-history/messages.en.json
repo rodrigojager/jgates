@@ -11,11 +11,13 @@
   "semhist_col_result": "Result",
   "semhist_col_backend": "Backend and model",
   "semhist_col_actions": "Actions",
-  "semhist_running": "Running",
+  "semhist_running": "In progress",
   "semhist_interrupted": "Interrupted",
   "semhist_cancel_requested": "Cancel requested",
   "semhist_follow": "Follow the run",
   "semhist_open_results": "Open the results",
   "semhist_separate_title": "A separate gate.",
-  "semhist_separate_body": "Semantic reviews never change a Quality result, and Quality history never lists them. Their decision is advisory."
+  "semhist_separate_body": "Semantic reviews never change a Quality result, and Quality history never lists them. Their decision is advisory.",
+  "semhist_reproduces": "Tried to reproduce findings of",
+  "semhist_reproduction_counts": "Reproduction: {confirmed} confirmed by execution, {attempted} attempted"
 }

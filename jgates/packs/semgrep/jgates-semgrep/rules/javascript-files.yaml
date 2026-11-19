@@ -1,0 +1,226 @@
+# Group "files" for JavaScript and TypeScript.
+# Upload sources cover multer (originalname), formidable (originalFilename) and express-fileupload (req.files.<field>.name).
+# Archive rules cover adm-zip, tar (node-tar) and unzipper; upload size rules cover multer, express-fileupload, busboy,
+# body-parser/express body parsers and formidable; header rules cover Express, Koa-style and Node http responses.
+rules:
+  - id: jgates.js.upload-client-filename-in-path
+    message: The file name the client sent with an upload is joined into the path it is stored under. Generate the stored name yourself (for example crypto.randomUUID()) and keep the client name only as metadata.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.3.2"]
+    pattern-sources:
+      - pattern: $F.originalname
+      - pattern: $F.originalFilename
+      - pattern: req.files.$K.name
+    pattern-sanitizers:
+      - pattern: path.basename(...)
+      - pattern: crypto.randomUUID()
+    pattern-sinks:
+      - patterns:
+          - pattern: path.join($BASE, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: path.resolve($BASE, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.writeFile($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.writeFileSync($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.createWriteStream($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.rename($SRC, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.renameSync($SRC, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs.copyFile($SRC, $P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $FILE.mv($P, ...)
+          - focus-metavariable: $P
+
+  - id: jgates.js.archive-extraction-unchecked
+    message: An archive is extracted without a visible check of the resulting path, link type or size. Check each entry (resolved path inside the target folder, no links, bounded size) before writing it, pass a filter that does, or confirm where these protections are enforced.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: file-handling
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.5", "V5.3.2"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern: $Z.extractAllTo(...)
+          - pattern-inside: |
+              $Z = new AdmZip(...);
+              ...
+      - pattern: new AdmZip(...).extractAllTo(...)
+      - patterns:
+          - pattern-either:
+              - pattern: tar.x(...)
+              - pattern: tar.extract(...)
+          - pattern-not: 'tar.x({..., filter: ..., ...})'
+          - pattern-not: 'tar.extract({..., filter: ..., ...})'
+      - pattern: unzipper.Extract(...)
+      - patterns:
+          - pattern-either:
+              - pattern: fs.createWriteStream(path.join($DIR, $E.entryName), ...)
+              - pattern: fs.createWriteStream(path.join($DIR, $E.fileName), ...)
+              - pattern: fs.createWriteStream(path.join($DIR, $E.path), ...)
+              - pattern: fs.writeFileSync(path.join($DIR, $E.entryName), ...)
+              - pattern: fs.writeFile(path.join($DIR, $E.entryName), ...)
+          - pattern-inside: |
+              $Z.on("entry", ($E, ...) => {
+                ...
+              })
+          - pattern-not-inside: |
+              $Z.on("entry", ($E, ...) => {
+                ...
+                if (<... $X.startsWith(...) ...>) { ... }
+                ...
+              })
+
+  - id: jgates.js.request-body-without-size-limit
+    message: A request body or upload size limit is explicitly set to Infinity. Set a finite maximum (for example limits.fileSize or limit) so one request cannot exhaust memory or disk.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.1"]
+    pattern-either:
+      - pattern: 'multer({..., limits: {..., fileSize: Infinity, ...}, ...})'
+      - pattern: 'fileUpload({..., limits: {..., fileSize: Infinity, ...}, ...})'
+      - pattern: 'express.$M({..., limit: Infinity, ...})'
+      - pattern: 'bodyParser.$M({..., limit: Infinity, ...})'
+      - pattern: 'formidable({..., maxFileSize: Infinity, ...})'
+      - pattern: 'new formidable.IncomingForm({..., maxFileSize: Infinity, ...})'
+
+  - id: jgates.js.request-body-without-size-limit-by-default
+    message: An upload handler is created without a visible file size limit, and the library defaults to unlimited uploads. Set a finite limits.fileSize here or confirm where an upstream request size limit is enforced.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.1"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: multer()
+              - pattern: multer({...})
+          - pattern-not: 'multer({..., limits: {..., fileSize: $S, ...}, ...})'
+      - patterns:
+          - pattern-either:
+              - pattern: fileUpload()
+              - pattern: fileUpload({...})
+          - pattern-not: 'fileUpload({..., limits: {..., fileSize: $S, ...}, ...})'
+      - patterns:
+          - pattern-either:
+              - pattern: busboy({...})
+              - pattern: Busboy({...})
+              - pattern: new Busboy({...})
+          - pattern-not: 'busboy({..., limits: {..., fileSize: $S, ...}, ...})'
+          - pattern-not: 'Busboy({..., limits: {..., fileSize: $S, ...}, ...})'
+          - pattern-not: 'new Busboy({..., limits: {..., fileSize: $S, ...}, ...})'
+
+  - id: jgates.js.upload-content-type-trusted
+    message: The content type the client declared for an upload (mimetype) is used as the type check. The client controls that value; inspect the file's own bytes (for example with the file-type package) and compare the detected type.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: file-handling
+      cwe: "CWE-434"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.2"]
+    pattern-either:
+      - pattern: $ALLOWED.includes(req.file.mimetype)
+      - pattern: $ALLOWED.includes(req.files.$K.mimetype)
+      - pattern: req.file.mimetype === $T
+      - pattern: req.file.mimetype !== $T
+      - pattern: req.files.$K.mimetype === $T
+      - pattern: req.files.$K.mimetype !== $T
+      - pattern: req.file.mimetype.startsWith(...)
+      - pattern: req.files.$K.mimetype.startsWith(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $ALLOWED.includes($F.mimetype)
+              - pattern: $F.mimetype === $T
+              - pattern: $F.mimetype !== $T
+              - pattern: $F.mimetype.startsWith(...)
+              - pattern: $RE.test($F.mimetype)
+          - pattern-either:
+              - pattern-inside: 'multer({..., fileFilter: ($REQ, $F, $CB) => { ... }, ...})'
+              - pattern-inside: 'multer({..., fileFilter: function ($REQ, $F, $CB) { ... }, ...})'
+
+  - id: jgates.js.content-disposition-from-request
+    message: Request data is joined into a Content-Disposition header. A quote or line break in it can inject header content or change the download name. Build the header with the content-disposition package (or res.attachment) so the file name is quoted and encoded.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: file-handling
+      cwe: "CWE-113"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.4.1", "V5.4.2"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: ctx.query
+      - pattern: ctx.params
+      - pattern: ctx.request.body
+    pattern-sanitizers:
+      - pattern: contentDisposition(...)
+      - pattern: encodeURIComponent(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $R.setHeader($H, $V)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["'`]content-disposition["'`]$
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.set($H, $V)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["'`]content-disposition["'`]$
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.header($H, $V)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["'`]content-disposition["'`]$
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $R.append($H, $V)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["'`]content-disposition["'`]$
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: '$R.writeHead($S, {..., "Content-Disposition": $V, ...})'
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: '$R.set({..., "Content-Disposition": $V, ...})'
+          - focus-metavariable: $V

@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "import-linter",
+      "link": "lint-imports",
+      "path": "bin/lint-imports",
+      "version": [
+        "lint-imports",
+        "--version"
+      ]
+    }
+  ]
+}

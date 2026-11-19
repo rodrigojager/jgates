@@ -1,0 +1,601 @@
+{
+  "version": "5.0.0",
+  "chapter": "V13",
+  "entries": [
+    {
+      "requirement": "V13.1.1",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V13.1.2",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V13.1.3",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V13.1.4",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V13.2.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A model reading the source for backend calls that authenticate with a fixed password, key or shared account instead of an individual identity, short-lived token or certificate",
+          "misses": "Authentication set by deployment, service mesh or infrastructure; credentials outside the repository",
+          "depth": "partial"
+        }
+      ],
+      "why": "Service-to-service authentication is a design property that the source shows only in part; the review method reads the code that calls other backend components for shared or unchanging credentials.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V13.2.2",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V13.2.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-method",
+          "id": "insecure-defaults",
+          "category": "default-credentials",
+          "covers": "A model reading the source for credential literals that a running deployment can sign in with, including accounts seeded on first start",
+          "misses": "Credentials set by deployment or infrastructure outside the repository; accounts of third-party services; any credential not written in source",
+          "depth": "partial"
+        }
+      ],
+      "why": "The default-credentials sweep looks for shipped logins and seeded accounts, the kind of default credential the requirement forbids for service authentication.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V13.2.4",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V13.2.5",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V13.2.6",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.http-client-without-timeout",
+          "covers": "Axios method calls and axios(...) with no timeout option",
+          "misses": "Only the connection timeout is examined: connection pool limits, behavior when the limit is reached and retry strategy are not; timeouts set elsewhere (shared client, proxy, wrapper); what the documented configuration for each service says; an informational finding that does not block; clients made with axios.create are not seen",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.http-client-without-timeout",
+          "covers": "Requests calls with no timeout or timeout None, urllib urlopen and http.client connections created with no timeout",
+          "misses": "Only the connection timeout is examined: connection pool limits, behavior when the limit is reached and retry strategy are not; timeouts set elsewhere (shared client, proxy, wrapper); what the documented configuration for each service says; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.http-client-without-timeout",
+          "covers": "Net/http package-level functions, the default client and client structs with no or zero Timeout",
+          "misses": "Only the connection timeout is examined: connection pool limits, behavior when the limit is reached and retry strategy are not; timeouts set elsewhere (shared client, proxy, wrapper); what the documented configuration for each service says; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.http-client-without-timeout",
+          "covers": "HttpClient, RestTemplate, Apache clients and URL connections created with default (unlimited) timeouts",
+          "misses": "Only the connection timeout is examined: connection pool limits, behavior when the limit is reached and retry strategy are not; timeouts set elsewhere (shared client, proxy, wrapper); what the documented configuration for each service says; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.http-client-without-timeout",
+          "covers": "Guzzle clients and cURL handles created with no timeout option",
+          "misses": "Only the connection timeout is examined: connection pool limits, behavior when the limit is reached and retry strategy are not; timeouts set elsewhere (shared client, proxy, wrapper); what the documented configuration for each service says; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.http-client-without-timeout",
+          "covers": "Reqwest clients and requests built with no timeout",
+          "misses": "Only the connection timeout is examined: connection pool limits, behavior when the limit is reached and retry strategy are not; timeouts set elsewhere (shared client, proxy, wrapper); what the documented configuration for each service says; an informational finding that does not block",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rule flags HTTP clients created without any timeout, one of the connection behaviors the documentation of a service sets; pool limits and retries are not examined.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V13.3.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.hardcoded-encryption-key",
+          "covers": "CreateCipheriv, createHmac, createSecretKey, jsonwebtoken, jose and CryptoJS calls given a string literal as the key",
+          "misses": "Keys held in constants far from the call, in configuration files or built from several pieces; whether a vault, hardware module or key lifecycle exists; secrets outside cryptographic calls (see the secret scanners)",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.hardcoded-encryption-key",
+          "covers": "AES, Fernet, AESGCM, ChaCha20Poly1305, hmac and jwt calls given a literal key",
+          "misses": "Keys held in constants far from the call, in configuration files or built from several pieces; whether a vault, hardware module or key lifecycle exists; secrets outside cryptographic calls (see the secret scanners)",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.hardcoded-encryption-key",
+          "covers": "Aes.NewCipher, hmac.New, chacha20poly1305 and JWT SignedString given a literal byte slice, directly or through a variable",
+          "misses": "Keys held in constants far from the call, in configuration files or built from several pieces; whether a vault, hardware module or key lifecycle exists; secrets outside cryptographic calls (see the secret scanners)",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.hardcoded-encryption-key",
+          "covers": "Symmetric algorithm keys, AesGcm, ChaCha20Poly1305, SymmetricSecurityKey and HMAC classes given a key built from a literal",
+          "misses": "Keys held in constants far from the call, in configuration files or built from several pieces; whether a vault, hardware module or key lifecycle exists; secrets outside cryptographic calls (see the secret scanners)",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.hardcoded-encryption-key",
+          "covers": "SecretKeySpec, JWT builders and signers and BouncyCastle key parameters given a key built from a literal",
+          "misses": "Keys held in constants far from the call, in configuration files or built from several pieces; whether a vault, hardware module or key lifecycle exists; secrets outside cryptographic calls (see the secret scanners)",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.hardcoded-encryption-key",
+          "covers": "Openssl_encrypt, hash_hmac, sodium and JWT calls given a literal key",
+          "misses": "Keys held in constants far from the call, in configuration files or built from several pieces; whether a vault, hardware module or key lifecycle exists; secrets outside cryptographic calls (see the secret scanners)",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.hardcoded-encryption-key",
+          "covers": "RustCrypto, ring and jsonwebtoken key constructors given a literal slice",
+          "misses": "Keys held in constants far from the call, in configuration files or built from several pieces; whether a vault, hardware module or key lifecycle exists; secrets outside cryptographic calls (see the secret scanners)",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "gitleaks#secrets",
+          "covers": "Secrets committed in the repository files, one part of keeping them out of source code",
+          "misses": "Whether a vault or hardware module is in place, how the secrets are issued, access-controlled and retired, and secrets that exist only inside packaged build output",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "trivy#secrets",
+          "covers": "Secrets found in the repository files by the Trivy secret scanner, another set of detection rules than Gitleaks",
+          "misses": "How the secrets are issued, stored, controlled and retired; secrets that exist only in build output or in the history; secret formats the scanner does not know",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "gitleaks#secrets-history",
+          "covers": "Secrets that were committed in the Git history, even if removed from the current files",
+          "misses": "Whether a vault is in use and how secrets are controlled; secrets only in build artifacts; a history that was not available to the scan",
+          "depth": "partial"
+        }
+      ],
+      "why": "Secret scanners and the rules for literal keys check that secrets stay out of the source and the history; whether a vault is used and how secrets are issued is not shown by the repository.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V13.3.2",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V13.3.3",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V13.3.4",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [
+        "secrets"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V13.4.1",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V13.4.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.debug-mode-enabled",
+          "covers": "Errorhandler middleware, Apollo debug and GraphiQL switched on in code",
+          "misses": "Debug behavior controlled by environment variables that decide at run time, or by deployment configuration outside the repository; defaults of a framework that no file states; components of the system other than those modeled; whether the setting reaches production",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.debug-mode-enabled",
+          "covers": "Flask, FastAPI, Starlette and Werkzeug debugger switches set to on in code",
+          "misses": "Debug behavior controlled by environment variables that decide at run time, or by deployment configuration outside the repository; defaults of a framework that no file states; components of the system other than those modeled; whether the setting reaches production",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.debug-mode-enabled",
+          "covers": "Gin SetMode with the debug mode, and Debug set to true on an Echo instance made in the same function",
+          "misses": "Debug behavior controlled by environment variables that decide at run time, or by deployment configuration outside the repository; defaults of a framework that no file states; components of the system other than those modeled; whether the setting reaches production",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.debug-mode-enabled",
+          "covers": "The developer exception page, the Development environment name and detailed error switches set in code",
+          "misses": "Debug behavior controlled by environment variables that decide at run time, or by deployment configuration outside the repository; defaults of a framework that no file states; components of the system other than those modeled; whether the setting reaches production",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.debug-mode-enabled",
+          "covers": "Debug properties, Struts dev mode, Wicket development configuration and Vaadin production mode switched off in code",
+          "misses": "Debug behavior controlled by environment variables that decide at run time, or by deployment configuration outside the repository; defaults of a framework that no file states; components of the system other than those modeled; whether the setting reaches production",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.debug-mode-enabled",
+          "covers": "Display_errors and startup error switches, WordPress, Yii, Laravel and CakePHP debug settings, and debug handlers enabled in code",
+          "misses": "Debug behavior controlled by environment variables that decide at run time, or by deployment configuration outside the repository; defaults of a framework that no file states; components of the system other than those modeled; whether the setting reaches production",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.debug-mode-enabled",
+          "covers": "Debug switches of .env files (APP_DEBUG, FLASK_DEBUG, DJANGO_DEBUG and SYMFONY_DEBUG on), a top-level debug key set to true, a Laravel 'debug' => true, the ASP.NET compilation debug attribute, and Xdebug remote or debug modes in php.ini",
+          "misses": "Debug behavior controlled by environment variables that decide at run time, or by deployment configuration outside the repository; defaults of a framework that no file states; components of the system other than those modeled; whether the setting reaches production",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-method",
+          "id": "insecure-defaults",
+          "category": "debug-features",
+          "covers": "A model reading the source for debug and introspection features that default to on and reach a response, a port or a log a lower-privileged party can read",
+          "misses": "Debug settings applied only by deployment configuration or by components outside the repository; flags that default to off but are enabled in production",
+          "depth": "partial"
+        }
+      ],
+      "why": "The debug switch rules flag configuration that turns debug features on in code and files; the earlier review of debug defaults stays and covers what a model can read.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V13.4.3",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.directory-listing-enabled",
+          "covers": "Serve-index middleware mounted in code",
+          "misses": "Servers whose default lists directories and whose configuration says nothing; a listing turned on in another file or layer (proxy, CDN); whether the listing is intended; what a running server returns",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.directory-listing-enabled-fastify",
+          "covers": "The Fastify static plugin registered with listing options turned on",
+          "misses": "Servers whose default lists directories and whose configuration says nothing; a listing turned on in another file or layer (proxy, CDN); whether the listing is intended; what a running server returns",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.directory-listing-enabled",
+          "covers": "Django-style show_indexes, aiohttp show_index and the standard library HTTP server with its simple handler",
+          "misses": "Servers whose default lists directories and whose configuration says nothing; a listing turned on in another file or layer (proxy, CDN); whether the listing is intended; what a running server returns",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.directory-listing-enabled",
+          "covers": "Http.FileServer over a directory, gin directory listing, and Echo, Fiber and static middleware with Browse on",
+          "misses": "Servers whose default lists directories and whose configuration says nothing; a listing turned on in another file or layer (proxy, CDN); whether the listing is intended; what a running server returns",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.directory-listing-enabled",
+          "covers": "Directory browser middleware and options, and file server options with directory browsing on",
+          "misses": "Servers whose default lists directories and whose configuration says nothing; a listing turned on in another file or layer (proxy, CDN); whether the listing is intended; what a running server returns",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.directory-listing-enabled",
+          "covers": "Jetty and servlet listing settings (dirAllowed, listings) set to on",
+          "misses": "Servers whose default lists directories and whose configuration says nothing; a listing turned on in another file or layer (proxy, CDN); whether the listing is intended; what a running server returns",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.directory-listing-enabled",
+          "covers": "Actix-files listing switched on",
+          "misses": "Servers whose default lists directories and whose configuration says nothing; a listing turned on in another file or layer (proxy, CDN); whether the listing is intended; what a running server returns",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.directory-listing-enabled",
+          "covers": "Nginx autoindex, Apache Options Indexes or All, lighttpd, Caddy browse, IIS directoryBrowse and Tomcat listings switched on",
+          "misses": "Servers whose default lists directories and whose configuration says nothing; a listing turned on in another file or layer (proxy, CDN); whether the listing is intended; what a running server returns",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "0",
+            "10033"
+          ],
+          "covers": "Directory listing alerts of the ZAP scan of a running target: the passive rule, and the active rule that runs only when the instance allows an active scan",
+          "misses": "Anything ZAP did not reach; pages outside the crawl; the active rule is absent in the default passive mode",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules read file server settings that list directories; the ZAP alerts listed show a listing on a running target, which is where it really matters.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V13.4.4",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.http-trace-enabled",
+          "covers": "Apache TraceEnable On or Extended, Tomcat allowTrace true and an IIS verb entry that allows TRACE",
+          "misses": "Servers where TRACE is allowed by default and no file says otherwise; other web servers or proxies; the method handling of the running deployment and of every component in front of it",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rule reads web server settings that allow the TRACE method; whether a running server answers it is shown only by a deployed system.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V13.4.5",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.docs-or-monitoring-endpoint-exposed",
+          "covers": "Swagger UI, express status monitor and NestJS Swagger setup mounted in code",
+          "misses": "Endpoints guarded by authentication, network rules or environment conditions the rule cannot see; whether exposure is intended; documentation or monitoring endpoints of other frameworks; what a running system actually serves; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.docs-or-monitoring-endpoint-exposed",
+          "covers": "Drf-spectacular, Swagger and ReDoc views, DRF docs URLs, django-silk and a Prometheus metrics server started in code",
+          "misses": "Endpoints guarded by authentication, network rules or environment conditions the rule cannot see; whether exposure is intended; documentation or monitoring endpoints of other frameworks; what a running system actually serves; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.docs-or-monitoring-endpoint-exposed",
+          "covers": "Pprof and expvar imports, Swagger handlers and Prometheus or monitor handlers registered in code",
+          "misses": "Endpoints guarded by authentication, network rules or environment conditions the rule cannot see; whether exposure is intended; documentation or monitoring endpoints of other frameworks; what a running system actually serves; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.docs-or-monitoring-endpoint-exposed",
+          "covers": "Swagger, ReDoc, OpenAPI, MiniProfiler, Prometheus and Hangfire dashboard middleware mapped in code",
+          "misses": "Endpoints guarded by authentication, network rules or environment conditions the rule cannot see; whether exposure is intended; documentation or monitoring endpoints of other frameworks; what a running system actually serves; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.docs-or-monitoring-endpoint-exposed",
+          "covers": "Spring security rules that permit all access to actuator, Swagger, API docs, H2 console, Jolokia or heap dump paths",
+          "misses": "Endpoints guarded by authentication, network rules or environment conditions the rule cannot see; whether exposure is intended; documentation or monitoring endpoints of other frameworks; what a running system actually serves; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.docs-or-monitoring-endpoint-exposed",
+          "covers": "Routes named metrics, actuator, swagger, api-docs, docs, openapi, telescope, horizon, _profiler, debugbar, server-status or prometheus",
+          "misses": "Endpoints guarded by authentication, network rules or environment conditions the rule cannot see; whether exposure is intended; documentation or monitoring endpoints of other frameworks; what a running system actually serves; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.docs-or-monitoring-endpoint-exposed",
+          "covers": "Spring Boot Actuator exposure set to every endpoint (a wildcard) in properties, yml and env files",
+          "misses": "Endpoints guarded by authentication, network rules or environment conditions the rule cannot see; whether exposure is intended; documentation or monitoring endpoints of other frameworks; what a running system actually serves; an informational finding that does not block",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules flag documentation and monitoring endpoints mounted or opened in code and configuration; whether they are reachable and intended is a deployment question.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V13.4.6",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.version-header-exposed",
+          "covers": "X-Powered-By header set explicitly to any value, Express x-powered-by enabled explicitly, and helmet hidePoweredBy off",
+          "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block; Express sends X-Powered-By by default, which no file states and the rule cannot see",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.version-header-exposed",
+          "covers": "X-Powered-By header set to any value, a Server header literal that holds a digit, and uvicorn server header turned on explicitly",
+          "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.version-header-exposed",
+          "covers": "Server, X-Powered-By and similar headers set to a literal with a version, and Fiber server header",
+          "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.version-header-exposed",
+          "covers": "Kestrel AddServerHeader set to true, X-Powered-By and ASP.NET version headers set to a literal, and a Server header literal with a version number",
+          "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.version-header-exposed",
+          "covers": "X-Powered-By, X-Generator and X-AspNet-Version headers set with any value, and the Jetty options that send the server version or X-Powered-By",
+          "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.version-header-exposed",
+          "covers": "Server and X-Powered-By headers set to a literal with a version, and framework header setters",
+          "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.version-header-exposed",
+          "covers": "Nginx server_tokens, Apache ServerTokens and ServerSignature, php.ini expose_php, IIS version and X-Powered-By headers and Tomcat version disclosure options",
+          "misses": "Version details added by a proxy, platform or framework default that no file states; version text in error pages and other responses; component versions that appear in the body rather than a header; an informational finding that does not block",
+          "depth": "partial"
+        },
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10036-2",
+            "10037",
+            "10061"
+          ],
+          "covers": "Alerts of the ZAP scan of a running target about a Server header that carries a version (10036-2), any X-Powered-By header (10037) and the X-AspNet-Version header (10061)",
+          "misses": "Version details in bodies or error pages; headers on pages ZAP did not reach; components that show versions only on some paths",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rules read settings that put framework or server versions in headers; the ZAP alerts listed show the headers a running target really sends.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V13.4.7",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    }
+  ]
+}

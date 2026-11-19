@@ -24,6 +24,13 @@ export type ArtifactContract =
       /** The JSON shape shown to the model. */
       shape: string;
       validate(value: Record<string, unknown>, context: ArtifactCheckContext): ArtifactCheck;
+      /**
+       * Host work that follows a valid artifact and decides what it contributes (post-patch validation runs the
+       * reproducer in containers here): it receives the accepted check and returns the check the executor applies.
+       * Asynchronous, so the run's process keeps serving its timers and cancellation while it works; nothing a model
+       * says is involved. A failure makes the artifact invalid.
+       */
+      settle?(check: ArtifactCheck, context: ArtifactCheckContext, signal: AbortSignal): Promise<ArtifactCheck>;
     };
 
 export interface ArtifactCheckContext {
@@ -31,6 +38,8 @@ export interface ArtifactCheckContext {
   seen: ReadonlySet<string>;
   /** The candidate a per-candidate context examines. */
   candidate: Candidate | null;
+  /** The review unit a per-unit context examines (absent or null otherwise). */
+  unit?: ReviewUnit | null;
   /** Whether a workspace-relative path may be read at all (the guard's answer, never recorded). */
   readable(path: string): boolean;
   /** Line count of a readable file (null when unknown). */
@@ -61,6 +70,8 @@ export interface ModuleApplicabilityInput {
   runDir: string;
   workspacePath: string;
   env: NodeJS.ProcessEnv;
+  /** The JGates data folder the caller works in, when it knows it (absent: the one `env` names). */
+  home?: string;
   /** Workspace-relative files the run may read. */
   readableFiles(): string[];
   readable(path: string): boolean;
@@ -76,6 +87,13 @@ export interface ModuleApplicabilityInput {
 export type ModuleApplicability =
   | { applicable: true; inputs?: Record<string, unknown>; record?: Record<string, unknown> }
   | { applicable: false; code: string; missing: string; reason: string };
+
+/**
+ * The answer of a prerequisites check: null when the machine has what the run needs; a code with the missing input
+ * (the method is not applicable); or narrowed inputs (the machine serves only part of them: the run goes on with those,
+ * and `record` is added to the applicability record).
+ */
+export type ModulePrerequisites = { code: string; missing: string; reason: string } | { inputs: Record<string, unknown>; record?: Record<string, unknown> } | null;
 
 /** A candidate a custom artifact contributes (the executor applies it like a reported one). */
 export interface ArtifactCandidate {
@@ -124,8 +142,11 @@ export interface InvestigationStageSpec {
   role: StageRole;
   /** A required stage that does not finish leaves the investigation incomplete. */
   required: boolean;
-  /** once: one context for the stage; per-candidate: one fresh context per open candidate (independent judgement). */
-  contexts: "once" | "per-candidate";
+  /**
+   * once: one context for the stage; per-candidate: one fresh context per open candidate (independent judgement);
+   * per-unit: one fresh context per review unit the module establishes from its applicable inputs (reviewUnits).
+   */
+  contexts: "once" | "per-candidate" | "per-unit";
   /** What this responsibility does (the stage part of the system prompt). */
   instructions: string;
   /** Offers the report_candidate tool (candidates may also be listed in an exploration artifact). */
@@ -139,12 +160,21 @@ export interface InvestigationStageSpec {
    * other change (or a verdict that disputes it) leaves the candidate unresolved until a further verification.
    */
   verify?: boolean;
+  /**
+   * Per-candidate only. false: the stage prepares a later deciding stage instead of deciding (confirm-by-reproduction
+   * writes and executes a reproducer per finding): a valid artifact without a verdict leaves its candidate open for the
+   * next stage, and a verdict the artifact does carry (decided by the module's host work, never by the model alone)
+   * applies. Absent or true: a valid artifact without a verdict leaves the candidate unresolved.
+   */
+  decides?: boolean;
 }
 
 /** What a module may add to the brief of one context (host-validated material of earlier stages, prior runs). */
 export interface ModuleBriefInput {
   stage: InvestigationStageSpec;
   candidate: Candidate | null;
+  /** The review unit of a per-unit context (absent or null otherwise). */
+  unit?: ReviewUnit | null;
   accepted: Readonly<Record<string, Record<string, unknown>>>;
   candidates: readonly Candidate[];
   scope: ScopeRunPreparation;
@@ -159,7 +189,7 @@ export interface ModuleBriefInput {
 }
 
 export interface ModuleFinalizeInput {
-  stages: ReadonlyArray<{ id: string; state: string; required: boolean; reason?: string; contexts: ReadonlyArray<{ label: string; agentId: string; candidate: string | null; status: string; accepted?: Record<string, unknown> }> }>;
+  stages: ReadonlyArray<{ id: string; state: string; required: boolean; reason?: string; contexts: ReadonlyArray<{ label: string; agentId: string; candidate: string | null; unit?: string; status: string; accepted?: Record<string, unknown> }> }>;
   accepted: Readonly<Record<string, Record<string, unknown>>>;
   candidates: readonly Candidate[];
   scope: ScopeRunPreparation;
@@ -207,10 +237,35 @@ export interface InvestigationModule {
    * confirmed root cause, configuration files...). Absent: the module always applies.
    */
   applicability?(input: ModuleApplicabilityInput): ModuleApplicability;
+  /**
+   * What the run itself needs from the machine (a container engine and the tools image for a method that executes
+   * tests), asked by the executor after an applicable answer and before any context starts: null when it is there,
+   * otherwise the method is not applicable with that code. Asynchronous and only asked by a run, never by a plan
+   * preview (a request handler of the local server never waits for the engine, ADR-0010).
+   */
+  prerequisites?(input: ModuleApplicabilityInput & { inputs: Readonly<Record<string, unknown>>; signal: AbortSignal }): Promise<ModulePrerequisites>;
+  /**
+   * Candidates the host establishes before any context starts, from the applicable inputs (the findings of an earlier
+   * run that a method re-examines). They are added like reported candidates (readable path, existing line) and the
+   * per-candidate stages take them in order. Absent: the stages start without candidates.
+   */
+  seedCandidates?(input: { inputs: Readonly<Record<string, unknown>> }): ArtifactCandidate[];
+  /**
+   * The review units of the per-unit stages, from the applicable inputs (the chapters of the requirements a method
+   * reviews): each per-unit stage runs one fresh context per unit, in order. Absent or empty: a per-unit stage starts
+   * no context.
+   */
+  reviewUnits?(input: { inputs: Readonly<Record<string, unknown>> }): ReviewUnit[];
   /** Extra brief text for one context (null: nothing to add). */
   brief?(input: ModuleBriefInput): string | null;
   /** Host-side reporting after every stage: structured records, readable report, agent context. */
   finalize?(input: ModuleFinalizeInput): ModuleFinalizeOutput;
+}
+
+/** One unit of a per-unit stage: an ID safe in a context label (`V6`) and a label for people. */
+export interface ReviewUnit {
+  id: string;
+  label: string;
 }
 
 export interface Evidence {

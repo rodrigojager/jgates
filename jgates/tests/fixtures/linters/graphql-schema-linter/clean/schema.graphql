@@ -1,0 +1,39 @@
+"""
+Paging details of a connection.
+"""
+type PageInfo {
+  """
+  The cursor of the last item of the page.
+  """
+  endCursor: String
+
+  """
+  Whether another page follows this one.
+  """
+  hasNextPage: Boolean!
+
+  """
+  Whether another page comes before this one.
+  """
+  hasPreviousPage: Boolean!
+
+  """
+  The cursor of the first item of the page.
+  """
+  startCursor: String
+}
+
+"""
+The root of every query.
+"""
+type Query {
+  """
+  A friendly greeting.
+  """
+  hello: String
+
+  """
+  The paging details of the last page read.
+  """
+  pageInfo: PageInfo
+}

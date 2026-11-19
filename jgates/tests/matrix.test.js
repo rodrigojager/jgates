@@ -12,6 +12,7 @@ const MAIN = path.join(dist, "cli", "main.js");
 const repo = path.resolve(here, "..", "..");
 const mx = await import(pathToFileURL(path.join(dist, "core", "matrix", "index.js")).href);
 const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
+const linterEngine = await import(pathToFileURL(path.join(dist, "adapters", "linter", "index.js")).href);
 
 function cliMatrix() {
   const r = spawnSync(process.execPath, [MAIN, "tools", "matrix", "--json"], { encoding: "utf8" });
@@ -59,7 +60,9 @@ test("every capability a manifest announces has an existing test or a stated rea
     for (const c of row.capabilities) {
       if (c.status === "integrated") {
         for (const ref of c.tests) {
-          const file = fs.readFileSync(path.join(here, ref.file), "utf8");
+          // linters.test.js makes one test per linter descriptor, titled by linterTestTitle: those titles are generated.
+          const generated = ref.file === linterEngine.LINTERS_TEST_FILE ? linterEngine.loadLinters().map((l) => linterEngine.linterTestTitle(l.descriptor)).join("\n") : "";
+          const file = fs.readFileSync(path.join(here, ref.file), "utf8") + generated;
           assert.ok(file.includes(ref.test), `${m.id}#${c.id}: "${ref.test}" is in ${ref.file}`);
         }
       }
@@ -109,10 +112,15 @@ test("tools matrix --json lists capability-by-stack rows keyed by adapter, capab
   assert.equal(row("eslint#lint@typescript").state, "validated");
   assert.equal(row("eslint#lint@javascript").state, "customer-setup-required");
   assert.equal(row("gitleaks#secrets@any").state, "validated");
+  // The eight languages of the bundled Semgrep pack are validated, each by the test of its own twin; any other stays customer setup.
+  for (const stack of ["python", "javascript", "typescript", "go", "csharp", "rust", "java", "php"]) assert.equal(row(`semgrep#sast@${stack}`).state, "validated", stack);
+  for (const stack of ["go", "csharp", "rust", "java", "php"]) assert.ok(row(`semgrep#sast@${stack}`).evidence.tests.every((x) => x.file === "adapter-semgrep.test.js"), stack);
+  assert.equal(row("semgrep#sast@any").state, "customer-setup-required");
+  assert.match(row("semgrep#sast@any").limitations.join(" "), /Java and PHP/);
   const bridgeLint = row("quality-bridge#lint@any");
   assert.equal(bridgeLint.state, "customer-setup-required");
   assert.deepEqual(bridgeLint.evidence.tests, []);
-  assert.match(bridgeLint.evidence.note.en, /Docker smoke of the bridge/);
+  assert.match(bridgeLint.evidence.note.en, /MegaLinter subcheck is disabled/);
   // Every capability a manifest announces has at least one row.
   for (const a of doc.matrix.adapters) for (const c of a.capabilities) assert.ok(rows.some((r) => r.adapter === a.id && r.capability === c.id), `${a.id}#${c.id} has a row`);
   for (const a of doc.matrix.adapters) assert.ok(a.distribution && a.distribution.mode, `${a.id} has distribution metadata`);
@@ -179,6 +187,34 @@ test("tools matrix --units gives each unit of a mixed repository the rows of its
     for (const u of [api, web]) for (const gap of u.gaps) assert.ok(!u.validated.includes(gap));
     // Without --units the document has no applicability (the matrix alone stays machine-independent).
     assert.equal(cliMatrix().applicability, undefined);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("tools matrix --units shows sast validated for a Java unit and a PHP unit, and for them only the stack-independent rows besides", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jgates-matrix-units-jp-"));
+  try {
+    const write = (rel, text) => {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), text);
+    };
+    write("svc/pom.xml", "<project><modelVersion>4.0.0</modelVersion></project>\n");
+    write("svc/src/Main.java", "class Main {}\n");
+    write("site/composer.json", '{"name":"acme/site"}\n');
+    write("site/index.php", "<?php echo 'ok';\n");
+    const r = spawnSync(process.execPath, [MAIN, "tools", "matrix", "--units", "--json", "--cwd", dir], { encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    const doc = JSON.parse(r.stdout);
+    for (const [root, language] of [["svc", "java"], ["site", "php"]]) {
+      const unit = doc.applicability.find((u) => u.componentRoot === root);
+      assert.ok(unit, JSON.stringify(doc.applicability.map((u) => [u.componentRoot, u.language])));
+      assert.equal(unit.language, language);
+      assert.ok(unit.validated.includes("sast"), `${language} has sast validated`);
+      assert.ok(unit.rows.some((x) => x.key === `semgrep#sast@${language}` && x.state === "validated"));
+      assert.ok(!unit.validated.includes("lint") || unit.rows.every((x) => x.capability !== "lint" || x.stack === "any"), `${language} has no language lint row`);
+      assert.ok(unit.gaps.includes("unit") || unit.gaps.includes("tests") || unit.gaps.length > 0, `${language} keeps its gaps visible`);
+    }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

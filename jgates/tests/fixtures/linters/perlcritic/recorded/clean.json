@@ -1,0 +1,19 @@
+{
+ "tool": "perlcritic",
+ "kind": "clean",
+ "version": "1.156",
+ "calls": [
+  {
+   "args": [
+    "--nocolor",
+    "--verbose",
+    "%f:%l:%c:%p:%m\n",
+    "--",
+    "hello.pl"
+   ],
+   "exit": 0,
+   "stdout": "hello.pl source OK\n",
+   "stderr": ""
+  }
+ ]
+}

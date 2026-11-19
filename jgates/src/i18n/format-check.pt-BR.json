@@ -5,6 +5,10 @@
   "format_check_label_rustfmt": "Verificação de formato (cargo fmt)",
   "format_check_label_dotnet": "Verificação de formato (dotnet format)",
   "format_check_setting_formatter": "A instância {tool} precisa definir formatter com um destes valores: {allowed}; ela tem \"{value}\".",
+  "format_check_setting_scope": "A instância {tool} define scope como \"{value}\"; deve ser component ou data.",
+  "format_check_setting_scope_formatter": "A instância {tool} define scope data com o formatter {value}; só o prettier tem escopo data (arquivos JSON e YAML).",
+  "format_check_no_data_files": "Nenhum arquivo JSON ou YAML (*.json, *.yml, *.yaml) foi encontrado no projeto, então o prettier não tem o que verificar.",
+  "format_check_limitation_prettier_data": "prettier --check nos arquivos JSON e YAML encontrados em qualquer pasta do projeto (*.json, *.yml, *.yaml; pastas de dependências, build e cache são ignoradas), com a configuração de prettier do projeto; o .prettierignore decide quais arquivos contam.",
   "format_check_missing": "{formatter} não está na imagem de ferramentas do JGates ({detail}). Baixe as ferramentas desta versão do JGates (jgates setup); o JGates nunca instala uma ferramenta na sua máquina.",
   "format_check_probe_failed": "{formatter} em {path} não respondeu à consulta de versão.",
   "format_check_no_manifest": "Nenhum {file} foi encontrado no componente, então o cargo fmt não tem crate para verificar.",
@@ -20,5 +24,6 @@
   "format_check_limitation_prettier": "prettier --check com a configuração do projeto; o .prettierignore e o .gitignore decidem quais arquivos contam.",
   "format_check_limitation_gofmt": "gofmt -l lista os arquivos cuja formatação difere; o gofmt não tem opções próprias.",
   "format_check_limitation_rustfmt": "cargo fmt --check formata o crate do componente com o rustfmt.toml do projeto.",
-  "format_check_limitation_dotnet": "Somente dotnet format whitespace (as regras do .editorconfig do projeto); regras de estilo e de analisadores exigem um build e não são verificadas."
+  "format_check_limitation_dotnet": "Somente dotnet format whitespace (as regras do .editorconfig do projeto): o componente não tem solução ou projeto restaurado e uma execução nunca escreve no projeto, então regras de estilo e de analisadores não são verificadas. Restaure o projeto para obter a verificação completa.",
+  "format_check_limitation_dotnet_full": "dotnet format --verify-no-changes na solução ou projeto restaurado: espaços em branco, estilo e analisadores, com as regras do .editorconfig do projeto. Roda com --no-restore, então o projeto precisa já estar restaurado."
 }

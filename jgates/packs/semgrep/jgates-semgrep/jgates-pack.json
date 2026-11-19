@@ -9,11 +9,14 @@
   },
   "spdx": "MIT",
   "notices": ["LICENSE", "NOTICE.md"],
-  "modifications": "Original JGates work. No rule is copied or adapted from another rule collection.",
+  "modifications": "Original JGates work. No rule is copied or adapted from another rule collection. Four check classes: ERROR, WARNING, ordinary INFO and Review (severity INFO with metadata.class review). Review findings are counted separately as To review, never block or change the exit code, and never examine an ASVS requirement. Mark as reviewed records a per-occurrence project waiver; Review alone never produces approved with N waivers. The pack has 711 checks (277 ERROR, 229 WARNING, 116 ordinary INFO, 89 Review) and 113 signals, which are not findings: 824 rules in total.",
+  "languages": ["javascript", "python", "go", "csharp", "rust", "java", "php", "html", "config"],
+  "groups": ["interpreters", "encoding", "cookies-cors", "web-protocol", "files", "passwords-sessions", "tokens-transport", "crypto-params", "errors-logging", "configuration", "signals"],
   "engine": {
     "name": "semgrep",
-    "version": "1.168.0",
+    "version": "1.184.0",
     "minimum": "1.100.0",
+    "verified": "1.184.0",
     "spdx": "LGPL-2.1-only",
     "role": "customer-supplied scanner; not part of this pack"
   },

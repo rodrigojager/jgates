@@ -1,0 +1,21 @@
+{
+ "tool": "psalm",
+ "kind": "bad",
+ "version": "7.10.0",
+ "calls": [
+  {
+   "args": [
+    "--config=/output/linters/psalm/psalm.default.xml",
+    "--no-cache",
+    "--no-progress",
+    "--output-format=compact",
+    "--report-show-info=false",
+    "--",
+    "Mismatch.php"
+   ],
+   "exit": 2,
+   "stdout": "ERROR Mismatch.php:9:30 InvalidReturnType: The declared return type 'int' for Fixture\\Mismatch::value is incorrect, got ''text''\nERROR Mismatch.php:11:16 InvalidReturnStatement: The inferred type ''text'' does not match the declared return type 'int' for Fixture\\Mismatch::value\n",
+   "stderr": ""
+  }
+ ]
+}

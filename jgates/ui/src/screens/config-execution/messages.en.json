@@ -18,7 +18,7 @@
   "cfe_f_budgets.memoryMegabytes": "Memory per process",
   "cfe_f_budgets.processes": "Simultaneous processes",
   "cfe_f_budgets.logMegabytes": "Log space per validation",
-  "cfe_h_concurrency": "How many checks run at the same time.",
+  "cfe_h_concurrency": "How many checks run at the same time. Left unset, JGates picks the number from the memory and CPUs of the engine (never above 8).",
   "cfe_h_network": "Explicit: the plan shows which checks use the network. Allowed: they may run with network. Denied: the plan is blocked if any of them needs network.",
   "cfe_h_failFast": "When a check fails, the rest is recorded as not run.",
   "cfe_h_timeoutSeconds": "Limit of each check before it is interrupted.",

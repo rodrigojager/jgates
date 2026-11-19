@@ -5,6 +5,9 @@ animados da mesma família dos seis mascotes do Quality (vinil acetinado, os olh
 cápsula transparente com um cérebro no alto; os mascotes do Quality nunca mostram trabalho de IA e estes nunca mostram um
 domínio do Quality.
 
+Os nomes abaixo são os ids dos mascotes no código e nos registros da execução. As telas nunca os mostram: como na faixa do
+Quality, cada mascote tem como título o que faz (a sua fase), com o seu status logo abaixo.
+
 | Mascote | Fase | Etapas que mostra |
 |---|---|---|
 | Atlas (bússola) | Reconhecimento: mapear o código, suas superfícies e fronteiras de confiança, e planejar a cobertura | `reconnaissance`, `coverage-planning`, `semantic-context` |
@@ -37,8 +40,10 @@ vira `hunting`).
 
 ## Estados
 
-Aguardando, trabalhando, concluído, incompleto, falhou e cancelado. Um selo no canto repete o estado, então a cor não é o
-único sinal.
+Aguardando, trabalhando, concluído, incompleto, falhou e cancelado. Embaixo de cada mascote o estado aparece escrito com o
+mesmo ícone e a mesma cor de um status do Quality (aguardando: ampulheta, em âmbar; trabalhando: uma seta que gira;
+concluído: um visto, em verde; falhou: um alerta, em vermelho; incompleto: informação; cancelado: parar), então nem a cor
+nem o movimento são o único sinal.
 
 - `concluído` exige todas as etapas do mascote completas. Etapa ausente, orçamento esgotado ou etapa não executada mostram
   `incompleto`; etapa inválida, com tempo esgotado ou com erro mostra `falhou`.
@@ -74,7 +79,7 @@ arco e nunca mostra cotovelo, terminando numa luva simples na cor do corpo. Em r
 Enquanto o mascote trabalha, correntes correm pelas trilhas do cérebro na cápsula, cada trilha na sua velocidade e
 algumas no sentido contrário, num relógio que todos os mascotes compartilham; o cérebro fica aceso depois de concluir, e
 dá três faíscas lentas e apaga numa falha. Um mascote aguardando fica esmaecido e só respira enquanto outro trabalha; um
-cancelado se acomoda e descansa. "Trabalhando" também faz o selo pulsar. Com `prefers-reduced-motion` nada se move: cada
+cancelado se acomoda e descansa. "Trabalhando" também faz o ícone do status girar em pulsos. Com `prefers-reduced-motion` nada se move: cada
 estado mostra a sua pose parada (em "trabalhando", um momento da ação).
 
 Dois mascotes têm uma segunda versão guardada para comparação (`variants` em
@@ -83,7 +88,7 @@ saltando para bater na base em vez de segurar uma balança, e o Seal com braços
 
 Onde não há WebGL, cada mascote mostra a sua imagem pré-renderizada, parada
 (`jgates/ui/src/mascots/semantic/fallback/`, gerada a partir dos mesmos modelos por
-`node jgates/scripts/render-semantic-mascots.mjs`) com o mesmo rótulo e o mesmo selo. As imagens têm fundo transparente,
+`node jgates/scripts/render-semantic-mascots.mjs`) com o mesmo rótulo e o mesmo status. As imagens têm fundo transparente,
 então os temas claro e escuro usam o mesmo desenho.
 
-Todo mascote tem `role="img"` e um rótulo acessível com o nome, a fase e o estado, em inglês e português.
+Todo mascote tem `role="img"` e um rótulo acessível com a fase e o estado, em inglês e português.

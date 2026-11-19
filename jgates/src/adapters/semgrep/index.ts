@@ -19,12 +19,15 @@ import { stepViewOfPaths } from "../../core/runner/container.js";
 import { createOutputPaths, redirectionEnv } from "../../core/run/redirection.js";
 import type { AdapterContext, AdapterOutput, ResultStage } from "../../core/run/types.js";
 import { semgrepManifest } from "./manifest.js";
-import { parseSemgrepOutput } from "./normalize.js";
+import { labelOf } from "../../core/discovery/vocabulary.js";
+import { parseSemgrepOutput, scannedLanguageCounts } from "./normalize.js";
+import { PACK_LANGUAGE_PREFIX, buildPackIndex, listPackRuleFiles, packLanguageOf } from "./pack-index.js";
 import { probeSemgrep, scannerPath } from "./probe.js";
 
 export { semgrepManifest } from "./manifest.js";
-export { parseSemgrepOutput } from "./normalize.js";
+export { parseSemgrepOutput, scannedLanguageCounts } from "./normalize.js";
 export { findSemgrep, probeSemgrep, scannerPath } from "./probe.js";
+export { PACK_LANGUAGE_PREFIX, PACK_LISTS, buildPackIndex, listPackRuleFiles, packRuleIndex, type PackIndex, type PackLists, type PackRule, type PackSignal } from "./pack-index.js";
 
 /** Ids of the rule packs that ship with JGates (tools.<id>.rulePack), mapped to their pack folder under packs/semgrep. */
 export const BUNDLED_RULE_PACKS: Readonly<Record<string, string>> = { jgates: "jgates-semgrep" };
@@ -35,6 +38,87 @@ export function bundledPackRulesDir(packId: string): string | null {
   if (!folder) return null;
   const here = path.dirname(fileURLToPath(import.meta.url));
   return path.resolve(here, "..", "..", "..", "packs", "semgrep", folder, "rules");
+}
+
+/** The languages a pack folder has rule files for, read from the files themselves, in the pack's own order. */
+export function packLanguagesOf(files: readonly string[]): string[] {
+  const found = new Set(files.map(packLanguageOf));
+  return Object.keys(PACK_LANGUAGE_PREFIX).filter((l) => found.has(l));
+}
+
+/**
+ * The languages the bundled packs have rules for (JavaScript also serves TypeScript), read from the pack's own rule
+ * files, never from a list kept by hand. What the screens and `jgates discover` use to say that the JGates Semgrep
+ * rules run for a language that has no stack.
+ */
+export function bundledPackLanguages(): string[] {
+  const out = new Set<string>();
+  for (const id of Object.keys(BUNDLED_RULE_PACKS)) {
+    const dir = bundledPackRulesDir(id);
+    if (!dir) continue;
+    for (const language of packLanguagesOf(listPackRuleFiles(dir))) {
+      out.add(language);
+      if (language === "javascript") out.add("typescript");
+    }
+  }
+  return [...out].sort();
+}
+
+/** Display name of a pack language (the JavaScript rules also serve TypeScript; the two kinds of file are named in words). */
+export const packLanguageLabel = (language: string, locale?: string): string => {
+  if (language === "javascript") return "JavaScript/TypeScript";
+  if (language === "html") return translator("semgrep", locale)("semgrep_pack_language_html");
+  if (language === "config") return translator("semgrep", locale)("semgrep_pack_language_config");
+  return labelOf(language);
+};
+
+/** The pack languages of a bundled pack that a run's arguments select (`--config <pack rules folder>`), else an empty list. */
+function packLanguagesOfArgs(args: readonly string[]): string[] {
+  for (let i = 0; i < args.length - 1; i += 1) {
+    if (args[i] !== "--config") continue;
+    const value = path.resolve(args[i + 1] as string);
+    for (const id of Object.keys(BUNDLED_RULE_PACKS)) {
+      const dir = bundledPackRulesDir(id);
+      if (dir && path.resolve(dir) === value) return packLanguagesOf(listPackRuleFiles(dir));
+    }
+  }
+  return [];
+}
+
+/** Languages the discovery recognized but JGates has no stack for, and the pack has no rule for (Kotlin, Ruby...). */
+function languagesWithoutPackRules(input: ExternalPlanInput, packLanguages: readonly string[]): string[] {
+  const covered = new Set<string>([...packLanguages, ...(packLanguages.includes("javascript") ? ["typescript"] : [])]);
+  const missing = (input.inventory?.classifications ?? [])
+    .filter((c) => c.classificationStatus === "unsupported" && c.language !== null && !covered.has(c.language))
+    .map((c) => c.language as string);
+  return [...new Set(missing)].sort();
+}
+
+/**
+ * For the bundled pack folders a run's arguments select: rule id to the requirement ids the rule was written for (the
+ * checks), and rule id to the tag of a signal rule (the signals). Both absent without the pack.
+ */
+function packRulesOfArgs(args: readonly string[]): { rules?: Map<string, readonly string[]>; signals?: Map<string, string>; reviewRules?: Set<string> } {
+  let rules: Map<string, readonly string[]> | undefined;
+  let signals: Map<string, string> | undefined;
+  let reviewRules: Set<string> | undefined;
+  for (let i = 0; i < args.length - 1; i += 1) {
+    if (args[i] !== "--config") continue;
+    const value = path.resolve(args[i + 1] as string);
+    for (const id of Object.keys(BUNDLED_RULE_PACKS)) {
+      const dir = bundledPackRulesDir(id);
+      if (!dir || path.resolve(dir) !== value) continue;
+      rules ??= new Map();
+      signals ??= new Map();
+      reviewRules ??= new Set();
+      for (const rule of buildPackIndex(dir).rules) {
+        if (rule.signal === null) rules.set(rule.id, rule.asvsRequirements);
+        else signals.set(rule.id, rule.signal);
+        if (rule.signal === null && rule.class === "review") reviewRules.add(rule.id);
+      }
+    }
+  }
+  return { ...(rules ? { rules } : {}), ...(signals ? { signals } : {}), ...(reviewRules ? { reviewRules } : {}) };
 }
 
 /** The pack the instance selects in its settings, if any. */
@@ -98,9 +182,11 @@ function planSemgrep(input: ExternalPlanInput): ExternalPlan {
   // A bundled pack chosen in the settings (UI/CLI) runs next to the customer's own rules; it is the package's, never the project's.
   const packId = selectedPack(input);
   const packDir = packId ? bundledPackRulesDir(packId) : null;
-  const packRules = packDir && fs.existsSync(packDir) ? fs.readdirSync(packDir).filter((n) => n.endsWith(".yaml")).sort() : [];
+  const packRules = packDir ? listPackRuleFiles(packDir) : [];
   const packProblem = packId && packRules.length === 0 ? t("semgrep_pack_unknown", { tool: input.tool, pack: packId }) : null;
   const usePack = packId !== null && packProblem === null;
+  const packLanguages = usePack ? packLanguagesOf(packRules) : [];
+  const noRuleFor = usePack ? languagesWithoutPackRules(input, packLanguages) : [];
   const rulesProblem = packProblem ?? ((usePrepared || usePack) && nothingLocal ? null : unusableReason(source, input.tool));
   const root = input.componentRoot && input.componentRoot !== "." ? input.componentRoot : null;
   const configArgs = [
@@ -158,10 +244,10 @@ function planSemgrep(input: ExternalPlanInput): ExternalPlan {
     availability,
     blocksPlan,
     network: false,
-    limitations: [],
+    limitations: noRuleFor.length > 0 ? [t("semgrep_limitation_pack_missing", { languages: noRuleFor.map(labelOf).join(", ") })] : [],
     conditions: [
       usePrepared && prepared.entry ? t("semgrep_condition_prepared", { ref: prepared.entry.ref, hash: prepared.entry.hash.slice(0, 12), source: prepared.entry.source }) : t("semgrep_condition_local"),
-      ...(usePack && packId ? [t("semgrep_condition_pack", { pack: packId, count: packRules.length })] : []),
+      ...(usePack && packId ? [t("semgrep_condition_pack", { pack: packId, count: packRules.length }), t("semgrep_condition_pack_languages", { languages: packLanguages.map((l) => packLanguageLabel(l)).join(", ") })] : []),
       ...(governed ? [translator("governed")("governed_semgrep_condition")] : []),
     ],
     output: { format: "json", schema: null },
@@ -238,6 +324,8 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
 
   // The step container sees the synchronized project and the run folder only: rules that live elsewhere on the host (a
   // bundled pack, the rules `tools prepare` stored, the policy's under jgates ci) are copied into the run folder first.
+  const packLanguages = packLanguagesOfArgs(args);
+  const pack = packRulesOfArgs(args);
   args = stageRules(args, [context.workspacePath, context.runDir], path.join(outDir, "rules"));
   // The runner streams both outputs to the log files with its size limit (JGATES_MAX_LOG_BYTES) and the process facts.
   const result = await runSpec(
@@ -261,20 +349,30 @@ async function runSemgrep(context: AdapterContext, plan: Plan, tool: string): Pr
   }
   // Semgrep prints the paths it was given: /workspace/... in the step container, the host paths inside the image.
   const view = (p: string): string => stepViewOfPaths(context.env, { workspace: context.workspacePath, runDir: context.runDir }, p);
-  const parsed = parseSemgrepOutput(json, { stageId: items[0]?.id as string, version, workspace: view(context.workspacePath), cwd: view(cwd) });
+  const parsed = parseSemgrepOutput(json, { stageId: items[0]?.id as string, version, workspace: view(context.workspacePath), cwd: view(cwd), ...(pack.rules ? { packRules: pack.rules } : {}), ...(pack.signals ? { packSignals: pack.signals } : {}), ...(pack.reviewRules ? { packReviewRules: pack.reviewRules } : {}) });
   if (!parsed.ok || result.truncated) {
     const detail = result.truncated ? "output truncated" : (parsed.problem ?? "");
     return { ...base, stages: items.map((i) => stageFor(i, "completed", t("semgrep_invalid_output", { detail }), { interpreted: false, nativeStatus: "exit 0" })), findings: [] };
   }
   const count = parsed.findings.length;
   const blocking = parsed.findings.filter((f) => f.blocking).length;
+  // What the scan really covered, from the scanner's own list of scanned paths (a pack language with no file is 0).
+  const scannedLanguages = parsed.scanned
+    ? scannedLanguageCounts(parsed.scanned.map(view), packLanguages.flatMap((l) => (l === "javascript" ? ["javascript", "typescript"] : [l])))
+    : null;
+  const notScanned = scannedLanguages ? packLanguages.filter((l) => (l === "javascript" ? (scannedLanguages.javascript ?? 0) + (scannedLanguages.typescript ?? 0) : (scannedLanguages[l] ?? 0)) === 0) : [];
+  const completedReason = t("semgrep_reason_completed", { version: version ?? "?", count, rules: ruleFiles });
+  const reason = notScanned.length > 0 ? `${completedReason}. ${t("semgrep_reason_scanned_none", { languages: notScanned.map((l) => packLanguageLabel(l)).join(", "), count: notScanned.length })}` : completedReason;
   return {
     ...base,
     stages: items.map((i) =>
-      stageFor(i, "completed", t("semgrep_reason_completed", { version: version ?? "?", count, rules: ruleFiles }), {
+      stageFor(i, "completed", reason, {
         blockingViolations: blocking,
         findings: count,
         nativeStatus: "exit 0",
+        ...(scannedLanguages ? { scannedLanguages } : {}),
+        // Which technologies the signal rules of the pack matched (tag to matches): a record of the scan, never findings.
+        ...(parsed.signals ? { signals: parsed.signals } : {}),
       }),
     ),
     findings: parsed.findings,

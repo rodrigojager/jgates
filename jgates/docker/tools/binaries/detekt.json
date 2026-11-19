@@ -1,0 +1,22 @@
+{
+  "note": "The command-line distribution (launcher script and the all-in-one jar); it runs on the image's JRE.",
+  "version": "1.23.8",
+  "url": "https://github.com/detekt/detekt/releases/download/v{version}/detekt-cli-{version}.zip",
+  "sha256": "ff9f9258879ff2ec4349114740221498afec46a85cf6302c9f80b06eb4429501",
+  "archive": "zip",
+  "strip": 1,
+  "executable": [
+    "bin/detekt-cli"
+  ],
+  "provides": [
+    {
+      "name": "detekt-cli",
+      "link": "detekt-cli",
+      "path": "bin/detekt-cli",
+      "version": [
+        "detekt-cli",
+        "--version"
+      ]
+    }
+  ]
+}

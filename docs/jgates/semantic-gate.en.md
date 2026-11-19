@@ -318,6 +318,12 @@ When the masking prevents sending, `result.semantic.code` says why: `MASKING_COM
 
 An unavailable provider, a timeout, an exhausted budget or a masking block never approves or fails the gate. The interface shows the semantic gate state in a card in Tools, which edits the essential fields as described in [preferences and connections](#preferences-and-connections).
 
+## Trying to reproduce a finding
+
+A finding a Semantic run could not settle stays `needs-validation`. Afterwards you can ask JGates to try to reproduce it: on the Semantic result (the run screen when it ends, or **Semantic history**, then the run) each `needs-validation` finding of a method that reads source code has **Try to reproduce**, and the top of the list has **Try to reproduce all (N)**. Nothing starts at that click: a confirmation first says how many findings will be tried, the most model calls the attempt may spend, and that it runs the project's tests in a container without network. Only **Confirm and start** starts a Semantic run of the method `confirm-by-reproduction` (see [the Semantic methods](semantic-methods.en.md#confirm-by-reproduction)), which you follow like any other Semantic run. From the terminal: `jgates semantic run --method confirm-by-reproduction --from <sem_...> [--finding C1]`.
+
+When it ends, the earlier result shows each finding it tried: **confirmed by execution**, with a link to the reproduction run, the test and its output (secrets masked), or **reproduction attempted** with the reason, still `needs-validation`. A failed reproduction never rejects a finding and never lowers its severity; the earlier run is not rewritten. The action is disabled, with the reason, for a finding whose file no supported test runner (pytest, `node:test`) runs, and for every finding when there is no container engine ready or the project's dependencies are not prepared (the screen then offers **Prepare dependencies**).
+
 ## Limits
 
 - The smoke with a real provider has not been done yet; the tests use a fake provider and spend no tokens. See [limitations](limitations.en.md).

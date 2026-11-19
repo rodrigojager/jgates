@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "rumdl",
+  "name": "rumdl",
+  "sourceUrl": "https://github.com/rvben/rumdl",
+  "license": "MIT",
+  "program": {
+    "tool": "rumdl",
+    "prefix": [
+      "check"
+    ],
+    "versionRange": ">=0.3.4 <1.0.0"
+  },
+  "megalinter": [
+    "MARKDOWN_RUMDL"
+  ],
+  "place": {
+    "section": "format",
+    "group": "markdown",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".md"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--no-cache",
+      "--output-format",
+      "sarif",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      ".rumdl.toml",
+      "rumdl.toml",
+      ".config/rumdl.toml",
+      "pyproject.toml",
+      ".markdownlint.jsonc",
+      ".markdownlint.json",
+      ".markdownlint.yaml",
+      ".markdownlint.yml",
+      "markdownlint.json",
+      "markdownlint.yaml",
+      ".markdownlintignore"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "rumdl reads the project's .rumdl.toml, rumdl.toml, .config/rumdl.toml or the [tool.rumdl] table of pyproject.toml, else its markdownlint configuration: the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: <!-- rumdl-disable --> and <!-- markdownlint-disable --> comments",
+      "pattern": "<!--\\s*(?:rumdl|markdownlint)-(?:disable|capture|configure-file)",
+      "files": "\\.md$"
+    }
+  },
+  "install": "rumdl",
+  "text": {
+    "en": {
+      "label": "rumdl (Markdown)",
+      "purpose": "A fast Markdown linter with the markdownlint rules and some of its own: heading structure, blank lines, lists, links and code blocks.",
+      "limitation": "It runs without its cache (--no-cache), so nothing is written next to the sources; without a project configuration it uses its own defaults or the project's markdownlint configuration.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "rumdl (Markdown)",
+      "purpose": "Um linter de Markdown rápido com as regras do markdownlint e algumas próprias: estrutura de títulos, linhas em branco, listas, links e blocos de código.",
+      "limitation": "Roda sem o seu cache (--no-cache), então nada é escrito ao lado dos fontes; sem uma configuração do projeto, usa os próprios padrões ou a configuração de markdownlint do projeto.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

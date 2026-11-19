@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createFixture, startServer } from "./support";
 
 // V2-73 (PLAN-consistency.md sections 1 and 2): the main screens read in one language. The spec walks them in pt-BR and
@@ -25,10 +26,21 @@ const ENGLISH_LEAKS: RegExp[] = [
   /Quality gate \(bridge\)/i,
   /Semgrep \(local rules\)/i,
   /\bPerformance budgets\b/,
+  // The words of the ASVS coverage change (glossary: informational finding, suggestion, hardening, ASVS review).
+  /\bInformational findings?\b/i,
+  /does not block the validation/i,
+  /\bNo sign of\b/,
+  /\bASVS review\b/i,
+  /\bHardening\b/,
 ];
 
 /** Portuguese that must never show in the English UI. */
-const PORTUGUESE_LEAKS: RegExp[] = [/Verificação de formato/, /Infraestrutura/, /\bEssencial\b/, /\bEquilibrado\b/, /\bRigoroso\b/, /Cobertura de testes/, /Componentes (Python|Rust|Go|TypeScript)/, /Verifica a formatação/, /\bnão\b/i, /\bverificações\b/i];
+const PORTUGUESE_LEAKS: RegExp[] = [/Verificação de formato/, /Infraestrutura/, /\bEssencial\b/, /\bEquilibrado\b/, /\bRigoroso\b/, /Cobertura de testes/, /Componentes (Python|Rust|Go|TypeScript)/, /Verifica a formatação/, /\bnão\b/i, /\bverificações\b/i, /\bAchados? informativos?\b/i, /\bnenhum sinal\b/i, /\bRevisão ASVS\b/i, /\bEndurecimento\b/i, /\bSugest(ão|ões)\b/i];
+
+/** Words the ASVS map and its documents never use: a claim of conformance, a certification, a percentage of compliance. */
+const FORBIDDEN_CLAIMS_EN = /\b(compliant|conformant|certified|compliance percentage|percentage of compliance)\b/i;
+const FORBIDDEN_CLAIMS_PT = /\b(conformidade|certificad[oa]s?|percentual de conformidade)\b/i;
+const A_PERCENTAGE = /\d\s?%/;
 
 /** Raw ids as the main text of a line, a button or a heading. */
 const RAW_IDS: RegExp[] = [/^(strict|standard|minimal|full|diff)$/m, /\bcapability:[a-z]/, /sha256:[0-9a-f]{6,}/, /\b(Alvo|Target): (full|diff)\b/, /\bPlano sha256/, /\bPlan sha256/];
@@ -71,7 +83,43 @@ for (const language of ["pt-BR", "en"] as const) {
   });
 }
 
+test("the ASVS documents and the coverage messages never claim conformance, certification or a percentage", () => {
+  const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  const jgates = path.join(repo, "jgates");
+  const sources: Array<{ file: string; claims: RegExp }> = [
+    { file: path.join(repo, "docs", "jgates", "asvs-coverage.en.md"), claims: FORBIDDEN_CLAIMS_EN },
+    { file: path.join(repo, "docs", "jgates", "asvs-coverage.pt-BR.md"), claims: FORBIDDEN_CLAIMS_PT },
+    { file: path.join(jgates, "src", "i18n", "coverage.en.json"), claims: FORBIDDEN_CLAIMS_EN },
+    { file: path.join(jgates, "src", "i18n", "coverage.pt-BR.json"), claims: FORBIDDEN_CLAIMS_PT },
+    { file: path.join(jgates, "ui", "src", "screens", "coverage-asvs", "messages.en.json"), claims: FORBIDDEN_CLAIMS_EN },
+    { file: path.join(jgates, "ui", "src", "screens", "coverage-asvs", "messages.pt-BR.json"), claims: FORBIDDEN_CLAIMS_PT },
+  ];
+  const found: string[] = [];
+  for (const { file, claims } of sources) {
+    const text = fs.readFileSync(file, "utf8");
+    // A document may say that the map never says it: only a sentence outside "never"/"nunca"/"no" lines counts.
+    for (const line of text.split("\n")) {
+      if (claims.test(line) && !/\b(never|nunca)\b/i.test(line)) found.push(`${path.basename(file)}: ${line.trim().slice(0, 100)}`);
+      if (A_PERCENTAGE.test(line)) found.push(`${path.basename(file)}: a percentage in "${line.trim().slice(0, 100)}"`);
+    }
+  }
+  expect(found, found.join("\n")).toEqual([]);
+});
+
+test("the forbidden claims are caught when planted", () => {
+  expect(FORBIDDEN_CLAIMS_EN.test("The project is compliant")).toBe(true);
+  expect(FORBIDDEN_CLAIMS_EN.test("This is a conformant build")).toBe(true);
+  expect(FORBIDDEN_CLAIMS_EN.test("certified for level 2")).toBe(true);
+  expect(FORBIDDEN_CLAIMS_PT.test("O projeto tem conformidade")).toBe(true);
+  expect(FORBIDDEN_CLAIMS_PT.test("projeto certificado")).toBe(true);
+  expect(A_PERCENTAGE.test("72% of the requirements")).toBe(true);
+  expect(A_PERCENTAGE.test("level 2 has 253 requirements")).toBe(false);
+});
+
 test("the leak lists catch a planted leak", () => {
+  expect(ENGLISH_LEAKS.some((re) => re.test("Informational finding (does not block the validation)"))).toBe(true);
+  expect(PORTUGUESE_LEAKS.some((re) => re.test("Achado informativo"))).toBe(true);
+  expect(PORTUGUESE_LEAKS.some((re) => re.test("Nenhum sinal de WebSocket neste projeto"))).toBe(true);
   expect(ENGLISH_LEAKS.some((re) => re.test("Format check (ruff format)"))).toBe(true);
   expect(ENGLISH_LEAKS.some((re) => re.test("the jgates-codeql volume is not prepared (no-volume)"))).toBe(true);
   expect(PORTUGUESE_LEAKS.some((re) => re.test("Perfil Essencial"))).toBe(true);

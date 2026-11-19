@@ -22,6 +22,9 @@ export interface ToolsImagePin {
   jgatesVersion: string;
   platform: string;
   sizeBytes: number;
+  /** What a pull transfers and the unpacked size, both measured by the image build (scripts/image-build.mjs). */
+  compressedBytes?: number;
+  uncompressedBytes?: number;
   published: boolean;
 }
 
@@ -111,7 +114,10 @@ export function toolsImagePreflight(options: ToolsImagePreflightOptions): ToolsI
   const target = toolsImageTarget(env, pin);
   const context: EngineContext = { runnerOptions: { parentEnv: env } };
   const locale = options.locale;
-  const pinMb = pin.sizeBytes > 0 ? Math.ceil((pin.sizeBytes * 2.2) / 1_000_000) : undefined;
+  // The download and the unpacked image, as the build measured them (the pin), with a margin; an old pin without the
+  // unpacked size uses the ratio of the first complete image.
+  const compressed = pin.compressedBytes ?? pin.sizeBytes;
+  const pinMb = compressed > 0 ? Math.ceil(((compressed + (pin.uncompressedBytes ?? compressed * 2.9)) * 1.1) / 1_000_000) : undefined;
 
   const image = (): ReturnType<typeof inspectImageSync> => inspectImageSync(target.reference, context);
   // The engine first, without the disk (it only matters when a download is needed).

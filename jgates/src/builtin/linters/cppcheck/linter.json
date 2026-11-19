@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "cppcheck",
+  "name": "cppcheck",
+  "sourceUrl": "https://cppcheck.sourceforge.io/",
+  "license": "GPL-3.0-or-later",
+  "program": {
+    "tool": "cppcheck",
+    "versionRange": ">=2.17.0 <3.0.0"
+  },
+  "megalinter": [
+    "C_CPPCHECK",
+    "CPP_CPPCHECK"
+  ],
+  "place": {
+    "section": "language",
+    "group": "c-cpp",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".c",
+      ".h",
+      ".cpp",
+      ".cc",
+      ".hpp",
+      ".cxx",
+      ".cu",
+      ".hxx",
+      ".c++",
+      ".hh",
+      ".h++",
+      ".cuh"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--output-format=sarif",
+      "--inline-suppr",
+      "--error-exitcode=1",
+      "--quiet",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      ".cppcheck",
+      "cppcheck.cfg",
+      ".cppcheck-suppressions",
+      "suppressions.txt"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "cppcheck runs its default checks (errors) and honours inline suppressions; the project decides more through its own command-line project files",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: // cppcheck-suppress <id> comments",
+      "pattern": "cppcheck-suppress",
+      "files": "\\.(c|h|cpp|cc|hpp|cxx|cu|hxx|c\\+\\+|hh|h\\+\\+|cuh)$"
+    }
+  },
+  "install": "cppcheck",
+  "text": {
+    "en": {
+      "label": "cppcheck (C and C++)",
+      "purpose": "Static analysis of C and C++ for real defects: out-of-bounds access, uninitialized variables, leaks, null dereferences and undefined behavior.",
+      "limitation": "It reads each file with the includes it can find in the project, not the system headers of your build, so findings that depend on a specific build configuration can be missed.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "cppcheck (C e C++)",
+      "purpose": "Análise estática de C e C++ para defeitos reais: acesso fora dos limites, variáveis não inicializadas, vazamentos, desreferência nula e comportamento indefinido.",
+      "limitation": "Lê cada arquivo com os includes que encontra no projeto, não os cabeçalhos de sistema do seu build, então achados que dependem de uma configuração de build específica podem passar.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

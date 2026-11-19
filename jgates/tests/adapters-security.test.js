@@ -28,7 +28,7 @@ const require = createRequire(import.meta.url);
 const Ajv2020 = require("ajv/dist/2020").default;
 const runner = await import(pathToFileURL(path.join(dist, "core", "runner", "index.js")).href);
 const { parseGitleaksReport, gitleaksManifest } = await import(pathToFileURL(path.join(dist, "adapters", "gitleaks", "index.js")).href);
-const { parseTrivyReport, trivyFacts, databaseSource } = await import(pathToFileURL(path.join(dist, "adapters", "trivy", "index.js")).href);
+const { parseTrivyReport, parseTrivySbom, trivyFacts, databaseSource } = await import(pathToFileURL(path.join(dist, "adapters", "trivy", "index.js")).href);
 const { parseOsvReport } = await import(pathToFileURL(path.join(dist, "adapters", "osv-scanner", "index.js")).href);
 const { parseCheckovReport } = await import(pathToFileURL(path.join(dist, "adapters", "checkov", "index.js")).href);
 const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
@@ -344,6 +344,68 @@ test("Gitleaks runs in the container and its finding comes out with the masked v
     assert.ok(call[call.indexOf("--report-path") + 1].startsWith(result.runDir), "the report goes to the instance's output folder in the run");
     assert.ok(result.artifacts.logs.includes("logs/gitleaks.stdout.log"));
     assert.match(fs.readFileSync(path.join(result.runDir, "logs", "gitleaks.stderr.log"), "utf8"), /leaks found/);
+  } finally {
+    p.cleanup();
+  }
+});
+
+const SBOM_TOOLS = "schemaVersion: 1\ntools:\n  trivy-sbom:\n    adapter: trivy\n    capabilities: [sbom]\n";
+
+test("Trivy 0.76.2 SBOM: the CycloneDX document is read, yields no finding and fails closed when cut or foreign [proves: trivy#sbom]", () => {
+  const text = read("trivy", "0.76.2", "fs-sbom.json");
+  const parsed = parseTrivySbom(text, PARSE("0.76.2", ["sbom"]));
+  assert.equal(parsed.ok, true, parsed.problem);
+  assert.equal(parsed.reportedVersion, "0.76.2");
+  assert.deepEqual(parsed.findings, []);
+  assert.ok(JSON.parse(text).components.some((c) => c.purl === "pkg:npm/left-pad@1.3.0"), "the recording lists the package");
+  for (const [name, bad] of [
+    ["cut", text.slice(0, Math.floor(text.length / 2))],
+    ["not CycloneDX", JSON.stringify({ ...JSON.parse(text), bomFormat: "SPDX" })],
+    ["spec 2", JSON.stringify({ ...JSON.parse(text), specVersion: "2.0" })],
+    ["no components list", JSON.stringify({ ...JSON.parse(text), components: {} })],
+    ["trivy 1.2.0", text.replace('"version": "0.76.2"', '"version": "1.2.0"')],
+  ]) assert.equal(parseTrivySbom(bad, PARSE("0.76.2", ["sbom"])).ok, false, name);
+  assert.equal(parseTrivySbom("[]", PARSE("0.76.2", ["sbom"])).ok, false);
+});
+
+test("an SBOM instance of the trivy adapter plans trivy fs --format cyclonedx with no scanner and no database", () => {
+  const p = project({ profile: "strict", tools: SBOM_TOOLS });
+  try {
+    const plan = p.cli(["plan", "--cwd", p.dir, "--json"]).doc.plan;
+    const item = itemOf(plan, "trivy-sbom#sbom");
+    assert.ok(item, "the SBOM stage is in the plan");
+    assert.equal(item.network, false);
+    assert.ok(plan.groups.willRun.some((i) => i.id === "trivy-sbom#sbom"), JSON.stringify([item.availability, item.reason, item.status ?? null]));
+    const args = item.command.args;
+    // The project's trivy.yaml (--config) comes first, as for the scanner instances.
+    assert.deepEqual(args.slice(0, 2), ["--config", "{workspace}/trivy.yaml"]);
+    assert.deepEqual(args.slice(2, 6), ["fs", "--scanners=", "--format", "cyclonedx"]);
+    assert.ok(args[7].endsWith("/outputs/trivy/trivy-sbom/sbom.cdx.json"), args[7]);
+    assert.ok(!args.includes("--skip-db-update"), "no database is read");
+    assert.ok(!plan.warnings.some((w) => w.code === "SCANNER_RUNS_TWICE"), JSON.stringify(plan.warnings));
+  } finally {
+    p.cleanup();
+  }
+});
+
+test("an SBOM instance writes the bill of materials to the run folder and reports it as an artifact", { skip: POSIX ? false : NO_POSIX }, () => {
+  const p = project({ profile: "strict", tools: SBOM_TOOLS });
+  try {
+    p.scanners({ FAKE_REPORT: fixture("trivy", "0.76.2", "fs-sbom.json") });
+    const ran = p.cli(["run", "--cwd", p.dir, "--only", "tool:trivy-sbom", "--no-interactive", "--json"]);
+    const result = ran.doc;
+    assert.ok(result, ran.out + ran.err);
+    const stage = stageOf(result, "trivy-sbom#sbom");
+    assert.equal(stage.state, "completed", JSON.stringify(stage));
+    assert.equal(stage.findings, 0);
+    const file = path.join(result.runDir, "outputs", "trivy", "trivy-sbom", "sbom.cdx.json");
+    assert.equal(JSON.parse(fs.readFileSync(file, "utf8")).bomFormat, "CycloneDX");
+    assert.ok(result.artifacts.outputs.includes("outputs/trivy/trivy-sbom/sbom.cdx.json"), JSON.stringify(result.artifacts.outputs));
+
+    // No document written: an error, never a pass.
+    p.scanners({});
+    const missing = p.cli(["run", "--cwd", p.dir, "--only", "tool:trivy-sbom", "--no-interactive", "--json"]).doc;
+    assert.equal(stageOf(missing, "trivy-sbom#sbom").state, "error");
   } finally {
     p.cleanup();
   }

@@ -1,0 +1,172 @@
+# Markup rules of the HTML front: .html and .htm files only (no template syntax: Jinja, Blade, Razor, EJS, Go
+# templates and Vue files are not read; the JSX forms of these families belong to the JavaScript front).
+# Covered: script and stylesheet elements, plugin elements (applet, embed, object), input, form, meta and iframe
+# attributes, and the literal `new WebSocket("ws://...")` call of an inline script. Attribute names are matched in any
+# order; the values are checked with a regular expression on the attribute text.
+rules:
+  - id: jgates.html.external-script-without-integrity
+    message: A script or stylesheet is loaded from another host without an integrity attribute, so a changed or compromised file is run or applied unchecked. Add integrity (a SHA-384 hash) and crossorigin, or serve the file from the same host.
+    severity: INFO
+    languages: [html]
+    metadata:
+      category: configuration
+      cwe: "CWE-829"
+      subdimension: hardening
+      author: JGates
+      asvs_requirements: ["V3.6.1"]
+    patterns:
+      - pattern-either:
+          - pattern: <script src="$URL" ...></script>
+          - pattern: <link rel="stylesheet" href="$URL" ...>
+      - pattern-not: <script integrity=... ...></script>
+      - pattern-not: <link integrity=... ...>
+      - metavariable-regex:
+          metavariable: $URL
+          regex: (?i)^\s*(https?:)?//[^/\s]
+      - pattern-not-regex: (?i)\bintegrity\s*=
+
+  - id: jgates.html.deprecated-plugin-content
+    message: The page embeds plugin content (a Java applet, Flash, ActiveX or Silverlight), which browsers no longer support and which runs outside the browser's security model. Replace it with standard HTML, CSS or JavaScript.
+    severity: WARNING
+    languages: [html]
+    metadata:
+      category: configuration
+      cwe: "CWE-477"
+      subdimension: hardening
+      author: JGates
+      asvs_requirements: ["V3.7.1"]
+    pattern-either:
+      - pattern: <applet ...></applet>
+      - patterns:
+          - pattern-either:
+              - pattern: <object ...></object>
+              - pattern: <embed ...>
+          - pattern-regex: (?is)(application/x-shockwave-flash|application/x-silverlight|classid\s*=\s*["']?\s*clsid:|\.swf\b|\.xap\b|\.jar\b|application/x-java-applet)
+
+  - id: jgates.html.password-field-not-masked
+    message: An input named like a password explicitly uses an unmasked type, so what the user types is shown on screen. Use type="password".
+    severity: WARNING
+    languages: [html]
+    metadata:
+      category: authentication
+      cwe: "CWE-549"
+      subdimension: authorization
+      author: JGates
+      asvs_requirements: ["V6.2.6"]
+    patterns:
+      - pattern-either:
+          - pattern: <input name="$N" ...>
+          - pattern: <input id="$N" ...>
+      - metavariable-regex:
+          metavariable: $N
+          regex: (?is).*(password|passwd|pwd|passphrase|senha)
+      - pattern-regex: (?i)\btype\s*=
+      - pattern-not-regex: (?i)\btype\s*=\s*["']?\s*(password|hidden|submit|button|checkbox|radio|reset|image|file)\b
+
+  - id: jgates.html.password-field-not-masked-by-default
+    message: An input named like a password has no type attribute. The browser defaults to an unmasked text field unless another layer sets the type; use type="password" here or confirm where it is set.
+    severity: INFO
+    languages: [html]
+    metadata:
+      category: authentication
+      cwe: "CWE-549"
+      subdimension: authorization
+      author: JGates
+      asvs_requirements: ["V6.2.6"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: <input name="$N" ...>
+          - pattern: <input id="$N" ...>
+      - metavariable-regex:
+          metavariable: $N
+          regex: (?is).*(password|passwd|pwd|passphrase|senha)
+      - pattern-not-regex: (?i)\btype\s*=
+
+  - id: jgates.html.password-paste-blocked
+    message: A password field prevents pasting or switches autocomplete off, which keeps password managers from filling it and pushes users to weak, typed passwords. Allow paste and use autocomplete="current-password" or "new-password".
+    severity: INFO
+    languages: [html]
+    metadata:
+      category: authentication
+      cwe: "CWE-1390"
+      subdimension: authorization
+      author: JGates
+      asvs_requirements: ["V6.2.7"]
+    pattern-either:
+      - patterns:
+          - pattern: <input type="password" onpaste="$H" ...>
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?is).*(return\s+false|preventDefault)
+      - patterns:
+          - pattern: <input type="password" autocomplete="$A" ...>
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i)\s*(off|false|no)\s*
+
+  - id: jgates.html.csp-unsafe-directive
+    message: The Content-Security-Policy meta tag allows inline or eval-ed script ('unsafe-inline', 'unsafe-eval') or any script source, so it does not stop injected script. Use nonces or hashes and list the script hosts.
+    severity: WARNING
+    languages: [html]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      subdimension: hardening
+      author: JGates
+      asvs_requirements: ["V3.4.3"]
+    patterns:
+      - pattern: <meta http-equiv="$E" content="$C" ...>
+      - metavariable-regex:
+          metavariable: $E
+          regex: (?i)^\s*content-security-policy\s*$
+      - metavariable-regex:
+          metavariable: $C
+          regex: (?is)(.*'unsafe-eval'|(?!.*script-src)(([^;]*;)*?)\s*default-src\b(?![^;]*(nonce-|sha(256|384|512)-))[^;]*('unsafe-inline'|\s\*(\s|;|$)|\s(https?|data):(\s|;|$)).*|(([^;]*;)*?)\s*(script-src|script-src-elem)\b(?![^;]*(nonce-|sha(256|384|512)-))[^;]*('unsafe-inline'|\s\*(\s|;|$)|\s(https?|data):(\s|;|$)).*)
+
+  - id: jgates.html.cleartext-http-url
+    message: A form action, script, frame or WebSocket address uses a clear-text scheme (http, ftp or ws) for a host that is not the local machine, so the traffic can be read or changed on the way. Use https or wss.
+    severity: INFO
+    languages: [html]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      subdimension: cryptography
+      author: JGates
+      asvs_requirements: ["V12.2.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: <form action="$U" ...>
+              - pattern: <script src="$U" ...></script>
+              - pattern: <iframe src="$U" ...></iframe>
+              - pattern: <frame src="$U" ...>
+          - metavariable-regex:
+              metavariable: $U
+              regex: (?i)^\s*(http|ftp)://(?!(localhost|127\.\d+\.\d+\.\d+|\[::1\]|0\.0\.0\.0)([:/?#]|\s*$))[^/\s]
+      - pattern-regex: (?i)new\s+WebSocket\s*\(\s*["']ws://(?!(localhost|127\.\d+\.\d+\.\d+|\[::1\]|0\.0\.0\.0)([:/?#"']))[^/"'\s]
+
+  - id: jgates.html.sensitive-query-parameter
+    message: A form with a password field is submitted by GET, so the password ends up in the address, the browser history and the server logs. Submit it with method="post".
+    severity: WARNING
+    languages: [html]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      subdimension: privacy
+      author: JGates
+      asvs_requirements: ["V14.2.1"]
+    pattern-regex: (?is)<form\b(?=[^>]*\bmethod\s*=\s*["']?\s*get\b)[^>]*>(?:(?!</form>).)*?<input\b[^>]*\btype\s*=\s*["']?password\b
+
+  - id: jgates.html.sensitive-query-parameter-by-default
+    message: A form with a password field has no method attribute. The browser defaults to GET unless another layer sets the method, which can put the password in the address, history and logs; use method="post" here or confirm where it is set.
+    severity: INFO
+    languages: [html]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      subdimension: privacy
+      author: JGates
+      asvs_requirements: ["V14.2.1"]
+      class: review
+    pattern-regex: (?is)<form\b(?![^>]*\bmethod\s*=)[^>]*>(?:(?!</form>).)*?<input\b[^>]*\btype\s*=\s*["']?password\b

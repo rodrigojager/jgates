@@ -1,0 +1,17 @@
+{
+  "files": ["crypto-params.php"],
+  "ruleIds": [
+    "jgates.php.weak-dh-parameters",
+    "jgates.php.weak-key-size",
+    "jgates.php.rsa-key-below-3072",
+    "jgates.php.static-iv-or-nonce",
+    "jgates.php.cipher-mode-without-authentication",
+    "jgates.php.weak-kdf-parameters",
+    "jgates.php.password-hash-with-fast-hash",
+    "jgates.php.timing-unsafe-comparison",
+    "jgates.php.weak-signature-hash",
+    "jgates.php.hardcoded-encryption-key",
+    "jgates.php.insecure-random-for-secret",
+    "jgates.php.uuid-as-secret-token"
+  ]
+}

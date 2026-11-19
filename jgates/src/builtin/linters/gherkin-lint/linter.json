@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "gherkin-lint",
+  "name": "gherkin-lint",
+  "sourceUrl": "https://github.com/vsiakka/gherkin-lint",
+  "license": "ISC",
+  "program": {
+    "tool": "gherkin-lint",
+    "versionRange": ">=4.2.4 <5.0.0"
+  },
+  "megalinter": [
+    "GHERKIN_GHERKIN_LINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "gherkin",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".feature"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format",
+      "json",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "json",
+    "items": "[].errors[]",
+    "fields": {
+      "file": "^.filePath",
+      "line": "line",
+      "rule": "rule",
+      "message": "message"
+    },
+    "level": "error"
+  },
+  "configuration": {
+    "files": [
+      ".gherkin-lintrc"
+    ],
+    "default": "gherkin-lintrc.json",
+    "args": [
+      "--config",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "gherkin-lint reads the project's .gherkin-lintrc (its rules, on or off, one by one); without one JGates passes its own minimal rule file, because the tool has no rules of its own and stops without a configuration.",
+    "suppressions": {
+      "honoured": false,
+      "description": "gherkin-lint has no in-code suppression comments; rules are switched off in .gherkin-lintrc or files in .gherkin-lintignore.",
+      "pattern": "^$",
+      "files": "\\.feature$"
+    }
+  },
+  "install": "gherkin-lint",
+  "text": {
+    "en": {
+      "label": "gherkin-lint (Gherkin)",
+      "purpose": "Checks Gherkin .feature files: naming, indentation, step order, duplicate names or tags, empty scenarios, trailing spaces and blank lines.",
+      "limitation": "The tool has no rules until a configuration tells it which to apply: without a project .gherkin-lintrc, JGates passes its own short rule file (indentation, naming, duplicates, whitespace). MegaLinter's other file name is not passed to the tool.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "gherkin-lint (Gherkin)",
+      "purpose": "Verifica arquivos Gherkin .feature: nomes, indentação, ordem dos passos, nomes ou tags duplicados, cenários vazios, espaços no fim da linha e linhas em branco.",
+      "limitation": "A ferramenta não tem regras até que uma configuração diga quais aplicar: sem um .gherkin-lintrc no projeto, o JGates passa um arquivo curto de regras próprio (indentação, nomes, duplicatas, espaços em branco). O outro nome de arquivo usado pelo MegaLinter não é passado à ferramenta.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

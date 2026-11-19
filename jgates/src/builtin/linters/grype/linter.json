@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "grype",
+  "name": "grype",
+  "sourceUrl": "https://github.com/anchore/grype",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "grype",
+    "versionRange": ">=0.122.0 <1.0.0"
+  },
+  "megalinter": [
+    "REPOSITORY_GRYPE"
+  ],
+  "place": {
+    "section": "other",
+    "group": "dependencies",
+    "capability": "dependencies",
+    "kind": "scan",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "dir:.",
+      "--quiet",
+      "--fail-on",
+      "low",
+      "-o",
+      "sarif"
+    ],
+    "env": {
+      "HOME": "/tmp",
+      "GRYPE_DB_CACHE_DIR": "/data/grype",
+      "GRYPE_DB_AUTO_UPDATE": "false",
+      "GRYPE_CHECK_FOR_APP_UPDATE": "false"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "custom"
+  },
+  "configuration": {
+    "files": [
+      ".grype.yaml",
+      ".grype.yml",
+      ".grype/config.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "grype reads the project's .grype.yaml (ignore rules, severity cut-offs, sources); without one it reports every vulnerability of the database, so the project decides what is accepted",
+    "suppressions": {
+      "honoured": false,
+      "description": "none in the files: the tool has no in-file suppression; ignore rules live in .grype.yaml (by vulnerability id, package or path)"
+    }
+  },
+  "install": "grype",
+  "text": {
+    "en": {
+      "label": "grype (vulnerabilities)",
+      "purpose": "Matches the packages found in the project (lockfiles, manifests, installed packages) against its vulnerability database and reports every known vulnerability.",
+      "limitation": "It matches package names and versions against the database and does not tell whether the vulnerable code is reachable. The database is the one refreshed into the data volume, so a result is as current as that refresh.",
+      "needs": "The vulnerability database in the data volume (refreshed by the data update, read-only here); no network at run time and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "grype (vulnerabilidades)",
+      "purpose": "Compara os pacotes encontrados no projeto (lockfiles, manifestos, pacotes instalados) com o seu banco de vulnerabilidades e relata cada vulnerabilidade conhecida.",
+      "limitation": "Compara nomes e versões de pacotes com o banco e não diz se o código vulnerável é alcançável. O banco é o atualizado no volume de dados, então o resultado é tão recente quanto essa atualização.",
+      "needs": "O banco de vulnerabilidades no volume de dados (atualizado pela atualização de dados, somente leitura aqui); sem rede na execução e sem as dependências do projeto."
+    }
+  }
+}

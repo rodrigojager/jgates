@@ -1,0 +1,15 @@
+{
+ "tool": "dustilock",
+ "kind": "clean",
+ "version": "1.2.0",
+ "calls": [
+  {
+   "args": [
+    "-r"
+   ],
+   "exit": 0,
+   "stdout": "DustiLock started\nscanning directory \"/workspace\" (recursive=true) ...\nscanning \"/workspace/package.json\"\nfinished scanning directory \"/workspace\"\n",
+   "stderr": ""
+  }
+ ]
+}

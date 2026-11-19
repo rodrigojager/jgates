@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "name": "jgates-tools",
   "reference": "jgates-tools:dev",
-  "digest": "sha256:43ac9f90fe6e17e517f961daff32a023ee21182a8344772a77a8afc6d50bde69",
+  "digest": "sha256:6d3d58b0fe746d3e09417766b2b31e3843a0d2b58155c6ca7342d772ccccb515",
   "imageVersion": "0.3.0-dev",
   "jgatesVersion": "0.3.0",
   "platform": "linux/amd64",
-  "sizeBytes": 2145923909,
-  "compressedBytes": 2145923909,
-  "uncompressedBytes": 6009610240,
+  "sizeBytes": 4523147256,
+  "compressedBytes": 4523147256,
+  "uncompressedBytes": 12522360832,
   "published": false
 }

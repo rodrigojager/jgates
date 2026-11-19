@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "djlint",
+  "name": "djlint",
+  "sourceUrl": "https://github.com/djlint/djLint",
+  "license": "GPL-3.0-only",
+  "program": {
+    "tool": "djlint",
+    "versionRange": ">=1.54.0 <2.0.0"
+  },
+  "megalinter": [
+    "HTML_DJLINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "html",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".html",
+      ".htm"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--lint",
+      "--quiet",
+      "--sarif",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      "pyproject.toml",
+      ".djlintrc",
+      "djlint.toml",
+      ".editorconfig"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "djlint reads the project's pyproject.toml ([tool.djlint]), .djlintrc, djlint.toml and .editorconfig: the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: {# djlint:off #} and <!-- djlint:off --> comments",
+      "pattern": "djlint:\\s*(?:off|on)",
+      "files": "\\.html?$"
+    }
+  },
+  "install": "djlint",
+  "text": {
+    "en": {
+      "label": "djLint (HTML templates)",
+      "purpose": "Lints HTML and template files (Django, Jinja, Nunjucks, Handlebars) for style and accessibility mistakes: missing lang, missing alt text, inline styles, duplicate ids, orphan tags.",
+      "limitation": "Run in lint mode only: it never reformats the project. Without a project configuration it applies the rules of plain HTML, not of a template language.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "djLint (templates HTML)",
+      "purpose": "Verifica arquivos HTML e de templates (Django, Jinja, Nunjucks, Handlebars) quanto a erros de estilo e acessibilidade: lang ausente, texto alternativo ausente, estilos inline, ids duplicados, tags órfãs.",
+      "limitation": "Roda só no modo de verificação: nunca reformata o projeto. Sem configuração do projeto aplica as regras de HTML puro, não de uma linguagem de template.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "files": ["tokens-transport.go"],
+  "ruleIds": [
+    "jgates.go.jwt-key-from-token-header",
+    "jgates.go.jwt-expiry-not-validated",
+    "jgates.go.jwt-audience-not-validated",
+    "jgates.go.oauth-request-without-state",
+    "jgates.go.tls-old-protocol-version",
+    "jgates.go.tls-weak-cipher-suite",
+    "jgates.go.cleartext-http-url",
+    "jgates.go.mtls-client-certificate-not-verified"
+  ]
+}

@@ -329,14 +329,31 @@ test("the rules routes list the files with their validation and rename through t
 
 // ---- Bundled JGates rule pack -------------------------------------------------------------------------------------
 // The pack's rule tests and its vulnerable/clean fixtures run on a real Semgrep: a local one (JGATES_SEMGREP, the
-// repository .venv, PATH) or the quality sidecar image through Docker. With neither, the tests fail and say so.
+// repository .venv, PATH) or the JGates tools image through Docker. With neither, the tests fail and say so.
+// The twins live in fixtures/semgrep-pack/{vulnerable,clean}/<language>/ and the rule ids the vulnerable twin must flag
+// in fixtures/semgrep-pack/expected/<language>.json: a new language is a new folder and a new file, no test code.
 
 const PACK_ROOT = path.resolve(here, "..", "packs", "semgrep");
 const PACK_RULES = path.join(PACK_ROOT, "jgates-semgrep", "rules");
 const PACK_FIXTURES = path.join(here, "fixtures", "semgrep-pack");
-const SIDECAR_IMAGE = process.env.JGATES_SEMGREP_IMAGE || "jgates/quality-sidecar:latest";
+const TOOLS_IMAGE = process.env.JGATES_SEMGREP_IMAGE || "jgates-tools:dev";
+// The closed lists of the pack (prefixes, categories, subdimensions, severities, signal tags, forbidden keys) are the
+// plain file the pack:check command reads too: one place, no copy in the tests.
+const PACK_LISTS = JSON.parse(fs.readFileSync(path.join(here, "..", "src", "adapters", "semgrep", "pack-lists.json"), "utf8"));
+const SECURITY_SUBDIMENSIONS = PACK_LISTS.subdimensions;
+const PACK_CATEGORIES = PACK_LISTS.categories;
+// Metadata keys (and links) typical of registry rules: a rule of this pack never carries one.
+const FORBIDDEN_METADATA = PACK_LISTS.forbiddenMetadata;
+// `semgrep --test` pairs an annotated fixture for `html` and `generic` rules too (checked on 1.182.1), so every rule kind
+// of the pack, signals included, is proven by its fixture as well as by its twins.
+const asvsData = await import(pathToFileURL(path.join(dist, "core", "coverage", "asvs", "index.js")).href);
+const ASVS_IDS = new Set(asvsData.loadAsvs("5.0.0").requirements.map((r) => r.id));
+const PACK_SEVERITIES = PACK_LISTS.severities;
+const twinLanguages = () => fs.readdirSync(path.join(PACK_FIXTURES, "expected")).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort();
 
 function localSemgrep() {
+  // JGATES_SEMGREP_ENGINE=image proves the pack on the Semgrep of the tools image, whatever local Semgrep exists.
+  if (process.env.JGATES_SEMGREP_ENGINE === "image") return null;
   const candidates = [process.env.JGATES_SEMGREP, path.join(VENV_BIN, process.platform === "win32" ? "semgrep.exe" : "semgrep")].filter(Boolean);
   for (const c of candidates) if (fs.existsSync(c)) return c;
   const probe = spawnSync(process.platform === "win32" ? "where" : "which", ["semgrep"], { encoding: "utf8" });
@@ -358,22 +375,50 @@ function engine() {
     };
     return { kind: "local", run };
   }
-  const docker = spawnSync("docker", ["image", "inspect", SIDECAR_IMAGE], { encoding: "utf8" });
+  const docker = spawnSync("docker", ["image", "inspect", TOOLS_IMAGE], { encoding: "utf8" });
   if (docker.status === 0) {
     return {
       kind: "docker",
       run: (args, mounts = {}) => {
         const volumes = Object.entries(mounts).flatMap(([host, inside]) => ["-v", `${host}:${inside.path}${inside.writable ? "" : ":ro"}`]);
-        return spawnSync("docker", ["run", "--rm", "--label", "jproject.project=jgates", ...volumes, "--entrypoint", "semgrep", SIDECAR_IMAGE, ...args], { encoding: "utf8", timeout: 240_000 });
+        return spawnSync("docker", ["run", "--rm", "--label", "jproject.project=jgates", ...volumes, "--entrypoint", "semgrep", TOOLS_IMAGE, ...args], { encoding: "utf8", timeout: 240_000 });
       },
     };
   }
-  throw new assert.AssertionError({ message: `no Semgrep engine available: install semgrep (JGATES_SEMGREP, .venv or PATH) or build the Docker image ${SIDECAR_IMAGE}; the pack tests cannot pass without one` });
+  throw new assert.AssertionError({ message: `no Semgrep engine available: install semgrep (JGATES_SEMGREP, .venv or PATH) or use the tools image ${TOOLS_IMAGE}; the pack tests cannot pass without one` });
 }
 
-const packWorkspace = (variant) => {
+// Group twins: `expected/<language>/<group>.json` ({ files, ruleIds } or { files, signals }) names the files (relative to the
+// language folder) of one group's twins. Those files stay out of the per-language workspace and make a workspace of their
+// own, so a new group twin is data only.
+const GROUP_SUPPORT_FILES = { rust: ["Cargo.toml"] };
+const groupsOf = (language) => {
+  const dir = path.join(PACK_FIXTURES, "expected", language);
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return [];
+  return fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort().map((f) => ({ group: f.replace(/\.json$/, ""), expected: JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")) }));
+};
+const twinGroupLanguages = () => {
+  const dir = path.join(PACK_FIXTURES, "expected");
+  return fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
+};
+const slash = (p) => p.split(path.sep).join("/");
+
+const packWorkspace = (variant, language, group = null) => {
   const dir = tmp("jgates-pack-ws-");
-  fs.cpSync(path.join(PACK_FIXTURES, variant), dir, { recursive: true });
+  const src = path.join(PACK_FIXTURES, variant, language);
+  const groups = groupsOf(language);
+  if (group === null) {
+    const taken = new Set(groups.flatMap((g) => g.expected.files ?? []));
+    fs.cpSync(src, dir, { recursive: true, filter: (from) => fs.statSync(from).isDirectory() || !taken.has(slash(path.relative(src, from))) });
+  } else {
+    const found = groups.find((g) => g.group === group);
+    assert.ok(found, `${language}: no expected/${language}/${group}.json`);
+    for (const file of [...(GROUP_SUPPORT_FILES[language] ?? []), ...found.expected.files]) {
+      if (!fs.existsSync(path.join(src, file))) continue;
+      fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+      fs.copyFileSync(path.join(src, file), path.join(dir, file));
+    }
+  }
   return dir;
 };
 const PACK_TOOLS = "schemaVersion: 1\ntools:\n  semgrep:\n    adapter: semgrep\n    capabilities: [sast]\n    rulePack: jgates\n";
@@ -384,9 +429,9 @@ function packCli(dir, home) {
 }
 
 /** Plans through the CLI, runs the planned semgrep arguments on the engine and normalizes the output with the adapter. */
-function scanWithPack(variant) {
+function scanWithPack(variant, language, group = null) {
   const eng = engine();
-  const dir = packWorkspace(variant);
+  const dir = packWorkspace(variant, language, group);
   const out = tmp("jgates-pack-out-");
   const home = tmp("jgates-pack-home-");
   try {
@@ -416,7 +461,7 @@ function scanWithPack(variant) {
     const root = docker ? "/ws" : dir;
     const parsed = semgrepAdapter.parseSemgrepOutput(fs.readFileSync(outFile, "utf8"), { stageId: "semgrep#sast", version: eng.kind, workspace: root, cwd: root });
     assert.equal(parsed.ok, true, parsed.problem);
-    return { findings: parsed.findings, configs, item };
+    return { findings: parsed.findings, signals: parsed.signals, configs, item };
   } finally {
     for (const d of [dir, out, home]) fs.rmSync(d, { recursive: true, force: true });
   }
@@ -430,40 +475,203 @@ test("the rule tests of the bundled pack pass on a real Semgrep (ruleid/ok annot
   const text = `${run.stdout}\n${run.stderr}`;
   assert.equal(run.status, 0, text);
   assert.match(text, /All tests passed/, text);
-  const files = fs.readdirSync(PACK_RULES);
-  const yamls = files.filter((f) => f.endsWith(".yaml"));
-  assert.ok(yamls.length >= 8, "the pack covers injection, SSRF, path traversal, crypto, deserialization and authorization for Python and JavaScript");
-  for (const y of yamls) {
-    const stem = y.replace(/\.yaml$/, "");
-    assert.ok(files.some((f) => f.startsWith(`${stem}.`) && !f.endsWith(".yaml")), `${y} has a test file`);
+});
+
+test("every rule of the bundled pack has its language prefix, its metadata and an annotated fixture, and no registry key", () => {
+  const index = semgrepAdapter.buildPackIndex(PACK_RULES);
+  assert.deepEqual(index.problems, []);
+  assert.ok(index.rules.length >= 24, "the pack keeps its 24 JavaScript and Python rules");
+  const prefixes = semgrepAdapter.PACK_LANGUAGE_PREFIX;
+  assert.deepEqual(Object.values(prefixes).sort(), ["config", "csharp", "go", "html", "java", "js", "php", "python", "rust"], "the nine prefixes");
+  assert.deepEqual(prefixes, PACK_LISTS.languages, "the index reads the same lists as the tests");
+  assert.ok(PACK_LISTS.subdimensions.includes("hardening"));
+  const seen = new Set();
+  const families = new Map();
+  for (const rule of index.rules) {
+    assert.ok(!seen.has(rule.id), `${rule.id} is defined once`);
+    seen.add(rule.id);
+    assert.ok(prefixes[rule.language], `${rule.file}: ${rule.language} is a language of the pack`);
+    assert.ok(rule.id.startsWith(`jgates.${prefixes[rule.language]}.`), `${rule.id} carries the prefix of ${rule.language}`);
+    assert.ok(PACK_SEVERITIES.includes(rule.severity), `${rule.id}: severity ${rule.severity}`);
+    assert.equal(rule.author, "JGates", `${rule.id}: author`);
+    if (rule.metadataKeys.includes("class")) {
+      assert.equal(rule.class, "review", `${rule.id}: class must be review`);
+      assert.equal(rule.severity, "INFO", `${rule.id}: Review is INFO`);
+      assert.equal(rule.signal, null, `${rule.id}: Review is not a signal`);
+    }
+    if (rule.id.endsWith("-by-default")) assert.equal(rule.class, "review", `${rule.id}: -by-default requires class: review`);
+    for (const key of FORBIDDEN_METADATA) assert.ok(!rule.metadataKeys.includes(key), `${rule.id}: metadata key ${key} is typical of registry rules`);
+    if (rule.signal !== null) {
+      // A signal rule is a record of the scan, never a finding: INFO, `signal` from the closed list, `author`, nothing else.
+      assert.ok(PACK_LISTS.signalTags.includes(rule.signal), `${rule.id}: signal ${rule.signal}`);
+      assert.equal(rule.severity, "INFO", `${rule.id}: a signal rule is INFO`);
+      assert.deepEqual(rule.metadataKeys, [...PACK_LISTS.signalMetadata].sort(), `${rule.id}: a signal rule carries only signal and author`);
+      assert.equal(rule.family, `uses-${rule.signal}`, `${rule.id}: named uses-<tag>`);
+    } else {
+      assert.ok(PACK_CATEGORIES.includes(rule.category), `${rule.id}: category ${rule.category}`);
+      assert.match(rule.cwe, /^CWE-\d+$/, `${rule.id}: CWE`);
+      assert.ok(SECURITY_SUBDIMENSIONS.includes(rule.subdimension), `${rule.id}: subdimension ${rule.subdimension}`);
+      assert.deepEqual(rule.metadataKeys.filter((key) => !PACK_LISTS.optionalRuleMetadata.includes(key)), [...PACK_LISTS.ruleMetadata].sort(), `${rule.id}: only the metadata keys of a rule`);
+      assert.ok(rule.asvsRequirements.length > 0, `${rule.id}: asvs_requirements`);
+      for (const req of rule.asvsRequirements) assert.ok(ASVS_IDS.has(req), `${rule.id}: ${req} is a requirement of the vendored data`);
+      assert.equal(new Set(rule.asvsRequirements).size, rule.asvsRequirements.length, `${rule.id}: a requirement once`);
+      // One family name means one category and one CWE in every language.
+      const kind = `${rule.category} ${rule.cwe}`;
+      if (!families.has(rule.family)) families.set(rule.family, { kind, id: rule.id });
+      assert.equal(families.get(rule.family).kind, kind, `${rule.id}: the family ${rule.family} has another category or CWE than ${families.get(rule.family).id}`);
+    }
+    assert.ok(rule.fixture, `${rule.file} has a fixture beside it`);
+    // A rule file may have a fixture per extension (.js, .jsx, .ts): the cases of a rule may sit in any of them.
+    const fixture = rule.fixtures.map((f) => fs.readFileSync(path.join(PACK_RULES, f), "utf8")).join("\n");
+    const id = rule.id.replace(/[.]/g, "\\.");
+    assert.match(fixture, new RegExp(`ruleid:\\s*${id}(?![\\w.-])`), `${rule.id} has a ruleid: case`);
+    assert.match(fixture, new RegExp(`\\bok:\\s*${id}(?![\\w.-])`), `${rule.id} has an ok: case`);
+  }
+  for (const file of semgrepAdapter.listPackRuleFiles(PACK_RULES)) {
+    const text = fs.readFileSync(path.join(PACK_RULES, file), "utf8");
+    assert.doesNotMatch(text, /semgrep\.dev/i, `${file} links to the registry`);
   }
 });
 
-test("the bundled pack flags the vulnerable fixture and its clean twin none, with normalized findings [proves: semgrep#sast]", () => {
-  const bad = scanWithPack("vulnerable");
+/** One language's twins: every expected rule id comes back from the vulnerable twin, the clean twin has no finding. */
+function checkTwin(language) {
+  const known = new Set(semgrepAdapter.buildPackIndex(PACK_RULES).rules.map((r) => r.id));
+  const expected = JSON.parse(fs.readFileSync(path.join(PACK_FIXTURES, "expected", `${language}.json`), "utf8"));
+  assert.ok(Array.isArray(expected.ruleIds) && expected.ruleIds.length > 0, `expected/${language}.json lists rule ids`);
+  for (const id of expected.ruleIds) assert.ok(known.has(id), `${language}: ${id} is a rule of the pack`);
+  const bad = scanWithPack("vulnerable", language);
   const ids = new Set(bad.findings.map((f) => f.ruleId));
-  for (const id of [
-    "jgates.python.sql-string-building",
-    "jgates.python.os-command-injection",
-    "jgates.python.weak-hash",
-    "jgates.python.unsafe-deserialization",
-    "jgates.js.path-traversal",
-    "jgates.js.ssrf",
-    "jgates.js.weak-hash",
-    "jgates.js.os-command-injection",
-    "jgates.js.jwt-signature-not-verified",
-  ]) assert.ok(ids.has(id), `${id} missing in ${[...ids].join(", ")}`);
+  for (const id of expected.ruleIds) assert.ok(ids.has(id), `${language}: ${id} missing in ${[...ids].join(", ")}`);
   for (const f of bad.findings) {
     assert.equal(f.tool, "semgrep");
     assert.ok(f.location.path && f.location.line > 0, JSON.stringify(f));
   }
-  assert.deepEqual([...new Set(bad.findings.map((f) => f.location.path))].sort(), ["app.py", "server.js", "server.ts"]);
-  const clean = scanWithPack("clean");
-  assert.deepEqual(clean.findings.map((f) => f.ruleId), []);
+  assert.deepEqual([...new Set(bad.findings.map((f) => f.location.path))].sort(), [...expected.files].sort(), language);
+  const clean = scanWithPack("clean", language);
+  // A signal rule records the technology a file uses (the scan here is parsed without the pack's signal map, so its results
+  // show up as findings): the clean twin has no finding of a check, as in checkGroupTwin.
+  assert.deepEqual(clean.findings.filter((f) => !isSignal(f)).map((f) => f.ruleId), [], `${language} clean twin`);
+}
+
+const SIGNAL_ID = /^jgates\.[a-z]+\.uses-([a-z0-9-]+)$/;
+/** The signal tags of a scan: the `signals` record of the parse result when present, else the ids `jgates.<prefix>.uses-<tag>`. */
+function signalTags(scan) {
+  const record = scan.signals;
+  if (record !== undefined && record !== null) {
+    const entries = Array.isArray(record) ? record : Object.entries(record).filter(([, v]) => v).map(([k]) => k);
+    return [...new Set(entries.map((e) => (typeof e === "string" ? e : e.tag ?? e.signal)))].sort();
+  }
+  return [...new Set(scan.findings.map((f) => SIGNAL_ID.exec(f.ruleId)?.[1]).filter(Boolean))].sort();
+}
+const isSignal = (f) => SIGNAL_ID.test(f.ruleId);
+
+/** Compares a scan of a group's vulnerable twin with its expected file: exact rule ids, or exact signal tags. */
+function compareGroup(label, expected, scan) {
+  const real = scan.findings.filter((f) => !isSignal(f));
+  if (expected.signals !== undefined) {
+    assert.deepEqual(signalTags(scan), [...expected.signals].sort(), `${label}: signal tags`);
+    assert.deepEqual([...new Set(real.map((f) => f.ruleId))], [], `${label}: a signals group has no finding`);
+    return;
+  }
+  assert.deepEqual([...new Set(real.map((f) => f.ruleId))].sort(), [...expected.ruleIds].sort(), `${label}: rule ids`);
+  assert.deepEqual([...new Set(real.map((f) => f.location.path))].sort(), [...expected.files].filter((f) => !/(^|\/)Cargo\.toml$/.test(f)).sort(), `${label}: files with findings`);
+}
+
+/** One group's twins: the vulnerable twin gives exactly the expected ids (or tags), the clean twin nothing; the whole pack is the configuration. */
+function checkGroupTwin(language, group, expected) {
+  const label = `${language}/${group}`;
+  assert.ok(Array.isArray(expected.files) && expected.files.length > 0, `expected/${label}.json lists files`);
+  assert.ok(Array.isArray(expected.ruleIds) !== Array.isArray(expected.signals), `expected/${label}.json lists ruleIds or signals`);
+  if (expected.ruleIds) {
+    const known = new Set(semgrepAdapter.buildPackIndex(PACK_RULES).rules.map((r) => r.id));
+    for (const id of expected.ruleIds) assert.ok(known.has(id), `${label}: ${id} is a rule of the pack`);
+  }
+  const bad = scanWithPack("vulnerable", language, group);
+  for (const f of bad.findings) assert.ok(f.tool === "semgrep" && f.location.path && f.location.line > 0, JSON.stringify(f));
+  compareGroup(label, expected, bad);
+  const clean = scanWithPack("clean", language, group);
+  assert.deepEqual(clean.findings.filter((f) => !isSignal(f)).map((f) => f.ruleId), [], `${label} clean twin`);
+  if (expected.signals !== undefined) assert.deepEqual(signalTags(clean), [], `${label} clean twin signals`);
+}
+
+test("every group twin (expected/<language>/<group>.json) gives exactly its rule ids or signal tags on the vulnerable twin and nothing on the clean one [proves: semgrep#sast]", async (t) => {
+  // Each completed real group is a reported subtest, not an opaque multi-hour loop. Awaiting each one keeps the
+  // scans sequential and preserves both twins and every exact comparison without a timer or a synthetic heartbeat.
+  for (const language of twinGroupLanguages()) {
+    for (const { group, expected } of groupsOf(language)) {
+      await t.test(`${language}/${group}: vulnerable and clean twins`, () => checkGroupTwin(language, group, expected));
+    }
+  }
+});
+
+test("the group comparison fails when the expected ids or tags differ, and a group file stays out of the per-language workspace", () => {
+  const finding = (ruleId, p) => ({ ruleId, tool: "semgrep", location: { path: p, line: 1 } });
+  const scan = { findings: [finding("jgates.go.a", "x.go"), finding("jgates.go.uses-graphql", "x.go")] };
+  compareGroup("ok", { files: ["x.go"], ruleIds: ["jgates.go.a"] }, scan);
+  assert.throws(() => compareGroup("more", { files: ["x.go"], ruleIds: ["jgates.go.a", "jgates.go.b"] }, scan), assert.AssertionError);
+  assert.throws(() => compareGroup("fewer", { files: ["x.go"], ruleIds: [] }, scan), assert.AssertionError);
+  compareGroup("tags", { files: ["x.go"], signals: ["graphql"] }, { findings: [finding("jgates.go.uses-graphql", "x.go")] });
+  assert.throws(() => compareGroup("tags", { files: ["x.go"], signals: ["graphql", "grpc"] }, { findings: [finding("jgates.go.uses-graphql", "x.go")] }), assert.AssertionError);
+  assert.deepEqual(signalTags({ findings: [], signals: { graphql: 2, grpc: 0 } }), ["graphql"], "the signals record wins when present");
+  // The workspace of a language folder leaves the files of its groups out; the workspace of a group holds only its files.
+  const language = twinGroupLanguages()[0];
+  if (language) {
+    const taken = new Set(groupsOf(language).flatMap((g) => g.expected.files));
+    const whole = packWorkspace("vulnerable", language);
+    try {
+      for (const file of taken) assert.ok(!fs.existsSync(path.join(whole, file)), `${file} is a group twin file`);
+    } finally {
+      fs.rmSync(whole, { recursive: true, force: true });
+    }
+  }
+});
+
+// The five languages added to the pack each have a literal-titled test below: the stack matrix cites them as the proof
+// of the `validated` row of that stack. Any other twin language is covered by the data-driven test.
+const TITLED_TWINS = ["go", "csharp", "rust", "java", "php"];
+
+test("the bundled pack flags the vulnerable fixture of every other language as expected and its clean twin none, with normalized findings [proves: semgrep#sast]", () => {
+  const languages = twinLanguages();
+  assert.ok(languages.length >= 8, "the eight languages of the pack are twinned");
+  for (const language of TITLED_TWINS) assert.ok(languages.includes(language), `${language} is twinned`);
+  for (const language of languages.filter((l) => !TITLED_TWINS.includes(l))) checkTwin(language);
+});
+
+test("the bundled pack flags the vulnerable Go twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@go]", () => checkTwin("go"));
+test("the bundled pack flags the vulnerable C# twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@csharp]", () => checkTwin("csharp"));
+test("the bundled pack flags the vulnerable Rust twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@rust]", () => checkTwin("rust"));
+test("the bundled pack flags the vulnerable Java twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@java]", () => checkTwin("java"));
+test("the bundled pack flags the vulnerable PHP twin as expected and its clean twin none [proves: semgrep#sast, semgrep#sast@php]", () => checkTwin("php"));
+
+test("HTML files and configuration files are counted as html and config, and a pack folder of each is a pack language", () => {
+  const scanned = [
+    "/ws/index.html", "/ws/old/page.HTM", "/ws/app.js", "/ws/conf/site.conf", "/ws/app.properties", "/ws/php.ini", "/ws/.htaccess", "/ws/web.config",
+    "/ws/src/main/resources/application.yml", "/ws/application-dev.yaml", "/ws/appsettings.json", "/ws/appsettings.Production.json",
+    "/ws/config/packages/security.yaml", "/ws/config/services.yaml", "/ws/config/app.php", "/ws/data.json", "/ws/ci.yml", "/ws/settings.xml",
+  ];
+  const counts = semgrepAdapter.scannedLanguageCounts(scanned, ["html", "config", "go"]);
+  assert.equal(counts.html, 2);
+  assert.equal(counts.config, 12, "the configuration files by extension, by file name and by the framework folders");
+  assert.equal(counts.go, 0);
+  assert.equal(counts.javascript, 1);
+  assert.equal(counts.php, 1, "a Laravel config file is also a PHP file");
+  assert.deepEqual(semgrepAdapter.scannedLanguageCounts(["/ws/data.json", "/ws/ci.yml"], ["html", "config"]), { html: 0, config: 0 });
+  // The plan item names the two kinds of file in words a person reads, in both languages.
+  assert.deepEqual(["html", "config"].map((l) => semgrepAdapter.packLanguageLabel(l, "en")), ["HTML files", "configuration files"]);
+  assert.deepEqual(["html", "config"].map((l) => semgrepAdapter.packLanguageLabel(l, "pt-BR")), ["arquivos HTML", "arquivos de configuração"]);
+  assert.deepEqual(semgrepAdapter.packLanguagesOf(["go/go-xss.yaml", "html/html-markup.yaml", "config/config-server.yaml", "config/config-framework.yaml"]), ["go", "html", "config"]);
+});
+
+test("the scanned languages of a Semgrep output are counted per language, a pack language with no file is 0, and the plan names what the pack lacks", () => {
+  const counts = semgrepAdapter.scannedLanguageCounts(["/ws/A.java", "/ws/b.php", "/ws/c.PHP", "/ws/d.kt", "/ws/readme.md"], ["java", "php", "go"]);
+  assert.deepEqual(counts, { java: 1, php: 2, go: 0, kotlin: 1 });
+  const parsed = semgrepAdapter.parseSemgrepOutput(JSON.stringify({ results: [], errors: [], paths: { scanned: ["/ws/A.java"] } }), { stageId: "s", version: null, workspace: "/ws", cwd: "/ws" });
+  assert.deepEqual(parsed.scanned, ["/ws/A.java"]);
+  assert.deepEqual(semgrepAdapter.packLanguagesOf(["javascript-xss.yaml", "go/go-xss.yaml", "java/java-injection.yaml", "php/php-taint.yaml"]), ["javascript", "go", "java", "php"]);
 });
 
 test("the pack runs next to the customer's own rules, and an unknown pack id is refused", () => {
-  const dir = packWorkspace("clean");
+  const dir = packWorkspace("clean", "python");
   const home = tmp("jgates-pack-home-");
   try {
     const cli = packCli(dir, home);

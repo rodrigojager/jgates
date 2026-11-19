@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "runId": "sem_20261114T110000Z_0a1b2c3d",
+  "gate": "semantic",
+  "tool": "jgates",
+  "version": "2.0.0",
+  "startedAt": "2026-11-14T11:00:00.000Z",
+  "finishedAt": "2026-11-14T11:20:00.000Z",
+  "workspace": { "id": "ws-asvs-units", "path": "/work/sample", "name": "sample" },
+  "runDir": "/home/jgates/workspaces/ws-asvs-units/semantic-runs/sem_20261114T110000Z_0a1b2c3d",
+  "selection": { "adapter": "semantic-gate", "options": { "methods": "security-audit" }, "overrides": [], "planSource": "built" },
+  "decision": "passed",
+  "complete": true,
+  "reduced": false,
+  "exitCode": 0,
+  "requirements": [],
+  "stages": [],
+  "findings": [],
+  "unsatisfied": [],
+  "warnings": [],
+  "blockingViolations": 0,
+  "disabled": [],
+  "workspaceChanges": { "checked": false, "added": [], "modified": [], "removed": [] },
+  "artifacts": { "result": "result.json", "logs": [], "outputs": ["evidence/security-audit/coverage-ledger.json"] },
+  "semanticRun": {
+    "schemaVersion": 1,
+    "enforcement": "advisory",
+    "methods": ["security-audit"],
+    "outcome": {
+      "requested": true,
+      "state": "completed",
+      "separateFromDecision": true,
+      "provider": "scripted",
+      "model": "fixture",
+      "scope": null,
+      "limits": null,
+      "cost": { "reported": false, "perCall": null, "total": null },
+      "calls": 6
+    },
+    "source": { "id": "git:3f2a1b", "basis": "git", "traceable": true },
+    "quality": null
+  }
+}

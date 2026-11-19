@@ -10,8 +10,10 @@ import {
   type Universe,
   type UniverseOptions,
 } from "./selectors.js";
+import { aboveTier, profileTierOf, type Tier } from "./tiers.js";
 
 export * from "./selectors.js";
+export * from "./tiers.js";
 
 /**
  * Effective selection: for every check the project can name (category, capability, tool, rule, PII entity,
@@ -27,9 +29,14 @@ export * from "./selectors.js";
  * - a requirement locked in the policy (locked: true) cannot be turned off by any layer: the attempt is an error
  *   with the reason, and a locked requirement nothing selected is turned on.
  * Anything no selector covers is off (NOT_SELECTED), except components, which are on.
+ *
+ * Tiers (ADR-0022, ./tiers.ts): an instance above `core` is switched on by a capability, category or component entry,
+ * or by the default of the template that declares it, only up to the profile's tier, and then only "when available"
+ * (it never blocks a plan). Above the profile's tier only an explicit tool:<id> entry of the profile, the project or
+ * the call switches it on; without one it is off with reason ABOVE_TIER. Turning it off works as for any other tool.
  */
 
-export type SelectionReason = "EXPLICIT" | "DERIVED" | "NOT_SELECTED" | "DEFAULT" | "LOCKED_REQUIRED";
+export type SelectionReason = "EXPLICIT" | "DERIVED" | "NOT_SELECTED" | "DEFAULT" | "LOCKED_REQUIRED" | "ABOVE_TIER";
 
 /**
  * Condition of an `enabled: true` check entry. "available": the check runs where an applicable, executable tool exists;
@@ -76,6 +83,9 @@ export interface PairState {
   when?: CheckCondition;
 }
 
+/** Layers whose tool:<id> entry is the user's own choice (not a template's default): it switches a tool on above the tier. */
+const EXPLICIT_LAYERS: readonly LayerName[] = ["profile", "project", "call"];
+
 export interface SelectionItem {
   selector: string;
   kind: SelectorKind;
@@ -102,6 +112,8 @@ export interface SelectionItem {
    * `enabled: true` of the same layer requires it plainly, and no policy lock covers it. Absent otherwise.
    */
   when?: CheckCondition;
+  /** Tools above `core` only: the instance's tier (absent: core). */
+  tier?: Tier;
 }
 
 export interface SelectionIssue {
@@ -127,6 +139,8 @@ export interface SelectionResult {
   errors: SelectionIssue[];
   locks: LockInfo[];
   universe: Universe;
+  /** The selected profile's tier (selection.tier; core when no profile of the chain says one). */
+  tier: Tier;
 }
 
 export interface SelectionOptions extends UniverseOptions {
@@ -236,11 +250,11 @@ function collectLocks(result: ResolveResult): LockInfo[] {
   return locks;
 }
 
-function pickWinner(covers: Cover[], byField: Map<string, Entry>, probe?: (value: boolean | string) => boolean): { winner?: Candidate; overridden: Candidate[]; tie: boolean } {
+function pickWinner(covers: Cover[], byField: Map<string, Entry>, probe?: (value: boolean | string) => boolean, admit?: (entry: Entry) => boolean): { winner?: Candidate; overridden: Candidate[]; tie: boolean } {
   const found: Candidate[] = [];
   for (const cover of covers) {
     const entry = byField.get(cover.selector);
-    if (entry && (!probe || probe(entry.value))) found.push({ entry, specificity: cover.specificity });
+    if (entry && (!probe || probe(entry.value)) && (!admit || admit(entry))) found.push({ entry, specificity: cover.specificity });
   }
   found.sort(
     (a, b) =>
@@ -263,6 +277,7 @@ const toDecision = (c: Candidate): SelectionDecision => ({ ...c.entry.decision, 
 export function resolveSelection(result: ResolveResult, options: SelectionOptions = {}): SelectionResult {
   const t = translator("selection");
   const universe = options.universe ?? buildUniverse(result.config, options.inventory, options);
+  const profileTier = profileTierOf(result.config);
   const entries = collectEntries(result);
   const enabledBy = new Map<string, Entry>();
   const intensityBy = new Map<string, Entry>();
@@ -326,8 +341,21 @@ export function resolveSelection(result: ResolveResult, options: SelectionOption
 
   const violations: Array<{ lock: LockInfo; decision: SelectionDecision; item: string }> = [];
 
-  const decide = (selector: string, covers: Cover[], extra?: Candidate, lockCovers: Cover[] = covers): Omit<SelectionItem, "kind" | "id" | "selector"> & { tie: boolean } => {
-    const enabled = pickWinner(covers, enabledBy, (v) => typeof v === "boolean");
+  /**
+   * The tier rule of one tool instance above `core`: `explicit` tells an entry that names the instance itself in a
+   * layer of the user's (profile, project, call); `above` says the instance is above the profile's tier.
+   */
+  interface TierRule {
+    above: boolean;
+    explicit: (entry: Entry) => boolean;
+  }
+
+  const decide = (selector: string, covers: Cover[], extra?: Candidate, lockCovers: Cover[] = covers, tier?: TierRule): Omit<SelectionItem, "kind" | "id" | "selector"> & { tie: boolean } => {
+    // Above the profile's tier, only the user's explicit switch can turn the instance on.
+    const admit = tier?.above ? (e: Entry): boolean => e.value !== true || tier.explicit(e) : undefined;
+    const enabled = pickWinner(covers, enabledBy, (v) => typeof v === "boolean", admit);
+    const heldPick = admit ? pickWinner(covers, enabledBy, (v) => v === true, (e) => !admit(e)) : undefined;
+    const held = heldPick ? [...(heldPick.winner ? [heldPick.winner] : []), ...heldPick.overridden] : [];
     let winner = enabled.winner;
     let overridden = enabled.overridden;
     if (extra) {
@@ -340,8 +368,10 @@ export function resolveSelection(result: ResolveResult, options: SelectionOption
     const intensity = pickWinner(covers, intensityBy).winner;
     const locked = lockedBy(lockCovers);
     let value = winner ? winner.entry.value === true : false;
-    let reason: SelectionReason = winner ? "EXPLICIT" : "NOT_SELECTED";
+    let reason: SelectionReason = winner ? "EXPLICIT" : tier?.above ? "ABOVE_TIER" : "NOT_SELECTED";
     let decision: SelectionDecision | null = winner ? toDecision(winner) : null;
+    // What would have switched it on below its tier is kept with the losers, so the origin stays visible.
+    if (!winner && held.length > 0) overridden = [...overridden, ...held].sort((a, b) => b.entry.rank - a.entry.rank || b.specificity - a.specificity);
     let lockViolation = false;
     if (locked.length > 0) {
       if (!winner) {
@@ -356,11 +386,13 @@ export function resolveSelection(result: ResolveResult, options: SelectionOption
     }
     // On "when available" only when nothing of the same strength requires it plainly and no lock covers it.
     const top = winner;
-    const when =
+    let when =
       value && top && reason === "EXPLICIT" && locked.length === 0 && top.entry.decision.when !== undefined &&
       !overridden.some((c) => c.entry.value === true && c.entry.rank >= top.entry.rank && c.entry.decision.when === undefined)
         ? top.entry.decision.when
         : undefined;
+    // A tool a tier adds (switched on by a capability, category or component, or by its template) never blocks a plan.
+    if (tier && value && top && reason === "EXPLICIT" && locked.length === 0 && !tier.explicit(top.entry)) when = "available";
     return {
       enabled: value,
       reason,
@@ -388,8 +420,16 @@ export function resolveSelection(result: ResolveResult, options: SelectionOption
     const caps: Array<string | null> = tool.capabilities.length > 0 ? tool.capabilities : [null];
     const pairs: PairState[] = [];
     let tie = false;
+    // Above core: the tier rule, and only the locks that name the instance (a capability lock is a requirement the
+    // core tools answer; it never forces on every tool of a higher tier).
+    const own = new Set([`tool:${tool.id}`, ...(tool.parent ? [`tool:${tool.parent}`] : [])]);
+    const tierRule: TierRule | undefined =
+      tool.tier === "core"
+        ? undefined
+        : { above: aboveTier(tool.tier, profileTier), explicit: (e) => own.has(e.selector) && EXPLICIT_LAYERS.includes(e.decision.layer) };
     for (const cap of caps) {
-      const d = decide(`tool:${tool.id}${cap ? `[${cap}]` : ""}`, toolCovers(tool, cap));
+      const covers = toolCovers(tool, cap);
+      const d = decide(`tool:${tool.id}${cap ? `[${cap}]` : ""}`, covers, undefined, tierRule ? covers.filter((c) => own.has(c.selector)) : covers, tierRule);
       tie ||= d.tie;
       pairs.push({
         capability: cap,
@@ -417,6 +457,7 @@ export function resolveSelection(result: ResolveResult, options: SelectionOption
       ...(pairs.some((p) => p.lockViolation) ? { lockViolation: true } : {}),
       capabilities: pairs,
       component: tool.component,
+      ...(tool.tier !== "core" ? { tier: tool.tier } : {}),
       tie,
     });
     toolItems.set(tool.id, item);
@@ -511,7 +552,7 @@ export function resolveSelection(result: ResolveResult, options: SelectionOption
   }
   errors.push(...grouped.values());
 
-  return { ok: errors.length === 0, items, errors, locks, universe };
+  return { ok: errors.length === 0, items, errors, locks, universe, tier: profileTier };
 }
 
 /** Overrides of the call layer for `--skip`: each selector turned off, with the flag as the origin. */

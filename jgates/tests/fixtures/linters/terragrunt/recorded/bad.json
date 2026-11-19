@@ -1,0 +1,20 @@
+{
+ "tool": "terragrunt",
+ "kind": "bad",
+ "version": "1.2.2",
+ "calls": [
+  {
+   "args": [
+    "hcl",
+    "fmt",
+    "--check",
+    "--diff",
+    "--file",
+    "terragrunt.hcl"
+   ],
+   "exit": 1,
+   "stdout": "diff old/workspace/terragrunt.hcl new/workspace/terragrunt.hcl\n--- old/workspace/terragrunt.hcl\n+++ new/workspace/terragrunt.hcl\n@@ -1,3 +1,3 @@\n-inputs={\n-      region=\"us\"\n+inputs = {\n+  region = \"us\"\n }\n",
+   "stderr": ""
+  }
+ ]
+}

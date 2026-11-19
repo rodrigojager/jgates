@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-gherkin-lint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of gherkin-lint in the JGates tools image.",
+  "license": "ISC",
+  "dependencies": {
+    "gherkin-lint": "4.2.4"
+  }
+}

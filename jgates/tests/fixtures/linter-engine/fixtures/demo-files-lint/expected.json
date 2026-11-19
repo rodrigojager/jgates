@@ -1,0 +1,13 @@
+{
+  "files": [
+    "a.demo",
+    "sub/b.demo"
+  ],
+  "findings": [
+    {
+      "rule": "demo.colon",
+      "file": "a.demo",
+      "line": 2
+    }
+  ]
+}

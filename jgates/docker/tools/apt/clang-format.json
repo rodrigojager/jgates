@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "clang-format"
+  ],
+  "provides": [
+    {
+      "name": "clang-format",
+      "path": "/usr/bin/clang-format",
+      "version": [
+        "clang-format",
+        "--version"
+      ],
+      "pattern": "version (\\S+)"
+    }
+  ]
+}

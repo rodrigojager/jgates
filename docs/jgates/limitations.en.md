@@ -11,7 +11,7 @@ This page gathers what JGates does not do yet, what was not tested and the contr
 - **The OSV mirror covers npm, PyPI, Go, crates.io and NuGet only.** A dependency of another ecosystem is not covered by the offline OSV data; do not read a clean result as proof for it.
 - **Trivy uses its embedded checks.** The checks bundle that Trivy would download is not used; the misconfiguration checks that ship inside the binary are, with the vulnerability database from the `jgates-data` volume.
 - **Playwright e2e runs Chromium only.** The browsers of the project's Playwright version are fetched into the toolchain volume, and JGates fetches Chromium; Firefox and WebKit projects are not run.
-- **The first download is large.** The image is about 2 GB to download and around 6 GB unpacked, plus the dependencies of each project and the vulnerability databases. See [storage and cleanup](storage.en.md).
+- **The first download is large.** The image is about 5 GB to download and around 13 GB unpacked, plus the dependencies of each project and the vulnerability databases. See [storage and cleanup](storage.en.md).
 - **Install scripts run, but in the container.** The dependency step runs the install scripts of the packages (npm `postinstall`, Python build backends) inside the container, with the network on. They cannot touch your project or machine, but they do run, and the review says so. See [security](security.en.md#shared-caches-and-install-scripts).
 - **Case sensitivity.** The copy of the project in the volume is case-sensitive, like Linux. A project that only works on a case-insensitive file system fails in the container (see [common problems](troubleshooting.en.md#windows-and-wsl)).
 
@@ -20,7 +20,7 @@ This page gathers what JGates does not do yet, what was not tested and the contr
 - **macOS.** No test ran on a real Mac. The compatibility matrix shows "not tested on a real machine" in the macOS column for every adapter. The data folder path on macOS (`~/Library/Application Support/jgates`) exists in the code and is covered by a unit test only.
 - **Windows.** The automatic suite runs on Linux. On one Windows 10 machine with Docker Desktop, the first-run flow was checked by hand: the global install from the `npm pack` tarball (with `jgates` on the `Path`), `init`, `plan`, `run` and `ui`. The suite itself still has failures of its own on Windows (paths compared with a different letter case, checks that need POSIX: `0600` permissions, cancellation by process group, symlinks); the tests that depend on Windows are marked and skip elsewhere, with the reason. The `winget` command of the Docker recipe was not run. Before relying on JGates on another Windows machine, run the suite there (`node scripts/smoke-install.mjs` repeats the installation proof).
 - **Engines other than Docker.** The checks use the Docker command line. Rancher Desktop and Podman Desktop are expected to work through their `docker` command or `JGATES_CONTAINER_RUNTIME`, but only Docker was exercised.
-- **Screen reader.** Accessibility was checked with axe (WCAG 2.2 AA, no critical or serious violation in the light, dark and system themes), with the keyboard and with reduced motion. No real screen reader was used.
+- **Screen reader and new Review screens.** Earlier accessibility checks used axe (WCAG 2.2 AA, no critical or serious violation in the light, dark and system themes), the keyboard and reduced motion. No real screen reader was used. The new Review controls have passed UI typechecks only; real keyboard/Esc, theme, language, responsive and axe verification is still pending.
 - **Direct installation from GitHub.** `npm install --prefix <folder> git+https://github.com/rodrigojager/jgates` and `npm install git+https://github.com/rodrigojager/jgates` inside a project were checked by hand with a local clone (`git+file://`, npm 11), including in a folder with a space in its path: `jgates --version` worked. They are not in the automatic suite, and the download from GitHub itself was not exercised. The path the suite tests is the `npm pack` tarball (see [getting started](getting-started.en.md)).
 - **The tools image is not published yet.** Until it is, the pin file holds the local image `jgates-tools:dev`; `jgates tools export` and `import` move an image between machines.
 
@@ -32,6 +32,37 @@ This page gathers what JGates does not do yet, what was not tested and the contr
 - inside a project: `npm install git+https://github.com/rodrigojager/jgates`, and the commands through `npx`;
 - global: `npm pack` in a clone, followed by `npm install --global ./jgates-<version>.tgz`.
 
+## Java and PHP checks
+
+File evidence activates PMD for Java and PHPStan for PHP under Balanced and Strict. Strict can also run additional Java and PHP tools when their file and configuration requirements match. See the [tool catalog](tools.en.md) for activation and limitations. Semgrep supplies SAST in Balanced and Strict. Java and PHP lack dedicated component test runners, coverage collection and dependency preparation. Offline advisory data does not cover Maven or Composer.
+
+## Review and language-note limits
+
+The pack's four classes are `ERROR`, `WARNING`, ordinary `INFO` and **Review**. Review findings are shown as **To review**,
+never block in any profile or mode, never change the exit code and never examine an ASVS requirement.
+Review detects a protection not visible locally, not a demonstrated vulnerability: it can miss risky code and flag
+sound code more often than a blocking rule. Protections may be elsewhere, and the library or its configuration may
+differ from the model. **Mark as reviewed** records a per-occurrence waiver, not a security approval; Review alone
+never changes the result to "approved with N waivers".
+
+A language note is a reviewed statement about a library or language, not a check of the project. Neither
+"Protected by the library itself (not checked by JGates)" nor "Not applicable to this language" changes an ASVS state,
+counts as examined or records your "not applicable". See [the map](asvs-coverage.en.md).
+
+### Go template mixed-import detection gap
+
+`jgates.go.text-template-for-html` misses a bare `import "text/template"` beside a named `html/template` import,
+such as `import htmltpl "html/template"`. Its bare-import branch explicitly excludes files containing a named
+HTML-template import. Local attempts to remove or narrow that exclusion detected the unsafe calls but also
+incorrectly flagged safe `htmltpl` templates executed into an HTTP response. The rule therefore remains blocking
+and unchanged; this mixed-import shape is a documented detection gap, not a fixed detection.
+
+### Rust client-certificate verification gap
+
+There is no `jgates.rust.mtls-client-certificate-not-verified` rule. In the modeled OpenSSL API, PEER requests and
+verifies the certificate, NONE does not request one, and an accepts-all verification callback is an explicit bypass,
+not absent-protection Review. No executable check or examined coverage is claimed for this planned omission.
+
 ## Semantic gate
 
 The semantic gate is optional, stays on the host and is described in [semantic gate](semantic-gate.en.md). Every test uses a fake provider, to spend no tokens. The **smoke with a real provider is pending**: no real review was run end to end with a real key. The behavior on timeout, exhausted budget and unavailable provider is covered by the fake provider.
@@ -40,7 +71,7 @@ The semantic gate is optional, stays on the host and is described in [semantic g
 
 `THIRD_PARTY_NOTICES.md` (at the repository root) lists every component. For whoever distributes an image or a package, these points matter:
 
-- **The legacy sidecar image is AGPL-3.0.** The sidecar of the old quality gate starts from the MegaLinter image. JGates no longer builds it or uses it for the plans of `jgates run`, but `jgates ci` and the `quality-gate` command still use that layer. It runs as a separate process, not linked to JGates, but redistributing that image requires the source offer and the license text of MegaLinter and of the tools it bundles.
+- **The legacy sidecar image is AGPL-3.0.** The sidecar of the old quality gate starts from the MegaLinter image. JGates no longer builds it or uses it for the plans of `jgates run`, but the `quality-gate` command still uses that layer; `jgates ci` runs inside the tools image, which has no MegaLinter. It runs as a separate process, not linked to JGates, but redistributing that image requires the source offer and the license text of MegaLinter and of the tools it bundles.
 - **Semgrep registry rules** carry the Semgrep Rules License v1.0, which restricts use to internal business purposes. The tools image does not contain them and JGates does not distribute them; a project that enables them accepts those terms.
 - **Vulnerability databases.** The Trivy database and the OSV.dev data have their own terms and are downloaded into a volume when you run `jgates setup` or `jgates tools update-data`, never stored in the repository.
 - **CodeQL** is under GitHub's terms, which you accept when you prepare it.
@@ -68,7 +99,7 @@ What already works: `execution.failFast` (acts as `--fail-fast`), `execution.dat
 
 ## CI
 
-- **Scope of `jgates ci`.** `jgates ci` runs inside the container of the job (the tools image, pinned by digest). The scanners that read configuration or ignore files from the analyzed tree are left out of it, and the layer of the legacy quality gate bridge, with its packaged and trusted configuration, covers them. Of MegaLinter only the verified linters run, listed in `quality-gate/sidecar/config/megalinter-linters.json`.
+- **Scope of `jgates ci`.** `jgates ci` runs inside the container of the job (the tools image, pinned by digest). The scanners that read configuration or ignore files from the analyzed tree are left out of it, and the layer of the legacy quality gate bridge, with its packaged and trusted configuration, covers them. MegaLinter does not run there: the tools image has none, and the bridge's `megalinter` subcheck is always off, replaced by the linters that are JGates tools of their own.
 - **Self-reported results.** Tools that execute project code produce a `selfReported` result, which only approves if the policy trusts it (`execution.trustSelfReported`, default `false`).
 - **Activation in the policy templates.** In the policy repository use the `always` activation; activation by file lets the project turn the tool on or off.
 - **No proof on real pipelines.** The examples in `examples/ci` are tested as text and through the command; no GitHub or GitLab pipeline ran them end to end, and the tools image has not been published to a registry yet.

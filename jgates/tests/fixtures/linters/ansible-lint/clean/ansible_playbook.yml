@@ -1,0 +1,7 @@
+---
+- name: Say hello
+  hosts: all
+  tasks:
+    - name: Print a greeting
+      ansible.builtin.debug:
+        msg: hello

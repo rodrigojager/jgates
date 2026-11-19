@@ -1,0 +1,20 @@
+{
+ "tool": "biome",
+ "kind": "clean",
+ "version": "2.6.8",
+ "calls": [
+  {
+   "args": [
+    "lint",
+    "--reporter=json",
+    "--colors=off",
+    "--no-errors-on-unmatched",
+    "--",
+    "total.js"
+   ],
+   "exit": 0,
+   "stdout": "{\"summary\":{\"changed\":0,\"unchanged\":1,\"matches\":0,\"duration\":13023217,\"errors\":0,\"warnings\":0,\"infos\":0,\"skipped\":0,\"suggestedFixesSkipped\":0,\"diagnosticsNotPrinted\":0,\"scannerDuration\":1490817},\"diagnostics\":[],\"command\":\"lint\"}\n",
+   "stderr": "The `json` and `json-pretty` reporters are experimental and may change in patch releases.\n"
+  }
+ ]
+}

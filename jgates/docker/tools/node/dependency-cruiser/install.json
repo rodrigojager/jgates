@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "dependency-cruiser",
+      "link": "depcruise",
+      "path": "node_modules/.bin/depcruise",
+      "version": [
+        "depcruise",
+        "--version"
+      ]
+    }
+  ]
+}

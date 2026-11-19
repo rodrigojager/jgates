@@ -29,6 +29,8 @@ jgates tools matrix
 
 `tools list` shows the categories, the capabilities, the adapters and the instances declared in `.jgates/tools.yml`. `tools inspect` shows one instance with its linked files. `tools matrix` prints the compatibility matrix (and `--json` brings the problems the consistency test checks).
 
+Built-in linters use file evidence such as an extension, filename or configuration marker. The descriptor supplies the command, output reader, default tier and CI trust classification. The individual tools run in the JGates tools image. [Browse the tool catalog](tools.en.md).
+
 ## Support levels
 
 Each instance shows how much JGates understands the tool:
@@ -59,6 +61,8 @@ jgates tools prepare --instance <instance> --no-interactive
 `--dry-run` shows versions, the network that would be used and what would be written, without downloading or writing. What was prepared is pinned in `.jgates/lock.json`, which goes into the repository: the `run` uses what was pinned. Moving an already pinned tool to an older version requires `--allow-version-change` (`VERSION_DOWNGRADE`).
 
 `prepare` applies to Semgrep, whose local rules are downloaded once and pinned by hash. On any other instance it answers `PREPARE_NOT_SUPPORTED`.
+
+The Semgrep adapter can also run the JGates rule pack (`tools.<id>.rulePack: jgates`, the default of the base template): original rules for JavaScript, TypeScript, Python, Go, C#, Rust, Java and PHP. Its plan item names the languages the pack covers and, when discovery found a language the pack has no rule for, says so as a limitation. The Semgrep stage of the result carries `scannedLanguages`, the number of files of each language the scan covered. For Java and PHP, which have no stack, the pack is the only language-specific check.
 
 ### The quality bridge is retired
 

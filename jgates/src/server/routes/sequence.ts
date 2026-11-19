@@ -5,7 +5,12 @@
 // stops its own processes and keeps its partial evidence); advance continues a sequence waiting after its Quality
 // approval (`jgates run --advance <seq_...>`). The Quality and Semantic routes keep listing their own runs only.
 import { spawn, type ChildProcess } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
+import { workspaceDir } from "../../core/home/index.js";
+import { approvalWording, approvalWordingParams } from "../../core/results/index.js";
+import { RESULT_FILE } from "../../core/run/index.js";
+import type { RunResult } from "../../core/run/types.js";
 import { fileURLToPath } from "node:url";
 import { newSequenceId } from "../../core/gates/ids.js";
 import { PLAN_SCOPES, type PlanScopeKind } from "../../core/plan/types.js";
@@ -144,9 +149,20 @@ function spawnCli(server: ServerContext, id: string, args: string[]): void {
 }
 
 /** A sequence as the API shows it (without the internal ordering field). */
-function publicView(view: SequenceView): Omit<SequenceView, "time"> {
+function publicView(view: SequenceView, server?: ServerContext): Omit<SequenceView, "time"> {
   const { time: _time, ...rest } = view;
-  return rest;
+  const quality = rest.details?.quality;
+  if (!server || !quality || quality.decision !== "passed") return rest;
+  // The Quality step reads "approved with N waivers" when its stored result passed with waivers (the wording comes from
+  // the core function every surface uses; an unreadable result stays a plain approval).
+  try {
+    const file = path.join(workspaceDir(server.home, server.workspace.id), "runs", quality.runId, RESULT_FILE);
+    const result = JSON.parse(fs.readFileSync(file, "utf8")) as RunResult;
+    const wording = approvalWording(result);
+    return { ...rest, details: { ...rest.details, quality: { ...quality, approval: { kind: wording.kind, ...approvalWordingParams(wording) } } } } as Omit<SequenceView, "time">;
+  } catch {
+    return rest;
+  }
 }
 
 export const routes: RouteDefinition[] = [
@@ -167,7 +183,7 @@ export const routes: RouteDefinition[] = [
     query: { type: "object", properties: { limit: { type: "string", pattern: "^[1-9][0-9]{0,3}$" } }, additionalProperties: false },
     handler({ query, server }) {
       const limit = Number(query.limit ?? "50");
-      const sequences = listSequences(server.home, server.workspace.id).slice(0, limit).map(publicView);
+      const sequences = listSequences(server.home, server.workspace.id).slice(0, limit).map((v) => publicView(v, server));
       return { status: 200, json: { schemaVersion: 1, status: "OK", sequences } };
     },
   },
@@ -203,7 +219,7 @@ export const routes: RouteDefinition[] = [
         if (childrenOf(server).has(id)) return { status: 200, json: { schemaVersion: 1, status: "OK", sequence: { sequenceId: id, lifecycle: "running", live: true, record: null, details: null } } };
         throw fail(404, "SEQUENCE_NOT_FOUND", { id });
       }
-      return { status: 200, json: { schemaVersion: 1, status: "OK", sequence: publicView(view) } };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", sequence: publicView(view, server) } };
     },
   },
   {

@@ -1,0 +1,12 @@
+{
+  "files": [
+    "Makefile"
+  ],
+  "findings": [
+    {
+      "rule": "minphony",
+      "file": "Makefile",
+      "line": 3
+    }
+  ]
+}

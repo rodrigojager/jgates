@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "revive",
+  "name": "revive",
+  "sourceUrl": "https://github.com/mgechev/revive",
+  "license": "MIT",
+  "program": {
+    "tool": "revive",
+    "versionRange": ">=1.17.0 <2.0.0"
+  },
+  "megalinter": [
+    "GO_REVIVE"
+  ],
+  "place": {
+    "section": "language",
+    "group": "go",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".go"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-set_exit_status",
+      "-formatter",
+      "sarif",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "custom"
+  },
+  "configuration": {
+    "files": [
+      "revive.toml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "revive reads the project's revive.toml when it is passed; without one it runs its own default rule set, so the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: //revive:disable and //revive:disable-next-line comments",
+      "pattern": "//\\s*revive:(?:enable|disable)",
+      "files": "\\.go$"
+    }
+  },
+  "install": "revive",
+  "text": {
+    "en": {
+      "label": "revive (Go)",
+      "purpose": "A fast, configurable Go linter and drop-in replacement for golint: exported names without comments, naming, package comments and common style mistakes.",
+      "limitation": "It lints the Go files one by one with its default rule set and does not type-check the module, so rules that need the whole package may report less than golangci-lint.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "revive (Go)",
+      "purpose": "Um linter de Go rápido e configurável, substituto do golint: nomes exportados sem comentário, nomenclatura, comentário de pacote e erros comuns de estilo.",
+      "limitation": "Analisa os arquivos Go um a um com o conjunto de regras padrão e não faz a checagem de tipos do módulo, então regras que precisam do pacote inteiro podem reportar menos que o golangci-lint.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

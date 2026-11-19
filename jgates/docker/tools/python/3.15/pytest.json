@@ -1,0 +1,31 @@
+{
+  "provides": [
+    {
+      "note": "pytest and coverage come from this environment (with pytest-cov and Hypothesis), never from another tool's environment that carries its own pytest (mutmut, schemathesis).",
+      "name": "pytest",
+      "link": "pytest",
+      "path": "bin/pytest",
+      "version": [
+        "pytest",
+        "--version"
+      ]
+    },
+    {
+      "name": "coverage",
+      "link": "coverage",
+      "path": "bin/coverage",
+      "version": [
+        "coverage",
+        "--version"
+      ]
+    },
+    {
+      "name": "pytest-cov",
+      "package": "pytest-cov"
+    },
+    {
+      "name": "hypothesis",
+      "package": "hypothesis"
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import { lintManifest } from "../lint-common/manifest.js";
  * .hadolint.yaml and the `# hadolint ignore` comments decide what is reported. Hadolint only reads the files; nothing is
  * rewritten and no image is built.
  */
-export const hadolintManifest: AdapterManifest = lintManifest({
+const base: AdapterManifest = lintManifest({
   id: "hadolint",
   displayName: "Hadolint (Dockerfile lint)",
   toolName: "hadolint",
@@ -24,7 +24,7 @@ export const hadolintManifest: AdapterManifest = lintManifest({
   relativeCost: "low",
   license: "GPL-3.0-only",
   limitations: [
-    "checks the files named Dockerfile, Dockerfile.* or *.Dockerfile, up to 500; other names (Containerfile) are not found, and a workspace with more files is not applicable until the list is narrowed",
+    "checks the files named Dockerfile, Containerfile, Dockerfile.* or *.Dockerfile anywhere in the project, up to 500; a workspace with more files is not applicable until the list is narrowed",
     "every severity is a blocking finding (error, warning, info, style); the project's .hadolint.yaml ignores the rules it does not want",
     "static analysis of the file: no image is built and the base images are not pulled",
   ],
@@ -41,3 +41,6 @@ export const hadolintManifest: AdapterManifest = lintManifest({
   acquisition: ["https://github.com/hadolint/hadolint#install"],
   setup: ["https://github.com/hadolint/hadolint#configure"],
 });
+
+// Reads the synchronized copy of the project only: its step may run beside others (ADR-0023).
+export const hadolintManifest: AdapterManifest = { ...base, effects: { ...base.effects, onlyReadsProject: true } };

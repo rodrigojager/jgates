@@ -1,0 +1,3 @@
+<aura:component>
+    <aura:attribute name="ready" type="Boolean" default="false"/>
+</aura:component>

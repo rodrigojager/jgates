@@ -1,0 +1,8 @@
+{
+  "tool": "v8r",
+  "version": "6.1.0",
+  "args": ["--ignore-errors", "--output-format", "json", "ignored.yml"],
+  "exit": 98,
+  "stdout": "",
+  "stderr": "ℹ No config file found\n✖ Could not find any files to validate\n"
+}

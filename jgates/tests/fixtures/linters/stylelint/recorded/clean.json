@@ -1,0 +1,27 @@
+{
+ "tool": "stylelint",
+ "kind": "clean",
+ "version": "18.0.0",
+ "calls": [
+  {
+   "args": [
+    "--config",
+    "/output/linters/stylelint/stylelint-default.json",
+    "--config-basedir",
+    "/opt/tools/node/stylelint",
+    "--formatter",
+    "json",
+    "--output-file",
+    "/output/linters/stylelint/stylelint.json",
+    "--no-color",
+    "--",
+    "stylelint_sample.css"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "[{\"source\":\"/workspace/stylelint_sample.css\",\"deprecations\":[],\"invalidOptionWarnings\":[],\"parseErrors\":[],\"errored\":false,\"warnings\":[]}]",
+   "reportPath": "/output/linters/stylelint/stylelint.json",
+   "report": "[{\"source\":\"/workspace/stylelint_sample.css\",\"deprecations\":[],\"invalidOptionWarnings\":[],\"parseErrors\":[],\"errored\":false,\"warnings\":[]}]"
+  }
+ ]
+}

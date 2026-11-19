@@ -1,0 +1,21 @@
+{
+ "tool": "markdownlint",
+ "kind": "bad",
+ "version": "0.50.0",
+ "calls": [
+  {
+   "args": [
+    "--json",
+    "--output",
+    "/output/linters/markdownlint/markdownlint.json",
+    "--",
+    "guide.md"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "",
+   "reportPath": "/output/linters/markdownlint/markdownlint.json",
+   "report": "[\n  {\n    \"fileName\": \"guide.md\",\n    \"lineNumber\": 3,\n    \"ruleNames\": [\n      \"MD001\",\n      \"heading-increment\"\n    ],\n    \"ruleDescription\": \"Heading levels should only increment by one level at a time\",\n    \"ruleInformation\": \"https://github.com/DavidAnson/markdownlint/blob/v0.42.1/doc/md001.md\",\n    \"errorDetail\": \"Expected: h2; Actual: h3\",\n    \"errorContext\": null,\n    \"errorRange\": null,\n    \"fixInfo\": null,\n    \"severity\": \"error\"\n  }\n]\n"
+  }
+ ]
+}

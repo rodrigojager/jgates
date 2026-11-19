@@ -69,7 +69,9 @@ test("the UI sources have no emoji or decorative pictograms and use only catalog
     if (path.relative(uiSrc, file).startsWith("forms")) continue;
     Object.assign(catalogs[match[1]], JSON.parse(fs.readFileSync(file, "utf8")));
   }
-  const pictograph = /[\p{Extended_Pictographic}\u{FE0F}\u{20E3}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{25A0}-\u{25FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
+  // ©, ® and ™ are Extended_Pictographic but typographic in text (the ASVS attribution needs ©); their emoji form
+  // still fails through U+FE0F.
+  const pictograph = /(?![©®™])[\p{Extended_Pictographic}\u{FE0F}\u{20E3}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{25A0}-\u{25FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u;
   const used = new Set();
   for (const file of walk(uiSrc)) {
     // Text sources only: an image (the pre-rendered mascots) is bytes, where any byte run can read as a pictogram.

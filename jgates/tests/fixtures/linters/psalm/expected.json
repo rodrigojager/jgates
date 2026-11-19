@@ -1,0 +1,17 @@
+{
+  "files": [
+    "Mismatch.php"
+  ],
+  "findings": [
+    {
+      "file": "Mismatch.php",
+      "line": 9,
+      "rule": "InvalidReturnType"
+    },
+    {
+      "file": "Mismatch.php",
+      "line": 11,
+      "rule": "InvalidReturnStatement"
+    }
+  ]
+}

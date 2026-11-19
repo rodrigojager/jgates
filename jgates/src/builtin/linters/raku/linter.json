@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "raku",
+  "name": "Raku",
+  "sourceUrl": "https://github.com/rakudo/rakudo",
+  "license": "Artistic-2.0",
+  "program": {
+    "tool": "raku",
+    "versionRange": ">=2020.1 <2100.0"
+  },
+  "megalinter": [
+    "RAKU_RAKU"
+  ],
+  "place": {
+    "section": "language",
+    "group": "raku",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".raku",
+      ".rakumod",
+      ".rakutest",
+      ".pm6",
+      ".pl6",
+      ".p6"
+    ]
+  },
+  "run": {
+    "mode": "each-file",
+    "args": [
+      "-c",
+      "--",
+      "{file}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": true,
+    "network": false,
+    "readOnly": true,
+    "env": {
+      "RAKUDO_ERROR_COLOR": "0"
+    }
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "custom",
+    "rule": "compile-error",
+    "level": "error"
+  },
+  "configuration": {
+    "files": [
+      "META6.json"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "raku has no rule configuration: it only compiles the file; META6.json names the project's modules",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: a compile error cannot be suppressed in the source"
+    }
+  },
+  "install": "raku",
+  "text": {
+    "en": {
+      "label": "Raku (syntax check)",
+      "purpose": "Compiles each Raku file without running its main program (raku -c) and reports syntax errors, undeclared variables and other compile-time failures.",
+      "limitation": "It is a compile check, not a style linter. Compiling runs BEGIN blocks and loads the modules the file uses, so a module the project needs but the image lacks is reported as an error.",
+      "needs": "Nothing beyond the tools image (Rakudo comes with it): no network; modules the file imports must be in the project."
+    },
+    "pt-BR": {
+      "label": "Raku (verificação de sintaxe)",
+      "purpose": "Compila cada arquivo Raku sem executar o programa principal (raku -c) e relata erros de sintaxe, variáveis não declaradas e outras falhas de compilação.",
+      "limitation": "É uma verificação de compilação, não um linter de estilo. Compilar executa blocos BEGIN e carrega os módulos que o arquivo usa, então um módulo que o projeto precisa e a imagem não tem é relatado como erro.",
+      "needs": "Nada além da imagem de ferramentas (o Rakudo vem com ela): sem rede; os módulos que o arquivo importa precisam estar no projeto."
+    }
+  }
+}

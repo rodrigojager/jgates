@@ -1,0 +1,12 @@
+{
+  "files": ["TokensTransport.cs"],
+  "ruleIds": [
+    "jgates.csharp.jwt-algorithm-not-restricted",
+    "jgates.csharp.jwt-key-from-token-header",
+    "jgates.csharp.oauth-request-without-state",
+    "jgates.csharp.tls-old-protocol-version",
+    "jgates.csharp.tls-weak-cipher-suite",
+    "jgates.csharp.cleartext-http-url",
+    "jgates.csharp.mtls-client-certificate-not-verified"
+  ]
+}

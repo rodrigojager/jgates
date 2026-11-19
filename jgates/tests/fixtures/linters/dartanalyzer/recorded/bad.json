@@ -1,0 +1,20 @@
+{
+ "tool": "dartanalyzer",
+ "kind": "bad",
+ "version": "3.14.1",
+ "calls": [
+  {
+   "args": [
+    "analyze",
+    "--format=machine",
+    "--fatal-infos",
+    "--fatal-warnings",
+    "--",
+    "main.dart"
+   ],
+   "exit": 3,
+   "stdout": "ERROR|COMPILE_TIME_ERROR|INVALID_ASSIGNMENT|/workspace/main.dart|4|15|5|A value of type 'String' can't be assigned to a variable of type 'int'.\nWARNING|STATIC_WARNING|UNUSED_IMPORT|/workspace/main.dart|1|8|9|Unused import: 'dart:io'.\n",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+  "package": "roslynator.dotnet.cli",
+  "version": "1.0.1",
+  "sha256": "0e84db4d0b780eb85674c6b77aed501fdc784a23e709f9af71ad7232933990c9",
+  "provides": [
+    {
+      "name": "roslynator",
+      "path": "roslynator",
+      "version": [
+        "roslynator",
+        "--version"
+      ],
+      "pattern": "(\\d+\\.\\d+\\.\\d+)"
+    }
+  ]
+}

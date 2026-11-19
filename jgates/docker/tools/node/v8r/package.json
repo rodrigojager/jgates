@@ -1,0 +1,10 @@
+{
+  "name": "jgates-tools-v8r",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of v8r in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "v8r": "6.1.0"
+  }
+}

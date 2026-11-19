@@ -121,6 +121,16 @@ function checkVerdict(value: Record<string, unknown>, ctx: ArtifactCheckContext)
   return { ok: true, problems: [], value: verdict as unknown as Record<string, unknown> };
 }
 
+/** The host work after a valid custom artifact (contract.settle); a failure makes the artifact invalid. */
+export async function settleArtifact(contract: ArtifactContract, check: ArtifactCheck, ctx: ArtifactCheckContext, signal: AbortSignal): Promise<ArtifactCheck> {
+  if (contract.kind !== "custom" || !contract.settle || !check.ok) return check;
+  try {
+    return await contract.settle(check, ctx, signal);
+  } catch (error) {
+    return { ok: false, problems: [...check.problems, `the host step after the artifact failed: ${error instanceof Error ? error.message : String(error)}`] };
+  }
+}
+
 /** Validates the parsed artifact of a context against its stage's contract. */
 export function validateArtifact(contract: ArtifactContract, value: Record<string, unknown>, ctx: ArtifactCheckContext): ArtifactCheck {
   if (contract.kind === "exploration") return checkExploration(value, ctx);

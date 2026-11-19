@@ -1,0 +1,11 @@
+{
+  "files": ["Configuration.java"],
+  "ruleIds": [
+    "jgates.java.debug-mode-enabled",
+    "jgates.java.docs-or-monitoring-endpoint-exposed",
+    "jgates.java.directory-listing-enabled",
+    "jgates.java.version-header-exposed",
+    "jgates.java.mass-assignment",
+    "jgates.java.serializer-exposes-all-fields"
+  ]
+}

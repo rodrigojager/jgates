@@ -1,0 +1,19 @@
+{
+ "tool": "csharpier",
+ "kind": "clean",
+ "version": "1.4.0",
+ "calls": [
+  {
+   "args": [
+    "check",
+    "--log-format",
+    "MsBuild",
+    "--",
+    "Greeter.cs"
+   ],
+   "exit": 0,
+   "stdout": "Checked 1 files in 136ms.\n",
+   "stderr": ""
+  }
+ ]
+}

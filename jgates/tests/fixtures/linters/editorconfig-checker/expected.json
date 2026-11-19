@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "editorconfig-checker.violation",
+      "file": "settings.yml",
+      "line": 1
+    }
+  ]
+}

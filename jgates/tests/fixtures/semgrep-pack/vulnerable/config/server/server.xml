@@ -1,0 +1,6 @@
+<Server port="8005" shutdown="SHUTDOWN">
+  <Service name="Catalina">
+    <Connector port="8080" protocol="HTTP/1.1" allowTrace="true" xpoweredBy="true" />
+    <Connector port="8443" protocol="HTTP/1.1" SSLEnabled="true" sslEnabledProtocols="TLSv1,TLSv1.2" ciphers="HIGH:3DES" />
+  </Service>
+</Server>

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "semantic-insecure-defaults",
+  "method": "insecure-defaults",
+  "generatedAt": "2026-11-14T12:10:00.000Z",
+  "discovery": {
+    "configFiles": [
+      "config/settings.js"
+    ],
+    "initializationFiles": [
+      "src/app.js"
+    ],
+    "manifests": [],
+    "seedMatches": {},
+    "droppedSeeds": {}
+  },
+  "recon": {
+    "summary": "an Express service that reads its settings from the environment"
+  },
+  "categories": [
+    {
+      "id": "fallback-secrets",
+      "state": "searched",
+      "derived_patterns": [
+        "process.env.SESSION_SECRET ||"
+      ],
+      "files_scanned": 4
+    },
+    {
+      "id": "default-credentials",
+      "state": "searched",
+      "derived_patterns": [
+        "password: 'admin'"
+      ],
+      "files_scanned": 2
+    },
+    {
+      "id": "fail-open-security",
+      "state": "pending",
+      "derived_patterns": [],
+      "files_scanned": null,
+      "reason": "the sweep ran out of budget before this category"
+    },
+    {
+      "id": "permissive-access",
+      "state": "searched",
+      "derived_patterns": [
+        "origin: '*'"
+      ],
+      "files_scanned": 0
+    }
+  ],
+  "candidates": []
+}

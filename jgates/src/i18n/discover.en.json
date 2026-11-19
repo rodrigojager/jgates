@@ -12,6 +12,8 @@
   "discover_none": "No component found.",
   "discover_entry": "{status}  {root}  {language}  ({reason})",
   "discover_inconsistency": "Inconsistency {code}: {root}",
+  "discover_unsupported_note": "{language} is recognized: the checks that work on any project (secrets, file size, personal data, duplication, dependency and infrastructure scans) run on it; JGates has no lint, type check, tests or dependency checks for {language}.",
+  "discover_unsupported_note_pack": "{language} is recognized: the checks that work on any project (secrets, file size, personal data, duplication, dependency and infrastructure scans) run on it, and the JGates Semgrep rules for {language} run when SAST is on (not under the Essential profile); JGates has no lint, type check, tests or dependency checks for {language}.",
   "discover_status_explicit": "declared",
   "discover_status_detected": "detected",
   "discover_status_ambiguous": "ambiguous",

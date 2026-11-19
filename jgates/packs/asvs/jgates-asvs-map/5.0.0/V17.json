@@ -1,0 +1,133 @@
+{
+  "version": "5.0.0",
+  "chapter": "V17",
+  "entries": [
+    {
+      "requirement": "V17.1.1",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.1.2",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.1",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.2",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.3",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.4",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.5",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.6",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.7",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.2.8",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V17.3.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Pre-authentication work imbalance",
+          "covers": "Whether a server puts a size or rate gate in front of the work a requester can force before it is authenticated, the part of signaling flood handling that happens before a peer is known.",
+          "misses": "Limits on messages from authenticated peers, limits applied by a proxy or gateway in front of the signaling server, and which signaling protocol the project uses.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the signaling server's message handlers for a limit on how many messages a peer or address may send.",
+          "misses": "Rate limits applied outside the repository, behaviour under a real flood, and code the model did not read.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "webrtc"
+        ]
+      },
+      "why": "A signaling-level limit is a property of the server's message handlers, read in context; the requirement concerns only projects that use WebRTC.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V17.3.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "RESOURCE-EXHAUSTION-AND-AVAILABILITY.md#Reachable fatal error or deadlock",
+          "covers": "Untrusted input that reaches a panic, unhandled exception or infinite loop in a shared process.",
+          "misses": "Flood handling, buffer-size defects in native code, and which server product is used.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "webrtc"
+        ]
+      },
+      "why": "The audit block hunts malformed input that takes a shared service down, the failure this item describes for a signaling server; the requirement concerns only projects that use WebRTC.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    }
+  ]
+}

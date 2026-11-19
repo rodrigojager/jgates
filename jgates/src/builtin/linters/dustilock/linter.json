@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "dustilock",
+  "name": "dustilock",
+  "sourceUrl": "https://github.com/checkmarx/dustilock",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "dustilock",
+    "versionRange": ">=1.2.0 <2.0.0"
+  },
+  "megalinter": [
+    "REPOSITORY_DUSTILOCK"
+  ],
+  "place": {
+    "section": "other",
+    "group": "supply-chain",
+    "capability": "supply-chain",
+    "kind": "scan",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "-r"
+    ],
+    "env": {
+      "HOME": "/tmp"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": true,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^error - (?<message>.+ is available for public registration)\\. (?<file>\\S+)$",
+    "rule": "dustilock.dependency-confusion",
+    "level": "error"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "dustilock reads no configuration: it checks every dependency named by the project's manifests against the public registries",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the tool has no suppression"
+    }
+  },
+  "install": "dustilock",
+  "text": {
+    "en": {
+      "label": "dustilock (dependency confusion)",
+      "purpose": "Finds dependencies of the project's manifests (npm, PyPI, Go, Maven, NuGet, RubyGems) whose name is free on the public registry, so anyone could publish a package under it: the dependency confusion attack.",
+      "limitation": "It checks that a dependency name is unclaimed on the public registries, not the provenance of lockfile entries, and it reports the project as a whole rather than a file and line.",
+      "needs": "Network access at run time: it asks the public package registries whether each name exists. It runs under Strict, and where the network is closed the check is reported as not available, never as passed."
+    },
+    "pt-BR": {
+      "label": "dustilock (confusão de dependências)",
+      "purpose": "Encontra dependências dos manifestos do projeto (npm, PyPI, Go, Maven, NuGet, RubyGems) cujo nome está livre no registro público, de modo que qualquer pessoa poderia publicar um pacote com ele: o ataque de confusão de dependências.",
+      "limitation": "Verifica se o nome de uma dependência está livre nos registros públicos, não a procedência das entradas do lockfile, e relata o projeto como um todo em vez de arquivo e linha.",
+      "needs": "Acesso à rede na execução: ele pergunta aos registros públicos de pacotes se cada nome existe. Roda no Estrito, e onde a rede está fechada a verificação aparece como indisponível, nunca como aprovada."
+    }
+  }
+}

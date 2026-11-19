@@ -1,0 +1,21 @@
+{
+  "version": "2.3.6",
+  "url": "https://github.com/phpstan/phpstan/releases/download/{version}/phpstan.phar",
+  "sha256": "bd5af896c8eb831e10873a4407c37ac33118dcd88de4ea77e13cd6e6702a41cc",
+  "archive": "file",
+  "save": "phpstan.phar",
+  "executable": [
+    "phpstan.phar"
+  ],
+  "provides": [
+    {
+      "name": "phpstan",
+      "link": "phpstan",
+      "path": "phpstan.phar",
+      "version": [
+        "phpstan",
+        "--version"
+      ]
+    }
+  ]
+}

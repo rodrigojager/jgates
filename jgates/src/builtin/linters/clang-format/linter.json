@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "clang-format",
+  "name": "clang-format",
+  "sourceUrl": "https://github.com/llvm/llvm-project",
+  "license": "Apache-2.0 WITH LLVM-exception",
+  "program": {
+    "tool": "clang-format",
+    "versionRange": ">=19.0.0 <30.0.0"
+  },
+  "megalinter": [
+    "C_CLANG_FORMAT",
+    "CPP_CLANG_FORMAT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "c-cpp",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".c",
+      ".h",
+      ".cpp",
+      ".cc",
+      ".hpp",
+      ".cxx",
+      ".cu",
+      ".hxx",
+      ".c++",
+      ".hh",
+      ".h++",
+      ".cuh"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--Werror",
+      "--dry-run",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^(?<file>[^:\\n]+):(?<line>\\d+):(?<column>\\d+): (?<level>error|warning): (?<message>.+?) \\[-W(?<rule>[A-Za-z-]+)\\]$"
+  },
+  "configuration": {
+    "files": [
+      ".clang-format",
+      "_clang-format",
+      ".clang-format-ignore"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "clang-format reads the project's .clang-format or _clang-format file, else its LLVM style: the project decides the layout",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: // clang-format off and // clang-format on comments",
+      "pattern": "clang-format\\s+(?:off|on)",
+      "files": "\\.(c|h|cpp|cc|hpp|cxx|cu|hxx|c\\+\\+|hh|h\\+\\+|cuh)$"
+    }
+  },
+  "install": "clang-format",
+  "text": {
+    "en": {
+      "label": "clang-format (C and C++ layout)",
+      "purpose": "Checks that C and C++ files are laid out the way clang-format would write them: spacing, braces, line breaks and alignment.",
+      "limitation": "It reports where the layout differs, not the fixed code; run clang-format -i locally to rewrite the files. Without a .clang-format it uses the LLVM style.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "clang-format (layout de C e C++)",
+      "purpose": "Verifica se os arquivos C e C++ estão no layout que o clang-format escreveria: espaços, chaves, quebras de linha e alinhamento.",
+      "limitation": "Aponta onde o layout difere, não o código corrigido; rode clang-format -i localmente para reescrever os arquivos. Sem um .clang-format usa o estilo LLVM.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "files": [
+    "settings.env"
+  ],
+  "findings": [
+    {
+      "rule": "LowercaseKey",
+      "file": "settings.env",
+      "line": 1
+    }
+  ]
+}

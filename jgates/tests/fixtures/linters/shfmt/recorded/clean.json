@@ -1,0 +1,17 @@
+{
+ "tool": "shfmt",
+ "kind": "clean",
+ "version": "3.14.1",
+ "calls": [
+  {
+   "args": [
+    "-d",
+    "--",
+    "format-me.sh"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

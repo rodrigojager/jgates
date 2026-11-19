@@ -1,6 +1,7 @@
 // Read-only views of the Semantic/AI area of the UI: the options of a run (saved settings, methods per purpose, rigor
 // reserves, prerequisites), the AI mascots of one Semantic run, the results summary of one run (examined now / reused /
-// unresolved / out of scope, scope completion apart from repository coverage, confirmation apart from severity, usage)
+// unresolved / out of scope, scope completion apart from repository coverage, confirmation apart from severity, usage,
+// the reproduction state of each finding read from the reproduction runs that started from it)
 // and the mascots of a sequence, where each gate keeps its own family: the Quality snapshot comes only from the Quality
 // projection (core/mascots) of the Quality run, the Semantic one only from core/semantic-mascots. Nothing here starts,
 // changes or cancels a run (that is semantic-runs.ts), and every file is found by run ID, never by a path from the request.
@@ -8,7 +9,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { INVESTIGATION_RECORD, RESERVE_FRACTION, DEFAULT_CALLS } from "../../core/semantic-executor/index.js";
 import { projectSemanticMascots, type SemanticMascotSnapshot, type SemanticStageInput } from "../../core/semantic-mascots/index.js";
-import { SEMANTIC_RUN_ID_PATTERN, buildSemanticPlan, readSemanticRun, resolveQualityRun, semanticMethodCatalog, type SemanticRunView } from "../../core/semantic/index.js";
+import { EXECUTION_FILE, INELIGIBLE_SEED_METHODS, runnerForSource } from "../../core/semantic-modules/reproduction/index.js";
+import { FINDING_ID_PATTERN, SEMANTIC_RUN_ID_PATTERN, buildSemanticPlan, readSemanticRun, reproductionOf, resolveQualityRun, semanticMethodCatalog, type RunReproduction, type SemanticRunView } from "../../core/semantic/index.js";
 import { SCOPE_LEDGER_FILE, SCOPE_RECORD_FILE, SEMANTIC_PURPOSES, SEMANTIC_RIGORS, type SemanticPurpose } from "../../core/semantic-scope/index.js";
 import { SEQUENCE_ID_PATTERN, readSequence } from "../../core/sequence/index.js";
 import type { RunResult } from "../../core/run/types.js";
@@ -22,6 +24,7 @@ const tSequence = translator("sequence");
 type Rec = Record<string, unknown>;
 
 const runParams = { type: "object", properties: { id: { type: "string", pattern: SEMANTIC_RUN_ID_PATTERN } }, required: ["id"], additionalProperties: false };
+const reproductionParams = { type: "object", properties: { id: { type: "string", pattern: SEMANTIC_RUN_ID_PATTERN }, candidate: { type: "string", pattern: FINDING_ID_PATTERN } }, required: ["id", "candidate"], additionalProperties: false };
 const sequenceParams = { type: "object", properties: { id: { type: "string", pattern: SEQUENCE_ID_PATTERN } }, required: ["id"], additionalProperties: false };
 
 const isRec = (v: unknown): v is Rec => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -92,11 +95,25 @@ export function semanticMascotsOf(view: SemanticRunView): SemanticMascotSnapshot
   return projectSemanticMascots({ stages: semanticStagesOf(view), runId: view.runId, running: view.lifecycle === "running", cancelled });
 }
 
+/**
+ * What an asvs-review run answered, from its requirements ledger (by requirement id only; never the official text): the
+ * requirements examined and those not examinable with their reason. Null when the run has no such ledger.
+ */
+function asvsReviewOf(view: SemanticRunView): Rec | null {
+  const methods: string[] = view.result?.semanticRun?.methods ?? [];
+  if (!methods.includes("asvs-review")) return null;
+  const ledger = readRunJson(view.dir, "evidence/asvs-review/requirements-ledger.json");
+  const answers = list(ledger?.requirements).filter(isRec);
+  const examined = answers.filter((a) => a.answer === "examined").map((a) => ({ id: String(a.id ?? ""), outcome: a.outcome === "finding" ? "finding" : "no-violation-found", references: list(a.references).length }));
+  const notExaminable = answers.filter((a) => a.answer === "not-examinable").map((a) => ({ id: String(a.id ?? ""), reason: typeof a.reason === "string" ? a.reason : null, detail: typeof a.detail === "string" ? a.detail : null }));
+  return { asvsVersion: typeof ledger?.asvsVersion === "string" ? ledger.asvsVersion : null, level: typeof ledger?.level === "number" ? ledger.level : null, hasLedger: ledger !== null, examined, notExaminable };
+}
+
 const count = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const ratio = (part: number, whole: number): number | null => (whole > 0 ? Math.min(1, part / whole) : null);
 
 /** The results summary of one Semantic run, built from the run's records (plan, scope, ledger, outcome). */
-export function semanticReportOf(view: SemanticRunView): Rec {
+export function semanticReportOf(view: SemanticRunView, reproduction: RunReproduction | null = null): Rec {
   const result = view.result;
   const outcome = result?.semanticRun?.outcome ?? null;
   const plan = view.plan;
@@ -119,16 +136,33 @@ export function semanticReportOf(view: SemanticRunView): Rec {
   const investigation = investigationOf(view);
   const coverage = isRec(investigation?.coverage) ? investigation.coverage : null;
   const conclusion = isRec(outcome?.conclusion) ? outcome.conclusion : null;
-  const findings = list(conclusion?.findings)
-    .filter(isRec)
-    .map((f) => ({
+  const concluded = list(conclusion?.findings).filter(isRec);
+  // The conclusion lists the candidates that were not rejected, in order: that is how a finding gets its candidate ID
+  // (and so its reproduction state) when the counts agree.
+  const live = list(investigation?.candidates).filter(isRec).filter((c) => c.status !== "rejected");
+  const idAt = (i: number): string | null => (live.length === concluded.length && typeof live[i]?.id === "string" ? String(live[i]?.id) : null);
+  const findings = concluded.map((f, i) => {
+    const recorded = typeof f.confirmation === "string" ? f.confirmation : "needs-validation";
+    const candidateId = idAt(i);
+    const link = candidateId ? (reproduction?.findings.find((r) => r.candidateId === candidateId) ?? null) : null;
+    const file = typeof f.path === "string" ? f.path : null;
+    // Whether a test runner of the container recipes runs the file (host-only: a name check, no engine call).
+    const runner = file ? runnerForSource(file) : null;
+    return {
+      reproducible: runner === null ? { runner: null, code: "TEST_RUNNER_NOT_SUPPORTED" } : "runner" in runner ? { runner: runner.runner, code: null } : { runner: null, code: runner.code },
       severity: String(f.severity ?? "unknown"),
-      confirmation: typeof f.confirmation === "string" ? f.confirmation : "needs-validation",
+      // Shown as confirmed once a reproduction run confirmed it by execution; the stored run keeps what it recorded.
+      confirmation: link?.state === "confirmed" ? "confirmed" : recorded,
+      recordedConfirmation: recorded,
+      evidenceBasis: link?.evidenceBasis ?? null,
       category: String(f.category ?? "general"),
       message: String(f.message ?? ""),
       path: typeof f.path === "string" ? f.path : null,
       line: typeof f.line === "number" ? f.line : null,
-    }));
+      candidateId,
+      reproduction: link ? { state: link.state, reason: link.reason, detail: link.detail, reproductionRunId: link.reproductionRunId, record: link.record, proposal: link.proposal } : { state: "none", reason: null, detail: null, reproductionRunId: null, record: null, proposal: null },
+    };
+  });
   const byConfirmation: Record<string, number> = { confirmed: 0, "needs-validation": 0, rejected: 0 };
   for (const f of findings) byConfirmation[f.confirmation] = (byConfirmation[f.confirmation] ?? 0) + 1;
   const bySeverity: Record<string, number> = {};
@@ -173,6 +207,15 @@ export function semanticReportOf(view: SemanticRunView): Rec {
       ? { basis: coverage.basis ?? null, subjects: count(coverage.subjects), examined: count(coverage.examined), notExamined: count(coverage.notExamined), gaps: list(coverage.gaps).filter(isRec).slice(0, 200) }
       : null,
     findings,
+    /** The ASVS review's answers (null when the run did not run that method). */
+    asvsReview: asvsReviewOf(view),
+    /**
+     * The reproduction state of the run's findings (none, attempted with the reason, confirmed by execution) and the
+     * reproduction runs, read from the runs that started from this one; for a reproduction run, the run it reproduces.
+     */
+    reproduction,
+    /** Whether the run's methods read source code, so its needs-validation findings can be reproduced (not a reproduction run itself). */
+    reproducible: (result?.semanticRun?.methods ?? []).length > 0 && (result?.semanticRun?.methods ?? []).every((m: string) => !INELIGIBLE_SEED_METHODS.has(m)),
     confirmation: byConfirmation,
     severity: bySeverity,
     usage: {
@@ -233,7 +276,62 @@ export const routes: RouteDefinition[] = [
     params: runParams,
     handler({ params, server }) {
       const view = semanticRunOr404(server, params.id as string);
-      return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", report: semanticReportOf(view), mascots: semanticMascotsOf(view) } };
+      const reproduction = reproductionOf(server.home, server.workspace.id, view);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", report: semanticReportOf(view, reproduction), mascots: semanticMascotsOf(view) } };
+    },
+  },
+  {
+    // The reproduction state of each finding of one run (none, attempted with the reason, confirmed by execution) with
+    // the reproduction run it comes from. Read from the reproduction runs that name it: the run itself is never rewritten.
+    method: "GET",
+    path: "/api/semantic/runs/:id/reproduction",
+    params: runParams,
+    handler({ params, server }) {
+      const view = semanticRunOr404(server, params.id as string);
+      return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", runId: view.runId, reproduction: reproductionOf(server.home, server.workspace.id, view) } };
+    },
+  },
+  {
+    // The test and the masked output of the reproduction of one finding (its candidate ID in this run), read from the
+    // reproduction run that tried it: the reproducer file as the model wrote it, and what its execution printed. Both
+    // are shown as text only; nothing is executed or written.
+    method: "GET",
+    path: "/api/semantic/runs/:id/reproduction/:candidate",
+    params: reproductionParams,
+    handler({ params, server }) {
+      const view = semanticRunOr404(server, params.id as string);
+      const candidate = params.candidate as string;
+      const found = reproductionOf(server.home, server.workspace.id, view).findings.find((f) => f.candidateId === candidate) ?? null;
+      if (!found || !found.reproductionRunId) throw refuse(404, "RUN_NOT_FOUND", { runId: `${view.runId}/${candidate}` });
+      const reproRun = readSemanticRun(server.home, server.workspace.id, found.reproductionRunId);
+      const executions = list(readRunJson(reproRun?.dir ?? view.dir, EXECUTION_FILE)?.executions).filter(isRec);
+      const execution = [...executions].reverse().find((e) => isRec(e.finding) && e.finding.candidateId === candidate) ?? null;
+      const reproducer = isRec(execution?.reproducer) ? execution.reproducer : null;
+      const sha = typeof reproducer?.sha256 === "string" ? reproducer.sha256 : null;
+      let content: string | null = null;
+      const investigation = reproRun ? investigationOf(reproRun) : null;
+      for (const stage of list(investigation?.stages).filter(isRec)) {
+        for (const ctx of list(stage.contexts).filter(isRec)) {
+          const test = isRec(ctx.accepted) && isRec(ctx.accepted.test) ? ctx.accepted.test : null;
+          if (test && sha && test.sha256 === sha && typeof test.content === "string") content = test.content;
+        }
+      }
+      const run = isRec(execution?.run) ? execution.run : null;
+      return {
+        status: 200,
+        json: {
+          schemaVersion: 1,
+          status: "OK",
+          gate: "semantic",
+          runId: view.runId,
+          candidateId: candidate,
+          reproductionRunId: found.reproductionRunId,
+          state: found.state,
+          reason: found.reason,
+          test: reproducer ? { path: String(reproducer.path ?? ""), runner: String(reproducer.runner ?? ""), content } : null,
+          execution: run ? { executed: run.executed === true, outcome: String(run.outcome ?? ""), tests: isRec(run.tests) ? run.tests : null, exitCode: typeof run.exitCode === "number" ? run.exitCode : null, timedOut: run.timedOut === true, output: typeof run.output === "string" ? run.output : "", reason: typeof run.reason === "string" ? run.reason : null } : null,
+        },
+      };
     },
   },
   {

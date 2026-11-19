@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "spectral",
+  "name": "Spectral",
+  "sourceUrl": "https://github.com/stoplightio/spectral",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "spectral",
+    "versionRange": ">=6.17.0 <7.0.0",
+    "prefix": [
+      "lint"
+    ]
+  },
+  "megalinter": [
+    "API_SPECTRAL"
+  ],
+  "place": {
+    "section": "format",
+    "group": "openapi",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "content": {
+      "pattern": "\"?(?:asyncapi|openapi|swagger)\"?\\s*:",
+      "firstLine": false,
+      "names": [
+        "*.yml",
+        "*.yaml",
+        "*.json"
+      ]
+    }
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format",
+      "sarif",
+      "--output",
+      "{report}",
+      "--quiet",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "file",
+    "file": "spectral.sarif",
+    "reader": "sarif"
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning",
+    "note": "info"
+  },
+  "configuration": {
+    "files": [
+      ".spectral.yaml",
+      ".spectral.yml",
+      ".spectral.json",
+      ".spectral.js"
+    ],
+    "default": "spectral-default.yaml",
+    "args": [
+      "--ruleset",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "Spectral reads the project's .spectral.yaml (or .yml, .json, .js) ruleset: the project decides the rules; without one JGates passes the tool's own spectral:oas and spectral:asyncapi rulesets",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: the ruleset's overrides and the x-spectral-ignore key are Spectral's own",
+      "pattern": "x-spectral-ignore",
+      "files": "\\.(?:ya?ml|json)$"
+    }
+  },
+  "install": "spectral",
+  "text": {
+    "en": {
+      "label": "Spectral (OpenAPI, AsyncAPI)",
+      "purpose": "Checks OpenAPI, Swagger and AsyncAPI documents against the tool's own rulesets: missing descriptions, contact and license, unused components, invalid references, operations without tags.",
+      "limitation": "It looks only at files that say asyncapi, openapi or swagger near their top; without a project ruleset it uses the tool's recommended OpenAPI and AsyncAPI rules, which warn about documentation gaps. MegaLinter had this tool switched off in 9.6.0 because it crashed there.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies; a ruleset that extends a remote one would need the network and is not supported."
+    },
+    "pt-BR": {
+      "label": "Spectral (OpenAPI, AsyncAPI)",
+      "purpose": "Verifica documentos OpenAPI, Swagger e AsyncAPI contra os conjuntos de regras da própria ferramenta: descrições, contato e licença ausentes, componentes não usados, referências inválidas, operações sem tags.",
+      "limitation": "Olha só os arquivos que dizem asyncapi, openapi ou swagger perto do início; sem um conjunto de regras do projeto usa as regras recomendadas de OpenAPI e AsyncAPI da ferramenta, que avisam sobre lacunas de documentação. O MegaLinter mantinha esta ferramenta desligada na 9.6.0 porque ela travava lá.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto; um conjunto de regras que estenda um remoto precisaria de rede e não é suportado."
+    }
+  }
+}

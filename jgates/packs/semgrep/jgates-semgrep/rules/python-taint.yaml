@@ -8,6 +8,8 @@ rules:
       category: ssrf
       cwe: "CWE-918"
       author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.6"]
     pattern-sources:
       - pattern: request.args.get(...)
       - pattern: request.args[...]
@@ -18,12 +20,15 @@ rules:
     pattern-sanitizers:
       - pattern: validate_url(...)
     pattern-sinks:
-      - pattern: requests.$M($URL, ...)
-        focus-metavariable: $URL
-      - pattern: urllib.request.urlopen($URL, ...)
-        focus-metavariable: $URL
-      - pattern: httpx.$M($URL, ...)
-        focus-metavariable: $URL
+      - patterns:
+          - pattern: requests.$M($URL, ...)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: urllib.request.urlopen($URL, ...)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern: httpx.$M($URL, ...)
+          - focus-metavariable: $URL
 
   - id: jgates.python.path-traversal
     message: A file path comes from the incoming request. Reduce it with a safe base-name helper and check it stays under the intended folder.
@@ -34,6 +39,8 @@ rules:
       category: path-traversal
       cwe: "CWE-22"
       author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.3.2"]
     pattern-sources:
       - pattern: request.args.get(...)
       - pattern: request.args[...]
@@ -44,11 +51,15 @@ rules:
       - pattern: os.path.basename(...)
       - pattern: secure_filename(...)
     pattern-sinks:
-      - pattern: open($P, ...)
-        focus-metavariable: $P
-      - pattern: send_file($P, ...)
-        focus-metavariable: $P
-      - pattern: os.remove($P)
-        focus-metavariable: $P
-      - pattern: os.path.join($BASE, $P, ...)
-        focus-metavariable: $P
+      - patterns:
+          - pattern: open($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: send_file($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.remove($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: os.path.join($BASE, $P, ...)
+          - focus-metavariable: $P

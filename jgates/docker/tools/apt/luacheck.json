@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "lua-check"
+  ],
+  "provides": [
+    {
+      "name": "luacheck",
+      "path": "/usr/bin/luacheck",
+      "version": [
+        "luacheck",
+        "--version"
+      ],
+      "pattern": "Luacheck: (\\S+)"
+    }
+  ]
+}

@@ -40,14 +40,15 @@ const tmp = (prefix) => {
   return dir;
 };
 let workspace = "";
-test.after(() => {
+// Registered per test with t.after, so it runs after the case even when the case runs alone with --test-name-pattern.
+const cleanupCase = () => {
   for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
   if (!workspace) return;
   const filters = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
   for (const id of lines(docker(["ps", "-aq", ...filters]).out)) docker(["rm", "-f", id]);
   for (const id of lines(docker(["network", "ls", "-q", ...filters]).out)) docker(["network", "rm", id]);
   for (const name of lines(docker(["volume", "ls", "-q", ...filters]).out)) docker(["volume", "rm", "-f", name]);
-});
+};
 
 /** Hash of the whole tree: relative paths, kinds, sizes, mtimes and contents, in a stable order. */
 function treeHash(dir) {
@@ -107,7 +108,8 @@ const TOOLS = [
 
 const SERVICES = ["services:", "  compose: [compose.yaml]", "  target:", "    service: api", "    port: 8000", "    health: /health", "  timeoutSeconds: 180", ""].join("\n");
 
-test("V2-47 (real engine): db + api compose services serve an integration check, Schemathesis and ZAP, read-only and torn down afterwards", { timeout: 1_500_000 }, async () => {
+test("V2-47 (real engine): db + api compose services serve an integration check, Schemathesis and ZAP, read-only and torn down afterwards", { timeout: 1_500_000 }, async (t) => {
+  t.after(cleanupCase);
   const version = docker(["version", "--format", "{{.Server.Version}}"]);
   assert.equal(version.code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);

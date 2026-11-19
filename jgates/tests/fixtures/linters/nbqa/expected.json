@@ -1,0 +1,12 @@
+{
+  "files": [
+    "nbqa_sample.ipynb"
+  ],
+  "findings": [
+    {
+      "rule": "assignment",
+      "file": "nbqa_sample.ipynb",
+      "line": 1
+    }
+  ]
+}

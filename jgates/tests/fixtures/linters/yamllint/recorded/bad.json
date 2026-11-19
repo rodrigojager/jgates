@@ -1,0 +1,21 @@
+{
+ "tool": "yamllint",
+ "kind": "bad",
+ "version": "1.38.0",
+ "calls": [
+  {
+   "args": [
+    "--config-file",
+    "/output/linters/yamllint/yamllint-default.yml",
+    "--format",
+    "parsable",
+    "--",
+    "jgates.yml",
+    "yamllint_sample.yml"
+   ],
+   "exit": 1,
+   "stdout": "yamllint_sample.yml:2:1: [error] duplication of key \"key\" in mapping (key-duplicates)\n",
+   "stderr": ""
+  }
+ ]
+}

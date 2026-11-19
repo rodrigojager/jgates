@@ -1,0 +1,21 @@
+{
+ "tool": "phpstan",
+ "kind": "clean",
+ "version": "2.3.6",
+ "calls": [
+  {
+   "args": [
+    "analyse",
+    "--no-progress",
+    "--no-ansi",
+    "--memory-limit=1G",
+    "--error-format=checkstyle",
+    "--",
+    "Undefined.php"
+   ],
+   "exit": 0,
+   "stdout": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<checkstyle>\n</checkstyle>\n",
+   "stderr": "\n ! [NOTE] PHPStan runs without PHPStan Turbo.                                   \n !        With PHPStan Turbo, analysis is up to 60% faster.                     \n !        Install PHPStan with Composer: composer require --dev phpstan/phpstan \n !        Or install PHPStan Turbo with PIE: pie install phpstan/turbo:2.3.6    \n\n"
+  }
+ ]
+}

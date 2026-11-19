@@ -80,11 +80,13 @@ test("V2-42: cancel kills only the run's labelled containers, takes its services
     const engine = tmp("v2-42-engine-");
     const calls = path.join(engine, "calls.jsonl");
     const runtime = path.join(engine, "docker.cjs");
+    const killOrder = path.join(engine, "kill-before-rm.json");
     fs.writeFileSync(
       runtime,
       [
         `process.env.FAKE_DOCKER_LOG = ${JSON.stringify(calls)};`,
         `process.env.FAKE_DOCKER_STATE = ${JSON.stringify(engine)};`,
+        `process.env.FAKE_DOCKER_KILL_BEFORE_RM = ${JSON.stringify(killOrder)};`,
         `process.env.FAKE_DOCKER_LABELS = ${JSON.stringify(JSON.stringify({ "org.jgates.version": VERSION }))};`,
         'process.env.FAKE_DOCKER_STEP_MODE = "hang";',
         'process.env.FAKE_DOCKER_STEP_NAME = "gen-b";',
@@ -152,6 +154,14 @@ test("V2-42: cancel kills only the run's labelled containers, takes its services
     });
     // gen-b's step container is running (the fake engine keeps a marker file per live container).
     await until(() => fs.readdirSync(engine).find((f) => /gen-b\.container$/.test(f)), 60_000, "the gen-b container to start");
+    // This acceptance case exercises the label-selected kill path, not the competing exact-name force-removal path
+    // covered by services.test.js. The fake only delays removal of this registered step, and fails after 10 seconds
+    // unless the genuine labelled kill completes. No kill call, result or event is manufactured.
+    const running = JSON.parse(fs.readFileSync(path.join(engine, "objects.json"), "utf8")).containers.find((c) => c.name === `jgates-${runId}-gen-b`);
+    assert.ok(running, "the current step is registered before cancellation");
+    assert.equal(running.labels["org.jgates.managed"], "true");
+    assert.equal(running.labels["org.jgates.run"], runId);
+    fs.writeFileSync(killOrder, JSON.stringify({ id: running.id, name: running.name, run: runId }));
     controller.abort("user cancelled");
     const result = await pending;
 

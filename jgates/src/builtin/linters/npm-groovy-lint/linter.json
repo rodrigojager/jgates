@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "id": "npm-groovy-lint",
+  "name": "npm-groovy-lint",
+  "sourceUrl": "https://github.com/nvuillam/npm-groovy-lint",
+  "license": "MIT",
+  "program": {
+    "tool": "npm-groovy-lint",
+    "versionRange": ">=19.0.0 <20.0.0"
+  },
+  "megalinter": [
+    "GROOVY_NPM_GROOVY_LINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "groovy",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".groovy",
+      ".gvy",
+      ".gradle",
+      ".nf"
+    ],
+    "names": [
+      "Jenkinsfile"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--noserver",
+      "--output",
+      "{report}",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "file",
+    "file": "npm-groovy-lint.sarif",
+    "reader": "custom"
+  },
+  "configuration": {
+    "files": [
+      ".groovylintrc.json",
+      ".groovylintrc.js",
+      ".groovylintrc.cjs",
+      ".groovylintrc.yml",
+      ".groovylintrc.yaml",
+      ".groovylintrc.jsonc",
+      ".groovylintrc.json5",
+      "package.json"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "npm-groovy-lint reads the project's .groovylintrc.* files: the project decides the rule set and the ignored files",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: /* groovylint-disable */ and // groovylint-disable-next-line comments",
+      "pattern": "groovylint-disable",
+      "files": "\\.(groovy|gvy|gradle|nf)$|Jenkinsfile$"
+    }
+  },
+  "install": "npm-groovy-lint",
+  "text": {
+    "en": {
+      "label": "npm-groovy-lint (Groovy)",
+      "purpose": "Checks Groovy, Gradle, Nextflow and Jenkinsfile sources with CodeNarc rules: unused imports, risky constructs, style and formatting.",
+      "limitation": "Without a project .groovylintrc.json it runs the tool's recommended rule set; it starts a Java process per run, so it is slower than most linters.",
+      "needs": "The Java runtime of the tools image; no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "npm-groovy-lint (Groovy)",
+      "purpose": "Verifica fontes Groovy, Gradle, Nextflow e Jenkinsfile com regras do CodeNarc: imports não usados, construções arriscadas, estilo e formatação.",
+      "limitation": "Sem um .groovylintrc.json no projeto, roda o conjunto de regras recomendado da ferramenta; inicia um processo Java a cada execução, então é mais lento que a maioria dos linters.",
+      "needs": "O runtime Java da imagem de ferramentas; sem rede e sem as dependências do projeto."
+    }
+  }
+}

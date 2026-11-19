@@ -17,5 +17,7 @@
   "baseline_cleared": "Baseline removida.",
   "baseline_none": "Sem baseline.",
   "baseline_compare_line": "novos {new}, resolvidos {resolved}, mantidos {kept}",
+  "baseline_compare_review": "para revisar (não bloqueiam): novos {new}, resolvidos {resolved}, mantidos {kept}",
+  "baseline_compare_informational": "informativos (não bloqueiam): novos {new}, resolvidos {resolved}, mantidos {kept}",
   "baseline_not_comparable": "Atenção: a comparação não é direta ({codes})."
 }

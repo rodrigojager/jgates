@@ -53,7 +53,8 @@ test('every vendored pack and the shipped Semgrep pack are in THIRD_PARTY_NOTICE
   assert.match(notices, /CC BY-SA 4\.0|CC-BY-SA-4\.0/);
   assert.match(notices, /jgates\/packs\/semgrep\/jgates-semgrep/);
   assert.match(notices, /registry rules are never bundled/);
-  for (const dir of ['jgates/vendor/cloudflare-security-audit', 'jgates/vendor/trailofbits-skills', 'jgates/packs/semgrep/jgates-semgrep']) {
+  assert.match(notices, /5cf9b032440be53ce345ab3c130fda46ba1ce7a2/);
+  for (const dir of ['jgates/vendor/cloudflare-security-audit', 'jgates/vendor/trailofbits-skills', 'jgates/packs/semgrep/jgates-semgrep', 'jgates/vendor/owasp-asvs', 'jgates/packs/asvs/jgates-asvs-map']) {
     assert.ok(notices.includes('`' + dir + '`'), `${dir} is listed`);
     for (const f of ['LICENSE', 'NOTICE.md', 'jgates-pack.json']) assert.ok(fs.existsSync(path.join(root, dir, f)), `${dir}/${f} exists`);
   }
@@ -65,6 +66,14 @@ test('every Quality integration of V2 has a row in THIRD_PARTY_NOTICES.md', () =
     assert.ok(row, `${tool} has a row`);
     assert.match(row, /MIT|Apache-2\.0|BSD|CodeQL Terms/, `${tool} row names a license`);
   }
+});
+
+test('the tools image table is generated from about.json and the linter descriptors, and the sizes from the pin', () => {
+  // jgates/scripts/gen-image-docs.mjs --check: THIRD_PARTY_NOTICES.md's table "Tools shipped in the tools image" and the
+  // image sizes of the README and docs/jgates are what the generator writes (npm --prefix jgates run image:docs).
+  const { spawnSync } = require('node:child_process');
+  const ran = spawnSync(process.execPath, [path.join(root, 'jgates', 'scripts', 'gen-image-docs.mjs'), '--check'], { encoding: 'utf8' });
+  assert.equal(ran.status, 0, ran.stderr || ran.stdout);
 });
 
 test('every tool shipped in the tools image has a row with a license and a source URL', () => {

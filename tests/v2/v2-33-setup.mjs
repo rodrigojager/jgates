@@ -5,10 +5,11 @@ import path from "node:path";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { fakeHostDiskEnv } from "../../jgates/tests/setup/fake-host-disk.mjs";
 
 // V2-33 (fake engine): `jgates setup` on a machine whose engine runs.
 //   1. The tools image is not in the engine: setup pulls the pinned reference (by digest), creates the shared volumes
-//      (jgates-cache, jgates-toolchains, jgates-data) with the JGates labels, refreshes the four advisory databases and
+//      (jgates-cache, jgates-toolchains, jgates-data) with the JGates labels, refreshes the advisory databases and
 //      exits 0; it never prepares CodeQL (no jgates-codeql volume).
 //   2. A second call exits 0 and pulls nothing, creates nothing and refreshes nothing.
 //   3. `status --json` reports the machine ready: engine, image of this release and fresh data.
@@ -18,6 +19,7 @@ const MAIN = path.join(root, "jgates", "dist", "cli", "main.js");
 const FAKE = path.join(root, "jgates", "tests", "docker", "fake-docker.cjs");
 const CLI_VERSION = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 const PINNED = `registry.example.test/jgates/jgates-tools@sha256:${"ab".repeat(32)}`;
+const DATABASES = ["trivy", "osv", "govulndb", "rustsec", "grype", "kubescape"];
 
 const made = [];
 const tmp = (prefix) => {
@@ -42,7 +44,7 @@ test("V2-33: setup pulls the pinned image, creates the shared volumes and data; 
   );
   const env = { ...process.env, JGATES_HOME: home, JGATES_CONTAINER_RUNTIME: runtime, JGATES_IMAGE_JSON: "", JGATES_TOOLS_IMAGE: PINNED, JGATES_NO_CACHE: "1", JGATES_LOCALE: "en", NO_COLOR: "1" };
   const cli = (args) => {
-    const r = spawnSync(process.execPath, [MAIN, ...args], { cwd: project, encoding: "utf8", env, input: "", timeout: 240_000 });
+    const r = spawnSync(process.execPath, [MAIN, ...args], { cwd: project, encoding: "utf8", env: fakeHostDiskEnv(env), input: "", timeout: 240_000 });
     let doc = null;
     try {
       doc = JSON.parse(r.stdout);
@@ -56,6 +58,11 @@ test("V2-33: setup pulls the pinned image, creates the shared volumes and data; 
   const flag = (call, name) => call[call.indexOf(name) + 1];
 
   // 1. A machine with a running engine and no image.
+  // A low-capacity fake machine must still fail before the fake engine receives any pull.
+  const low = spawnSync(process.execPath, [MAIN, "setup", "--json"], { cwd: project, encoding: "utf8", env: fakeHostDiskEnv(env, 1), input: "", timeout: 240_000 });
+  assert.equal(low.status, 2, low.stdout + low.stderr);
+  assert.ok(JSON.parse(low.stdout).reasons.some((r) => r.code === "DISK_LOW"), low.stdout);
+  assert.ok(!dockerCalls().some((c) => c[0] === "pull"), "the disk guard refuses a download");
   const first = cli(["setup", "--json"]);
   assert.equal(first.status, 0, first.stdout + first.stderr);
   assert.ok(first.doc, first.stdout);
@@ -74,7 +81,7 @@ test("V2-33: setup pulls the pinned image, creates the shared volumes and data; 
   }
   assert.ok(!volumes.some((v) => v.name === "jgates-codeql"), "setup never prepares CodeQL (it needs the terms accepted)");
   const refreshes = dockerCalls().filter((c) => c[0] === "run" && c.includes("org.jgates.kind=data") && c.includes("python3"));
-  assert.deepEqual(refreshes.map((c) => c.at(-1)), ["trivy", "osv", "govulndb", "rustsec"]);
+  assert.deepEqual(refreshes.map((c) => c.at(-1)), DATABASES);
   for (const c of refreshes) assert.equal(flag(c, "--network"), "bridge");
   // Progress went to stderr as JSON lines, never to stdout.
   const events = first.stderr.split("\n").filter((l) => l.startsWith("{")).map((l) => JSON.parse(l));
@@ -104,7 +111,7 @@ test("V2-33: setup pulls the pinned image, creates the shared volumes and data; 
   assert.equal(status.doc.image.state, "ready");
   assert.equal(status.doc.image.version, CLI_VERSION);
   assert.equal(status.doc.data.state, "fresh");
-  assert.deepEqual(status.doc.data.databases.map((d) => d.id), ["trivy", "osv", "govulndb", "rustsec"]);
+  assert.deepEqual(status.doc.data.databases.map((d) => d.id), DATABASES);
   assert.deepEqual(status.doc.reasons, []);
   assert.deepEqual(status.doc.warnings, []);
   // The text form says so too (English here).

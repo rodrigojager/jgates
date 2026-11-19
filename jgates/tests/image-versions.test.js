@@ -6,7 +6,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // The versions gate of the tools image (PLAN-image.md section 5, gate 1): every tool the image ships has a version that
 // the toolVersionRange of its adapter accepts, and the Dockerfile pins are what the image records in image.json.
-// Reads the built adapter manifests (dist/adapters/*/manifest.js) and the image.json kept in release/image-tools.json,
+// Reads the built adapter manifests (dist/adapters/*/manifest.js, and the linter descriptors' through the engine), the
+// pins of the assembled Dockerfile and the install entries, and the image.json kept in release/image-tools.json,
 // which `npm run image:build` rewrites from the image it just built.
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -14,7 +15,8 @@ const root = path.resolve(here, "..");
 const gates = await import(pathToFileURL(path.join(root, "scripts", "image-gates.mjs")).href);
 const { manifests, satisfiesRange } = await gates.loadManifests(path.join(root, "dist"));
 const imageJson = JSON.parse(fs.readFileSync(path.join(root, "release", "image-tools.json"), "utf8"));
-const pins = gates.dockerfilePins(fs.readFileSync(path.join(root, "docker", "tools", "Dockerfile"), "utf8"));
+// The toolchains' build arguments of the assembled Dockerfile and the pins of the install entries (PLAN-image.md section 3).
+const pins = gates.imagePins();
 
 test("every shipped version is inside the toolVersionRange of its adapter", () => {
   assert.ok(manifests.length >= 20, `read ${manifests.length} adapter manifests`);
@@ -50,5 +52,5 @@ test("an adapter whose tool is not in the image fails unless it is one of the do
 test("a Dockerfile pin that differs from the image fails", () => {
   const drift = gates.checkVersions({ imageJson, manifests, satisfiesRange, pins: { ...pins, ruff: "0.0.1" } });
   assert.ok(drift.findings.some((f) => f.kind === "pin-differs" && f.tool === "ruff" && f.version === imageJson.tools.ruff));
-  assert.ok(Object.keys(pins).length >= 15, `read ${Object.keys(pins).length} pins from the Dockerfile`);
+  assert.ok(Object.keys(pins).length >= 15, `read ${Object.keys(pins).length} pins from the Dockerfile and the install entries`);
 });

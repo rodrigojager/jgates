@@ -192,7 +192,8 @@ export function ComponentsTab({
           // Until the templates of jgates.yml are known, the matching ones are shown as before.
           const used = inUse ? matching.filter((x) => inUse.has(x)) : matching;
           const available = inUse ? matching.filter((x) => !inUse.has(x)) : [];
-          const unsupported = languageOf(c.language)?.supported === false;
+          const language = languageOf(c.language);
+          const unsupported = language?.supported === false;
           return (
             <article key={`${c.id}:${c.componentRoot}:${c.detectedBy}`} className="card ws-card" data-component={c.id} data-status={c.classificationStatus}>
               <div className="between">
@@ -211,7 +212,11 @@ export function ComponentsTab({
                 <dt>{t("ws_card_template")}</dt>
                 <dd>{used.length > 0 ? used.map((x) => <code key={x}>{x} </code>) : t("ws_card_template_none")}</dd>
               </dl>
-              {unsupported ? <p className="small muted">{t("ws_card_unsupported")}</p> : null}
+              {unsupported ? (
+                <p className="small muted" data-testid="card-unsupported">
+                  {t(language?.packRules ? "ws_card_unsupported_pack" : "ws_card_unsupported", { name: language?.label ?? c.language ?? "" })}
+                </p>
+              ) : null}
               {available.length > 0 ? (
                 <p className="small muted" data-testid="card-templates-available">
                   {t("ws_card_template_available", { templates: available.join(", ") })} <a href="#/config/templates">{t("ws_card_template_manage")}</a>

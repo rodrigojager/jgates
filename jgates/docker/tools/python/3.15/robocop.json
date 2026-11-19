@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "robocop",
+      "link": "robocop",
+      "path": "bin/robocop",
+      "version": [
+        "robocop",
+        "--version"
+      ]
+    }
+  ]
+}

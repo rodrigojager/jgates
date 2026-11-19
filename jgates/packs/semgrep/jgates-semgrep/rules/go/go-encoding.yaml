@@ -1,0 +1,1044 @@
+# Encoding rules for Go. Request sources: net/http (*http.Request), gin, echo, fiber and chi, as in go-taint.yaml.
+# Sinks: regexp, fmt and log format functions, encoding/csv and excelize writers, gomemcache, URL and JSON string
+# building; plus the double-decoding and Markdown rules.
+rules:
+  - id: jgates.go.regex-from-request
+    message: Request data is compiled or matched as a regular expression. Escape it with regexp.QuoteMeta before it becomes part of a pattern.
+    severity: WARNING
+    languages: [go]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.9"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.URL.Path
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.Header.Get(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.DefaultQuery(...)
+              - pattern: $R.PostForm(...)
+              - pattern: $R.DefaultPostForm(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.GetHeader(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.QueryParam(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.FormValue(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.Params(...)
+              - pattern: $R.FormValue(...)
+      - pattern: chi.URLParam($R, ...)
+    pattern-sanitizers:
+      - pattern: regexp.QuoteMeta(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: regexp.Compile($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: regexp.MustCompile($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: regexp.CompilePOSIX($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: regexp.MustCompilePOSIX($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: regexp.MatchString($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: regexp.Match($P, ...)
+          - focus-metavariable: $P
+
+  - id: jgates.go.format-string-from-request
+    message: Request data is used as the format string of a formatting or logging call. Pass a constant format and give the request data as an argument, for example fmt.Printf with a %s verb.
+    severity: ERROR
+    languages: [go]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-134"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.10"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.URL.Path
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.Header.Get(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.DefaultQuery(...)
+              - pattern: $R.PostForm(...)
+              - pattern: $R.DefaultPostForm(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.GetHeader(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.QueryParam(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.FormValue(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.Params(...)
+              - pattern: $R.FormValue(...)
+      - pattern: chi.URLParam($R, ...)
+    pattern-sinks:
+      - patterns:
+          - pattern: fmt.Printf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: fmt.Sprintf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: fmt.Errorf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: fmt.Fprintf($W, $F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: fmt.Sscanf($S, $F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: log.Printf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: log.Fatalf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: log.Panicf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $L.Printf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $L.Errorf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $L.Infof($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $L.Warnf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $L.Debugf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $L.Fatalf($F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $L.Panicf($F, ...)
+          - focus-metavariable: $F
+
+  - id: jgates.go.csv-formula-injection
+    message: Request data is written as a spreadsheet or CSV field without a check on its first character, so a value starting with =, +, - or @ can run as a formula. Prefix such values with an apostrophe or reject them before writing.
+    severity: WARNING
+    languages: [go]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1236"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.10"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.URL.Path
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.Header.Get(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.DefaultQuery(...)
+              - pattern: $R.PostForm(...)
+              - pattern: $R.DefaultPostForm(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.GetHeader(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.QueryParam(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.FormValue(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.Params(...)
+              - pattern: $R.FormValue(...)
+      - pattern: chi.URLParam($R, ...)
+    pattern-sanitizers:
+      - pattern: sanitizeCSVField(...)
+      - pattern: escapeCSVField(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: '($W : *csv.Writer).Write([]string{..., $P, ...})'
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $F.SetCellValue($S, $C, $P)
+          - focus-metavariable: $P
+
+  - id: jgates.go.memcache-key-from-request
+    message: Request data is used as a memcache key. A key with spaces or control characters can inject protocol commands or collide with other keys; hash or strictly validate it first.
+    severity: WARNING
+    languages: [go]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.9"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.URL.Path
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.Header.Get(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.DefaultQuery(...)
+              - pattern: $R.PostForm(...)
+              - pattern: $R.DefaultPostForm(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.GetHeader(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.QueryParam(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.FormValue(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.Params(...)
+              - pattern: $R.FormValue(...)
+      - pattern: chi.URLParam($R, ...)
+    pattern-sanitizers:
+      - pattern: hex.EncodeToString(...)
+      - pattern: validateCacheKey(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: 'memcache.Item{..., Key: $K, ...}'
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: '($C : *memcache.Client).Get($K)'
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: '($C : *memcache.Client).Delete($K)'
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: '($C : *memcache.Client).Touch($K, ...)'
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: '($C : *memcache.Client).Increment($K, ...)'
+          - focus-metavariable: $K
+      - patterns:
+          - pattern: '($C : *memcache.Client).Decrement($K, ...)'
+          - focus-metavariable: $K
+
+  - id: jgates.go.url-parameter-unencoded
+    message: Request data is joined into the query or path of a URL without encoding. Use url.QueryEscape or url.PathEscape, or build the query with url.Values.
+    severity: WARNING
+    languages: [go]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.2"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.URL.Path
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.Header.Get(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.DefaultQuery(...)
+              - pattern: $R.PostForm(...)
+              - pattern: $R.DefaultPostForm(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.GetHeader(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.QueryParam(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.FormValue(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.Params(...)
+              - pattern: $R.FormValue(...)
+      - pattern: chi.URLParam($R, ...)
+    pattern-sanitizers:
+      - pattern: url.QueryEscape(...)
+      - pattern: url.PathEscape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $A + $P
+          - metavariable-regex:
+              metavariable: $A
+              regex: '(?s)^["`].*(\?|://).*[=/]["`]$'
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fmt.Sprintf($F, ..., $P, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '(?s)^["`].*(\?[^"`]*=|[A-Za-z0-9_.-]/)%[sv]'
+          - focus-metavariable: $P
+
+  - id: jgates.go.json-built-by-concatenation
+    message: Request data is joined into JSON or script text by string concatenation, so a quote or bracket in it changes the structure. Build the value with encoding/json (json.Marshal) instead.
+    severity: WARNING
+    languages: [go]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.3"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *http.Request, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.FormValue(...)
+              - pattern: $R.PostFormValue(...)
+              - pattern: $R.URL.Query().Get(...)
+              - pattern: $R.URL.Path
+              - pattern: $R.URL.RawQuery
+              - pattern: $R.Header.Get(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *gin.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.DefaultQuery(...)
+              - pattern: $R.PostForm(...)
+              - pattern: $R.DefaultPostForm(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.GetHeader(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R echo.Context, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.QueryParam(...)
+              - pattern: $R.Param(...)
+              - pattern: $R.FormValue(...)
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) {
+                    ...
+                  }
+              - pattern-inside: |
+                  func ($X $T) $F(..., $R *fiber.Ctx, ...) $RET {
+                    ...
+                  }
+          - pattern-either:
+              - pattern: $R.Query(...)
+              - pattern: $R.Params(...)
+              - pattern: $R.FormValue(...)
+      - pattern: chi.URLParam($R, ...)
+    pattern-sanitizers:
+      - pattern: json.Marshal(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: $A + $P
+          - metavariable-regex:
+              metavariable: $A
+              regex: '(?s)^["`]\s*[\{\[].*[:,\[]\s*(\\?")?["`]$'
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fmt.Sprintf($F, ..., $P, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '(?s)^["`](\s*[\{\[]|.*<script).*%[sv]'
+          - focus-metavariable: $P
+
+  - id: jgates.go.double-decoding
+    message: A value is URL-, HTML- or base64-decoded and then decoded again with the same decoder, so encoded input can slip past checks made after the first decode. Decode once and validate the result.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: injection
+      cwe: "CWE-174"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.1.1"]
+    pattern-either:
+      - pattern: html.UnescapeString(html.UnescapeString(...))
+      - pattern: |
+          $A := html.UnescapeString($X)
+          ...
+          $B := html.UnescapeString($A)
+      - pattern: |
+          $A, $E1 := url.QueryUnescape($X)
+          ...
+          $B, $E2 := url.QueryUnescape($A)
+      - pattern: |
+          $A, $E1 := url.PathUnescape($X)
+          ...
+          $B, $E2 := url.PathUnescape($A)
+      - patterns:
+          - pattern: |
+              $A, $E1 := $ENC1.DecodeString($X)
+              ...
+              $B, $E2 := $ENC2.DecodeString(string($A))
+          - metavariable-regex:
+              metavariable: $ENC1
+              regex: ^base64\.\w+$
+          - metavariable-regex:
+              metavariable: $ENC2
+              regex: ^base64\.\w+$
+
+  - id: jgates.go.markdown-raw-html-enabled
+    message: A Markdown renderer explicitly enables raw HTML with WithUnsafe(). Leave raw HTML off (goldmark's default) or sanitize the result with bluemonday.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    patterns:
+      - pattern: $X.WithUnsafe()
+      - pattern-not-inside: $P.SanitizeBytes(...)
+      - pattern-not-inside: $P.Sanitize(...)
+
+  - id: jgates.go.markdown-raw-html-enabled-by-default
+    message: A Markdown renderer's output is not visibly passed through an HTML sanitizer. If nothing else sanitizes the output, raw HTML can reach the page; sanitize it with bluemonday or confirm where sanitization happens.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: blackfriday.Run(...)
+          - pattern: blackfriday.MarkdownCommon(...)
+          - pattern: blackfriday.MarkdownBasic(...)
+          - pattern: markdown.ToHTML(...)
+      - pattern-not-inside: $P.SanitizeBytes(...)
+      - pattern-not-inside: $P.Sanitize(...)

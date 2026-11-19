@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
+import { LINTERS_TEST_FILE, linterTestTitle } from "../../adapters/linter/derived.js";
+import { loadLinters } from "../../adapters/linter/descriptor.js";
 import { fileURLToPath } from "node:url";
 import { ANY_STACK, type AdapterManifest, type DistributionMode, type StackSupportState, type ToolDistribution } from "../catalog/index.js";
 import type { ClassificationStatus, Inventory } from "../discovery/types.js";
@@ -206,7 +208,9 @@ export function verifyMatrix(matrix: Matrix): string[] {
   const titles = (file: string) => {
     if (!cache.has(file)) {
       try {
-        cache.set(file, testTitles(fs.readFileSync(path.join(testsDir, file), "utf8")));
+        const source = fs.readFileSync(path.join(testsDir, file), "utf8");
+        // The per-tool test file of the linter engine makes one test per descriptor, titled by linterTestTitle.
+        cache.set(file, file === LINTERS_TEST_FILE ? [...testTitles(source), ...loadLinters().map((l) => linterTestTitle(l.descriptor))] : testTitles(source));
       } catch {
         cache.set(file, null);
       }

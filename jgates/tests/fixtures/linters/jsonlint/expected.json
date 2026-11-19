@@ -1,0 +1,12 @@
+{
+  "files": [
+    "jsonlint-sample.json"
+  ],
+  "findings": [
+    {
+      "rule": "syntax",
+      "file": "jsonlint-sample.json",
+      "line": 3
+    }
+  ]
+}

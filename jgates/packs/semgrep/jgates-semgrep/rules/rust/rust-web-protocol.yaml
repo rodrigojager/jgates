@@ -1,0 +1,217 @@
+# Rust web-protocol rules: security headers, Content-Security-Policy, WebSocket, GraphQL, redirects and forwarded headers.
+# Frameworks covered: actix-web, axum with tower-http and hyper headers, rocket (Shield, Redirect), tungstenite and tokio-tungstenite clients,
+# async-graphql. The open-source engine follows data inside one function, so each source and sink pair sits in one handler.
+rules:
+  - id: jgates.rust.security-headers-disabled
+    message: The Rocket Shield fairing is created empty or has a protective header switched off. Attach Shield::default() and keep its headers (HSTS, nosniff, frame protection).
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.1", "V3.4.4"]
+    pattern-either:
+      - pattern: Shield::new()
+      - pattern: $S.disable::<$H>()
+
+  - id: jgates.rust.csp-unsafe-directive
+    message: A Content-Security-Policy literal allows 'unsafe-inline', 'unsafe-eval' or any source for scripts. Use a nonce or hash for scripts and list the origins you trust.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.3"]
+    patterns:
+      - pattern-either:
+          - pattern: ($N, $V)
+          - pattern: ($N, HeaderValue::from_static($V))
+          - pattern: $X.header($N, $V)
+          - pattern: $X.insert($N, $V)
+          - pattern: $X.insert($N, HeaderValue::from_static($V))
+          - pattern: $X.append($N, HeaderValue::from_static($V))
+          - pattern: SetResponseHeaderLayer::overriding($N, HeaderValue::from_static($V))
+          - pattern: SetResponseHeaderLayer::if_not_present($N, HeaderValue::from_static($V))
+          - pattern: Header::new($N, $V)
+      - metavariable-regex:
+          metavariable: $N
+          regex: '(?i)^"?(header::)?content[-_]security[-_]policy"?$'
+      - metavariable-regex:
+          metavariable: $V
+          regex: '(?is).*((script-src|script-src-elem|default-src)[^;"]*(''unsafe-inline''|''unsafe-eval''|[ ]\*([ ;"]|$))|''unsafe-eval'')'
+
+  - id: jgates.rust.websocket-without-tls
+    message: A WebSocket client connects to a literal ws:// address that is not the local machine, so the traffic is not encrypted. Use a wss:// address.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $F("$U")
+          - pattern: $F("$U", ...)
+          - pattern: $U.$F()
+      - metavariable-regex:
+          metavariable: $F
+          regex: '^(.*::)?(connect_async|connect_async_with_config|connect|into_client_request)$'
+      - metavariable-regex:
+          metavariable: $U
+          regex: '^"?ws://(?!(localhost|127\.|\[::1\]))'
+
+  - id: jgates.rust.websocket-origin-not-checked
+    message: A tungstenite server accepts a WebSocket handshake without an Origin validation callback in sight. If a trusted upstream does not validate browser origins, use accept_hdr or accept_hdr_async with a callback that rejects origins outside an allow-list; otherwise confirm where that validation occurs.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: authorization
+      cwe: "CWE-1385"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.4.2"]
+      class: review
+    pattern-either:
+      - pattern: tungstenite::accept(...)
+      - pattern: tungstenite::accept_with_config(...)
+      - pattern: tokio_tungstenite::accept_async(...)
+      - pattern: tokio_tungstenite::accept_async_with_config(...)
+
+  - id: jgates.rust.graphql-introspection-enabled
+    message: An async-graphql schema is finished without disabling introspection in sight, so the default can expose its schema to callers. Disable introspection before finish() outside development, or confirm that schema discovery is intended and access is restricted elsewhere.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.2"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: Schema::build(...).finish()
+          - pattern: Schema::build(...).$A(...).finish()
+          - pattern: Schema::build(...).$A(...).$B(...).finish()
+          - pattern: Schema::build(...).$A(...).$B(...).$C(...).finish()
+          - pattern: Schema::build(...).$A(...).$B(...).$C(...).$D(...).finish()
+      - pattern-not-regex: 'disable_introspection'
+
+  - id: jgates.rust.graphql-without-depth-limit
+    message: An async-graphql schema is finished without a depth or complexity limit, so one request can ask for a very deep or costly query. Add limit_depth(...) and limit_complexity(...) before finish().
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: availability
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: Schema::build(...).finish()
+          - pattern: Schema::build(...).$A(...).finish()
+          - pattern: Schema::build(...).$A(...).$B(...).finish()
+          - pattern: Schema::build(...).$A(...).$B(...).$C(...).finish()
+          - pattern: Schema::build(...).$A(...).$B(...).$C(...).$D(...).finish()
+      - pattern-not-regex: 'limit_(depth|complexity)'
+
+  - id: jgates.rust.open-redirect
+    message: A redirect target comes from the incoming request, so an attacker can send users to another site. Redirect only to a fixed path or to a value checked against an allow-list.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-601"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V3.7.2"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: safe_redirect_target(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: Redirect::to($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Redirect::temporary($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Redirect::permanent($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern-either:
+              - pattern: $X.insert_header(($N, $U))
+              - pattern: $X.append_header(($N, $U))
+              - pattern: $X.header($N, $U)
+          - metavariable-regex:
+              metavariable: $N
+              regex: '(?i)^"?location"?$|(?i)^(header::)?LOCATION$'
+          - focus-metavariable: $U
+
+  - id: jgates.rust.client-ip-from-forwarded-header
+    message: The client address is read from forwarding headers, whose trust depends on the deployment. Use the peer address, or confirm that only trusted proxies can reach the application and that they strip client-supplied forwarding headers and overwrite them with verified addresses.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: authorization
+      cwe: "CWE-348"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.4", "V4.1.3"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $X.get($N)
+              - pattern: $X.get_all($N)
+          - metavariable-regex:
+              metavariable: $N
+              regex: '(?i)^"?((header::)?(X[-_]FORWARDED[-_]FOR|X[-_]REAL[-_]IP|X[-_]CLIENT[-_]IP|FORWARDED|CF[-_]CONNECTING[-_]IP|TRUE[-_]CLIENT[-_]IP))"?$'
+      - pattern: $R.connection_info().realip_remote_addr()
+
+  - id: jgates.rust.host-header-in-url
+    message: The request Host header is used to build an absolute URL, so an attacker can poison links such as password-reset mails. Build the URL from a configured base address.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: authorization
+      cwe: "CWE-644"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.1.3"]
+    pattern-regex: 'format!\(\s*"https?://\{[^"]*"\s*,[^;]*?(connection_info\(\)\.host\(\)|headers\(\)\s*\.get\(\s*"(?i:host)"\s*\))'

@@ -1,0 +1,363 @@
+# Python rules of the group `encoding`: patterns and format strings built from request data, and output encoded by hand.
+# Sources (Flask / Werkzeug and Django request objects): request.args, request.form, request.values, request.json,
+# request.get_json(), request.view_args, request.GET, request.POST.
+# Sinks: the re module (and regex), str.format / % formatting, csv writers, memcache clients (pymemcache, pylibmc,
+# python-memcached), URL and JSON text built by hand, Markdown renderers (markdown-it-py, mistune, markdown2, cmarkgfm).
+rules:
+  - id: jgates.python.regex-from-request
+    message: Request data is used as a regular expression, or joined into one. A crafted pattern can run for a very long time or change what matches. Escape the value with re.escape() before it becomes part of a pattern.
+    severity: WARNING
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.9", "V1.3.12"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.view_args[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sanitizers:
+      - pattern: re.escape(...)
+      - pattern: regex.escape(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: re.$F($P, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: ^(compile|search|match|fullmatch|findall|finditer|sub|subn|split)$
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: regex.$F($P, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: ^(compile|search|match|fullmatch|findall|finditer|sub|subn|split)$
+          - focus-metavariable: $P
+
+  - id: jgates.python.redos-nested-quantifier
+    message: This regular expression has a quantified group that itself ends in a quantifier, such as (x+)+. On crafted input the match time grows exponentially. Rewrite the group so the repeats cannot overlap, for example x+ alone.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: injection
+      cwe: "CWE-1333"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.12"]
+    patterns:
+      - pattern-either:
+          - pattern: re.$F($R, ...)
+          - pattern: regex.$F($R, ...)
+      - metavariable-regex:
+          metavariable: $F
+          regex: ^(compile|search|match|fullmatch|findall|finditer|sub|subn|split)$
+      - metavariable-regex:
+          metavariable: $R
+          regex: '(?s).*([^\\][+*]\)[+*]|[^\\][+*]\)\{\d+,)'
+
+  - id: jgates.python.format-string-from-request
+    message: Request data is used as the format string of str.format(), str.format_map() or the % operator. A crafted format string can read attributes of the objects passed in, such as secrets in module globals. Keep the format string a literal and pass the request data as an argument.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-134"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.10"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.view_args[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sinks:
+      - patterns:
+          - pattern: $S.format(...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: $S.format_map(...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: string.Formatter().format($S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: $S % $ARGS
+          - focus-metavariable: $S
+
+  - id: jgates.python.csv-formula-injection
+    message: Request data is written as a field of a CSV file without a check of its first character. A value that starts with =, +, - or @ is run as a formula when the file is opened in a spreadsheet. Prefix such values with a single quote before writing them.
+    severity: WARNING
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1236"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.10"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.view_args[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sanitizers:
+      - pattern: |
+          "'" + $X
+      - pattern: $X.lstrip("=+-@")
+    pattern-sinks:
+      - patterns:
+          - pattern-inside: |
+              $W = csv.writer(...)
+              ...
+          - pattern-either:
+              - pattern: $W.writerow($ROW)
+              - pattern: $W.writerows($ROW)
+          - focus-metavariable: $ROW
+      - patterns:
+          - pattern-inside: |
+              $W = csv.DictWriter(...)
+              ...
+          - pattern-either:
+              - pattern: $W.writerow($ROW)
+              - pattern: $W.writerows($ROW)
+          - focus-metavariable: $ROW
+
+  - id: jgates.python.memcache-key-from-request
+    message: Request data is used as a memcache key. Spaces and control characters in a key can inject extra protocol commands or read another user's entry. Hash the value, or restrict it to a safe character set, before using it as a key.
+    severity: WARNING
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-93"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.9"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.view_args[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sanitizers:
+      - pattern: hashlib.$H(...).hexdigest()
+      - pattern: urllib.parse.quote(...)
+      - pattern: quote(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $C = pymemcache.client.base.Client(...)
+                  ...
+              - pattern-inside: |
+                  $C = pylibmc.Client(...)
+                  ...
+              - pattern-inside: |
+                  $C = memcache.Client(...)
+                  ...
+          - pattern: $C.$M($K, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|set|add|replace|delete|incr|decr|touch|append|prepend|cas|gets)$
+          - focus-metavariable: $K
+
+  - id: jgates.python.double-decoding
+    message: A URL, HTML or base64 decode is applied to the result of the same decode. Decoding twice lets an attacker hide characters from a check that ran after the first decode. Decode once, then validate.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: injection
+      cwe: "CWE-174"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.1.1"]
+    pattern-either:
+      - pattern: unquote(unquote($X))
+      - pattern: unquote_plus(unquote_plus($X))
+      - pattern: urllib.parse.unquote(urllib.parse.unquote($X))
+      - pattern: urllib.parse.unquote_plus(urllib.parse.unquote_plus($X))
+      - pattern: html.unescape(html.unescape($X))
+      - pattern: base64.b64decode(base64.b64decode($X))
+      - pattern: base64.urlsafe_b64decode(base64.urlsafe_b64decode($X))
+      - pattern: |
+          $A = unquote($X)
+          ...
+          $B = unquote($A)
+      - pattern: |
+          $A = urllib.parse.unquote($X)
+          ...
+          $B = urllib.parse.unquote($A)
+      - pattern: |
+          $A = html.unescape($X)
+          ...
+          $B = html.unescape($A)
+
+  - id: jgates.python.url-parameter-unencoded
+    message: Request data is joined into a URL without URL encoding. Characters such as & and # can add or cut off query parameters, and / or .. can change the path. Encode the value with urllib.parse.quote() or build the query with urllib.parse.urlencode().
+    severity: WARNING
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.2"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.view_args[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sanitizers:
+      - pattern: urllib.parse.quote(...)
+      - pattern: urllib.parse.quote_plus(...)
+      - pattern: urllib.parse.urlencode(...)
+      - pattern: quote(...)
+      - pattern: quote_plus(...)
+      - pattern: urlencode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: '"$BASE" + $X'
+          - metavariable-regex:
+              metavariable: $BASE
+              regex: ^https?://.*[?/=&]$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: '"$BASE" % $X'
+          - metavariable-regex:
+              metavariable: $BASE
+              regex: ^https?://.*%s
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: '"$BASE".format($X, ...)'
+          - metavariable-regex:
+              metavariable: $BASE
+              regex: ^https?://.*\{\}
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $S
+          - metavariable-pattern:
+              metavariable: $S
+              pattern: f"...{...}..."
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?s)f["']https?://.*
+
+  - id: jgates.python.json-built-by-concatenation
+    message: Request data is joined into JSON text by hand. A quote or brace in the value breaks out of the string and changes the document. Build the data as a dict or list and serialize it with json.dumps().
+    severity: WARNING
+    languages: [python]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-116"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.3"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.view_args[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sanitizers:
+      - pattern: json.dumps(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: '"$J" + $X'
+          - metavariable-regex:
+              metavariable: $J
+              regex: ^\s*[\[{].*[:,\[]\s*"?$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: '"$J" % $X'
+          - metavariable-regex:
+              metavariable: $J
+              regex: ^\s*[\[{].*"[^"]*"\s*:\s*"?%s
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $S
+          - metavariable-pattern:
+              metavariable: $S
+              pattern: f"...{...}..."
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?s)f["'].*\{\{\s*"[^"]*"\s*:\s*"?\{[a-zA-Z_].*
+
+  - id: jgates.python.markdown-raw-html-enabled
+    message: A Markdown renderer is configured to pass raw HTML through, so HTML in the source reaches the page unchanged. Keep raw HTML escaped (html False, escape True, safe_mode "escape") or sanitize the output with an allow-list sanitizer.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: injection
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    pattern-either:
+      - pattern: 'MarkdownIt(..., {..., "html": True, ...}, ...)'
+      - pattern: 'markdown_it.MarkdownIt(..., {..., "html": True, ...}, ...)'
+      - pattern: 'MarkdownIt(..., options_update={..., "html": True, ...}, ...)'
+      - pattern: 'markdown_it.MarkdownIt(..., options_update={..., "html": True, ...}, ...)'
+      - pattern: mistune.create_markdown(..., escape=False, ...)
+      - pattern: mistune.HTMLRenderer(..., escape=False, ...)
+      - pattern: markdown2.markdown(..., safe_mode=False, ...)
+      - pattern: markdown2.Markdown(..., safe_mode=False, ...)
+      - pattern: cmarkgfm.markdown_to_html(..., options=cmarkgfm.cmark.Options.CMARK_OPT_UNSAFE, ...)
+      - pattern: cmarkgfm.github_flavored_markdown_to_html(..., options=cmarkgfm.cmark.Options.CMARK_OPT_UNSAFE, ...)

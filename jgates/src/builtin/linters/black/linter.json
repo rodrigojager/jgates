@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "black",
+  "name": "black",
+  "sourceUrl": "https://github.com/psf/black",
+  "license": "MIT",
+  "program": {
+    "tool": "black",
+    "versionRange": ">=24.0.0 <30.0.0"
+  },
+  "megalinter": [
+    "PYTHON_BLACK"
+  ],
+  "place": {
+    "section": "language",
+    "group": "python",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".py",
+      ".pyi",
+      ".ipynb"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--check",
+      "--",
+      "{files}"
+    ],
+    "env": {
+      "BLACK_CACHE_DIR": "/tmp/black"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^(?<message>would reformat) (?<file>.+)$",
+    "rule": "black.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      "pyproject.toml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "black reads the [tool.black] table of the project's pyproject.toml (line length, target versions, exclusions): the project decides the format",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: black has no in-file suppression of the check; # fmt: off and # fmt: skip only keep a region as written"
+    }
+  },
+  "install": "black",
+  "text": {
+    "en": {
+      "label": "black (Python format)",
+      "purpose": "Checks that Python code, stubs and Jupyter notebooks are formatted the way black writes them. It only reports the difference; it never rewrites a file.",
+      "limitation": "It reports the files that differ from black's layout, not the lines one by one; a file black cannot parse is an error of the step. ruff format is close to black but not identical.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "black (Python format)",
+      "purpose": "Verifica se o código Python, os stubs e os notebooks Jupyter estão formatados como o black os escreveria. Só reporta a diferença; nunca reescreve um arquivo.",
+      "limitation": "Reporta os arquivos que diferem do layout do black, não as linhas uma a uma; um arquivo que o black não consegue ler é um erro da etapa. O ruff format é parecido com o black, mas não idêntico.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

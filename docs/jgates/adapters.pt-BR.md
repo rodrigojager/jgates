@@ -29,6 +29,8 @@ jgates tools matrix
 
 `tools list` mostra as categorias, as capacidades, os adaptadores e as instâncias declaradas em `.jgates/tools.yml`. `tools inspect` mostra uma instância com os arquivos vinculados. `tools matrix` imprime a matriz de compatibilidade (e `--json` traz os problemas que o teste de consistência verifica).
 
+Os linters integrados usam evidências nos arquivos, como extensão, nome ou marcador de configuração. O descritor define o comando, o leitor da saída, a faixa de perfis e a classificação de confiança no CI. Cada ferramenta roda na imagem de ferramentas do JGates. [Consulte o catálogo de ferramentas](tools.pt-BR.md).
+
 ## Níveis de suporte
 
 Cada instância mostra o quanto o JGates entende da ferramenta:
@@ -59,6 +61,8 @@ jgates tools prepare --instance <instance> --no-interactive
 O `--dry-run` mostra versões, a rede que seria usada e o que seria gravado, sem baixar nem gravar. O que foi preparado fica fixado em `.jgates/lock.json`, que vai no repositório: o `run` usa o que foi fixado. Mudar a versão de uma ferramenta já fixada para uma mais antiga exige `--allow-version-change` (`VERSION_DOWNGRADE`).
 
 O `prepare` vale para o Semgrep, cujas regras locais são baixadas uma vez e fixadas por hash. Em qualquer outra instância ele responde `PREPARE_NOT_SUPPORTED`.
+
+O adaptador do Semgrep também pode rodar o pacote de regras do JGates (`tools.<id>.rulePack: jgates`, o padrão do template base): regras originais para JavaScript, TypeScript, Python, Go, C#, Rust, Java e PHP. O item do plano nomeia as linguagens que o pacote cobre e, quando a descoberta achou uma linguagem para a qual o pacote não tem regra, avisa isso como limitação. A etapa do Semgrep no resultado traz `scannedLanguages`, o número de arquivos de cada linguagem que a varredura cobriu. Para Java e PHP, que não têm stack, o pacote é a única verificação específica da linguagem.
 
 ### A ponte de qualidade foi aposentada
 

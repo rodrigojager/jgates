@@ -57,6 +57,8 @@
   "lifecycle_state_unsupported": "sem suporte",
   "lifecycle_status_engine": "Motor: {state} (versão {version}, {platform}, {memory} de memória, {cpus, plural, one {# CPU} other {# CPUs}})",
   "lifecycle_status_engine_down": "Motor: {state}",
+  "lifecycle_status_concurrency_automatic": "Verificações ao mesmo tempo: {value} (automático: {memory} de memória e {cpus, plural, one {# CPU} other {# CPUs}} por verificação)",
+  "lifecycle_status_concurrency_configured": "Verificações ao mesmo tempo: {value} (definido na configuração; o automático seria {automatic})",
   "lifecycle_status_image": "Imagem de ferramentas {image}: {state} (versão {version})",
   "lifecycle_state_image_ready": "pronta",
   "lifecycle_state_image_missing": "não baixada",

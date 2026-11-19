@@ -1,0 +1,23 @@
+{
+  "version": "0.32.0",
+  "url": "https://github.com/Kampfkarren/selene/releases/download/{version}/selene-{version}-linux.zip",
+  "sha256": "d3773393578580074386e69337d35b7acddfbaa9fc38964c07fa3e28436ade9b",
+  "archive": "zip",
+  "extract": {
+    "selene": "selene"
+  },
+  "executable": [
+    "selene"
+  ],
+  "provides": [
+    {
+      "name": "selene",
+      "link": "selene",
+      "path": "selene",
+      "version": [
+        "selene",
+        "--version"
+      ]
+    }
+  ]
+}

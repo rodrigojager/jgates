@@ -16,7 +16,9 @@ Tudo o que o JGates cria na sua máquina fica na [pasta de dados](data-folder.pt
 | Suas imagens próprias | o motor (uma imagem por workspace) | `jgates tools build-extension` |
 | Execuções, logs, rascunhos, planos | a pasta de dados | não são recriados |
 
-A imagem é o maior item: cerca de 2 GB para baixar e uns 6 GB descompactada, medidos na primeira imagem completa. O `jgates setup` confere se o disco tem espaço para os dois, mais uma margem, antes de baixar, e responde `DISK_LOW` quando não tem.
+A imagem é o maior item: cerca de 5 GB para baixar e uns 13 GB descompactada, como a última construção da imagem mediu. O `jgates setup` confere se o disco tem espaço para os dois, mais uma margem, antes de baixar, e responde `DISK_LOW` quando não tem.
+
+A imagem Linux amd64 fixada mede 4,52 GB compactada e 12,52 GB descompactada. Os totais incluem as camadas da imagem, antes das dependências dos projetos e das bases de avisos.
 
 ## Ver os números
 

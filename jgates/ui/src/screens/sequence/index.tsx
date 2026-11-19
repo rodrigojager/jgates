@@ -6,6 +6,7 @@ import { Icon } from "../../components/icons";
 import { t, tOr } from "../../i18n";
 import type { ScreenMeta } from "../../registry";
 import { SemanticMascotStrip, type SemanticMascotSnapshot } from "../semantic-run/SemanticMascotStrip";
+import { approvedWithWaiversText, isApprovedWithWaivers, type Approval } from "../validations-result/ResultView";
 import { gateState, type GateView, type SequenceDto } from "./model";
 
 export const screen: ScreenMeta = { id: "sequence", path: "/sequence/:id", area: "validations", order: 43 };
@@ -16,11 +17,16 @@ const TONE: Record<string, "green" | "gold" | "red" | "blue" | undefined> = { pa
 function GateCard({ gate, view, children }: { gate: "quality" | "semantic"; view: GateView; children?: React.ReactNode }) {
   const href = view.runId ? (gate === "quality" ? `#/validations/result/${view.runId}` : `#/semantic/results/${view.runId}`) : null;
   const followHref = view.runId ? (gate === "quality" ? `#/runs/${view.runId}` : `#/semantic/runs/${view.runId}`) : null;
+  // The Quality step of an approval with waivers is never worded as a plain approval.
+  const withWaivers = gate === "quality" && view.state === "passed" && isApprovedWithWaivers(view.approval);
   return (
-    <section className="card flat stack" aria-labelledby={`seq-${gate}`} data-testid={`sequence-${gate}`} data-gate={gate} data-state={view.state} data-run={view.runId ?? ""}>
+    <section className="card flat stack" aria-labelledby={`seq-${gate}`} data-testid={`sequence-${gate}`} data-gate={gate} data-state={view.state} data-approval={withWaivers ? "with-waivers" : ""} data-run={view.runId ?? ""}>
       <div className="between wrap">
         <h2 id={`seq-${gate}`}>{t(`seq_gate_${gate}`)}</h2>
-        <Pill tone={TONE[view.state]}>{t(`seq_state_${view.state.replace(/-/g, "_")}`)}</Pill>
+        <Pill tone={withWaivers ? "blue" : TONE[view.state]}>
+          {withWaivers ? <Icon name="info" /> : null}
+          <span data-testid={`sequence-${gate}-state`}>{withWaivers ? approvedWithWaiversText(view.approval as Approval) : t(`seq_state_${view.state.replace(/-/g, "_")}`)}</span>
+        </Pill>
       </div>
       <p className="muted small">{t(`seq_gate_${gate}_lead`)}</p>
       {view.runId ? (

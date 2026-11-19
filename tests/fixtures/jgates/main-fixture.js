@@ -151,7 +151,9 @@ function findDomainInfraImports(dir) {
 }
 
 function removeFixture(dir) {
-  fs.rmSync(dir, { recursive: true, force: true });
+  // Windows can briefly retain a handle after a fixture's child process exits. Let Node retry its documented
+  // transient removal errors, bounded to five retries (1.5 seconds of backoff); exhausted and unrelated errors throw.
+  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }
 
 module.exports = {

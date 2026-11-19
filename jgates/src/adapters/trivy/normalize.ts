@@ -113,6 +113,39 @@ export function parseTrivyReport(text: string, options: ParseOptions): ParseResu
   return { ok: true, findings, reportedVersion: reported };
 }
 
+/** The CycloneDX specification versions the SBOM reader knows (the 1.x JSON shape: bomFormat, components). */
+export const CYCLONEDX_SPEC = /^1\.\d+$/;
+
+/**
+ * Reads the CycloneDX document Trivy wrote for an SBOM instance (recorded with 0.76.2, tests/fixtures/parsers/security/trivy).
+ * An SBOM is a document, not a list of problems: a well-formed one yields no finding, and anything cut, of another
+ * format or written by a version outside the manifest's range proves nothing (fail-closed).
+ */
+export function parseTrivySbom(text: string, options: ParseOptions): ParseResult {
+  let doc: unknown;
+  try {
+    doc = JSON.parse(text);
+  } catch (error) {
+    return { ok: false, findings: [], problem: error instanceof Error ? error.message : String(error) };
+  }
+  if (!isRec(doc)) return { ok: false, findings: [], problem: "the SBOM is not an object" };
+  if (doc.bomFormat !== "CycloneDX") return { ok: false, findings: [], problem: `bomFormat ${JSON.stringify(doc.bomFormat)} is not "CycloneDX"` };
+  const spec = str(doc.specVersion);
+  if (spec === null || !CYCLONEDX_SPEC.test(spec)) return { ok: false, findings: [], problem: `specVersion ${JSON.stringify(doc.specVersion)} is not a CycloneDX 1.x version` };
+  const components = list(doc.components);
+  if (components === null) return { ok: false, findings: [], problem: "components is not a list" };
+  const metadata = isRec(doc.metadata) ? doc.metadata : {};
+  const tools = isRec(metadata.tools) ? list(metadata.tools.components) : null;
+  const trivy = (tools ?? []).find((c): c is Rec => isRec(c) && c.name === "trivy");
+  const reported = trivy ? str(trivy.version) : null;
+  const version = versionProblem(trivyManifest, options.version, reported);
+  if (version) return { ok: false, findings: [], problem: version, reportedVersion: reported };
+  for (const [index, c] of components.entries()) {
+    if (!isRec(c) || !str(c.name) || !str(c.type)) return { ok: false, findings: [], problem: `component ${index} has no name or type` };
+  }
+  return { ok: true, findings: [], reportedVersion: reported };
+}
+
 /** The repository the database came from, as Trivy logs it (`repo="..."` of the download). */
 export function databaseSource(stderr: string): string | null {
   const lines = stderr.split(/\r?\n/).filter((l) => /\[vulndb\]/.test(l));

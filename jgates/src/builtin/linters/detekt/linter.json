@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "detekt",
+  "name": "detekt",
+  "sourceUrl": "https://github.com/detekt/detekt",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "detekt-cli",
+    "versionRange": ">=1.23.8 <2.0.0"
+  },
+  "megalinter": [
+    "KOTLIN_DETEKT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "kotlin",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".kt",
+      ".kts"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "--input",
+      "{workspace}",
+      "--report",
+      "sarif:{report}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "resources": {
+      "memoryMb": 1536
+    }
+  },
+  "output": {
+    "from": "file",
+    "file": "detekt.sarif",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      "detekt-config.yml",
+      "config/detekt/detekt.yml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "detekt runs with its own default rule set; the project's detekt-config.yml is part of the plan but is not passed to the tool, so the project's rule choices do not apply",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: @Suppress(\"<RuleName>\") annotations",
+      "pattern": "@Suppress\\(",
+      "files": "\\.kts?$"
+    }
+  },
+  "install": "detekt",
+  "text": {
+    "en": {
+      "label": "detekt (Kotlin)",
+      "purpose": "A static analyzer for Kotlin: code smells, complexity, error-prone constructs, empty blocks, naming and potential bugs.",
+      "limitation": "It runs on the project's sources with its default rules and without the project's compiled classes, so the rules that need type resolution do not run.",
+      "needs": "Nothing beyond the tools image: the Java runtime it carries (about 1.5 GB of memory), no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "detekt (Kotlin)",
+      "purpose": "Um analisador estático de Kotlin: code smells, complexidade, construções propensas a erro, blocos vazios, nomes e possíveis bugs.",
+      "limitation": "Roda sobre os fontes do projeto com as regras padrão e sem as classes compiladas do projeto, então as regras que precisam de resolução de tipos não rodam.",
+      "needs": "Nada além da imagem de ferramentas: o runtime Java que ela traz (cerca de 1,5 GB de memória), sem rede e sem as dependências do projeto."
+    }
+  }
+}

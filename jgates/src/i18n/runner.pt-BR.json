@@ -20,5 +20,6 @@
   "runner_invalid_output": "Saída ilegível, a etapa não prova nada: {detail}",
   "runner_step_timeout": "Interrompida: a etapa passou do limite de tempo de {seconds} s.",
   "runner_engine_lost": "Incompleta: {message}",
-  "runner_engine_lost_blocked": "Não executada: {message}"
+  "runner_engine_lost_blocked": "Não executada: {message}",
+  "runner_memory_limit": "Incompleta: a etapa foi interrompida no limite de memória ({memory} MB) e o resultado dela não prova nada. Diminua o número de verificações ao mesmo tempo (agora {concurrency}) ou dê mais memória ao motor."
 }

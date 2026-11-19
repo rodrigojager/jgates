@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "markdown-table-formatter",
+      "link": "markdown-table-formatter",
+      "path": "node_modules/.bin/markdown-table-formatter",
+      "version": [
+        "markdown-table-formatter",
+        "--version"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+# Rust deserialization rule. Sources: parameters of an async handler typed as axum or actix-web extractors or as a raw body
+# (Bytes, web::Bytes, Vec<u8>, String, &str). The sinks are formats that rebuild arbitrary values or skip validation.
+rules:
+  - id: jgates.rust.unsafe-deserialization
+    message: Request data is decoded with a format that can rebuild arbitrary values or skips validation. Use a schema-bound format such as JSON into a plain struct.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: deserialization
+      cwe: "CWE-502"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.5.2"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Bytes, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Bytes, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Vec<u8>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: String, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: &str, ...) { ... }
+          - pattern: $P
+    pattern-sinks:
+      - patterns:
+          - pattern: serde_pickle::from_slice($D, ...)
+          - focus-metavariable: $D
+      - patterns:
+          - pattern: serde_pickle::from_slice::<$T>($D, ...)
+          - focus-metavariable: $D
+      - patterns:
+          - pattern: serde_pickle::from_reader($D, ...)
+          - focus-metavariable: $D
+      - patterns:
+          - pattern: rkyv::from_bytes_unchecked($D)
+          - focus-metavariable: $D
+      - patterns:
+          - pattern: rkyv::from_bytes_unchecked::<$T>($D)
+          - focus-metavariable: $D

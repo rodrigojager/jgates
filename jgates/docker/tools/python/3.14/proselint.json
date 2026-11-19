@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "proselint",
+      "link": "proselint",
+      "path": "bin/proselint",
+      "version": [
+        "proselint",
+        "version"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+# Original JGates rules. Group: files (uploads, archive extraction, request size, download headers).
+# Request sources: PHP superglobals, Laravel request() and $request/$req input/query/post/cookie/file
+# methods, Symfony $request/$req get() and the query/request/cookies/files/headers bags.
+# Upload client-name sources: $_FILES[..]['name'], Symfony/Laravel getClientOriginalName(),
+# PSR-7 getClientFilename(). Archive rule: ZipArchive and PharData extractTo().
+rules:
+  - id: jgates.php.upload-client-filename-in-path
+    message: The file name the client sent with an upload is joined into the path it is stored under. Store the upload under a name the server generates (random id plus a fixed extension).
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.3.2"]
+    pattern-sources:
+      - pattern: $_FILES[$F]['name']
+      - pattern: $_FILES[$F]['full_path']
+      - pattern: $FILE->getClientOriginalName()
+      - pattern: $FILE->getClientFilename()
+    pattern-sinks:
+      - patterns:
+          - pattern: "move_uploaded_file($TMP, $DEST)"
+          - focus-metavariable: $DEST
+      - patterns:
+          - pattern: "file_put_contents($DEST, ...)"
+          - focus-metavariable: $DEST
+      - patterns:
+          - pattern: "copy($SRC, $DEST, ...)"
+          - focus-metavariable: $DEST
+      - patterns:
+          - pattern: "rename($SRC, $DEST, ...)"
+          - focus-metavariable: $DEST
+      - patterns:
+          - pattern: "$FILE->move($DIR, $NAME)"
+          - focus-metavariable: $NAME
+      - patterns:
+          - pattern: "$FILE->storeAs($DIR, $NAME, ...)"
+          - focus-metavariable: $NAME
+      - patterns:
+          - pattern: "$FILE->moveTo($DEST)"
+          - focus-metavariable: $DEST
+
+  - id: jgates.php.archive-extraction-unchecked
+    message: An archive is extracted whole or entries are written under their own names without a visible path check. Confirm that the library or another layer confines destinations to the target directory, rejects links and caps entry count and expanded size, or enforce those protections before writing.
+    severity: INFO
+    languages: [php]
+    metadata:
+      category: file-handling
+      cwe: "CWE-22"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.3.2"]
+      class: review
+    pattern-either:
+      - pattern: $ARCHIVE->extractTo($DIR)
+      - patterns:
+          - pattern-inside: |
+              $NAME = $ARCHIVE->getNameIndex(...);
+              ...
+          - pattern-either:
+              - pattern: file_put_contents($DIR . $NAME, ...)
+              - pattern: file_put_contents($DIR . '/' . $NAME, ...)
+              - pattern: copy($SRC, $DIR . $NAME)
+              - pattern: copy($SRC, $DIR . '/' . $NAME)
+              - pattern: fopen($DIR . $NAME, ...)
+              - pattern: fopen($DIR . '/' . $NAME, ...)
+          - pattern-not-inside: |
+              if (preg_match('/\A[a-zA-Z0-9_-]+\.csv\z/', $NAME) === 1) {
+                ...
+              }
+
+  - id: jgates.php.request-body-without-size-limit
+    message: The request body size limit is switched off (post_max_size set to 0). Keep a finite limit for request bodies and uploads.
+    severity: WARNING
+    languages: [php]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.1"]
+    patterns:
+      - pattern: ini_set($KEY, $VALUE)
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: ^["']post_max_size["']$
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: ^["']?0[kKmMgG]?["']?$
+
+  - id: jgates.php.upload-content-type-trusted
+    message: The content type the client declared for an upload is used as the type check. Detect the type from the file content instead (finfo with FILEINFO_MIME_TYPE on the stored file).
+    severity: WARNING
+    languages: [php]
+    patterns:
+      - pattern-either:
+          - pattern: $T == $V
+          - pattern: $T === $V
+          - pattern: $T != $V
+          - pattern: $T !== $V
+          - pattern: $V == $T
+          - pattern: $V === $T
+          - pattern: $V != $T
+          - pattern: $V !== $T
+          - pattern: in_array($T, ...)
+      - metavariable-pattern:
+          metavariable: $T
+          pattern-either:
+            - pattern: $_FILES[$F]['type']
+            - pattern: $FILE->getClientMimeType()
+            - pattern: $FILE->getClientMediaType()
+    metadata:
+      category: file-handling
+      cwe: "CWE-434"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.2.2"]
+
+  - id: jgates.php.content-disposition-from-request
+    message: Request data is joined into a Content-Disposition header. Send a server-chosen file name, or percent-encode the value with rawurlencode() in the filename* parameter.
+    severity: ERROR
+    languages: [php]
+    mode: taint
+    metadata:
+      category: file-handling
+      cwe: "CWE-113"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V5.4.1", "V5.4.2"]
+    pattern-sources:
+      - pattern: $_GET[...]
+      - pattern: $_POST[...]
+      - pattern: $_REQUEST[...]
+      - pattern: $_COOKIE[...]
+      - pattern: $_FILES[...]
+      - patterns:
+          - pattern: $_SERVER[$KEY]
+          - metavariable-regex:
+              metavariable: $KEY
+              regex: ^["']?(HTTP_.*|REQUEST_URI|QUERY_STRING|PATH_INFO)["']?$
+      - pattern: request()->input(...)
+      - pattern: request()->query(...)
+      - pattern: request()->post(...)
+      - pattern: request()->cookie(...)
+      - pattern: request()->file(...)
+      - patterns:
+          - pattern-either:
+              - pattern: $REQUEST->input(...)
+              - pattern: $REQUEST->query(...)
+              - pattern: $REQUEST->post(...)
+              - pattern: $REQUEST->cookie(...)
+              - pattern: $REQUEST->file(...)
+              - pattern: $REQUEST->get(...)
+              - pattern: $REQUEST->query->get(...)
+              - pattern: $REQUEST->request->get(...)
+              - pattern: $REQUEST->cookies->get(...)
+              - pattern: $REQUEST->files->get(...)
+              - pattern: $REQUEST->headers->get(...)
+          - metavariable-regex:
+              metavariable: $REQUEST
+              regex: ^\$(request|req)$
+    pattern-sanitizers:
+      - pattern: rawurlencode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: "header($H, ...)"
+          - focus-metavariable: $H
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?is).*content-disposition.*
+      - patterns:
+          - pattern: "$RESP->header($NAME, $V)"
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)^["']content-disposition["']$
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: "$RESP->headers->set($NAME, $V)"
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)^["']content-disposition["']$
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: "$RESP->withHeader($NAME, $V)"
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)^["']content-disposition["']$
+          - focus-metavariable: $V

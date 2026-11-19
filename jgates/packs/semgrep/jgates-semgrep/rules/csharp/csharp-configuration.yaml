@@ -1,0 +1,161 @@
+# Group configuration for C#. Libraries covered: ASP.NET Core (developer exception page, environment name, MVC
+# error detail policy, SignalR detailed errors, static files and directory browsing, Kestrel server header, response
+# headers, model binding), Swashbuckle and NSwag documentation middleware, MiniProfiler, prometheus-net, OpenTelemetry
+# Prometheus exporter and the Hangfire dashboard; controller responses containing a whole database model.
+rules:
+  - id: jgates.csharp.debug-mode-enabled
+    message: The framework debug mode is switched on outside a development-only branch (developer exception page, a forced Development environment, or detailed errors sent to clients), which exposes stack traces and internals. Keep it inside an environment check such as env.IsDevelopment(), and use a generic error handler in production.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: configuration
+      cwe: "CWE-489"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.2"]
+    patterns:
+      - pattern-either:
+          - pattern: $A.UseDeveloperExceptionPage(...)
+          - pattern: $B.UseEnvironment("Development")
+          - pattern: $O.EnvironmentName = "Development";
+          - pattern: $O.IncludeErrorDetailPolicy = IncludeErrorDetailPolicy.Always;
+          - pattern: $O.EnableDetailedErrors = true;
+      - pattern-not-inside: |
+          if ($C) {
+            ...
+          }
+
+  - id: jgates.csharp.docs-or-monitoring-endpoint-exposed
+    message: An API documentation, profiling or monitoring endpoint is registered unconditionally, so anyone who reaches the service can read it. Register it only inside a development check, behind RequireAuthorization(), or on an internal-only listener.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $A.UseSwagger(...)
+          - pattern: $A.UseSwaggerUI(...)
+          - pattern: $A.UseReDoc(...)
+          - pattern: $A.UseOpenApi(...)
+          - pattern: $A.UseSwaggerUi3(...)
+          - pattern: $A.MapSwagger(...)
+          - pattern: $A.UseMiniProfiler(...)
+          - pattern: $A.UseMetricServer(...)
+          - pattern: $A.MapMetrics(...)
+          - pattern: $A.MapPrometheusScrapingEndpoint(...)
+          - pattern: $A.UseHangfireDashboard(...)
+      - pattern-not: $A.UseHangfireDashboard($P, new DashboardOptions { ..., Authorization = $X, ... })
+      - pattern-not-inside: $X.$M(...).RequireAuthorization(...)
+      - pattern-not-inside: |
+          if ($C) {
+            ...
+          }
+
+  - id: jgates.csharp.directory-listing-enabled
+    message: A static file handler lists directories, so anyone can browse the file names under it. Serve static files with UseStaticFiles() and leave directory browsing off.
+    severity: WARNING
+    languages: [csharp]
+    metadata:
+      category: configuration
+      cwe: "CWE-548"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.3"]
+    patterns:
+      - pattern-either:
+          - pattern: $A.UseDirectoryBrowser(...)
+          - pattern: $S.AddDirectoryBrowser()
+          - pattern: $A.UseFileServer(true)
+          - pattern: "$A.UseFileServer(enableDirectoryBrowsing: true)"
+          - pattern: $O.EnableDirectoryBrowsing = true;
+          - pattern: new FileServerOptions { ..., EnableDirectoryBrowsing = true, ... }
+
+  - id: jgates.csharp.version-header-exposed
+    message: A response header states the framework or server version (a Server, X-Powered-By or X-AspNet-Version header set in code, or Kestrel left to add its Server header), which helps an attacker pick known exploits. Remove the header and set AddServerHeader to false.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: configuration
+      cwe: "CWE-497"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.6"]
+    patterns:
+      - pattern-either:
+          - pattern: $O.AddServerHeader = true;
+          - patterns:
+              - pattern-either:
+                  - pattern: $R.Headers["$N"] = "$V";
+                  - pattern: $R.Headers["$N"] = "$V"
+                  - pattern: $R.Headers.Append("$N", "$V")
+                  - pattern: $R.Headers.Add("$N", "$V")
+              - metavariable-regex:
+                  metavariable: $N
+                  regex: (?i)^(x-powered-by|x-aspnet-version|x-aspnetmvc-version)$
+          - patterns:
+              - pattern-either:
+                  - pattern: $R.Headers["$N"] = "$V";
+                  - pattern: $R.Headers["$N"] = "$V"
+                  - pattern: $R.Headers.Append("$N", "$V")
+                  - pattern: $R.Headers.Add("$N", "$V")
+              - metavariable-regex:
+                  metavariable: $N
+                  regex: (?i)^server$
+              - metavariable-regex:
+                  metavariable: $V
+                  regex: .*\d+\.\d+.*
+
+  - id: jgates.csharp.mass-assignment
+    message: A model is updated from the whole request without a visible list of allowed properties. Confirm that the bound type or binding configuration exposes only editable fields; otherwise use a dedicated input DTO or pass the allowed property expressions to TryUpdateModelAsync.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: authorization
+      cwe: "CWE-915"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.3"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: $C.TryUpdateModelAsync($M)
+          - pattern: $C.TryUpdateModelAsync($M, "$P")
+          - pattern: TryUpdateModelAsync($M)
+          - pattern: TryUpdateModelAsync($M, "$P")
+          - pattern: $C.TryUpdateModel($M)
+          - pattern: TryUpdateModel($M)
+          - pattern: $C.UpdateModel($M)
+          - pattern: UpdateModel($M)
+
+  - id: jgates.csharp.serializer-exposes-all-fields
+    message: A whole database model is returned through a controller serializer without a visible response projection. Confirm that a dedicated response type or serializer configuration excludes private and newly added fields; otherwise return an explicit projection containing only public response fields.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-213"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.1"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              {
+                ...
+                var $MODEL = $DB.$SET.Find(...);
+                ...
+              }
+          - pattern-inside: |
+              {
+                ...
+                var $MODEL = await $DB.$SET.FindAsync(...);
+                ...
+              }
+      - pattern-either:
+          - pattern: return Ok($MODEL);
+          - pattern: return Json($MODEL);

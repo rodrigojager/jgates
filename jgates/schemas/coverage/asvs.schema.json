@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jgates.dev/schemas/coverage/asvs/1.json",
+  "title": "JGates ASVS coverage map",
+  "description": "The answer of `jgates coverage asvs --json` and of the server route: for one ASVS version and level, every requirement in exactly one of five states (examined, unexamined, unsupported, not-applicable, awaiting-evidence) with the reason, the checks behind it and whether each ran, built from stored runs. It organizes evidence and exposes gaps: it carries no claim that the project meets the standard, no percentage and no pass mark. The `source` block carries the attribution of the official requirement text (CC BY-SA 4.0).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "source", "asvsVersion", "level", "levelSource", "deterministicOnly", "filters", "statement", "runs", "warnings", "decisions", "totals", "chapters", "requirements"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "const": "OK", "description": "CLI envelope." },
+    "tool": { "const": "jgates", "description": "CLI envelope." },
+    "version": { "type": "string", "description": "CLI envelope: the JGates version." },
+    "workspace": {
+      "description": "CLI envelope.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path"],
+      "properties": { "id": { "type": "string" }, "path": { "type": "string" } }
+    },
+    "kind": { "const": "asvs-coverage-map" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "licence", "licenceUrl", "sourceUrl", "attribution"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "licence": { "type": "string", "minLength": 1 },
+        "licenceUrl": { "type": "string", "minLength": 1 },
+        "sourceUrl": { "type": "string", "minLength": 1 },
+        "attribution": { "type": "string", "minLength": 1 }
+      }
+    },
+    "asvsVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "level": { "$ref": "#/$defs/level" },
+    "levelSource": { "enum": ["option", "project", "default"] },
+    "deterministicOnly": { "type": "boolean" },
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "chapter", "subdimension", "withSuggestion"],
+      "properties": {
+        "state": { "anyOf": [{ "$ref": "#/$defs/state" }, { "type": "null" }] },
+        "chapter": { "type": ["string", "null"] },
+        "subdimension": { "type": ["string", "null"] },
+        "withSuggestion": { "type": "boolean", "description": "Only the rows that carry a suggestion are listed; the totals still count every row." }
+      }
+    },
+    "statement": { "type": "string", "minLength": 1 },
+    "runs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quality", "semantic"],
+      "properties": {
+        "quality": { "anyOf": [{ "$ref": "#/$defs/run" }, { "type": "null" }] },
+        "semantic": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["runId", "startedAt", "revision", "methods"],
+            "properties": {
+              "runId": { "type": "string" },
+              "startedAt": { "type": ["string", "null"] },
+              "revision": { "type": ["string", "null"] },
+              "methods": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message", "params"],
+        "properties": {
+          "code": { "enum": ["REVISIONS_DIFFER", "NO_QUALITY_RUN", "DECISIONS_INVALID", "DECISIONS_OTHER_VERSION"] },
+          "message": { "type": "string" },
+          "params": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      }
+    },
+    "decisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "exists", "revision", "level", "notApplicable", "problem"],
+      "properties": {
+        "file": { "type": "string" },
+        "exists": { "type": "boolean" },
+        "revision": { "type": "string" },
+        "level": { "anyOf": [{ "$ref": "#/$defs/level" }, { "type": "null" }] },
+        "notApplicable": { "type": "integer", "minimum": 0 },
+        "problem": { "type": ["string", "null"] }
+      }
+    },
+    "totals": { "$ref": "#/$defs/totals" },
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "totals", "sections"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^V\\d{1,2}$" },
+          "name": { "type": "string" },
+          "totals": { "$ref": "#/$defs/totals" },
+          "suggestion": { "$ref": "#/$defs/suggestion", "description": "Present when every requirement of the chapter, at every level, carries this same suggestion: it is offered once for the chapter." },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "name", "totals"],
+              "properties": {
+                "id": { "type": "string", "pattern": "^V\\d{1,2}\\.\\d+$" },
+                "name": { "type": "string" },
+                "totals": { "$ref": "#/$defs/totals" },
+                "suggestion": { "$ref": "#/$defs/suggestion", "description": "Present when every requirement of the section, at every level, carries this same suggestion: it is offered once for the section." }
+              }
+            }
+          }
+        }
+      }
+    },
+    "requirements": { "type": "array", "items": { "$ref": "#/$defs/requirement" } }
+  },
+  "$defs": {
+    "level": { "enum": [1, 2, 3] },
+    "state": { "enum": ["examined", "unexamined", "unsupported", "not-applicable", "awaiting-evidence"] },
+    "basis": { "enum": ["deterministic", "ai-source-review"] },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runId", "startedAt", "revision"],
+      "properties": {
+        "runId": { "type": "string" },
+        "startedAt": { "type": ["string", "null"] },
+        "revision": { "type": ["string", "null"] }
+      }
+    },
+    "totals": {
+      "description": "Counts per state; examined is split into what a deterministic check examined and what only an AI review of the source examined. Counts only: never a ratio or a percentage.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rows", "examined", "examinedDeterministic", "examinedAiOnly", "unexamined", "unsupported", "notApplicable", "awaitingEvidence"],
+      "properties": {
+        "rows": { "type": "integer", "minimum": 0 },
+        "examined": { "type": "integer", "minimum": 0 },
+        "examinedDeterministic": { "type": "integer", "minimum": 0 },
+        "examinedAiOnly": { "type": "integer", "minimum": 0 },
+        "unexamined": { "type": "integer", "minimum": 0 },
+        "unsupported": { "type": "integer", "minimum": 0 },
+        "notApplicable": { "type": "integer", "minimum": 0 },
+        "awaitingEvidence": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "id", "covers", "misses", "depth", "basis", "status", "ran", "code", "reason", "detail", "runId", "reused", "openFindings", "openBlocking", "openInformational", "openReview", "relevant"],
+      "properties": {
+        "unit": { "enum": ["semgrep-rule", "capability", "semantic-ledger", "semantic-method", "semantic-requirement"] },
+        "id": { "type": "string", "minLength": 1 },
+        "class": { "const": "review", "description": "Only on a semgrep-rule check classified as Review by the pack index. Never makes a requirement examined." },
+        "category": { "type": "string" },
+        "findingRules": {
+          "description": "capability: the tool's own rule or alert ids the check stands for; only the stage's findings of those ids are its open findings.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "covers": { "type": "string" },
+        "misses": { "type": "string" },
+        "depth": { "enum": ["partial", "full"] },
+        "basis": { "$ref": "#/$defs/basis" },
+        "status": { "enum": ["ran", "not-run", "unsupported", "excluded"] },
+        "ran": { "type": "boolean" },
+        "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "reason": { "type": "string" },
+        "detail": { "type": ["string", "null"] },
+        "runId": { "type": ["string", "null"] },
+        "reused": { "type": "boolean" },
+        "language": { "type": "string" },
+        "openFindings": { "type": ["integer", "null"], "minimum": 0 },
+        "openBlocking": { "type": ["integer", "null"], "minimum": 0, "description": "Open findings that block the validation; never added to openInformational." },
+        "openInformational": { "type": ["integer", "null"], "minimum": 0, "description": "Open informational findings: shown and counted, they do not block the validation." },
+        "openReview": { "type": ["integer", "null"], "minimum": 0, "description": "Open Review findings, excluding waived (reviewed) occurrences; never added to blocking or informational counts." },
+        "relevant": { "type": "boolean", "description": "False when the check cannot bear on this project: a rule of a language the project is known to lack (code LANGUAGE_ABSENT). The screen and the text output leave such a check out and count nothing for it." }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "chapter", "section", "level", "text", "textLanguage", "state", "code", "reason", "basis", "evidence", "subdimensions", "review", "checks", "decision"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^V\\d{1,2}\\.\\d+\\.\\d+$" },
+        "chapter": { "type": "string", "pattern": "^V\\d{1,2}$" },
+        "section": { "type": "string", "pattern": "^V\\d{1,2}\\.\\d+$" },
+        "level": { "$ref": "#/$defs/level" },
+        "text": { "type": "string", "description": "The official requirement text, unchanged, in English (CC BY-SA 4.0, see source)." },
+        "textLanguage": { "const": "en" },
+        "state": { "$ref": "#/$defs/state" },
+        "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "reason": { "type": "string", "minLength": 1 },
+        "basis": { "anyOf": [{ "$ref": "#/$defs/basis" }, { "type": "null" }] },
+        "evidence": { "enum": ["repository", "deployment", "person", null] },
+        "subdimensions": { "type": "array", "items": { "type": "string" } },
+        "review": { "enum": ["unmapped", "pending", "reviewed", "owner-reviewed", "none"] },
+        "checks": { "type": "array", "items": { "$ref": "#/$defs/check" } },
+        "notes": { "type": "array", "items": { "$ref": "#/$defs/note" } },
+        "decision": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "reason", "recorded", "scope"],
+              "properties": {
+                "id": { "type": "string" },
+                "reason": { "type": "string" },
+                "recorded": { "type": "string" },
+                "scope": { "enum": ["requirement", "section", "chapter"] }
+              }
+            }
+          ]
+        },
+        "suggestion": { "$ref": "#/$defs/suggestion" }
+      }
+    },
+    "note": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "kind", "family", "why", "label"],
+      "properties": {
+        "language": { "enum": ["javascript", "python", "go", "csharp", "rust", "java", "php", "html", "config"] },
+        "kind": { "enum": ["protected-by-library", "not-applicable-to-language"] },
+        "family": { "type": "string", "pattern": "\\S" },
+        "why": { "type": "string", "pattern": "\\S" },
+        "label": { "type": "string", "minLength": 1 }
+      }
+    },
+    "suggestion": {
+      "description": "A proposed 'not applicable' decision, only on a row that is unsupported, unexamined or awaiting evidence: technology (the scan looked for the technology in every language of the project and found no sign of it), languages-only (the requirement concerns only languages the project does not have) or languages-exempt (every language of the project rules the weakness out by design, for the reason named). It is never a decision: only the user's confirmation records one.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reason"],
+      "properties": {
+        "kind": { "enum": ["technology", "languages-only", "languages-exempt"] },
+        "tags": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "languages": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "reasonId": { "enum": ["compile-time-format-strings", "linear-time-regex"] },
+        "reason": { "type": "string", "minLength": 3, "maxLength": 300 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "technology" } } },
+          "then": { "properties": { "tags": true }, "required": ["tags"], "not": { "anyOf": [{ "properties": { "languages": true }, "required": ["languages"] }, { "properties": { "reasonId": true }, "required": ["reasonId"] }] } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "languages-only" } } },
+          "then": { "properties": { "languages": true }, "required": ["languages"], "not": { "anyOf": [{ "properties": { "tags": true }, "required": ["tags"] }, { "properties": { "reasonId": true }, "required": ["reasonId"] }] } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "languages-exempt" } } },
+          "then": { "properties": { "languages": true, "reasonId": true }, "required": ["languages", "reasonId"], "not": { "properties": { "tags": true }, "required": ["tags"] } }
+        }
+      ]
+    }
+  }
+}

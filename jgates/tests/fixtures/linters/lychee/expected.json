@@ -1,0 +1,14 @@
+{
+  "files": [
+    "jgates.yml",
+    "link-check.md",
+    "notes.md"
+  ],
+  "findings": [
+    {
+      "rule": "broken-link",
+      "file": "link-check.md",
+      "line": 3
+    }
+  ]
+}

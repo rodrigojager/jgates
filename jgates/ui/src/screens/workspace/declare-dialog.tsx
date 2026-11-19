@@ -15,6 +15,8 @@ interface VocabularyLanguage {
   id: string;
   label: string;
   supported: boolean;
+  /** A language without a stack for which the bundled JGates Semgrep pack has rules. */
+  packRules?: boolean;
   frameworks: VocabularyFramework[];
 }
 export interface Vocabulary {
@@ -118,14 +120,15 @@ function DeclareForm({
   const supported = languages.filter((l) => l.supported);
   const unsupported = languages.filter((l) => !l.supported);
   const typedLanguage = language === OTHER && languageOther.trim() ? languages.find((l) => l.id === canonical(languageOther, languages)) : undefined;
+  const unsupportedNotice = (l: VocabularyLanguage): string => t(l.packRules ? "ws_language_unsupported_notice_pack" : "ws_language_unsupported_notice", { name: l.label });
   const notice: string | null =
     selected && !selected.supported
-      ? t("ws_language_unsupported_notice", { name: selected.label })
+      ? unsupportedNotice(selected)
       : language === OTHER && languageOther.trim()
         ? typedLanguage
           ? typedLanguage.supported
             ? null
-            : t("ws_language_unsupported_notice", { name: typedLanguage.label })
+            : unsupportedNotice(typedLanguage)
           : t("ws_language_unknown_notice")
         : null;
   const frameworkHelp =

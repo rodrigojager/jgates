@@ -1,0 +1,20 @@
+{
+ "tool": "secretlint",
+ "kind": "clean",
+ "version": "14.0.1",
+ "calls": [
+  {
+   "args": [
+    "--format",
+    "json",
+    "--no-color",
+    "--no-terminalLink",
+    "--",
+    "**/*"
+   ],
+   "exit": 0,
+   "stdout": "[{\"filePath\":\"/workspace/.jgates/profiles.yml\",\"sourceContentType\":\"text\",\"messages\":[]},{\"filePath\":\"/workspace/jgates.yml\",\"sourceContentType\":\"text\",\"messages\":[]},{\"filePath\":\"/workspace/secretlint-deploy.sh\",\"sourceContentType\":\"text\",\"messages\":[]}]\n",
+   "stderr": ""
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+  "package": "csharpier",
+  "version": "1.4.0",
+  "sha256": "94295564b831e4c83e4a80bb044cb7c66fd3ab451df973c32c69d361eafd206c",
+  "provides": [
+    {
+      "name": "csharpier",
+      "path": "csharpier",
+      "version": [
+        "csharpier",
+        "--version"
+      ],
+      "pattern": "^(\\d+\\.\\d+\\.\\d+)"
+    }
+  ]
+}

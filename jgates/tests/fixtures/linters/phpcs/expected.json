@@ -1,0 +1,77 @@
+{
+  "findings": [
+    {
+      "file": "Spacing.php",
+      "line": 1,
+      "rule": "PSR12.Files.FileHeader.SpacingAfterTagBlock"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 2,
+      "rule": "PSR12.Files.FileHeader.SpacingAfterNamespaceBlock"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 3,
+      "rule": "PSR2.Classes.ClassDeclaration.OpenBraceNewLine"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 4,
+      "rule": "Generic.WhiteSpace.ScopeIndent.IncorrectExact"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 4,
+      "rule": "Squiz.Scope.MethodScope.Missing"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 4,
+      "rule": "Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingAfterOpen"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 4,
+      "rule": "Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingBeforeClose"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 4,
+      "rule": "Squiz.Functions.MultiLineFunctionDeclaration.BraceOnSameLine"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 5,
+      "rule": "Generic.WhiteSpace.ScopeIndent.IncorrectExact"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 5,
+      "rule": "Squiz.ControlStructures.ControlSignature.SpaceAfterKeyword"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 5,
+      "rule": "Squiz.ControlStructures.ControlSignature.SpaceAfterCloseParenthesis"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 5,
+      "rule": "Squiz.ControlStructures.ControlSignature.NewlineAfterOpenBrace"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 5,
+      "rule": "Squiz.WhiteSpace.ScopeClosingBrace.ContentBefore"
+    },
+    {
+      "file": "Spacing.php",
+      "line": 6,
+      "rule": "Generic.WhiteSpace.ScopeIndent.IncorrectExact"
+    }
+  ],
+  "files": [
+    "Spacing.php"
+  ]
+}

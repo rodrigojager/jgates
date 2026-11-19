@@ -13,6 +13,13 @@ export interface SemgrepParse {
   findings: ResultFinding[];
   /** Non-fatal scanner notices (a target file that did not parse, for instance). */
   warnings: string[];
+  /** The paths the scanner says it scanned (`paths.scanned`), as it printed them; null when the output has no such list. */
+  scanned?: string[] | null;
+  /**
+   * The signals record: for every tag of a signal rule of the bundled pack in the run, how many results its rules had
+   * (0 when none). The results of signal rules are a record of the scan, never findings. Null without the pack.
+   */
+  signals?: Record<string, number> | null;
   /** Why the output could not be interpreted. */
   problem?: string;
 }
@@ -38,7 +45,58 @@ function relativeTo(roots: string[], cwd: string, filename: string): string {
   return filename.split(path.sep).join("/");
 }
 
-export function parseSemgrepOutput(text: string, opts: { stageId: string; version: string | null; workspace: string; cwd: string }): SemgrepParse {
+/**
+ * The requirement ids of a finding of a rule of the bundled pack: Semgrep prefixes the id with the folders of the rule
+ * file, so a rule matches by its full id or by the id after a dot. A rule outside the pack gets nothing.
+ */
+function packRequirementsOf(ruleId: string, packRules: ReadonlyMap<string, readonly string[]> | undefined): string[] | undefined {
+  if (!packRules) return undefined;
+  const direct = packRules.get(ruleId);
+  if (direct) return direct.length > 0 ? [...direct] : undefined;
+  for (let at = ruleId.indexOf("."); at >= 0; at = ruleId.indexOf(".", at + 1)) {
+    const own = packRules.get(ruleId.slice(at + 1));
+    if (own) return own.length > 0 ? [...own] : undefined;
+  }
+  return undefined;
+}
+
+/** The tag of a result of a signal rule of the bundled pack (by its full id or the id after a dot), else undefined. */
+function packSignalOf(ruleId: string, packSignals: ReadonlyMap<string, string> | undefined): string | undefined {
+  if (!packSignals) return undefined;
+  const direct = packSignals.get(ruleId);
+  if (direct) return direct;
+  for (let at = ruleId.indexOf("."); at >= 0; at = ruleId.indexOf(".", at + 1)) {
+    const own = packSignals.get(ruleId.slice(at + 1));
+    if (own) return own;
+  }
+  return undefined;
+}
+
+/** Whether the id (possibly prefixed by Semgrep's folder names) names a Review check selected from the pack. */
+function packReviewOf(ruleId: string, rules: ReadonlySet<string> | undefined): boolean {
+  if (!rules) return false;
+  if (rules.has(ruleId)) return true;
+  for (let at = ruleId.indexOf("."); at >= 0; at = ruleId.indexOf(".", at + 1)) {
+    if (rules.has(ruleId.slice(at + 1))) return true;
+  }
+  return false;
+}
+
+export function parseSemgrepOutput(
+  text: string,
+  opts: {
+    stageId: string;
+    version: string | null;
+    workspace: string;
+    cwd: string;
+    /** The rules of the bundled pack in the run (rule id to the requirement ids it was written for); absent without the pack. */
+    packRules?: ReadonlyMap<string, readonly string[]>;
+    /** The signal rules of the bundled pack in the run (rule id to its tag); absent without the pack. */
+    packSignals?: ReadonlyMap<string, string>;
+    /** Review check ids selected from the bundled pack; absent without the pack. */
+    packReviewRules?: ReadonlySet<string>;
+  },
+): SemgrepParse {
   let doc: unknown;
   try {
     doc = JSON.parse(text);
@@ -66,9 +124,20 @@ export function parseSemgrepOutput(text: string, opts: { stageId: string; versio
     }
   }
   const findings: ResultFinding[] = [];
+  let signals: Record<string, number> | null = null;
+  if (opts.packSignals) {
+    signals = {};
+    for (const tag of [...new Set(opts.packSignals.values())].sort()) signals[tag] = 0;
+  }
   for (const [index, entry] of doc.results.entries()) {
     if (!isRec(entry) || typeof entry.check_id !== "string" || typeof entry.path !== "string" || !isRec(entry.extra) || typeof entry.extra.message !== "string") {
       return { ok: false, findings: [], warnings, problem: `result ${index} has no check_id, path or message` };
+    }
+    // A signal rule says which technology the project uses: counted in the record, never a finding.
+    const signal = packSignalOf(entry.check_id, opts.packSignals);
+    if (signal !== undefined && signals) {
+      signals[signal] = (signals[signal] ?? 0) + 1;
+      continue;
     }
     const start = isRec(entry.start) ? entry.start : {};
     const line = typeof start.line === "number" && start.line >= 1 ? start.line : undefined;
@@ -76,6 +145,8 @@ export function parseSemgrepOutput(text: string, opts: { stageId: string; versio
     const file = relativeTo(roots, opts.cwd, entry.path);
     const native = typeof entry.extra.severity === "string" ? entry.extra.severity.toUpperCase() : "WARNING";
     const level = SEVERITY[native] ?? { normalized: "medium" as const, blocking: true };
+    const review = packReviewOf(entry.check_id, opts.packReviewRules);
+    const asvsRequirements = packRequirementsOf(entry.check_id, opts.packRules);
     findings.push({
       stageId: opts.stageId,
       tool: "semgrep",
@@ -88,10 +159,82 @@ export function parseSemgrepOutput(text: string, opts: { stageId: string; versio
       location: { path: file, ...(line !== undefined ? { line } : {}), ...(column !== undefined ? { column } : {}) },
       fingerprint: contentHash({ tool: "semgrep", rule: entry.check_id, file, line: line ?? null, column: column ?? null, message: entry.extra.message }),
       origin: "semgrep",
-      blocking: level.blocking,
-      ...(level.blocking ? { blockingReason: "blocking-tool" as const } : {}),
+      blocking: !review && level.blocking,
+      ...(!review && level.blocking ? { blockingReason: "blocking-tool" as const } : {}),
+      // Review checks never block, regardless of the scanner's severity, and are not informational.
+      ...(review ? { review: true } : native === "INFO" ? { informational: true } : {}),
       waived: false,
+      ...(asvsRequirements ? { asvsRequirements } : {}),
     });
   }
-  return { ok: true, findings, warnings };
+  const paths = isRec(doc.paths) ? doc.paths : null;
+  const scanned = paths && Array.isArray(paths.scanned) ? paths.scanned.filter((p): p is string => typeof p === "string") : null;
+  return { ok: true, findings, warnings, scanned, signals };
+}
+
+/** File extension (lower case, with the dot) to the language name the scanned-languages record uses. */
+const SCANNED_LANGUAGE_BY_EXTENSION: Readonly<Record<string, string>> = {
+  ".js": "javascript",
+  ".jsx": "javascript",
+  ".mjs": "javascript",
+  ".cjs": "javascript",
+  ".ts": "typescript",
+  ".tsx": "typescript",
+  ".mts": "typescript",
+  ".cts": "typescript",
+  ".py": "python",
+  ".go": "go",
+  ".cs": "csharp",
+  ".rs": "rust",
+  ".java": "java",
+  ".php": "php",
+  ".kt": "kotlin",
+  ".kts": "kotlin",
+  ".rb": "ruby",
+  ".swift": "swift",
+  ".scala": "scala",
+  ".c": "c",
+  ".h": "c",
+  ".cpp": "cpp",
+  ".cc": "cpp",
+  ".hpp": "cpp",
+  ".dart": "dart",
+  ".ex": "elixir",
+  ".exs": "elixir",
+  ".lua": "lua",
+  // The two kinds of file of the JGates pack that are not a programming language.
+  ".html": "html",
+  ".htm": "html",
+};
+
+/** Extensions of the configuration files the pack reads (web servers, PHP, Java properties). */
+const CONFIG_EXTENSIONS: ReadonlySet<string> = new Set([".conf", ".properties", ".ini"]);
+
+/** Whether a scanned path is a configuration file of the pack: by extension, by file name or by the framework's folder. */
+export function isConfigFile(file: string): boolean {
+  const unix = file.replace(/\\/g, "/");
+  const base = (unix.split("/").pop() ?? "").toLowerCase();
+  if (CONFIG_EXTENSIONS.has(path.extname(base))) return true;
+  if (base === ".htaccess" || base === "web.config" || /^web\.[a-z0-9_-]+\.config$/.test(base)) return true;
+  // Spring (application.yml, application-dev.yaml) and .NET (appsettings.json, appsettings.Production.json).
+  if (/^application(-[a-z0-9_.-]+)?\.ya?ml$/.test(base) || /^appsettings(\.[a-z0-9_-]+)?\.json$/.test(base)) return true;
+  // Symfony (config/packages, config/services, config/routes) and Laravel (config/<name>.php).
+  if (/(^|\/)config\/(packages\/.+|services|routes|bundles)\.(ya?ml|xml|php)$/i.test(unix)) return true;
+  return /(^|\/)config\/[^/]+\.php$/i.test(unix);
+}
+
+/**
+ * How many files of each language the scan covered, from the scanner's own list of scanned paths. Every language in
+ * `include` is present (0 when no file of it was scanned); any other language appears only when a file of it was scanned.
+ */
+export function scannedLanguageCounts(scanned: readonly string[], include: readonly string[] = []): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const language of include) counts[language] = 0;
+  for (const file of scanned) {
+    const language = SCANNED_LANGUAGE_BY_EXTENSION[path.extname(file).toLowerCase()];
+    if (language) counts[language] = (counts[language] ?? 0) + 1;
+    // A configuration file is counted as such as well (a Laravel config/app.php is also a PHP file the PHP rules read).
+    if (isConfigFile(file)) counts.config = (counts.config ?? 0) + 1;
+  }
+  return counts;
 }

@@ -1,0 +1,16 @@
+{
+ "tool": "flake8",
+ "kind": "clean",
+ "version": "7.5.0",
+ "calls": [
+  {
+   "args": [
+    "--",
+    "flake8_sample.py"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

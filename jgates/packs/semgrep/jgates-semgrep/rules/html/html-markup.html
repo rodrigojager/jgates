@@ -1,0 +1,129 @@
+<html>
+<head>
+  <!-- ruleid: jgates.html.external-script-without-integrity -->
+  <script src="https://cdn.example.com/lib.js"></script>
+  <!-- ruleid: jgates.html.external-script-without-integrity -->
+  <script async src="//cdn.example.com/other.js" crossorigin="anonymous"></script>
+  <!-- ruleid: jgates.html.external-script-without-integrity -->
+  <link rel="stylesheet" href="https://cdn.example.com/theme.css">
+  <!-- ok: jgates.html.external-script-without-integrity -->
+  <script src="https://cdn.example.com/lib.js" integrity="sha384-abc" crossorigin="anonymous"></script>
+  <!-- ok: jgates.html.external-script-without-integrity -->
+  <script src="/static/app.js"></script>
+  <!-- ok: jgates.html.external-script-without-integrity -->
+  <link rel="stylesheet" href="https://cdn.example.com/theme.css" integrity="sha384-def" crossorigin="anonymous">
+  <!-- ok: jgates.html.external-script-without-integrity -->
+  <link rel="icon" href="https://cdn.example.com/icon.png">
+
+  <!-- ruleid: jgates.html.csp-unsafe-directive -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'">
+  <!-- ruleid: jgates.html.csp-unsafe-directive -->
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval'">
+  <!-- ruleid: jgates.html.csp-unsafe-directive -->
+  <meta http-equiv="Content-Security-Policy" content="script-src *">
+  <!-- ruleid: jgates.html.csp-unsafe-directive -->
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'self'">
+  <!-- ok: jgates.html.csp-unsafe-directive -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'unsafe-inline'; script-src 'self'">
+  <!-- ok: jgates.html.csp-unsafe-directive -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-r4nd0m'; style-src 'self' 'unsafe-inline'">
+  <!-- ok: jgates.html.csp-unsafe-directive -->
+  <meta http-equiv="refresh" content="30">
+</head>
+<body>
+  <!-- ruleid: jgates.html.deprecated-plugin-content -->
+  <applet code="Clock.class" width="100" height="100"></applet>
+  <!-- ruleid: jgates.html.deprecated-plugin-content -->
+  <embed src="intro.swf" type="application/x-shockwave-flash">
+  <!-- ruleid: jgates.html.deprecated-plugin-content -->
+  <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="400" height="300"></object>
+  <!-- ruleid: jgates.html.deprecated-plugin-content -->
+  <object data="app.xap" type="application/x-silverlight-2"></object>
+  <!-- ok: jgates.html.deprecated-plugin-content -->
+  <object data="photo.png" type="image/png"></object>
+  <!-- ok: jgates.html.deprecated-plugin-content -->
+  <embed src="clip.pdf" type="application/pdf">
+
+  <!-- ruleid: jgates.html.sensitive-query-parameter -->
+  <form action="/login" method="get">
+    <input type="text" name="user">
+    <input type="password" name="password">
+  </form>
+  <!-- ruleid: jgates.html.sensitive-query-parameter-by-default -->
+  <form action="/login">
+    <input type="password" name="pwd">
+  </form>
+  <!-- ruleid: jgates.html.sensitive-query-parameter -->
+  <form method='GET' action="/reauth">
+    <input name="passphrase" type="password">
+  </form>
+  <!-- ruleid: jgates.html.sensitive-query-parameter-by-default -->
+  <form action="/reauth">
+    <input name="passphrase" type="password">
+  </form>
+  <!-- ok: jgates.html.sensitive-query-parameter -->
+  <form action="/login" method="post">
+    <input type="password" name="password">
+  </form>
+  <!-- ok: jgates.html.sensitive-query-parameter -->
+  <form action="/search" method="get">
+    <input type="text" name="q">
+  </form>
+  <!-- ok: jgates.html.sensitive-query-parameter-by-default -->
+  <form action="/login" method="post">
+    <input type="password" name="password">
+  </form>
+  <!-- ok: jgates.html.sensitive-query-parameter-by-default -->
+  <form method="dialog">
+    <input type="password" name="passphrase">
+  </form>
+
+  <form action="/signup" method="post">
+    <!-- ruleid: jgates.html.password-field-not-masked -->
+    <input type="text" name="password">
+    <!-- ruleid: jgates.html.password-field-not-masked -->
+    <input id="user_passwd" type="text">
+    <!-- ruleid: jgates.html.password-field-not-masked-by-default -->
+    <input id="user_passwd">
+    <!-- ruleid: jgates.html.password-field-not-masked-by-default -->
+    <input name="passphrase">
+    <!-- ok: jgates.html.password-field-not-masked -->
+    <input type="password" name="password">
+    <!-- ok: jgates.html.password-field-not-masked -->
+    <input type="checkbox" name="show_password">
+    <!-- ok: jgates.html.password-field-not-masked -->
+    <input type="text" name="username">
+    <!-- ok: jgates.html.password-field-not-masked-by-default -->
+    <input type="password" id="user_passwd">
+    <!-- ok: jgates.html.password-field-not-masked-by-default -->
+    <input type="password" name="passphrase">
+    <!-- ruleid: jgates.html.password-paste-blocked -->
+    <input type="password" name="pw" onpaste="return false">
+    <!-- ruleid: jgates.html.password-paste-blocked -->
+    <input type="password" name="pw2" autocomplete="off">
+    <!-- ok: jgates.html.password-paste-blocked -->
+    <input type="password" name="pw3" autocomplete="new-password">
+    <!-- ok: jgates.html.password-paste-blocked -->
+    <input type="password" name="pw4" onpaste="track()">
+  </form>
+
+  <!-- ruleid: jgates.html.cleartext-http-url -->
+  <form action="http://shop.example.com/pay" method="post"></form>
+  <!-- ruleid: jgates.html.cleartext-http-url -->
+  <script src="http://static.example.com/app.js" integrity="sha384-abc"></script>
+  <!-- ruleid: jgates.html.cleartext-http-url -->
+  <iframe src="http://widgets.example.com/box"></iframe>
+  <script>
+    // ruleid: jgates.html.cleartext-http-url
+    var s = new WebSocket("ws://live.example.com/feed");
+    // ok: jgates.html.cleartext-http-url
+    var t = new WebSocket("wss://live.example.com/feed");
+    // ok: jgates.html.cleartext-http-url
+    var u = new WebSocket("ws://localhost:8080/dev");
+  </script>
+  <!-- ok: jgates.html.cleartext-http-url -->
+  <form action="https://shop.example.com/pay" method="post"></form>
+  <!-- ok: jgates.html.cleartext-http-url -->
+  <iframe src="http://localhost:3000/preview"></iframe>
+</body>
+</html>

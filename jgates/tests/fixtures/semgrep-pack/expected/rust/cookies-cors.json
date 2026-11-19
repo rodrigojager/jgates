@@ -1,0 +1,17 @@
+{
+  "files": ["src/cookies-cors.rs"],
+  "ruleIds": [
+    "jgates.rust.cookie-without-secure",
+    "jgates.rust.cookie-without-httponly",
+    "jgates.rust.cookie-without-secure-by-default",
+    "jgates.rust.cookie-without-httponly-by-default",
+    "jgates.rust.csrf-protection-disabled",
+    "jgates.rust.cookie-without-samesite",
+    "jgates.rust.cookie-name-without-prefix",
+    "jgates.rust.cors-any-origin-with-credentials",
+    "jgates.rust.cors-origin-reflected",
+    "jgates.rust.cors-origin-reflected-allow-all",
+    "jgates.rust.jsonp-enabled",
+    "jgates.rust.sensitive-query-parameter"
+  ]
+}

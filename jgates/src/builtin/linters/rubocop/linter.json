@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "rubocop",
+  "name": "RuboCop",
+  "sourceUrl": "https://github.com/rubocop/rubocop",
+  "license": "MIT",
+  "program": {
+    "tool": "rubocop",
+    "versionRange": ">=1.92.0 <2.0.0"
+  },
+  "megalinter": [
+    "RUBY_RUBOCOP"
+  ],
+  "place": {
+    "section": "language",
+    "group": "ruby",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".rb"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--force-exclusion",
+      "--cache",
+      "false",
+      "--no-color",
+      "--format",
+      "emacs",
+      "--",
+      "{files}"
+    ],
+    "env": {
+      "HOME": "/tmp",
+      "XDG_CACHE_HOME": "/tmp/rubocop-cache"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+): (?<level>[CRWEF]): (?:\\[Corrected\\] |\\[Correctable\\] )?(?<rule>[A-Za-z]+(?:/[A-Za-z0-9]+)*): (?<message>.+)$",
+    "level": "warning"
+  },
+  "severity": {
+    "c": "warning",
+    "r": "warning",
+    "w": "warning",
+    "e": "error",
+    "f": "error"
+  },
+  "configuration": {
+    "files": [
+      ".rubocop.yml",
+      ".rubocop_todo.yml",
+      ".ruby-lint.yml",
+      ".rubocop"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "RuboCop reads the project's .rubocop.yml (and the files it inherits, such as .rubocop_todo.yml) and its Exclude lists: the project decides the cops, the plugins it enables with plugins: and the files; MegaLinter's .ruby-lint.yml name is not passed to the tool",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # rubocop:disable and # rubocop:todo comments",
+      "pattern": "#\\s*rubocop:\\s*(?:disable|todo)",
+      "files": "\\.(?:rb|rake|gemspec)$"
+    }
+  },
+  "install": "rubocop",
+  "text": {
+    "en": {
+      "label": "RuboCop (Ruby)",
+      "purpose": "Checks Ruby source for mistakes and style problems: unused variables, risky constructs, formatting and naming. The image also carries the rubocop-github, rubocop-performance, rubocop-rails, rubocop-rake and rubocop-rspec plugins, which the project enables with plugins: in its .rubocop.yml.",
+      "limitation": "Without a project .rubocop.yml it runs RuboCop's own default cops with no plugin enabled, and the Ruby it runs on is Debian's 3.3, so a newer syntax or rubocop-github 0.28 and later (they need Ruby 3.4) are not available.",
+      "needs": "Nothing beyond the tools image (Ruby and the gems come with it): no network and no project gems."
+    },
+    "pt-BR": {
+      "label": "RuboCop (Ruby)",
+      "purpose": "Verifica o código Ruby em busca de erros e problemas de estilo: variáveis não usadas, construções arriscadas, formatação e nomes. A imagem também traz os plugins rubocop-github, rubocop-performance, rubocop-rails, rubocop-rake e rubocop-rspec, que o projeto liga com plugins: no seu .rubocop.yml.",
+      "limitation": "Sem um .rubocop.yml do projeto, roda os cops padrão do próprio RuboCop sem nenhum plugin ligado, e o Ruby usado é o 3.3 do Debian, então sintaxe mais nova e o rubocop-github 0.28 em diante (exigem Ruby 3.4) não estão disponíveis.",
+      "needs": "Nada além da imagem de ferramentas (o Ruby e as gems vêm com ela): sem rede e sem as gems do projeto."
+    }
+  }
+}

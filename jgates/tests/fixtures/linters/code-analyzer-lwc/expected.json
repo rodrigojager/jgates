@@ -1,0 +1,12 @@
+{
+  "files": [
+    "force-app/main/default/lwc/accountCard/accountCard.js-meta.xml"
+  ],
+  "findings": [
+    {
+      "rule": "@lwc/lwc/no-async-operation",
+      "file": "force-app/main/default/lwc/accountCard/accountCard.js",
+      "line": 7
+    }
+  ]
+}

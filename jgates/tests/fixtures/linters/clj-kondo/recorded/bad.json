@@ -1,0 +1,20 @@
+{
+ "tool": "clj-kondo",
+ "kind": "bad",
+ "version": "2026.10.26",
+ "calls": [
+  {
+   "args": [
+    "--cache",
+    "false",
+    "--config",
+    "{:output {:format :json}}",
+    "--lint",
+    "lint_core.clj"
+   ],
+   "exit": 2,
+   "stdout": "{\"findings\":[{\"end-row\":4,\"type\":\"unused-binding\",\"level\":\"warning\",\"filename\":\"lint_core.clj\",\"col\":9,\"end-col\":15,\"langs\":[],\"message\":\"unused binding unused\",\"row\":4}],\"summary\":{\"error\":0,\"warning\":1,\"info\":0,\"type\":\"summary\",\"duration\":18,\"files\":1}}\n",
+   "stderr": ""
+  }
+ ]
+}

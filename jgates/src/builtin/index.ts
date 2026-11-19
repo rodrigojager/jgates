@@ -2,11 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateDocument } from "../core/config/load/schema.js";
+import { linterTemplates } from "../adapters/linter/derived.js";
 
 /**
  * Built-in templates and starter profiles. One JSON file per item, found by scanning the folders (no central list):
  * templates/<id>.json follows schemas/config/template.schema.json and profiles/<id>.json is a profiles document
  * with exactly one profile, so the starter profiles can be copied as they are into a project's profiles.yml.
+ *
+ * Templates can also be generated (the linter engine derives one per descriptor group): a provider registered with
+ * registerTemplateProvider adds them, validated like the files. A built-in template whose document says
+ * `implicit: true` is part of every project's configuration without being listed in jgates.yml (ADR-0022): the new
+ * tools reach an existing project on upgrade with no change to its file (listImplicitTemplates, read by the resolver).
  */
 
 export const BUILTIN_PREFIX = "builtin:";
@@ -22,6 +28,27 @@ export interface BuiltinItem {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cache = new Map<string, Map<string, BuiltinItem>>();
+
+/** A generated built-in template: its id and its document (schemas/config/template.schema.json). */
+export interface GeneratedTemplate {
+  id: string;
+  value: Record<string, unknown>;
+}
+export type TemplateProvider = () => GeneratedTemplate[];
+const providers = new Map<string, TemplateProvider>();
+
+/**
+ * Adds (or, with null, removes) a source of generated built-in templates under a name ("linters"). Their pseudo file
+ * is builtin:<name>/<id>; an id that clashes with a file or another provider is a defect of JGates (BuiltinError).
+ */
+export function registerTemplateProvider(name: string, provider: TemplateProvider | null): void {
+  if (provider) providers.set(name, provider);
+  else providers.delete(name);
+  cache.delete("templates");
+}
+
+// The linter engine's templates: one implicit template per descriptor group (src/builtin/linters/).
+registerTemplateProvider("linters", linterTemplates);
 
 /** A broken built-in file is a defect of JGates itself, not of the project: callers report it as an internal error. */
 export class BuiltinError extends Error {
@@ -55,8 +82,26 @@ function loadFolder(folder: "templates" | "profiles"): Map<string, BuiltinItem> 
     }
     items.set(id, { ref: `${BUILTIN_PREFIX}${id}`, id, file, value });
   }
+  if (folder === "templates") {
+    for (const name of [...providers.keys()].sort()) {
+      const generated = (providers.get(name) as TemplateProvider)();
+      for (const { id, value } of [...generated].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {
+        const file = `${BUILTIN_PREFIX}${name}/${id}`;
+        if (items.has(id)) throw new BuiltinError(`${file}: the template id "${id}" is already built in (${items.get(id)?.file})`);
+        const problems = validateDocument("template", value, file);
+        if (problems.length > 0) throw new BuiltinError(`${file}: ${problems.map((p) => `${p.path} ${p.message}`).join("; ")}`);
+        if (value.id !== id) throw new BuiltinError(`${file}: id must be "${id}"`);
+        items.set(id, { ref: `${BUILTIN_PREFIX}${id}`, id, file, value });
+      }
+    }
+  }
   cache.set(folder, items);
   return items;
+}
+
+/** The built-in templates that are part of every project's configuration (`implicit: true`), sorted by id. */
+export function listImplicitTemplates(): BuiltinItem[] {
+  return [...loadFolder("templates").values()].filter((i) => i.value.implicit === true).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
 export function isBuiltinRef(ref: string): boolean {

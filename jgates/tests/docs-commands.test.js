@@ -58,6 +58,9 @@ const ENGINE_TOOLS_SUBCOMMANDS = new Set(["update-data", "prepare-codeql", "expo
 const NOT_EXECUTED = [
   (t) => t[0] === "ui",
   (t) => t[0] === "run",
+  // A Semantic run needs a configured provider and spends model calls: its pages are checked for the command, its flags
+  // and its subcommands (the other tests of this file), never executed.
+  (t) => t[0] === "semantic" && t[1] === "run",
   (t) => ["setup", "status", "deps", "clean", "uninstall"].includes(t[0]),
   (t) => t[0] === "tools" && t[1] === "prepare" && !t.includes("--dry-run"),
   (t) => t[0] === "tools" && ENGINE_TOOLS_SUBCOMMANDS.has(t[1]) && !(t[1] === "add-custom" && t.includes("--dry-run")),
@@ -250,7 +253,10 @@ for (const file of pages) {
       const screens = path.join(ROOT, "jgates", "ui", "src", "screens");
       const known = fs.readdirSync(screens).some((d) => {
         const index = path.join(screens, d, "index.tsx");
-        return fs.existsSync(index) && fs.readFileSync(index, "utf8").includes(`path: "${route.slice(1)}"`);
+        // A route written with a parameter (`#/semantic/results/<run>`) ends in "/" here and names a screen whose path
+        // goes on with that parameter (`/semantic/results/:id`).
+        const wanted = route.endsWith("/") ? `path: "${route.slice(1)}:` : `path: "${route.slice(1)}"`;
+        return fs.existsSync(index) && fs.readFileSync(index, "utf8").includes(wanted);
       });
       assert.ok(known, `${file}: the interface has no screen at ${route}`);
     }

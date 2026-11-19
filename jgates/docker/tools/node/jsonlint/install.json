@@ -1,0 +1,14 @@
+{
+  "provides": [
+    {
+      "name": "jsonlint",
+      "link": "jsonlint",
+      "path": "node_modules/.bin/jsonlint",
+      "version": [
+        "jsonlint",
+        "--version"
+      ],
+      "package": "@prantlf/jsonlint"
+    }
+  ]
+}

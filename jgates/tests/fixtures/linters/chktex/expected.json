@@ -1,0 +1,12 @@
+{
+  "files": [
+    "paper.tex"
+  ],
+  "findings": [
+    {
+      "rule": "11",
+      "file": "paper.tex",
+      "line": 3
+    }
+  ]
+}

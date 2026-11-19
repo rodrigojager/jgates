@@ -1,0 +1,17 @@
+{
+  "note": "Built from source with the image's Go: the release binary of 0.3.2 is built with Go 1.25.1, whose standard library has a critical vulnerability with a fix (CVE-2025-68121). The version is set at link time as the release does.",
+  "module": "github.com/checkmake/checkmake/cmd/checkmake",
+  "version": "0.3.2",
+  "ldflags": "-s -w -X main.version=v{version} -X main.builder=jgates",
+  "provides": [
+    {
+      "name": "checkmake",
+      "link": "checkmake",
+      "path": "checkmake",
+      "version": [
+        "checkmake",
+        "--version"
+      ]
+    }
+  ]
+}

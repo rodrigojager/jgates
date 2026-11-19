@@ -6,7 +6,7 @@ import path from "node:path";
 import { translator } from "../../i18n/index.js";
 import type { Decision } from "../contract/index.js";
 import type { Plan } from "../plan/types.js";
-import { analysisIdentity, buildProvenance, hashesOfPlan, snapshotIdentity, type AnalysisHashes, type Provenance } from "../provenance/index.js";
+import { analysisIdentity, buildProvenance, hashesOfPlan, snapshotIdentity, type AnalysisHashes, type Provenance, type WaiversProvenance } from "../provenance/index.js";
 import {
   diffInputs,
   gitContext,
@@ -151,6 +151,8 @@ export interface DescribeInput {
   planSource?: string;
   version: string;
   now: Date;
+  /** The waivers in force for the run, recorded in the provenance (outside the identity). */
+  waivers?: WaiversProvenance | null;
 }
 
 /** The analyzed block and the provenance of the result, for the decision taken. */
@@ -253,6 +255,7 @@ export function describeAnalysis(prep: PreparedAnalysis, input: DescribeInput): 
     snapshot: snapshotId,
     hashes,
     container: input.plan?.inputs.container ?? null,
+    waivers: input.waivers ?? null,
   });
   return { analyzed, provenance };
 }

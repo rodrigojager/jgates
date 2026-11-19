@@ -1,0 +1,152 @@
+rules:
+  - id: jgates.go.jwt-key-from-token-header
+    message: The verification key is taken from a value the token's own header names (jku, x5u or an embedded jwk), so the sender chooses the key that verifies the token. Look the key up by key id in a set of keys the service already trusts.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.3"]
+    pattern-either:
+      - pattern: $T.Header["jku"]
+      - pattern: $T.Header["x5u"]
+      - pattern: $T.Header["jwk"]
+      - pattern: $S.Header.JSONWebKey
+
+  - id: jgates.go.jwt-expiry-not-validated
+    message: Claim validation of a token is switched off, so a token that has expired is still accepted. Keep the default validation and require an expiry with jwt.WithExpirationRequired().
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-613"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.1"]
+    pattern-either:
+      - pattern: jwt.WithoutClaimsValidation()
+      - pattern: 'jwt.Parser{..., SkipClaimsValidation: true, ...}'
+      - pattern: $P.SkipClaimsValidation = true
+      - pattern: jwt.WithValidate(false)
+
+  - id: jgates.go.jwt-audience-not-validated
+    message: A token is parsed without a visible audience requirement. If no other layer checks the intended recipient, a token issued for another service may be accepted; pass jwt.WithAudience with this service's expected audience or confirm where it is checked.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-287"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.3", "V10.3.1"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: jwt.Parse($T, $K, ...)
+          - pattern: jwt.ParseWithClaims($T, $C, $K, ...)
+      - pattern-not: jwt.Parse($T, $K, ..., jwt.WithAudience(...), ...)
+      - pattern-not: jwt.ParseWithClaims($T, $C, $K, ..., jwt.WithAudience(...), ...)
+
+  - id: jgates.go.oauth-request-without-state
+    message: An OAuth authorization URL is built with a constant or empty state and no visible code challenge. If no other layer binds the callback to the initiating browser, the flow may allow login CSRF; use a random per-request state checked on return, or confirm that PKCE or another protocol-level protection securely binds the flow.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V10.2.1"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $C.AuthCodeURL("...")
+              - pattern: $C.AuthCodeURL("...", ...)
+          - pattern-not: $C.AuthCodeURL($S, ..., oauth2.S256ChallengeOption(...), ...)
+          - pattern-not: $C.AuthCodeURL($S, ..., oauth2.SetAuthURLParam("code_challenge", ...), ...)
+      - pattern-regex: '"[^"\n]*[?&]response_type=code(?![^"\n]*(?:state|code_challenge))[^"\n]*"'
+
+  - id: jgates.go.tls-old-protocol-version
+    message: A TLS configuration allows SSL 3, TLS 1.0 or TLS 1.1, which are broken or deprecated. Set MinVersion to tls.VersionTLS12 or later.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: transport
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.1"]
+    patterns:
+      - pattern-either:
+          - pattern: 'tls.Config{..., MinVersion: $V, ...}'
+          - pattern: 'tls.Config{..., MaxVersion: $V, ...}'
+          - pattern: $C.MinVersion = $V
+          - pattern: $C.MaxVersion = $V
+      - metavariable-regex:
+          metavariable: $V
+          regex: ^(tls\.VersionSSL30|tls\.VersionTLS10|tls\.VersionTLS11|0x030[0-2])$
+
+  - id: jgates.go.tls-weak-cipher-suite
+    message: A cipher suite list names null, export, RC4, DES or 3DES suites, which give no or broken protection. List only AEAD suites such as ECDHE with AES-GCM or ChaCha20-Poly1305, or leave the list to the library.
+    severity: WARNING
+    languages: [go]
+    metadata:
+      category: transport
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.2"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: 'tls.Config{..., CipherSuites: $L, ...}'
+              - pattern: $C.CipherSuites = $L
+          - metavariable-regex:
+              metavariable: $L
+              regex: (?s)^.*(RC4|3DES|_NULL_|EXPORT|DES_CBC)
+      - pattern: tls.InsecureCipherSuites()
+
+  - id: jgates.go.cleartext-http-url
+    message: A network client is given a plain HTTP or FTP address that is not the local machine, so the request travels without encryption. Use an HTTPS address.
+    severity: INFO
+    languages: [go]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.2.1", "V12.3.1", "V12.3.3"]
+    patterns:
+      - pattern-either:
+          - pattern: http.Get($U)
+          - pattern: http.Head($U)
+          - pattern: http.Post($U, ...)
+          - pattern: http.PostForm($U, ...)
+          - pattern: http.NewRequest($M, $U, ...)
+          - pattern: http.NewRequestWithContext($X, $M, $U, ...)
+          - pattern: $C.Get($U)
+          - pattern: $C.Head($U)
+          - pattern: $C.Post($U, ...)
+      - metavariable-regex:
+          metavariable: $U
+          regex: ^["`]\s*(?i:http|ftp)://(?!(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(?![\w.-]))
+
+  - id: jgates.go.mtls-client-certificate-not-verified
+    message: A TLS server asks for a client certificate and accepts it without verifying it, so the certificate proves nothing. Use tls.RequireAndVerifyClientCert (or VerifyClientCertIfGiven) with a ClientCAs pool.
+    severity: ERROR
+    languages: [go]
+    metadata:
+      category: transport
+      cwe: "CWE-295"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.3"]
+    patterns:
+      - pattern-either:
+          - pattern: 'tls.Config{..., ClientAuth: tls.RequestClientCert, ...}'
+          - pattern: 'tls.Config{..., ClientAuth: tls.RequireAnyClientCert, ...}'
+      - pattern-not: 'tls.Config{..., VerifyPeerCertificate: $F, ...}'
+      - pattern-not: 'tls.Config{..., VerifyConnection: $F, ...}'

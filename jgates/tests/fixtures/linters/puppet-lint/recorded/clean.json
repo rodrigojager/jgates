@@ -1,0 +1,19 @@
+{
+ "tool": "puppet-lint",
+ "kind": "clean",
+ "version": "5.1.1",
+ "calls": [
+  {
+   "args": [
+    "--fail-on-warnings",
+    "--log-format",
+    "%{path}:%{line}:%{column}:%{kind}:%{check}:%{message}",
+    "--",
+    "motd/manifests/init.pp"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

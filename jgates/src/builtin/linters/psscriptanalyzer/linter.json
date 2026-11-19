@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "psscriptanalyzer",
+  "name": "PSScriptAnalyzer",
+  "sourceUrl": "https://github.com/PowerShell/PSScriptAnalyzer",
+  "license": "MIT",
+  "program": {
+    "tool": "psscriptanalyzer",
+    "command": "pwsh",
+    "versionRange": ">=1.25.0 <2.0.0"
+  },
+  "megalinter": [
+    "POWERSHELL_POWERSHELL"
+  ],
+  "place": {
+    "section": "language",
+    "group": "powershell",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".ps1",
+      ".psm1",
+      ".psd1",
+      ".ps1xml",
+      ".pssc",
+      ".psrc",
+      ".cdxml"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-CommandWithArgs",
+      "$ErrorActionPreference = 'Stop'; Import-Module /opt/tools/parts/powershell/modules/PSScriptAnalyzer/PSScriptAnalyzer.psd1; $settings = @{}; if (Test-Path -LiteralPath '.powershell-psscriptanalyzer.psd1') { $settings.Settings = (Resolve-Path -LiteralPath '.powershell-psscriptanalyzer.psd1').Path }; $found = foreach ($file in $args) { Invoke-ScriptAnalyzer -Path ([WildcardPattern]::Escape($file)) @settings }; ConvertTo-Json -Compress -InputObject @($found | ForEach-Object { [pscustomobject]@{ file = $_.ScriptPath; line = $_.Line; column = $_.Column; rule = $_.RuleName; level = [string]$_.Severity; message = $_.Message } })",
+      "{files}"
+    ],
+    "env": {
+      "HOME": "/tmp",
+      "POWERSHELL_TELEMETRY_OPTOUT": "1",
+      "POWERSHELL_UPDATECHECK": "Off",
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "fields": {
+      "file": "file",
+      "line": "line",
+      "column": "column",
+      "rule": "rule",
+      "level": "level",
+      "message": "message"
+    }
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning",
+    "information": "info",
+    "parseerror": "error"
+  },
+  "configuration": {
+    "files": [
+      ".powershell-psscriptanalyzer.psd1"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "PSScriptAnalyzer reads the project's .powershell-psscriptanalyzer.psd1 settings file (rules to include or exclude), else it runs every default rule: the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: [Diagnostics.CodeAnalysis.SuppressMessage('<rule>', '')] attributes",
+      "pattern": "SuppressMessage(?:Attribute)?\\s*\\(",
+      "files": "\\.(?:ps1|psm1|psd1)$"
+    }
+  },
+  "install": "powershell",
+  "text": {
+    "en": {
+      "label": "PSScriptAnalyzer (PowerShell)",
+      "purpose": "The static checker for PowerShell scripts and modules: best practices, safe commands, naming, security and parse errors.",
+      "limitation": "It runs under PowerShell in the tools image, one file at a time, and reads the project's .powershell-psscriptanalyzer.psd1 when there is one; without it every default rule applies.",
+      "needs": "Nothing beyond the tools image (PowerShell and the module are in it): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "PSScriptAnalyzer (PowerShell)",
+      "purpose": "O verificador estático de scripts e módulos PowerShell: boas práticas, comandos seguros, nomes, segurança e erros de sintaxe.",
+      "limitation": "Roda sob o PowerShell da imagem de ferramentas, um arquivo por vez, e lê o .powershell-psscriptanalyzer.psd1 do projeto quando existe; sem ele valem todas as regras padrão.",
+      "needs": "Nada além da imagem de ferramentas (o PowerShell e o módulo já estão nela): sem rede e sem as dependências do projeto."
+    }
+  }
+}

@@ -7,6 +7,8 @@ rules:
       category: injection
       cwe: "CWE-89"
       author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.4"]
     pattern-either:
       - pattern: $DB.query(`...${...}...`, ...)
       - pattern: $DB.query(<... "..." + $X ...>, ...)
@@ -20,6 +22,8 @@ rules:
       category: injection
       cwe: "CWE-78"
       author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.5"]
     patterns:
       - pattern-either:
           - pattern: child_process.exec($CMD, ...)
@@ -39,6 +43,8 @@ rules:
       category: injection
       cwe: "CWE-95"
       author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.2"]
     patterns:
       - pattern-either:
           - pattern: eval($X)

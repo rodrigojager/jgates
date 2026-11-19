@@ -1,0 +1,13 @@
+{
+  "files": [
+    "jgates.yml",
+    "yamllint_sample.yml"
+  ],
+  "findings": [
+    {
+      "rule": "key-duplicates",
+      "file": "yamllint_sample.yml",
+      "line": 2
+    }
+  ]
+}

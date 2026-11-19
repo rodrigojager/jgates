@@ -1,0 +1,19 @@
+{
+ "tool": "perlcritic",
+ "kind": "bad",
+ "version": "1.156",
+ "calls": [
+  {
+   "args": [
+    "--nocolor",
+    "--verbose",
+    "%f:%l:%c:%p:%m\n",
+    "--",
+    "hello.pl"
+   ],
+   "exit": 2,
+   "stdout": "hello.pl:2:1:TestingAndDebugging::RequireUseStrict:Code before strictures are enabled\n",
+   "stderr": ""
+  }
+ ]
+}

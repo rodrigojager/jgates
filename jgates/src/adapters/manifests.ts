@@ -39,6 +39,8 @@ import { playwrightManifest } from "./playwright/manifest.js";
 import { migrationDriftManifest } from "./migration-drift/manifest.js";
 import { performanceManifest } from "./performance/manifest.js";
 import { dotnetVulnerableManifest } from "./dotnet-vulnerable/manifest.js";
+import { loadLinters } from "./linter/descriptor.js";
+import { linterManifest } from "./linter/manifest.js";
 
 /** Resources of the step container of an adapter (its manifest's `resources`); undefined: the defaults apply (4096 MB / 2 CPUs). */
 export function manifestResources(adapterId: string): AdapterManifest["resources"] {
@@ -49,8 +51,8 @@ export function manifestResources(adapterId: string): AdapterManifest["resources
  * Manifests of the built-in adapters, in one place that only imports manifests (no adapter code, no cycles), so the
  * catalog (`jgates tools list`) and the support level (`supportLevelFor`) read the same registered set.
  * ESLint, Vitest and jscpd run directly in local mode; the editable-file level of the first two (manifest and
- * binding) is unchanged.
+ * binding) is unchanged. The descriptor tools of the linter engine (src/builtin/linters/) follow, in id order.
  */
 export function builtinManifests(): AdapterManifest[] {
-  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest, supplyChainManifest, govulncheckManifest, cargoAuditManifest, cargoTestManifest, formatCheckManifest, golangciLintManifest, clippyManifest, dotnetAnalyzersManifest, shellcheckManifest, hadolintManifest, fileSizeManifest, goTestManifest, dotnetTestManifest, jestManifest, playwrightManifest, migrationDriftManifest, performanceManifest, dotnetVulnerableManifest];
+  return [qualityBridgeManifest, ruffManifest, builtinPiiManifest, eslintManifest, vitestManifest, semgrepManifest, pytestManifest, genericCommandManifest, dependencyCruiserManifest, importLinterManifest, gitleaksManifest, trivyManifest, osvScannerManifest, checkovManifest, jscpdManifest, zizmorManifest, oasdiffManifest, codeqlManifest, buildCheckManifest, schemathesisManifest, zapManifest, mutationManifest, supplyChainManifest, govulncheckManifest, cargoAuditManifest, cargoTestManifest, formatCheckManifest, golangciLintManifest, clippyManifest, dotnetAnalyzersManifest, shellcheckManifest, hadolintManifest, fileSizeManifest, goTestManifest, dotnetTestManifest, jestManifest, playwrightManifest, migrationDriftManifest, performanceManifest, dotnetVulnerableManifest, ...loadLinters().map(linterManifest)];
 }

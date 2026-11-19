@@ -1,0 +1,32 @@
+{
+  "files": [
+    "force-app/main/default/classes/AccountUpdater.cls"
+  ],
+  "findings": [
+    {
+      "rule": "ApexSharingViolations",
+      "file": "force-app/main/default/classes/AccountUpdater.cls",
+      "line": 1
+    },
+    {
+      "rule": "ApexDoc",
+      "file": "force-app/main/default/classes/AccountUpdater.cls",
+      "line": 1
+    },
+    {
+      "rule": "ApexDoc",
+      "file": "force-app/main/default/classes/AccountUpdater.cls",
+      "line": 2
+    },
+    {
+      "rule": "OperationWithLimitsInLoop",
+      "file": "force-app/main/default/classes/AccountUpdater.cls",
+      "line": 4
+    },
+    {
+      "rule": "ApexCRUDViolation",
+      "file": "force-app/main/default/classes/AccountUpdater.cls",
+      "line": 4
+    }
+  ]
+}

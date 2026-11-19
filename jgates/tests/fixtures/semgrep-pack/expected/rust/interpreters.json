@@ -1,0 +1,10 @@
+{
+  "files": ["src/interpreters.rs"],
+  "ruleIds": [
+    "jgates.rust.ldap-injection",
+    "jgates.rust.xpath-injection",
+    "jgates.rust.template-from-request",
+    "jgates.rust.latex-shell-escape",
+    "jgates.rust.mail-header-injection"
+  ]
+}

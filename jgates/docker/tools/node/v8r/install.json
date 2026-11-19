@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "v8r",
+      "link": "v8r",
+      "path": "node_modules/.bin/v8r",
+      "version": [
+        "v8r",
+        "--version"
+      ]
+    }
+  ]
+}

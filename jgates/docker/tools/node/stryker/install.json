@@ -1,0 +1,22 @@
+{
+  "provides": [
+    {
+      "name": "stryker",
+      "link": "stryker",
+      "path": "node_modules/.bin/stryker",
+      "version": [
+        "stryker",
+        "--version"
+      ],
+      "package": "@stryker-mutator/core"
+    },
+    {
+      "name": "stryker-vitest-runner",
+      "package": "@stryker-mutator/vitest-runner"
+    },
+    {
+      "name": "stryker-jest-runner",
+      "package": "@stryker-mutator/jest-runner"
+    }
+  ]
+}

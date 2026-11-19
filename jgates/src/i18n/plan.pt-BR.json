@@ -32,6 +32,8 @@
   "plan_reason_locked": "Exigido pela política ({selector}, {where}).",
   "plan_reason_disabled": "Desligado por {selector} em {where}.",
   "plan_reason_not_selected": "Nenhum seletor liga esta verificação.",
+  "plan_reason_above_tier_main": "Roda a partir do perfil Equilibrado, ou quando você a liga (tool:{tool}).",
+  "plan_reason_above_tier_extended": "Roda no perfil Rigoroso, ou quando você a liga (tool:{tool}).",
   "plan_reason_only": "Fora de --only ({only}) só nesta execução.",
   "plan_reason_no_adapter": "A ferramenta {tool} está ligada ({where}), mas não tem adaptador executável nesta versão do JGates.",
   "plan_origin_defaults": "padrão do JGates",

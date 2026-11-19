@@ -11,6 +11,7 @@ const dist = path.resolve(here, "..", "dist");
 const MAIN = path.join(dist, "cli", "main.js");
 const resolver = await import(pathToFileURL(path.join(dist, "core", "config", "resolve", "index.js")).href);
 const builtin = await import(pathToFileURL(path.join(dist, "builtin", "index.js")).href);
+const { linterTemplates } = await import(pathToFileURL(path.join(dist, "adapters", "linter", "derived.js")).href);
 const { builtinManifests } = await import(pathToFileURL(path.join(dist, "adapters", "manifests.js")).href);
 
 /** Creates a project with the given files (in the given order), runs `fn(dir)` and always cleans up. */
@@ -48,6 +49,11 @@ function cli(dir, ...args) {
 }
 
 const NO_STACK = { languages: [], classifications: [] };
+const derivedTemplateIds = new Set(linterTemplates().map((template) => template.id));
+const isHandWrittenTemplate = (id) => !derivedTemplateIds.has(id);
+const handWrittenTemplateLayers = (layers) => layers
+  .filter((layer) => layer.layer === "template" && isHandWrittenTemplate(layer.source.replace(/^builtin:/, "")))
+  .map((layer) => layer.source);
 const yaml = (lines) => `${lines.join("\n")}\n`;
 const root = (...lines) => yaml(["schemaVersion: 1", ...lines]);
 const PROFILES = ".jgates/profiles.yml";
@@ -175,10 +181,10 @@ test("a diamond resolves with the common ancestor applied once, parents in the d
   withProject(files, (dir) => {
     const r = cli(dir, "resolve", "--explain");
     assert.equal(r.status, 0, JSON.stringify(r.doc));
-    assert.deepEqual(r.doc.templates.active.map((a) => a.id), ["top"]);
-    assert.deepEqual(r.doc.templates.active[0].chain, [T("common"), T("left"), T("right"), T("top")]);
-    const templateLayers = r.doc.layers.filter((l) => l.layer === "template").map((l) => l.source);
-    assert.deepEqual(templateLayers, [T("common"), T("left"), T("right"), T("top")]);
+    assert.deepEqual(r.doc.templates.active.map((a) => a.id).filter(isHandWrittenTemplate), ["top"]);
+    const chain = [T("common"), T("left"), T("right"), T("top")];
+    assert.deepEqual(r.doc.templates.active.find((a) => a.id === "top").chain, chain);
+    assert.deepEqual(handWrittenTemplateLayers(r.doc.layers), chain);
     const timeout = r.doc.fields["/execution/timeoutSeconds"];
     assert.equal(timeout.value, 900);
     assert.equal(timeout.history.length, 1, "the common ancestor is applied once");
@@ -364,7 +370,7 @@ test("a specialized template overrides its base without a conflict", () => {
     assert.equal(f.value, false);
     assert.equal(f.source, T("mine"));
     assert.equal(f.previous.source, "builtin:base");
-    assert.deepEqual(r.layers.filter((l) => l.layer === "template").map((l) => l.source), ["builtin:base", T("mine")]);
+    assert.deepEqual(handWrittenTemplateLayers(r.layers), ["builtin:base", T("mine")]);
   });
 });
 
@@ -391,7 +397,7 @@ test("config get /selection/profile --json gives the effective profile and its o
 
     const container = cli(dir, "get", "/selection");
     assert.equal(container.status, 0);
-    assert.deepEqual(container.doc.value, { profile: "builtin:minimal" });
+    assert.deepEqual(container.doc.value, { profile: "builtin:minimal", tier: "core" });
     assert.equal(container.doc.fields["/selection/profile"].layer, "project");
   });
   withProject({ "jgates.yml": root() }, (dir) => {
@@ -427,7 +433,10 @@ test("config get and resolve refuse a bad pointer, an unknown pointer and an unk
 
 test("the starter profiles and the built-in templates are valid and select the base tools and catalog capabilities", () => {
   const templates = builtin.listBuiltinTemplates().map((i) => i.ref);
-  assert.deepEqual(templates, ["builtin:base", "builtin:docker-hadolint", "builtin:dotnet-analyzers", "builtin:dotnet-benchmarkdotnet", "builtin:dotnet-build", "builtin:dotnet-codeql", "builtin:dotnet-efcore", "builtin:dotnet-format", "builtin:dotnet-stryker", "builtin:dotnet-test", "builtin:dotnet-vulnerable", "builtin:dotnet", "builtin:file-size", "builtin:github-actions-zizmor", "builtin:gitleaks-history", "builtin:go-bench", "builtin:go-build", "builtin:go-codeql", "builtin:go-gofmt", "builtin:go-golangci-lint", "builtin:go-govulncheck", "builtin:go-test", "builtin:go", "builtin:openapi-oasdiff", "builtin:python-alembic", "builtin:python-codeql", "builtin:python-django-migrations", "builtin:python-format", "builtin:python-import-linter", "builtin:python-mutmut", "builtin:python-mypy-defaults", "builtin:python-mypy", "builtin:python-playwright", "builtin:python-pyright", "builtin:python-pytest-benchmark", "builtin:python-pytest", "builtin:python-typescript", "builtin:python", "builtin:rust-cargo-audit", "builtin:rust-cargo-check", "builtin:rust-cargo-test", "builtin:rust-clippy", "builtin:rust-criterion", "builtin:rust-rustfmt", "builtin:rust", "builtin:shell-shellcheck", "builtin:sql-squawk", "builtin:supply-chain", "builtin:trivy-licenses", "builtin:typescript-codeql", "builtin:typescript-dependency-cruiser", "builtin:typescript-eslint", "builtin:typescript-jest", "builtin:typescript-playwright", "builtin:typescript-prettier", "builtin:typescript-prisma", "builtin:typescript-stryker", "builtin:typescript-tsc", "builtin:typescript-vitest-bench", "builtin:typescript-vitest", "builtin:typescript"]);
+  // The template files, then one implicit template per group of linter descriptors (src/builtin/linters), by id.
+  const derived = linterTemplates().map((t) => `builtin:${t.id}`).sort();
+  assert.deepEqual(templates.slice(templates.length - derived.length), derived);
+  assert.deepEqual(templates.slice(0, templates.length - derived.length), ["builtin:base", "builtin:data-prettier", "builtin:docker-hadolint", "builtin:dotnet-analyzers", "builtin:dotnet-benchmarkdotnet", "builtin:dotnet-build", "builtin:dotnet-codeql", "builtin:dotnet-efcore", "builtin:dotnet-format", "builtin:dotnet-stryker", "builtin:dotnet-test", "builtin:dotnet-vulnerable", "builtin:dotnet", "builtin:file-size", "builtin:github-actions-zizmor", "builtin:gitleaks-history", "builtin:go-bench", "builtin:go-build", "builtin:go-codeql", "builtin:go-gofmt", "builtin:go-golangci-lint", "builtin:go-govulncheck", "builtin:go-test", "builtin:go", "builtin:openapi-oasdiff", "builtin:python-alembic", "builtin:python-codeql", "builtin:python-django-migrations", "builtin:python-format", "builtin:python-import-linter", "builtin:python-mutmut", "builtin:python-mypy-defaults", "builtin:python-mypy", "builtin:python-playwright", "builtin:python-pyright", "builtin:python-pytest-benchmark", "builtin:python-pytest", "builtin:python-typescript", "builtin:python", "builtin:rust-cargo-audit", "builtin:rust-cargo-check", "builtin:rust-cargo-test", "builtin:rust-clippy", "builtin:rust-criterion", "builtin:rust-rustfmt", "builtin:rust", "builtin:shell-shellcheck", "builtin:sql-squawk", "builtin:supply-chain", "builtin:trivy-licenses", "builtin:typescript-codeql", "builtin:typescript-dependency-cruiser", "builtin:typescript-eslint", "builtin:typescript-jest", "builtin:typescript-playwright", "builtin:typescript-prettier", "builtin:typescript-prisma", "builtin:typescript-stryker", "builtin:typescript-tsc", "builtin:typescript-vitest-bench", "builtin:typescript-vitest", "builtin:typescript"]);
   const profiles = builtin.listBuiltinProfiles().map((i) => i.ref);
   assert.deepEqual(profiles, ["builtin:minimal", "builtin:standard", "builtin:strict"]);
 
@@ -473,9 +482,14 @@ test("the implicit templates activate from the discovery: base always, Python wh
   withProject(files, (dir) => {
     const r = cli(dir, "resolve", "--explain");
     assert.equal(r.status, 0, JSON.stringify(r.doc));
-    const active = Object.fromEntries(r.doc.templates.active.map((a) => [a.id, a.reason]));
+    // The implicit templates of the linter descriptor groups (lint-markdown...) are listed too, each by its own
+    // activation; the closed lists below are the hand-written templates only, so a new descriptor group changes nothing here.
+    const own = (entries) => entries.filter((e) => isHandWrittenTemplate(e.id));
+    const active = Object.fromEntries(own(r.doc.templates.active).map((a) => [a.id, a.reason]));
     assert.deepEqual(active, { base: "ALWAYS", python: "DETECTED" });
-    assert.deepEqual(r.doc.templates.inactive.map((i) => [i.id, i.reason]), [["dotnet", "NOT_DETECTED"], ["typescript", "NOT_DETECTED"]]);
+    assert.deepEqual(own(r.doc.templates.inactive).map((i) => [i.id, i.reason]), [["dotnet", "NOT_DETECTED"], ["typescript", "NOT_DETECTED"]]);
+    const listed = new Set([...r.doc.templates.active, ...r.doc.templates.inactive].map((t) => t.id));
+    for (const id of derivedTemplateIds) assert.ok(listed.has(id), `the implicit template ${id} is listed by resolve --explain`);
     assert.equal(r.doc.fields["/templates/base/source"].layer, "defaults");
     assert.ok(r.doc.config.workspace.exclude.includes(".git/**"));
     assert.ok(r.doc.config.workspace.exclude.includes("**/.venv/**"));
@@ -484,7 +498,7 @@ test("the implicit templates activate from the discovery: base always, Python wh
     // Both stack templates extend the base: with both active the base is applied once and they do not conflict.
     const both = resolver.resolveConfig(dir, { inventory: { languages: ["python", "typescript"] } });
     assert.equal(both.ok, true, JSON.stringify(both.errors));
-    assert.deepEqual(both.layers.filter((l) => l.layer === "template").map((l) => l.source), ["builtin:base", "builtin:python", "builtin:typescript"]);
+    assert.deepEqual(handWrittenTemplateLayers(both.layers), ["builtin:base", "builtin:python", "builtin:typescript"]);
     assert.ok(both.config.workspace.exclude.includes("**/node_modules/**") && both.config.workspace.exclude.includes("**/.venv/**"));
   });
 });

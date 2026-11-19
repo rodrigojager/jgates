@@ -1,0 +1,468 @@
+{
+  "version": "5.0.0",
+  "chapter": "V9",
+  "entries": [
+    {
+      "requirement": "V9.1.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-signature-not-verified",
+          "covers": "A jwt decode call that reads claims without verifying the signature.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-signature-not-verified",
+          "covers": "A jwt decode call with signature verification switched off.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jwt-signature-not-verified",
+          "covers": "ParseUnverified calls and use of the unsafe none signature type.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.token-validation-disabled",
+          "covers": "RequireSignedTokens set to false, which lets unsigned tokens through; the rule also flags ValidateIssuerSigningKey set to false, which leaves the signing key itself unchecked.",
+          "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jwt-signature-not-verified",
+          "covers": "jjwt parsing of unsigned content, auth0 JWT.decode and Nimbus PlainJWT.parse, which read claims without a signature check.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jwt-signature-not-verified",
+          "covers": "lcobucci Configuration with the unsecured signer and firebase/php-jwt payloads decoded by hand without verification.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.jwt-signature-not-verified",
+          "covers": "The jsonwebtoken dangerous and insecure decode functions, which skip signature verification.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Signature verification and decode-without-verify paths.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "saml"
+        ]
+      },
+      "why": "Each check looks for token contents used without a verified signature, by rule in seven languages and by reading elsewhere. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V9.1.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-signature-not-verified",
+          "covers": "A verify call whose algorithm list includes none.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jwt-signature-not-verified",
+          "covers": "Use of the unsafe none signature type.",
+          "misses": "Other token libraries, wrappers that hide the call, tokens parsed by hand, and any check done in a gateway or another service.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-algorithm-not-restricted",
+          "covers": "A PyJWT decode whose algorithm list holds none or is taken from the token's own unverified header.",
+          "misses": "An allowlist that is wide but excludes none, symmetric and asymmetric algorithms mixed on one key, libraries not named, and algorithm lists assembled elsewhere.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.jwt-algorithm-not-restricted",
+          "covers": "Valid algorithms that include none or follow the token header, and the JwsAlgorithm none value.",
+          "misses": "An allowlist that is wide but excludes none, symmetric and asymmetric algorithms mixed on one key, libraries not named, and algorithm lists assembled elsewhere.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jwt-algorithm-not-restricted",
+          "covers": "jjwt and auth0 none algorithms, and an algorithm name chosen at run time through forName.",
+          "misses": "An allowlist that is wide but excludes none, symmetric and asymmetric algorithms mixed on one key, libraries not named, and algorithm lists assembled elsewhere.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jwt-algorithm-not-restricted",
+          "covers": "firebase/php-jwt keys declared with the none algorithm, and the lcobucci None signer.",
+          "misses": "An allowlist that is wide but excludes none, symmetric and asymmetric algorithms mixed on one key, libraries not named, and algorithm lists assembled elsewhere.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.jwt-algorithm-not-restricted",
+          "covers": "A jsonwebtoken Validation whose algorithm is taken from the header read by decode_header.",
+          "misses": "An allowlist that is wide but excludes none, symmetric and asymmetric algorithms mixed on one key, libraries not named, and algorithm lists assembled elsewhere.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jwt-algorithm-not-restricted-header",
+          "covers": "A firebase/php-jwt key or decode call whose algorithm flows from the alg field of the token's own header.",
+          "misses": "An allowlist that is wide but excludes none, symmetric and asymmetric algorithms mixed on one key, libraries not named, and algorithm lists assembled elsewhere.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Server-pinned algorithm choice and key source.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "saml"
+        ]
+      },
+      "why": "The rules catch the none algorithm and header-chosen algorithms where they are spelled out; the block checks the allowlist itself. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V9.1.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jwt-key-from-token-header",
+          "covers": "Points at jku, x5u or kid array/property values flowing into file_get_contents or fopen paths.",
+          "misses": "Header provenance and a trusted-source allowlist are not established; protection may exist where the rule cannot see it. Other key loaders and embedded keys are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-key-from-token-header",
+          "covers": "Reads of jku, x5u, jwk or x5c from the header parameter inside matched verify key-resolver callbacks.",
+          "misses": "The read need not supply a verification key; key use and an allowlist check are not established. Key identifiers trusted in other ways and key sources set in configuration are not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-key-from-token-header",
+          "covers": "jku or x5u dictionary reads flowing into matched HTTP fetches or PyJWKClient calls, including direct unverified PyJWT header reads.",
+          "misses": "Generic dictionary sources do not establish token-header provenance, and a fetch need not supply a verification key. An allowlist is not recognized; other trusted key selection and configured key sources are not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.jwt-key-from-token-header",
+          "covers": "Reads of the jku, x5u or jwk header fields of a token.",
+          "misses": "The read need not supply a verification key and receiver types are not resolved. An allowlist is not recognized; other trusted key selection and configured key sources are not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jwt-key-from-token-header",
+          "covers": "Reads of the jku, x5u or jwk header fields of a token, and the embedded JSON web key.",
+          "misses": "The read need not supply a verification key and receiver types are not resolved. An allowlist is not recognized; other trusted key selection and configured key sources are not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jwt-key-from-token-header",
+          "covers": "Reads of the jku, x5u or jwk header fields through Nimbus or java-jwt header accessors.",
+          "misses": "The read need not supply a verification key and receiver types are not resolved. An allowlist is not recognized; other trusted key selection and configured key sources are not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.jwt-key-from-token-header",
+          "covers": "The jku or x5u header field read by decode_header flowing into an HTTP client.",
+          "misses": "A fetch need not supply a verification key. An allowlist is not recognized; other trusted key selection and configured key sources are not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-key-from-token-header-jose",
+          "covers": "Reads of the jku, x5u or jwk fields of a jose protected header.",
+          "misses": "The read need not supply a verification key. An allowlist is not recognized; other trusted key selection and configured key sources are not examined.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Key selection through kid, jku and x5u treated as untrusted and the pinned key source.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "saml"
+        ]
+      },
+    "why": "Existing blocking rules match token-header key handling. The PHP Review check points at key-path loads without establishing provenance or allowlisting and never examines the requirement. The Semantic block separately reads key-source handling. Technology applicability is a suggestion, not a decision for the user.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V9.2.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jwt-expiry-not-validated",
+          "covers": "Points at lcobucci-style validate calls with an inline SignedWith constraint and no inline LooseValidAt or StrictValidAt constraint.",
+          "misses": "Time-validation protection may exist in constraints assembled elsewhere or another validator where the rule cannot see it. Token lifetime policy and other libraries are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.token-validation-disabled",
+          "covers": "A switch that turns off lifetime validation.",
+          "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-expiry-not-validated",
+          "covers": "Verify options that switch expiry checking off (ignoreExpiration or ignoreExp set to true).",
+          "misses": "Only exp handling: not-before checks, tokens whose validity span is never read, and how long an issued token lives are not examined; libraries not named are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-expiry-not-validated",
+          "covers": "PyJWT decode options or arguments that switch off verification of the expiry claim.",
+          "misses": "Only exp handling: not-before checks, tokens whose validity span is never read, and how long an issued token lives are not examined; libraries not named are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jwt-expiry-not-validated",
+          "covers": "golang-jwt parser settings that skip claim validation, expiry included.",
+          "misses": "Only exp handling: not-before checks, tokens whose validity span is never read, and how long an issued token lives are not examined; libraries not named are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jwt-expiry-not-validated",
+          "covers": "Verifiers that are emptied or given a clock tolerance so large that expiry has no effect.",
+          "misses": "Only exp handling: not-before checks, tokens whose validity span is never read, and how long an issued token lives are not examined; libraries not named are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.jwt-expiry-not-validated",
+          "covers": "A jsonwebtoken Validation with expiry validation turned off.",
+          "misses": "Only exp handling: not-before checks, tokens whose validity span is never read, and how long an issued token lives are not examined; libraries not named are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Checks of exp and nbf.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "saml"
+        ]
+      },
+    "why": "Blocking rules match explicit expiry-validation disablement. The PHP Review check points at validation without visible time constraints and never examines the requirement. The Semantic block separately reads expiry and not-before handling. Technology applicability is a suggestion, not a decision for the user.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V9.2.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether a service receiving a token checks that it is of the expected kind and intended use (an access token for access decisions, an identity token for proving sign-in) before using its contents.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "saml"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V9.2.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-audience-not-validated-by-default",
+          "covers": "Points at PyJWT decode calls with an algorithms argument but no audience or aud argument, excluding keyword expansion and the matched explicit signature/audience-disable forms.",
+          "misses": "Audience protection may exist in a later claim check where the rule cannot see it. Expected audience correctness and other libraries are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jwt-audience-not-validated",
+          "covers": "Points at golang-jwt Parse or ParseWithClaims calls without an inline jwt.WithAudience option.",
+          "misses": "Audience protection may exist in parser options or custom claim validation where the rule cannot see it. Expected audience correctness is not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jwt-audience-not-validated",
+          "covers": "Points at SignedWith validation without inline PermittedFor, or Firebase JWT decode assignments in functions without the matched strict aud inequality condition.",
+          "misses": "Audience protection may exist in separately assembled constraints or other claim checks where the rule cannot see it. The exclusion only recognizes an inequality condition, not effective rejection; expected audience correctness is not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.token-validation-disabled",
+          "covers": "A switch that turns off audience validation.",
+          "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-audience-not-validated",
+          "covers": "Points at jsonwebtoken and jose verify calls made without a visible audience option.",
+          "misses": "Audience protection may exist in middleware or separate claim checks where the rule cannot see it. Expected audience correctness is not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-audience-not-validated",
+          "covers": "PyJWT decode calls explicitly setting verify_aud=False, directly or in an inline options dictionary.",
+          "misses": "Missing audience arguments belong to the Review half, not this explicit check. Separately assembled options, other libraries and correctness of the expected audience are not modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jwt-audience-not-validated",
+          "covers": "Points at auth0 JWT.require and jjwt parser builder chains ending in build without withAudience or requireAudience respectively.",
+          "misses": "Audience protection may exist in resource-server configuration or another validator where the rule cannot see it. Expected audience correctness is not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.jwt-audience-not-validated",
+          "covers": "A jsonwebtoken Validation with audience validation turned off.",
+          "misses": "Other token libraries, separately configured validation and correctness of the expected audience are not modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Checks of the audience claim against what the service expects.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "saml"
+        ]
+      },
+    "why": "Blocking rules match explicit audience-validation disablement. Review checks only point at locally absent audience settings and never examine the requirement. The Semantic block separately reads audience handling. Technology applicability is a suggestion, not a decision for the user.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V9.2.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether an issuer that signs for several audiences always includes an audience restriction naming the intended one, and validates audiences that are supplied dynamically.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "saml"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    }
+  ]
+}

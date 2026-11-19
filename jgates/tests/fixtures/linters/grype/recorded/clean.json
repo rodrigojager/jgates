@@ -1,0 +1,20 @@
+{
+ "tool": "grype",
+ "kind": "clean",
+ "version": "0.122.0",
+ "calls": [
+  {
+   "args": [
+    "dir:.",
+    "--quiet",
+    "--fail-on",
+    "low",
+    "-o",
+    "sarif"
+   ],
+   "exit": 0,
+   "stdout": "{\n  \"version\": \"2.1.0\",\n  \"$schema\": \"https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json\",\n  \"runs\": [\n    {\n      \"tool\": {\n        \"driver\": {\n          \"name\": \"grype\",\n          \"version\": \"0.122.0\",\n          \"informationUri\": \"https://github.com/anchore/grype\"\n        }\n      },\n      \"results\": []\n    }\n  ]\n}\n",
+   "stderr": ""
+  }
+ ]
+}

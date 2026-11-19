@@ -1,0 +1,18 @@
+{
+  "note": "go install verifies every module against the Go checksum database (sum.golang.org).",
+  "module": "golang.org/x/vuln/cmd/govulncheck",
+  "version": "1.9.0",
+  "ldflags": "-s -w",
+  "provides": [
+    {
+      "name": "govulncheck",
+      "link": "govulncheck",
+      "path": "govulncheck",
+      "version": [
+        "govulncheck",
+        "-version"
+      ],
+      "pattern": "govulncheck@v(\\S+)"
+    }
+  ]
+}

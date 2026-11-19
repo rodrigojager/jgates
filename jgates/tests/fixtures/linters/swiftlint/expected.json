@@ -1,0 +1,12 @@
+{
+  "files": [
+    "Names.swift"
+  ],
+  "findings": [
+    {
+      "rule": "identifier_name",
+      "file": "Names.swift",
+      "line": 1
+    }
+  ]
+}

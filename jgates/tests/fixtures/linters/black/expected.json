@@ -1,0 +1,11 @@
+{
+  "files": [
+    "black_sample.py"
+  ],
+  "findings": [
+    {
+      "rule": "black.unformatted",
+      "file": "black_sample.py"
+    }
+  ]
+}

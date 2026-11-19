@@ -63,7 +63,7 @@
   "builtin_profile_minimal_label": "Essential",
   "builtin_profile_minimal_description": "The minimum before each commit: lint, file size and secrets.",
   "builtin_profile_standard_label": "Balanced",
-  "builtin_profile_standard_description": "Essential plus SAST, dependencies, duplication, infrastructure as code and personal data.",
+  "builtin_profile_standard_description": "Essential plus SAST, dependencies, duplication, infrastructure as code and personal data, and the main linter of each language and format the project has.",
   "builtin_profile_strict_label": "Strict",
   "builtin_profile_strict_description": "Balanced plus required tests and coverage, and turns on every other available verification wherever a tool for it exists."
 }

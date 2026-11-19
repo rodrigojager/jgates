@@ -6,7 +6,7 @@ import { lintManifest } from "../lint-common/manifest.js";
  * *.sh, *.bash or *.ksh, found by the plan and listed in the command). The project's .shellcheckrc and the `# shellcheck`
  * directives of the scripts decide what is reported. ShellCheck only reads the scripts; nothing is rewritten.
  */
-export const shellcheckManifest: AdapterManifest = lintManifest({
+const base: AdapterManifest = lintManifest({
   id: "shellcheck",
   displayName: "ShellCheck (shell script lint)",
   toolName: "shellcheck",
@@ -26,7 +26,7 @@ export const shellcheckManifest: AdapterManifest = lintManifest({
   relativeCost: "low",
   license: "GPL-3.0-only",
   limitations: [
-    "checks the files named *.sh, *.bash or *.ksh, up to 500; scripts without that extension (a shebang only) are not found, and a workspace with more files is not applicable until the list is narrowed",
+    "checks the files named *.sh, *.bash, *.dash or *.ksh anywhere in the project, and extensionless files whose first line is a shell shebang, up to 500; a workspace with more files is not applicable until the list is narrowed",
     "ShellCheck reads every severity: errors, warnings, info and style findings are all blocking findings; the project's .shellcheckrc excludes the ones it does not want",
     "a script ShellCheck cannot parse is an error stage, never a pass",
   ],
@@ -43,3 +43,6 @@ export const shellcheckManifest: AdapterManifest = lintManifest({
   acquisition: ["https://github.com/koalaman/shellcheck#installing"],
   setup: ["https://github.com/koalaman/shellcheck/wiki/Directive", "https://github.com/koalaman/shellcheck/blob/master/shellcheck.1.md#rc-files"],
 });
+
+// Reads the synchronized copy of the project only: its step may run beside others (ADR-0023).
+export const shellcheckManifest: AdapterManifest = { ...base, effects: { ...base.effects, onlyReadsProject: true } };

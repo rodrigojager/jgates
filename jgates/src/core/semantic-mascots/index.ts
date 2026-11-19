@@ -27,8 +27,8 @@ export const LEGACY_SEMANTIC_MASCOTS: Readonly<Record<string, SemanticMascotId>>
  */
 export const SEMANTIC_MASCOT_GROUPS: Readonly<Record<SemanticMascotId, { phase: string; responsibility: string; host: boolean; stages: readonly string[] }>> = {
   atlas: { phase: "reconnaissance", responsibility: "map the code, its surfaces and trust boundaries, and plan the coverage", host: false, stages: ["reconnaissance", "coverage-planning", "semantic-context", "context"] },
-  trace: { phase: "coverage-led-hunting", responsibility: "hunt for candidate problems in the planned units and find the coverage gaps", host: false, stages: ["hunting", "hunt", "coverage-critic", "semantic-review", "review"] },
-  verdict: { phase: "candidate-validation", responsibility: "try to refute each candidate against the source", host: false, stages: ["refutation", "validate", "validation"] },
+  trace: { phase: "coverage-led-hunting", responsibility: "hunt for candidate problems in the planned units and find the coverage gaps", host: false, stages: ["hunting", "hunt", "coverage-critic", "semantic-review", "review", "requirement-review"] },
+  verdict: { phase: "candidate-validation", responsibility: "try to refute each candidate against the source", host: false, stages: ["refutation", "validate", "validation", "requirement-validation"] },
   fit: { phase: "structured-output", responsibility: "give every decided finding its schema-shaped record and check the ledger", host: true, stages: ["structured-output", "output", "records"] },
   seal: { phase: "independent-verification", responsibility: "re-check the final records in a fresh context", host: false, stages: ["verification", "verify"] },
   folio: { phase: "reporting", responsibility: "derive the readable report from the verified records", host: true, stages: ["reporting", "report", "summary"] },

@@ -1,0 +1,20 @@
+{
+ "tool": "terragrunt",
+ "kind": "clean",
+ "version": "1.2.2",
+ "calls": [
+  {
+   "args": [
+    "hcl",
+    "fmt",
+    "--check",
+    "--diff",
+    "--file",
+    "terragrunt.hcl"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

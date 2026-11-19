@@ -1,0 +1,17 @@
+{
+  "provides": [
+    {
+      "name": "pyright",
+      "link": "pyright",
+      "path": "node_modules/.bin/pyright",
+      "version": [
+        "pyright",
+        "--version"
+      ]
+    },
+    {
+      "link": "pyright-langserver",
+      "path": "node_modules/.bin/pyright-langserver"
+    }
+  ]
+}

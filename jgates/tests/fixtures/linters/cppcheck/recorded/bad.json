@@ -1,0 +1,19 @@
+{
+ "tool": "cppcheck",
+ "kind": "bad",
+ "version": "2.17.1",
+ "calls": [
+  {
+   "args": [
+    "--output-format=sarif",
+    "--inline-suppr",
+    "--error-exitcode=1",
+    "--quiet",
+    "cppcheck-sample.cpp"
+   ],
+   "exit": 1,
+   "stdout": "",
+   "stderr": "{\n  \"$schema\": \"https:\\/\\/docs.oasis-open.org\\/sarif\\/sarif\\/v2.1.0\\/errata01\\/os\\/schemas\\/sarif-schema-2.1.0.json\",\n  \"runs\": [\n    {\n      \"results\": [\n        {\n          \"level\": \"warning\",\n          \"locations\": [\n            {\n              \"physicalLocation\": {\n                \"artifactLocation\": {\n                  \"uri\": \"cppcheck-sample.cpp\"\n                },\n                \"region\": {\n                  \"endColumn\": 6,\n                  \"endLine\": 5,\n                  \"startColumn\": 6,\n                  \"startLine\": 5\n                }\n              }\n            }\n          ],\n          \"message\": {\n            \"text\": \"Array 'buf[4]' accessed at index 10, which is out of bounds.\"\n          },\n          \"ruleId\": \"arrayIndexOutOfBounds\"\n        }\n      ],\n      \"tool\": {\n        \"driver\": {\n          \"informationUri\": \"https:\\/\\/cppcheck.sourceforge.io\",\n          \"name\": \"Cppcheck\",\n          \"rules\": [\n            {\n              \"fullDescription\": {\n                \"text\": \"Array 'buf[4]' accessed at index 10, which is out of bounds.\"\n              },\n              \"help\": {\n                \"text\": \"Array 'buf[4]' accessed at index 10, which is out of bounds.\"\n              },\n              \"id\": \"arrayIndexOutOfBounds\",\n              \"properties\": {\n                \"precision\": \"high\",\n                \"security-severity\": 9.9000000000000004,\n                \"tags\": [\n                  \"security\"\n                ]\n              },\n              \"shortDescription\": {\n                \"text\": \"Array 'buf[4]' accessed at index 10, which is out of bounds.\"\n              }\n            }\n          ],\n          \"semanticVersion\": \"2.17.1\"\n        }\n      }\n    }\n  ],\n  \"version\": \"2.1.0\"\n}\n\n"
+  }
+ ]
+}

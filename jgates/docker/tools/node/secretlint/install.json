@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "secretlint",
+      "link": "secretlint",
+      "path": "node_modules/.bin/secretlint",
+      "version": [
+        "secretlint",
+        "--version"
+      ]
+    }
+  ]
+}

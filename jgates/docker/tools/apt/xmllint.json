@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "libxml2-utils"
+  ],
+  "provides": [
+    {
+      "name": "xmllint",
+      "path": "/usr/bin/xmllint",
+      "version": [
+        "xmllint",
+        "--version"
+      ],
+      "pattern": "using libxml version (\\d+)"
+    }
+  ]
+}

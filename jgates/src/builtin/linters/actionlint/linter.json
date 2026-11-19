@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "actionlint",
+  "name": "actionlint",
+  "sourceUrl": "https://github.com/rhysd/actionlint",
+  "license": "MIT",
+  "program": {
+    "tool": "actionlint",
+    "versionRange": ">=1.7.0 <2.0.0"
+  },
+  "megalinter": [
+    "ACTION_ACTIONLINT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "github-actions",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "names": [
+      ".github/workflows/*.yml",
+      ".github/workflows/*.yaml"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-no-color",
+      "-format",
+      "{{json .}}",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "emptyIsClean": true,
+    "fields": {
+      "file": "filepath",
+      "line": "line",
+      "column": "column",
+      "rule": "kind",
+      "message": "message"
+    }
+  },
+  "configuration": {
+    "files": [
+      ".github/actionlint.yaml",
+      ".github/actionlint.yml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "actionlint reads the project's .github/actionlint.yaml: the project decides the self-hosted runner labels, the config variables and the paths and error patterns to ignore",
+    "suppressions": {
+      "honoured": false,
+      "description": "none in the file: the tool has no in-file suppression; the ignore patterns live in .github/actionlint.yaml"
+    }
+  },
+  "install": "actionlint",
+  "text": {
+    "en": {
+      "label": "actionlint (GitHub Actions)",
+      "purpose": "Checks GitHub Actions workflow files for mistakes: workflow syntax, wrong expressions and contexts, unknown action inputs, bad job dependencies, and the shell and Python scripts inside run steps.",
+      "limitation": "It checks the workflow's correctness, not its security (zizmor does that). It only looks at the files in .github/workflows; any YAML file it is given is read as a workflow.",
+      "needs": "The tools image only (shellcheck and pyflakes for the scripts in run steps): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "actionlint (GitHub Actions)",
+      "purpose": "Verifica erros nos arquivos de workflow do GitHub Actions: sintaxe do workflow, expressões e contextos errados, entradas de ações desconhecidas, dependências de jobs inválidas e os scripts de shell e Python dos passos run.",
+      "limitation": "Verifica a correção do workflow, não a segurança dele (o zizmor faz isso). Só olha os arquivos de .github/workflows; todo YAML recebido é lido como workflow.",
+      "needs": "Apenas a imagem de ferramentas (shellcheck e pyflakes para os scripts dos passos run): sem rede e sem as dependências do projeto."
+    }
+  }
+}

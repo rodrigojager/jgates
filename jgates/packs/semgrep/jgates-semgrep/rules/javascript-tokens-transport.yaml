@@ -1,0 +1,207 @@
+# Group tokens-transport for JavaScript and TypeScript.
+# Libraries covered: jsonwebtoken (jwt.verify), jose (jwtVerify, decodeProtectedHeader), express-jwt and passport-jwt
+# options objects, Node tls and https (createServer, connect, Agent options), fetch, axios, got, node:http and
+# node:https clients, URLSearchParams, googleapis, openid-client and simple-oauth2 authorization URL builders.
+rules:
+  - id: jgates.js.jwt-key-from-token-header
+    message: The key that verifies a token is taken from an address or key that the token's own header names, so the sender picks the key. Look the key up by its key id in a fixed key set instead.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.3"]
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $J.verify($T, function ($H, $CB) { ... }, ...)
+          - pattern-inside: |
+              $J.verify($T, ($H, $CB) => { ... }, ...)
+          - pattern-inside: |
+              $J.verify($T, async function ($H, $CB) { ... }, ...)
+          - pattern-inside: |
+              $J.verify($T, async ($H, $CB) => { ... }, ...)
+      - pattern-either:
+          - pattern: $H.jku
+          - pattern: $H.x5u
+          - pattern: $H.jwk
+          - pattern: $H.x5c
+
+  - id: jgates.js.jwt-key-from-token-header-jose
+    message: The key that verifies a token is taken from an address or key that the token's own header names, so the sender picks the key. Look the key up by its key id in a fixed key set instead.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.3"]
+    pattern-either:
+      - pattern: decodeProtectedHeader(...).jku
+      - pattern: decodeProtectedHeader(...).x5u
+      - pattern: decodeProtectedHeader(...).jwk
+      - pattern: $J.decodeProtectedHeader(...).jku
+      - pattern: $J.decodeProtectedHeader(...).x5u
+      - pattern: $J.decodeProtectedHeader(...).jwk
+
+  - id: jgates.js.jwt-expiry-not-validated
+    message: Expiry validation of a token is switched off, so a token that has expired is still accepted. Leave ignoreExpiration off and set a short lifetime on the token.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-613"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.1"]
+    pattern-either:
+      - pattern: "{..., ignoreExpiration: true, ...}"
+      - pattern: "{..., ignoreExp: true, ...}"
+
+  - id: jgates.js.jwt-audience-not-validated
+    message: A token is verified without a visible audience option. If no other layer checks the intended recipient, a token issued for another service may be accepted; pass the audience this service expects or confirm where it is checked.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-287"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.3", "V10.3.1"]
+      class: review
+    patterns:
+      - pattern-either:
+          - pattern: jwt.verify($T, $K)
+          - pattern: jwt.verify($T, $K, {...})
+          - pattern: jwt.verify($T, $K, {...}, $CB)
+          - pattern: jwt.verify($T, $K, function (...) { ... })
+          - pattern: jwt.verify($T, $K, (...) => { ... })
+          - pattern: jwtVerify($T, $K)
+          - pattern: jwtVerify($T, $K, {...})
+          - pattern: jose.jwtVerify($T, $K)
+          - pattern: jose.jwtVerify($T, $K, {...})
+      - pattern-not: 'jwt.verify($T, $K, {..., audience: $A, ...}, ...)'
+      - pattern-not: 'jwtVerify($T, $K, {..., audience: $A, ...})'
+      - pattern-not: 'jose.jwtVerify($T, $K, {..., audience: $A, ...})'
+      - pattern-not-inside: |
+          $J.verify($T, $K, {..., audience: $A, ...}, ...)
+
+  - id: jgates.js.oauth-request-without-state
+    message: An OAuth authorization request is built without a visible state or PKCE code challenge. If no other layer binds the callback to the initiating request, it may be vulnerable to request forgery; add and validate a random state or correctly implemented PKCE, or confirm where that protection is supplied.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V10.2.1"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern: 'new URLSearchParams({..., response_type: $R, ...})'
+          - pattern-not: 'new URLSearchParams({..., state: $S, ...})'
+          - pattern-not: 'new URLSearchParams({..., code_challenge: $C, ...})'
+      - patterns:
+          - pattern-either:
+              - pattern: $C.generateAuthUrl({...})
+              - pattern: $C.authorizationUrl({...})
+              - pattern: $C.authorizeURL({...})
+          - pattern-not: '$C.$M({..., state: $S, ...})'
+          - pattern-not: '$C.$M({..., code_challenge: $CC, ...})'
+          - pattern-not: '$C.$M({..., codeChallenge: $CC, ...})'
+      - pattern-regex: '["''`][^"''`\n]*[?&]response_type=code(?![^;]*(?:state|code_challenge))'
+
+  - id: jgates.js.tls-old-protocol-version
+    message: A TLS configuration allows SSL 3, TLS 1.0 or TLS 1.1, which are broken or deprecated. Set the minimum version to TLSv1.2 or later.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: transport
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: "{..., minVersion: $V, ...}"
+              - pattern: "{..., maxVersion: $V, ...}"
+              - pattern: tls.DEFAULT_MIN_VERSION = $V
+              - pattern: tls.DEFAULT_MAX_VERSION = $V
+          - metavariable-regex:
+              metavariable: $V
+              regex: ^["'`](SSLv2|SSLv3|TLSv1|TLSv1\.0|TLSv1\.1)["'`]$
+      - patterns:
+          - pattern: "{..., secureProtocol: $V, ...}"
+          - metavariable-regex:
+              metavariable: $V
+              regex: ^["'`](SSLv2|SSLv3|TLSv1|TLSv1_1)_(client_|server_)?method["'`]$
+
+  - id: jgates.js.tls-weak-cipher-suite
+    message: A cipher suite list names null, export, RC4, DES or 3DES suites, which give no or broken protection. List only AEAD suites such as ECDHE with AES-GCM or ChaCha20-Poly1305.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: transport
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.2"]
+    patterns:
+      - pattern: "{..., ciphers: $V, ...}"
+      - metavariable-regex:
+          metavariable: $V
+          regex: '(?is)^.*(?<![!\w])(?<![:"''`]-)(NULL|aNULL|eNULL|EXPORT|EXP|RC4|DES|3DES)(?!\w)'
+
+  - id: jgates.js.cleartext-http-url
+    message: A network client is given a plain HTTP or FTP address that is not the local machine, so the request travels without encryption. Use an HTTPS address.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.2.1", "V12.3.1", "V12.3.3"]
+    patterns:
+      - pattern-either:
+          - pattern: fetch($U, ...)
+          - pattern: axios($U, ...)
+          - pattern: axios.get($U, ...)
+          - pattern: axios.post($U, ...)
+          - pattern: axios.put($U, ...)
+          - pattern: axios.patch($U, ...)
+          - pattern: axios.delete($U, ...)
+          - pattern: axios.head($U, ...)
+          - pattern: 'axios.request({..., url: $U, ...})'
+          - pattern: 'axios.create({..., baseURL: $U, ...})'
+          - pattern: got($U, ...)
+          - pattern: got.get($U, ...)
+          - pattern: got.post($U, ...)
+          - pattern: http.get($U, ...)
+          - pattern: http.request($U, ...)
+          - pattern: undici.request($U, ...)
+          - pattern: needle($M, $U, ...)
+          - pattern: superagent.get($U)
+          - pattern: superagent.post($U)
+      - metavariable-regex:
+          metavariable: $U
+          regex: ^["'`]\s*(?i:http|ftp)://(?!(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(?![\w.-]))
+
+  - id: jgates.js.mtls-client-certificate-not-verified
+    message: A TLS server asks for a client certificate and accepts it without verification, so the certificate proves nothing. Leave rejectUnauthorized on and check the client certificate against a trusted CA.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: transport
+      cwe: "CWE-295"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.3"]
+    pattern-either:
+      - pattern: "{..., requestCert: true, ..., rejectUnauthorized: false, ...}"
+      - pattern: "{..., rejectUnauthorized: false, ..., requestCert: true, ...}"

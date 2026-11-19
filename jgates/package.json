@@ -29,12 +29,17 @@
     "build:ui": "vite build --config ui/vite.config.ts",
     "typecheck:ui": "tsc -p ui/tsconfig.json --noEmit",
     "test": "node --import ./tests/setup/in-image.mjs --test tests/*.test.js",
+    "pack:check": "node scripts/pack-check.mjs",
     "setup:dev-tools": "node dev-tools/setup.mjs",
     "docs:compat": "node scripts/gen-compat-docs.mjs",
+    "docs:tools": "node scripts/gen-tool-catalog.mjs",
     "test:ui": "npm run build && playwright test --config tests/ui/playwright.config.ts",
     "test:docker": "npm run build && node --test --test-concurrency=1 tests/docker/*.test.js",
     "test:build": "npm run build && npm run test",
-    "image:build": "node scripts/image-build.mjs"
+    "image:build": "node scripts/image-build.mjs",
+    "image:gates": "node scripts/image-gates.mjs run",
+    "image:probe": "node scripts/image-probe.mjs",
+    "image:docs": "node scripts/gen-image-docs.mjs"
   },
   "engines": {
     "node": ">=22"

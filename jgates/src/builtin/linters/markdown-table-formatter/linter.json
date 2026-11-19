@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "markdown-table-formatter",
+  "name": "markdown-table-formatter",
+  "sourceUrl": "https://github.com/nvuillam/markdown-table-formatter",
+  "license": "MIT",
+  "program": {
+    "tool": "markdown-table-formatter",
+    "versionRange": ">=2.1.0 <3.0.0"
+  },
+  "megalinter": [
+    "MARKDOWN_MARKDOWN_TABLE_FORMATTER"
+  ],
+  "place": {
+    "section": "format",
+    "group": "markdown",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".md"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--check",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "files",
+    "pattern": "^- (?<file>.+)$",
+    "rule": "markdown-table-formatter.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "markdown-table-formatter reads no configuration: it runs with its own fixed layout",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the tool has no in-file suppression"
+    }
+  },
+  "install": "markdown-table-formatter",
+  "text": {
+    "en": {
+      "label": "markdown-table-formatter (Markdown tables)",
+      "purpose": "Checks that the tables of Markdown files are laid out with aligned columns; a file whose tables would change is reported.",
+      "limitation": "It names the file, not the table or the line; run it locally without --check to rewrite the tables. Its layout is fixed and cannot be configured.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "markdown-table-formatter (tabelas Markdown)",
+      "purpose": "Verifica se as tabelas dos arquivos Markdown estão com as colunas alinhadas; um arquivo cujas tabelas mudariam é apontado.",
+      "limitation": "Aponta o arquivo, não a tabela nem a linha; rode-o localmente sem --check para reescrever as tabelas. O layout é fixo e não pode ser configurado.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

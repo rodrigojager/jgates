@@ -1,0 +1,280 @@
+rules:
+  - id: jgates.python.sensitive-data-logged
+    message: A value named like a password, a secret, a token or an authorization header is passed to a logging call, so it ends up in the log files. Log an identifier or a masked form instead, or leave the value out.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $L.$M(..., $X, ...)
+          - pattern: $L.$M(..., f"...{$X}...", ...)
+          - pattern: $L.$M(..., "..." % $X, ...)
+          - pattern: $L.$M(..., "...".format(..., $X, ...), ...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: (?i)^([A-Za-z_]\w*\.)*(logger|log|logging|_logger|_log)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(debug|info|warning|warn|error|exception|critical|fatal|log)$
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i)^([A-Za-z_]\w*\.)*(\w*_)?(password|passwd|pwd|passphrase|senha|secret|api_?key|private_key|client_secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_code|verification_code|activation_code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(_\w*)?$
+
+  - id: jgates.python.sensitive-data-logged-header
+    message: The Authorization header of the request is passed to a logging call, so the credential ends up in the log files. Log the request path or a request id instead.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    patterns:
+      - pattern-either:
+          - pattern: $L.$M(..., request.headers["Authorization"], ...)
+          - pattern: $L.$M(..., request.headers.get("Authorization"), ...)
+          - pattern: $L.$M(..., request.META["HTTP_AUTHORIZATION"], ...)
+          - pattern: $L.$M(..., request.META.get("HTTP_AUTHORIZATION"), ...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: (?i)^([A-Za-z_]\w*\.)*(logger|log|logging|_logger|_log)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(debug|info|warning|warn|error|exception|critical|fatal|log)$
+
+  - id: jgates.python.stack-trace-in-response
+    message: A stack trace is written to the HTTP response, which tells the caller about the code and the server. Log the trace on the server and return a generic error message.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    pattern-sources:
+      - pattern: traceback.format_exc(...)
+      - pattern: traceback.format_exception(...)
+      - pattern: traceback.format_tb(...)
+      - pattern: traceback.format_stack(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: HttpResponse($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: JsonResponse($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: make_response($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Response($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: jsonify($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: jsonify(..., $K=$X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: abort($C, $X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $H.wfile.write($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: return $X
+          - pattern-inside: |
+              @$APP.$ROUTE(...)
+              def $F(...):
+                  ...
+          - focus-metavariable: $X
+
+  - id: jgates.python.error-detail-in-response
+    message: The message of a caught exception is written to the HTTP response, which can expose paths, queries and internals. Log the exception on the server and return a generic error message.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    patterns:
+      - pattern-inside: |
+          try:
+              ...
+          except $T as $E:
+              ...
+      - pattern-either:
+          - pattern: $R(..., str($E), ...)
+          - pattern: $R(..., repr($E), ...)
+          - pattern: $R(..., f"...{$E}...", ...)
+          - pattern: '$R(..., {..., $K: str($E), ...}, ...)'
+          - pattern: $R(..., $K=str($E), ...)
+          - pattern: '$R(..., {..., $K: $E.args, ...}, ...)'
+      - metavariable-regex:
+          metavariable: $R
+          regex: ^(HttpResponse|HttpResponseServerError|HttpResponseBadRequest|JsonResponse|make_response|Response|jsonify)$
+
+  - id: jgates.python.swallowed-exception
+    message: A broad exception handler does nothing, so the error is dropped with no log and no handling. Log it, handle it or re-raise it, and catch a narrower exception type when the failure is expected.
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: error-handling
+      cwe: "CWE-390"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.3.4", "V16.5.3"]
+    pattern-either:
+      - pattern: |
+          try:
+              ...
+          except:
+              pass
+      - pattern: |
+          try:
+              ...
+          except:
+              continue
+      - pattern: |
+          try:
+              ...
+          except Exception:
+              pass
+      - pattern: |
+          try:
+              ...
+          except Exception:
+              continue
+      - pattern: |
+          try:
+              ...
+          except Exception as $E:
+              pass
+      - pattern: |
+          try:
+              ...
+          except Exception as $E:
+              continue
+      - pattern: |
+          try:
+              ...
+          except BaseException:
+              pass
+      - pattern: |
+          try:
+              ...
+          except BaseException as $E:
+              pass
+      - pattern: |
+          with contextlib.suppress(Exception):
+              ...
+      - pattern: |
+          with suppress(Exception):
+              ...
+
+  - id: jgates.python.outbound-request-follows-redirects
+    message: An address from the incoming request is passed to Requests without a redirect option, which follows redirects by default for this call. If no other protection validates each hop, the first host can redirect the server to another address; set allow_redirects=False here or confirm where each destination is checked.
+    severity: INFO
+    languages: [python]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.2"]
+      class: review
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.values.get(...)
+      - pattern: request.values[...]
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.data
+      - pattern: request.cookies.get(...)
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: requests.$M($URL, ...)
+              - pattern: requests.$M(..., url=$URL, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|post|put|patch|delete|options)$
+          - pattern-not: requests.$M(..., allow_redirects=$SETTING, ...)
+          - pattern-not: requests.$M(..., **$KWARGS)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern-either:
+              - pattern: requests.request($METHOD, $URL, ...)
+              - pattern: requests.request(..., url=$URL, ...)
+          - pattern-not: requests.request(..., allow_redirects=$SETTING, ...)
+          - pattern-not: requests.request(..., **$KWARGS)
+          - focus-metavariable: $URL
+
+  - id: jgates.python.http-client-without-timeout
+    message: An outbound HTTP call is made with no timeout, and this library waits forever by default, so one slow server can hang the worker. Pass a timeout (timeout=10, or a connect and read pair).
+    severity: INFO
+    languages: [python]
+    metadata:
+      category: availability
+      cwe: "CWE-400"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.2", "V13.2.6", "V15.2.2"]
+    pattern-either:
+      - patterns:
+          - pattern: requests.$M(...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|post|put|patch|delete|head|options|request)$
+          - pattern-not: requests.$M(..., timeout=$T, ...)
+          - pattern-not: requests.$M(..., **$K)
+      - patterns:
+          - pattern: requests.$M(..., timeout=None, ...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|post|put|patch|delete|head|options|request)$
+      - patterns:
+          - pattern: |
+              $S = requests.Session()
+              ...
+              $S.$M(...)
+          - focus-metavariable: $M
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|post|put|patch|delete|head|options|request)$
+          - pattern-not: |
+              $S = requests.Session()
+              ...
+              $S.$M(..., timeout=$T, ...)
+      - patterns:
+          - pattern-either:
+              - pattern: urllib.request.urlopen(...)
+              - pattern: urlopen(...)
+          - pattern-not: urllib.request.urlopen(..., timeout=$T, ...)
+          - pattern-not: urllib.request.urlopen($U, $D, $T, ...)
+          - pattern-not: urlopen(..., timeout=$T, ...)
+          - pattern-not: urlopen($U, $D, $T, ...)
+      - patterns:
+          - pattern-either:
+              - pattern: http.client.HTTPConnection(...)
+              - pattern: http.client.HTTPSConnection(...)
+          - pattern-not: http.client.$C(..., timeout=$T, ...)
+          - pattern-not: http.client.$C($H, $P, $T, ...)

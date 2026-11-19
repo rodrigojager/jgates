@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "rstfmt",
+  "name": "rstfmt",
+  "sourceUrl": "https://github.com/dzhu/rstfmt",
+  "license": "MIT",
+  "program": {
+    "tool": "rstfmt",
+    "versionRange": ">=0.0.14 <1.0.0"
+  },
+  "megalinter": [
+    "RST_RSTFMT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "rst",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".rst"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--check",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+) (?<message>is not correctly formatted!)$",
+    "rule": "rstfmt.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "rstfmt has no project configuration: the format is its own",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: rstfmt has no in-file suppression"
+    }
+  },
+  "install": "rstfmt",
+  "text": {
+    "en": {
+      "label": "rstfmt (reStructuredText format)",
+      "purpose": "Checks that reStructuredText files are formatted the way rstfmt writes them. It only reports the difference; it never rewrites a file.",
+      "limitation": "It reports the files that differ, not the lines one by one; a file it cannot parse is an error of the step.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "rstfmt (reStructuredText format)",
+      "purpose": "Verifica se os arquivos reStructuredText estão formatados como o rstfmt os escreveria. Só reporta a diferença; nunca reescreve um arquivo.",
+      "limitation": "Reporta os arquivos que diferem, não as linhas uma a uma; um arquivo que ele não consegue ler é um erro da etapa.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

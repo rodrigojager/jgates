@@ -21,11 +21,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 //
 //   master: the first-run wizard (Docker, Ferramentas, Projeto, Perfil "strict", Dependências, Revisão) writes the
 //     configuration into the clone and starts the first run. The result reports the twelve problems of the README, each
-//     by its tool, rule and file (the personal data included); mutation testing is not applicable because the project's
-//     own tests fail (MUTATION_TESTS_FAILING); no stage ends in `error`.
+//     by its tool, rule and file (the personal data included), plus the additional Strict findings. Mutation testing is
+//     not applicable because the project's own tests fail (MUTATION_TESTS_FAILING).
 //   correcoes: the branch is switched in the clone (the configuration is not committed, so it stays) and a run is
-//     started as the Revisar screen starts one. The only finding left is the Stripe key of master's history (gitleaks
-//     history scan); no stage ends in `error`.
+//     started as the Revisar screen starts one. The historical Stripe key and the recounted Strict findings remain.
+// Both branches run the applicable Markdown, Dockerfile and Python tools without stage errors.
 // Around each run the clone's tree hash (every path, size, mtime and content, .git included) does not change, and the
 // sample's own hash is unchanged at the end. Every engine object the test leaves for its workspace is removed by label.
 
@@ -51,8 +51,64 @@ const MASTER_PROBLEMS = [
   { n: 11, what: "IaC (checkov CKV_DOCKER_3, trivy DS-0002)", findings: [{ tool: /checkov/i, rule: /^CKV_DOCKER_3$/, file: /Dockerfile$/ }, { tool: /trivy/i, rule: /DS-?0*2$/, file: /Dockerfile$/ }] },
   { n: 12, what: "types (mypy)", findings: [{ tool: /mypy/i, rule: /./, file: /hello\/__init__\.py$/ }] },
 ];
-// What stays on correcoes: the Stripe key of master's history.
 const HISTORY_SECRET = { tool: /gitleaks/i, rule: /stripe-access-token/, file: /hello\/infrastructure\/config\.py$/ };
+// These checks report the same findings on the shared README and .gitignore.
+const SHARED_FINDINGS = {
+  "git-diff-check": 1,
+  "markdown-table-formatter": 1,
+  markdownlint: 36,
+  rumdl: 18,
+};
+const MASTER_FINDINGS = {
+  ...SHARED_FINDINGS,
+  bandit: 19,
+  betterleaks: 1,
+  black: 1,
+  "builtin-pii": 2,
+  checkov: 1,
+  cspell: 88,
+  devskim: 1,
+  flake8: 8,
+  gitleaks: 2,
+  grype: 1,
+  "import-linter": 1,
+  isort: 1,
+  jscpd: 1,
+  kingfisher: 1,
+  mypy: 1,
+  "osv-scanner": 2,
+  pylint: 30,
+  pyright: 1,
+  pytest: 2,
+  ruff: 3,
+  secretlint: 1,
+  semgrep: 1,
+  trivy: 2,
+  trufflehog: 1,
+};
+const CORRECOES_FINDINGS = {
+  ...SHARED_FINDINGS,
+  bandit: 33,
+  cspell: 91,
+  flake8: 7,
+  gitleaks: 1,
+  pylint: 42,
+};
+const STRICT_FORMAT_CHECKS = [
+  "bandit#sast",
+  "black#format-check",
+  "flake8#lint",
+  "hadolint#lint",
+  "isort#format-check",
+  "lychee#links",
+  "markdownlint#lint",
+  "markdown-table-formatter#format-check",
+  "pylint#lint",
+  "remark-lint#lint",
+  "ruff#lint",
+  "ruff-format#format-check",
+  "rumdl#lint",
+];
 
 const docker = (args) => {
   const r = spawnSync("docker", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -214,10 +270,19 @@ async function runToResult(call, jobId) {
 
 const fileOf = (f) => (f.location?.path ?? "").replace(/\\/g, "/");
 const matches = (f, m) => m.tool.test(f.tool) && m.rule.test(f.ruleId) && (m.file === null || m.file.test(fileOf(f)));
+
+function findingCounts(findings) {
+  const counts = new Map();
+  for (const { tool } of findings) counts.set(tool, (counts.get(tool) ?? 0) + 1);
+  return Object.fromEntries(counts);
+}
+
 /** A compact view of a result for the assertion messages. */
 function summary(result) {
   return JSON.stringify({
     decision: result.decision,
+    blockingViolations: result.blockingViolations,
+    completed: result.stages.filter((s) => s.state === "completed").map((s) => s.id),
     stages: result.stages.filter((s) => s.state !== "completed").map((s) => `${s.id}=${s.state}${s.reason ? `: ${String(s.reason).slice(0, 160)}` : ""}`),
     findings: result.findings.map((f) => `${f.tool} ${f.ruleId} ${fileOf(f)}${f.location?.line ? `:${f.location.line}` : ""}`),
   }, null, 1);
@@ -225,7 +290,8 @@ function summary(result) {
 
 let scratch = "";
 let workspace = "";
-test.after(() => {
+// Registered per test with t.after, so it runs after the case even when the case runs alone with --test-name-pattern.
+const cleanupCase = () => {
   if (workspace) {
     const filters = ["--filter", "label=org.jgates.managed=true", "--filter", `label=org.jgates.workspace=${workspace}`];
     for (const id of lines(docker(["ps", "-aq", ...filters]).out)) docker(["rm", "-f", id]);
@@ -233,9 +299,10 @@ test.after(() => {
     for (const name of lines(docker(["volume", "ls", "-q", ...filters]).out)) docker(["volume", "rm", "-f", name]);
   }
   if (scratch) fs.rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
-});
+};
 
-test("V2-75 (real engine): the sample project end to end, master reports the twelve problems of its README and correcoes only the secret in the history, with no error stage and the clone unchanged", { timeout: 7_200_000 }, async () => {
+test("V2-75 (real engine): the sample project reports the recounted Strict findings on both branches and leaves the clone unchanged", { timeout: 7_200_000 }, async (t) => {
+  t.after(cleanupCase);
   assert.equal(docker(["version", "--format", "{{.Server.Version}}"]).code, 0, "Docker is required for the real-engine acceptance cases (the daemon did not answer)");
   assert.equal(docker(["image", "inspect", IMAGE]).code, 0, `${IMAGE} is missing; build it with npm --prefix jgates run image:build`);
   const source = path.resolve(process.env.JGATES_SAMPLE_PROJECT || DEFAULT_SAMPLE);
@@ -249,7 +316,8 @@ test("V2-75 (real engine): the sample project end to end, master reports the twe
   scratch = fs.realpathSync(fs.mkdtempSync(path.join(scratchBase(), "v2-75-sample-")));
   const project = path.join(scratch, "projeto-teste-jgates");
   const home = path.join(scratch, "home");
-  git(scratch, ["clone", "--quiet", "--no-hardlinks", source, project]);
+  // Preserve the committed line endings on every host so whitespace findings are reproducible.
+  git(scratch, ["clone", "--quiet", "--no-hardlinks", "-c", "core.autocrlf=false", source, project]);
   git(project, ["checkout", "--quiet", "master"]);
   fs.mkdirSync(home);
   workspace = workspaceId(project);
@@ -314,19 +382,58 @@ test("V2-75 (real engine): the sample project end to end, master reports the twe
       const data = s.json.setup.jobs.data;
       return data && data.state !== "running" ? data : null;
     }, 1_800_000);
-    assert.equal(dataJob.state, "done", JSON.stringify(dataJob));
+    if (dataJob.state === "failed") {
+      // A refresh can fail independently of this sample. Its scanners can still use fresh retained data.
+      const refreshed = await call("GET", "/api/setup/tools?locale=en");
+      assert.equal(refreshed.status, 200, refreshed.text);
+      const databases = refreshed.json.data.databases;
+      const { events } = await jobEnd(call, dataJob.id, 60_000);
+      for (const id of ["osv", "trivy", "grype"]) {
+        assert.equal(databases.find((database) => database.id === id)?.state, "fresh", JSON.stringify(events.slice(-10)));
+      }
+      t.diagnostic("The advisory refresh reported a failure. OSV-Scanner, Trivy and Grype have fresh retained data.");
+    } else {
+      assert.equal(dataJob.state, "done", JSON.stringify(dataJob));
+    }
     // 6 Revisão: the reviewed plan, then the first run.
     const plan = await call("POST", "/api/plans", {});
     assert.equal(plan.status, 201, plan.text);
     assert.equal(plan.json.approvable, true, JSON.stringify(plan.json.plan.blockers ?? plan.json.plan.blocked));
+    const masterStarted = performance.now();
     const started = await call("POST", "/api/setup/advance", { step: "review", planHash: plan.json.planHash });
     assert.equal(started.status, 200, started.text);
     assert.equal(started.json.setup.completed, true);
     const master = await runToResult(call, started.json.run.id);
+    t.diagnostic(`Strict master: ${Math.round(performance.now() - masterStarted)} ms, ${master.stages.length} stages, ${master.findings.length} findings, ${master.blockingViolations} blocking violations`);
     const masterSummary = summary(master);
 
+    assert.equal(treeHash(project), configured, "the clone is byte for byte the same after the run on master");
+
+    // ---- correcoes: the branch switched in the clone, a run started as Revisar starts it ----
+    git(project, ["checkout", "--quiet", "correcoes"]);
+    assert.equal(fs.existsSync(path.join(project, "jgates.yml")), true, "the configuration is not committed, so the switch keeps it");
+    const switched = treeHash(project);
+    const plan2 = await call("POST", "/api/plans", {});
+    assert.equal(plan2.status, 201, plan2.text);
+    assert.equal(plan2.json.approvable, true, JSON.stringify(plan2.json.plan.blockers ?? plan2.json.plan.blocked));
+    const fixedStarted = performance.now();
+    const run2 = await call("POST", "/api/runs", { planHash: plan2.json.planHash });
+    assert.equal(run2.status, 202, run2.text);
+    const fixed = await runToResult(call, run2.json.run.id);
+    t.diagnostic(`Strict correcoes: ${Math.round(performance.now() - fixedStarted)} ms, ${fixed.stages.length} stages, ${fixed.findings.length} findings, ${fixed.blockingViolations} blocking violations`);
+    const fixedSummary = summary(fixed);
+    assert.equal(treeHash(project), switched, "the clone is byte for byte the same after the run on correcoes");
+    assert.equal(treeHash(source), sourceBefore, "the sample project was only read");
+    assert.deepEqual(lines(docker(["ps", "-aq", "--filter", `label=org.jgates.workspace=${workspace}`]).out), []);
+
     assert.equal(master.decision, "failed", masterSummary);
+    assert.deepEqual(findingCounts(master.findings), MASTER_FINDINGS, masterSummary);
+    assert.equal(master.blockingViolations, 227, masterSummary);
     assert.deepEqual(master.stages.filter((s) => s.state === "error").map((s) => s.id), [], `no stage ends in error on master: ${masterSummary}`);
+    for (const id of STRICT_FORMAT_CHECKS) {
+      assert.equal(master.stages.find((stage) => stage.id === id)?.state, "completed", masterSummary);
+      assert.equal(fixed.stages.find((stage) => stage.id === id)?.state, "completed", fixedSummary);
+    }
     for (const problem of MASTER_PROBLEMS) {
       for (const expected of problem.findings) {
         assert.ok(master.findings.some((f) => matches(f, expected)), `problem ${problem.n}, ${problem.what}: no finding ${expected.tool} ${expected.rule} ${expected.file ?? ""} in ${masterSummary}`);
@@ -339,31 +446,16 @@ test("V2-75 (real engine): the sample project end to end, master reports the twe
       assert.equal(s.state, "not_applicable", `mutation testing is not applicable while the tests fail: ${s.id} ${s.state} ${s.reason}`);
       assert.ok(String(s.reason ?? "").startsWith(failingTests), `the stage gives the reason MUTATION_TESTS_FAILING: ${s.reason}`);
     }
-    assert.equal(treeHash(project), configured, "the clone is byte for byte the same after the run on master");
-
-    // ---- correcoes: the branch switched in the clone, a run started as Revisar starts it ----
-    git(project, ["checkout", "--quiet", "correcoes"]);
-    assert.equal(fs.existsSync(path.join(project, "jgates.yml")), true, "the configuration is not committed, so the switch keeps it");
-    const switched = treeHash(project);
-    const plan2 = await call("POST", "/api/plans", {});
-    assert.equal(plan2.status, 201, plan2.text);
-    assert.equal(plan2.json.approvable, true, JSON.stringify(plan2.json.plan.blockers ?? plan2.json.plan.blocked));
-    const run2 = await call("POST", "/api/runs", { planHash: plan2.json.planHash });
-    assert.equal(run2.status, 202, run2.text);
-    const fixed = await runToResult(call, run2.json.run.id);
-    const fixedSummary = summary(fixed);
+    assert.equal(fixed.decision, "failed", fixedSummary);
+    assert.deepEqual(findingCounts(fixed.findings), CORRECOES_FINDINGS, fixedSummary);
+    assert.equal(fixed.blockingViolations, 230, fixedSummary);
     assert.deepEqual(fixed.stages.filter((s) => s.state === "error").map((s) => s.id), [], `no stage ends in error on correcoes: ${fixedSummary}`);
-    assert.ok(fixed.findings.length > 0 && fixed.findings.every((f) => matches(f, HISTORY_SECRET)), `only the Stripe key of the history remains on correcoes: ${fixedSummary}`);
+    assert.ok(fixed.findings.some((f) => matches(f, HISTORY_SECRET)), `the historical Stripe key remains on correcoes: ${fixedSummary}`);
     assert.ok(fixed.stages.some((s) => /gitleaks/.test(`${s.id} ${s.adapter ?? ""}`) && s.state === "completed"), fixedSummary);
-    for (const s of fixed.stages.filter((x) => /mutation|mutmut/.test(`${x.id} ${x.adapter ?? ""}`))) assert.equal(s.state, "completed", `mutation testing runs once the tests pass: ${s.id} ${s.state} ${s.reason}`);
-    assert.equal(treeHash(project), switched, "the clone is byte for byte the same after the run on correcoes");
+    for (const s of mutation) {
+      assert.equal(fixed.stages.find((stage) => stage.id === s.id)?.state, "completed", `mutation testing runs once the tests pass: ${fixedSummary}`);
+    }
 
-    const report = process.env.JGATES_V2_75_REPORT;
-    if (report) fs.writeFileSync(report, JSON.stringify({ master: JSON.parse(masterSummary), correcoes: JSON.parse(fixedSummary) }, null, 2));
-
-    // The sample was only read, and no container of the workspace is left behind.
-    assert.equal(treeHash(source), sourceBefore, "the sample project was only read");
-    assert.deepEqual(lines(docker(["ps", "-aq", "--filter", `label=org.jgates.workspace=${workspace}`]).out), []);
   } finally {
     await stopUi(ui);
   }

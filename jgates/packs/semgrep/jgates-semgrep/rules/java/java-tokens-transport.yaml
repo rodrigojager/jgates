@@ -1,0 +1,223 @@
+# Token and transport rules for Java. Token libraries covered: jjwt (Jwts), java-jwt from Auth0 (JWT, Algorithm),
+# Nimbus JOSE + JWT (PlainJWT, JWSHeader, the claims verifier) and Spring Security's NimbusJwtDecoder. Transport
+# covered: javax.net.ssl (SSLContext, SSLEngine, SSLSocket, SSLParameters), Apache HttpClient's
+# SSLConnectionSocketFactory, OkHttp's TlsVersion, Tomcat and Jetty client-certificate settings, and the HTTP clients
+# of the JDK, Spring (RestTemplate, WebClient, RestClient), Apache HttpClient, OkHttp and Jsoup. The analysis stays
+# inside one expression or statement.
+rules:
+  - id: jgates.java.jwt-signature-not-verified
+    message: A token is parsed or decoded without verifying its signature, so any caller can forge claims. Parse it with the verifying call, for example Jwts.parser().verifyWith(key).build().parseSignedClaims(token) or JWT.require(algorithm).build().verify(token).
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V6.8.2", "V9.1.1"]
+    pattern-either:
+      - pattern: $P.parseClaimsJwt(...)
+      - pattern: $P.parsePlaintextJwt(...)
+      - pattern: $P.parseUnsecuredClaims(...)
+      - pattern: $P.parseUnsecuredContent(...)
+      - pattern: JWT.decode(...)
+      - pattern: PlainJWT.parse(...)
+
+  - id: jgates.java.jwt-algorithm-not-restricted
+    message: The accepted token algorithms include none, or the algorithm is taken from the token's own header, so the sender picks how the token is checked. Fix the algorithm to the one you issue, for example Algorithm.RSA256(publicKey, null) or SignatureAlgorithm.RS256.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.2"]
+    pattern-either:
+      - pattern: Algorithm.none()
+      - pattern: Algorithm.NONE
+      - pattern: SignatureAlgorithm.NONE
+      - pattern: Jwts.SIG.NONE
+      - patterns:
+          - pattern: SignatureAlgorithm.forName($X)
+          - metavariable-regex:
+              metavariable: $X
+              regex: ^[^"].*
+
+  - id: jgates.java.jwt-key-from-token-header
+    message: The verification key is taken from an address or a key that the token's own header names, so the sender supplies the key that checks the token. Fetch keys from a key set at a fixed address and look them up by key id.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-347"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.1.3"]
+    pattern-either:
+      - pattern: $H.getJWKURL()
+      - pattern: $H.getJWK()
+      - pattern: $T.getHeaderClaim("jku")
+      - pattern: $T.getHeaderClaim("jwk")
+      - pattern: $T.getHeaderClaim("x5u")
+      - pattern: $T.getHeader().get("jku")
+      - pattern: $T.getHeader().get("jwk")
+      - pattern: $T.getHeader().get("x5u")
+
+  - id: jgates.java.jwt-expiry-not-validated
+    message: Token expiry validation is switched off or made meaningless, so a stolen token works forever. Keep the default validators, for example JwtValidators.createDefault(), and use a clock skew of a few seconds.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-613"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.1"]
+    pattern-either:
+      - pattern: $P.setJWTClaimsSetVerifier(($C, $X) -> {})
+      - pattern: $D.setJwtValidator($T -> OAuth2TokenValidatorResult.success())
+      - pattern: $P.setAllowedClockSkewSeconds(Long.MAX_VALUE)
+      - pattern: $P.clockSkewSeconds(Long.MAX_VALUE)
+      - pattern: $P.acceptLeeway(Long.MAX_VALUE)
+      - pattern: $P.acceptExpiresAt(Long.MAX_VALUE)
+
+  - id: jgates.java.jwt-audience-not-validated
+    message: A token verifier is built without a visible audience requirement. If no other validator checks the intended audience, a token issued for another service may be accepted; add withAudience("api") or requireAudience("api"), or confirm where the audience is checked before accepting the token.
+    severity: INFO
+    languages: [java]
+    metadata:
+      class: review
+      category: authorization
+      cwe: "CWE-287"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V9.2.3", "V10.3.1"]
+    pattern-either:
+      - pattern-regex: '(?s)JWT\.require\((?:(?!withAudience)[^;])*?\.build\(\)'
+      - pattern-regex: '(?s)Jwts\.parser(?:Builder)?\(\)(?:(?!requireAudience)[^;])*?\.build\(\)'
+
+  - id: jgates.java.oauth-request-without-state
+    message: An authorization request URL is built with neither a visible state nor a code challenge. If no OAuth client adds and validates request binding, the callback may not be tied to the initiating session; use a framework OAuth client that provides this protection, or add an unpredictable session-bound state checked at the callback and PKCE with its verifier checked at token exchange.
+    severity: INFO
+    languages: [java]
+    metadata:
+      class: review
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V10.2.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $T $V = $E;
+          - pattern: $V = $E;
+          - pattern: return $E;
+          - pattern: new RedirectView($E)
+          - pattern: $R.sendRedirect($E)
+      - metavariable-regex:
+          metavariable: $E
+          regex: '(?s)^(?!.*(?:state=|code_challenge|"state")).*response_type=(?:code|token)'
+
+  - id: jgates.java.tls-old-protocol-version
+    message: A TLS configuration allows SSL 2, SSL 3, TLS 1.0 or TLS 1.1, which are broken or deprecated. Ask for "TLSv1.2" or "TLSv1.3", for example SSLContext.getInstance("TLSv1.3").
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: transport
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.1"]
+    pattern-either:
+      - patterns:
+          - pattern: SSLContext.getInstance($P, ...)
+          - metavariable-regex:
+              metavariable: $P
+              regex: ^"(?:SSLv2|SSLv3|SSLv2Hello|TLSv1|TLSv1\.1)"$
+      - patterns:
+          - pattern-either:
+              - pattern: $S.setEnabledProtocols(new String[] {..., $P, ...})
+              - pattern: $S.setProtocols(new String[] {..., $P, ...})
+              - pattern: new SSLConnectionSocketFactory($C, new String[] {..., $P, ...}, ...)
+          - metavariable-regex:
+              metavariable: $P
+              regex: ^"(?:SSLv2|SSLv3|SSLv2Hello|TLSv1|TLSv1\.1)"$
+      - patterns:
+          - pattern: System.setProperty($K, $V)
+          - metavariable-regex:
+              metavariable: $K
+              regex: ^"(?:jdk\.tls\.client\.protocols|jdk\.tls\.server\.protocols|https\.protocols)"$
+          - metavariable-regex:
+              metavariable: $V
+              regex: ^"(?:[^"]*,)?\s*(?:SSLv2|SSLv3|SSLv2Hello|TLSv1|TLSv1\.1)\s*(?:,[^"]*)?"$
+      - pattern: TlsVersion.TLS_1_0
+      - pattern: TlsVersion.TLS_1_1
+      - pattern: TlsVersion.SSL_3_0
+
+  - id: jgates.java.tls-weak-cipher-suite
+    message: A cipher suite list names a null, export, RC4, DES or 3DES suite, which gives no or weak protection. Name only AEAD suites such as TLS_AES_256_GCM_SHA384 or TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, or leave the JDK defaults.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: transport
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.2"]
+    patterns:
+      - pattern-either:
+          - pattern: $S.setEnabledCipherSuites(new String[] {..., $C, ...})
+          - pattern: $S.setCipherSuites(new String[] {..., $C, ...})
+          - pattern: new SSLConnectionSocketFactory($X, $Y, new String[] {..., $C, ...}, ...)
+      - metavariable-regex:
+          metavariable: $C
+          regex: '^"(?i:[A-Z0-9_]*_(?:NULL|EXPORT|EXPORT1024|RC4|DES|DES40|3DES|ANON)_[A-Z0-9_]*)"$'
+
+  - id: jgates.java.cleartext-http-url
+    message: A network client is given a plain HTTP or FTP address that is not the local machine, so the request travels without encryption. Use an HTTPS address.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.2.1", "V12.3.1", "V12.3.3"]
+    patterns:
+      - pattern-either:
+          - pattern: new URL($U)
+          - pattern: HttpRequest.newBuilder(URI.create($U))
+          - pattern: $B.uri(URI.create($U))
+          - pattern: new HttpGet($U)
+          - pattern: new HttpPost($U)
+          - pattern: new HttpPut($U)
+          - pattern: new HttpDelete($U)
+          - pattern: $R.getForObject($U, ...)
+          - pattern: $R.getForEntity($U, ...)
+          - pattern: $R.postForObject($U, ...)
+          - pattern: $R.postForEntity($U, ...)
+          - pattern: Jsoup.connect($U)
+          - pattern: new Request.Builder().url($U)
+          - pattern: WebClient.create($U)
+          - pattern: RestClient.create($U)
+          - pattern: $B.baseUrl($U)
+      - metavariable-regex:
+          metavariable: $U
+          regex: ^"\s*(?i:http|ftp)://(?!(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(?![\w.-]))
+
+  - id: jgates.java.mtls-client-certificate-not-verified
+    message: A TLS server asks for a client certificate and accepts it without verification, so the certificate proves nothing. Require verification against a trusted CA, for example certificateVerification "required" and a trust store of your client CAs.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: transport
+      cwe: "CWE-295"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.3"]
+    pattern-either:
+      - pattern: $S.setCertificateVerification("optionalNoCA")
+      - pattern: $C.setProperty("certificateVerification", "optionalNoCA")
+      - pattern: (SslContextFactory.Server $F).setTrustAll(true)
+      - pattern: new SslContextFactory.Server().setTrustAll(true)

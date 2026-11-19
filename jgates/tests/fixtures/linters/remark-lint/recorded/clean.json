@@ -1,0 +1,21 @@
+{
+ "tool": "remark-lint",
+ "kind": "clean",
+ "version": "15.0.1",
+ "calls": [
+  {
+   "args": [
+    "--rc-path",
+    "/output/linters/remark-lint/remarkrc-default.json",
+    "--no-stdout",
+    "--report",
+    "/opt/tools/node/remark-lint/node_modules/vfile-reporter-json/index.js",
+    "--",
+    "readme.md"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "[{\"path\":\"readme.md\",\"cwd\":\"/workspace\",\"history\":[\"readme.md\"],\"messages\":[]}]\n"
+  }
+ ]
+}

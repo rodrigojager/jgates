@@ -1,0 +1,21 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        secure: false
+        http-only: false
+  error:
+    include-stacktrace: always
+spring:
+  application:
+    name: orders
+  graphql:
+    schema:
+      introspection:
+        enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

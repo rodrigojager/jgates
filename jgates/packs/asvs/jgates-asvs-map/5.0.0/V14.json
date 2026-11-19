@@ -1,0 +1,290 @@
+{
+  "version": "5.0.0",
+  "chapter": "V14",
+  "entries": [
+    {
+      "requirement": "V14.1.1",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V14.1.2",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V14.2.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.sensitive-query-parameter",
+          "covers": "URLs and URLSearchParams, searchParams and request params that carry a password, secret or API key parameter name",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.sensitive-query-parameter",
+          "covers": "URLs, requests params and urlencode dictionaries that carry a password, secret or API key parameter name",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.sensitive-query-parameter",
+          "covers": "URL-like strings with a modeled sensitive parameter name, and Set or Add on a variable obtained from a Query() call with that name",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.sensitive-query-parameter",
+          "covers": "URL strings and QueryHelpers calls that carry a password, secret or API key parameter name",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.sensitive-query-parameter",
+          "covers": "URL strings, query parameters and URIBuilder calls that carry a password, secret or API key parameter name",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.sensitive-query-parameter",
+          "covers": "URL strings, http_build_query and client query options that carry a password, secret or API key parameter name",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.sensitive-query-parameter",
+          "covers": "URL strings, query pairs and request queries that carry a password, secret or API key parameter name",
+          "misses": "Sensitive values under other parameter names or sent through generic names (token, id, code); URLs built from several parts; session tokens in paths; what a deployed system logs or leaks in URLs; an informational finding that does not block unless the HTML rule applies; request bodies and connection strings written with the same parameter names are reported too",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.html.sensitive-query-parameter",
+          "covers": "HTML forms with an explicit method=get attribute and a password-type input before the closing form tag",
+          "misses": "Forms with no method attribute (the separate Review half), script-controlled submission, submitter formmethod overrides, disabled or unnamed password inputs, sensitive fields of other types, dynamically built markup, and what a deployed system logs or leaks; the regex does not establish that the password input is a successful submitted control.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.html.sensitive-query-parameter-by-default",
+          "covers": "Points at HTML forms with a password-type input and no method attribute, where browser-default GET can put the password in the query string.",
+          "misses": "The protection may exist where the rule cannot see it, such as script setting the method, intercepting submission or a submitter formmethod override; disabled or unnamed inputs need not submit a password. Other sensitive field types, dynamic markup and deployed URL handling are not modeled. This Review prompt never examines the requirement.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Sensitive parameter names in URLs and password forms with explicit GET remain partial checks. A form with an omitted method is only a Review prompt, never examination evidence; its actual submission handling needs confirmation.",
+      "review": {
+        "by": "independent review context (T68)",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V14.2.2",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V14.2.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A model reading the source for code that sends user data or identifiers to analytics, advertising or tracking services",
+          "misses": "What is actually sent at run time; third-party scripts loaded by tag managers; data classified as sensitive in documents the repository does not hold",
+          "depth": "partial"
+        }
+      ],
+      "why": "Whether data counts as sensitive and whether a recipient is untrusted needs reading the code in context, so the review method examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V14.2.4",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V14.2.5",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V14.2.6",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A model reading the source for responses and views that return more of a sensitive value than the function needs, such as a full card or national id number",
+          "misses": "Data shaped by the database or a serializer in another place; behavior at run time",
+          "depth": "partial"
+        }
+      ],
+      "why": "Minimum exposure of sensitive data depends on what each function needs, which no pattern can judge, so the review method reads the code.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V14.2.7",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": []
+    },
+    {
+      "requirement": "V14.2.8",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A model reading the source for upload handling that stores or forwards files without removing metadata such as location or author fields",
+          "misses": "Metadata removed by a storage service or proxy; consent kept in the product; files processed outside the repository",
+          "depth": "partial"
+        }
+      ],
+      "why": "Metadata handling of uploaded files is visible in the code that processes them but not by pattern, so the review method reads it.",
+      "applies": {
+        "technology": [
+          "file-upload"
+        ]
+      },
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V14.3.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "A model reading client code for data of a signed-in user that stays in the DOM or browser storage after the session ends, and for sign-out code that clears it",
+          "misses": "Server headers set elsewhere; behavior in a real browser; state kept by libraries",
+          "depth": "partial"
+        }
+      ],
+      "why": "Clearing client state on sign-out is a property of client flows across files, so the review method reads the code; it concerns browser code only.",
+      "applies": {
+        "technology": [
+          "browser-dom"
+        ]
+      },
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V14.3.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy",
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10015",
+            "10049-3"
+          ],
+          "covers": "Cache-control alerts of the ZAP scan of a running target: re-examine cache-control directives, and storable and cacheable content",
+          "misses": "Responses on pages ZAP did not reach; whether a response holds sensitive data (ZAP cannot tell); authenticated pages if no authentication header was given",
+          "depth": "partial"
+        }
+      ],
+      "why": "No repository check can show the absence of a header; the ZAP alerts listed report responses of a running target that lack anti-caching directives.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V14.3.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.sensitive-data-in-browser-storage",
+          "covers": "LocalStorage and sessionStorage writes whose key names a password, secret, API key, card number or national id",
+          "misses": "IndexedDB and cookies; sensitive values under other key names or in the value only; session tokens (an allowed exception) are not told apart; what the browser holds in a running application",
+          "depth": "partial"
+        }
+      ],
+      "why": "The rule flags localStorage and sessionStorage writes under key names that describe sensitive data; it concerns browser code only.",
+      "applies": {
+        "technology": [
+          "browser-dom"
+        ]
+      },
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    }
+  ]
+}

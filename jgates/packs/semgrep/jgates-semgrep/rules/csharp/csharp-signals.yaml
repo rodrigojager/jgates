@@ -1,0 +1,329 @@
+# Signal rules of the C# front: which technologies a project uses (jgates.csharp.uses-<tag>).
+# They are records of the scan, never findings: they feed the "not applicable" suggestions.
+# Each rule matches the using directive of the namespaces that bring the technology into a C# project (plain, global,
+# static and alias forms), or the typical call or type where the standard library needs no dependency. A using
+# directive is syntax, so a comment or a string that only mentions a library does not match.
+# The tag "latex" has no signal in C#: no library is common enough to list with confidence.
+rules:
+  - id: jgates.csharp.uses-graphql
+    message: The project uses GraphQL.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: graphql
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(HotChocolate|GraphQL|GraphQLParser|StrawberryShake|EntityGraphQL|ZeroQL|Octokit\.GraphQL|GraphQLinq|SAHB\.GraphQL\.Client|GreenDonut)(\..*)?$
+
+  - id: jgates.csharp.uses-websocket
+    message: The project uses WebSocket.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: websocket
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(System\.Net\.WebSockets|Microsoft\.AspNetCore\.WebSockets|Microsoft\.AspNetCore\.SignalR|Microsoft\.AspNet\.SignalR|Microsoft\.Azure\.SignalR|Azure\.Messaging\.WebPubSub|Fleck|WebSocketSharp|WebSocket4Net|SuperSocket|SuperWebSocket|Websocket\.Client|NetCoreServer|SocketIOClient|SocketIO\.Core|Ninja\.WebSockets|vtortola\.WebSockets|WatsonWebsocket|PureWebSockets|Lib\.AspNetCore\.WebSocketsCompression)(\..*)?$
+
+  - id: jgates.csharp.uses-webrtc
+    message: The project uses WebRTC.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: webrtc
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(SIPSorcery|SIPSorceryMedia|Microsoft\.MixedReality\.WebRTC|Unity\.WebRTC|LiveKit|Livekit|MediaSoupSharp|SharpWebRTC|WebRtcNet|WebRtcSharp)(\..*)?$
+
+  - id: jgates.csharp.uses-oauth-client
+    message: The project uses OAuth 2.0 or OpenID Connect as a client.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: oauth-client
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(Microsoft\.AspNetCore\.Authentication\.(OAuth|OpenIdConnect|Google|Facebook|MicrosoftAccount|Twitter|WsFederation)|AspNet\.Security\.OAuth|AspNet\.Security\.OpenId|IdentityModel|Duende\.IdentityModel|Duende\.AccessTokenManagement|Duende\.Bff|Microsoft\.Identity\.Client|Microsoft\.Identity\.Web|Microsoft\.IdentityModel\.Protocols\.OpenIdConnect|Microsoft\.Owin\.Security\.(Google|Facebook|MicrosoftAccount|Twitter|OpenIdConnect|OAuth)|Google\.Apis\.Auth|DotNetOpenAuth\.OAuth2|DotNetOpenAuth\.OAuth|DotNetOpenAuth\.OpenId|DotNetOpenAuth\.AspNet|Okta\.AspNetCore|Auth0\.AspNetCore\.Authentication|Auth0\.OidcClient|Keycloak\.AuthServices|Azure\.Identity|OAuth2|OidcClient)(\..*)?$
+
+  - id: jgates.csharp.uses-oauth-authorization-server
+    message: The project runs an OAuth 2.0 or OpenID Connect authorization server.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: oauth-authorization-server
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(OpenIddict|IdentityServer4|IdentityServer3|Duende\.IdentityServer|AspNet\.Security\.OpenIdConnect\.Server|AspNet\.Security\.OpenIdConnect\.Primitives|Microsoft\.Owin\.Security\.OAuth|Microsoft\.Owin\.Security\.Infrastructure|DotNetOpenAuth\.OAuth2\.AuthorizationServer|DotNetOpenAuth\.OAuth2\.ChannelElements|Rsk\.Saml|Skoruba\.IdentityServer4|Volo\.Abp\.OpenIddict|Volo\.Abp\.IdentityServer|Thinktecture\.IdentityServer|Aguacongas\.IdentityServer)(\..*)?$
+
+  - id: jgates.csharp.uses-jwt
+    message: The project uses JSON Web Tokens.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: jwt
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(System\.IdentityModel\.Tokens\.Jwt|Microsoft\.IdentityModel\.JsonWebTokens|Microsoft\.IdentityModel\.Tokens|Microsoft\.AspNetCore\.Authentication\.JwtBearer|Microsoft\.Owin\.Security\.Jwt|Microsoft\.Identity\.Web|JWT|Jose|JsonWebToken|NJsonWebToken|Okta\.Jwt|Okta\.AspNetCore|Auth0\.AspNetCore\.Authentication|FirebaseAdmin\.Auth|Google\.Apis\.Auth|Paseto)(\..*)?$
+
+  - id: jgates.csharp.uses-saml
+    message: The project uses SAML.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: saml
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(((ITfoxtec\.Identity\.Saml2|Sustainsys\.Saml2|Kentor\.AuthServices|ComponentSpace\.Saml2|ComponentSpace\.SAML2|Rsk\.Saml|OneLogin\.Saml|Saml2\.Authentication\.Core|AspNetCore\.Authentication\.Saml2|Microsoft\.IdentityModel\.Tokens\.Saml|Microsoft\.IdentityModel\.Tokens\.Saml2|Microsoft\.IdentityModel\.Saml2|Microsoft\.IdentityModel\.Protocols\.WsFederation|System\.IdentityModel\.Services|System\.IdentityModel\.Metadata|System\.IdentityModel\.Selectors|Microsoft\.IdentityModel\.Claims|Saml2|SamlCore)(\..*)?)|System\.IdentityModel\.Tokens)$
+
+  - id: jgates.csharp.uses-totp
+    message: The project uses time-based or counter-based one-time passwords.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: totp
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: using $M;
+              - pattern: global using $M;
+              - pattern: using static $M;
+              - pattern: using $A = $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(OtpNet|OtpSharp|Google\.Authenticator|GoogleAuthenticator|TwoStepsAuthenticator|TwoFactorAuth|TwoFactorAuthNet|TotpNet)(\..*)?$
+      - pattern: $U.GetAuthenticatorKeyAsync(...)
+      - pattern: $U.ResetAuthenticatorKeyAsync(...)
+      - pattern: $U.VerifyTwoFactorTokenAsync(...)
+      - pattern: $U.GenerateTwoFactorTokenAsync(...)
+      - pattern: $S.TwoFactorAuthenticatorSignInAsync(...)
+      - pattern: new Totp(...)
+      - pattern: new Hotp(...)
+      - pattern: new TwoFactorAuthenticator(...)
+
+  - id: jgates.csharp.uses-ldap
+    message: The project uses LDAP.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: ldap
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(System\.DirectoryServices|Novell\.Directory\.Ldap|LdapForNet|Zetetic\.Ldap|Mono\.Security\.Protocol\.Ldap|Mono\.Directory\.LDAP)(\..*)?$
+
+  - id: jgates.csharp.uses-xml
+    message: The project parses or builds XML.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: xml
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: using $M;
+              - pattern: global using $M;
+              - pattern: using static $M;
+              - pattern: using $A = $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(System\.Xml|Microsoft\.Xml|System\.Runtime\.Serialization|System\.ServiceModel|System\.Web\.Services|System\.Security\.Cryptography\.Xml|SoapCore|CoreWCF|Microsoft\.Extensions\.Configuration\.Xml|Microsoft\.AspNetCore\.Mvc\.Formatters\.Xml|DocumentFormat\.OpenXml|HtmlAgilityPack|Saxon|Wmhelp\.XPath2|Mvp\.Xml|XmlSchemaClassGenerator)(\..*)?$
+      - pattern: $B.AddXmlSerializerFormatters(...)
+      - pattern: $B.AddXmlDataContractSerializerFormatters(...)
+      - pattern: new XmlSerializer(...)
+      - pattern: new XmlDocument(...)
+      - pattern: new XDocument(...)
+      - pattern: XDocument.Parse(...)
+      - pattern: XDocument.Load(...)
+      - pattern: XElement.Parse(...)
+      - pattern: XElement.Load(...)
+      - pattern: XmlReader.Create(...)
+      - pattern: XmlWriter.Create(...)
+      - pattern: new DataContractSerializer(...)
+
+  - id: jgates.csharp.uses-memcache
+    message: The project uses Memcached.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: memcache
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(Enyim\.Caching|EnyimMemcached|BeIT\.MemCached|Memcached|MemcachedProviders|EasyCaching\.Memcached|EasyCaching\.Enyim|Amazon\.ElastiCacheCluster|Aws\.ElastiCacheCluster|Alachisoft\.NCache\.Memcached)(\..*)?$
+
+  - id: jgates.csharp.uses-mail
+    message: The project sends or reads e-mail.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: mail
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(System\.Net\.Mail|System\.Web\.Mail|MailKit|MimeKit|SendGrid|Mailgun|Mailjet\.Client|PostmarkDotNet|Amazon\.SimpleEmail|Amazon\.SimpleEmailV2|FluentEmail|Azure\.Communication\.Email|Mandrill|MailChimp|MailerSend|Resend|Brevo|SparkPost|OpenPop|S22\.Imap|Limilabs|AE\.Net\.Mail|Rnwood\.SmtpServer|SmtpServer|netDumbster|EASendMail|Microsoft\.Exchange\.WebServices|Microsoft\.Office\.Interop\.Outlook|Google\.Apis\.Gmail|NETCore\.MailKit|Sib_api_v3_sdk)(\..*)?$
+
+  - id: jgates.csharp.uses-templates
+    message: The project renders server-side templates.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: templates
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: using $M;
+              - pattern: global using $M;
+              - pattern: using static $M;
+              - pattern: using $A = $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(RazorLight|RazorEngine|RazorEngineCore|Razor\.Templating\.Core|Microsoft\.AspNetCore\.Mvc\.Razor|Microsoft\.AspNetCore\.Mvc\.RazorPages|Microsoft\.AspNetCore\.Mvc\.ViewFeatures|Microsoft\.AspNetCore\.Mvc\.Rendering|Microsoft\.AspNetCore\.Razor|Microsoft\.AspNetCore\.Components|System\.Web\.Mvc|System\.Web\.Razor|System\.Web\.WebPages|System\.Web\.UI|Scriban|DotLiquid|Fluid|Stubble|HandlebarsDotNet|Handlebars|Nustache|Mustachio|Cottle|NVelocity|Antlr4\.StringTemplate|SmartFormat|Microsoft\.VisualStudio\.TextTemplating|Mono\.TextTemplating|Mjml\.Net)(\..*)?$
+      - pattern: $B.AddControllersWithViews(...)
+      - pattern: $B.AddRazorPages(...)
+      - pattern: $B.AddRazorComponents(...)
+      - pattern: $B.MapRazorPages(...)
+      - pattern: $B.MapRazorComponents(...)
+      - pattern: $B.MapBlazorHub(...)
+      - pattern: View(...)
+      - pattern: PartialView(...)
+      - pattern: $C.View(...)
+      - pattern: $C.PartialView(...)
+
+  - id: jgates.csharp.uses-file-upload
+    message: The project accepts file uploads.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: file-upload
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: using $M;
+              - pattern: global using $M;
+              - pattern: using static $M;
+              - pattern: using $A = $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(tusdotnet|Microsoft\.AspNetCore\.WebUtilities)(\..*)?$
+      - pattern: $R $F(..., IFormFile $X, ...) { ... }
+      - pattern: $R $F(..., IFormFileCollection $X, ...) { ... }
+      - pattern: $R $F(..., IBrowserFile $X, ...) { ... }
+      - pattern: $R $F(..., HttpPostedFileBase $X, ...) { ... }
+      - pattern: $R $F(..., HttpPostedFile $X, ...) { ... }
+      - pattern: $R $F(..., List<IFormFile> $X, ...) { ... }
+      - pattern: $R $F(..., IList<IFormFile> $X, ...) { ... }
+      - pattern: $R $F(..., IEnumerable<IFormFile> $X, ...) { ... }
+      - pattern: $R $F(..., IEnumerable<HttpPostedFileBase> $X, ...) { ... }
+      - pattern: IFormFile $X
+      - pattern: IFormFileCollection $X
+      - pattern: $R.Form.Files
+      - pattern: $R.Request.Form.Files
+      - pattern: $R.Request.Files
+      - pattern: new MultipartReader(...)
+      - pattern: $R.ReadNextSectionAsync(...)
+      - pattern: $F.SaveAs(...)
+
+  - id: jgates.csharp.uses-archives
+    message: The project reads or writes archive or compressed files.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: archives
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(System\.IO\.Compression|System\.IO\.Packaging|System\.Formats\.Tar|SharpCompress|ICSharpCode\.SharpZipLib|Ionic\.Zip|Ionic\.Zlib|Ionic\.BZip2|SevenZip|SevenZipExtractor|ZstdSharp|ZstdNet|Zstandard\.Net|K4os\.Compression\.LZ4|Joveler\.Compression|Snappier|BrotliSharpLib|Microsoft\.Deployment\.Compression|LibArchive\.Net|Xceed\.Zip|Aspose\.Zip)(\..*)?$
+
+  - id: jgates.csharp.uses-browser-dom
+    message: The project runs C# in the browser and touches the DOM.
+    severity: INFO
+    languages: [csharp]
+    metadata:
+      signal: browser-dom
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: using $M;
+          - pattern: global using $M;
+          - pattern: using static $M;
+          - pattern: using $A = $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(Microsoft\.JSInterop|System\.Runtime\.InteropServices\.JavaScript|Microsoft\.AspNetCore\.Components\.WebAssembly|Microsoft\.AspNetCore\.Components\.Web|Blazored|Bridge\.Html5|Bridge\.jQuery2|Retyped|WebSharper|Uno\.Foundation|Uno\.UI\.Runtime\.WebAssembly|WebAssembly\.Browser|SpawnDev\.BlazorJS)(\..*)?$

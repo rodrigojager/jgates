@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "sqlfluff",
+  "name": "SQLFluff",
+  "sourceUrl": "https://github.com/sqlfluff/sqlfluff",
+  "license": "MIT",
+  "program": {
+    "tool": "sqlfluff",
+    "prefix": [
+      "lint"
+    ],
+    "versionRange": ">=4.5.0 <5.0.0"
+  },
+  "megalinter": [
+    "SQL_SQLFLUFF"
+  ],
+  "place": {
+    "section": "language",
+    "group": "sql",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".sql"
+    ],
+    "requires": [
+      ".sqlfluff"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format",
+      "json",
+      "--disable-progress-bar",
+      "--nocolor",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "items": "[].violations[]",
+    "fields": {
+      "file": "^.filepath",
+      "line": "start_line_no",
+      "column": "start_line_pos",
+      "rule": "code",
+      "message": "description"
+    },
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".sqlfluff",
+      ".sqlfluffignore",
+      "setup.cfg",
+      "tox.ini",
+      "pyproject.toml",
+      "pep8.ini"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "SQLFluff reads the project's .sqlfluff (and .sqlfluffignore, setup.cfg, tox.ini, pyproject.toml, pep8.ini): the dialect and the rules are the project's choice, and the tool only runs when .sqlfluff exists",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: -- noqa comments and .sqlfluffignore",
+      "pattern": "noqa",
+      "files": "\\.sql$"
+    }
+  },
+  "install": "sqlfluff",
+  "text": {
+    "en": {
+      "label": "SQLFluff (SQL)",
+      "purpose": "Lints SQL files for layout, capitalization, aliasing, ambiguity and structure problems, in the dialect the project's .sqlfluff names (ANSI, PostgreSQL, MySQL, BigQuery, Snowflake, T-SQL and many more).",
+      "limitation": "It runs only when the project has a .sqlfluff file, because the dialect cannot be guessed. Templated SQL (Jinja, dbt) needs the project's own templater setup, and its packages are not installed.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "SQLFluff (SQL)",
+      "purpose": "Verifica arquivos SQL quanto a layout, capitalização, apelidos, ambiguidade e estrutura, no dialeto que o .sqlfluff do projeto indica (ANSI, PostgreSQL, MySQL, BigQuery, Snowflake, T-SQL e muitos outros).",
+      "limitation": "Só roda quando o projeto tem um arquivo .sqlfluff, porque o dialeto não pode ser adivinhado. SQL com templates (Jinja, dbt) exige a configuração do templater do próprio projeto, e os pacotes dele não vêm instalados.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

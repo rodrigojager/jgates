@@ -1,0 +1,24 @@
+{
+  "version": "1.57.2",
+  "url": "https://github.com/anchore/syft/releases/download/v{version}/syft_{version}_linux_amd64.tar.gz",
+  "sha256": "ad92bd3ec1b94a3df01d4d0aec199afa9c42b72e86da436ff5f837914d32706b",
+  "archive": "tar.gz",
+  "extract": {
+    "syft": "syft",
+    "LICENSE": "LICENSE"
+  },
+  "executable": [
+    "syft"
+  ],
+  "provides": [
+    {
+      "name": "syft",
+      "link": "syft",
+      "path": "syft",
+      "version": [
+        "syft",
+        "version"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "files": [
+    "sqlfluff_sample.sql"
+  ],
+  "findings": [
+    {
+      "rule": "LT09",
+      "file": "sqlfluff_sample.sql",
+      "line": 1
+    },
+    {
+      "rule": "LT01",
+      "file": "sqlfluff_sample.sql",
+      "line": 1
+    }
+  ]
+}

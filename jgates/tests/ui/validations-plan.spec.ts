@@ -282,7 +282,10 @@ test("Revisar with strict lists every capability of the catalog: will run, not a
     await expect(states).toBeVisible();
     await expect(states.getByTestId("capability-summary")).toContainText("não se aplica");
     // Every capability of the catalog is listed, none silently missing.
-    await expect(states.getByTestId("capability-state")).toHaveCount(28);
+    await expect(states.getByTestId("capability-state")).toHaveCount(31);
+    for (const cap of ["spelling", "links", "sbom"]) {
+      await expect(capRow(page, cap), cap).toHaveAttribute("data-state", "run");
+    }
     await expect(capRow(page, "lint")).toHaveAttribute("data-state", "run");
     await expect(capRow(page, "lint")).toContainText("Vai rodar");
     // Integration runs: the pytest template brings its own integration instance (it has nothing to run here).
@@ -377,7 +380,7 @@ test("Escolher lists every capability too: not applicable ones with the reason, 
     await page.locator('[data-profile="strict"]').click();
     await page.getByTestId("customize").locator("summary").click();
     const customize = page.getByTestId("customize");
-    await expect(customize.getByTestId("capability-state")).toHaveCount(28, { timeout: 60_000 });
+    await expect(customize.getByTestId("capability-state")).toHaveCount(31, { timeout: 60_000 });
     await expect(customize.locator('[data-capability="e2e"]')).toContainText("Não se aplica aqui");
     await expect(customize.locator('[data-capability="mutation"]')).toContainText("Não se aplica aqui");
     await expect(customize.getByTestId("capability-summary")).toContainText("vão rodar");

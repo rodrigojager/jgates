@@ -1,0 +1,12 @@
+{
+  "files": [
+    "cppcheck-sample.cpp"
+  ],
+  "findings": [
+    {
+      "rule": "arrayIndexOutOfBounds",
+      "file": "cppcheck-sample.cpp",
+      "line": 5
+    }
+  ]
+}

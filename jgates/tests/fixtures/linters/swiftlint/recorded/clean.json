@@ -1,0 +1,20 @@
+{
+ "tool": "swiftlint",
+ "kind": "clean",
+ "version": "0.65.1",
+ "calls": [
+  {
+   "args": [
+    "lint",
+    "--strict",
+    "--no-cache",
+    "--quiet",
+    "--reporter",
+    "json"
+   ],
+   "exit": 0,
+   "stdout": "[\n\n]\n",
+   "stderr": ""
+  }
+ ]
+}

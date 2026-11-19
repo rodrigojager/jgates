@@ -1,0 +1,11 @@
+{
+  "files": [
+    "pipeline.smk"
+  ],
+  "findings": [
+    {
+      "rule": "snakefmt.unformatted",
+      "file": "pipeline.smk"
+    }
+  ]
+}

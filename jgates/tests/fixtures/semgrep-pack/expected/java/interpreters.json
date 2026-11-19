@@ -1,0 +1,13 @@
+{
+  "files": ["Interpreters.java"],
+  "ruleIds": [
+    "jgates.java.mail-header-injection",
+    "jgates.java.ldap-injection",
+    "jgates.java.xpath-injection",
+    "jgates.java.template-from-request",
+    "jgates.java.dynamic-code-execution",
+    "jgates.java.jndi-lookup-from-request",
+    "jgates.java.xslt-from-request",
+    "jgates.java.latex-shell-escape"
+  ]
+}

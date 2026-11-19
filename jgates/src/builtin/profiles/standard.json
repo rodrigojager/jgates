@@ -3,8 +3,9 @@
   "profiles": {
     "standard": {
       "label": "Equilibrado",
-      "description": "O Essencial mais SAST, dependências, duplicação, infraestrutura como código e dados pessoais.",
+      "description": "O Essencial mais SAST, dependências, duplicação, infraestrutura como código e dados pessoais, e o linter principal de cada linguagem e formato do projeto.",
       "extends": "builtin:minimal",
+      "tier": "main",
       "checks": {
         "capability:sast": { "enabled": true },
         "capability:dependencies": { "enabled": true },

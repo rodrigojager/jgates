@@ -1,0 +1,17 @@
+{
+ "tool": "raku",
+ "kind": "clean",
+ "version": "2024.09",
+ "calls": [
+  {
+   "args": [
+    "-c",
+    "--",
+    "greet.raku"
+   ],
+   "exit": 0,
+   "stdout": "Syntax OK\n",
+   "stderr": ""
+  }
+ ]
+}

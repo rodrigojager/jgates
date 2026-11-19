@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "id": "pylint",
+  "name": "pylint",
+  "sourceUrl": "https://github.com/pylint-dev/pylint",
+  "license": "GPL-2.0-or-later",
+  "program": {
+    "tool": "pylint",
+    "versionRange": ">=4.0.0 <5.0.0"
+  },
+  "megalinter": [
+    "PYTHON_PYLINT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "python",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".py",
+      ".pyi"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--score=n",
+      "--persistent=n",
+      "--",
+      "{files}"
+    ],
+    "env": {
+      "PYLINTHOME": "/tmp/pylint"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>[^:\\n]+):(?<line>\\d+):(?<column>\\d+): (?<rule>[A-Z]\\d{4}): (?<message>.+)$",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".pylintrc",
+      "pylintrc",
+      "pyproject.toml",
+      "setup.cfg",
+      "tox.ini"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "pylint reads the project's .pylintrc, pylintrc, pyproject.toml ([tool.pylint]), setup.cfg or tox.ini: the project decides the messages",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # pylint: disable comments",
+      "pattern": "#\\s*pylint:\\s*(?:disable|skip-file)",
+      "files": "\\.pyi?$"
+    }
+  },
+  "install": "pylint",
+  "text": {
+    "en": {
+      "label": "pylint (Python)",
+      "purpose": "The Python linter of the PyCQA family: errors, code smells, naming, missing docstrings, unused code and refactoring hints, with a full rule set of its own.",
+      "limitation": "It analyses each file on its own with pylint's default messages unless the project configures it, and it cannot import the project's dependencies, so checks that need them can report import errors or less.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "pylint (Python)",
+      "purpose": "O linter de Python mais completo da família PyCQA: erros, code smells, nomenclatura, docstrings ausentes, código sem uso e sugestões de refatoração, com um conjunto de regras próprio.",
+      "limitation": "Analisa cada arquivo por si, com as mensagens padrão do pylint se o projeto não o configura, e não importa as dependências do projeto, então verificações que as exigem podem reportar erros de importação ou menos.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

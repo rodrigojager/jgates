@@ -6,6 +6,7 @@
  * test does not say in its title that it exercises the capability (`[proves: <adapter>#<capability>]`), or when no
  * limitation is described.
  */
+import { linterEvidence, withDerived } from "../../adapters/linter/derived.js";
 
 export interface TestRef {
   /** File name inside jgates/tests. */
@@ -118,10 +119,16 @@ const bridgeDeclared = (scanners: string): CapabilityEvidence => ({
   },
 });
 
-export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
+const HAND_EVIDENCE: Record<string, AdapterEvidence> = {
   "quality-bridge": {
     capabilities: {
-      lint: bridgeDeclared("MegaLinter"),
+      lint: {
+        tests: [],
+        notIntegrated: {
+          en: "The bridge's MegaLinter subcheck is disabled. JGates runs its own lint tools.",
+          ptBR: "A subverificação MegaLinter da ponte está desativada. O JGates executa suas próprias ferramentas de lint.",
+        },
+      },
       sast: bridgeDeclared("Semgrep"),
       secrets: bridgeDeclared("Gitleaks"),
       dependencies: bridgeDeclared("Trivy and OSV-Scanner"),
@@ -133,8 +140,8 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       "file-size": proven(["any"], t("core-followups.test.js", "the bridge's file-size budget")),
     },
     limitation: {
-      en: "Runs MegaLinter and the scanners through the bridge with the trusted configuration; the project's own linter configs are not used. Only file-size is proven in the default suite: the scanners need the Docker smoke of the bridge (sidecar image).",
-      ptBR: "Roda o MegaLinter e os scanners pela ponte com a configuração confiável; as configurações de linter do projeto não são usadas. Só file-size tem prova na suíte padrão: os scanners precisam do smoke com Docker da ponte (imagem do sidecar).",
+      en: "Governed CI uses the bridge for selected legacy checks with trusted configuration. The MegaLinter subcheck is disabled. The default suite proves file-size; the scanners require Docker acceptance coverage.",
+      ptBR: "O CI governado usa a ponte para verificações legadas selecionadas com configuração confiável. A subverificação MegaLinter está desativada. A suíte padrão comprova file-size. Os scanners exigem testes de aceitação com Docker.",
     },
     external: { en: "Python 3.11+, Docker image for MegaLinter", ptBR: "Python 3.11+, imagem Docker do MegaLinter" },
     otherTests: [t("run-bridge.test.js", "main fixture: one JSON result, valid, run kept outside the project"), t("run-bridge.test.js", "quick mode turns the external tools off")],
@@ -180,11 +187,16 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
   semgrep: {
     capabilities: {
       sast: {
-        // The bundled JGates pack: its vulnerable fixture (Python, JavaScript, TypeScript) yields findings, its clean twin none.
+        // The bundled JGates pack: its vulnerable twin of each language yields the expected rule ids, its clean twin none.
         stacks: {
           python: [t("adapter-semgrep.test.js", "a violation of a local rule comes back"), t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
           javascript: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
           typescript: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
+          go: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable Go twin")],
+          csharp: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable C# twin")],
+          rust: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable Rust twin")],
+          java: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable Java twin")],
+          php: [t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable PHP twin")],
         },
         tests: [t("adapter-semgrep.test.js", "a violation of a local rule comes back"), t("adapter-semgrep.test.js", "the bundled pack flags the vulnerable fixture")],
       },
@@ -342,6 +354,7 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
       iac: proven(["any"], TRIVY),
       secrets: proven(["any"], TRIVY),
       licenses: proven(["any"], t("core-followups.test.js", "Trivy licenses: the recorded license report of 0.72.0")),
+      sbom: proven(["any"], t("adapters-security.test.js", "Trivy 0.76.2 SBOM: the CycloneDX document is read, yields no finding and fails closed when cut or foreign [proves: trivy#sbom]")),
     },
     limitation: {
       en: "Runs in a container only; the vulnerability database is cached in the data folder and recorded with source and date.",
@@ -592,6 +605,9 @@ export const ADAPTER_EVIDENCE: Record<string, AdapterEvidence> = {
     external: { en: "the .NET SDK of the JGates tools image; network to nuget.org (or the project's sources)", ptBR: "o SDK .NET da imagem de ferramentas do JGates; rede até o nuget.org (ou as fontes do projeto)" },
   },
 };
+
+/** Evidence of every built-in adapter: the hand-kept entries and the linter engine's descriptor tools (proven by their test in linters.test.js). */
+export const ADAPTER_EVIDENCE: Readonly<Record<string, AdapterEvidence>> = withDerived(HAND_EVIDENCE, linterEvidence);
 
 /** Operating systems the first version declares: only what was tested. */
 export const OS_STATUS: Record<"linux" | "win32" | "darwin", Bilingual> = {

@@ -1,0 +1,25 @@
+{
+  "files": [
+    "Chart.yaml",
+    "templates/deployment.yaml",
+    "templates/networkpolicy.yaml",
+    "templates/serviceaccount.yaml"
+  ],
+  "findings": [
+    {
+      "rule": "C-0016",
+      "file": "templates/deployment.yaml",
+      "line": 1
+    },
+    {
+      "rule": "C-0017",
+      "file": "templates/deployment.yaml",
+      "line": 1
+    },
+    {
+      "rule": "C-0057",
+      "file": "templates/deployment.yaml",
+      "line": 1
+    }
+  ]
+}

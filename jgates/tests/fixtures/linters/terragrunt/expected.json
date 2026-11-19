@@ -1,0 +1,11 @@
+{
+  "files": [
+    "terragrunt.hcl"
+  ],
+  "findings": [
+    {
+      "rule": "terragrunt.unformatted",
+      "file": "terragrunt.hcl"
+    }
+  ]
+}

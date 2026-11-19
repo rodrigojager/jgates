@@ -1,0 +1,12 @@
+{
+  "files": [
+    "analysis.R"
+  ],
+  "findings": [
+    {
+      "rule": "assignment_linter",
+      "file": "analysis.R",
+      "line": 1
+    }
+  ]
+}

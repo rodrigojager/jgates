@@ -1,0 +1,323 @@
+# JavaScript / TypeScript web-protocol checks: security headers, Content-Security-Policy, WebSocket, GraphQL, redirects,
+# forwarded headers and JSX markup.
+# Libraries covered: helmet, express (res.redirect, req.get, req.headers), koa (ctx.redirect), fastify (reply.redirect),
+# next (NextResponse.redirect), the browser WebSocket and the ws package, socket.io, ApolloServer, express-graphql,
+# NestJS GraphQLModule, and React JSX (script, link, applet, object, embed).
+# The open-redirect sources are the ones of javascript-taint.yaml plus koa and fastify request objects and the
+# browser location.
+rules:
+  - id: jgates.js.security-headers-disabled
+    message: A security header is switched off in the middleware options (or HSTS lasts under a year). Keep the helmet defaults, or set a real policy such as hsts with maxAge 31536000 or more.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.1", "V3.4.3", "V3.4.4", "V3.4.6"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: 'helmet({..., $K: false, ...})'
+                  - pattern: 'helmet.$M({..., $K: false, ...})'
+              - metavariable-regex:
+                  metavariable: $K
+                  regex: ^(contentSecurityPolicy|hsts|strictTransportSecurity|noSniff|xContentTypeOptions|frameguard|xFrameOptions)$
+          - patterns:
+              - pattern-either:
+                  - pattern: 'helmet({..., hsts: {..., maxAge: $N, ...}, ...})'
+                  - pattern: 'helmet({..., strictTransportSecurity: {..., maxAge: $N, ...}, ...})'
+                  - pattern: 'helmet.hsts({..., maxAge: $N, ...})'
+                  - pattern: 'helmet.strictTransportSecurity({..., maxAge: $N, ...})'
+              - metavariable-comparison:
+                  metavariable: $N
+                  comparison: $N < 31536000
+          - pattern: helmet.contentSecurityPolicy(false)
+          - pattern: helmet.hsts(false)
+
+  - id: jgates.js.csp-unsafe-directive
+    message: A Content-Security-Policy lets scripts run from anywhere ('unsafe-inline', 'unsafe-eval' or a bare *). Allow scripts by nonce or hash and list the hosts you trust.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-693"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.4.3"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: '"$S"'
+              - metavariable-regex:
+                  metavariable: $S
+                  regex: (?i).*?(script-src|default-src)[^;]*?('unsafe-inline'|'unsafe-eval'|\s\*(\s|;|"|'|`|$))
+          - patterns:
+              - pattern-either:
+                  - pattern: "{..., scriptSrc: [..., $S, ...], ...}"
+                  - pattern: "{..., defaultSrc: [..., $S, ...], ...}"
+                  - pattern: "{..., 'script-src': [..., $S, ...], ...}"
+                  - pattern: "{..., 'default-src': [..., $S, ...], ...}"
+                  - pattern: "{..., scriptSrcElem: [..., $S, ...], ...}"
+              - metavariable-regex:
+                  metavariable: $S
+                  regex: ^(["'`])('unsafe-inline'|'unsafe-eval'|\*)\1$
+
+  - id: jgates.js.websocket-without-tls
+    message: A WebSocket is opened to a ws:// address that is not this machine, so the traffic is readable and changeable on the network. Use a wss:// address.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: transport
+      cwe: "CWE-319"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: new WebSocket($U, ...)
+          - pattern: new WebSocket.WebSocket($U, ...)
+          - pattern: new ReconnectingWebSocket($U, ...)
+          - pattern: io($U, ...)
+          - pattern: io.connect($U, ...)
+      - metavariable-regex:
+          metavariable: $U
+          regex: ^["'`]ws://(?!(localhost|127\.\d+\.\d+\.\d+|\[::1\]|0\.0\.0\.0)([:/"'`]|$))
+
+  - id: jgates.js.websocket-origin-not-checked
+    message: The WebSocket server accepts connections from every origin, so any web page can open one for a logged-in visitor. Compare the Origin header with an allow-list of your own origins.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-1385"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.4.2"]
+    pattern-either:
+      - pattern: 'new WebSocket.Server({..., verifyClient: (...) => true, ...})'
+      - pattern: 'new WebSocket.Server({..., verifyClient: function (...) { return true; }, ...})'
+      - pattern: 'new WebSocket.Server({..., verifyClient: ($I, $CB) => $CB(true, ...), ...})'
+      - pattern: 'new WebSocketServer({..., verifyClient: (...) => true, ...})'
+      - pattern: 'new WebSocketServer({..., verifyClient: function (...) { return true; }, ...})'
+      - pattern: 'new WebSocketServer({..., verifyClient: ($I, $CB) => $CB(true, ...), ...})'
+      - pattern: 'new Server($H, {..., cors: {..., origin: "*", ...}, ...})'
+      - pattern: 'new Server($H, {..., cors: {..., origin: true, ...}, ...})'
+      - pattern: 'new Server({..., cors: {..., origin: "*", ...}, ...})'
+      - pattern: 'new Server({..., cors: {..., origin: true, ...}, ...})'
+      - pattern: 'new Server($H, {..., allowRequest: ($R, $CB) => $CB(null, true), ...})'
+
+  - id: jgates.js.graphql-introspection-enabled
+    message: The GraphQL server has introspection switched on, which hands the whole schema to anyone who asks. Turn it off for production (introspection false) unless the API is meant to be explored.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-200"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.2"]
+    pattern-either:
+      - pattern: 'new ApolloServer({..., introspection: true, ...})'
+      - pattern: 'new ApolloServer<$T>({..., introspection: true, ...})'
+      - pattern: 'GraphQLModule.forRoot({..., introspection: true, ...})'
+      - pattern: 'GraphQLModule.forRoot<$T>({..., introspection: true, ...})'
+      - pattern: 'graphqlHTTP({..., introspection: true, ...})'
+
+  - id: jgates.js.graphql-without-depth-limit
+    message: The GraphQL server is created with no depth, amount or cost limit, so one deep query can exhaust it. Add a validation rule such as a depth limit or a query cost plugin.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: availability
+      cwe: "CWE-770"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V4.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: new ApolloServer({...})
+          - pattern: new ApolloServer<$T>({...})
+          - pattern: graphqlHTTP({...})
+      - pattern-not: 'new ApolloServer({..., validationRules: $V, ...})'
+      - pattern-not: 'new ApolloServer<$T>({..., validationRules: $V, ...})'
+      - pattern-not: 'new ApolloServer({..., plugins: $V, ...})'
+      - pattern-not: 'new ApolloServer<$T>({..., plugins: $V, ...})'
+      - pattern-not: 'graphqlHTTP({..., validationRules: $V, ...})'
+      - pattern-not: 'graphqlHTTP({..., customValidateFn: $V, ...})'
+
+  - id: jgates.js.open-redirect
+    message: The redirect target comes from the incoming request, so a link can send visitors to any site. Redirect only to a path that starts with a single slash and a name, or to a host from an allow-list.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-601"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V3.7.2"]
+    pattern-sources:
+      - pattern: req.query
+      - pattern: req.body
+      - pattern: req.params
+      - pattern: request.query
+      - pattern: request.body
+      - pattern: request.params
+      - pattern: ctx.query
+      - pattern: ctx.params
+      - pattern: ctx.request.query
+      - pattern: ctx.request.body
+      - pattern: location.search
+      - pattern: location.hash
+    pattern-sanitizers:
+      - pattern: safeRedirect(...)
+      - pattern: sanitizeRedirect(...)
+      - pattern: encodeURIComponent(...)
+      - patterns:
+          - pattern: '"$P" + $X'
+          - metavariable-regex:
+              metavariable: $P
+              regex: ^["']?/[^/\\"']
+    pattern-sinks:
+      - patterns:
+          - pattern: $RES.redirect($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $RES.redirect($STATUS, $U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $RES.location($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: $RES.setHeader("Location", $U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: '$RES.writeHead($STATUS, {..., Location: $U, ...})'
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: NextResponse.redirect($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: Response.redirect($U, ...)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: window.location.href = $U
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: window.location = $U
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: location.href = $U
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: location.assign($U)
+          - focus-metavariable: $U
+      - patterns:
+          - pattern: location.replace($U)
+          - focus-metavariable: $U
+
+  - id: jgates.js.client-ip-from-forwarded-header
+    message: The client address is read from a forwarding header whose trust boundary is not visible here. Confirm that only trusted proxies can reach the application and overwrite this header, or configure the trusted proxy chain and read req.ip, or use the connection address.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      class: review
+      category: authorization
+      cwe: "CWE-348"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V15.3.4", "V4.1.3"]
+    patterns:
+      - pattern-either:
+          - pattern: $REQ.headers[$H]
+          - pattern: $REQ.headers.get($H)
+          - pattern: $REQ.get($H)
+          - pattern: $REQ.header($H)
+          - pattern: $REQ.getHeader($H)
+      - metavariable-regex:
+          metavariable: $H
+          regex: (?i)^["'`](x-forwarded-for|x-real-ip|x-client-ip|forwarded|x-originating-ip)["'`]$
+
+  - id: jgates.js.host-header-in-url
+    message: An absolute URL is built from the request's Host header, which the client controls, so links in e-mails or redirects can be poisoned. Build it from a configured public base URL.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-644"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V4.1.3"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $S + $REQ.headers.host
+                  - pattern: $S + $REQ.headers["host"]
+                  - pattern: $S + $REQ.get("host")
+                  - pattern: $S + $REQ.header("host")
+                  - pattern: $S + $REQ.headers["x-forwarded-host"]
+                  - pattern: $S + $REQ.headers.get("host")
+              - metavariable-regex:
+                  metavariable: $S
+                  regex: ^["']?(https?:)?//["']?$
+          - pattern: "`https://${$REQ.headers.host}...`"
+          - pattern: "`http://${$REQ.headers.host}...`"
+          - pattern: "`https://${$REQ.get(\"host\")}...`"
+          - pattern: "`http://${$REQ.get(\"host\")}...`"
+          - pattern: "`https://${$REQ.headers.get(\"host\")}...`"
+
+  - id: jgates.js.external-script-without-integrity
+    message: A script or stylesheet is loaded from another host without an integrity attribute, so a changed file would run unchecked. Add integrity with a hash and crossOrigin, or serve the file yourself.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-829"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.6.1"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: <script ... src="$U" ... />
+              - metavariable-regex:
+                  metavariable: $U
+                  regex: ^(https?:)?//
+          - patterns:
+              - pattern: <link ... rel="stylesheet" ... href="$U" ... />
+              - metavariable-regex:
+                  metavariable: $U
+                  regex: ^(https?:)?//
+          - patterns:
+              - pattern: <link ... href="$U" ... rel="stylesheet" ... />
+              - metavariable-regex:
+                  metavariable: $U
+                  regex: ^(https?:)?//
+      - pattern-not: <$T ... integrity=... ... />
+
+  - id: jgates.js.deprecated-plugin-content
+    message: The page embeds browser plugin content (applet, Flash, ActiveX or Silverlight), which browsers no longer run and which was a common attack path. Replace it with standard HTML, video or script.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: configuration
+      cwe: "CWE-477"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V3.7.1"]
+    pattern-either:
+      - pattern: <applet ... />
+      - pattern: <object ... classid=... ... />
+      - patterns:
+          - pattern-either:
+              - pattern: <object ... data="$U" ... />
+              - pattern: <embed ... src="$U" ... />
+              - pattern: <object ... type="$U" ... />
+              - pattern: <embed ... type="$U" ... />
+          - metavariable-regex:
+              metavariable: $U
+              regex: (?i).*(\.swf|\.xap|x-shockwave-flash|x-silverlight|futuresplash)

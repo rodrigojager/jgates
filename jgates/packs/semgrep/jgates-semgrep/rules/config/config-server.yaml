@@ -1,0 +1,186 @@
+# Configuration file rules, family "server": TLS versions and cipher suites, directory listing, the TRACE method and
+# version tokens in the configuration files of a web server or framework.
+#
+# The rules read text, not a syntax tree: every rule is a set of regular expressions (Semgrep language `generic`)
+# limited by `paths.include` to the file names of the formats it reads. Each regular expression starts at the
+# beginning of a directive or of a key, so a commented-out line never matches, and the safe setting of the same
+# directive (for example `ssl_protocols TLSv1.2 TLSv1.3;`, `autoindex off;`, `TraceEnable Off`) stays silent.
+#
+# Formats read, by rule:
+#   config.tls-old-protocol-version  nginx (`ssl_protocols`), Apache httpd (`SSLProtocol`), Spring `application.properties`
+#                                    and `application.yml` (the `enabled-protocols` key, also as `SERVER_SSL_ENABLED_PROTOCOLS`
+#                                    in a `.env` file), .NET `appsettings.json` (Kestrel `SslProtocols`), Tomcat `server.xml`
+#   config.tls-weak-cipher-suite     nginx (`ssl_ciphers`), Apache httpd (`SSLCipherSuite`), Spring properties, yml and env
+#                                    (the `ciphers` key), Tomcat `server.xml`
+#   config.directory-listing-enabled nginx (`autoindex`), Apache httpd and `.htaccess` (`Options`), lighttpd, Caddy (`browse`),
+#                                    IIS `web.config` (`directoryBrowse`), Tomcat `web.xml` (`listings`)
+#   config.http-trace-enabled        Apache httpd (`TraceEnable`), Tomcat `server.xml` (`allowTrace`), IIS `web.config` (`verbs`)
+#   config.version-header-exposed    nginx (`server_tokens`), Apache httpd and `.htaccess` (`ServerTokens`, `ServerSignature`),
+#                                    `php.ini` (`expose_php`), IIS `web.config`, Tomcat `server.xml`
+#
+# Only an explicit unsafe setting is a finding; a setting that is merely absent is never reported (the rule cannot see the
+# server default). Cipher lists follow the OpenSSL syntax: a name after `!` or `-` removes the suite and is safe.
+rules:
+  - id: jgates.config.tls-old-protocol-version
+    message: A server configuration enables SSL 3, TLS 1.0 or TLS 1.1, which are broken or deprecated. Allow only TLSv1.2 and TLSv1.3.
+    severity: ERROR
+    languages: [generic]
+    metadata:
+      category: transport
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.1"]
+    paths:
+      include:
+        - "*.conf"
+        - "*.properties"
+        - "*.yml"
+        - "*.yaml"
+        - "*.env"
+        - ".env"
+        - ".env.*"
+        - "appsettings*.json"
+        - "server.xml"
+        - "config-server.xml"
+    pattern-either:
+      - pattern-regex: |-
+          (?im)^[ \t]*(?:proxy_)?ssl_protocols\b[^;#]*(?<![\w.])(?:SSLv[23]|TLSv1(?:\.[01])?)(?![\w.])
+      - pattern-regex: |-
+          (?im)^[ \t]*SSL(?:Proxy)?Protocol(?![^\n#]*(?<![\w.])-TLSv1(?:\.0)?(?![\w.])[^\n#]*(?<![\w.])-TLSv1\.1(?![\w.]))(?![^\n#]*(?<![\w.])-TLSv1\.1(?![\w.])[^\n#]*(?<![\w.])-TLSv1(?:\.0)?(?![\w.]))[^\n#]*[ \t](?:\+?(?:SSLv[23]|TLSv1(?:\.[01])?)|all)(?![\w.])
+      - pattern-regex: |-
+          (?im)^[ \t]*[\w.-]*enabled[-_]?protocols(?:\[\d*\])?[ \t]*[=:][^\n#]*(?<![\w.])(?:SSLv[23]|TLSv1(?:\.[01])?)(?![\w.])
+      - pattern-regex: |-
+          (?im)^[ \t]*[\w.-]*enabled[-_]?protocols[ \t]*:[ \t]*(?:#[^\n]*)?\n(?:[ \t]*-[^\n]*\n)*?[ \t]*-[ \t]*["']?(?:SSLv[23]|TLSv1(?:\.[01])?)(?![\w.])
+      - pattern-regex: |-
+          (?i)"SslProtocols"[ \t]*:[ \t]*(?:\[[^\]]*|"[^"]*)(?<![\w.])(?:Ssl2|Ssl3|Tls|Tls11)(?![\w.])
+      - pattern-regex: |-
+          (?is)<(?:Connector|SSLHostConfig)\b[^>]*?\b(?:sslEnabledProtocols|sslProtocol|protocols)[ \t\r\n]*=[ \t]*"[^"]*?(?<![\w.])(?:SSLv[23]|TLSv1(?:\.[01])?)(?![\w.])
+
+  - id: jgates.config.tls-weak-cipher-suite
+    message: A cipher list enables null, export, RC4, DES or 3DES suites, which give no or broken protection. List only AEAD suites such as ECDHE with AES-GCM or ChaCha20-Poly1305, and exclude the weak ones with a leading "!".
+    severity: WARNING
+    languages: [generic]
+    metadata:
+      category: transport
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.1.2"]
+    paths:
+      include:
+        - "*.conf"
+        - "*.properties"
+        - "*.yml"
+        - "*.yaml"
+        - "*.env"
+        - ".env"
+        - ".env.*"
+        - "server.xml"
+        - "config-server.xml"
+    pattern-either:
+      - pattern-regex: |-
+          (?m)^[ \t]*(?i:(?:proxy_)?ssl_ciphers)[ \t]+[^;#\n]*?(?<=[:,\s"'=])(?![!+-])[^\s:,"';=]*?(?<![A-Za-z0-9])(?:[ae]NULL|NULL|EXP(?:ORT)?(?:40|56)?|RC4|3DES|DES)(?![A-Za-z0-9])
+      - pattern-regex: |-
+          (?m)^[ \t]*(?i:SSL(?:Proxy)?CipherSuite)[ \t]+[^#\n]*?(?<=[:,\s"'=])(?![!+-])[^\s:,"';=]*?(?<![A-Za-z0-9])(?:[ae]NULL|NULL|EXP(?:ORT)?(?:40|56)?|RC4|3DES|DES)(?![A-Za-z0-9])
+      - pattern-regex: |-
+          (?m)^[ \t]*(?i:[\w.-]*ciphers(?:\[\d*\])?)[ \t]*[=:][^\n#]*?(?<=[:,\s"'=])(?![!+-])[^\s:,"';=]*?(?<![A-Za-z0-9])(?:[ae]NULL|NULL|EXP(?:ORT)?(?:40|56)?|RC4|3DES|DES)(?![A-Za-z0-9])
+      - pattern-regex: |-
+          (?m)^[ \t]*(?i:[\w.-]*ciphers)[ \t]*:[ \t]*(?:#[^\n]*)?\n(?:[ \t]*-[^\n]*\n)*?[ \t]*-[ \t]*(?<=[:,\s"'=])(?![!+-])[^\s:,"';=]*?(?<![A-Za-z0-9])(?:[ae]NULL|NULL|EXP(?:ORT)?(?:40|56)?|RC4|3DES|DES)(?![A-Za-z0-9])
+      - pattern-regex: |-
+          (?s)<(?:Connector|SSLHostConfig)\b[^>]*?\bciphers[ \t\r\n]*=[ \t]*"[^"]*?(?<=[:,\s"'=])(?![!+-])[^\s:,"';=]*?(?<![A-Za-z0-9])(?:[ae]NULL|NULL|EXP(?:ORT)?(?:40|56)?|RC4|3DES|DES)(?![A-Za-z0-9])
+
+  - id: jgates.config.directory-listing-enabled
+    message: The server is set to list the files of a directory that has no index page, which shows file names a visitor was not meant to find. Switch the listing off and serve only named files.
+    severity: WARNING
+    languages: [generic]
+    metadata:
+      category: configuration
+      cwe: "CWE-548"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.3"]
+    paths:
+      include:
+        - "*.conf"
+        - "*.htaccess"
+        - ".htaccess"
+        - "*.config"
+        - "*.xml"
+        - "Caddyfile"
+    pattern-either:
+      - pattern-regex: |-
+          (?im)^[ \t]*autoindex[ \t]+on[ \t]*;
+      - pattern-regex: |-
+          (?im)^[ \t]*Options[ \t]+(?:[^#\n]*[ \t])?\+?Indexes\b
+      - pattern-regex: |-
+          (?im)^[ \t]*Options[ \t]+(?![^#\n]*-Indexes)(?:[^#\n]*[ \t])?\+?All\b
+      - pattern-regex: |-
+          (?im)^[ \t]*dir-listing\.activate[ \t]*=[ \t]*["']enable["']
+      - pattern-regex: |-
+          (?im)^[ \t]*file_server\b[^#\n]*\bbrowse\b
+      - pattern-regex: |-
+          (?is)<directoryBrowse\b[^>]*\benabled[ \t\r\n]*=[ \t]*["']true["']
+      - pattern-regex: |-
+          (?is)<param-name>\s*listings\s*</param-name>\s*<param-value>\s*true\s*</param-value>
+
+  - id: jgates.config.http-trace-enabled
+    message: The TRACE method is switched on, which echoes the request back to the caller and can expose headers and cookies. Turn it off (TraceEnable Off, allowTrace false, or a denied TRACE verb).
+    severity: WARNING
+    languages: [generic]
+    metadata:
+      category: configuration
+      cwe: "CWE-16"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.4"]
+    paths:
+      include:
+        - "*.conf"
+        - "*.config"
+        - "*.xml"
+    pattern-either:
+      - pattern-regex: |-
+          (?im)^[ \t]*TraceEnable[ \t]+(?:On|Extended)\b
+      - pattern-regex: |-
+          (?is)<Connector\b[^>]*?\ballowTrace[ \t\r\n]*=[ \t]*["']true["']
+      - pattern-regex: |-
+          (?is)<add\b(?=[^>]*\bverb[ \t\r\n]*=[ \t]*["']TRACE["'])(?=[^>]*\ballowed[ \t\r\n]*=[ \t]*["']true["'])[^>]*>
+
+  - id: jgates.config.version-header-exposed
+    message: The server is set to state its name and version (or the framework behind it) in responses and error pages, which helps an attacker pick known flaws. Switch the version tokens off.
+    severity: INFO
+    languages: [generic]
+    metadata:
+      category: configuration
+      cwe: "CWE-497"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V13.4.6"]
+    paths:
+      include:
+        - "*.conf"
+        - "*.htaccess"
+        - ".htaccess"
+        - "*.ini"
+        - "*.config"
+        - "*.xml"
+    pattern-either:
+      - pattern-regex: |-
+          (?im)^[ \t]*server_tokens[ \t]+(?:on|build)[ \t]*;
+      - pattern-regex: |-
+          (?im)^[ \t]*ServerTokens[ \t]+(?:Full|OS|Minor|Minimal|Min|Major)\b
+      - pattern-regex: |-
+          (?im)^[ \t]*ServerSignature[ \t]+(?:On|EMail)\b
+      - pattern-regex: |-
+          (?im)^[ \t]*expose_php[ \t]*=[ \t]*["']?(?:On|1|true|yes)\b
+      - pattern-regex: |-
+          (?is)<httpRuntime\b[^>]*?\benableVersionHeader[ \t\r\n]*=[ \t]*["']true["']
+      - pattern-regex: |-
+          (?is)<requestFiltering\b[^>]*?\bremoveServerHeader[ \t\r\n]*=[ \t]*["']false["']
+      - pattern-regex: |-
+          (?is)<add\b(?=[^>]*\bname[ \t\r\n]*=[ \t]*["']X-Powered-By["'])(?=[^>]*\bvalue[ \t\r\n]*=[ \t]*["'][^"'])[^>]*>
+      - pattern-regex: |-
+          (?is)<Connector\b[^>]*?\bxpoweredBy[ \t\r\n]*=[ \t]*["']true["']
+      - pattern-regex: |-
+          (?is)<Valve\b[^>]*?\bshowServerInfo[ \t\r\n]*=[ \t]*["']true["']

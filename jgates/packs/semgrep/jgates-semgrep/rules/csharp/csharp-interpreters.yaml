@@ -1,0 +1,282 @@
+# Interpreter injection other than SQL and the shell, for C#.
+# Sources named by the taint rules: string parameters of ASP.NET Core controller actions and of minimal API handlers
+# (MapGet, MapPost), and members of HttpRequest (Query, Form, Headers, Cookies, RouteValues). The analysis stays inside
+# one method. Sinks: System.DirectoryServices (LDAP), System.Xml.XPath and System.Xml.Linq (XPath), Scriban, DotLiquid,
+# Fluid, Handlebars.Net and RazorEngine style template compilers, XslCompiledTransform (XSLT); the pattern rules cover
+# Roslyn scripting, CodeDom, DataTable expressions and the TeX programs started through System.Diagnostics.Process.
+rules:
+  - id: jgates.csharp.ldap-injection
+    message: Request data is joined into an LDAP filter or distinguished name and used in a directory search. Escape each value with Encoder.LdapFilterEncode (filter) or Encoder.LdapDistinguishedNameEncode (DN), or pass only fixed filters.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-90"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.6"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+    pattern-sanitizers:
+      - pattern: Encoder.LdapFilterEncode(...)
+      - pattern: Encoder.LdapDistinguishedNameEncode(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: new DirectorySearcher($E, $F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: new DirectorySearcher($F)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: $S.Filter = $F;
+          - pattern-inside: |
+              DirectorySearcher $S = $INIT;
+              ...
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: new SearchRequest($DN, $F, ...)
+          - focus-metavariable: $F
+      - patterns:
+          - pattern: new DirectoryEntry($PATH, ...)
+          - focus-metavariable: $PATH
+
+  - id: jgates.csharp.xpath-injection
+    message: Request data is joined into an XPath expression that is compiled or evaluated. Keep the expression a literal and pass the value through an XsltContext or XPathVariableResolver variable.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-643"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.7"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+    pattern-sinks:
+      - patterns:
+          - pattern: $N.SelectNodes($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $N.SelectSingleNode($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: XPathExpression.Compile($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: (XPathNavigator $N).Compile($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $N.Evaluate($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $N.Select($X)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $E.XPathSelectElement($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $E.XPathSelectElements($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: $E.XPathEvaluate($X, ...)
+          - focus-metavariable: $X
+
+  - id: jgates.csharp.template-from-request
+    message: A template source is built from request data and compiled or rendered, so the caller can run template code. Load a fixed template and pass request data only as the model.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-1336"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.7"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+    pattern-sinks:
+      - patterns:
+          - pattern: Template.Parse($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: Handlebars.Compile($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: (FluidParser $PARSER).Parse($T)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: (FluidParser $PARSER).TryParse($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: new FluidParser(...).Parse($T)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: Engine.Razor.RunCompile($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: Engine.Razor.Compile($T, ...)
+          - focus-metavariable: $T
+      - patterns:
+          - pattern: $ENGINE.CompileRenderStringAsync($K, $T, ...)
+          - focus-metavariable: $T
+
+  - id: jgates.csharp.dynamic-code-execution
+    message: A value that is not a literal is evaluated as C# code or as an expression. Do not evaluate text at runtime; map the input to a fixed set of operations instead.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: injection
+      cwe: "CWE-95"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.2"]
+    patterns:
+      - pattern-either:
+          - pattern: CSharpScript.EvaluateAsync($X, ...)
+          - pattern: CSharpScript.EvaluateAsync<$T>($X, ...)
+          - pattern: CSharpScript.Create($X, ...)
+          - pattern: CSharpScript.Create<$T>($X, ...)
+          - pattern: CSharpScript.RunAsync($X, ...)
+          - pattern: CSharpSyntaxTree.ParseText($X, ...)
+          - pattern: $P.CompileAssemblyFromSource($O, $X)
+          - pattern: DynamicExpressionParser.ParseLambda($A, $B, $X, ...)
+          - pattern: new DataTable().Compute($X, ...)
+          - pattern: (DataTable $T).Compute($X, ...)
+      # The evaluated text must not be a plain literal; a literal script is fixed code, not an injection.
+      - metavariable-pattern:
+          metavariable: $X
+          patterns:
+            - pattern: $Z
+            - pattern-not: '"..."'
+
+  - id: jgates.csharp.latex-shell-escape
+    message: A TeX program is started with the shell-escape switch, so a document can run operating system commands. Drop the switch, or use -shell-restricted with a fixed allow-list of programs.
+    severity: ERROR
+    languages: [csharp]
+    metadata:
+      category: injection
+      cwe: "CWE-78"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.8"]
+    patterns:
+      - pattern-either:
+          - pattern: Process.Start($F, $A)
+          - pattern: new ProcessStartInfo($F, $A)
+          - pattern: $P.Arguments = $A;
+          - pattern: new ProcessStartInfo { ..., Arguments = $A, ... }
+          - pattern: $P.ArgumentList.Add($A)
+      - metavariable-regex:
+          metavariable: $A
+          regex: '[\s"$@]-{1,2}(shell-escape|enable-write18|write18)\b'
+
+  - id: jgates.csharp.xslt-from-request
+    message: A stylesheet that comes from the incoming request is loaded into an XSLT processor, so the caller can run stylesheet code. Load a fixed stylesheet and pass request data as an XSLT argument.
+    severity: WARNING
+    languages: [csharp]
+    mode: taint
+    metadata:
+      category: injection
+      cwe: "CWE-91"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.3.5"]
+    pattern-sources:
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              public $R $M(..., string $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapGet(..., (..., string $P, ...) => {
+                ...
+              });
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $APP.MapPost(..., (..., string $P, ...) => {
+                ...
+              });
+      - pattern: Request.Query[...]
+      - pattern: Request.Form[...]
+      - pattern: Request.Headers[...]
+      - pattern: Request.Cookies[...]
+      - pattern: Request.RouteValues[...]
+    pattern-sinks:
+      - patterns:
+          - pattern: (XslCompiledTransform $T).Load($S, ...)
+          - focus-metavariable: $S
+      - patterns:
+          - pattern: (XslTransform $T).Load($S, ...)
+          - focus-metavariable: $S

@@ -70,5 +70,10 @@
   "semcfg_reset": "Back to the defaults",
   "semcfg_provider_none": "None yet",
   "semcfg_provider_change": "Change",
-  "semcfg_provider_choose": "Choose the provider"
+  "semcfg_provider_choose": "Choose the provider",
+  "semcfg_method_asvs-review": "ASVS review",
+  "semcfg_method_asvs-review_hint": "an AI review of the source against the ASVS requirements no deterministic check examined; needs a finished Quality run and shows its cost before it starts",
+  "semcfg_methods_select_all": "Select all methods",
+  "semcfg_methods_clear": "Clear the selection",
+  "semcfg_asvs_no_quality": "The ASVS review cannot start: it reviews what the latest Quality run's coverage map left unexamined, and this workspace has no finished Quality run. Validate the project first."
 }

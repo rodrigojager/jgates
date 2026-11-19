@@ -1,0 +1,12 @@
+{
+  "files": [
+    ".github/workflows/actionlint-workflow.yml"
+  ],
+  "findings": [
+    {
+      "rule": "expression",
+      "file": ".github/workflows/actionlint-workflow.yml",
+      "line": 7
+    }
+  ]
+}

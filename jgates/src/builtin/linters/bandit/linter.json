@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "bandit",
+  "name": "bandit",
+  "sourceUrl": "https://github.com/PyCQA/bandit",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "bandit",
+    "versionRange": ">=1.7.0 <2.0.0"
+  },
+  "megalinter": [
+    "PYTHON_BANDIT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "python",
+    "capability": "sast",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".py",
+      ".pyi",
+      ".ipynb"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-q",
+      "-f",
+      "sarif",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      ".bandit",
+      ".bandit.yml",
+      "pyproject.toml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "bandit reads the [tool.bandit] table of the project's pyproject.toml; the project decides the tests and skips",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # nosec comments",
+      "pattern": "#\\s*nosec",
+      "files": "\\.(?:pyi?|ipynb)$"
+    }
+  },
+  "install": "bandit",
+  "text": {
+    "en": {
+      "label": "bandit (Python security)",
+      "purpose": "Looks for common security problems in Python code: shell calls with shell=True, hard-coded passwords, weak hashes, unsafe deserialization and similar patterns.",
+      "limitation": "It reads the code without running it and reports patterns, some of them false positives; ruff's S rules are off by default.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "bandit (Python security)",
+      "purpose": "Procura problemas comuns de segurança em código Python: chamadas de shell com shell=True, senhas fixas no código, hashes fracos, desserialização insegura e padrões parecidos.",
+      "limitation": "Lê o código sem executá-lo e reporta padrões, alguns deles falsos positivos; as regras S do ruff vêm desligadas por padrão.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

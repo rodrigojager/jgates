@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "rstcheck",
+      "link": "rstcheck",
+      "path": "bin/rstcheck",
+      "version": [
+        "rstcheck",
+        "--version"
+      ]
+    }
+  ]
+}

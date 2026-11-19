@@ -1,0 +1,37 @@
+{
+  "files": [
+    "Tally.java"
+  ],
+  "findings": [
+    {
+      "rule": "com.puppycrawl.tools.checkstyle.checks.javadoc.JavadocPackageCheck",
+      "file": "Tally.java",
+      "line": 1
+    },
+    {
+      "rule": "com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck",
+      "file": "Tally.java",
+      "line": 2
+    },
+    {
+      "rule": "com.puppycrawl.tools.checkstyle.checks.javadoc.JavadocVariableCheck",
+      "file": "Tally.java",
+      "line": 2
+    },
+    {
+      "rule": "com.puppycrawl.tools.checkstyle.checks.design.DesignForExtensionCheck",
+      "file": "Tally.java",
+      "line": 4
+    },
+    {
+      "rule": "com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocMethodCheck",
+      "file": "Tally.java",
+      "line": 4
+    },
+    {
+      "rule": "com.puppycrawl.tools.checkstyle.checks.FinalParametersCheck",
+      "file": "Tally.java",
+      "line": 4
+    }
+  ]
+}

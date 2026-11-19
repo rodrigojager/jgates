@@ -1,0 +1,11 @@
+{
+  "files": ["ErrorsLogging.cs"],
+  "ruleIds": [
+    "jgates.csharp.sensitive-data-logged",
+    "jgates.csharp.sensitive-data-logged-header",
+    "jgates.csharp.stack-trace-in-response",
+    "jgates.csharp.error-detail-in-response",
+    "jgates.csharp.swallowed-exception",
+    "jgates.csharp.outbound-request-follows-redirects"
+  ]
+}

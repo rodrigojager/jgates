@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "isort",
+  "name": "isort",
+  "sourceUrl": "https://github.com/PyCQA/isort",
+  "license": "MIT",
+  "program": {
+    "tool": "isort",
+    "versionRange": ">=5.0.0 <10.0.0"
+  },
+  "megalinter": [
+    "PYTHON_ISORT"
+  ],
+  "place": {
+    "section": "language",
+    "group": "python",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".py",
+      ".pyi",
+      ".pyx",
+      ".pxd"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--check-only",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stderr",
+    "reader": "lines",
+    "pattern": "^ERROR: (?<file>.+?) (?<message>Imports are incorrectly sorted and/or formatted)\\.$",
+    "rule": "isort.unsorted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".isort.cfg",
+      "pyproject.toml",
+      "setup.cfg",
+      "tox.ini",
+      ".editorconfig"
+    ],
+    "default": "isort-default.cfg",
+    "args": [
+      "--settings-file",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "isort reads the project's .isort.cfg, pyproject.toml ([tool.isort]), setup.cfg, tox.ini or .editorconfig; without one it uses the black profile, as MegaLinter did",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # isort: skip, # isort: skip_file and # isort: off comments",
+      "pattern": "#\\s*isort:\\s*(?:skip|skip_file|off|on|split)",
+      "files": "\\.(?:pyi?|pyx|pxd)$"
+    }
+  },
+  "install": "isort",
+  "text": {
+    "en": {
+      "label": "isort (Python imports)",
+      "purpose": "Checks that the imports of Python files are sorted and grouped the way isort writes them. It only reports the file; it never rewrites it.",
+      "limitation": "It reports the files whose imports differ, not the lines; without a project configuration it uses the black profile (as MegaLinter ran it with --profile black), and ruff's I rules are off by default.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "isort (Python imports)",
+      "purpose": "Verifica se os imports dos arquivos Python estão ordenados e agrupados como o isort os escreveria. Só reporta o arquivo; nunca o reescreve.",
+      "limitation": "Reporta os arquivos cujos imports diferem, não as linhas; sem uma configuração do projeto usa o perfil black (como o MegaLinter rodava, com --profile black), e as regras I do ruff vêm desligadas por padrão.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

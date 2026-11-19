@@ -115,8 +115,30 @@ def rustsec():
     return "https://github.com/RustSec/advisory-db"
 
 
+def grype():
+    new = DATA + "/grype.new"
+    shutil.rmtree(new, ignore_errors=True)
+    os.makedirs(new)
+    run(["grype", "db", "update"], env={"GRYPE_DB_CACHE_DIR": new, "GRYPE_CHECK_FOR_APP_UPDATE": "false"})
+    if not [n for _, _, names in os.walk(new) for n in names if n.endswith(".db")]:
+        sys.exit("grype did not write its database")
+    swap(new, DATA + "/grype")
+    return "https://grype.anchore.io/databases"
+
+
+def kubescape():
+    new = DATA + "/kubescape.new"
+    shutil.rmtree(new, ignore_errors=True)
+    os.makedirs(new)
+    run(["kubescape", "download", "artifacts", "--output", new], env={"KUBESCAPE_SKIP_UPDATE_CHECK": "true"})
+    if not [n for _, _, names in os.walk(new) for n in names]:
+        sys.exit("kubescape did not download any artifact")
+    swap(new, DATA + "/kubescape")
+    return "https://github.com/kubescape/regolibrary"
+
+
 database = sys.argv[1]
-source = {"trivy": trivy, "osv": osv, "govulndb": govulndb, "rustsec": rustsec}[database]()
+source = {"trivy": trivy, "osv": osv, "govulndb": govulndb, "rustsec": rustsec, "grype": grype, "kubescape": kubescape}[database]()
 stamp(database, source)
 print("jgates-data: %s updated" % database)
 `;

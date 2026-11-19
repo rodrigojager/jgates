@@ -19,7 +19,7 @@ export const trivyManifest: AdapterManifest = {
   platforms: ["linux", "darwin", "win32"],
   cpuArchitectures: ["x64"],
   categories: ["dependencies", "infrastructure", "security"],
-  capabilities: ["dependencies", "iac", "secrets", "licenses"],
+  capabilities: ["dependencies", "iac", "secrets", "licenses", "sbom"],
   granularity: ["workspace", "component"],
   minimumContext: ["workspace"],
   configFiles: [
@@ -43,6 +43,8 @@ export const trivyManifest: AdapterManifest = {
     needsService: false,
     usesAi: false,
     needsLicense: false,
+    // Reads the synchronized copy of the project only: its step may run beside others (ADR-0023).
+    onlyReadsProject: true,
   },
   redirection: { flags: ["--output", "--cache-dir", "--skip-version-check", "--disable-telemetry"], env: ["HOME", "TMPDIR"], unavoidableWorkspaceWrites: [] },
   toggles: { togglable: [], perRunByFlag: false },
@@ -52,6 +54,7 @@ export const trivyManifest: AdapterManifest = {
   kind: "tool",
   limitations: [
     "runs only in a step container of the JGates tools image, never as a process of the host",
+    "an SBOM instance (capability sbom) runs `trivy fs --format cyclonedx` with no scanner: it writes the project's CycloneDX bill of materials (sbom.cdx.json) to the run folder as an artifact, finds no vulnerability, needs no database, and fails only when the document cannot be produced; it runs alone (it is not combined with the scanner capabilities)",
     "final-image mode: tools.<id>.imageRef (an image reference) or imageTarball (a docker save archive) replaces the filesystem scan with `trivy image` (vulnerabilities only, network for the database); Trivy runs in a step container of the JGates tools image, and without a running container engine the stage is blocked, never passed; JGates never builds or pulls the scanned image (a registry reference is read by Trivy itself, over the network), and the scan cannot be cancelled once started (the stage timeout bounds it)",
     "offline: the vulnerability database is read from the jgates-data volume (mounted read-only, --skip-db-update --offline-scan, no network); the checks embedded in Trivy are used and the Java database is not read; without the data the stage is blocked (DATA_MISSING) and older than execution.dataMaxAgeDays it is DATA_STALE",
   ],
@@ -60,6 +63,7 @@ export const trivyManifest: AdapterManifest = {
     { capability: "iac", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
     { capability: "secrets", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
     { capability: "licenses", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
+    { capability: "sbom", stack: "any", state: "validated", prerequisites: ["Docker", "the JGates tools image (jgates setup)"] },
   ],
   distribution: {
     mode: "prepared-from-authorized-source",

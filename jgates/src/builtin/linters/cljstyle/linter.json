@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "cljstyle",
+  "name": "cljstyle",
+  "sourceUrl": "https://github.com/greglook/cljstyle",
+  "license": "EPL-1.0",
+  "program": {
+    "tool": "cljstyle",
+    "prefix": [
+      "--no-color",
+      "check"
+    ],
+    "versionRange": ">=0.17.0 <0.18.0"
+  },
+  "megalinter": [
+    "CLOJURE_CLJSTYLE"
+  ],
+  "place": {
+    "section": "language",
+    "group": "clojure",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".clj",
+      ".cljs",
+      ".cljc",
+      ".edn"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "files",
+    "pattern": "^\\+\\+\\+ (?:b/)?(?<file>.+)$",
+    "rule": "format",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".cljstyle"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "cljstyle reads the project's .cljstyle files (in any directory): the project decides the indentation rules, the line endings and which files to skip",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: ^:cljstyle/ignore metadata on a form and the :files ignore patterns of .cljstyle",
+      "pattern": ":cljstyle/ignore",
+      "files": "\\.(clj|cljs|cljc|edn)$"
+    }
+  },
+  "install": "cljstyle",
+  "text": {
+    "en": {
+      "label": "cljstyle (Clojure formatting)",
+      "purpose": "Checks that Clojure, ClojureScript and EDN files follow cljstyle's layout (indentation, blank lines between forms, spacing); a file cljstyle would rewrite is reported.",
+      "limitation": "It names the file, not the line; run cljstyle fix locally to rewrite the files. Without a .cljstyle file it uses its own defaults.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "cljstyle (formatação de Clojure)",
+      "purpose": "Verifica se os arquivos Clojure, ClojureScript e EDN seguem o layout do cljstyle (indentação, linhas em branco entre formas, espaçamento); um arquivo que o cljstyle reescreveria é apontado.",
+      "limitation": "Aponta o arquivo, não a linha; rode cljstyle fix localmente para reescrever os arquivos. Sem um arquivo .cljstyle ele usa os próprios padrões.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

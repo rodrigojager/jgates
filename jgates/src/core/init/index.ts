@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
+import { censusHasEvidence, forgetCensus } from "../../adapters/linter/census.js";
 import { builtinProfileBody, getBuiltinProfile, getBuiltinTemplate } from "../../builtin/index.js";
 import { CONFIG_DIR, FRAGMENT_FILES, ROOT_FILE, ROOT_SCHEMA_VERSION } from "../config/load/index.js";
 import { discoverWorkspace } from "../discovery/index.js";
@@ -153,6 +154,8 @@ function hasEvidenceOf(projectDir: string, id: string): boolean {
   const match = getBuiltinTemplate(`builtin:${id}`)?.value.match as { files?: unknown[] } | undefined;
   const files = (match?.files ?? []).filter((f): f is string => typeof f === "string");
   return files.some((file) => {
+    // A file anywhere in the project: the engine's file census decides.
+    if (file.includes("**/")) return censusHasEvidence(projectDir, file, null);
     if (!file.includes("*")) return fs.existsSync(path.join(projectDir, ...file.split("/")));
     const slash = file.lastIndexOf("/");
     const pattern = new RegExp(`^${file.slice(slash + 1).split("*").map((p) => p.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*")}$`);
@@ -246,6 +249,8 @@ export function planInit(projectDir: string, profile: string): InitPlan {
   // Shell scripts and Dockerfiles are not a language: their lint templates come in by the files themselves.
   if (hasEvidenceOf(projectDir, "shell-shellcheck")) templates.push({ id: "shell-shellcheck", source: "builtin:shell-shellcheck", evidence: true });
   if (hasEvidenceOf(projectDir, "docker-hadolint")) templates.push({ id: "docker-hadolint", source: "builtin:docker-hadolint", evidence: true });
+  // JSON and YAML files are data, not a language: prettier's data template comes in by the files themselves.
+  if (hasEvidenceOf(projectDir, "data-prettier")) templates.push({ id: "data-prettier", source: "builtin:data-prettier", evidence: true });
   // SQL migration files are not a language either: the SQL migration linter comes in by the files themselves.
   if (hasEvidenceOf(projectDir, "sql-squawk")) templates.push({ id: "sql-squawk", source: "builtin:sql-squawk", evidence: true });
   return {
@@ -272,6 +277,9 @@ export function writeInit(projectDir: string, plan: InitPlan): string[] {
   } catch (error) {
     for (const file of written) fs.rmSync(path.join(projectDir, file), { force: true });
     throw error;
+  } finally {
+    // planInit read the file census; what was just written must show in the next one of this same task.
+    forgetCensus(projectDir);
   }
   return written;
 }

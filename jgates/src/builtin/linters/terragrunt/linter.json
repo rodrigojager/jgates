@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "terragrunt",
+  "name": "terragrunt",
+  "sourceUrl": "https://github.com/gruntwork-io/terragrunt",
+  "license": "MIT",
+  "program": {
+    "tool": "terragrunt",
+    "versionRange": ">=1.2.2 <2.0.0"
+  },
+  "megalinter": [
+    "TERRAFORM_TERRAGRUNT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "terraform",
+    "capability": "format-check",
+    "kind": "format",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".hcl"
+    ]
+  },
+  "run": {
+    "mode": "each-file",
+    "args": [
+      "hcl",
+      "fmt",
+      "--check",
+      "--diff",
+      "--file",
+      "{file}"
+    ],
+    "env": {
+      "TG_NO_COLOR": "true",
+      "TG_LOG_DISABLE": "true"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "status",
+    "rule": "terragrunt.unformatted",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "terragrunt hcl fmt has no configuration: the canonical HCL style is the rule",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the formatter has no in-file suppression"
+    }
+  },
+  "install": "terragrunt",
+  "text": {
+    "en": {
+      "label": "terragrunt (HCL format)",
+      "purpose": "Checks that Terragrunt HCL files are formatted the way terragrunt hcl fmt writes them: indentation, alignment and spacing. It only reports the difference; it never rewrites a file.",
+      "limitation": "It reports the file, not the line, and checks the format only: it does not resolve includes or dependencies.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "terragrunt (formato HCL)",
+      "purpose": "Verifica se os arquivos HCL do Terragrunt estão formatados como o terragrunt hcl fmt os escreveria: indentação, alinhamento e espaçamento. Só relata a diferença; nunca reescreve um arquivo.",
+      "limitation": "Relata o arquivo, não a linha, e verifica só o formato: não resolve includes nem dependências.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

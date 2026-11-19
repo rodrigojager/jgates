@@ -1,0 +1,14 @@
+{
+  "files": ["web-protocol.php"],
+  "ruleIds": [
+    "jgates.php.security-headers-disabled",
+    "jgates.php.csp-unsafe-directive",
+    "jgates.php.websocket-without-tls",
+    "jgates.php.websocket-origin-not-checked",
+    "jgates.php.graphql-introspection-enabled",
+    "jgates.php.graphql-without-depth-limit",
+    "jgates.php.open-redirect",
+    "jgates.php.client-ip-from-forwarded-header",
+    "jgates.php.host-header-in-url"
+  ]
+}

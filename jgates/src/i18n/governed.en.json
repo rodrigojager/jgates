@@ -1,4 +1,5 @@
 {
+  "governed_linter_network_excluded": "jgates ci excludes {adapter} because it needs network access. The policy must set execution.network to allow.",
   "governed_suppressions_label": "Suppressions in the code (jgates ci)",
   "governed_suppressions_reason": "jgates ci reports every suppression comment of the analyzed commit",
   "governed_suppressions_done": "{files, plural, one {# file} other {# files}} read: {count, plural, one {# suppression comment} other {# suppression comments}}, {blocking} still honored by a check of this run",

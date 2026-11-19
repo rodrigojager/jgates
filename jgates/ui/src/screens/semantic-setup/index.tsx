@@ -43,6 +43,8 @@ interface Preview {
   };
   ready: boolean;
   blockers: Array<{ code: string; message: string }>;
+  /** Only with asvs-review chosen: the requirements it will review and what it may cost. */
+  asvsReview?: { qualityRun: string | null; asvsVersion: string | null; level: number | null; count: number; units: Array<{ id: string }>; budget: { maxCalls: number } } | null;
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -152,7 +154,24 @@ function ProviderBar({ semantic, onChange }: { semantic: SemanticInfo; onChange:
   );
 }
 
-function PreviewStep({ preview, options, choices, onProvider }: { preview: Preview; options: SemanticOptions; choices: RunChoices; onProvider: () => void }) {
+/** The cost confirmation of the ASVS review: how many requirements it reviews and what it may spend, confirmed before Start. */
+function AsvsReviewConfirm({ plan, confirmed, onChange }: { plan: NonNullable<Preview["asvsReview"]>; confirmed: boolean; onChange: (next: boolean) => void }) {
+  // A refused plan (no Quality run, nothing to review) has no count: the blocker above says why, and there is nothing to confirm.
+  if (plan.count === 0) return null;
+  return (
+    <section className="card flat stack" aria-labelledby="semsetup-asvs" data-testid="semsetup-asvs" data-count={plan.count}>
+      <h2 id="semsetup-asvs">{t("semsetup_asvs_title")}</h2>
+      <p data-testid="semsetup-asvs-count">{t("semsetup_asvs_count", { count: plan.count, version: plan.asvsVersion ?? "-", level: plan.level ?? "-", qualityRun: plan.qualityRun ?? "-", units: plan.units.length, calls: plan.budget.maxCalls })}</p>
+      <p className="small muted">{t("semsetup_asvs_ai")}</p>
+      <label className="row" style={{ gap: 8 }}>
+        <input type="checkbox" checked={confirmed} onChange={(e) => onChange(e.target.checked)} data-testid="semsetup-asvs-confirm" />
+        <span>{t("semsetup_asvs_confirm")}</span>
+      </label>
+    </section>
+  );
+}
+
+function PreviewStep({ preview, options, choices, onProvider, asvsConfirmed, onAsvsConfirmed }: { preview: Preview; options: SemanticOptions; choices: RunChoices; onProvider: () => void; asvsConfirmed: boolean; onAsvsConfirmed: (next: boolean) => void }) {
   const r = preview.resolution;
   const rigor = options.rigors.find((x) => x.id === choices.rigor);
   const calls = preview.budget?.maxCalls ?? rigor?.defaultCalls ?? options.settings.limits?.maxCalls ?? 0;
@@ -199,6 +218,7 @@ function PreviewStep({ preview, options, choices, onProvider }: { preview: Previ
         </dl>
         {r.completion.claim === "scope-only" ? <p className="small muted">{t("semres_claim_scope_only")}</p> : null}
       </section>
+      {preview.asvsReview ? <AsvsReviewConfirm plan={preview.asvsReview} confirmed={asvsConfirmed} onChange={onAsvsConfirmed} /> : null}
       {preview.methods && preview.methods.length > 0 ? (
         <section className="card flat stack" aria-labelledby="semsetup-methods" data-testid="semsetup-methods">
           <h2 id="semsetup-methods">{t("semsetup_pv_methods")}</h2>
@@ -287,6 +307,8 @@ export default function SemanticSetupScreen() {
   const [choices, setChoices] = useState<RunChoices>(() => readChoices());
   const [attachQuality, setAttachQuality] = useState(false);
   const [preview, setPreview] = useState<Preview | null>(null);
+  // The ASVS review starts only after the person confirmed its cost; any new preview asks again.
+  const [asvsConfirmed, setAsvsConfirmed] = useState(false);
   const [busy, setBusy] = useState<"preview" | "start" | null>(null);
   const [failure, setFailure] = useState<unknown>(null);
   const options = useAsync(() => api<SemanticOptions>("GET", "/api/semantic/options"), "semantic-options");
@@ -298,6 +320,7 @@ export default function SemanticSetupScreen() {
     try {
       writeScope(scope);
       writeChoices(choices);
+      setAsvsConfirmed(false);
       setPreview(await api<Preview>("POST", "/api/semantic/scope/preview", requestBody(choices, scope)));
       setStep("preview");
     } catch (e) {
@@ -401,7 +424,7 @@ export default function SemanticSetupScreen() {
           ) : null}
         </section>
       ) : null}
-      {step === "preview" && preview && options.data ? <PreviewStep preview={preview} options={options.data} choices={choices} onProvider={() => setStep("provider")} /> : null}
+      {step === "preview" && preview && options.data ? <PreviewStep preview={preview} options={options.data} choices={choices} onProvider={() => setStep("provider")} asvsConfirmed={asvsConfirmed} onAsvsConfirmed={setAsvsConfirmed} /> : null}
       {step !== null && step !== "provider" ? (
       <div className="row wrap">
         {step !== "scope" ? (
@@ -421,7 +444,7 @@ export default function SemanticSetupScreen() {
           </button>
         ) : null}
         {step === "preview" && preview ? (
-          <button type="button" className="btn primary" onClick={() => void start()} disabled={busy !== null || !preview.ready} data-testid="semsetup-start">
+          <button type="button" className="btn primary" onClick={() => void start()} disabled={busy !== null || !preview.ready || (preview.asvsReview != null && preview.asvsReview.count > 0 && !asvsConfirmed)} data-testid="semsetup-start">
             {busy === "start" ? <Spinner /> : <Icon name="play" />}
             {t("semsetup_start")}
           </button>

@@ -1,0 +1,20 @@
+{
+ "tool": "dotenv-linter",
+ "kind": "bad",
+ "version": "4.0.0",
+ "calls": [
+  {
+   "args": [
+    "check",
+    "--plain",
+    "--skip-updates",
+    "--quiet",
+    "--",
+    "settings.env"
+   ],
+   "exit": 1,
+   "stdout": "settings.env:1 LowercaseKey: The database_url key should be in uppercase\n",
+   "stderr": ""
+  }
+ ]
+}

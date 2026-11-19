@@ -1,0 +1,17 @@
+{
+ "tool": "tofu-validate",
+ "kind": "bad",
+ "version": "1.13.9",
+ "calls": [
+  {
+   "args": [
+    "validate",
+    "-json",
+    "-no-color"
+   ],
+   "exit": 1,
+   "stdout": "{\n  \"format_version\": \"1.0\",\n  \"valid\": false,\n  \"error_count\": 1,\n  \"warning_count\": 0,\n  \"diagnostics\": [\n    {\n      \"severity\": \"error\",\n      \"summary\": \"Reference to undeclared input variable\",\n      \"detail\": \"An input variable with the name \\\"nope\\\" has not been declared. This variable can be declared with a variable \\\"nope\\\" {} block.\",\n      \"range\": {\n        \"filename\": \"validate-me.tf\",\n        \"start\": {\n          \"line\": 2,\n          \"column\": 11,\n          \"byte\": 29\n        },\n        \"end\": {\n          \"line\": 2,\n          \"column\": 19,\n          \"byte\": 37\n        }\n      },\n      \"snippet\": {\n        \"context\": \"output \\\"missing\\\"\",\n        \"code\": \"  value = var.nope\",\n        \"start_line\": 2,\n        \"highlight_start_offset\": 10,\n        \"highlight_end_offset\": 18,\n        \"values\": []\n      }\n    }\n  ]\n}\n",
+   "stderr": ""
+  }
+ ]
+}

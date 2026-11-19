@@ -446,6 +446,9 @@
     "provenance": {
       "$ref": "#/$defs/provenance"
     },
+    "waivers": {
+      "$ref": "#/$defs/waivers"
+    },
     "policy": {
       "type": "object",
       "description": "Governed runs (jgates ci) only: the CI policy the run was held to. sha256 is the hash of the canonical manifest of the bundle (the value of JGATES_POLICY_SHA256); files are the bundle files in manifest order.",
@@ -672,6 +675,21 @@
           "type": "integer",
           "minimum": 0
         },
+        "newReview": { "type": "integer", "minimum": 0 },
+        "keptReview": { "type": "integer", "minimum": 0 },
+        "resolvedReview": { "type": "integer", "minimum": 0 },
+        "newInformational": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "keptInformational": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resolvedInformational": {
+          "type": "integer",
+          "minimum": 0
+        },
         "resolved": {
           "type": "array",
           "items": {
@@ -693,9 +711,20 @@
               },
               "path": {
                 "type": "string"
+              },
+              "line": {
+                "type": "integer",
+                "minimum": 1
               }
             }
           }
+        },
+        "matchedBy": {
+          "enum": [
+            "anchor",
+            "fingerprint",
+            "mixed"
+          ]
         }
       }
     }
@@ -909,6 +938,22 @@
         "cache": {
           "$ref": "#/$defs/stageCache"
         },
+        "scannedLanguages": {
+          "description": "Semgrep stage: how many files of each language the scan covered, from the scanner's own list of scanned paths. Keys are the pack language ids (javascript, typescript, python, go, csharp, rust, java, php) or other language names; a language of the pack with no file is recorded as 0.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "signals": {
+          "description": "Semgrep stage with the bundled JGates pack: for every technology tag of a signal rule of the pack, how many results its rules had (0 when none). The results of signal rules are this record of the scan, never findings; it feeds the 'not applicable' suggestions of the ASVS map.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
         "analysisInput": {
           "description": "What the analysis read besides the code, as the tool reports it: the vulnerability database (source, date) of Trivy and OSV-Scanner.",
           "type": "object",
@@ -1074,6 +1119,14 @@
             "legacy-verdict"
           ]
         },
+        "review": {
+          "type": "boolean",
+          "description": "A finding to review: it never blocks the validation and excludes informational. Shown and counted apart."
+        },
+        "informational": {
+          "type": "boolean",
+          "description": "The tool reported the finding as informational: it never blocks the validation and cannot be waived. Shown and counted apart."
+        },
         "waived": {
           "type": "boolean"
         },
@@ -1101,12 +1154,33 @@
         "waiverId": {
           "type": "string"
         },
+        "waiverSource": {
+          "enum": ["project", "flag", "policy"],
+          "description": "Where the waiver that waived the finding came from: the project's .jgates/waivers.json, jgates run --waiver, or the pinned CI policy."
+        },
+        "waiverExpires": {
+          "type": "string",
+          "description": "End date (YYYY-MM-DD) of the waiver that waived the finding, when it has one."
+        },
+        "anchor": {
+          "type": "string",
+          "pattern": "^jga1:[0-9a-f]{32}$",
+          "description": "Identity of one occurrence for waivers: hash of the tool, rule, normalized path, the flagged line's text with white space collapsed, and the position among the findings of that tool, rule and file on an equal line. Absent without a line, for a file that cannot be read, and for the secrets and personal-data categories. Never in the SARIF export."
+        },
         "baselineState": {
           "enum": [
             "new",
             "unchanged"
           ],
           "description": "Against the baseline run: new or kept."
+        },
+        "asvsRequirements": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^V[0-9]+\\.[0-9]+\\.[0-9]+$"
+          },
+          "description": "The ASVS requirement ids the rule of a bundled pack was written for. A label of intent: it never says a requirement is or is not met. Only findings of the bundled pack carry it."
         }
       }
     },
@@ -1736,7 +1810,63 @@
         },
         "semanticPrompts": {
           "$ref": "#/$defs/semanticPrompts"
+        },
+        "waivers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sha256", "count"],
+          "description": "The waivers in force for the run (the project's file and --waiver, or the policy's): sha256 of the entries and their sources in order, and how many. Not part of the identity; the comparison with the previous validation reads it.",
+          "properties": {
+            "sha256": { "$ref": "#/$defs/hash" },
+            "count": { "type": "integer", "minimum": 0 }
+          }
         }
+      }
+    },
+    "waivers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "findings", "applied", "unmatched", "stale", "expired"],
+      "description": "What the waivers did in the run. A waiver never changes the state of a check and the decision keeps its meaning; count above zero on a passed run reads as approved with waivers.",
+      "properties": {
+        "count": { "type": "integer", "minimum": 0, "description": "How many waivers applied to at least one non-Review finding; reviewed findings alone preserve plain approval." },
+        "findings": { "type": "integer", "minimum": 0, "description": "How many non-Review findings they waived. Reviewed findings remain listed in applied." },
+        "applied": { "type": "array", "items": { "$ref": "#/$defs/waiverRecord" } },
+        "unmatched": { "type": "array", "items": { "$ref": "#/$defs/waiverRecord" }, "description": "Live waivers that waived nothing." },
+        "stale": { "type": "array", "items": { "$ref": "#/$defs/waiverRecord" }, "description": "Waivers that cannot be matched safely (the flagged line or the number of findings of the file changed); they do not apply." },
+        "expired": { "type": "array", "items": { "$ref": "#/$defs/waiverRecord" } },
+        "refused": { "type": "array", "items": { "$ref": "#/$defs/waiverRecord" }, "description": "With --no-waivers: the waivers that would have applied." },
+        "problem": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "message"],
+          "description": "The project's waiver file could not be read: none of its waivers applied and the findings stayed active.",
+          "properties": {
+            "file": { "type": "string", "minLength": 1 },
+            "message": { "type": "string" }
+          }
+        }
+      }
+    },
+    "waiverRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "id", "findings"],
+      "properties": {
+        "source": { "enum": ["project", "flag", "policy"] },
+        "id": { "type": "string", "description": "The id the waived findings carry in waiverId." },
+        "tool": { "type": "string" },
+        "rule": { "type": "string" },
+        "path": { "type": "string", "description": "The file, or the path pattern of a hand-written waiver." },
+        "line": { "type": "integer", "minimum": 1 },
+        "fingerprint": { "type": "string" },
+        "anchor": { "type": "string" },
+        "reason": { "type": "string" },
+        "created": { "type": "string" },
+        "expires": { "type": "string" },
+        "findings": { "type": "integer", "minimum": 0, "description": "How many findings of the run it waived." },
+        "reviewed": { "type": "integer", "minimum": 0, "description": "Of these findings, how many were marked as reviewed; excluded from approval wording." },
+        "cause": { "enum": ["line-changed", "count-changed"], "description": "Stale waivers: why." }
       }
     },
     "semanticPrompts": {

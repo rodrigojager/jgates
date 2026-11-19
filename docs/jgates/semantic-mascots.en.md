@@ -4,6 +4,9 @@ The Semantic gate has its own six mascots, one per phase of the Cloudflare secur
 models of the same family as the six Quality mascots (satin vinyl, the family's eyes, arms and boots) with a clear brain
 capsule on top; Quality's mascots never show AI work and these never show a Quality domain.
 
+The names below are the mascots' ids in the code and the run records. The screens never show them: like the Quality strip,
+each mascot is titled with what it does (its phase), with its status under it.
+
 | Mascot | Phase | Stages it shows |
 |---|---|---|
 | Atlas (compass) | Reconnaissance: map the code, its surfaces and trust boundaries, and plan the coverage | `reconnaissance`, `coverage-planning`, `semantic-context` |
@@ -36,8 +39,9 @@ Each stage belongs to exactly one mascot. A stage id is read without its module 
 
 ## States
 
-Waiting, working, done, incomplete, failed and cancelled. A badge in the corner repeats the state, so color is not the
-only signal.
+Waiting, working, done, incomplete, failed and cancelled. Under each mascot the state is written with the same icon and
+color as a Quality status (waiting: hourglass, in amber; working: a turning arrow; done: a check, in green; failed: an
+alert, in red; incomplete: info; cancelled: stop), so neither color nor movement is the only signal.
 
 - `done` needs every stage of the mascot to be completed. Missing stages, an exhausted budget or a stage that was not run
   show `incomplete`; an invalid, timed-out or failed stage shows `failed`.
@@ -72,7 +76,7 @@ front of the body is reached round the body, never through it.
 While a mascot works, currents run along the tracks of the brain in the capsule, each track at its own speed and some
 against the others, on a clock all the mascots share; the brain glows steadily once done, and gives three slow sparks
 and goes dark on a failure. A waiting mascot is dimmed and only breathes while another one works; a cancelled one comes
-to rest. "Working" also pulses the badge. With `prefers-reduced-motion` nothing moves: every state shows its still pose
+to rest. "Working" also turns its status icon in pulses. With `prefers-reduced-motion` nothing moves: every state shows its still pose
 (for "working", one moment of the action).
 
 Two mascots have a second build that is kept for comparison (`variants` in
@@ -80,7 +84,7 @@ Two mascots have a second build that is kept for comparison (`variants` in
 hopping to strike the block instead of holding a balance, and Seal with arms instead of without.
 
 Where WebGL is unavailable each mascot shows its pre-rendered still image (`jgates/ui/src/mascots/semantic/fallback/`,
-rendered from the same models by `node jgates/scripts/render-semantic-mascots.mjs`) with the same label and badge. The
+rendered from the same models by `node jgates/scripts/render-semantic-mascots.mjs`) with the same label and status. The
 pictures have a transparent background, so the light and dark themes use the same drawing.
 
-Every mascot has `role="img"` and an accessible label with its name, phase and state, in English and Portuguese.
+Every mascot has `role="img"` and an accessible label with its phase and state, in English and Portuguese.

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "codespell",
+  "name": "codespell",
+  "sourceUrl": "https://github.com/codespell-project/codespell",
+  "license": "GPL-2.0-only",
+  "program": {
+    "tool": "codespell",
+    "versionRange": ">=2.4.3 <3.0.0"
+  },
+  "megalinter": [
+    "SPELL_CODESPELL"
+  ],
+  "place": {
+    "section": "other",
+    "group": "spelling",
+    "capability": "spelling",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".md",
+      ".mdx",
+      ".markdown",
+      ".html",
+      ".htm",
+      ".rst",
+      ".txt",
+      ".json",
+      ".jsonc",
+      ".json5",
+      ".yaml",
+      ".yml"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        65
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+): (?<message>.+)$",
+    "rule": "typo",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".codespellrc",
+      "setup.cfg",
+      "pyproject.toml"
+    ],
+    "default": "codespell-ignore-pt-br.txt",
+    "args": [
+      "--ignore-words",
+      "{config}",
+      "--builtin",
+      "clear,rare",
+      "--ignore-regex",
+      "(?<![A-Za-z])[A-Za-z]{2}(?![A-Za-z])"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "codespell reads the project's .codespellrc, setup.cfg or pyproject.toml; without one JGates applies its own settings: the English typo lists (clear, rare), a list of Portuguese words to ignore, and two-letter tokens skipped",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: a codespell:ignore comment on a line, and the ignore words and regular expression of the project's configuration",
+      "pattern": "codespell:ignore"
+    }
+  },
+  "install": "codespell",
+  "text": {
+    "en": {
+      "label": "codespell (spelling)",
+      "purpose": "Finds common misspellings in text and source files using a list of known typos and their corrections.",
+      "limitation": "It matches known typos only, in English; JGates' own settings ignore Portuguese words and two-letter tokens when the project has no codespell configuration. It does not check grammar.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "codespell (ortografia)",
+      "purpose": "Encontra erros de digitação comuns em arquivos de texto e de código usando uma lista de erros conhecidos e suas correções.",
+      "limitation": "Só reconhece erros conhecidos, em inglês; a configuração própria do JGates ignora palavras em português e termos de duas letras quando o projeto não tem configuração do codespell. Não verifica gramática.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

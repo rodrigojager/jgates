@@ -1,0 +1,602 @@
+{
+  "version": "5.0.0",
+  "chapter": "V4",
+  "entries": [
+    {
+      "requirement": "V4.1.1",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "capability",
+          "id": "zap#dast",
+          "findingRules": [
+            "10019-1",
+            "10019-2"
+          ],
+          "covers": "The passive alerts for a response with no content type header or an empty one, on the responses the scan reached.",
+          "misses": "The part only a deployed system shows: whether the type matches the body, the charset parameter, and responses the scan did not request.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The ZAP alert reports a response with a missing or empty content type on the pages it reached; the correct type and charset of every response is a fact of the running system.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V4.1.2",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": [],
+      "why": "Redirect behavior between schemes is defined by the deployed server or proxy configuration."
+    },
+    {
+      "requirement": "V4.1.3",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.client-ip-from-forwarded-header",
+          "covers": "Points at Headers indexing, TryGetValue, GetCommaSeparatedValues or ContainsKey for the named client-address forwarding headers in C#.",
+          "misses": "Protection may exist in trusted-proxy or ingress configuration the rule cannot see. ContainsKey only tests presence; other headers, cross-function values and actual use of the result for authorization are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.host-header-in-url",
+          "covers": "An absolute URL built from the request's Host header, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Hosts forwarded by an intermediary in headers the rule does not read, values that cross a function, and what the proxy in front overwrites. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.client-ip-from-forwarded-header",
+          "covers": "Points at Header.Get, Header.Values, GetHeader, Get or header-map indexing for the named client-address forwarding headers in Go.",
+          "misses": "Protection may exist in trusted-proxy or ingress configuration the rule cannot see. Other headers and cross-function values are missed; use for authorization and client control are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.host-header-in-url",
+          "covers": "An absolute URL built from the request's Host header, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Hosts forwarded by an intermediary in headers the rule does not read, values that cross a function, and what the proxy in front overwrites. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.client-ip-from-forwarded-header",
+          "covers": "Points at the named header readers and RequestHeader or HeaderParam annotations for client-address forwarding headers in Java.",
+          "misses": "Protection may exist in trusted-proxy or ingress configuration the rule cannot see. Other headers and cross-function values are missed; use for authorization and client control are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.host-header-in-url",
+          "covers": "An absolute URL built from the request's Host header, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Hosts forwarded by an intermediary in headers the rule does not read, values that cross a function, and what the proxy in front overwrites. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.client-ip-from-forwarded-header",
+          "covers": "Points at the named header readers and headers indexing for literal client-address forwarding header names in JavaScript and TypeScript.",
+          "misses": "Protection may exist in trusted-proxy or ingress configuration the rule cannot see. Other headers and dynamic keys are missed; use for authorization and client control are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.host-header-in-url",
+          "covers": "An absolute URL built from the request's Host header, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Hosts forwarded by an intermediary in headers the rule does not read, values that cross a function, and what the proxy in front overwrites. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.client-ip-from-forwarded-header",
+          "covers": "Points at the named client-address forwarding headers in SERVER entries, framework readers, getallheaders or apache_request_headers in PHP.",
+          "misses": "Protection may exist in trusted-proxy or ingress configuration the rule cannot see. Other headers and dynamic keys are missed; use for authorization and client control are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.host-header-in-url",
+          "covers": "An absolute URL built from the request's Host header, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Hosts forwarded by an intermediary in headers the rule does not read, values that cross a function, and what the proxy in front overwrites. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.client-ip-from-forwarded-header",
+          "covers": "Points at headers, META or environ reads of the named literal client-address forwarding header keys in Python.",
+          "misses": "Protection may exist in trusted-proxy or ingress configuration the rule cannot see. Other headers and dynamic keys are missed; use for authorization and client control are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.host-header-in-url",
+          "covers": "An absolute URL built from the request's Host header, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Hosts forwarded by an intermediary in headers the rule does not read, values that cross a function, and what the proxy in front overwrites. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.client-ip-from-forwarded-header",
+          "covers": "Points at get or get_all reads of the named forwarding header strings or constants, and connection_info().realip_remote_addr() in Rust.",
+          "misses": "Protection may exist in trusted-proxy or ingress configuration the rule cannot see. Other headers and dynamic keys are missed; generic get receivers are not type constrained and use for authorization is not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.host-header-in-url",
+          "covers": "An absolute URL built from the request's Host header, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "Hosts forwarded by an intermediary in headers the rule does not read, values that cross a function, and what the proxy in front overwrites. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Host and forwarded-header trust",
+          "covers": "A model checks who can supply host and proxy metadata and whether trusted ingress strips client-sent copies.",
+          "misses": "The behavior of the real ingress layer, which source review cannot confirm; only the application code it reads.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The host-header rules flag URL construction and the semantic check reads the ingress trust boundary. Forwarding-header Review checks only point at reads, never establish that a client controls them and never examine this requirement; trusted proxy protection may exist in deployment where the rules cannot see it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V4.1.4",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": [],
+      "why": "Which methods are blocked is decided in the server or gateway configuration at runtime."
+    },
+    {
+      "requirement": "V4.1.5",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": [],
+      "why": "Whether message signing is required is a design decision recorded by people, and no JGates check looks for it."
+    },
+    {
+      "requirement": "V4.2.1",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Request framing and desynchronization",
+          "covers": "A model reviews how components decide where one request ends, including length headers and downgrade paths.",
+          "misses": "Load balancers, firewalls and servers outside the repository; only configuration and code that is present.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit class is the request-smuggling analysis the requirement is about, limited to what can be read in the source.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V4.2.2",
+      "status": "unmapped",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [],
+      "why": "No check compares generated Content-Length values with the length of the content."
+    },
+    {
+      "requirement": "V4.2.3",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Request framing and desynchronization",
+          "covers": "The block names forbidden connection-specific headers and the HTTP/2 and HTTP/3 downgrade among the framing issues it reviews.",
+          "misses": "Handling inside intermediaries and servers that are not in the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit class includes connection-specific header handling across protocol versions, which is the subject of the requirement.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V4.2.4",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "injection"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Request framing and desynchronization",
+          "covers": "The block includes CR and LF conversion as a normalization difference between components.",
+          "misses": "Servers and proxies outside the repository decide whether such bytes are accepted.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The audit class covers control characters in header handling between components, which bears on this requirement.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V4.2.5",
+      "status": "unmapped",
+      "evidence": "repository",
+      "subdimensions": [],
+      "checks": [],
+      "why": "No check measures the length of outgoing URIs or header values."
+    },
+    {
+      "requirement": "V4.3.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.graphql-without-depth-limit",
+          "covers": "Points at webonyx StandardServer array configurations without a visible QueryDepth or QueryComplexity rule construction.",
+          "misses": "Protection may exist in a gateway, global validation rules or another helper the rule cannot see. A visible rule construction need not be configured with a positive or adequate budget; query allowlists and dynamic configurations are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.graphql-without-depth-limit",
+          "covers": "A GraphQL server created without a depth, amount or cost limit; an informational finding, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Any request-options change counts as a limit, whether or not it bounds depth or cost. Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.graphql-without-depth-limit",
+          "covers": "A GraphQL server created without a depth, amount or cost limit; an informational finding, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.graphql-without-depth-limit",
+          "covers": "A GraphQL server created without a depth, amount or cost limit; an informational finding, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Any instrumentation call on the Spring GraphQL source silences the rule, whether or not it bounds depth or cost. Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.graphql-without-depth-limit",
+          "covers": "A GraphQL server created without a depth, amount or cost limit; an informational finding, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Any plugins or validation-rules option silences the rule, whether or not it bounds depth or cost. Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.graphql-without-depth-limit",
+          "covers": "A GraphQL server created without a depth, amount or cost limit; an informational finding, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Any validation-rules argument of the Ariadne server silences the rule, whether or not it bounds depth or cost. Limits added in a way the rule does not recognize (a gateway, a persisted-query allowlist), servers built in another function, and whether the limits chosen are adequate. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.graphql-without-depth-limit",
+          "covers": "async-graphql Schema::build chains ending in finish with up to four intervening calls and no limit_depth or limit_complexity text in the match; an informational finding.",
+          "misses": "Longer chains, aliases, external query allowlists and gateway budgets are not modeled. A visible limit call silences the rule without establishing a positive or adequate budget.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "graphql"
+        ]
+      },
+      "why": "The informational checks flag the server construction forms they model. The PHP Review check only points at a configuration without visible query-budget rules and never examines the requirement. Only projects with GraphQL are concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V4.3.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.graphql-introspection-enabled",
+          "covers": "Points at async-graphql Schema::build chains ending in finish, with up to four intervening calls and no disable_introspection text in the match.",
+          "misses": "Protection may exist in access controls or configuration the rule cannot see. Longer chains, aliases and environment-specific behavior are missed; intended public schema discovery is not distinguished. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.graphql-introspection-enabled",
+          "covers": "Points at graphql-java GraphQL.newGraphQL builds without the recognized same-method GraphQLSchema code-registry field-visibility restriction.",
+          "misses": "Protection may exist in schema factories, alternate restrictions or access controls the rule cannot see. The same-method exception recognizes one construction idiom, not all disabling mechanisms or production settings. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.graphql-introspection-enabled",
+          "covers": "Points at webonyx StandardServer array configurations without a visible DisableIntrospection rule construction.",
+          "misses": "Protection may exist in globally registered validators or upstream access controls the rule cannot see. Dynamic configurations, deployment environment and intended public schema discovery are not determined. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.config.graphql-introspection-enabled",
+          "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in configuration files, for the libraries named in the header of its rule file.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only the files and formats the rule's path list names are read.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.graphql-introspection-enabled",
+          "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.graphql-introspection-enabled",
+          "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.graphql-introspection-enabled",
+          "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.graphql-introspection-enabled",
+          "covers": "A GraphQL server or its framework configuration with introspection switched on; an informational finding, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Introspection left on by a framework default, with nothing written out, is not seen; whether the setting reaches production (environment-dependent values), and APIs meant for other parties, where introspection is intended. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "graphql"
+        ]
+      },
+      "why": "The existing informational checks flag explicit introspection settings. The Rust, Java and PHP Review checks only point at construction without recognized restrictions and never examine the requirement. Only projects with GraphQL are concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V4.4.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "hardening"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.websocket-without-tls",
+          "covers": "A WebSocket client opened to a literal ws:// address that is not the local machine, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Addresses built from variables or configuration, servers that accept plain connections, and a proxy that terminates TLS. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.websocket-without-tls",
+          "covers": "A WebSocket client opened to a literal ws:// address that is not the local machine, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Addresses built from variables or configuration, servers that accept plain connections, and a proxy that terminates TLS. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.websocket-without-tls",
+          "covers": "A WebSocket client opened to a literal ws:// address that is not the local machine, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Addresses built from variables or configuration, servers that accept plain connections, and a proxy that terminates TLS. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.websocket-without-tls",
+          "covers": "A WebSocket client opened to a literal ws:// address that is not the local machine, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Addresses built from variables or configuration, servers that accept plain connections, and a proxy that terminates TLS. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.websocket-without-tls",
+          "covers": "A WebSocket client opened to a literal ws:// address that is not the local machine, in PHP, for the libraries named in the header of its rule file.",
+          "misses": "Addresses built from variables or configuration, servers that accept plain connections, and a proxy that terminates TLS. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.websocket-without-tls",
+          "covers": "A WebSocket client opened to a literal ws:// address that is not the local machine, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Addresses built from variables or configuration, servers that accept plain connections, and a proxy that terminates TLS. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.websocket-without-tls",
+          "covers": "A WebSocket client opened to a literal ws:// address that is not the local machine, in Rust, for the libraries named in the header of its rule file.",
+          "misses": "Addresses built from variables or configuration, servers that accept plain connections, and a proxy that terminates TLS. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "websocket"
+        ]
+      },
+      "why": "The rules flag plain ws:// addresses that are not the local machine; only projects that use WebSocket are concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V4.4.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.websocket-origin-not-checked",
+          "covers": "Points at tungstenite accept or accept_with_config and tokio_tungstenite accept_async or accept_async_with_config handshakes, without a header-validation callback API.",
+          "misses": "Protection may exist in an upstream Origin check the rule cannot see. It does not trace the stream, enumerate all servers or inspect callback allowlists. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.websocket-origin-not-checked",
+          "covers": "Points at Ratchet WsServer construction not syntactically nested in an OriginCheck constructor.",
+          "misses": "Protection may exist in a separately assigned OriginCheck wrapper or upstream handler the rule cannot see. An enclosing wrapper is accepted without inspecting its allowlist. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.websocket-origin-not-checked",
+          "covers": "A WebSocket server that accepts every origin on the handshake, in C#, for the libraries named in the header of its rule file.",
+          "misses": "Handshake code written elsewhere, an origin comparison that is too loose, and a proxy that filters origins. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.websocket-origin-not-checked",
+          "covers": "A WebSocket server that accepts every origin on the handshake, in Go, for the libraries named in the header of its rule file.",
+          "misses": "Handshake code written elsewhere, an origin comparison that is too loose, and a proxy that filters origins. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.websocket-origin-not-checked",
+          "covers": "A WebSocket server that accepts every origin on the handshake, in Java, for the libraries named in the header of its rule file.",
+          "misses": "Handshake code written elsewhere, an origin comparison that is too loose, and a proxy that filters origins. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.websocket-origin-not-checked",
+          "covers": "A WebSocket server that accepts every origin on the handshake, in JavaScript and TypeScript, for the libraries named in the header of its rule file.",
+          "misses": "Handshake code written elsewhere, an origin comparison that is too loose, and a proxy that filters origins. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.websocket-origin-not-checked",
+          "covers": "A WebSocket server that accepts every origin on the handshake, in Python, for the libraries named in the header of its rule file.",
+          "misses": "Handshake code written elsewhere, an origin comparison that is too loose, and a proxy that filters origins. Only literal forms the pattern names are seen: a value that crosses a function or a file, a helper written elsewhere and a library the rule does not list are missed.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "CLIENT-SIDE.md#Cross-site WebSocket request use",
+          "covers": "A model checks whether the upgrade accepts ambient cookies from an untrusted origin without an Origin check or channel token.",
+          "misses": "Servers whose handshake code is not read, and deployed proxies that filter origins.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "websocket"
+        ]
+      },
+      "why": "The explicit checks flag permissive handshakes and the semantic check reads Origin validation. Rust and PHP Review checks only point at handshakes without a locally recognized check and never examine the requirement. Only projects using WebSocket are concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V4.4.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source against the requirement, looking at how dedicated WebSocket tokens are formed and checked.",
+          "misses": "Whatever the model did not read, how the running system behaves, and any file or library outside the reviewed scope.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "websocket"
+        ]
+      },
+      "why": "A model can read how a connection is tokenized and compare it with the session rules; no pattern can decide that.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V4.4.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source against the requirement, looking at where a socket token is obtained or validated.",
+          "misses": "Whatever the model did not read, how the running system behaves, and any file or library outside the reviewed scope.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "websocket"
+        ]
+      },
+      "why": "A model can follow how a socket token is issued after the authenticated page session; no pattern can decide that.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    }
+  ]
+}

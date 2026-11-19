@@ -28,8 +28,8 @@ import { listDescendants, treeStopper } from "../runner/tree.js";
 import { runSemanticReview, type SemanticDeps, type SemanticProgress } from "../../adapters/semantic-gate/index.js";
 import { translator } from "../../i18n/index.js";
 import { finishScopeRun, prepareScopeRun, type ScopeRunPreparation } from "../semantic-scope/index.js";
-import { investigationModuleFor, runInvestigation, type InvestigationDeps, type InvestigationEventType, type InvestigationModule } from "../semantic-executor/index.js";
-import { buildSemanticPlan, resolveQualityRun, type SemanticPlan } from "./plan.js";
+import { runInvestigation, type InvestigationDeps, type InvestigationEventType, type InvestigationModule } from "../semantic-executor/index.js";
+import { buildSemanticPlan, moduleForPlan, resolveQualityRun, type SemanticPlan } from "./plan.js";
 import { attachQuality, type AttachedQuality } from "./quality.js";
 import { renameWithRetry } from "../fs-retry/index.js";
 import {
@@ -43,6 +43,8 @@ import {
   isSemanticRunId,
   semanticRunDir,
 } from "./store.js";
+import { SEMANTIC_FINDING_TOOL, semanticRuleId } from "./findings.js";
+import { assignFingerprints } from "../results/fingerprint.js";
 
 const t = translator("semantic");
 
@@ -236,13 +238,14 @@ function stagesOf(outcome: ResultSemantic | null, reached: Reached, cancelled: b
 function findingsOf(outcome: ResultSemantic | null): ResultFinding[] {
   const found = outcome?.state === "completed" ? outcome.conclusion?.findings : undefined;
   if (!Array.isArray(found)) return [];
-  return (found as Array<Record<string, unknown>>).map((f) => {
+  // Each finding carries its fingerprint (v1), the identity a module's own records name it by (findings.ts).
+  return assignFingerprints((found as Array<Record<string, unknown>>).map((f) => {
     const severity = String(f.severity ?? "unknown");
     const category = String(f.category ?? "general");
     return {
       stageId: REVIEW_STAGE,
-      tool: "semantic-gate",
-      ruleId: `semantic/${category || "general"}`,
+      tool: SEMANTIC_FINDING_TOOL,
+      ruleId: semanticRuleId(category),
       category,
       severity,
       normalizedSeverity: SEVERITY[severity] ?? "unknown",
@@ -252,7 +255,7 @@ function findingsOf(outcome: ResultSemantic | null): ResultFinding[] {
       waived: false,
       origin: "model",
     };
-  });
+  }));
 }
 
 function summaryOf(result: RunResult): string {
@@ -502,7 +505,8 @@ export async function executeSemanticRun(opts: SemanticRunOptions): Promise<RunR
 
   // A tool-enabled investigation when the caller asks for one or a module is registered for the plan's method; it
   // needs the resolved scope (its guard decides every read).
-  const module = opts.investigation?.module ?? investigationModuleFor(plan.methods.map((m) => m.id));
+  // confirm-by-reproduction gets the earlier run (and findings) its plan names.
+  const module = opts.investigation?.module ?? moduleForPlan(plan);
   const investigate: SemanticReviewer | null = module
     ? async (ctx) => {
         if (!ctx.scope) {

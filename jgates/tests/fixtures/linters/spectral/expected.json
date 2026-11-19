@@ -1,0 +1,32 @@
+{
+  "files": [
+    "openapi-sample.yaml"
+  ],
+  "findings": [
+    {
+      "rule": "oas3-api-servers",
+      "file": "openapi-sample.yaml",
+      "line": 1
+    },
+    {
+      "rule": "info-contact",
+      "file": "openapi-sample.yaml",
+      "line": 2
+    },
+    {
+      "rule": "info-description",
+      "file": "openapi-sample.yaml",
+      "line": 2
+    },
+    {
+      "rule": "operation-description",
+      "file": "openapi-sample.yaml",
+      "line": 7
+    },
+    {
+      "rule": "operation-tags",
+      "file": "openapi-sample.yaml",
+      "line": 7
+    }
+  ]
+}

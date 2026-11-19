@@ -1,4 +1,5 @@
 import { QualityMascotStrip } from "../../components/QualityMascotStrip";
+import { NewChecks } from "../../components/NewChecks";
 import { formatDateTime } from "../../components/format";
 import type { MascotSnapshot } from "../../../../src/core/mascots/index";
 import { useMemo, useState } from "react";
@@ -8,6 +9,7 @@ import { ErrorNotice, Pill } from "../../components/common";
 import { Icon, type IconName } from "../../components/icons";
 import { useToast } from "../../components/Toast";
 import { t, tOr } from "../../i18n";
+import { WaiveBlock, WaiveProvider, WaiveSummary, useReviewedFindings } from "./waive";
 import "./result-cards.css";
 
 type Tone = "green" | "gold" | "red" | "blue";
@@ -41,14 +43,35 @@ export function metricText(m: any): string {
   return unit === "%" ? `${n}%` : unit ? `${n} ${unit}` : n;
 }
 
-function Banner({ result, crashed }: { result: any; crashed: boolean }) {
+/** The "approval" the server computed for a result (kind and numbers); a result without it reads as a plain approval. */
+export interface Approval {
+  kind: "plain" | "with-waivers";
+  waivers: number;
+  findings: number;
+  more: number;
+}
+
+export const isApprovedWithWaivers = (approval: Approval | null | undefined): approval is Approval => approval?.kind === "with-waivers" && approval.waivers > 0;
+
+/** "Approved with 2 waivers", with "(4 findings)" when the waivers dismissed more findings than their number. Every screen uses this one. */
+export function approvedWithWaiversText(approval: Approval): string {
+  return t("vres_approved_waivers", { waivers: approval.waivers }) + (approval.more > 0 ? " " + t("vres_approved_waivers_findings", { findings: approval.findings }) : "");
+}
+
+/** A finding a tool reported as informational: it is shown and counted, never blocks and is never waived. */
+export const isInformationalFinding = (f: any): boolean => f.informational === true && f.review !== true && f.blocking !== true && f.waived !== true;
+export const isReviewFinding = (f: any): boolean => f.review === true && f.blocking !== true && f.waived !== true;
+
+function Banner({ result, crashed, onShowWaived }: { result: any; crashed: boolean; onShowWaived?: () => void }) {
+  const findings = useReviewedFindings(result.findings ?? []);
+  const review = findings.filter(isReviewFinding).length;
   const runDisabled: any[] = (result.disabled ?? []).filter((d: any) => d.origin === "run");
   const blocking = result.blockingViolations ?? 0;
   const partial = result.partial === true || result.decision === "cancelled";
   let title: string;
   let text: string;
   let tone: Tone = DECISION_TONE[result.decision] ?? "gold";
-  let icon: "check" | "alert" | "stop" = result.decision === "passed" ? "check" : "alert";
+  let icon: "check" | "alert" | "stop" | "info" = result.decision === "passed" ? "check" : "alert";
   let kind: string = result.decision;
   if (partial) {
     title = result.decision === "cancelled" ? t("vres_banner_cancelled") : t("vres_banner_partial");
@@ -61,6 +84,13 @@ function Banner({ result, crashed }: { result: any; crashed: boolean }) {
     text = t("vres_banner_reduced_text");
     tone = "gold";
     kind = "passed-reduced";
+  } else if (result.decision === "passed" && isApprovedWithWaivers(result.approval)) {
+    // Approved, but only because findings were dismissed: its own tone and icon, never the plain green approval.
+    title = approvedWithWaiversText(result.approval);
+    text = t("vres_banner_passed_waivers_text");
+    tone = "blue";
+    icon = "info";
+    kind = "passed-waivers";
   } else if (result.decision === "passed") {
     title = t("vres_banner_passed");
     text = t("vres_banner_passed_text");
@@ -74,12 +104,25 @@ function Banner({ result, crashed }: { result: any; crashed: boolean }) {
     title = t("vres_banner_invalid");
     text = t("vres_banner_invalid_text");
   }
+  // The verdict counts only the blocking findings; the ones that do not block are added as "and N informational".
+  const informational = !partial && (result.decision === "passed" || result.decision === "failed") ? ((result.findings ?? []) as any[]).filter(isInformationalFinding).length : 0;
   return (
     <div className={`notice ${tone === "green" ? "ok" : tone === "red" ? "error" : "warn"}`} role="status" data-testid="result-banner" data-kind={kind}>
       <Icon name={icon} />
       <div className="grow stack" style={{ gap: 6 }}>
-        <strong data-testid="result-banner-title">{title}</strong>
+        <strong data-testid="result-banner-title">
+          {title}
+           {informational > 0 ? <span data-testid="result-banner-informational">{` ${t("vres_banner_informational", { count: informational })}`}</span> : null}
+           {review > 0 ? <span data-testid="result-banner-review">{` ${t("vres_banner_review", { count: review })}`}</span> : null}
+        </strong>
         <p>{text}</p>
+        {kind === "passed-waivers" && onShowWaived ? (
+          <p>
+            <button type="button" className="btn" onClick={onShowWaived} data-testid="banner-waived-link">
+              {t("vres_banner_show_waived")}
+            </button>
+          </p>
+        ) : null}
         {partial || result.decision !== "passed" ? <p>{result.decision === "passed" ? "" : t("vres_no_approval")}</p> : null}
         {result.stopped ? (
           <p className="small">
@@ -274,18 +317,37 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
   const loc = f.location?.path ? `${f.location.path}${f.location.line ? `:${f.location.line}` : ""}` : "";
   const href = f.location?.path ? editorHref(workspacePath, f.location) : null;
   const hasDetails = f.evidence || f.waived || f.docsUrl;
+  const informational = isInformationalFinding(f);
+  const requirements: string[] = Array.isArray(f.asvsRequirements) ? f.asvsRequirements.map(String) : [];
   return (
-    <li className="res-card res-finding" data-testid="finding-card" data-severity={f.normalizedSeverity} data-tool={f.tool} data-rule={f.ruleId}>
+    <li className="res-card res-finding" data-testid="finding-card" data-severity={f.normalizedSeverity} data-tool={f.tool} data-rule={f.ruleId} data-informational={informational ? "true" : "false"}>
       <div className="res-card-head">
         <Pill tone={SEV_TONE[f.normalizedSeverity]}>
           <Icon name={SEV_ICON[f.normalizedSeverity] ?? "info"} />
           <span data-testid="finding-severity">{tOr(`vres_sev_${f.normalizedSeverity}`, String(f.normalizedSeverity))}</span>
         </Pill>
         {f.blocking ? <Pill tone="red">{t("vres_blocking")}</Pill> : null}
-        {f.waived ? <Pill tone="blue">{t("vres_waived")}</Pill> : null}
+        {informational ? <Pill tone="blue">{t("vres_informational_pill")}</Pill> : null}
+        {isReviewFinding(f) ? <Pill tone="blue">{t("vres_review_pill")}</Pill> : null}
+        {f.waived ? <Pill tone="blue">{t(f.review === true ? "vres_reviewed" : "vres_waived")}</Pill> : null}
         {f.baselineState ? <Pill>{f.baselineState === "new" ? t("vres_baseline_new") : t("vres_baseline_unchanged")}</Pill> : null}
       </div>
       <p className="res-finding-message" data-testid="finding-message">{f.message}</p>
+      {informational ? (
+        <p className="small" data-testid="finding-informational-note">
+          {t("vres_informational_note")}
+        </p>
+      ) : null}
+      {requirements.length > 0 ? (
+        <p className="small res-requirements" data-testid="finding-requirements">
+          <span className="muted">{t("vres_requirements_intro")}</span>{" "}
+          {requirements.map((id) => (
+            <a key={id} className="pill" href={`#/validations/coverage/asvs?requirement=${encodeURIComponent(id)}`} data-testid="finding-requirement" data-requirement={id} aria-label={t("vres_requirement_open", { id })}>
+              {t("vres_requirement_label", { id })}
+            </a>
+          ))}
+        </p>
+      ) : null}
       <dl className="res-card-facts">
         <div>
           <dt>{t("vres_finding_tool")}</dt>
@@ -312,6 +374,15 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
           </div>
         ) : null}
       </dl>
+      {f.waived ? (
+        <p className="small" data-testid="finding-waiver">
+          <strong>{t(f.review === true ? "vres_reviewed" : "vres_waived")}</strong>
+          {f.waiverSource ? ` · ${tOr(`vres_waiver_source_${f.waiverSource}`, String(f.waiverSource))}` : ""}
+          {f.waiverReason ? ` · ${t("vres_waiver_reason", { reason: String(f.waiverReason) })}` : ""}
+          {f.waiverExpires ? ` · ${t("vres_waiver_until", { date: String(f.waiverExpires) })}` : ` · ${t("vres_waiver_no_date")}`}
+        </p>
+      ) : null}
+      {informational ? null : <WaiveBlock f={f} />}
       {f.remediation ? (
         <p className="small" data-testid="finding-remediation">
           <strong>{t("vres_finding_remediation")}:</strong> {f.remediation}
@@ -325,6 +396,12 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
               <>
                 <dt>{t("vres_finding_waiver")}</dt>
                 <dd>{[f.waiverId, f.waiverReason].filter(Boolean).join(": ")}</dd>
+                {f.waiverSource ? (
+                  <>
+                    <dt>{t("vres_waiver_origin")}</dt>
+                    <dd>{tOr(`vres_waiver_source_${f.waiverSource}`, String(f.waiverSource))}</dd>
+                  </>
+                ) : null}
               </>
             ) : null}
             {f.evidence ? (
@@ -348,12 +425,16 @@ function FindingCard({ f, workspacePath }: { f: any; workspacePath: string | und
   );
 }
 
-function Findings({ result, domainFilter, onClear }: { result: any; domainFilter: { domain: string; ids: string[] } | null; onClear: () => void }) {
-  const findings: any[] = result.findings ?? [];
+/** From this many tools on, the tool filter of the findings gets a search box. */
+const TOOL_SEARCH_FROM = 8;
+
+function Findings({ result, domainFilter, onClear, waivedOnly, onWaivedOnly }: { result: any; domainFilter: { domain: string; ids: string[] } | null; onClear: () => void; waivedOnly: boolean; onWaivedOnly: (on: boolean) => void }) {
+  const findings = useReviewedFindings(result.findings ?? []);
   const [severity, setSeverity] = useState("");
   const [category, setCategory] = useState("");
   const [component, setComponent] = useState("");
   const [tool, setTool] = useState("");
+  const [toolQuery, setToolQuery] = useState("");
   const severities = useMemo(() => [...new Set(findings.map((f) => String(f.normalizedSeverity)))], [findings]);
   const categories = useMemo(() => [...new Set(findings.map((f) => String(f.category ?? "")))], [findings]);
   const components = useMemo(() => [...new Set(findings.map((f) => String(f.component ?? "")).filter(Boolean))], [findings]);
@@ -361,11 +442,15 @@ function Findings({ result, domainFilter, onClear }: { result: any; domainFilter
   const shown = findings.filter(
     (f) =>
       (!domainFilter || domainFilter.ids.includes(f.stageId)) &&
+      (!waivedOnly || f.waived === true) &&
       (!severity || String(f.normalizedSeverity) === severity) &&
       (!category || String(f.category ?? "") === category) &&
       (!component || String(f.component ?? "") === component) &&
       (!tool || String(f.origin ?? f.tool) === tool),
   );
+  const blockingShown = shown.filter((f) => !isInformationalFinding(f) && !isReviewFinding(f));
+  const informationalShown = shown.filter(isInformationalFinding);
+  const reviewShown = shown.filter(isReviewFinding);
   return (
     <section className="stack" aria-labelledby="vres-findings">
       <h3 id="vres-findings">{t("vres_findings")}</h3>
@@ -383,11 +468,18 @@ function Findings({ result, domainFilter, onClear }: { result: any; domainFilter
               ))}
             </select>
           </label>
+          {tools.length > TOOL_SEARCH_FROM ? (
+            // Many tools: the list of the filter below narrows as you type (the choice made stays in it).
+            <label className="row">
+              <span className="muted">{t("vres_filter_tool_search")}</span>
+              <input type="search" className="input search" value={toolQuery} onChange={(e) => setToolQuery(e.target.value)} data-testid="filter-tool-search" />
+            </label>
+          ) : null}
           <label className="row">
             <span className="muted">{t("vres_filter_tool")}</span>
             <select value={tool} onChange={(e) => setTool(e.target.value)} data-testid="filter-tool">
               <option value="">{t("vres_filter_all")}</option>
-              {tools.map((x) => (
+              {tools.filter((x) => x === tool || toolQuery.trim() === "" || x.toLowerCase().includes(toolQuery.trim().toLowerCase())).map((x) => (
                 <option key={x} value={x}>
                   {x}
                 </option>
@@ -418,6 +510,12 @@ function Findings({ result, domainFilter, onClear }: { result: any; domainFilter
               </select>
             </label>
           ) : null}
+          {findings.some((f) => f.waived === true) ? (
+            <label className="row">
+              <input type="checkbox" checked={waivedOnly} onChange={(e) => onWaivedOnly(e.target.checked)} data-testid="filter-waived" />
+              <span>{t("vres_filter_waived")}</span>
+            </label>
+          ) : null}
           <span className="muted" role="status" data-testid="filter-count">
             {t("vres_filter_count", { shown: shown.length, total: findings.length })}
           </span>
@@ -428,11 +526,40 @@ function Findings({ result, domainFilter, onClear }: { result: any; domainFilter
       ) : shown.length === 0 ? (
         <p>{t("vres_findings_none_filtered")}</p>
       ) : (
-        <ul className="res-cards" aria-label={t("vres_findings")} data-testid="finding-cards">
-          {shown.map((f, i) => (
-            <FindingCard key={`${f.fingerprint ?? f.ruleId}:${i}`} f={f} workspacePath={result.workspace?.path} />
-          ))}
-        </ul>
+        <>
+          {blockingShown.length > 0 ? (
+            <section className="stack">
+            <h4>{t("vres_other_findings")}</h4>
+            <ul className="res-cards" aria-label={t("vres_findings")} data-testid="finding-cards">
+              {blockingShown.map((f, i) => (
+                <FindingCard key={`${f.fingerprint ?? f.ruleId}:${i}`} f={f} workspacePath={result.workspace?.path} />
+              ))}
+            </ul>
+            </section>
+          ) : null}
+          {informationalShown.length > 0 ? (
+            <section className="stack" aria-labelledby="vres-informational" data-testid="informational-findings">
+              <h4 id="vres-informational">{t("vres_informational_title", { count: informationalShown.length })}</h4>
+              <p className="muted small">{t("vres_informational_lead")}</p>
+              <ul className="res-cards" aria-label={t("vres_informational_list")} data-testid="informational-cards">
+                {informationalShown.map((f, i) => (
+                  <FindingCard key={`${f.fingerprint ?? f.ruleId}:${i}`} f={f} workspacePath={result.workspace?.path} />
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          {reviewShown.length > 0 ? (
+            <section className="stack" aria-labelledby="vres-review" data-testid="review-findings">
+              <h4 id="vres-review">{t("vres_review_title", { count: reviewShown.length })}</h4>
+              <p className="muted small">{t("vres_review_lead")}</p>
+              <ul className="res-cards" aria-label={t("vres_review_list")} data-testid="review-cards">
+                {reviewShown.map((f, i) => (
+                  <FindingCard key={`${f.fingerprint ?? f.ruleId}:${i}`} f={f} workspacePath={result.workspace?.path} />
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </>
       )}
     </section>
   );
@@ -727,15 +854,22 @@ function Actions({ runId }: { runId: string }) {
 export type DomainFilter = { domain: string; ids: string[] };
 export function ResultView({ result, previous, crashed = false, compact = false, mascots, selectedDomain, onClearDomain }: { result: any; previous: any; crashed?: boolean; /** On the run page, whose own step table lists the checks, they are not listed twice. */ compact?: boolean; mascots?: MascotSnapshot; selectedDomain?: DomainFilter | null; onClearDomain?: () => void }) {
   const [localDomain, setDomainFilter] = useState<DomainFilter | null>(null);
+  const [waivedOnly, setWaivedOnly] = useState(false);
+  const showWaived = () => {
+    setWaivedOnly(true);
+    setTimeout(() => document.getElementById("vres-findings")?.scrollIntoView({ block: "start" }), 0);
+  };
   const domainFilter = selectedDomain === undefined ? localDomain : selectedDomain;
   const started = Date.parse(result.startedAt ?? "");
   const finished = Date.parse(result.finishedAt ?? "");
   const duration = Number.isFinite(started) && Number.isFinite(finished) ? finished - started : undefined;
   const git = result.analyzed?.git;
   return (
+    <WaiveProvider result={result}>
     <section className="stack" aria-labelledby="result-title">
       <h2 id="result-title">{t("vres_title")}</h2>
-      <Banner result={result} crashed={crashed} />
+      <Banner result={result} crashed={crashed} onShowWaived={showWaived} />
+      <WaiveSummary result={result} />
       <QualityMascotStrip snapshot={mascots} onSelect={(domain, ids) => setDomainFilter({ domain, ids })} />
       <div className="card flat">
         <dl className="kv">
@@ -788,8 +922,9 @@ export function ResultView({ result, previous, crashed = false, compact = false,
         </dl>
       </div>
       <Actions runId={result.runId} />
+      <NewChecks checks={previous?.newChecks} where="result" />
       {compact ? null : <Stages result={result} domainFilter={domainFilter} />}
-      <Findings result={result} domainFilter={domainFilter} onClear={() => { setDomainFilter(null); onClearDomain?.(); }} />
+      <Findings result={result} waivedOnly={waivedOnly} onWaivedOnly={setWaivedOnly} domainFilter={domainFilter} onClear={() => { setDomainFilter(null); onClearDomain?.(); }} />
       <Metrics result={result} />
       <Architecture result={result} />
       {compact ? (
@@ -813,5 +948,6 @@ export function ResultView({ result, previous, crashed = false, compact = false,
       <Provenance result={result} />
       {compact ? null : <Link result={result} />}
     </section>
+    </WaiveProvider>
   );
 }

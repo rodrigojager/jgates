@@ -1,5 +1,6 @@
 import { qualityBridgeManifest } from "../../../adapters/quality-bridge/manifest.js";
 import { DEFAULT_SELECTION, planSubchecks, stageIdOf } from "../../../adapters/quality-bridge/requirements.js";
+import { listImplicitTemplates } from "../../../builtin/index.js";
 import type { LoadedDocument } from "../load/types.js";
 import { flatten, isPlainObject, type LayerOp } from "./pointer.js";
 
@@ -19,6 +20,9 @@ export const IMPLICIT_TEMPLATES = [
   { id: "typescript", source: "builtin:typescript", activation: "detected" },
   { id: "dotnet", source: "builtin:dotnet", activation: "detected" },
 ] as const;
+
+/** Origin of the built-in templates every project has without listing them (`implicit: true`), as `jgates config` shows it. */
+export const IMPLICIT_TEMPLATES_SOURCE = "jgates:implicit-templates";
 
 export interface SourcedOps {
   source: string;
@@ -100,7 +104,7 @@ export function templateOps(value: Record<string, unknown>): LayerOp[] {
 }
 
 /**
- * Operations of one profile body: checks, the intensity and scope of the selection, the gates it selects (quality,
+ * Operations of one profile body: checks, the intensity, scope and tier of the selection, the gates it selects (quality,
  * semantic or both, written to selection.gates) and the sequence policy of a combined selection (selection.sequence).
  */
 export function profileOps(body: Record<string, unknown>, fileSegments: string[]): LayerOp[] {
@@ -108,6 +112,7 @@ export function profileOps(body: Record<string, unknown>, fileSegments: string[]
   if (body.checks !== undefined) flatten(body.checks, ["checks"], [...fileSegments, "checks"], out);
   if (body.intensity !== undefined) flatten(body.intensity, ["selection", "intensity"], [...fileSegments, "intensity"], out);
   if (body.scope !== undefined) flatten(body.scope, ["selection", "scope"], [...fileSegments, "scope"], out);
+  if (body.tier !== undefined) flatten(body.tier, ["selection", "tier"], [...fileSegments, "tier"], out);
   if (body.gates !== undefined) flatten(body.gates, ["selection", "gates"], [...fileSegments, "gates"], out);
   if (body.sequence !== undefined) flatten(body.sequence, ["selection", "sequence"], [...fileSegments, "sequence"], out);
   return out;
@@ -125,6 +130,14 @@ export function defaultLayers(withImplicitTemplates: boolean): SourcedOps[] {
       flatten(t.activation, ["templates", t.id, "activation"], null, engine);
     }
   }
+  // The built-in templates every project has without listing them (ADR-0022), whether or not jgates.yml declares a
+  // template list: an entry of the same id in jgates.yml merges with this one (enabled: false or activation: manual
+  // switches the group off).
+  const implicit: LayerOp[] = [];
+  for (const t of listImplicitTemplates()) {
+    flatten(t.ref, ["templates", t.id, "source"], null, implicit);
+    flatten(t.value.match !== undefined ? "detected" : "always", ["templates", t.id, "activation"], null, implicit);
+  }
   const bridge: LayerOp[] = [];
   const ids = (qualityBridgeManifest.subchecks ?? []).map((s) => s.id);
   for (const plan of planSubchecks(DEFAULT_SELECTION, ids)) {
@@ -134,6 +147,7 @@ export function defaultLayers(withImplicitTemplates: boolean): SourcedOps[] {
   }
   return [
     { source: "jgates", file: null, ops: engine },
+    ...(implicit.length > 0 ? [{ source: IMPLICIT_TEMPLATES_SOURCE, file: null, ops: implicit }] : []),
     { source: `adapter:${qualityBridgeManifest.id}`, file: null, ops: bridge },
   ];
 }

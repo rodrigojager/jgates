@@ -1,0 +1,17 @@
+{
+ "tool": "npm-package-json-lint",
+ "kind": "clean",
+ "version": "11.0.1",
+ "calls": [
+  {
+   "args": [
+    "--configFile",
+    "/output/linters/npm-package-json-lint/npm-package-json-lint.default.json",
+    "."
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

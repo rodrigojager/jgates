@@ -1,0 +1,11 @@
+{
+  "files": [
+    "not-executable.sh"
+  ],
+  "findings": [
+    {
+      "rule": "bash-exec.not-executable",
+      "file": "not-executable.sh"
+    }
+  ]
+}

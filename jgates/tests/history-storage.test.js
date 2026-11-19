@@ -24,7 +24,8 @@ const waivers = await import(pathToFileURL(path.join(dist, "core", "results", "w
 
 test("parseWaiverFlag reads key=value pairs and refuses what cannot work", () => {
   assert.deepEqual(waivers.parseWaiverFlag("rule=ruff.E711;path=demo/*;expires=2099-01-31;reason=legacy code"), {
-    waiver: { rule: "ruff.E711", path: "demo/*", expires: "2099-01-31", reason: "legacy code" },
+    // A waiver given with --waiver says where it came from, so a waived finding can report waiverSource "flag".
+    waiver: { rule: "ruff.E711", path: "demo/*", expires: "2099-01-31", reason: "legacy code", source: "flag" },
   });
   assert.deepEqual(waivers.parseWaiverFlag("fingerprint=jgf1:abc;reason=ok").waiver.fingerprint, "jgf1:abc");
   for (const [spec, part] of [

@@ -1,0 +1,24 @@
+{
+  "version": "3.99.9",
+  "url": "https://github.com/trufflesecurity/trufflehog/releases/download/v{version}/trufflehog_{version}_linux_amd64.tar.gz",
+  "sha256": "12050095c8063bf4d34f9f6cbce6ba9fa8d0deea9d503d0570364feba093658e",
+  "archive": "tar.gz",
+  "extract": {
+    "trufflehog": "trufflehog",
+    "LICENSE": "LICENSE"
+  },
+  "executable": [
+    "trufflehog"
+  ],
+  "provides": [
+    {
+      "name": "trufflehog",
+      "link": "trufflehog",
+      "path": "trufflehog",
+      "version": [
+        "trufflehog",
+        "--version"
+      ]
+    }
+  ]
+}

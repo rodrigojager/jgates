@@ -1,0 +1,19 @@
+{
+ "tool": "htmlhint",
+ "kind": "clean",
+ "version": "1.9.2",
+ "calls": [
+  {
+   "args": [
+    "--format",
+    "unix",
+    "--nocolor",
+    "--",
+    "htmlhint_sample.html"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

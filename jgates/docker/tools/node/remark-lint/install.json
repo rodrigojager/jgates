@@ -1,0 +1,15 @@
+{
+  "provides": [
+    {
+      "name": "remark-lint",
+      "link": "remark",
+      "path": "node_modules/.bin/remark",
+      "version": [
+        "remark",
+        "--version"
+      ],
+      "pattern": "remark-cli: (\\d+\\.\\d+\\.\\d+)",
+      "package": "remark-cli"
+    }
+  ]
+}

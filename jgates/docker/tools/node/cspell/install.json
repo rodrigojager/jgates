@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "cspell",
+      "link": "cspell",
+      "path": "node_modules/.bin/cspell",
+      "version": [
+        "cspell",
+        "--version"
+      ]
+    }
+  ]
+}

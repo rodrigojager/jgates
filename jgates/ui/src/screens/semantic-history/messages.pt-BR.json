@@ -11,11 +11,13 @@
   "semhist_col_result": "Resultado",
   "semhist_col_backend": "Backend e modelo",
   "semhist_col_actions": "Ações",
-  "semhist_running": "Em execução",
+  "semhist_running": "Em andamento",
   "semhist_interrupted": "Interrompida",
   "semhist_cancel_requested": "Cancelamento pedido",
   "semhist_follow": "Acompanhar a execução",
   "semhist_open_results": "Abrir os resultados",
   "semhist_separate_title": "Um gate separado.",
-  "semhist_separate_body": "Revisões semânticas nunca alteram um resultado de Qualidade, e o histórico de Qualidade nunca as lista. A decisão delas é consultiva."
+  "semhist_separate_body": "Revisões semânticas nunca alteram um resultado de Qualidade, e o histórico de Qualidade nunca as lista. A decisão delas é consultiva.",
+  "semhist_reproduces": "Tentou reproduzir achados de",
+  "semhist_reproduction_counts": "Reprodução: {confirmed} confirmados por execução, {attempted} tentados"
 }

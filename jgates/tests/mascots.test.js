@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { projectMascots } from "../dist/core/mascots/index.js";
 import { CORE_CAPABILITIES } from "../dist/core/catalog/index.js";
 
@@ -74,6 +75,15 @@ test("every domain carries its coverage subdimensions; a subdimension without a 
   // no check is in two subdimensions or two domains
   const placed = s.domains.flatMap((d) => d.subdimensions.flatMap((x) => x.checks));
   assert.equal(new Set(placed).size, placed.length); assert.equal(placed.length, 3);
+});
+test("hardening is a Security subdimension, shown under the Security mascot, not covered until a check is placed there", () => {
+  const security = projectMascots({ plan: plan([item("semgrep#sast", "security")]) }).domains.find((d) => d.domain === "security");
+  assert.ok(security.subdimensions.some((x) => x.id === "hardening"));
+  const hardening = security.subdimensions.find((x) => x.id === "hardening");
+  assert.equal(hardening.covered, false); assert.equal(hardening.status, "not_covered");
+  const words = (lang) => JSON.parse(fs.readFileSync(new URL(`../ui/src/components/messages.${lang}.json`, import.meta.url), "utf8"));
+  assert.equal(words("en").mascot_sub_hardening, "Hardening");
+  assert.equal(words("pt-BR").mascot_sub_hardening, "Endurecimento");
 });
 test("API compatibility is placed under Quality per the plan table, whatever the catalog category", () => {
   const s = projectMascots({ plan: plan([item("oasdiff#api-compatibility", "architecture")]) });

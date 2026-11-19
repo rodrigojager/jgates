@@ -17,6 +17,10 @@
       "items": { "type": "string", "minLength": 1 }
     },
     "priority": { "type": "integer" },
+    "implicit": {
+      "description": "Built-in templates only (ADR-0022): true makes the template part of every project's configuration without being listed in jgates.yml, with activation detected when it has a match (always otherwise). A project switches it off by listing the same id with enabled: false or activation: manual.",
+      "type": "boolean"
+    },
     "match": {
       "type": "object",
       "additionalProperties": false,
@@ -91,6 +95,10 @@
             "properties": {
               "adapter": { "type": "string", "minLength": 1 },
               "enabled": { "type": "boolean" },
+              "tier": {
+                "description": "Which profile runs the instance by default (ADR-0022): core (absent), main (from Balanced up) or extended (Strict). A tool:<id> entry switches it on under any profile.",
+                "enum": ["core", "main", "extended"]
+              },
               "capabilities": { "$ref": "#/$defs/stringList" },
               "command": { "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }] },
               "args": { "$ref": "#/$defs/stringList" },
@@ -137,7 +145,7 @@
   },
   "$defs": {
     "evidenceFiles": {
-      "description": "Configuration evidence: the template is detected only when at least one of these files exists in the root of a component of the matched languages, or in the workspace root. A string is a path relative to that root; an object also asks for a line that starts with `contains` (after spaces), for a section of a shared file such as [tool.pytest.ini_options] in pyproject.toml.",
+      "description": "Configuration evidence: the template is detected only when at least one of these files exists in the root of a component of the matched languages, or in the workspace root. A string is a path relative to that root (a `**` folder stands for any depth: `**/*.php` is a PHP file anywhere under the root, found by the file census); an object also asks for a line that starts with `contains` (after spaces), for a section of a shared file such as [tool.pytest.ini_options] in pyproject.toml.",
       "type": "array",
       "minItems": 1,
       "items": {
@@ -155,7 +163,7 @@
         ]
       }
     },
-    "evidencePath": { "type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$))(?:[^:*?<>|]*[/\\\\])?[^:?<>|/\\\\]+$" },
+    "evidencePath": { "type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?!.*(^|[/\\\\])\\.\\.([/\\\\]|$))(?:(?:[^:*?<>|/\\\\]+|\\*\\*)[/\\\\])*[^:?<>|/\\\\]+$" },
     "stringList": {
       "anyOf": [
         { "type": "array", "items": { "type": "string", "minLength": 1 } },

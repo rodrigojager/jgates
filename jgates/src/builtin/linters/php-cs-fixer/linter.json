@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "php-cs-fixer",
+  "name": "PHP CS Fixer",
+  "sourceUrl": "https://github.com/PHP-CS-Fixer/PHP-CS-Fixer",
+  "license": "MIT",
+  "program": {
+    "tool": "php-cs-fixer",
+    "versionRange": ">=3.0.0 <4.0.0"
+  },
+  "megalinter": [
+    "PHP_PHPCSFIXER"
+  ],
+  "place": {
+    "section": "language",
+    "group": "php",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".php"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "check",
+      "--using-cache=no",
+      "--format=checkstyle",
+      "--show-progress=none",
+      "--no-interaction"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        4,
+        8,
+        12
+      ]
+    },
+    "executesProjectCode": true,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "checkstyle"
+  },
+  "configuration": {
+    "files": [
+      ".php-cs-fixer.dist.php",
+      ".php-cs-fixer.php"
+    ],
+    "default": "php-cs-fixer.default.php",
+    "args": [
+      "--config={config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "PHP CS Fixer reads the project's .php-cs-fixer.dist.php (or .php-cs-fixer.php), a PHP file that decides the rules and the files",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: @php-cs-fixer-ignore comments and the finder of the configuration",
+      "pattern": "@php-cs-fixer-ignore",
+      "files": "\\.php$"
+    }
+  },
+  "install": "php-cs-fixer",
+  "text": {
+    "en": {
+      "label": "PHP CS Fixer (PHP)",
+      "purpose": "Checks the PHP code style without changing anything: indentation, trailing whitespace, braces and declarations that a fix would change.",
+      "limitation": "It only checks (check, never fix) and runs the project's configuration, a PHP file. Without one JGates gives it the PSR-12 set over every PHP file of the project. Findings name the rule and the file, not the line.",
+      "needs": "Nothing beyond the tools image (PHP and the tool's phar): no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "PHP CS Fixer (PHP)",
+      "purpose": "Confere o estilo do código PHP sem alterar nada: indentação, espaços no fim da linha, chaves e declarações que uma correção mudaria.",
+      "limitation": "Só confere (check, nunca corrige) e executa a configuração do projeto, um arquivo PHP. Sem ela o JGates entrega o conjunto PSR-12 sobre todos os arquivos PHP do projeto. Os achados dizem a regra e o arquivo, não a linha.",
+      "needs": "Nada além da imagem de ferramentas (PHP e o phar da ferramenta): sem rede e sem as dependências do projeto."
+    }
+  }
+}

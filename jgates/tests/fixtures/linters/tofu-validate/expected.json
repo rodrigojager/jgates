@@ -1,0 +1,12 @@
+{
+  "files": [
+    "validate-me.tf"
+  ],
+  "findings": [
+    {
+      "rule": "Reference to undeclared input variable",
+      "file": "validate-me.tf",
+      "line": 2
+    }
+  ]
+}

@@ -7,6 +7,7 @@
 // personal data) and anything in a message that looks like a secret or a personal value.
 import { translator } from "../../i18n/index.js";
 import type { ResultFinding, ResultMetric, RunResult } from "../run/types.js";
+import { approvalWording, approvalWordingParams } from "../results/wording.js";
 
 const t = translator("agent-context");
 
@@ -93,6 +94,12 @@ export function buildAgentContext(result: RunResult): AgentContext {
   push(t("agent_context_run", { runId: result.runId }));
   push(t("agent_context_decision", { decision: result.decision }));
   push(t("agent_context_complete", { value: yesNo(result.complete) }));
+  // A pass with waivers is an approval with dismissed findings, never a plain one; the agent must not make waivers.
+  const wording = approvalWording(result);
+  if (wording.kind === "with-waivers") {
+    push(t("agent_context_approved_waivers", approvalWordingParams(wording)));
+    push(t("agent_context_waivers_rule"));
+  }
   if (result.partial) push(t("agent_context_partial"));
   if (result.stopped) push(t("agent_context_stopped", { cause: result.stopped.cause, detail: oneLine(result.stopped.detail ?? "", 160) }));
   if (result.reduced) push(t("agent_context_reduced", { count: result.disabled.filter((d) => d.origin === "run").length }));
@@ -128,6 +135,26 @@ export function buildAgentContext(result: RunResult): AgentContext {
   }
   if (findings.length > shown.length) push(t("agent_context_truncated", { max: MAX_FINDINGS, command: t("agent_context_report_command", { runId: result.runId }) }));
   push();
+
+  // The findings the approval dismissed, named so the agent knows what was accepted (and does not "fix" it with a waiver).
+  const dismissed = wording.kind === "with-waivers" ? result.findings.filter((f) => f.waived) : [];
+  if (dismissed.length > 0) {
+    const listed = dismissed.slice(0, MAX_FINDINGS);
+    push(`## ${t("agent_context_waived_title", { shown: listed.length, total: dismissed.length })}`);
+    for (const f of listed) {
+      const loc = f.location?.path ? `${f.location.path}${f.location.line ? `:${f.location.line}` : ""}` : t("agent_context_no_location");
+      push(
+        t("agent_context_waived_item", {
+          ruleId: oneLine(f.ruleId, 120),
+          location: oneLine(loc, 200),
+          reason: f.waiverReason ? oneLine(f.waiverReason, 200) : "-",
+          until: f.waiverExpires ? t("agent_context_waived_until", { date: oneLine(f.waiverExpires, 20) }) : "",
+        }),
+      );
+    }
+    if (dismissed.length > listed.length) push(t("agent_context_truncated", { max: MAX_FINDINGS, command: t("agent_context_report_command", { runId: result.runId }) }));
+    push();
+  }
 
   const metrics = (result.metrics ?? []).filter((m) => !m.id.startsWith("findings."));
   if (metrics.length > 0) {

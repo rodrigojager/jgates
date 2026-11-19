@@ -1,0 +1,11 @@
+{
+  "files": [
+    "kubeconform_deployment.yaml"
+  ],
+  "findings": [
+    {
+      "rule": "statusInvalid",
+      "file": "kubeconform_deployment.yaml"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "files": [
+    "server/nginx.conf",
+    "server/httpd.conf",
+    "server/.htaccess",
+    "server/application.properties",
+    "server/application.yml",
+    "server/appsettings.json",
+    "server/web.config",
+    "server/server.xml",
+    "server/php.ini"
+  ],
+  "ruleIds": [
+    "jgates.config.tls-old-protocol-version",
+    "jgates.config.tls-weak-cipher-suite",
+    "jgates.config.directory-listing-enabled",
+    "jgates.config.http-trace-enabled",
+    "jgates.config.version-header-exposed"
+  ]
+}

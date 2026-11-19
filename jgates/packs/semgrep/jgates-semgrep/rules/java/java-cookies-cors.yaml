@@ -1,0 +1,319 @@
+# Cookies, CORS, JSONP and sensitive data in URLs for Java.
+# Libraries covered: the Servlet API (javax and jakarta Cookie, HttpServletResponse headers), Spring (ResponseCookie,
+# DefaultCookieSerializer, CorsConfiguration, CorsRegistry, @CrossOrigin, @RequestHeader, MappingJacksonValue,
+# AbstractJsonpResponseBodyAdvice, UriComponentsBuilder), JAX-RS (NewCookie, @HeaderParam, @QueryParam) and Apache
+# HttpClient (URIBuilder). The analysis stays inside one method.
+rules:
+  - id: jgates.java.cookie-without-secure
+    message: The cookie's Secure attribute is explicitly disabled, so a browser may send it over plain HTTP. Enable Secure on the cookie or its serializer.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+    pattern-either:
+      - pattern: $C.setSecure(false)
+      - pattern: $S.setUseSecureCookie(false)
+      - pattern-regex: \bResponseCookie\s*\.from\([^;]*\.secure\(\s*false\s*\)[^;]*\.build\(\)
+
+  - id: jgates.java.cookie-without-secure-by-default
+    message: A cookie is created without a visible Secure option. If nothing else adds it, the browser may send it over plain HTTP; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern: Cookie $C = new Cookie(...);
+          - pattern-not-inside: |
+              $T $F(...) {
+                ...
+                $C.setSecure(...);
+                ...
+              }
+      - pattern: $R.addCookie(new Cookie(...))
+      - patterns:
+          - pattern-regex: \bResponseCookie\s*\.from\([^;]*\.build\(\)
+          - pattern-not-regex: \.secure\s*\(
+
+  - id: jgates.java.cookie-without-httponly
+    message: The cookie's HttpOnly attribute is explicitly disabled, so page scripts can read it. Enable HttpOnly when browser code does not need the cookie.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+    pattern-either:
+      - pattern: $C.setHttpOnly(false)
+      - pattern: $S.setUseHttpOnlyCookie(false)
+      - pattern-regex: \bResponseCookie\s*\.from\([^;]*\.httpOnly\(\s*false\s*\)[^;]*\.build\(\)
+
+  - id: jgates.java.cookie-without-httponly-by-default
+    message: A cookie is created without a visible HttpOnly option. If nothing else adds it, page scripts can read the cookie; set the option here or confirm where it is set.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern: Cookie $C = new Cookie(...);
+          - pattern-not-inside: |
+              $T $F(...) {
+                ...
+                $C.setHttpOnly(...);
+                ...
+              }
+      - pattern: $R.addCookie(new Cookie(...))
+      - patterns:
+          - pattern-regex: \bResponseCookie\s*\.from\([^;]*\.build\(\)
+          - pattern-not-regex: \.httpOnly\s*\(
+
+  - id: jgates.java.cookie-without-samesite
+    message: A cookie is written with SameSite set to None, or without SameSite where the API sends none, so it travels on cross-site requests. Set SameSite to Lax or Strict (setAttribute("SameSite", "Lax") or ResponseCookie.sameSite("Lax")).
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.2"]
+    pattern-either:
+      - patterns:
+          - pattern: Cookie $C = new Cookie(...);
+          - pattern-not-inside: |
+              $T $F(...) {
+                ...
+                $C.setAttribute("SameSite", ...);
+                ...
+              }
+      - pattern: $R.addCookie(new Cookie(...))
+      - pattern: $C.setAttribute("SameSite", "None")
+      - pattern: $S.setSameSite("None")
+      - pattern: $S.setSameSite(null)
+      - patterns:
+          - pattern-regex: \bResponseCookie\s*\.from\([^;]*\.build\(\)
+          - pattern-not-regex: \.sameSite\(
+      - pattern-regex: \bResponseCookie\s*\.from\([^;]*\.sameSite\(\s*"None"\s*\)[^;]*\.build\(\)
+
+  - id: jgates.java.cookie-name-without-prefix
+    message: A cookie name starts with neither __Host- nor __Secure-, so the browser does not enforce the attributes the name promises. Use the __Host- prefix for session cookies.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.3", "V3.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: new Cookie($N, ...)
+          - pattern: new NewCookie($N, ...)
+          - pattern: ResponseCookie.from($N, ...)
+          - pattern: $S.setCookieName($N)
+      - metavariable-regex:
+          metavariable: $N
+          regex: '^"(?!__Host-|__Secure-).*'
+
+  - id: jgates.java.cors-any-origin-with-credentials
+    message: CORS allows every origin together with credentials, so any site can read authenticated responses. List the trusted origins instead of a wildcard.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-942"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - pattern-regex: \.allowedOrigins\(\s*"\*"\s*\)[^;]*\.allowCredentials\(\s*true\s*\)
+      - pattern-regex: \.allowCredentials\(\s*true\s*\)[^;]*\.allowedOrigins\(\s*"\*"\s*\)
+      - pattern-regex: \.allowedOriginPatterns\(\s*"\*"\s*\)[^;]*\.allowCredentials\(\s*true\s*\)
+      - pattern-regex: \.allowCredentials\(\s*true\s*\)[^;]*\.allowedOriginPatterns\(\s*"\*"\s*\)
+      - pattern-regex: '@CrossOrigin\([^)]*origins\s*=\s*"\*"[^)]*allowCredentials\s*=\s*"true"'
+      - pattern-regex: '@CrossOrigin\([^)]*allowCredentials\s*=\s*"true"[^)]*origins\s*=\s*"\*"'
+      - patterns:
+          - pattern-either:
+              - pattern: $C.addAllowedOrigin("*")
+              - pattern: $C.addAllowedOriginPattern("*")
+              - pattern: $C.setAllowedOrigins(Arrays.asList("*"))
+              - pattern: $C.setAllowedOrigins(List.of("*"))
+              - pattern: $C.setAllowedOrigins(Collections.singletonList("*"))
+              - pattern: $C.setAllowedOriginPatterns(Arrays.asList("*"))
+              - pattern: $C.setAllowedOriginPatterns(List.of("*"))
+              - pattern: $C.setAllowedOriginPatterns(Collections.singletonList("*"))
+          - pattern-inside: |
+              $T $F(...) {
+                ...
+                $C.setAllowCredentials(true);
+                ...
+              }
+      - patterns:
+          - pattern: $R.$M("Access-Control-Allow-Origin", "*")
+          - metavariable-regex:
+              metavariable: $M
+              regex: '.*(setHeader|addHeader)'
+          - pattern-inside: |
+              $T $F(...) {
+                ...
+                $X.$M2("Access-Control-Allow-Credentials", "true");
+                ...
+              }
+
+  - id: jgates.java.cors-origin-reflected
+    mode: taint
+    message: The request's Origin header is copied into the allow-origin response header or the allowed origins, so every site is trusted. Compare the origin with an allow-list and answer only for a listed one.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-sources:
+      - pattern: (HttpServletRequest $REQ).getHeader("Origin")
+      - pattern: (HttpServletRequest $REQ).getHeader(HttpHeaders.ORIGIN)
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader("Origin") $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestHeader(HttpHeaders.ORIGIN) $T $P, ...) {
+                ...
+              }
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @HeaderParam("Origin") $T $P, ...) {
+                ...
+              }
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $R.setHeader("Access-Control-Allow-Origin", $X)
+              - pattern: $R.addHeader("Access-Control-Allow-Origin", $X)
+              - pattern: $R.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, $X)
+              - pattern: $R.addHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, $X)
+              - pattern: $H.set("Access-Control-Allow-Origin", $X)
+              - pattern: $H.add("Access-Control-Allow-Origin", $X)
+              - pattern: $H.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, $X)
+              - pattern: $H.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, $X)
+              - pattern: $B.header("Access-Control-Allow-Origin", $X)
+              - pattern: $C.addAllowedOrigin($X)
+          - focus-metavariable: $X
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $O
+          - pattern-inside: |
+              if ($ALLOWED.contains($O)) {
+                ...
+              }
+
+  - id: jgates.java.jsonp-enabled
+    message: The framework's JSONP support wraps the response in a caller-chosen callback, which lets any page run the endpoint as a script and read its data. Return plain JSON and use CORS for cross-origin reads.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern-either:
+      - pattern: $M.setJsonpFunction(...)
+      - pattern: class $C extends AbstractJsonpResponseBodyAdvice { ... }
+      - pattern: new AbstractJsonpResponseBodyAdvice(...) { ... }
+
+  - id: jgates.java.jsonp-enabled-callback
+    mode: taint
+    message: A callback name from the request is wrapped around the response body (JSONP), which lets any page run the endpoint as a script and read its data. Return plain JSON and use CORS for cross-origin reads.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern-sources:
+      - patterns:
+          - pattern: (HttpServletRequest $REQ).getParameter($K)
+          - metavariable-regex:
+              metavariable: $K
+              regex: '(?i)^"(callback|jsonp|jsonpcallback)"$'
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @RequestParam(...) $T $P, ...) {
+                ...
+              }
+          - metavariable-regex:
+              metavariable: $P
+              regex: '^(callback|jsonp|jsonpCallback)$'
+      - patterns:
+          - pattern: $P
+          - pattern-inside: |
+              $RET $M(..., @QueryParam(...) $T $P, ...) {
+                ...
+              }
+          - metavariable-regex:
+              metavariable: $P
+              regex: '^(callback|jsonp|jsonpCallback)$'
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $W.write($X)
+              - pattern: $W.print($X)
+              - pattern: $W.println($X)
+              - pattern: $W.append($X)
+              - pattern: ResponseEntity.ok($X)
+          - focus-metavariable: $X
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $O
+          - pattern-inside: |
+              if ($O.matches($RE)) {
+                ...
+              }
+
+  - id: jgates.java.sensitive-query-parameter
+    message: A URL carries a password, secret or API key in its query string, where logs, history and referrers keep it. Send it in a header or the request body.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V14.2.1"]
+    pattern-either:
+      - pattern-regex: (?i)"[^"\n]*[?&](password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)=
+      - patterns:
+          - pattern-either:
+              - pattern: $B.queryParam($K, ...)
+              - pattern: (URIBuilder $B).addParameter($K, ...)
+          - metavariable-regex:
+              metavariable: $K
+              regex: '(?i)^"(password|passwd|pwd|passphrase|senha|secret|api_key|apikey|private_key|client_secret|segredo)"$'

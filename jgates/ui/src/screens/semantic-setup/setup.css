@@ -35,3 +35,4 @@
 .semprov-api > summary { cursor: pointer; padding: 4px 0; }
 .semprov-api-title { font-weight: 620; font-size: 14px; }
 .semprov-api[open] > summary { margin-bottom: 8px; }
+.detect-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 8px; }

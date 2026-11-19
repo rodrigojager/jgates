@@ -1,4 +1,8 @@
 {
+  "history_informational_heading": "Achados informativos",
+  "history_findings_classes": "{blocking} bloqueantes · {informational} informativos",
+  "history_review_count": "{count} para revisar",
+  "history_review_heading": "Para revisar",
   "history_nav": "Histórico",
   "history_title": "Cada validação conta uma história.",
   "history_lead": "Resultados vinculados ao código, ao perfil e às regras usadas, só deste workspace.",

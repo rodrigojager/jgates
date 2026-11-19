@@ -1,6 +1,10 @@
 node_modules/
 dist/
+# Test-coverage output. The two folders below are source code that happens to be named "coverage" (the ASVS
+# coverage map): they are not output and must stay tracked.
 coverage/
+!jgates/src/core/coverage/
+!jgates/schemas/coverage/
 .quality/
 *.log
 *.tgz

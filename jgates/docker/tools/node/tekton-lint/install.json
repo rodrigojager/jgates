@@ -1,0 +1,14 @@
+{
+  "provides": [
+    {
+      "name": "tekton-lint",
+      "link": "tekton-lint",
+      "path": "node_modules/.bin/tekton-lint",
+      "package": "@ibm/tekton-lint",
+      "version": [
+        "tekton-lint",
+        "--version"
+      ]
+    }
+  ]
+}

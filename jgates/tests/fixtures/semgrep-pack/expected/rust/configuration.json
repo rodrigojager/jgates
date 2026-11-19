@@ -1,0 +1,4 @@
+{
+  "files": ["src/configuration.rs"],
+  "ruleIds": ["jgates.rust.directory-listing-enabled", "jgates.rust.mass-assignment", "jgates.rust.serializer-exposes-all-fields"]
+}

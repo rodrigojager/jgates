@@ -17,11 +17,11 @@ import { publicResolution, userPreferencesBlocked, type ProviderResolution } fro
 import { vaultBlocked } from "../secrets/index.js";
 import { normalizeScopePath, toRepositoryPath, type ScopeRunPreparation, type SemanticRigor } from "../semantic-scope/index.js";
 import type { ResultSemantic } from "../run/types.js";
-import { artifactShape, parseArtifactText, validateArtifact, type ExplorationArtifact, type VerdictArtifact } from "./artifacts.js";
+import { artifactShape, parseArtifactText, settleArtifact, validateArtifact, type ExplorationArtifact, type VerdictArtifact } from "./artifacts.js";
 import { agentCliBackend, providerToolBackend, type AgentCliGate, type CallTurn, type ContextRunResult, type InvestigationBackend, type TranscriptEntry } from "./backends.js";
 import { BudgetMeter, budgetLimits, DEFAULT_TURNS, reserveFor, type UsageSnapshot } from "./budget.js";
 import { HostTools, LIMITING_REFUSALS, type CandidateInput, type ContextState } from "./host-tools.js";
-import type { ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation, ModuleApplicability } from "./types.js";
+import type { ArtifactCandidate, ArtifactCheck, ArtifactVerdict, BudgetDimension, Candidate, Confirmation, InvestigationModule, InvestigationStageSpec, Limitation, ModuleApplicability, ReviewUnit } from "./types.js";
 import { renameWithRetry } from "../fs-retry/index.js";
 
 export const INVESTIGATION_RECORD = "evidence/investigation.json";
@@ -155,6 +155,8 @@ interface ContextRecord {
   label: string;
   agentId: string;
   candidate: string | null;
+  /** The review unit of a per-unit context. */
+  unit?: string;
   status: ContextRunResult["status"] | "not-run";
   turns: number;
   artifact: { valid: boolean; code?: string; problems: string[] } | null;
@@ -355,14 +357,47 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
   // The module's applicability check: a method whose required input is missing never starts a context.
   if (module.applicability) {
     let answer: ModuleApplicability;
+    const applicabilityInput = { scope: prep, rigor: options.rigor, runDir: options.runDir, workspacePath: options.workspacePath, env, readableFiles: () => tools.readableFiles(), readable: (p: string) => tools.readable(p), readFile: hostRead };
     try {
-      answer = module.applicability({ scope: prep, rigor: options.rigor, runDir: options.runDir, workspacePath: options.workspacePath, env, readableFiles: () => tools.readableFiles(), readable: (p) => tools.readable(p), readFile: hostRead });
+      answer = module.applicability(applicabilityInput);
     } catch (error) {
       answer = { applicable: false, code: "APPLICABILITY_CHECK_FAILED", missing: "applicability", reason: `the applicability check failed: ${error instanceof Error ? error.message : String(error)}` };
+    }
+    // What the run needs from the machine (an engine, the tools image), asked only when the method's inputs are there.
+    if (answer.applicable && module.prerequisites) {
+      try {
+        const missing = await module.prerequisites({ ...applicabilityInput, inputs: answer.inputs ?? {}, signal: options.signal });
+        if (missing && "code" in missing) answer = { applicable: false, ...missing };
+        // The machine serves only part of the inputs: the run goes on with those.
+        else if (missing && "inputs" in missing) answer = { applicable: true, inputs: missing.inputs, record: { ...(answer.record ?? {}), ...(missing.record ?? {}) } };
+      } catch (error) {
+        answer = { applicable: false, code: "APPLICABILITY_CHECK_FAILED", missing: "prerequisites", reason: `the prerequisites check failed: ${error instanceof Error ? error.message : String(error)}` };
+      }
+    }
+    // The candidates the host establishes before any context (the findings a method re-examines).
+    let seeded: ArtifactCandidate[] = [];
+    if (answer.applicable && module.seedCandidates) {
+      try {
+        seeded = module.seedCandidates({ inputs: answer.inputs ?? {} });
+      } catch (error) {
+        answer = { applicable: false, code: "APPLICABILITY_CHECK_FAILED", missing: "seed candidates", reason: `the seed candidates could not be established: ${error instanceof Error ? error.message : String(error)}` };
+      }
     }
     if (answer.applicable) {
       applied = answer.inputs ?? {};
       applicability = { state: "applicable", ...(answer.record ?? {}) };
+      const host: ContextState = { stage: "host", label: "host", seen: new Set(), refused: [] };
+      const dropped: string[] = [];
+      for (const c of seeded) {
+        const p = normalizeScopePath(c.path);
+        if (!p || !tools.readable(p) || (c.line !== null && (tools.lines(p) ?? Infinity) < c.line)) {
+          dropped.push(brief(`${String(c.path)}${c.line !== null ? `:${c.line}` : ""}: not readable in this scope, or no such line`));
+          continue;
+        }
+        const r = addCandidate({ title: c.title, path: p, line: c.line, severity: c.severity, category: c.category, rationale: c.rationale, ...(c.details ? { details: c.details } : {}) }, host);
+        if ("problems" in r) dropped.push(brief(r.problems.join("; ")));
+      }
+      if (dropped.length > 0) applicability.seedsDropped = dropped;
     } else {
       const reason = brief(answer.reason);
       applicability = { state: "not-applicable", code: answer.code, missing: answer.missing, reason };
@@ -381,6 +416,22 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
         // The outcome below still carries the record.
       }
       return base({ state: "unavailable", code: "METHOD_NOT_APPLICABLE", reason: `${module.title} is not applicable to this run: ${reason}`, investigation: record });
+    }
+  }
+
+  // The review units of the per-unit stages (one fresh context per unit), from the applicable inputs.
+  let reviewUnits: ReviewUnit[] = [];
+  if (module.stages.some((st) => st.contexts === "per-unit")) {
+    try {
+      const seen = new Set<string>();
+      for (const u of module.reviewUnits?.({ inputs: applied ?? {} }) ?? []) {
+        if (!u || typeof u.id !== "string" || u.id === "" || seen.has(u.id)) continue;
+        seen.add(u.id);
+        reviewUnits.push({ id: u.id, label: typeof u.label === "string" && u.label !== "" ? u.label : u.id });
+      }
+    } catch (error) {
+      reviewUnits = [];
+      moduleGaps.push({ code: "REVIEW_UNITS_FAILED", reason: `the review units could not be established: ${brief(error instanceof Error ? error.message : String(error))}` });
     }
   }
 
@@ -424,15 +475,20 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     rec.state = "running";
     emit("stage", { step: REVIEW_STEP, stageId: `${module.id}/${spec.id}`, state: "running", role: spec.role });
     // A verification stage re-checks the decided records (confirmed or needs-validation); a deciding stage the open ones.
-    const targets: Array<Candidate | null> =
-      spec.contexts === "once" ? [null] : spec.verify ? candidates.filter((c) => c.status === "confirmed" || c.status === "needs-validation") : candidates.filter((c) => c.status === "open");
+    // A per-unit stage runs one fresh context per review unit of the module.
+    const targets: Array<{ candidate: Candidate | null; unit: ReviewUnit | null }> =
+      spec.contexts === "once"
+        ? [{ candidate: null, unit: null }]
+        : spec.contexts === "per-unit"
+          ? reviewUnits.map((unit) => ({ candidate: null, unit }))
+          : (spec.verify ? candidates.filter((c) => c.status === "confirmed" || c.status === "needs-validation") : candidates.filter((c) => c.status === "open")).map((candidate) => ({ candidate, unit: null }));
     const maxTurns = spec.maxTurns ?? DEFAULT_TURNS[spec.role][options.rigor];
     let budgetHit: { dimension: string; message: string } | null = null;
     const notDone = spec.verify ? "not verified" : "not validated";
-    for (const candidate of targets) {
-      const label = candidate ? `${spec.id}:${candidate.id}` : spec.id;
+    for (const { candidate, unit } of targets) {
+      const label = candidate ? `${spec.id}:${candidate.id}` : unit ? `${spec.id}:${unit.id}` : spec.id;
       const ctx: ContextState = { stage: spec.id, label, seen: new Set(), refused: [] };
-      const ctxRec: ContextRecord = { label, agentId: contextAgentId(label), candidate: candidate?.id ?? null, status: "not-run", turns: 0, artifact: null, refused: ctx.refused, notes: [], transcript: null };
+      const ctxRec: ContextRecord = { label, agentId: contextAgentId(label), candidate: candidate?.id ?? null, ...(unit ? { unit: unit.id } : {}), status: "not-run", turns: 0, artifact: null, refused: ctx.refused, notes: [], transcript: null };
       rec.contexts.push(ctxRec);
       if (options.signal.aborted) {
         stopAll = "cancelled";
@@ -453,7 +509,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       let extra: string | null = null;
       if (module.brief) {
         try {
-          extra = module.brief({ stage: spec, candidate, accepted, candidates, scope: prep, rigor: options.rigor, runDir: options.runDir, readable: (p) => tools.readable(p), readFile: hostRead, ...(applied ? { inputs: applied } : {}) });
+          extra = module.brief({ stage: spec, candidate, ...(unit ? { unit } : {}), accepted, candidates, scope: prep, rigor: options.rigor, runDir: options.runDir, readable: (p) => tools.readable(p), readFile: hostRead, ...(applied ? { inputs: applied } : {}) });
         } catch (error) {
           // The module could not give this context its material: the context does not start.
           stopAll = "error";
@@ -532,7 +588,9 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
       if (!("value" in parsed)) {
         ctxRec.artifact = { valid: false, code: parsed.code, problems: [parsed.problem] };
       } else {
-        const check = validateArtifact(spec.artifact, parsed.value, { seen: ctx.seen, candidate, readable: (p) => tools.readable(p), lines: (p) => tools.lines(p), accepted, agentId: ctxRec.agentId, run: runFacts });
+        const checkContext = { seen: ctx.seen, candidate, ...(unit ? { unit } : {}), readable: (p: string) => tools.readable(p), lines: (p: string) => tools.lines(p), accepted, agentId: ctxRec.agentId, run: runFacts };
+        // The module's host work on a valid artifact (executing a reproducer) happens before its claims are applied.
+        const check = await settleArtifact(spec.artifact, validateArtifact(spec.artifact, parsed.value, checkContext), checkContext, options.signal);
         ctxRec.artifact = { valid: check.ok, ...(check.ok ? {} : { code: "invalid-field" }), problems: check.problems.map(brief) };
         if (check.ok && check.value) {
           if (spec.contexts === "once") accepted[spec.id] = check.value;
@@ -564,6 +622,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     if (rec.state === "budget-exhausted") rec.reason = budgetHit?.message ?? "the budget is spent";
     if (rec.state === "invalid") rec.reason = "a context ended without a valid artifact";
     if (spec.contexts === "per-candidate" && targets.length === 0) rec.reason = "no candidate to validate";
+    if (spec.contexts === "per-unit" && targets.length === 0) rec.reason = "no review unit";
     const refusedHere = rec.contexts.flatMap((c) => c.refused).filter((r) => LIMITING_REFUSALS.has(r.code));
     if (refusedHere.length > 0) {
       rec.limitations.push({ code: "CONTEXT_REFUSED", message: "the host refused workspace files this stage asked for; its conclusions hold only for what it could read", paths: [...new Set(refusedHere.map((r) => r.path))] });
@@ -623,7 +682,9 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
     }
     if (candidate) {
       if (check.verdict) applyVerdict(spec, check.verdict, ctx, candidate);
-      else {
+      else if (spec.decides === false && !spec.verify) {
+        // A preparing stage: the candidate stays open for the deciding stage that follows.
+      } else {
         candidate.status = "unresolved";
         candidate.reason = `${spec.verify ? "not verified" : "not validated"}: the context's artifact carried no verdict`;
       }
@@ -672,7 +733,7 @@ export async function runInvestigation(options: InvestigationOptions): Promise<R
   if (module.finalize && stopAll !== "cancelled") {
     try {
       const out = module.finalize({
-        stages: stages.map((st) => ({ id: st.id, state: st.state, required: st.required, ...(st.reason ? { reason: st.reason } : {}), contexts: st.contexts.map((c) => ({ label: c.label, agentId: c.agentId, candidate: c.candidate, status: c.status, ...(c.accepted ? { accepted: c.accepted } : {}) })) })),
+        stages: stages.map((st) => ({ id: st.id, state: st.state, required: st.required, ...(st.reason ? { reason: st.reason } : {}), contexts: st.contexts.map((c) => ({ label: c.label, agentId: c.agentId, candidate: c.candidate, ...(c.unit ? { unit: c.unit } : {}), status: c.status, ...(c.accepted ? { accepted: c.accepted } : {}) })) })),
         accepted,
         candidates,
         scope: prep,

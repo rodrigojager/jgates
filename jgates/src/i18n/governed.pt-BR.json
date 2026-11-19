@@ -1,4 +1,5 @@
 {
+  "governed_linter_network_excluded": "O jgates ci exclui {adapter} porque precisa acessar a rede. A política precisa definir execution.network como allow.",
   "governed_suppressions_label": "Supressões no código (jgates ci)",
   "governed_suppressions_reason": "O jgates ci reporta cada comentário de supressão do commit analisado",
   "governed_suppressions_done": "{files, plural, one {# arquivo lido} other {# arquivos lidos}}: {count, plural, one {# comentário} other {# comentários}} de supressão, {blocking, plural, one {# ainda respeitado} other {# ainda respeitados}} por uma checagem desta execução",

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "standard",
+  "name": "standard",
+  "sourceUrl": "https://github.com/standard/standard",
+  "license": "MIT",
+  "program": {
+    "tool": "standard",
+    "versionRange": ">=17.0.0 <18.0.0"
+  },
+  "megalinter": [
+    "JAVASCRIPT_STANDARD"
+  ],
+  "place": {
+    "section": "language",
+    "group": "javascript",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".js"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--verbose",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^\\s*(?<file>.+?):(?<line>\\d+):(?<column>\\d+):\\s*(?<message>.+?)\\s*\\((?<rule>[^()\\s]+)\\)\\s*$",
+    "level": "error"
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning"
+  },
+  "configuration": {
+    "files": [
+      "package.json"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "standard has no rule options by design; it reads the standard key of the project's package.json (ignore patterns, globals, environments) and the project's .gitignore, so the project decides which files are checked",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: eslint-disable comments and the standard key's ignore list",
+      "pattern": "eslint-disable",
+      "files": "\\.js$"
+    }
+  },
+  "install": "standard",
+  "text": {
+    "en": {
+      "label": "standard (JavaScript)",
+      "purpose": "Checks JavaScript files against JavaScript Standard Style: no semicolons, single quotes, two-space indents, unused variables and other common mistakes. It has no options on purpose.",
+      "limitation": "It enforces one fixed style, so it conflicts with a project that uses another style (semicolons, double quotes); it runs only in the Strict profile, beside the project's own ESLint.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "standard (JavaScript)",
+      "purpose": "Verifica arquivos JavaScript contra o JavaScript Standard Style: sem ponto e vírgula, aspas simples, indentação de dois espaços, variáveis não usadas e outros erros comuns. Não tem opções de propósito.",
+      "limitation": "Impõe um único estilo fixo, então conflita com projetos que usam outro estilo (ponto e vírgula, aspas duplas); roda só no perfil Strict, ao lado do ESLint do próprio projeto.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

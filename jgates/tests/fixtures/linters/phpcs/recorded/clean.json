@@ -1,0 +1,22 @@
+{
+ "tool": "phpcs",
+ "kind": "clean",
+ "version": "4.0.4",
+ "calls": [
+  {
+   "args": [
+    "--report=checkstyle",
+    "--report-file=/output/linters/phpcs/phpcs-report.xml",
+    "--no-colors",
+    "-q",
+    "--",
+    "Spacing.php"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": "",
+   "reportPath": "/output/linters/phpcs/phpcs-report.xml",
+   "report": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<checkstyle version=\"4.0.4\">\n</checkstyle>\n\n"
+  }
+ ]
+}

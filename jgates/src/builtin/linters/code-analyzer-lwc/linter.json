@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "code-analyzer-lwc",
+  "name": "Salesforce Code Analyzer (LWC)",
+  "sourceUrl": "https://github.com/forcedotcom/code-analyzer",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "sf",
+    "prefix": [
+      "code-analyzer",
+      "run"
+    ],
+    "versionRange": ">=2.158.0 <3.0.0"
+  },
+  "megalinter": [
+    "SALESFORCE_CODE_ANALYZER_LWC"
+  ],
+  "place": {
+    "section": "language",
+    "group": "salesforce",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "names": [
+      "*.js-meta.xml"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "--rule-selector",
+      "eslint:LWC",
+      "--workspace",
+      "{workspace}",
+      "--target",
+      "**/lwc/**/*.js",
+      "--severity-threshold",
+      "5",
+      "--output-file",
+      "{report}"
+    ],
+    "env": {
+      "HOME": "/tmp/sf-home"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "timeoutSeconds": 900,
+    "resources": {
+      "memoryMb": 2048
+    }
+  },
+  "output": {
+    "from": "file",
+    "file": "code-analyzer-lwc.sarif",
+    "reader": "custom"
+  },
+  "configuration": {
+    "files": [
+      "code-analyzer.yml",
+      "code-analyzer.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "the project's code-analyzer.yml, which the Salesforce Code Analyzer reads by itself from the project root; JGates adds only the rule selection and the target of the command line",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: eslint-disable comments and sfca-disable comments of the Lightning Web Component JavaScript",
+      "pattern": "eslint-disable|sfca-disable",
+      "files": "\\.js$"
+    }
+  },
+  "install": "salesforce-cli",
+  "text": {
+    "en": {
+      "label": "Salesforce Code Analyzer (LWC)",
+      "purpose": "Static analysis of Lightning Web Components with the LWC rules of the ESLint engine of the Salesforce Code Analyzer: platform restrictions, async operations, unsafe DOM use and best practices.",
+      "limitation": "It runs only the ESLint rules tagged LWC on the JavaScript files under lwc folders; the HTML templates and the Apex of the project are not analyzed. A code-analyzer.yml of the project is read by the analyzer itself.",
+      "needs": "The Salesforce CLI with its Code Analyzer plugin and the Java runtime of the tools image, about 2 GB of memory and a minute or two per run; no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Salesforce Code Analyzer (LWC)",
+      "purpose": "Análise estática de Lightning Web Components com as regras LWC do motor ESLint do Salesforce Code Analyzer: restrições da plataforma, operações assíncronas, uso inseguro do DOM e boas práticas.",
+      "limitation": "Roda apenas as regras do ESLint com a etiqueta LWC nos arquivos JavaScript das pastas lwc; os templates HTML e o Apex do projeto não são analisados. Um code-analyzer.yml do projeto é lido pelo próprio analisador.",
+      "needs": "A Salesforce CLI com o plugin Code Analyzer e o ambiente Java da imagem de ferramentas, cerca de 2 GB de memória e um ou dois minutos por execução; sem rede e sem as dependências do projeto."
+    }
+  }
+}

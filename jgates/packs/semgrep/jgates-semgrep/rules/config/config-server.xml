@@ -1,0 +1,58 @@
+<!-- Fixture of config-server.yaml for the Tomcat server.xml format. Never loaded by a server. -->
+<Server port="8005" shutdown="SHUTDOWN">
+  <Service name="Catalina">
+    <!-- ruleid: jgates.config.tls-old-protocol-version -->
+    <Connector port="8443" protocol="HTTP/1.1" SSLEnabled="true" sslEnabledProtocols="TLSv1,TLSv1.2" />
+    <Connector port="8444" protocol="HTTP/1.1" SSLEnabled="true">
+      <!-- ruleid: jgates.config.tls-old-protocol-version -->
+      <SSLHostConfig protocols="TLSv1.1+TLSv1.2" />
+    </Connector>
+    <!-- ok: jgates.config.tls-old-protocol-version -->
+    <Connector port="8445" protocol="HTTP/1.1" SSLEnabled="true" sslEnabledProtocols="TLSv1.2,TLSv1.3" />
+
+    <!-- ruleid: jgates.config.tls-weak-cipher-suite -->
+    <Connector port="8446" protocol="HTTP/1.1" SSLEnabled="true" ciphers="TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_RC4_128_SHA" />
+    <!-- ruleid: jgates.config.tls-weak-cipher-suite -->
+    <Connector port="8447" protocol="HTTP/1.1" SSLEnabled="true" ciphers="HIGH:3DES" />
+    <!-- ok: jgates.config.tls-weak-cipher-suite -->
+    <Connector port="8448" protocol="HTTP/1.1" SSLEnabled="true" ciphers="TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" />
+    <!-- ok: jgates.config.tls-weak-cipher-suite -->
+    <Connector port="8449" protocol="HTTP/1.1" SSLEnabled="true" ciphers="HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES" />
+
+    <!-- ruleid: jgates.config.http-trace-enabled -->
+    <Connector port="8080" protocol="HTTP/1.1" allowTrace="true" />
+    <!-- ok: jgates.config.http-trace-enabled -->
+    <Connector port="8081" protocol="HTTP/1.1" allowTrace="false" />
+
+    <!-- ruleid: jgates.config.version-header-exposed -->
+    <Connector port="8082" protocol="HTTP/1.1" xpoweredBy="true" />
+    <!-- ok: jgates.config.version-header-exposed -->
+    <Connector port="8083" protocol="HTTP/1.1" xpoweredBy="false" />
+    <Host name="localhost">
+      <!-- ruleid: jgates.config.version-header-exposed -->
+      <Valve className="org.apache.catalina.valves.ErrorReportValve" showServerInfo="true" />
+      <!-- ok: jgates.config.version-header-exposed -->
+      <Valve className="org.apache.catalina.valves.ErrorReportValve" showReport="false" showServerInfo="false" />
+    </Host>
+  </Service>
+</Server>
+
+<!-- The same family also reads the Tomcat web.xml listing switch: -->
+<web-app>
+  <servlet>
+    <servlet-name>default</servlet-name>
+    <init-param>
+      <!-- ruleid: jgates.config.directory-listing-enabled -->
+      <param-name>listings</param-name>
+      <param-value>true</param-value>
+    </init-param>
+  </servlet>
+  <servlet>
+    <servlet-name>safe</servlet-name>
+    <init-param>
+      <!-- ok: jgates.config.directory-listing-enabled -->
+      <param-name>listings</param-name>
+      <param-value>false</param-value>
+    </init-param>
+  </servlet>
+</web-app>

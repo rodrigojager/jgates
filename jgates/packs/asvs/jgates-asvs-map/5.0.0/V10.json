@@ -1,0 +1,1019 @@
+{
+  "version": "5.0.0",
+  "chapter": "V10",
+  "entries": [
+    {
+      "requirement": "V10.1.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "privacy",
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.oauth-token-in-browser-storage",
+          "covers": "A localStorage or sessionStorage write whose literal key names an access or refresh token.",
+          "misses": "Tokens kept in cookies, IndexedDB, memory or storage keys built at run time, wrappers around storage, and whether a back-end-for-front-end exists or where else the token is sent, are not seen. The finding is informational.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+      "why": "A token written to browser storage is readable by every script of the page, which a back-end-for-front-end pattern avoids. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.1.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Session-bound state, PKCE verifier and nonce handling in the callback.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+      "why": "The block checks that callback values are tied to the session that began the flow. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.2.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.oauth-request-without-state",
+          "covers": "Points at http_build_query calls with response_type and client_id entries but no state or code_challenge entry.",
+          "misses": "Request-binding protection may exist in the OAuth client or callback where the rule cannot see it. The flow type, unpredictability and callback validation are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.oauth-request-without-state",
+          "covers": "Points at URLSearchParams with response_type, authorization-URL helper calls without visible state or challenge options, and matched code-flow URL literals.",
+          "misses": "Request-binding protection may exist in the client library or callback where the rule cannot see it. State unpredictability and callback validation are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.oauth-request-without-state",
+          "covers": "Points at matched code/token authorization URL strings containing client_id, or urlencode dictionaries containing response_type, without visible state or code_challenge.",
+          "misses": "Request-binding protection may exist in the client library or callback where the rule cannot see it. State unpredictability and callback validation are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.oauth-request-without-state",
+          "covers": "Points at matched HTTP authorization URL literals and CreateAuthorizeUrl code-flow calls with neither visible state nor code challenge.",
+          "misses": "Request-binding protection may exist in the client library or callback where the rule cannot see it. State unpredictability and callback validation are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.oauth-request-without-state",
+          "covers": "Points at AuthCodeURL calls with literal state and no recognized challenge option, and code-flow URL strings without visible state or code_challenge.",
+          "misses": "Request-binding protection may exist in another layer where the rule cannot see it. Nonliteral state quality and callback validation are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.oauth-request-without-state",
+          "covers": "Points at code/token authorization URL expressions assigned, returned or redirected to without matched state or code_challenge text.",
+          "misses": "Request-binding protection may exist in the client library or callback where the rule cannot see it. State unpredictability and callback validation are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.oauth-request-without-state",
+          "covers": "Points at format! or Url::parse authorization strings asking for code or token without state or code_challenge text.",
+          "misses": "Request-binding protection may exist in the client library or callback where the rule cannot see it. State unpredictability and callback validation are not established. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Use of PKCE or a session-bound state value in the code flow.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+    "why": "The Review rules point at authorization requests with no visible binding and never examine the requirement. The Semantic block separately reads PKCE and session-bound state handling. Technology applicability is a suggestion, not a decision for the user.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V10.2.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Issuer checks in ID tokens and the binding of the selected provider in multi-provider flows.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. Mix-up through authorization server metadata is not named.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether a client that talks to more than one authorization server defends against mix-up, for example by checking the issuer in the authorization and token responses.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.2.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the scopes and other authorization parameters a client requests are limited to what it needs.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.3.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-audience-not-validated-by-default",
+          "covers": "Points at PyJWT decode calls with algorithms but no audience or aud argument, excluding keyword expansion and the matched explicit signature/audience-disable forms; token purpose is not inferred.",
+          "misses": "Audience protection may exist in later claim checks where the rule cannot see it. Expected audience correctness and introspection are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.jwt-audience-not-validated",
+          "covers": "Points at golang-jwt Parse or ParseWithClaims calls without inline jwt.WithAudience; token purpose is not inferred.",
+          "misses": "Audience protection may exist in parser options or custom claim validation where the rule cannot see it. Expected audience correctness and introspection are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.jwt-audience-not-validated",
+          "covers": "Points at SignedWith validation without inline PermittedFor, or Firebase JWT decode assignments in functions without the matched strict aud inequality condition; token purpose is not inferred.",
+          "misses": "Audience protection may exist in separately assembled constraints or other claim checks where the rule cannot see it. The exclusion only recognizes an inequality condition, not effective rejection; expected audience correctness and introspection are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.token-validation-disabled",
+          "covers": "A switch that turns off audience validation.",
+          "misses": "Validation parameters built in unusual ways, other .NET token stacks, and tokens checked outside this setting.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.jwt-audience-not-validated",
+          "covers": "Points at jsonwebtoken and jose verify calls without a visible audience option; token purpose is not inferred.",
+          "misses": "Audience protection may exist in middleware or separate claim checks where the rule cannot see it. Expected audience correctness and introspection are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.jwt-audience-not-validated",
+          "covers": "PyJWT decode calls explicitly setting verify_aud=False, directly or in an inline options dictionary; token purpose is not inferred.",
+          "misses": "Missing audience arguments belong to the Review half. Separately assembled options, expected audience correctness, other libraries and introspection are not modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.jwt-audience-not-validated",
+          "covers": "Points at auth0 JWT.require and jjwt parser builder chains ending in build without withAudience or requireAudience respectively; token purpose is not inferred.",
+          "misses": "Audience protection may exist in resource-server configuration or another validator where the rule cannot see it. Expected audience correctness and introspection are not modeled. This Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.jwt-audience-not-validated",
+          "covers": "A jsonwebtoken Validation with audience validation turned off; the rule cannot tell an access token from any other JWT.",
+          "misses": "Other token libraries, separately configured validation, expected audience correctness and introspection are not modeled.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#JWT verification and claim binding",
+          "covers": "Checks of the audience claim in access tokens.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "oauth-client",
+          "oauth-authorization-server"
+        ]
+      },
+    "why": "Blocking rules match explicit audience-validation disablement; Review checks only point at missing local settings and never examine the requirement. Neither infers that a JWT is an access token. The Semantic block separately reads access-token audience handling. Technology applicability is a suggestion, not a decision for the user.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V10.3.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the resource server bases access decisions on the delegated-authorization claims of the token (subject, scope, authorization details) and not on authentication alone.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "oauth-client",
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.3.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Account linking and identity collision",
+          "covers": "Collisions of verified identifiers (an e-mail address, for example) when an external identity is linked to, or matched with, an existing account.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It examines account linking more than token claims.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the user is identified from a claim combination that cannot be reassigned (issuer plus subject) and not from an e-mail address or name.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "oauth-client",
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.3.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the resource server checks authentication strength, method or recency in the token (acr, amr, auth_time) where it needs a given level.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "jwt",
+          "oauth-client",
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.3.5",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "jwt",
+          "oauth-client",
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a resource server that accepts access tokens is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Exact redirect URI ownership where the project is the authorization server.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "The block names exact redirect URI validation for the authorization server role. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the authorization server rejects a second use of an authorization code and revokes the tokens already issued from it.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the authorization code gets a short lifetime, set in code or configuration.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. Settings held in a deployed server are not visible.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.4",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.5",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether refresh tokens of public clients are sender-constrained or rotated on use, with the whole grant revoked when a used token reappears.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.6",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "PKCE and authorization code binding at the server where it applies.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. The rejection of the plain challenge method is not named.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "The block includes PKCE enforcement and code binding, though not the rejection of the plain method specifically. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.7",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.8",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.9",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the authorization server's user interface lets an authorized user revoke refresh tokens and reference access tokens.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.10",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.11",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.12",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.13",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.14",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.15",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.4.16",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OAuth authorization server is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.5.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Nonce checks on ID Tokens.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+      "why": "Nonce validation of ID Tokens is named in the block. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.5.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Account linking and identity collision",
+          "covers": "Collisions of verified identifiers (an e-mail address, for example) when an external identity is linked to, or matched with, an existing account.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It examines account linking more than token claims.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether an OIDC client identifies the user from the subject claim of the ID token, scoped to the provider, and not from an e-mail address or other reassignable value.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.5.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the client rejects provider metadata whose issuer differs from the issuer it was configured with.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.5.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#OAuth/OIDC request and callback binding",
+          "covers": "Audience checks on ID Tokens.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+      "why": "Audience validation of ID Tokens is named in the block. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.5.5",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether back-channel logout handling checks the logout token's type, event member and absence of a nonce, with a short expiry.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.6.1",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "Only a project that is an OpenID provider is concerned.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.6.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the OpenID provider's logout endpoint asks the user to confirm, or validates the hint parameters, before ending a session.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.7.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the authorization server asks for the user's consent on each authorization request, and always for clients it cannot identify with certainty.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.7.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether the consent screen tells the user what is granted: the scopes, the resource, the identity of the client and the lifetime.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. What the rendered screen looks like is not visible.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V10.7.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether users can see, change and revoke the consents they gave through the authorization server.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-authorization-server"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    }
+  ]
+}

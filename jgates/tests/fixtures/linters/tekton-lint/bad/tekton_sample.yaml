@@ -1,0 +1,12 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: tekton-sample
+spec:
+  params:
+    - name: unused
+      type: string
+  tasks:
+    - name: build
+      taskRef:
+        name: build-task

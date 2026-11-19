@@ -16,7 +16,9 @@ Everything JGates creates on your machine is either in the [data folder](data-fo
 | Your own images | the engine (an image per workspace) | `jgates tools build-extension` |
 | Runs, logs, drafts, plans | the data folder | not recreated |
 
-The image is the biggest item: about 2 GB to download and around 6 GB unpacked, measured on the first complete image. `jgates setup` checks that the disk has room for both, plus a margin, before it downloads, and answers `DISK_LOW` when it does not.
+The image is the biggest item: about 5 GB to download and around 13 GB unpacked, as the last image build measured it. `jgates setup` checks that the disk has room for both, plus a margin, before it downloads, and answers `DISK_LOW` when it does not.
+
+The pinned Linux amd64 image measures 4.52 GB compressed and 12.52 GB unpacked. These totals cover the image layers, before project dependencies and advisory data.
 
 ## See the numbers
 

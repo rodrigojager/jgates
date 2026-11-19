@@ -17,7 +17,10 @@ import {
   findSemanticRun,
   listSemanticRuns,
   readSemanticRun,
+  reproductionOf,
   requestSemanticCancel,
+  withReproduction,
+  FINDING_ID_PATTERN,
 } from "../../core/semantic/index.js";
 import { semanticChoiceArgs, type ScopeRequest, type SemanticPurpose, type SemanticRigor } from "../../core/semantic-scope/index.js";
 import { getLocale, translator } from "../../i18n/index.js";
@@ -70,19 +73,35 @@ function publicRun<T extends { time: number }>(run: T): Omit<T, "time"> {
   return rest;
 }
 
-export const routes: RouteDefinition[] = [
+/** The grace period is injectable so forced cancellation can be exercised without a 15-second wait. */
+export function semanticRunRoutes({ cancelGraceMs = CANCEL_GRACE_MS } = {}): RouteDefinition[] {
+  return [
   {
     method: "GET",
     path: "/api/semantic/plan",
     query: {
       type: "object",
       // methods: comma-separated method IDs (the purpose's methods when absent).
-      properties: { quality: { type: "string", pattern: QUALITY_REF }, methods: { type: "string", pattern: METHOD_LIST } },
+      // from, finding: the earlier run (and one finding) confirm-by-reproduction would start from: the plan then carries what it would cost.
+      properties: {
+        quality: { type: "string", pattern: QUALITY_REF },
+        methods: { type: "string", pattern: METHOD_LIST },
+        from: { type: "string", pattern: SEMANTIC_RUN_ID_PATTERN },
+        finding: { type: "string", pattern: FINDING_ID_PATTERN },
+      },
       additionalProperties: false,
     },
     handler({ query, server }) {
       const methods = typeof query.methods === "string" ? query.methods.split(",") : [];
-      const plan = buildSemanticPlan({ workspacePath: server.workspace.path, home: server.home, quality: query.quality ?? null, methods });
+      const from = typeof query.from === "string" ? query.from : null;
+      const finding = typeof query.finding === "string" ? query.finding : null;
+      const plan = buildSemanticPlan({
+        workspacePath: server.workspace.path,
+        home: server.home,
+        quality: query.quality ?? null,
+        methods,
+        ...(from || finding ? { reproduction: { from, findings: finding ? [finding] : [] } } : {}),
+      });
       return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", plan } };
     },
   },
@@ -92,7 +111,8 @@ export const routes: RouteDefinition[] = [
     query: { type: "object", properties: { limit: { type: "string", pattern: "^[1-9][0-9]{0,3}$" } }, additionalProperties: false },
     handler({ query, server }) {
       const limit = Number(query.limit ?? "50");
-      const runs = listSemanticRuns(server.home, server.workspace.id).slice(0, limit).map(publicRun);
+      // Each run with the reproduction state of its findings (read from the reproduction runs that name it).
+      const runs = withReproduction(server.home, server.workspace.id, listSemanticRuns(server.home, server.workspace.id).slice(0, limit)).map(publicRun);
       return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", runs } };
     },
   },
@@ -100,10 +120,20 @@ export const routes: RouteDefinition[] = [
     method: "POST",
     path: "/api/semantic/runs",
     // The same choices as `jgates semantic run`: the Quality evidence, the purpose, rigor and budget, and the scope.
-    body: { type: "object", properties: { quality: { type: "string", pattern: QUALITY_REF }, ...choiceProperties }, additionalProperties: false },
+    // reproduction: the earlier run (and one finding) confirm-by-reproduction starts from, as --from and --finding.
+    body: {
+      type: "object",
+      properties: {
+        quality: { type: "string", pattern: QUALITY_REF },
+        ...choiceProperties,
+        reproduction: { type: "object", properties: { from: { type: "string", pattern: SEMANTIC_RUN_ID_PATTERN }, finding: { type: "string", pattern: FINDING_ID_PATTERN } }, additionalProperties: false },
+      },
+      additionalProperties: false,
+    },
     handler({ body, server }) {
-      const choices = (body ?? {}) as { quality?: string; purpose?: SemanticPurpose; methods?: string[]; rigor?: SemanticRigor; budget?: { maxCalls?: number; maxTokens?: number }; scope?: ScopeRequest };
+      const choices = (body ?? {}) as { quality?: string; purpose?: SemanticPurpose; methods?: string[]; rigor?: SemanticRigor; budget?: { maxCalls?: number; maxTokens?: number }; scope?: ScopeRequest; reproduction?: { from?: string; finding?: string } };
       const { quality } = choices;
+      const asked = choices.reproduction && (choices.reproduction.from || choices.reproduction.finding) ? choices.reproduction : null;
       // A policy folder being edited is not a project: there is nothing to review.
       if (server.policyMode) throw fail(409, "SEMANTIC_POLICY_MODE");
       const active = [...childrenOf(server).keys()][0];
@@ -116,6 +146,7 @@ export const routes: RouteDefinition[] = [
         ...(choices.rigor ? { rigor: choices.rigor } : {}),
         ...(choices.budget ? { budget: choices.budget } : {}),
         ...(choices.methods ? { methods: choices.methods } : {}),
+        ...(asked ? { reproduction: { from: asked.from ?? null, findings: asked.finding ? [asked.finding] : [] } } : {}),
         scope: choices.scope ?? null,
       });
       if (!plan.ready) throw fail(422, "SEMANTIC_NOT_READY", { detail: plan.blockers.map((b) => b.message).join(" ") }, { blockers: plan.blockers, plan });
@@ -136,6 +167,8 @@ export const routes: RouteDefinition[] = [
         ...semanticChoiceArgs(choices),
         // Several methods: the child runs them in order, one Semantic run each; runId names the first one.
         ...(plan.methodSelection === "explicit" ? [`--method=${plan.methods.map((m) => m.id).join(",")}`] : []),
+        ...(asked?.from ? ["--from", asked.from] : []),
+        ...(asked?.finding ? ["--finding", asked.finding] : []),
       ];
       const child = spawn(process.execPath, args, {
         cwd: server.workspace.path,
@@ -176,7 +209,7 @@ export const routes: RouteDefinition[] = [
         if (childrenOf(server).has(id)) return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", run: { runId: id, lifecycle: "running", live: true, result: null } } };
         throw fail(404, "RUN_NOT_FOUND", { runId: id });
       }
-      return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", run: publicRun(view) } };
+      return { status: 200, json: { schemaVersion: 1, status: "OK", gate: "semantic", run: { ...publicRun(view), reproduction: reproductionOf(server.home, server.workspace.id, view) } } };
     },
   },
   {
@@ -225,6 +258,11 @@ export const routes: RouteDefinition[] = [
       if (outcome.status === "not-found" && !child) throw fail(404, "RUN_NOT_FOUND", { runId: id });
       if (outcome.status === "not-active") throw fail(409, "RUN_NOT_ACTIVE", { runId: id });
       if (child) {
+        // Wait for exit before settling: SIGKILL is asynchronous and the last heartbeat can still be live until then.
+        const settle = (): void => {
+          requestSemanticCancel(server.home, server.workspace.id, id, { reason: "cancel requested (local server)" });
+        };
+        child.once("exit", settle);
         // The run stops by itself on the request; a child that does not is stopped (only that child: it is ours).
         const hard = setTimeout(() => {
           if (child.exitCode === null && child.signalCode === null) {
@@ -235,11 +273,15 @@ export const routes: RouteDefinition[] = [
               // Already gone.
             }
           }
-        }, outcome.status === "not-found" ? 0 : CANCEL_GRACE_MS);
+        }, outcome.status === "not-found" ? 0 : cancelGraceMs);
+        child.once("exit", () => clearTimeout(hard));
         hard.unref();
       }
       server.log(`semantic run ${id} cancel requested`);
       return { status: 202, json: { schemaVersion: 1, status: "OK", gate: "semantic", runId: id, cancel: outcome.status === "not-found" ? "requested" : outcome.status, message: t("semantic_cancel_requested", { runId: id }) } };
     },
   },
-];
+  ];
+}
+
+export const routes: RouteDefinition[] = semanticRunRoutes();

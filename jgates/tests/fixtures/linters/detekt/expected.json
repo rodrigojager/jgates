@@ -1,0 +1,12 @@
+{
+  "files": [
+    "app/Parser.kt"
+  ],
+  "findings": [
+    {
+      "rule": "detekt.empty-blocks.EmptyCatchBlock",
+      "file": "app/Parser.kt",
+      "line": 6
+    }
+  ]
+}

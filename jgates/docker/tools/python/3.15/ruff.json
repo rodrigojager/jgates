@@ -1,0 +1,13 @@
+{
+  "provides": [
+    {
+      "name": "ruff",
+      "link": "ruff",
+      "path": "bin/ruff",
+      "version": [
+        "ruff",
+        "--version"
+      ]
+    }
+  ]
+}

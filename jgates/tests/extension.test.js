@@ -59,7 +59,7 @@ test("the Dockerfile must read the tools image through the JGATES_TOOLS build ar
 });
 
 test("install lines: pip, npm, apt and a checksummed binary become Dockerfile lines; shell text and unpinned downloads are refused", () => {
-  assert.match(ext.installLines("pip:bandit==1.8.0").join("\n"), /uv tool install --no-cache 'bandit==1\.8\.0'$/);
+  assert.match(ext.installLines("pip:bandit==1.8.0").join("\n"), /uv tool install --force --no-cache 'bandit==1\.8\.0'$/);
   assert.match(ext.installLines("pip:bandit[sarif]==1.8.6").join("\n"), /'bandit\[sarif\]==1\.8\.6'$/);
   assert.match(ext.installLines("npm:@scope/lint@9").join("\n"), /npm install --global --prefix \/usr\/local '@scope\/lint@9'$/);
   assert.match(ext.installLines("apt:cppcheck").join("\n"), /apt-get install -y --no-install-recommends 'cppcheck'/);

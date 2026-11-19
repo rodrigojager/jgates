@@ -1,0 +1,11 @@
+{
+  "files": ["Files.java"],
+  "ruleIds": [
+    "jgates.java.upload-client-filename-in-path",
+    "jgates.java.archive-extraction-unchecked",
+    "jgates.java.request-body-without-size-limit",
+    "jgates.java.request-body-without-size-limit-by-default",
+    "jgates.java.upload-content-type-trusted",
+    "jgates.java.content-disposition-from-request"
+  ]
+}

@@ -1,0 +1,501 @@
+# Signal rules of the PHP front: which technologies a project uses (jgates.php.uses-<tag>).
+# They are records of the scan, never findings: they feed the "not applicable" suggestions.
+# Each rule matches the import (use) of the libraries that bring the technology into a PHP project, the class used by
+# name (new, static call, extends) and the typical standard-library call where no dependency is needed. Imports and
+# calls are syntax, so a comment or a string that only mentions a library does not match. The tags "latex" and
+# "browser-dom" have no signal in PHP: no library is common enough to list with confidence, and PHP does not run in a
+# browser.
+rules:
+  - id: jgates.php.uses-graphql
+    message: The project uses GraphQL.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: graphql
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((GraphQL|Rebing\\GraphQL|Nuwave\\Lighthouse|Overblog\\GraphQLBundle|Overblog\\GraphQL|ApiPlatform\\GraphQl|TheCodingMachine\\GraphQLite|Youshido\\GraphQL|Siler\\GraphQL|Spawnia\\Sailor|Graphpinator|Softonic\\GraphQL|Gmostafa\\GraphqlClient|Drupal\\graphql|MLL\\GraphQLScalars|Ecodev\\Felix\\GraphQL|Lighthouse|Siler\\Graphql)(\\.*)?|WPGraphQL|WPGraphQL_[A-Za-z_]*)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((GraphQL|Rebing\\GraphQL|Nuwave\\Lighthouse|Overblog\\GraphQLBundle|Overblog\\GraphQL|ApiPlatform\\GraphQl|TheCodingMachine\\GraphQLite|Youshido\\GraphQL|Siler\\GraphQL|Spawnia\\Sailor|Graphpinator|Softonic\\GraphQL|Gmostafa\\GraphqlClient|Drupal\\graphql|MLL\\GraphQLScalars|Ecodev\\Felix\\GraphQL|Lighthouse|Siler\\Graphql)(\\.*)?|WPGraphQL|WPGraphQL_[A-Za-z_]*)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((GraphQL|Rebing\\GraphQL|Nuwave\\Lighthouse|Overblog\\GraphQLBundle|Overblog\\GraphQL|ApiPlatform\\GraphQl|TheCodingMachine\\GraphQLite|Youshido\\GraphQL|Siler\\GraphQL|Spawnia\\Sailor|Graphpinator|Softonic\\GraphQL|Gmostafa\\GraphqlClient|Drupal\\graphql|MLL\\GraphQLScalars|Ecodev\\Felix\\GraphQL|Lighthouse|Siler\\Graphql)(\\.*)?|WPGraphQL|WPGraphQL_[A-Za-z_]*)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((GraphQL|Rebing\\GraphQL|Nuwave\\Lighthouse|Overblog\\GraphQLBundle|Overblog\\GraphQL|ApiPlatform\\GraphQl|TheCodingMachine\\GraphQLite|Youshido\\GraphQL|Siler\\GraphQL|Spawnia\\Sailor|Graphpinator|Softonic\\GraphQL|Gmostafa\\GraphqlClient|Drupal\\graphql|MLL\\GraphQLScalars|Ecodev\\Felix\\GraphQL|Lighthouse|Siler\\Graphql)(\\.*)?|WPGraphQL|WPGraphQL_[A-Za-z_]*)$'
+
+  - id: jgates.php.uses-websocket
+    message: The project uses WebSocket.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: websocket
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((Ratchet|WebSocket|Textalk\\WebSocket|Amp\\Websocket|Amp\\Http\\Server\\Websocket|Workerman|Swoole\\WebSocket|OpenSwoole\\WebSocket|Laravel\\Reverb|BeyondCode\\LaravelWebSockets|Pusher|Hoa\\Websocket|Wrench|Bloatless\\WebSocket|Thruway|ElephantIO|Illuminate\\Broadcasting|Ably|Phrity\\WebSocket|Symfony\\Component\\Mercure|React\\Socket\\Connector|Clue\\React\\Websocket|Laminas\\WebSocket|Mrsoftware\\WebSocket|Kraken\\Websocket)(\\.*)?)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Ratchet|WebSocket|Textalk\\WebSocket|Amp\\Websocket|Amp\\Http\\Server\\Websocket|Workerman|Swoole\\WebSocket|OpenSwoole\\WebSocket|Laravel\\Reverb|BeyondCode\\LaravelWebSockets|Pusher|Hoa\\Websocket|Wrench|Bloatless\\WebSocket|Thruway|ElephantIO|Illuminate\\Broadcasting|Ably|Phrity\\WebSocket|Symfony\\Component\\Mercure|React\\Socket\\Connector|Clue\\React\\Websocket|Laminas\\WebSocket|Mrsoftware\\WebSocket|Kraken\\Websocket)(\\.*)?)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Ratchet|WebSocket|Textalk\\WebSocket|Amp\\Websocket|Amp\\Http\\Server\\Websocket|Workerman|Swoole\\WebSocket|OpenSwoole\\WebSocket|Laravel\\Reverb|BeyondCode\\LaravelWebSockets|Pusher|Hoa\\Websocket|Wrench|Bloatless\\WebSocket|Thruway|ElephantIO|Illuminate\\Broadcasting|Ably|Phrity\\WebSocket|Symfony\\Component\\Mercure|React\\Socket\\Connector|Clue\\React\\Websocket|Laminas\\WebSocket|Mrsoftware\\WebSocket|Kraken\\Websocket)(\\.*)?)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Ratchet|WebSocket|Textalk\\WebSocket|Amp\\Websocket|Amp\\Http\\Server\\Websocket|Workerman|Swoole\\WebSocket|OpenSwoole\\WebSocket|Laravel\\Reverb|BeyondCode\\LaravelWebSockets|Pusher|Hoa\\Websocket|Wrench|Bloatless\\WebSocket|Thruway|ElephantIO|Illuminate\\Broadcasting|Ably|Phrity\\WebSocket|Symfony\\Component\\Mercure|React\\Socket\\Connector|Clue\\React\\Websocket|Laminas\\WebSocket|Mrsoftware\\WebSocket|Kraken\\Websocket)(\\.*)?)$'
+
+  - id: jgates.php.uses-webrtc
+    message: The project uses WebRTC.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: webrtc
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((Agence104\\LiveKit|Livekit|LiveKit|OpenTok|Vonage\\Video|Twilio\\Rest\\Video|Twilio\\Jwt\\Grants\\VideoGrant|Janus|Kurento|Mediasoup|Jitsi|Agora|Daily|PeerJS|Twilio\\Jwt\\Grants\\Video|(.*\\)?[A-Za-z_]*WebRTC[A-Za-z_]*)(\\.*)?)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Agence104\\LiveKit|Livekit|LiveKit|OpenTok|Vonage\\Video|Twilio\\Rest\\Video|Twilio\\Jwt\\Grants\\VideoGrant|Janus|Kurento|Mediasoup|Jitsi|Agora|Daily|PeerJS|Twilio\\Jwt\\Grants\\Video|(.*\\)?[A-Za-z_]*WebRTC[A-Za-z_]*)(\\.*)?)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Agence104\\LiveKit|Livekit|LiveKit|OpenTok|Vonage\\Video|Twilio\\Rest\\Video|Twilio\\Jwt\\Grants\\VideoGrant|Janus|Kurento|Mediasoup|Jitsi|Agora|Daily|PeerJS|Twilio\\Jwt\\Grants\\Video|(.*\\)?[A-Za-z_]*WebRTC[A-Za-z_]*)(\\.*)?)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Agence104\\LiveKit|Livekit|LiveKit|OpenTok|Vonage\\Video|Twilio\\Rest\\Video|Twilio\\Jwt\\Grants\\VideoGrant|Janus|Kurento|Mediasoup|Jitsi|Agora|Daily|PeerJS|Twilio\\Jwt\\Grants\\Video|(.*\\)?[A-Za-z_]*WebRTC[A-Za-z_]*)(\\.*)?)$'
+
+  - id: jgates.php.uses-oauth-client
+    message: The project uses OAuth 2.0 or OpenID Connect as a client.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: oauth-client
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((League\\OAuth2\\Client|Laravel\\Socialite|SocialiteProviders|KnpU\\OAuth2ClientBundle|Hybridauth|Jumbojett|TheNetworg\\OAuth2|Stevenmaguire\\OAuth2|Google\\Client|Google\\Auth|Facebook|Abraham\\TwitterOAuth|Auth0\\SDK|Okta|Microsoft\\Kiota\\Authentication\\Oauth|Microsoft\\Graph\\Core\\Authentication|GuzzleHttp\\Subscriber\\Oauth|Aws\\CognitoIdentityProvider|HWI\\Bundle\\OAuthBundle|OAuth|PHPoAuthLib|SocialConnect|Wohali\\OAuth2|Symfony\\Component\\Security\\Http\\Authenticator\\OAuth|Drupal\\social_auth|Drupal\\openid_connect|Kreait\\Firebase\\Auth|Laravel\\Socialite\\Two|Clue\\React\\OAuth|Coderello\\SocialGrant|Wohali|Hybrid_Auth)(\\.*)?|Google_Client|Google_Auth_[A-Za-z_]*|OAuth|Hybrid_Auth|Facebook)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((League\\OAuth2\\Client|Laravel\\Socialite|SocialiteProviders|KnpU\\OAuth2ClientBundle|Hybridauth|Jumbojett|TheNetworg\\OAuth2|Stevenmaguire\\OAuth2|Google\\Client|Google\\Auth|Facebook|Abraham\\TwitterOAuth|Auth0\\SDK|Okta|Microsoft\\Kiota\\Authentication\\Oauth|Microsoft\\Graph\\Core\\Authentication|GuzzleHttp\\Subscriber\\Oauth|Aws\\CognitoIdentityProvider|HWI\\Bundle\\OAuthBundle|OAuth|PHPoAuthLib|SocialConnect|Wohali\\OAuth2|Symfony\\Component\\Security\\Http\\Authenticator\\OAuth|Drupal\\social_auth|Drupal\\openid_connect|Kreait\\Firebase\\Auth|Laravel\\Socialite\\Two|Clue\\React\\OAuth|Coderello\\SocialGrant|Wohali|Hybrid_Auth)(\\.*)?|Google_Client|Google_Auth_[A-Za-z_]*|OAuth|Hybrid_Auth|Facebook)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((League\\OAuth2\\Client|Laravel\\Socialite|SocialiteProviders|KnpU\\OAuth2ClientBundle|Hybridauth|Jumbojett|TheNetworg\\OAuth2|Stevenmaguire\\OAuth2|Google\\Client|Google\\Auth|Facebook|Abraham\\TwitterOAuth|Auth0\\SDK|Okta|Microsoft\\Kiota\\Authentication\\Oauth|Microsoft\\Graph\\Core\\Authentication|GuzzleHttp\\Subscriber\\Oauth|Aws\\CognitoIdentityProvider|HWI\\Bundle\\OAuthBundle|OAuth|PHPoAuthLib|SocialConnect|Wohali\\OAuth2|Symfony\\Component\\Security\\Http\\Authenticator\\OAuth|Drupal\\social_auth|Drupal\\openid_connect|Kreait\\Firebase\\Auth|Laravel\\Socialite\\Two|Clue\\React\\OAuth|Coderello\\SocialGrant|Wohali|Hybrid_Auth)(\\.*)?|Google_Client|Google_Auth_[A-Za-z_]*|OAuth|Hybrid_Auth|Facebook)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((League\\OAuth2\\Client|Laravel\\Socialite|SocialiteProviders|KnpU\\OAuth2ClientBundle|Hybridauth|Jumbojett|TheNetworg\\OAuth2|Stevenmaguire\\OAuth2|Google\\Client|Google\\Auth|Facebook|Abraham\\TwitterOAuth|Auth0\\SDK|Okta|Microsoft\\Kiota\\Authentication\\Oauth|Microsoft\\Graph\\Core\\Authentication|GuzzleHttp\\Subscriber\\Oauth|Aws\\CognitoIdentityProvider|HWI\\Bundle\\OAuthBundle|OAuth|PHPoAuthLib|SocialConnect|Wohali\\OAuth2|Symfony\\Component\\Security\\Http\\Authenticator\\OAuth|Drupal\\social_auth|Drupal\\openid_connect|Kreait\\Firebase\\Auth|Laravel\\Socialite\\Two|Clue\\React\\OAuth|Coderello\\SocialGrant|Wohali|Hybrid_Auth)(\\.*)?|Google_Client|Google_Auth_[A-Za-z_]*|OAuth|Hybrid_Auth|Facebook)$'
+
+  - id: jgates.php.uses-oauth-authorization-server
+    message: The project runs an OAuth 2.0 or OpenID Connect authorization server.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: oauth-authorization-server
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((League\\OAuth2\\Server|Laravel\\Passport|OAuth2|Trikoder\\Bundle\\OAuth2Bundle|League\\Bundle\\OAuth2ServerBundle|FOS\\OAuthServerBundle|ZfrOAuth2|Laminas\\ApiTools\\OAuth2|ZF\\OAuth2|Mezzio\\Authentication\\OAuth2|Idaas\\OpenID|Dusterio\\LumenPassport|Drupal\\simple_oauth|Chadicus\\Slim\\OAuth2|Ory|Bshaffer\\OAuth2|OpenIDConnectServer|Nyholm\\Psr7\\OAuth|Lcobucci\\OAuth2|Zend\\OAuth2|Laravel\\Passport\\Passport|Defuse\\OAuth2|Phalcon\\OAuth2|Spomky\\OAuth2|Doctrine\\OAuth2|Sylius\\OAuth2)(\\.*)?)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((League\\OAuth2\\Server|Laravel\\Passport|OAuth2|Trikoder\\Bundle\\OAuth2Bundle|League\\Bundle\\OAuth2ServerBundle|FOS\\OAuthServerBundle|ZfrOAuth2|Laminas\\ApiTools\\OAuth2|ZF\\OAuth2|Mezzio\\Authentication\\OAuth2|Idaas\\OpenID|Dusterio\\LumenPassport|Drupal\\simple_oauth|Chadicus\\Slim\\OAuth2|Ory|Bshaffer\\OAuth2|OpenIDConnectServer|Nyholm\\Psr7\\OAuth|Lcobucci\\OAuth2|Zend\\OAuth2|Laravel\\Passport\\Passport|Defuse\\OAuth2|Phalcon\\OAuth2|Spomky\\OAuth2|Doctrine\\OAuth2|Sylius\\OAuth2)(\\.*)?)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((League\\OAuth2\\Server|Laravel\\Passport|OAuth2|Trikoder\\Bundle\\OAuth2Bundle|League\\Bundle\\OAuth2ServerBundle|FOS\\OAuthServerBundle|ZfrOAuth2|Laminas\\ApiTools\\OAuth2|ZF\\OAuth2|Mezzio\\Authentication\\OAuth2|Idaas\\OpenID|Dusterio\\LumenPassport|Drupal\\simple_oauth|Chadicus\\Slim\\OAuth2|Ory|Bshaffer\\OAuth2|OpenIDConnectServer|Nyholm\\Psr7\\OAuth|Lcobucci\\OAuth2|Zend\\OAuth2|Laravel\\Passport\\Passport|Defuse\\OAuth2|Phalcon\\OAuth2|Spomky\\OAuth2|Doctrine\\OAuth2|Sylius\\OAuth2)(\\.*)?)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((League\\OAuth2\\Server|Laravel\\Passport|OAuth2|Trikoder\\Bundle\\OAuth2Bundle|League\\Bundle\\OAuth2ServerBundle|FOS\\OAuthServerBundle|ZfrOAuth2|Laminas\\ApiTools\\OAuth2|ZF\\OAuth2|Mezzio\\Authentication\\OAuth2|Idaas\\OpenID|Dusterio\\LumenPassport|Drupal\\simple_oauth|Chadicus\\Slim\\OAuth2|Ory|Bshaffer\\OAuth2|OpenIDConnectServer|Nyholm\\Psr7\\OAuth|Lcobucci\\OAuth2|Zend\\OAuth2|Laravel\\Passport\\Passport|Defuse\\OAuth2|Phalcon\\OAuth2|Spomky\\OAuth2|Doctrine\\OAuth2|Sylius\\OAuth2)(\\.*)?)$'
+
+  - id: jgates.php.uses-jwt
+    message: The project uses JSON Web Tokens.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: jwt
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((Firebase\\JWT|Lcobucci\\JWT|Namshi\\JOSE|Tymon\\JWTAuth|PHPOpenSourceSaver\\JWTAuth|Jose|Lexik\\Bundle\\JWTAuthenticationBundle|Gesdinet\\JWTRefreshTokenBundle|ReallySimpleJWT|Emarref\\Jwt|Auth0\\SDK\\Token|Okta\\JwtVerifier|SimpleJWT|Strobotti\\JWK|Gamegos\\JWT|Ahc\\Jwt|Tuupola\\Middleware\\JwtAuthentication|Slim\\Middleware\\JwtAuthentication|PsrJwt|CoderCat\\JWKToPEM|Kelvinmo\\Simplejwt|Web-Token|Illuminate\\Auth\\Jwt|Laravel\\Sanctum\\Jwt|Cake\\Jwt|CakeDC\\JWT|Phalcon\\Jwt|Symfony\\Component\\Security\\Http\\AccessToken\\Jwt|Mezzio\\Authentication\\Jwt|Yii\\jwt|sizeg\\jwt|bizley\\jwt|yii\\jwt|(.*\\)?[A-Za-z_]*(JWT|Jwt)[A-Za-z_]*)(\\.*)?|JWT|JWTAuth|Jwt|JWK|JWS|JWE)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Firebase\\JWT|Lcobucci\\JWT|Namshi\\JOSE|Tymon\\JWTAuth|PHPOpenSourceSaver\\JWTAuth|Jose|Lexik\\Bundle\\JWTAuthenticationBundle|Gesdinet\\JWTRefreshTokenBundle|ReallySimpleJWT|Emarref\\Jwt|Auth0\\SDK\\Token|Okta\\JwtVerifier|SimpleJWT|Strobotti\\JWK|Gamegos\\JWT|Ahc\\Jwt|Tuupola\\Middleware\\JwtAuthentication|Slim\\Middleware\\JwtAuthentication|PsrJwt|CoderCat\\JWKToPEM|Kelvinmo\\Simplejwt|Web-Token|Illuminate\\Auth\\Jwt|Laravel\\Sanctum\\Jwt|Cake\\Jwt|CakeDC\\JWT|Phalcon\\Jwt|Symfony\\Component\\Security\\Http\\AccessToken\\Jwt|Mezzio\\Authentication\\Jwt|Yii\\jwt|sizeg\\jwt|bizley\\jwt|yii\\jwt|(.*\\)?[A-Za-z_]*(JWT|Jwt)[A-Za-z_]*)(\\.*)?|JWT|JWTAuth|Jwt|JWK|JWS|JWE)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Firebase\\JWT|Lcobucci\\JWT|Namshi\\JOSE|Tymon\\JWTAuth|PHPOpenSourceSaver\\JWTAuth|Jose|Lexik\\Bundle\\JWTAuthenticationBundle|Gesdinet\\JWTRefreshTokenBundle|ReallySimpleJWT|Emarref\\Jwt|Auth0\\SDK\\Token|Okta\\JwtVerifier|SimpleJWT|Strobotti\\JWK|Gamegos\\JWT|Ahc\\Jwt|Tuupola\\Middleware\\JwtAuthentication|Slim\\Middleware\\JwtAuthentication|PsrJwt|CoderCat\\JWKToPEM|Kelvinmo\\Simplejwt|Web-Token|Illuminate\\Auth\\Jwt|Laravel\\Sanctum\\Jwt|Cake\\Jwt|CakeDC\\JWT|Phalcon\\Jwt|Symfony\\Component\\Security\\Http\\AccessToken\\Jwt|Mezzio\\Authentication\\Jwt|Yii\\jwt|sizeg\\jwt|bizley\\jwt|yii\\jwt|(.*\\)?[A-Za-z_]*(JWT|Jwt)[A-Za-z_]*)(\\.*)?|JWT|JWTAuth|Jwt|JWK|JWS|JWE)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Firebase\\JWT|Lcobucci\\JWT|Namshi\\JOSE|Tymon\\JWTAuth|PHPOpenSourceSaver\\JWTAuth|Jose|Lexik\\Bundle\\JWTAuthenticationBundle|Gesdinet\\JWTRefreshTokenBundle|ReallySimpleJWT|Emarref\\Jwt|Auth0\\SDK\\Token|Okta\\JwtVerifier|SimpleJWT|Strobotti\\JWK|Gamegos\\JWT|Ahc\\Jwt|Tuupola\\Middleware\\JwtAuthentication|Slim\\Middleware\\JwtAuthentication|PsrJwt|CoderCat\\JWKToPEM|Kelvinmo\\Simplejwt|Web-Token|Illuminate\\Auth\\Jwt|Laravel\\Sanctum\\Jwt|Cake\\Jwt|CakeDC\\JWT|Phalcon\\Jwt|Symfony\\Component\\Security\\Http\\AccessToken\\Jwt|Mezzio\\Authentication\\Jwt|Yii\\jwt|sizeg\\jwt|bizley\\jwt|yii\\jwt|(.*\\)?[A-Za-z_]*(JWT|Jwt)[A-Za-z_]*)(\\.*)?|JWT|JWTAuth|Jwt|JWK|JWS|JWE)$'
+
+  - id: jgates.php.uses-saml
+    message: The project uses SAML.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: saml
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((OneLogin\\Saml2|OneLogin|SimpleSAML|SAML2|LightSaml|Aacotroneo\\Saml2|Slides\\Saml2|Hslavich\\OneloginSamlBundle|Nbgrp\\OneloginSamlBundle|CodeGreenCreative\\SamlIdp|RobRichards\\XMLSecLibs|RobRichards\\WsePhp|Litesaml|Drupal\\samlauth|Drupal\\simplesamlphp_auth|Saml2|Shibboleth|Idp\\Saml|Onelogin|(.*\\)?[A-Za-z_]*[Ss][Aa][Mm][Ll]2?[A-Za-z_]*(Auth|Idp|Sp|Settings|Response|Bundle)[A-Za-z_]*)(\\.*)?|OneLogin_Saml2_[A-Za-z_]*|SimpleSAML_[A-Za-z_]*|SAML2_[A-Za-z_]*|SimpleSAML)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((OneLogin\\Saml2|OneLogin|SimpleSAML|SAML2|LightSaml|Aacotroneo\\Saml2|Slides\\Saml2|Hslavich\\OneloginSamlBundle|Nbgrp\\OneloginSamlBundle|CodeGreenCreative\\SamlIdp|RobRichards\\XMLSecLibs|RobRichards\\WsePhp|Litesaml|Drupal\\samlauth|Drupal\\simplesamlphp_auth|Saml2|Shibboleth|Idp\\Saml|Onelogin|(.*\\)?[A-Za-z_]*[Ss][Aa][Mm][Ll]2?[A-Za-z_]*(Auth|Idp|Sp|Settings|Response|Bundle)[A-Za-z_]*)(\\.*)?|OneLogin_Saml2_[A-Za-z_]*|SimpleSAML_[A-Za-z_]*|SAML2_[A-Za-z_]*|SimpleSAML)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((OneLogin\\Saml2|OneLogin|SimpleSAML|SAML2|LightSaml|Aacotroneo\\Saml2|Slides\\Saml2|Hslavich\\OneloginSamlBundle|Nbgrp\\OneloginSamlBundle|CodeGreenCreative\\SamlIdp|RobRichards\\XMLSecLibs|RobRichards\\WsePhp|Litesaml|Drupal\\samlauth|Drupal\\simplesamlphp_auth|Saml2|Shibboleth|Idp\\Saml|Onelogin|(.*\\)?[A-Za-z_]*[Ss][Aa][Mm][Ll]2?[A-Za-z_]*(Auth|Idp|Sp|Settings|Response|Bundle)[A-Za-z_]*)(\\.*)?|OneLogin_Saml2_[A-Za-z_]*|SimpleSAML_[A-Za-z_]*|SAML2_[A-Za-z_]*|SimpleSAML)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((OneLogin\\Saml2|OneLogin|SimpleSAML|SAML2|LightSaml|Aacotroneo\\Saml2|Slides\\Saml2|Hslavich\\OneloginSamlBundle|Nbgrp\\OneloginSamlBundle|CodeGreenCreative\\SamlIdp|RobRichards\\XMLSecLibs|RobRichards\\WsePhp|Litesaml|Drupal\\samlauth|Drupal\\simplesamlphp_auth|Saml2|Shibboleth|Idp\\Saml|Onelogin|(.*\\)?[A-Za-z_]*[Ss][Aa][Mm][Ll]2?[A-Za-z_]*(Auth|Idp|Sp|Settings|Response|Bundle)[A-Za-z_]*)(\\.*)?|OneLogin_Saml2_[A-Za-z_]*|SimpleSAML_[A-Za-z_]*|SAML2_[A-Za-z_]*|SimpleSAML)$'
+
+  - id: jgates.php.uses-totp
+    message: The project uses time-based one-time passwords (TOTP).
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: totp
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((OTPHP|PragmaRX\\Google2FA|PragmaRX\\Google2FALaravel|RobThree\\Auth|Sonata\\GoogleAuthenticator|Scheb\\TwoFactorBundle|Google\\Authenticator|GoogleAuthenticator|Otp|Dolondro\\GoogleAuthenticator|Laragear\\TwoFactor|Spomky\\Otp|Google2FA|Endroid\\QrCode\\TwoFactor|Yii2\\TwoFactor|Phpgangsta\\GoogleAuthenticator|Cake\\TwoFactor|Christian\\Otp|Sylius\\TwoFactor|Nette\\Otp|Pantheon\\Totp|Drupal\\tfa|Drupal\\ga_login|Laravel\\Fortify\\.*TwoFactor.*|Laravel\\Jetstream\\.*TwoFactor.*|(.*\\)?[A-Za-z_]*(Totp|TOTP|Hotp|HOTP|Google2FA|TwoFactor)[A-Za-z_]*)(\\.*)?|PHPGangsta_GoogleAuthenticator|GoogleAuthenticator|Google2FA|Otp|TOTP|Totp)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((OTPHP|PragmaRX\\Google2FA|PragmaRX\\Google2FALaravel|RobThree\\Auth|Sonata\\GoogleAuthenticator|Scheb\\TwoFactorBundle|Google\\Authenticator|GoogleAuthenticator|Otp|Dolondro\\GoogleAuthenticator|Laragear\\TwoFactor|Spomky\\Otp|Google2FA|Endroid\\QrCode\\TwoFactor|Yii2\\TwoFactor|Phpgangsta\\GoogleAuthenticator|Cake\\TwoFactor|Christian\\Otp|Sylius\\TwoFactor|Nette\\Otp|Pantheon\\Totp|Drupal\\tfa|Drupal\\ga_login|Laravel\\Fortify\\.*TwoFactor.*|Laravel\\Jetstream\\.*TwoFactor.*|(.*\\)?[A-Za-z_]*(Totp|TOTP|Hotp|HOTP|Google2FA|TwoFactor)[A-Za-z_]*)(\\.*)?|PHPGangsta_GoogleAuthenticator|GoogleAuthenticator|Google2FA|Otp|TOTP|Totp)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((OTPHP|PragmaRX\\Google2FA|PragmaRX\\Google2FALaravel|RobThree\\Auth|Sonata\\GoogleAuthenticator|Scheb\\TwoFactorBundle|Google\\Authenticator|GoogleAuthenticator|Otp|Dolondro\\GoogleAuthenticator|Laragear\\TwoFactor|Spomky\\Otp|Google2FA|Endroid\\QrCode\\TwoFactor|Yii2\\TwoFactor|Phpgangsta\\GoogleAuthenticator|Cake\\TwoFactor|Christian\\Otp|Sylius\\TwoFactor|Nette\\Otp|Pantheon\\Totp|Drupal\\tfa|Drupal\\ga_login|Laravel\\Fortify\\.*TwoFactor.*|Laravel\\Jetstream\\.*TwoFactor.*|(.*\\)?[A-Za-z_]*(Totp|TOTP|Hotp|HOTP|Google2FA|TwoFactor)[A-Za-z_]*)(\\.*)?|PHPGangsta_GoogleAuthenticator|GoogleAuthenticator|Google2FA|Otp|TOTP|Totp)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((OTPHP|PragmaRX\\Google2FA|PragmaRX\\Google2FALaravel|RobThree\\Auth|Sonata\\GoogleAuthenticator|Scheb\\TwoFactorBundle|Google\\Authenticator|GoogleAuthenticator|Otp|Dolondro\\GoogleAuthenticator|Laragear\\TwoFactor|Spomky\\Otp|Google2FA|Endroid\\QrCode\\TwoFactor|Yii2\\TwoFactor|Phpgangsta\\GoogleAuthenticator|Cake\\TwoFactor|Christian\\Otp|Sylius\\TwoFactor|Nette\\Otp|Pantheon\\Totp|Drupal\\tfa|Drupal\\ga_login|Laravel\\Fortify\\.*TwoFactor.*|Laravel\\Jetstream\\.*TwoFactor.*|(.*\\)?[A-Za-z_]*(Totp|TOTP|Hotp|HOTP|Google2FA|TwoFactor)[A-Za-z_]*)(\\.*)?|PHPGangsta_GoogleAuthenticator|GoogleAuthenticator|Google2FA|Otp|TOTP|Totp)$'
+
+  - id: jgates.php.uses-ldap
+    message: The project uses LDAP or Active Directory.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: ldap
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((Symfony\\Component\\Ldap|LdapRecord|Adldap|Adldap2|Laminas\\Ldap|Zend\\Ldap|FreeDSx\\Ldap|DirectoryTree|Net_LDAP2|Illuminate\\Ldap|Korona\\LdapAuth|Toyota\\Ldap|Dapphp\\Ldap|Drupal\\ldap_servers|Drupal\\ldap_user|Drupal\\ldap_.*|Symfony\\Component\\Security\\.*Ldap.*|(.*\\)?[A-Za-z_]*Ldap[A-Za-z_]*)(\\.*)?|Net_LDAP2?|Zend_Ldap|Zend_Ldap_[A-Za-z_]*|Net_LDAP2_[A-Za-z_]*|Ldap|LDAP)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\Ldap|LdapRecord|Adldap|Adldap2|Laminas\\Ldap|Zend\\Ldap|FreeDSx\\Ldap|DirectoryTree|Net_LDAP2|Illuminate\\Ldap|Korona\\LdapAuth|Toyota\\Ldap|Dapphp\\Ldap|Drupal\\ldap_servers|Drupal\\ldap_user|Drupal\\ldap_.*|Symfony\\Component\\Security\\.*Ldap.*|(.*\\)?[A-Za-z_]*Ldap[A-Za-z_]*)(\\.*)?|Net_LDAP2?|Zend_Ldap|Zend_Ldap_[A-Za-z_]*|Net_LDAP2_[A-Za-z_]*|Ldap|LDAP)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\Ldap|LdapRecord|Adldap|Adldap2|Laminas\\Ldap|Zend\\Ldap|FreeDSx\\Ldap|DirectoryTree|Net_LDAP2|Illuminate\\Ldap|Korona\\LdapAuth|Toyota\\Ldap|Dapphp\\Ldap|Drupal\\ldap_servers|Drupal\\ldap_user|Drupal\\ldap_.*|Symfony\\Component\\Security\\.*Ldap.*|(.*\\)?[A-Za-z_]*Ldap[A-Za-z_]*)(\\.*)?|Net_LDAP2?|Zend_Ldap|Zend_Ldap_[A-Za-z_]*|Net_LDAP2_[A-Za-z_]*|Ldap|LDAP)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\Ldap|LdapRecord|Adldap|Adldap2|Laminas\\Ldap|Zend\\Ldap|FreeDSx\\Ldap|DirectoryTree|Net_LDAP2|Illuminate\\Ldap|Korona\\LdapAuth|Toyota\\Ldap|Dapphp\\Ldap|Drupal\\ldap_servers|Drupal\\ldap_user|Drupal\\ldap_.*|Symfony\\Component\\Security\\.*Ldap.*|(.*\\)?[A-Za-z_]*Ldap[A-Za-z_]*)(\\.*)?|Net_LDAP2?|Zend_Ldap|Zend_Ldap_[A-Za-z_]*|Net_LDAP2_[A-Za-z_]*|Ldap|LDAP)$'
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '^\\?(ldap_[a-z0-9_]+)$'
+
+  - id: jgates.php.uses-xml
+    message: The project parses or builds XML.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: xml
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((Symfony\\Component\\Serializer\\Encoder\\XmlEncoder|Symfony\\Component\\DomCrawler|Sabre\\Xml|Spatie\\ArrayToXml|Laminas\\Xml|Zend\\Xml|Zend\\Dom|Laminas\\Dom|Saxon|FluidXml|Vyuldashev\\XmlToArray|Symfony\\Component\\Config\\Util\\XmlUtils|Dom|Spatie\\Xml|Orchestra\\Parser\\Xml|Desperado\\XmlBundle|Goutte|SimpleXML|Laminas\\Soap|Zend\\Soap|Selective\\XmlDSig|Sabre\\VObject|Prewk\\XmlStringStreamer|XMLReader|XMLWriter|Nelmio\\XmlBundle)(\\.*)?|DOMDocument|DOMXPath|DOMElement|DOMNode|DOMNodeList|DOMImplementation|DOMDocumentFragment|DOMAttr|DOMText|DOMCdataSection|DOMComment|XMLReader|XMLWriter|XMLParser|SimpleXMLElement|SimpleXMLIterator|XSLTProcessor|SoapClient|SoapServer|SoapVar|SoapFault|XML_[A-Za-z_]*|Services_[A-Za-z_]*XML[A-Za-z_]*|Dom\\XMLDocument|Dom\\HTMLDocument)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\Serializer\\Encoder\\XmlEncoder|Symfony\\Component\\DomCrawler|Sabre\\Xml|Spatie\\ArrayToXml|Laminas\\Xml|Zend\\Xml|Zend\\Dom|Laminas\\Dom|Saxon|FluidXml|Vyuldashev\\XmlToArray|Symfony\\Component\\Config\\Util\\XmlUtils|Dom|Spatie\\Xml|Orchestra\\Parser\\Xml|Desperado\\XmlBundle|Goutte|SimpleXML|Laminas\\Soap|Zend\\Soap|Selective\\XmlDSig|Sabre\\VObject|Prewk\\XmlStringStreamer|XMLReader|XMLWriter|Nelmio\\XmlBundle)(\\.*)?|DOMDocument|DOMXPath|DOMElement|DOMNode|DOMNodeList|DOMImplementation|DOMDocumentFragment|DOMAttr|DOMText|DOMCdataSection|DOMComment|XMLReader|XMLWriter|XMLParser|SimpleXMLElement|SimpleXMLIterator|XSLTProcessor|SoapClient|SoapServer|SoapVar|SoapFault|XML_[A-Za-z_]*|Services_[A-Za-z_]*XML[A-Za-z_]*|Dom\\XMLDocument|Dom\\HTMLDocument)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\Serializer\\Encoder\\XmlEncoder|Symfony\\Component\\DomCrawler|Sabre\\Xml|Spatie\\ArrayToXml|Laminas\\Xml|Zend\\Xml|Zend\\Dom|Laminas\\Dom|Saxon|FluidXml|Vyuldashev\\XmlToArray|Symfony\\Component\\Config\\Util\\XmlUtils|Dom|Spatie\\Xml|Orchestra\\Parser\\Xml|Desperado\\XmlBundle|Goutte|SimpleXML|Laminas\\Soap|Zend\\Soap|Selective\\XmlDSig|Sabre\\VObject|Prewk\\XmlStringStreamer|XMLReader|XMLWriter|Nelmio\\XmlBundle)(\\.*)?|DOMDocument|DOMXPath|DOMElement|DOMNode|DOMNodeList|DOMImplementation|DOMDocumentFragment|DOMAttr|DOMText|DOMCdataSection|DOMComment|XMLReader|XMLWriter|XMLParser|SimpleXMLElement|SimpleXMLIterator|XSLTProcessor|SoapClient|SoapServer|SoapVar|SoapFault|XML_[A-Za-z_]*|Services_[A-Za-z_]*XML[A-Za-z_]*|Dom\\XMLDocument|Dom\\HTMLDocument)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\Serializer\\Encoder\\XmlEncoder|Symfony\\Component\\DomCrawler|Sabre\\Xml|Spatie\\ArrayToXml|Laminas\\Xml|Zend\\Xml|Zend\\Dom|Laminas\\Dom|Saxon|FluidXml|Vyuldashev\\XmlToArray|Symfony\\Component\\Config\\Util\\XmlUtils|Dom|Spatie\\Xml|Orchestra\\Parser\\Xml|Desperado\\XmlBundle|Goutte|SimpleXML|Laminas\\Soap|Zend\\Soap|Selective\\XmlDSig|Sabre\\VObject|Prewk\\XmlStringStreamer|XMLReader|XMLWriter|Nelmio\\XmlBundle)(\\.*)?|DOMDocument|DOMXPath|DOMElement|DOMNode|DOMNodeList|DOMImplementation|DOMDocumentFragment|DOMAttr|DOMText|DOMCdataSection|DOMComment|XMLReader|XMLWriter|XMLParser|SimpleXMLElement|SimpleXMLIterator|XSLTProcessor|SoapClient|SoapServer|SoapVar|SoapFault|XML_[A-Za-z_]*|Services_[A-Za-z_]*XML[A-Za-z_]*|Dom\\XMLDocument|Dom\\HTMLDocument)$'
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '^\\?((xml_parser_create(_ns)?|xml_parse(_into_struct)?|xml_[a-z_]+|simplexml_[a-z_]+|dom_import_simplexml|libxml_[a-z_]+|xmlrpc_[a-z_]+|xmlwriter_[a-z_]+|xslt_[a-z_]+|xmlreader_[a-z_]+))$'
+
+  - id: jgates.php.uses-memcache
+    message: The project uses Memcached.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: memcache
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((Symfony\\Component\\Cache\\Adapter\\MemcachedAdapter|Doctrine\\Common\\Cache\\MemcachedCache|Doctrine\\Common\\Cache\\MemcacheCache|Illuminate\\Cache\\MemcachedConnector|Illuminate\\Cache\\MemcachedStore|Cache\\Adapter\\Memcached|Cache\\Adapter\\Memcache|Laminas\\Cache\\Storage\\Adapter\\Memcached|Zend\\Cache\\Storage\\Adapter\\Memcached|Zend\\Cache\\Storage\\Adapter\\Memcache|Phalcon\\Cache\\Adapter\\Libmemcached|Phalcon\\Storage\\Adapter\\Libmemcached|Memcached|Memcache|MemcachePool|Spiral\\Cache\\Memcached|Stash\\Driver\\Memcache|Stash\\Driver\\Sub\\Memcached|Cake\\Cache\\Engine\\MemcachedEngine|Drupal\\memcache|Drupal\\Core\\Cache\\MemcacheBackend|(.*\\)?[A-Za-z_]*[Mm]emcache[A-Za-z_]*|(.*\\)?[A-Za-z_]*[Ll]ibmemcached[A-Za-z_]*)(\\.*)?|Memcached|Memcache|MemcachePool|Memcached_[A-Za-z_]*)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\Cache\\Adapter\\MemcachedAdapter|Doctrine\\Common\\Cache\\MemcachedCache|Doctrine\\Common\\Cache\\MemcacheCache|Illuminate\\Cache\\MemcachedConnector|Illuminate\\Cache\\MemcachedStore|Cache\\Adapter\\Memcached|Cache\\Adapter\\Memcache|Laminas\\Cache\\Storage\\Adapter\\Memcached|Zend\\Cache\\Storage\\Adapter\\Memcached|Zend\\Cache\\Storage\\Adapter\\Memcache|Phalcon\\Cache\\Adapter\\Libmemcached|Phalcon\\Storage\\Adapter\\Libmemcached|Memcached|Memcache|MemcachePool|Spiral\\Cache\\Memcached|Stash\\Driver\\Memcache|Stash\\Driver\\Sub\\Memcached|Cake\\Cache\\Engine\\MemcachedEngine|Drupal\\memcache|Drupal\\Core\\Cache\\MemcacheBackend|(.*\\)?[A-Za-z_]*[Mm]emcache[A-Za-z_]*|(.*\\)?[A-Za-z_]*[Ll]ibmemcached[A-Za-z_]*)(\\.*)?|Memcached|Memcache|MemcachePool|Memcached_[A-Za-z_]*)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\Cache\\Adapter\\MemcachedAdapter|Doctrine\\Common\\Cache\\MemcachedCache|Doctrine\\Common\\Cache\\MemcacheCache|Illuminate\\Cache\\MemcachedConnector|Illuminate\\Cache\\MemcachedStore|Cache\\Adapter\\Memcached|Cache\\Adapter\\Memcache|Laminas\\Cache\\Storage\\Adapter\\Memcached|Zend\\Cache\\Storage\\Adapter\\Memcached|Zend\\Cache\\Storage\\Adapter\\Memcache|Phalcon\\Cache\\Adapter\\Libmemcached|Phalcon\\Storage\\Adapter\\Libmemcached|Memcached|Memcache|MemcachePool|Spiral\\Cache\\Memcached|Stash\\Driver\\Memcache|Stash\\Driver\\Sub\\Memcached|Cake\\Cache\\Engine\\MemcachedEngine|Drupal\\memcache|Drupal\\Core\\Cache\\MemcacheBackend|(.*\\)?[A-Za-z_]*[Mm]emcache[A-Za-z_]*|(.*\\)?[A-Za-z_]*[Ll]ibmemcached[A-Za-z_]*)(\\.*)?|Memcached|Memcache|MemcachePool|Memcached_[A-Za-z_]*)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\Cache\\Adapter\\MemcachedAdapter|Doctrine\\Common\\Cache\\MemcachedCache|Doctrine\\Common\\Cache\\MemcacheCache|Illuminate\\Cache\\MemcachedConnector|Illuminate\\Cache\\MemcachedStore|Cache\\Adapter\\Memcached|Cache\\Adapter\\Memcache|Laminas\\Cache\\Storage\\Adapter\\Memcached|Zend\\Cache\\Storage\\Adapter\\Memcached|Zend\\Cache\\Storage\\Adapter\\Memcache|Phalcon\\Cache\\Adapter\\Libmemcached|Phalcon\\Storage\\Adapter\\Libmemcached|Memcached|Memcache|MemcachePool|Spiral\\Cache\\Memcached|Stash\\Driver\\Memcache|Stash\\Driver\\Sub\\Memcached|Cake\\Cache\\Engine\\MemcachedEngine|Drupal\\memcache|Drupal\\Core\\Cache\\MemcacheBackend|(.*\\)?[A-Za-z_]*[Mm]emcache[A-Za-z_]*|(.*\\)?[A-Za-z_]*[Ll]ibmemcached[A-Za-z_]*)(\\.*)?|Memcached|Memcache|MemcachePool|Memcached_[A-Za-z_]*)$'
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '^\\?(memcache[d]?_[a-z_]+)$'
+
+  - id: jgates.php.uses-mail
+    message: The project sends or reads e-mail.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: mail
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((PHPMailer\\PHPMailer|PHPMailer|Symfony\\Component\\Mailer|Symfony\\Component\\Mime|Symfony\\Bridge\\Twig\\Mime|Swift|Illuminate\\Mail|Illuminate\\Support\\Facades\\Mail|Illuminate\\Contracts\\Mail|Illuminate\\Notifications\\Messages\\MailMessage|Laminas\\Mail|Zend\\Mail|Nette\\Mail|Mailgun|SendGrid|Postmark|Mailjet|Aws\\Ses|Aws\\SesV2|Resend|Brevo|SendinBlue|Sendinblue|Mandrill|MailerSend|Mailchimp|MailchimpTransactional|SparkPost|Ddeboer\\Imap|PhpImap|Webklex\\PHPIMAP|Horde\\Mail|Horde_Mail|Cake\\Mailer|CodeIgniter\\Email|yii\\swiftmailer|yii\\mail|Drupal\\Core\\Mail|Drupal\\smtp|Soundasleep\\Html2Text|PEAR\\Mail|Pelago\\Emogrifier|Mailtrap|Postal|Sylius\\Component\\Mailer|Illuminate\\Notifications|Laravel\\Mailbox|BeyondCode\\Mailbox|Mautic\\EmailBundle|Symfony\\Component\\Notifier\\Bridge\\Mail)(\\.*)?|PHPMailer|Swift_[A-Za-z_]*|Swift|Zend_Mail[A-Za-z_]*|Mail|Mail_[A-Za-z_]*|SendGrid|SendGrid_[A-Za-z_]*|Mandrill|Mailgun|Postmark|PHPMailer\\PHPMailer\\PHPMailer|Horde_Mail[A-Za-z_]*)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((PHPMailer\\PHPMailer|PHPMailer|Symfony\\Component\\Mailer|Symfony\\Component\\Mime|Symfony\\Bridge\\Twig\\Mime|Swift|Illuminate\\Mail|Illuminate\\Support\\Facades\\Mail|Illuminate\\Contracts\\Mail|Illuminate\\Notifications\\Messages\\MailMessage|Laminas\\Mail|Zend\\Mail|Nette\\Mail|Mailgun|SendGrid|Postmark|Mailjet|Aws\\Ses|Aws\\SesV2|Resend|Brevo|SendinBlue|Sendinblue|Mandrill|MailerSend|Mailchimp|MailchimpTransactional|SparkPost|Ddeboer\\Imap|PhpImap|Webklex\\PHPIMAP|Horde\\Mail|Horde_Mail|Cake\\Mailer|CodeIgniter\\Email|yii\\swiftmailer|yii\\mail|Drupal\\Core\\Mail|Drupal\\smtp|Soundasleep\\Html2Text|PEAR\\Mail|Pelago\\Emogrifier|Mailtrap|Postal|Sylius\\Component\\Mailer|Illuminate\\Notifications|Laravel\\Mailbox|BeyondCode\\Mailbox|Mautic\\EmailBundle|Symfony\\Component\\Notifier\\Bridge\\Mail)(\\.*)?|PHPMailer|Swift_[A-Za-z_]*|Swift|Zend_Mail[A-Za-z_]*|Mail|Mail_[A-Za-z_]*|SendGrid|SendGrid_[A-Za-z_]*|Mandrill|Mailgun|Postmark|PHPMailer\\PHPMailer\\PHPMailer|Horde_Mail[A-Za-z_]*)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((PHPMailer\\PHPMailer|PHPMailer|Symfony\\Component\\Mailer|Symfony\\Component\\Mime|Symfony\\Bridge\\Twig\\Mime|Swift|Illuminate\\Mail|Illuminate\\Support\\Facades\\Mail|Illuminate\\Contracts\\Mail|Illuminate\\Notifications\\Messages\\MailMessage|Laminas\\Mail|Zend\\Mail|Nette\\Mail|Mailgun|SendGrid|Postmark|Mailjet|Aws\\Ses|Aws\\SesV2|Resend|Brevo|SendinBlue|Sendinblue|Mandrill|MailerSend|Mailchimp|MailchimpTransactional|SparkPost|Ddeboer\\Imap|PhpImap|Webklex\\PHPIMAP|Horde\\Mail|Horde_Mail|Cake\\Mailer|CodeIgniter\\Email|yii\\swiftmailer|yii\\mail|Drupal\\Core\\Mail|Drupal\\smtp|Soundasleep\\Html2Text|PEAR\\Mail|Pelago\\Emogrifier|Mailtrap|Postal|Sylius\\Component\\Mailer|Illuminate\\Notifications|Laravel\\Mailbox|BeyondCode\\Mailbox|Mautic\\EmailBundle|Symfony\\Component\\Notifier\\Bridge\\Mail)(\\.*)?|PHPMailer|Swift_[A-Za-z_]*|Swift|Zend_Mail[A-Za-z_]*|Mail|Mail_[A-Za-z_]*|SendGrid|SendGrid_[A-Za-z_]*|Mandrill|Mailgun|Postmark|PHPMailer\\PHPMailer\\PHPMailer|Horde_Mail[A-Za-z_]*)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((PHPMailer\\PHPMailer|PHPMailer|Symfony\\Component\\Mailer|Symfony\\Component\\Mime|Symfony\\Bridge\\Twig\\Mime|Swift|Illuminate\\Mail|Illuminate\\Support\\Facades\\Mail|Illuminate\\Contracts\\Mail|Illuminate\\Notifications\\Messages\\MailMessage|Laminas\\Mail|Zend\\Mail|Nette\\Mail|Mailgun|SendGrid|Postmark|Mailjet|Aws\\Ses|Aws\\SesV2|Resend|Brevo|SendinBlue|Sendinblue|Mandrill|MailerSend|Mailchimp|MailchimpTransactional|SparkPost|Ddeboer\\Imap|PhpImap|Webklex\\PHPIMAP|Horde\\Mail|Horde_Mail|Cake\\Mailer|CodeIgniter\\Email|yii\\swiftmailer|yii\\mail|Drupal\\Core\\Mail|Drupal\\smtp|Soundasleep\\Html2Text|PEAR\\Mail|Pelago\\Emogrifier|Mailtrap|Postal|Sylius\\Component\\Mailer|Illuminate\\Notifications|Laravel\\Mailbox|BeyondCode\\Mailbox|Mautic\\EmailBundle|Symfony\\Component\\Notifier\\Bridge\\Mail)(\\.*)?|PHPMailer|Swift_[A-Za-z_]*|Swift|Zend_Mail[A-Za-z_]*|Mail|Mail_[A-Za-z_]*|SendGrid|SendGrid_[A-Za-z_]*|Mandrill|Mailgun|Postmark|PHPMailer\\PHPMailer\\PHPMailer|Horde_Mail[A-Za-z_]*)$'
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '^\\?((mail|mb_send_mail|wp_mail|imap_[a-z_]+|ezmlm_hash))$'
+
+  - id: jgates.php.uses-templates
+    message: The project renders pages with a template engine.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: templates
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((Twig|Smarty|Illuminate\\View|Illuminate\\Support\\Facades\\View|Illuminate\\Contracts\\View|Mustache|Latte|League\\Plates|Handlebars|LightnCandy|Laminas\\View|Zend\\View|Symfony\\Bridge\\Twig|Symfony\\Bundle\\TwigBundle|Symfony\\Component\\Templating|Dwoo|Phalcon\\Mvc\\View|Pug|Jade|Philo\\Blade|Jenssegers\\Blade|eftec\\bladeone|Blade|Cake\\View|CodeIgniter\\View|Slim\\Views|Volt|Fenom|Rain\\Tpl|Timber|TYPO3Fluid\\Fluid|TYPO3\\CMS\\Fluid|Mezzio\\Template|Livewire|Inertia|Statamic\\View|Drupal\\Core\\Template|Twig_Environment|yii\\web\\View|yii\\base\\View|Mezzio\\Twig|Mezzio\\Plates|Mezzio\\LaminasView|Kirby\\Template|Spiral\\Views|Sylius\\Bundle\\ThemeBundle|Pimcore\\Templating|Sulu\\Component\\Content\\Template|Symfony\\Bundle\\FrameworkBundle\\Templating|Illuminate\\Contracts\\View\\Factory|BladeOne|Zend\\Mvc\\View|Laminas\\Mvc\\View|Smarty_[A-Za-z_]*|Mustache_[A-Za-z_]*)(\\.*)?|Smarty|Smarty_[A-Za-z_]*|Twig_[A-Za-z_]*|Mustache_[A-Za-z_]*|Dwoo|Dwoo_[A-Za-z_]*|RainTPL|Savant3|View|Blade|Handlebars|LightnCandy|BladeOne|Fenom|Latte)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Twig|Smarty|Illuminate\\View|Illuminate\\Support\\Facades\\View|Illuminate\\Contracts\\View|Mustache|Latte|League\\Plates|Handlebars|LightnCandy|Laminas\\View|Zend\\View|Symfony\\Bridge\\Twig|Symfony\\Bundle\\TwigBundle|Symfony\\Component\\Templating|Dwoo|Phalcon\\Mvc\\View|Pug|Jade|Philo\\Blade|Jenssegers\\Blade|eftec\\bladeone|Blade|Cake\\View|CodeIgniter\\View|Slim\\Views|Volt|Fenom|Rain\\Tpl|Timber|TYPO3Fluid\\Fluid|TYPO3\\CMS\\Fluid|Mezzio\\Template|Livewire|Inertia|Statamic\\View|Drupal\\Core\\Template|Twig_Environment|yii\\web\\View|yii\\base\\View|Mezzio\\Twig|Mezzio\\Plates|Mezzio\\LaminasView|Kirby\\Template|Spiral\\Views|Sylius\\Bundle\\ThemeBundle|Pimcore\\Templating|Sulu\\Component\\Content\\Template|Symfony\\Bundle\\FrameworkBundle\\Templating|Illuminate\\Contracts\\View\\Factory|BladeOne|Zend\\Mvc\\View|Laminas\\Mvc\\View|Smarty_[A-Za-z_]*|Mustache_[A-Za-z_]*)(\\.*)?|Smarty|Smarty_[A-Za-z_]*|Twig_[A-Za-z_]*|Mustache_[A-Za-z_]*|Dwoo|Dwoo_[A-Za-z_]*|RainTPL|Savant3|View|Blade|Handlebars|LightnCandy|BladeOne|Fenom|Latte)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Twig|Smarty|Illuminate\\View|Illuminate\\Support\\Facades\\View|Illuminate\\Contracts\\View|Mustache|Latte|League\\Plates|Handlebars|LightnCandy|Laminas\\View|Zend\\View|Symfony\\Bridge\\Twig|Symfony\\Bundle\\TwigBundle|Symfony\\Component\\Templating|Dwoo|Phalcon\\Mvc\\View|Pug|Jade|Philo\\Blade|Jenssegers\\Blade|eftec\\bladeone|Blade|Cake\\View|CodeIgniter\\View|Slim\\Views|Volt|Fenom|Rain\\Tpl|Timber|TYPO3Fluid\\Fluid|TYPO3\\CMS\\Fluid|Mezzio\\Template|Livewire|Inertia|Statamic\\View|Drupal\\Core\\Template|Twig_Environment|yii\\web\\View|yii\\base\\View|Mezzio\\Twig|Mezzio\\Plates|Mezzio\\LaminasView|Kirby\\Template|Spiral\\Views|Sylius\\Bundle\\ThemeBundle|Pimcore\\Templating|Sulu\\Component\\Content\\Template|Symfony\\Bundle\\FrameworkBundle\\Templating|Illuminate\\Contracts\\View\\Factory|BladeOne|Zend\\Mvc\\View|Laminas\\Mvc\\View|Smarty_[A-Za-z_]*|Mustache_[A-Za-z_]*)(\\.*)?|Smarty|Smarty_[A-Za-z_]*|Twig_[A-Za-z_]*|Mustache_[A-Za-z_]*|Dwoo|Dwoo_[A-Za-z_]*|RainTPL|Savant3|View|Blade|Handlebars|LightnCandy|BladeOne|Fenom|Latte)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Twig|Smarty|Illuminate\\View|Illuminate\\Support\\Facades\\View|Illuminate\\Contracts\\View|Mustache|Latte|League\\Plates|Handlebars|LightnCandy|Laminas\\View|Zend\\View|Symfony\\Bridge\\Twig|Symfony\\Bundle\\TwigBundle|Symfony\\Component\\Templating|Dwoo|Phalcon\\Mvc\\View|Pug|Jade|Philo\\Blade|Jenssegers\\Blade|eftec\\bladeone|Blade|Cake\\View|CodeIgniter\\View|Slim\\Views|Volt|Fenom|Rain\\Tpl|Timber|TYPO3Fluid\\Fluid|TYPO3\\CMS\\Fluid|Mezzio\\Template|Livewire|Inertia|Statamic\\View|Drupal\\Core\\Template|Twig_Environment|yii\\web\\View|yii\\base\\View|Mezzio\\Twig|Mezzio\\Plates|Mezzio\\LaminasView|Kirby\\Template|Spiral\\Views|Sylius\\Bundle\\ThemeBundle|Pimcore\\Templating|Sulu\\Component\\Content\\Template|Symfony\\Bundle\\FrameworkBundle\\Templating|Illuminate\\Contracts\\View\\Factory|BladeOne|Zend\\Mvc\\View|Laminas\\Mvc\\View|Smarty_[A-Za-z_]*|Mustache_[A-Za-z_]*)(\\.*)?|Smarty|Smarty_[A-Za-z_]*|Twig_[A-Za-z_]*|Mustache_[A-Za-z_]*|Dwoo|Dwoo_[A-Za-z_]*|RainTPL|Savant3|View|Blade|Handlebars|LightnCandy|BladeOne|Fenom|Latte)$'
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '^\\?((view|get_template_part|locate_template|load_template|twig|blade|smarty))$'
+
+  - id: jgates.php.uses-file-upload
+    message: The project accepts file uploads.
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: file-upload
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((Symfony\\Component\\HttpFoundation\\File\\UploadedFile|Psr\\Http\\Message\\UploadedFileInterface|Illuminate\\Http\\UploadedFile|Laminas\\File|Zend\\File\\Transfer|Zend\\InputFilter\\FileInput|Laminas\\InputFilter\\FileInput|Laminas\\Validator\\File|Verot\\Upload|Upload|Spatie\\MediaLibrary|Vich\\UploaderBundle|Oneup\\UploaderBundle|Sonata\\MediaBundle|Nette\\Http\\FileUpload|Slim\\Psr7\\UploadedFile|Nyholm\\Psr7\\UploadedFile|GuzzleHttp\\Psr7\\UploadedFile|Laminas\\Diactoros\\UploadedFile|Zend\\Diactoros\\UploadedFile|Symfony\\Component\\Form\\Extension\\Core\\Type\\FileType|Illuminate\\Validation\\Rules\\File|Livewire\\WithFileUploads|Filament\\Forms\\Components\\FileUpload|TusPhp|Tus|Flow|Cake\\Http\\Client\\FormData|Illuminate\\Http\\Testing\\File|Plupload|Dropzone|qqFileUploader|Intervention\\Image\\Laravel\\Facades\\Image|(.*\\)?[A-Za-z_]*(UploadedFile|FileUpload|FilesUpload|Uploader|UploadHandler|WithFileUploads)[A-Za-z_]*|(.*\\)?Upload[A-Za-z_]*)(\\.*)?|UploadedFile|UploadedFile[A-Za-z_]*|qqFileUploader|Upload|UploadHandler|FileUpload|Uploader|upload)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\HttpFoundation\\File\\UploadedFile|Psr\\Http\\Message\\UploadedFileInterface|Illuminate\\Http\\UploadedFile|Laminas\\File|Zend\\File\\Transfer|Zend\\InputFilter\\FileInput|Laminas\\InputFilter\\FileInput|Laminas\\Validator\\File|Verot\\Upload|Upload|Spatie\\MediaLibrary|Vich\\UploaderBundle|Oneup\\UploaderBundle|Sonata\\MediaBundle|Nette\\Http\\FileUpload|Slim\\Psr7\\UploadedFile|Nyholm\\Psr7\\UploadedFile|GuzzleHttp\\Psr7\\UploadedFile|Laminas\\Diactoros\\UploadedFile|Zend\\Diactoros\\UploadedFile|Symfony\\Component\\Form\\Extension\\Core\\Type\\FileType|Illuminate\\Validation\\Rules\\File|Livewire\\WithFileUploads|Filament\\Forms\\Components\\FileUpload|TusPhp|Tus|Flow|Cake\\Http\\Client\\FormData|Illuminate\\Http\\Testing\\File|Plupload|Dropzone|qqFileUploader|Intervention\\Image\\Laravel\\Facades\\Image|(.*\\)?[A-Za-z_]*(UploadedFile|FileUpload|FilesUpload|Uploader|UploadHandler|WithFileUploads)[A-Za-z_]*|(.*\\)?Upload[A-Za-z_]*)(\\.*)?|UploadedFile|UploadedFile[A-Za-z_]*|qqFileUploader|Upload|UploadHandler|FileUpload|Uploader|upload)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\HttpFoundation\\File\\UploadedFile|Psr\\Http\\Message\\UploadedFileInterface|Illuminate\\Http\\UploadedFile|Laminas\\File|Zend\\File\\Transfer|Zend\\InputFilter\\FileInput|Laminas\\InputFilter\\FileInput|Laminas\\Validator\\File|Verot\\Upload|Upload|Spatie\\MediaLibrary|Vich\\UploaderBundle|Oneup\\UploaderBundle|Sonata\\MediaBundle|Nette\\Http\\FileUpload|Slim\\Psr7\\UploadedFile|Nyholm\\Psr7\\UploadedFile|GuzzleHttp\\Psr7\\UploadedFile|Laminas\\Diactoros\\UploadedFile|Zend\\Diactoros\\UploadedFile|Symfony\\Component\\Form\\Extension\\Core\\Type\\FileType|Illuminate\\Validation\\Rules\\File|Livewire\\WithFileUploads|Filament\\Forms\\Components\\FileUpload|TusPhp|Tus|Flow|Cake\\Http\\Client\\FormData|Illuminate\\Http\\Testing\\File|Plupload|Dropzone|qqFileUploader|Intervention\\Image\\Laravel\\Facades\\Image|(.*\\)?[A-Za-z_]*(UploadedFile|FileUpload|FilesUpload|Uploader|UploadHandler|WithFileUploads)[A-Za-z_]*|(.*\\)?Upload[A-Za-z_]*)(\\.*)?|UploadedFile|UploadedFile[A-Za-z_]*|qqFileUploader|Upload|UploadHandler|FileUpload|Uploader|upload)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((Symfony\\Component\\HttpFoundation\\File\\UploadedFile|Psr\\Http\\Message\\UploadedFileInterface|Illuminate\\Http\\UploadedFile|Laminas\\File|Zend\\File\\Transfer|Zend\\InputFilter\\FileInput|Laminas\\InputFilter\\FileInput|Laminas\\Validator\\File|Verot\\Upload|Upload|Spatie\\MediaLibrary|Vich\\UploaderBundle|Oneup\\UploaderBundle|Sonata\\MediaBundle|Nette\\Http\\FileUpload|Slim\\Psr7\\UploadedFile|Nyholm\\Psr7\\UploadedFile|GuzzleHttp\\Psr7\\UploadedFile|Laminas\\Diactoros\\UploadedFile|Zend\\Diactoros\\UploadedFile|Symfony\\Component\\Form\\Extension\\Core\\Type\\FileType|Illuminate\\Validation\\Rules\\File|Livewire\\WithFileUploads|Filament\\Forms\\Components\\FileUpload|TusPhp|Tus|Flow|Cake\\Http\\Client\\FormData|Illuminate\\Http\\Testing\\File|Plupload|Dropzone|qqFileUploader|Intervention\\Image\\Laravel\\Facades\\Image|(.*\\)?[A-Za-z_]*(UploadedFile|FileUpload|FilesUpload|Uploader|UploadHandler|WithFileUploads)[A-Za-z_]*|(.*\\)?Upload[A-Za-z_]*)(\\.*)?|UploadedFile|UploadedFile[A-Za-z_]*|qqFileUploader|Upload|UploadHandler|FileUpload|Uploader|upload)$'
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '^\\?((move_uploaded_file|is_uploaded_file|wp_handle_upload|wp_handle_sideload|media_handle_upload|media_handle_sideload))$'
+      - pattern: $_FILES
+      - pattern: $_FILES[...]
+      - pattern: $X->hasFile(...)
+      - pattern: $X->file(...)
+      - pattern: $X->allFiles(...)
+      - pattern: $X->getUploadedFiles(...)
+      - pattern: $X->getClientOriginalName(...)
+      - pattern: $X->getClientFilename(...)
+      - pattern: $X->files
+
+  - id: jgates.php.uses-archives
+    message: The project reads or writes archives (zip, tar, gzip).
+    severity: INFO
+    languages: [php]
+    metadata:
+      signal: archives
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern: use $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: '^\\?((ZipStream|Alchemy\\Zippy|Chumper\\Zipper|Madnest\\Madzipper|Comodojo\\Zip|PhpZip|splitbrain\\PHPArchive|wapmorgan\\UnifiedArchive|Nelexa\\Zip|Gemorroj\\Archive7z|Archive7z|League\\Flysystem\\ZipArchive|Laminas\\Filter\\Compress|Laminas\\Filter\\Decompress|Zend\\Filter\\Compress|Zend\\Filter\\Decompress|Spatie\\Zip|Symfony\\Component\\Mime\\Part\\DataPart|ZipArchive|PharData|Phar|RarArchive|Archive_Tar|Archive_Zip|PclZip|Dapphp\\Zip|Chumper\\Zipper\\Zipper|Ifsnop\\Mysqldump|Spatie\\Backup|Rah\\Danpu|Cake\\Utility\\Zip|Illuminate\\Filesystem\\ZipArchive|Zippy|UnifiedArchive|Rar|Tar|Bzip2|Gzip|Wikimedia\\Zip|Drupal\\Core\\Archiver|Drupal\\Core\\Archiver\\Zip|Drupal\\Core\\Archiver\\Tar|(.*\\)?[A-Za-z_]*(ZipArchive|Zipper|Zippy|PharData|TarArchive|UnifiedArchive|Zip)[A-Za-z_]*)(\\.*)?|ZipArchive|PharData|Phar|RarArchive|Archive_[A-Za-z_]*|PclZip|ZipStream|Zip[A-Za-z_]*|Tar[A-Za-z_]*)$'
+      - patterns:
+          - pattern: new $C(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((ZipStream|Alchemy\\Zippy|Chumper\\Zipper|Madnest\\Madzipper|Comodojo\\Zip|PhpZip|splitbrain\\PHPArchive|wapmorgan\\UnifiedArchive|Nelexa\\Zip|Gemorroj\\Archive7z|Archive7z|League\\Flysystem\\ZipArchive|Laminas\\Filter\\Compress|Laminas\\Filter\\Decompress|Zend\\Filter\\Compress|Zend\\Filter\\Decompress|Spatie\\Zip|Symfony\\Component\\Mime\\Part\\DataPart|ZipArchive|PharData|Phar|RarArchive|Archive_Tar|Archive_Zip|PclZip|Dapphp\\Zip|Chumper\\Zipper\\Zipper|Ifsnop\\Mysqldump|Spatie\\Backup|Rah\\Danpu|Cake\\Utility\\Zip|Illuminate\\Filesystem\\ZipArchive|Zippy|UnifiedArchive|Rar|Tar|Bzip2|Gzip|Wikimedia\\Zip|Drupal\\Core\\Archiver|Drupal\\Core\\Archiver\\Zip|Drupal\\Core\\Archiver\\Tar|(.*\\)?[A-Za-z_]*(ZipArchive|Zipper|Zippy|PharData|TarArchive|UnifiedArchive|Zip)[A-Za-z_]*)(\\.*)?|ZipArchive|PharData|Phar|RarArchive|Archive_[A-Za-z_]*|PclZip|ZipStream|Zip[A-Za-z_]*|Tar[A-Za-z_]*)$'
+      - patterns:
+          - pattern: $C::$M(...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((ZipStream|Alchemy\\Zippy|Chumper\\Zipper|Madnest\\Madzipper|Comodojo\\Zip|PhpZip|splitbrain\\PHPArchive|wapmorgan\\UnifiedArchive|Nelexa\\Zip|Gemorroj\\Archive7z|Archive7z|League\\Flysystem\\ZipArchive|Laminas\\Filter\\Compress|Laminas\\Filter\\Decompress|Zend\\Filter\\Compress|Zend\\Filter\\Decompress|Spatie\\Zip|Symfony\\Component\\Mime\\Part\\DataPart|ZipArchive|PharData|Phar|RarArchive|Archive_Tar|Archive_Zip|PclZip|Dapphp\\Zip|Chumper\\Zipper\\Zipper|Ifsnop\\Mysqldump|Spatie\\Backup|Rah\\Danpu|Cake\\Utility\\Zip|Illuminate\\Filesystem\\ZipArchive|Zippy|UnifiedArchive|Rar|Tar|Bzip2|Gzip|Wikimedia\\Zip|Drupal\\Core\\Archiver|Drupal\\Core\\Archiver\\Zip|Drupal\\Core\\Archiver\\Tar|(.*\\)?[A-Za-z_]*(ZipArchive|Zipper|Zippy|PharData|TarArchive|UnifiedArchive|Zip)[A-Za-z_]*)(\\.*)?|ZipArchive|PharData|Phar|RarArchive|Archive_[A-Za-z_]*|PclZip|ZipStream|Zip[A-Za-z_]*|Tar[A-Za-z_]*)$'
+      - patterns:
+          - pattern: |
+              class $N extends $C { ... }
+          - metavariable-regex:
+              metavariable: $C
+              regex: '^\\?((ZipStream|Alchemy\\Zippy|Chumper\\Zipper|Madnest\\Madzipper|Comodojo\\Zip|PhpZip|splitbrain\\PHPArchive|wapmorgan\\UnifiedArchive|Nelexa\\Zip|Gemorroj\\Archive7z|Archive7z|League\\Flysystem\\ZipArchive|Laminas\\Filter\\Compress|Laminas\\Filter\\Decompress|Zend\\Filter\\Compress|Zend\\Filter\\Decompress|Spatie\\Zip|Symfony\\Component\\Mime\\Part\\DataPart|ZipArchive|PharData|Phar|RarArchive|Archive_Tar|Archive_Zip|PclZip|Dapphp\\Zip|Chumper\\Zipper\\Zipper|Ifsnop\\Mysqldump|Spatie\\Backup|Rah\\Danpu|Cake\\Utility\\Zip|Illuminate\\Filesystem\\ZipArchive|Zippy|UnifiedArchive|Rar|Tar|Bzip2|Gzip|Wikimedia\\Zip|Drupal\\Core\\Archiver|Drupal\\Core\\Archiver\\Zip|Drupal\\Core\\Archiver\\Tar|(.*\\)?[A-Za-z_]*(ZipArchive|Zipper|Zippy|PharData|TarArchive|UnifiedArchive|Zip)[A-Za-z_]*)(\\.*)?|ZipArchive|PharData|Phar|RarArchive|Archive_[A-Za-z_]*|PclZip|ZipStream|Zip[A-Za-z_]*|Tar[A-Za-z_]*)$'
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: '^\\?((zip_[a-z_]+|gz(open|file|decode|encode|inflate|deflate|compress|uncompress|read|write|puts|gets|getc|eof|close)|readgzfile|bz(open|compress|decompress)|rar_open|tar_[a-z_]+))$'

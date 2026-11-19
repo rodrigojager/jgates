@@ -5,23 +5,31 @@
 # (jgates/scripts/image-build.mjs), which passes the JGates CLI as the named build context `jgates-cli`, the versions as
 # build arguments and one org.jgates.tool.<tool>.version label per tool read from the built /etc/jgates/image.json.
 #
+# The toolchains are installed here; every tool is an install entry of its own (PLAN-image.md section 3): files under
+# binaries/, go/, cargo/, dotnet/, apt/, python/, node/, gem/ and parts/, installed by the loops below with the
+# installers of installers/ (the same scripts `npm --prefix jgates run image:probe -- <tool>` runs). A tool is added by
+# adding its files; this Dockerfile and no list change. image-build.mjs builds the assembled text of this file (the part
+# files inserted at the two @jgates:parts marks, scripts/image-installs.mjs) and passes the index of the entries as the
+# named build context `jgates-installs` (installs.json: links, version commands and pins).
+#
 # Inputs are pinned: the base image by digest; every downloaded archive by its published SHA-256 (SHA-512 for .NET),
 # keyed by TARGETARCH (only linux/amd64 is built today: other architectures stop with a message); the Python tools by
 # the hashes of their lock files (python/<interpreter>/<tool>.txt, one uv environment per tool); the Node tools by the
 # integrity of their package-lock.json (node/<tool>/, one npm prefix per tool); Go tools by module version (verified
-# against the Go checksum database); Rust tools with `cargo install --locked`. `update-locks.mjs` regenerates the locks.
-# Every tool is smoke-checked against its pin when /etc/jgates/image.json is written (write-image-json.py).
+# against the Go checksum database); Rust tools with `cargo install --locked`; Debian packages by Debian's signed
+# archive. `update-locks.mjs` regenerates the Python and Node locks. Every tool is smoke-checked against its pin when
+# /etc/jgates/image.json is written (write-image-json.py).
 #
-# One stage per stack, so a change in one stack only rebuilds its stage; the final stage copies them in from the least
-# to the most frequently changed. Never inside: CodeQL, the official Semgrep rules, vulnerability databases, language
-# versions other than the defaults, Playwright browsers (PLAN-image.md section 2.6).
+# One stage per stack and kind, so a change in one only rebuilds its stage; the final stage copies them in from the
+# least to the most frequently changed. Never inside: CodeQL, the official Semgrep rules, vulnerability databases,
+# language versions other than the defaults, Playwright browsers (PLAN-image.md section 2.6).
 
 ARG BASE_IMAGE=python:3.15-slim-trixie@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 
 # --- Base and shared runtime (2.1) -----------------------------------------------------------------------------------
 # Debian 13 slim + CPython (the default Python). apt verifies every package against Debian's signed archive.
 # Packages: sync, history scans and downloads (git, rsync, tini, curl, jq, unzip, xz); native builds of Python, Node and
-# Rust dependencies (build-essential, pkg-config, libssl-dev, libffi-dev); shellcheck; the .NET runtime dependencies
+# Rust dependencies (build-essential, pkg-config, libssl-dev, libffi-dev); the .NET runtime dependencies
 # (ICU, Kerberos, zlib); the core libraries of Playwright's Chromium (the full set of the three browsers is added in the
 # final stage; browsers come per project, PLAN-dependencies.md).
 FROM ${BASE_IMAGE} AS base
@@ -30,7 +38,6 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
       ca-certificates curl git rsync tini jq unzip xz-utils \
       build-essential pkg-config libssl-dev libffi-dev \
-      shellcheck \
       libicu76 libgssapi-krb5-2 zlib1g \
       libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 libatspi2.0-0t64 libcairo2 libcups2t64 libdbus-1-3 libdrm2 \
       libgbm1 libglib2.0-0t64 libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 \
@@ -67,29 +74,18 @@ RUN set -eux; \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 HOME=/tmp/dotnet-home /usr/share/dotnet/dotnet --version; \
     rm -rf /tmp/dotnet-home
 
-# --- .NET tools: Stryker.NET (mutation) and dotnet-ef (EF Core pending model changes) ---------------------------------
-# Each tool package is fetched by its SHA-256 and installed from that local file only (a nuget.config without any
-# remote source), into one tool path whose commands are linked onto PATH in the final stage.
+# --- .NET tools (dotnet/<name>.json) ---------------------------------------------------------------------------------
+# Each tool package is fetched by its SHA-256 and installed from that local file only, into one tool path on PATH.
 FROM dotnet AS dotnet-tools
-ARG DOTNET_STRYKER_VERSION=5.1.0
-ARG DOTNET_STRYKER_SHA256=3c28fd73556a35aac6bb616322e15c1a1fe07f9054b8c8208726c307de90fb16
-ARG DOTNET_EF_VERSION=10.0.15
-ARG DOTNET_EF_SHA256=23753de0b4481d2c4bacb918ac7578b2c2fbde068b3a19a222d0cac4b49d0da2
+COPY --chmod=0555 installers/dotnet.sh /usr/local/bin/jgates-install-dotnet
+COPY dotnet/ /tmp/install/dotnet/
 RUN set -eux; \
-    mkdir -p /tmp/nupkgs /tmp/dotnet-home; \
-    fetch "https://api.nuget.org/v3-flatcontainer/dotnet-stryker/${DOTNET_STRYKER_VERSION}/dotnet-stryker.${DOTNET_STRYKER_VERSION}.nupkg" "${DOTNET_STRYKER_SHA256}" "/tmp/nupkgs/dotnet-stryker.${DOTNET_STRYKER_VERSION}.nupkg"; \
-    fetch "https://api.nuget.org/v3-flatcontainer/dotnet-ef/${DOTNET_EF_VERSION}/dotnet-ef.${DOTNET_EF_VERSION}.nupkg" "${DOTNET_EF_SHA256}" "/tmp/nupkgs/dotnet-ef.${DOTNET_EF_VERSION}.nupkg"; \
-    printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<configuration><packageSources><clear />' \
-      '<add key="local" value="/tmp/nupkgs" /></packageSources></configuration>' > /tmp/nupkgs/nuget.config; \
-    export HOME=/tmp/dotnet-home DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_ROOT=/usr/share/dotnet NUGET_PACKAGES=/tmp/dotnet-home/nuget; \
-    for pkg in "dotnet-stryker:${DOTNET_STRYKER_VERSION}" "dotnet-ef:${DOTNET_EF_VERSION}"; do \
-      /usr/share/dotnet/dotnet tool install "${pkg%%:*}" --version "${pkg#*:}" --tool-path /opt/dotnet-tools --configfile /tmp/nupkgs/nuget.config; \
+    mkdir -p /opt/dotnet-tools; \
+    for entry in /tmp/install/dotnet/*.json; do \
+      [ -e "${entry}" ] || continue; \
+      jgates-install-dotnet "${entry}"; \
     done; \
-    /opt/dotnet-tools/dotnet-stryker --help > /dev/null; \
-    /opt/dotnet-tools/dotnet-ef --version; \
-    rm -rf /tmp/nupkgs /tmp/dotnet-home; \
-    chown -R root:root /opt/dotnet-tools; \
-    chmod -R go-w /opt/dotnet-tools
+    rm -rf /tmp/install
 
 # --- Rust stable (rustup, minimal profile) + rustfmt + clippy + llvm-tools (cargo-llvm-cov) --------------------------
 FROM fetch AS rust
@@ -107,14 +103,17 @@ RUN set -eux; \
     rm -rf "${CARGO_HOME}/registry" "${CARGO_HOME}/git" "${RUSTUP_HOME}/downloads" "${RUSTUP_HOME}/tmp"; \
     "${CARGO_HOME}/bin/rustc" --version
 
+# Rust tools (cargo/<name>.json): cargo install --locked.
 FROM rust AS rust-tools
-ARG CARGO_AUDIT_VERSION=0.22.2
-ARG CARGO_LLVM_COV_VERSION=0.9.1
+COPY --chmod=0555 installers/cargo.sh /usr/local/bin/jgates-install-cargo
+COPY cargo/ /tmp/install/cargo/
 RUN set -eux; \
-    PATH="${CARGO_HOME}/bin:${PATH}" CARGO_BUILD_JOBS=4 cargo install --locked --root /out --version "${CARGO_AUDIT_VERSION}" cargo-audit; \
-    PATH="${CARGO_HOME}/bin:${PATH}" CARGO_BUILD_JOBS=4 cargo install --locked --root /out --version "${CARGO_LLVM_COV_VERSION}" cargo-llvm-cov; \
-    rm -f /out/.crates.toml /out/.crates2.json; \
-    strip /out/bin/cargo-audit /out/bin/cargo-llvm-cov
+    mkdir -p /opt/tools/cargo; \
+    for entry in /tmp/install/cargo/*.json; do \
+      [ -e "${entry}" ] || continue; \
+      jgates-install-cargo "${entry}"; \
+    done; \
+    rm -rf /tmp/install "${CARGO_HOME}/registry" "${CARGO_HOME}/git"
 
 # --- Go toolchain (default) and the Go tools -------------------------------------------------------------------------
 FROM fetch AS go
@@ -126,57 +125,29 @@ RUN set -eux; \
     rm -f /tmp/go.tar.gz; \
     /usr/local/go/bin/go version
 
-# govulncheck by module version: `go install` verifies every module against the Go checksum database (sum.golang.org).
+# Go tools (go/<name>.json): go install with the image's Go, every module verified against the Go checksum database.
 FROM go AS go-tools
-ARG GOVULNCHECK_VERSION=1.9.0
-# gitleaks 8.30.1 (the newest release) is published built with Go 1.24.11, whose crypto/tls has a critical CVE fixed in
-# 1.24.13 (CVE-2025-68121, found by the image scan gate). Built here from the same module version with the image's Go
-# (the build flags of its goreleaser file), the binary carries the fixed standard library.
-ARG GITLEAKS_VERSION=8.30.1
+COPY --chmod=0555 installers/go.sh /usr/local/bin/jgates-install-go
+COPY go/ /tmp/install/go/
 RUN set -eux; \
-    GOTOOLCHAIN=local GOBIN=/out CGO_ENABLED=0 GOPATH=/tmp/gopath GOCACHE=/tmp/gocache \
-      /usr/local/go/bin/go install -trimpath -tags gore2regex \
-        -ldflags="-s -w -X=github.com/zricethezav/gitleaks/v8/version.Version=${GITLEAKS_VERSION}" \
-        "github.com/zricethezav/gitleaks/v8@v${GITLEAKS_VERSION}"; \
-    GOTOOLCHAIN=local GOBIN=/out CGO_ENABLED=0 GOPATH=/tmp/gopath GOCACHE=/tmp/gocache \
-      /usr/local/go/bin/go install -trimpath -ldflags='-s -w' "golang.org/x/vuln/cmd/govulncheck@v${GOVULNCHECK_VERSION}"; \
-    rm -rf /tmp/gopath /tmp/gocache
+    mkdir -p /opt/tools/go; \
+    for entry in /tmp/install/go/*.json; do \
+      [ -e "${entry}" ] || continue; \
+      jgates-install-go "${entry}"; \
+    done; \
+    rm -rf /tmp/install
 
-# golangci-lint is published as a release binary; the project recommends it over `go install`.
-FROM fetch AS golangci-lint
-ARG GOLANGCI_LINT_VERSION=2.15.0
-ARG GOLANGCI_LINT_SHA256_AMD64=9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea
-RUN set -eux; \
-    fetch "https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64.tar.gz" "${GOLANGCI_LINT_SHA256_AMD64}" /tmp/golangci-lint.tar.gz; \
-    mkdir -p /out; \
-    tar -xzf /tmp/golangci-lint.tar.gz --strip-components=1 -C /out "golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64/golangci-lint"; \
-    chmod 0555 /out/golangci-lint
-
-# --- Cross-stack security, API and runtime tools (2.5): release binaries --------------------------------------------
+# --- Release binaries and archives (binaries/<name>.json) ------------------------------------------------------------
 FROM fetch AS binaries
-ARG TRIVY_VERSION=0.76.2
-ARG TRIVY_SHA256_AMD64=bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf
-ARG OSV_SCANNER_VERSION=2.7.1
-ARG OSV_SCANNER_SHA256_AMD64=fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8
-ARG OASDIFF_VERSION=1.37.0
-ARG OASDIFF_SHA256_AMD64=eac87307d31d08c36800c58a409c247f1c5db37fbb72e2544402f22a87cbca3c
-ARG HADOLINT_VERSION=2.15.1
-ARG HADOLINT_SHA256_AMD64=c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507
-ARG SQUAWK_VERSION=2.72.0
-ARG SQUAWK_SHA256_AMD64=a61661808119a82515565503111099b070c869f73698f61cb1785de5d0c8b11a
+COPY --chmod=0555 installers/binary.sh /usr/local/bin/jgates-install-binary
+COPY binaries/ /tmp/install/binaries/
 RUN set -eux; \
-    mkdir -p /out; \
-    cd /tmp; \
-    fetch "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" "${TRIVY_SHA256_AMD64}" trivy.tar.gz; \
-    tar -xzf trivy.tar.gz -C /out trivy; \
-    fetch "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" "${OSV_SCANNER_SHA256_AMD64}" /out/osv-scanner; \
-    fetch "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" "${OASDIFF_SHA256_AMD64}" oasdiff.tar.gz; \
-    tar -xzf oasdiff.tar.gz -C /out oasdiff; \
-    fetch "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-linux-x86_64" "${HADOLINT_SHA256_AMD64}" /out/hadolint; \
-    fetch "https://github.com/sbdchd/squawk/releases/download/v${SQUAWK_VERSION}/squawk-linux-x64" "${SQUAWK_SHA256_AMD64}" /out/squawk; \
-    rm -f /tmp/*.tar.gz; \
-    chown root:root /out/*; \
-    chmod 0555 /out/*
+    mkdir -p /opt/tools/binaries; \
+    for entry in /tmp/install/binaries/*.json; do \
+      [ -e "${entry}" ] || continue; \
+      jgates-install-binary "${entry}"; \
+    done; \
+    rm -rf /tmp/install
 
 # ZAP and the Java runtime it needs (Eclipse Temurin JRE).
 FROM fetch AS zap
@@ -209,14 +180,14 @@ RUN set -eux; \
     /opt/node/bin/node --version
 ENV PATH=/opt/node/bin:${PATH}
 
-# Node tools: one npm prefix per tool, installed only from its package-lock.json (integrity-checked by npm ci).
+# Node tools (node/<tool>/): one npm prefix per tool, installed only from its package-lock.json (integrity-checked by npm ci).
 FROM node AS node-tools
+COPY --chmod=0555 installers/node.sh /usr/local/bin/jgates-install-node
 COPY node/ /opt/tools/node/
 RUN set -eux; \
     for dir in /opt/tools/node/*/; do \
-      (cd "${dir}" && npm ci --ignore-scripts --omit=dev --no-audit --no-fund --loglevel=warn); \
+      jgates-install-node "${dir}"; \
     done; \
-    rm -rf /root/.npm; \
     chown -R root:root /opt/tools/node; \
     chmod -R go-w /opt/tools/node
 
@@ -229,22 +200,15 @@ FROM base AS python-tools
 COPY --from=uv /out/uv /out/uvx /usr/local/bin/
 ARG TOOLS_PYTHON_VERSION=3.14.10
 ENV UV_PYTHON_INSTALL_DIR=/opt/tools/python-runtime
+COPY --chmod=0555 installers/python.sh /usr/local/bin/jgates-install-python
 COPY python/ /opt/tools/locks/python/
 RUN set -eux; \
-    default="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"; \
     UV_PYTHON_BIN_DIR=/tmp/uv-python-bin uv python install --no-cache "cpython-${TOOLS_PYTHON_VERSION}-linux-x86_64-gnu"; \
     rm -rf /tmp/uv-python-bin; \
     private="${UV_PYTHON_INSTALL_DIR}/cpython-${TOOLS_PYTHON_VERSION}-linux-x86_64-gnu/bin/python${TOOLS_PYTHON_VERSION%.*}"; \
     test "$("${private}" -c 'import platform; print(platform.python_version())')" = "${TOOLS_PYTHON_VERSION}"; \
     for lock in /opt/tools/locks/python/*/*.txt; do \
-      version="$(basename "$(dirname "${lock}")")"; \
-      tool="$(basename "${lock}" .txt)"; \
-      if [ "${version}" = "${default}" ]; then interpreter=/usr/local/bin/python3; \
-      elif [ "${version}" = "${TOOLS_PYTHON_VERSION%.*}" ]; then interpreter="${private}"; \
-      else echo "jgates-tools: no interpreter for python/${version}" >&2; exit 1; fi; \
-      UV_PYTHON_DOWNLOADS=never uv venv --no-cache --python "${interpreter}" "/opt/tools/python/${tool}"; \
-      UV_PYTHON_DOWNLOADS=never uv pip install --no-cache --compile-bytecode --require-hashes --no-deps \
-        --python "/opt/tools/python/${tool}/bin/python" -r "${lock}"; \
+      jgates-install-python "${lock}"; \
     done; \
     site="$(/opt/tools/python/quality-sidecar/bin/python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')"; \
     echo /opt/jgates/quality-gate/sidecar > "${site}/jgates-quality-sidecar.pth"; \
@@ -267,6 +231,9 @@ RUN set -eux; \
     chown -R root:root /opt/jgates; \
     chmod -R go-w /opt/jgates
 
+# --- Parts (parts/<name>.Dockerfile): stages of their own for what no kind fits, inserted here by image-build.mjs -----
+# @jgates:parts-stages
+
 # --- The final image -------------------------------------------------------------------------------------------------
 FROM base AS final
 # The system libraries of Playwright's three browsers (Chromium, Firefox, WebKit) and their fonts: the debian13-x64 set
@@ -286,9 +253,14 @@ RUN set -eux; \
       libproxy1v5 libsecret-1-0 libsoup-3.0-0 libwayland-client0 libwayland-egl1 libwayland-server0 libwebp7 \
       libwebpdemux2 libwoff1 libx11-6 libx11-xcb1 libxcb-shm0 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 \
       libxfixes3 libxi6 libxkbcommon0 libxml2 libxrandr2 libxrender1 libxslt1.1 libxtst6; \
-    # The Debian security updates of everything installed so far (the image-scan gate fails on a fixed critical CVE).
-    apt-get upgrade -y --no-install-recommends; \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb /var/log/apt /var/log/dpkg.log
+# The Debian packages of the apt entries (apt/<group>.json), then the security updates of everything installed so far
+# (the image-scan gate fails on a fixed critical CVE).
+COPY --chmod=0555 installers/apt.sh /usr/local/bin/jgates-install-apt
+COPY apt/ /tmp/install/apt/
+RUN set -eux; \
+    jgates-install-apt /tmp/install/apt/*.json; \
+    rm -rf /tmp/install
 # Least frequently changed first: language toolchains, then the tool binaries, then the tool environments.
 COPY --from=dotnet /usr/share/dotnet /usr/share/dotnet
 COPY --from=dotnet-tools /opt/dotnet-tools /opt/dotnet-tools
@@ -299,12 +271,12 @@ COPY --from=zap /opt/java /opt/java
 COPY --from=zap /opt/zap /opt/zap
 COPY --from=node /opt/node /opt/node
 COPY --from=uv /out/uv /out/uvx /usr/local/bin/
-COPY --from=binaries /out/ /usr/local/bin/
-COPY --from=golangci-lint /out/golangci-lint /usr/local/bin/golangci-lint
-COPY --from=go-tools /out/govulncheck /out/gitleaks /usr/local/bin/
-COPY --from=rust-tools /out/bin/cargo-audit /out/bin/cargo-llvm-cov /usr/local/bin/
+COPY --from=binaries /opt/tools/binaries /opt/tools/binaries
+COPY --from=go-tools /opt/tools/go /opt/tools/go
+COPY --from=rust-tools /opt/tools/cargo /opt/tools/cargo
 COPY --from=python-tools /opt/tools /opt/tools
 COPY --from=node-tools /opt/tools/node /opt/tools/node
+# @jgates:parts-copy
 
 ENV PATH=/usr/local/cargo/bin:/usr/local/go/bin:/opt/node/bin:/usr/share/dotnet:/opt/dotnet-tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     RUSTUP_HOME=/usr/local/rustup \
@@ -325,40 +297,31 @@ ENV PATH=/usr/local/cargo/bin:/usr/local/go/bin:/opt/node/bin:/usr/share/dotnet:
     UV_PYTHON_DOWNLOADS=never \
     UV_LINK_MODE=copy
 
-# Commands on PATH, the non-root user of the steps (its home is under /tmp, a tmpfs in steps) and the mount points.
+# Ruby tools (gem/<tool>/): Bundler from each tool's Gemfile.lock; Ruby itself comes from an apt entry.
+COPY --chmod=0555 installers/gem.sh /usr/local/bin/jgates-install-gem
+COPY gem/ /opt/tools/gem/
 RUN set -eux; \
-    link() { ln -s "$1" "/usr/local/bin/$2"; }; \
-    # pytest and coverage come from the pytest environment (with pytest-cov and Hypothesis), never from another tool's
-    # environment that happens to carry its own pytest (mutmut, schemathesis).
-    link /opt/tools/python/pytest/bin/pytest pytest; \
-    link /opt/tools/python/pytest/bin/coverage coverage; \
-    for tool in ruff mypy pytest coverage mutmut schemathesis st semgrep checkov zizmor; do \
-      for env in /opt/tools/python/*/; do \
-        if [ -e "${env}bin/${tool}" ] && [ ! -e "/usr/local/bin/${tool}" ]; then link "${env}bin/${tool}" "${tool}"; fi; \
-      done; \
+    for lock in /opt/tools/gem/*/Gemfile.lock; do \
+      [ -e "${lock}" ] || continue; \
+      jgates-install-gem "$(dirname "${lock}")"; \
     done; \
-    link /opt/tools/python/import-linter/bin/lint-imports lint-imports; \
+    rm -f /opt/tools/gem/README.md
+
+# Commands on PATH: the links of the install entries (from the index, installers/links.sh), the toolchains' own, the
+# non-root user of the steps (its home is under /tmp, a tmpfs in steps) and the mount points.
+COPY --from=jgates-installs /installs.json /usr/share/jgates/installs.json
+COPY --chmod=0555 installers/links.sh /usr/local/bin/jgates-install-links
+RUN set -eux; \
+    jgates-install-links /usr/share/jgates/installs.json; \
+    link() { ln -s "$1" "/usr/local/bin/$2"; }; \
     link /opt/tools/python/quality-sidecar/bin/quality-sidecar quality-sidecar; \
-    link /opt/tools/node/typescript/node_modules/.bin/tsc tsc; \
-    link /opt/tools/node/pyright/node_modules/.bin/pyright pyright; \
-    link /opt/tools/node/pyright/node_modules/.bin/pyright-langserver pyright-langserver; \
-    link /opt/tools/node/eslint/node_modules/.bin/eslint eslint; \
-    link /opt/tools/node/prettier/node_modules/.bin/prettier prettier; \
-    link /opt/tools/node/vitest/node_modules/.bin/vitest vitest; \
-    link /opt/tools/node/stryker/node_modules/.bin/stryker stryker; \
-    link /opt/tools/node/jscpd/node_modules/.bin/jscpd jscpd; \
-    link /opt/tools/node/dependency-cruiser/node_modules/.bin/depcruise depcruise; \
-    link /opt/tools/node/corepack/node_modules/.bin/corepack corepack; \
     corepack enable --install-directory /usr/local/bin pnpm yarn; \
     link /opt/zap/zap.sh zap.sh; \
     link /opt/zap/zap.sh zap; \
     link /opt/java/bin/java java; \
-    for tool in ruff mypy pytest coverage mutmut schemathesis semgrep checkov zizmor lint-imports quality-sidecar tsc \
-                pyright eslint prettier vitest stryker jscpd depcruise corepack pnpm yarn zap.sh java; do \
+    for tool in quality-sidecar corepack pnpm yarn zap.sh java; do \
       test -x "/usr/local/bin/${tool}"; \
     done; \
-    test -x /opt/dotnet-tools/dotnet-stryker; \
-    test -x /opt/dotnet-tools/dotnet-ef; \
     groupadd --gid 10001 jgates; \
     useradd --uid 10001 --gid 10001 --home-dir /tmp/home --no-create-home --shell /usr/sbin/nologin jgates; \
     mkdir -p /workspace /output /etc/jgates /usr/share/jgates; \
@@ -376,8 +339,8 @@ COPY collect-notices.sh /usr/share/jgates/collect-notices.sh
 RUN sh /usr/share/jgates/collect-notices.sh
 
 # Changes on every build (version and source revision): last, so the layers above stay cached. The versions of the
-# pinned tools are the build arguments above; write-image-json.py checks each tool against its pin and fails the build
-# on any difference.
+# toolchains are the build arguments above (runtimes.json names the one that pins each); the tools' pins are in the
+# index of the install entries. write-image-json.py checks each against its pin and fails the build on any difference.
 ARG JGATES_VERSION=0.0.0-dev
 ARG IMAGE_VERSION=dev
 ARG SOURCE_REVISION=unknown
@@ -386,19 +349,7 @@ ARG TOOLS_PYTHON_VERSION=3.14.10
 ARG DOTNET_SDK_VERSION=10.0.403
 ARG RUSTUP_VERSION=1.29.3
 ARG RUST_VERSION=1.99.1
-ARG CARGO_AUDIT_VERSION=0.22.2
-ARG CARGO_LLVM_COV_VERSION=0.9.1
 ARG GO_VERSION=1.27.3
-ARG GOVULNCHECK_VERSION=1.9.0
-ARG GOLANGCI_LINT_VERSION=2.15.0
-ARG GITLEAKS_VERSION=8.30.1
-ARG TRIVY_VERSION=0.76.2
-ARG OSV_SCANNER_VERSION=2.7.1
-ARG OASDIFF_VERSION=1.37.0
-ARG HADOLINT_VERSION=2.15.1
-ARG SQUAWK_VERSION=2.72.0
-ARG DOTNET_STRYKER_VERSION=5.1.0
-ARG DOTNET_EF_VERSION=10.0.15
 ARG JAVA_VERSION=21.0.13
 ARG ZAP_VERSION=2.17.0
 ARG NODE_VERSION=26.13.0
@@ -409,7 +360,7 @@ LABEL org.opencontainers.image.title="jgates-tools" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
       org.opencontainers.image.revision="${SOURCE_REVISION}" \
       org.jgates.version="${JGATES_VERSION}"
-COPY write-image-json.py /usr/share/jgates/write-image-json.py
+COPY write-image-json.py runtimes.json /usr/share/jgates/
 # What the smoke leaves behind is removed in the same step (Java and ZAP write to root's passwd home, not to HOME).
 RUN HOME=/tmp/jgates-smoke python3 /usr/share/jgates/write-image-json.py /etc/jgates/image.json; \
     status=$?; \

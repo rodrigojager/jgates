@@ -85,6 +85,10 @@ test("Workspace shows the components, the scope preview, the mode by patch and t
     await page.getByRole("tab", { name: "Detecção e escopo" }).click();
     await expect(page.getByTestId("unsupported")).toContainText("java em legacy");
     await expect(page.getByTestId("unsupported")).toContainText("Motivo");
+    // Java has no stack, but the pack has Java rules: the screen says which checks do run, and never "no check runs".
+    await expect(page.getByTestId("unsupported")).toContainText("regras do Semgrep do JGates");
+    await expect(page.getByTestId("unsupported")).toContainText("continuam rodando nela");
+    await expect(page.getByTestId("unsupported")).not.toContainText("nenhuma verificação roda");
     await expect(page.getByTestId("lockfile-conflicts")).toContainText("tools/dual");
     await expect(page.getByTestId("lockfile-conflicts")).toContainText("package-lock.json");
     await expect(page.getByTestId("lockfile-conflicts")).toContainText("yarn.lock");
@@ -190,7 +194,7 @@ test("Declarar componente offers languages, frameworks and folders as choices, k
 
     // A recognized language without tools says what that means.
     await language.selectOption("cpp");
-    await expect(dialog.getByTestId("language-notice")).toContainText("O JGates reconhece C++, mas ainda não tem ferramentas");
+    await expect(dialog.getByTestId("language-notice")).toContainText("O JGates reconhece C++, mas não tem stack para ela");
     await expect(framework.locator("option")).toHaveText(["Nenhum (usar o detectado)", "Outro…"]);
     // Outro… opens a free field with its own label and help.
     await language.selectOption({ label: "Outro…" });
@@ -233,6 +237,15 @@ test("Declarar componente offers languages, frameworks and folders as choices, k
     await expect(picker.locator('option[value="web/src"]')).toHaveCount(1);
     await expect(fresh.getByLabel("Linguagem", { exact: true })).toHaveValue("");
     await expect(fresh.getByLabel("Framework", { exact: true }).locator('option[value="fastapi"]')).toHaveCount(1);
+    // A language without a stack: the notice says which checks run (the pack has rules for Java, not for C++).
+    const freshLanguage = fresh.getByLabel("Linguagem", { exact: true });
+    await freshLanguage.selectOption("java");
+    await expect(fresh).toContainText("regras do Semgrep do JGates para Java rodam quando o SAST está ligado");
+    await expect(fresh).not.toContainText("nenhuma verificação roda");
+    await freshLanguage.selectOption("cpp");
+    await expect(fresh).toContainText("as verificações que valem para qualquer projeto rodam nele");
+    await expect(fresh).not.toContainText("regras do Semgrep do JGates para C++");
+    await freshLanguage.selectOption("");
     await picker.selectOption({ label: "Outro..." });
     await fresh.getByLabel("Outro valor de Caminho").fill("libs/Shared Code");
     await expect(fresh.getByLabel("Identificador")).toHaveValue("libs-shared-code");

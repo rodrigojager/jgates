@@ -1,0 +1,18 @@
+{
+  "files": [
+    "jgates.yml",
+    "words.md"
+  ],
+  "findings": [
+    {
+      "rule": "unknown-word",
+      "file": "words.md",
+      "line": 3
+    },
+    {
+      "rule": "unknown-word",
+      "file": "words.md",
+      "line": 3
+    }
+  ]
+}

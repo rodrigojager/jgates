@@ -4,6 +4,7 @@
 #   THIRD_PARTY_NOTICES.md   every shipped tool with its license and source URL (the repository file)
 #   JGATES-LICENSE           the license of JGates itself
 #   python/ node/            license files of the packages of the isolated tool environments, one copy per content
+#   tools/                   license files of the other install entries (binaries, go, cargo, gem, parts)
 #   debian/<package>         the copyright file of every Debian package
 set -eu
 
@@ -36,6 +37,17 @@ find /opt/tools/node -type d -path '*/node_modules/*' 2>/dev/null | while read -
   package=$(basename "$folder")
   find "$folder" -maxdepth 1 -type f \( -iname 'LICENSE*' -o -iname 'LICENCE*' -o -iname 'COPYING*' -o -iname 'NOTICE*' \) | while read -r file; do
     collect node "$package" "$file"
+  done
+done
+
+# The other install entries (release archives, Go and Rust tools, gems, parts): the license files in the top two levels
+# of each install folder, under the entry's name.
+mkdir -p "$dest/tools"
+for folder in /opt/tools/binaries/* /opt/tools/go/* /opt/tools/cargo/* /opt/tools/gem/* /opt/tools/parts/*; do
+  [ -d "$folder" ] || continue
+  entry=$(basename "$folder")
+  find "$folder" -maxdepth 2 -type f \( -iname 'LICENSE*' -o -iname 'LICENCE*' -o -iname 'COPYING*' -o -iname 'NOTICE*' \) | while read -r file; do
+    collect tools "$entry" "$file"
   done
 done
 

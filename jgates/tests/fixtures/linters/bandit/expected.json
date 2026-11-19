@@ -1,0 +1,22 @@
+{
+  "files": [
+    "bandit_sample.py"
+  ],
+  "findings": [
+    {
+      "rule": "B404",
+      "file": "bandit_sample.py",
+      "line": 1
+    },
+    {
+      "rule": "B602",
+      "file": "bandit_sample.py",
+      "line": 3
+    },
+    {
+      "rule": "B607",
+      "file": "bandit_sample.py",
+      "line": 3
+    }
+  ]
+}

@@ -14,7 +14,7 @@ métodos vencem. Um método que precisa de uma entrada que a execução não tem
 código de motivo (`METHOD_NOT_APPLICABLE` e o código do próprio método), não gasta nenhuma chamada ao modelo e nunca
 aparece como favorável.
 
-## Os nove métodos
+## Os onze métodos
 
 | Método | Escolhido | O que faz |
 | --- | --- | --- |
@@ -27,6 +27,39 @@ aparece como favorável.
 | `property-reasoning` | sob demanda | Enuncia as invariantes de código de limites, autorização e parsing, argumenta cada uma contra o código e propõe testes de propriedade. Trabalho original do JGates. |
 | `post-patch-validation` | sob demanda | O reprodutor falha antes de um patch e passa depois? Quem executa é o host, não o modelo. Trabalho original do JGates. |
 | `supply-chain-assessment` | sob demanda | Interpreta os sinais de instalação e de procedência dos lockfiles. Trabalho original do JGates. |
+| `confirm-by-reproduction` | só quando você pede, depois de uma execução | Tenta reproduzir os achados `needs-validation` de uma execução anterior com um teste que roda em contêiner. Trabalho original do JGates. |
+| `asvs-review` | só quando você pede, depois de uma execução Quality | Uma revisão do código por IA contra os requisitos do ASVS que nenhuma verificação determinística examinou, uma resposta por requisito. Trabalho original do JGates. |
+
+### Confirmar por reprodução
+
+O décimo método parte de uma execução Semantic concluída, de um método que lê o código, e tenta resolver por execução os achados `needs-validation` dela. Nada é reproduzido sem você pedir: nenhum perfil, modelo ou padrão o liga. No resultado Semantic, cada um desses achados tem **Tentar reproduzir** e a lista tem **Tentar reproduzir todos (N)**; o terminal faz o mesmo:
+
+```bash
+jgates semantic run --method confirm-by-reproduction --from <sem_...> [--finding C1]
+```
+
+- O custo aparece antes de qualquer coisa começar: quantos achados serão tentados, o máximo de chamadas ao modelo que ele pode gastar (o orçamento da execução) e que ele roda os testes do projeto em um contêiner sem rede.
+- Um contexto por achado escreve um único teste, no framework de testes do projeto (pytest ou `node:test`), que falha enquanto o defeito existe. O host, não o modelo, o coloca numa cópia do projeto e o roda num contêiner efêmero da imagem de ferramentas: sem rede, sem root, árvore somente leitura e limites de memória, processos e tempo. Um segundo contexto, novo, julga se a falha é o defeito que o achado descreve, um defeito do teste ou do ambiente.
+- Um achado é **confirmado por execução** (base de evidência `execution`) só quando o teste rodou, falhou e o julgamento atribui a falha ao defeito. A execução anterior nunca é reescrita: o resultado dela mostra o achado como confirmado, com um link para a execução da reprodução, o teste e a saída mascarada.
+- Qualquer outro caso (o teste passou, não carregou, foi recusado, o ambiente falhou, o orçamento acabou) deixa o achado `needs-validation` e mostra "reprodução tentada" com o motivo. **Uma reprodução que falha nunca rejeita um achado nem reduz a sua gravidade.**
+- Um teste que reproduziu vira uma proposta de teste de regressão, aplicada só por `jgates regressions incorporate <id> --approve`.
+- Ele não se aplica, com um código de motivo e sem chamada ao modelo, quando não há motor de contêineres ou imagem de ferramentas, quando as dependências do componente do achado não estão preparadas (`jgates deps prepare`), quando nenhum executor aceito (pytest, `node:test`) roda o arquivo do achado (`TEST_RUNNER_NOT_SUPPORTED`; Jest, Vitest, `go test`, `cargo test` e `dotnet test` ainda não são aceitos) ou quando a execução anterior não tem achado `needs-validation`. A tela então mostra a ação desabilitada com o motivo.
+- Nunca faz parte do `jgates ci`, e a decisão de Qualidade fica intacta.
+
+### Revisão ASVS
+
+O décimo primeiro método lê o código contra os requisitos do OWASP ASVS que o mapa de cobertura da última execução Quality não mostra como examinados por uma verificação determinística e que você não registrou como não se aplicando. Nada o executa se você não pedir: nenhum perfil, modelo ou padrão o escolhe, e `jgates ci` nunca o executa. Escolha **Revisão ASVS** na lista de métodos das telas Semantic (dá para marcar pelo teclado, como os outros) ou no terminal:
+
+```bash
+jgates semantic plan --method asvs-review
+jgates semantic run --method asvs-review
+```
+
+- Antes de qualquer coisa começar, o plano diz quantos requisitos serão revisados (por capítulo do ASVS, um contexto novo cada), qual execução Quality o mapa usou para decidir isso e o máximo de chamadas ao modelo que ele pode gastar. A tela pede que você confirme esse custo antes de habilitar **Iniciar**.
+- Ele precisa de uma execução Quality concluída. Sem ela, não se aplica, com o motivo `ASVS_REVIEW_NO_QUALITY_RUN` e sem chamada ao modelo: valide o projeto primeiro. Também não se aplica, com um motivo, quando não sobra nada a revisar ou o mapa de cobertura não pode ser lido.
+- Para cada requisito o modelo responde **examinado** (os arquivos e linhas que leu, e se achou uma violação) ou **não examinável** com o motivo: diz respeito ao sistema em execução, a uma pessoa ou processo, ou está fora do escopo. O host recusa uma resposta "examinado" que cita um arquivo que o contexto não leu ou uma linha que o arquivo não tem; essa resposta não conta e o motivo fica nas lacunas da execução.
+- O resultado lista os requisitos examinados e os não examináveis, com os motivos, e diz que se trata de uma revisão do código por IA. Uma violação candidata é uma pista que continua `needs-validation` até uma pessoa validar.
+- O mapa ASVS conta uma resposta "examinado" à parte das verificações determinísticas, como revisão do código por IA, e só onde uma entrada de mapeamento revisada permite; "não examinável" não dá nada. Nunca é uma declaração de que um requisito está atendido.
 
 ## Fontes, versões fixadas e atribuição
 
@@ -47,11 +80,18 @@ jgates tools distribution
 
 - Um achado confirmado de um método que lê o código leva a base de evidência `source-argument`: o modelo o argumentou a
   partir do código. Nunca é apresentado como reproduzido.
-- Nenhum método executa código do projeto. A única exceção é `post-patch-validation`, que roda o reprodutor e os testes
-  próximos em fixtures isoladas de antes e depois, num sandbox que não escreve, não usa rede e não inicia processos;
-  só esse método pode afirmar `reproduced` ou `fixed`, e só quando a execução ocorreu.
+- Nenhum método executa código do projeto no host. Dois métodos rodam testes, sempre em contêineres da imagem de
+  ferramentas sem rede (árvore somente leitura, sem root, limites de memória, processos e tempo): `post-patch-validation`
+  roda o reprodutor e os testes próximos em fixtures isoladas de antes e depois (`jgates regressions validate` roda um
+  teste proposto do mesmo jeito), e `confirm-by-reproduction` roda um teste por achado sobre o código atual. Só esses
+  dois podem afirmar `reproduced`, `fixed` ou a base de evidência `execution`, e só quando a execução ocorreu. Sem um
+  motor de contêineres utilizável eles não se aplicam e nada é afirmado.
 - Texto do repositório, saída de scanners e relatórios importados são dados não confiáveis. O acesso a arquivos passa por
   uma guarda do host que recusa exclusões e caminhos fora do escopo; toda recusa é registrada e rebaixa os veredictos
   afetados para `needs-validation`.
-- `property-reasoning` e `post-patch-validation` podem propor testes de regressão. Eles só são aplicados por
+- `property-reasoning`, `post-patch-validation` e `confirm-by-reproduction` podem propor testes de regressão. Eles só são aplicados por
   `jgates regressions incorporate <id> --approve`.
+- O registro de cobertura da auditoria de segurança alimenta o [mapa de cobertura ASVS](asvs-coverage.pt-BR.md): por
+  ele, um requisito só é examinado quando unidades do seu bloco de classe de ataque foram examinadas naquela execução,
+  sempre com a base "revisão do código por IA", contada à parte das verificações determinísticas. Uma unidade que um
+  modelo propôs como não aplicável nunca torna um requisito não aplicável.

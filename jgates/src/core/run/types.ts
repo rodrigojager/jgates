@@ -4,6 +4,7 @@ import type { RunStep } from "../runner/executor.js";
 import type { Provenance, SemanticPromptsProvenance } from "../provenance/index.js";
 import type { AnalyzedState } from "./analysis.js";
 import type { GateKind } from "../gates/types.js";
+import type { ResultWaivers } from "../results/waivers.js";
 
 /** A step that can be served from the cache of results: it says what its result depends on. */
 export type CacheableStep = RunStep & { cacheSubject?: CacheSubject };
@@ -63,6 +64,13 @@ export interface ResultStage extends StageResult {
   cache?: StageCacheInfo;
   /** What the analysis read besides the code, as the tool reports it (the vulnerability database of a scanner). */
   analysisInput?: StageAnalysisInput;
+  /** Semgrep stage: files of each language the scan covered (`{ language: files }`), from the scanner's scanned paths. */
+  scannedLanguages?: Record<string, number>;
+  /**
+   * Semgrep stage with the bundled pack: for every tag of a signal rule of the pack, how many results its rules had
+   * (`{ tag: matches }`, 0 when none). The results of signal rules are this record, never findings.
+   */
+  signals?: Record<string, number>;
 }
 
 /** $defs.stage.analysisInput: the vulnerability database a scanner used (source, date when the tool says it). */
@@ -96,6 +104,10 @@ export interface ResultFinding {
   origin?: string;
   blocking: boolean;
   blockingReason?: BlockingReason;
+  /** The tool reported it as informational (it never blocks and cannot be waived); shown and counted apart. */
+  informational?: boolean;
+  /** A finding to review: never blocking and mutually exclusive with informational. */
+  review?: boolean;
   waived: boolean;
   waiverReason?: string;
   /** Fingerprint the tool or the sidecar gave (kept so old waiver files still match). */
@@ -106,8 +118,20 @@ export interface ResultFinding {
   remediation?: string;
   docsUrl?: string;
   waiverId?: string;
+  /** Where the waiver that waived the finding came from: the project's file, --waiver or the CI policy. */
+  waiverSource?: "project" | "flag" | "policy";
+  /** End date of that waiver, when it has one (YYYY-MM-DD). */
+  waiverExpires?: string;
+  /**
+   * jga1 anchor (waivers only): tool, rule, path, the flagged line's text with white space collapsed and the position
+   * among the findings on equal lines, hashed. Absent without a line, for a file that cannot be read, and for the secrets
+   * and personal-data categories. Never in the SARIF export.
+   */
+  anchor?: string;
   /** Against the baseline run: new or kept. */
   baselineState?: "new" | "unchanged";
+  /** The ASVS requirement ids the rule of a bundled pack was written for: a label, never a statement that one is met. */
+  asvsRequirements?: string[];
 }
 
 export interface ResultMetric {
@@ -137,9 +161,21 @@ export interface BaselineComparison {
   runId: string;
   comparable: boolean;
   warnings: Array<{ code: string; message: string }>;
+  /** Blocking findings (a waived one counts here: it blocked before the waiver). Informational findings are counted apart. */
   new: number;
   kept: number;
-  resolved: Array<{ fingerprint: string; ruleId: string; tool?: string; path?: string }>;
+  /** The informational findings (they do not block) that are new, kept and resolved against the baseline. */
+  newInformational?: number;
+  keptInformational?: number;
+  resolvedInformational?: number;
+  /** Open Review findings, counted apart from blocking and informational findings. */
+  newReview?: number;
+  keptReview?: number;
+  resolvedReview?: number;
+  /** `line` is the baseline finding's line, when it had one. */
+  resolved: Array<{ fingerprint: string; ruleId: string; tool?: string; path?: string; line?: number }>;
+  /** How the findings were matched: by anchor, by fingerprint v1, or both (groups of each kind). Information only. */
+  matchedBy?: "anchor" | "fingerprint" | "mixed";
 }
 
 export interface ResultRequirement {
@@ -364,6 +400,8 @@ export interface RunResult {
   /** Coverage of the architecture graph (complete, partial or empty) with the dependencies left unresolved. */
   architecture?: ArchitectureCoverageRecord[];
   baseline?: BaselineComparison;
+  /** What the waivers did in this run: applied, unmatched, stale, expired, refused, and a waiver file that could not be read. */
+  waivers?: ResultWaivers;
   /** Optional semantic review, apart from the decision; present only when the run asked for it. */
   semantic?: ResultSemantic;
   /** Independent Semantic runs only (gate semantic): the review behind the decision, its source and attached evidence. */

@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
-  "description": "License allow-list of the JGates tools image (PLAN-image.md sections 2 and 5). image-gates.mjs checks every component of the image's SPDX SBOM against it. An identifier that is not listed fails the build; adding one is a decision of the user, never of the build.",
+  "description": "License allow-list of the JGates tools image (PLAN-image.md sections 2 and 5). image-gates.mjs checks every component of the image's SPDX SBOM against it. An identifier that is not listed fails the build; adding one is a decision of the user, never of the build. The descriptors of the linter engine are checked against it as well (their declared license, scripts/image-gates.mjs checkDescriptorLicenses): GPL only for a tool named in gplPackages or installed from Debian, a forbidden license only for a tool named in namedExceptions.",
   "allowedSpdx": {
     "permissive": [
       "0BSD",
       "AFL-2.0",
       "AFL-2.1",
       "Apache-2.0",
+      "Artistic-1.0-Perl",
       "Artistic-2.0",
       "Beerware",
       "BlueOak-1.0.0",
@@ -131,7 +132,9 @@
     "Confluent"
   ],
   "allowedLicenseRefNames": [
-    "^Python-Software-Foundation-License$"
+    "^Python-Software-Foundation-License$",
+    "^LicenseRef-PMD-BSD-style$",
+    "^LicenseRef-docutils-Public-Domain$"
   ],
   "operatingSystem": {
     "packageTypes": [
@@ -152,6 +155,42 @@
     {
       "name": "javax.help:javahelp",
       "reason": "GPL-2.0 with Classpath exception, bundled unmodified by ZAP (PLAN-image.md section 2)"
+    },
+    {
+      "name": "pylint",
+      "reason": "GPL-2.0 linter, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "yamllint",
+      "reason": "GPL-3.0 linter, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "codespell",
+      "reason": "GPL-2.0 spelling checker, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "ansible-lint",
+      "reason": "GPL-3.0 linter, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "djlint",
+      "reason": "GPL-3.0 linter, shipped unmodified and run as a separate process; decided by the user on 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "ansible-core",
+      "reason": "GPL-3.0 runtime that ansible-lint requires and imports, installed with it in its own environment; covered by the user's decision on ansible-lint of 2026-11-17 (PLAN-image.md section 4)"
+    },
+    {
+      "name": "docutils",
+      "reason": "GPL-3.0-or-later parts (with public-domain and BSD-3-Clause ones) of the reStructuredText library the rst linters import, shipped unmodified; accepted by name like pylint and yamllint, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    }
+  ],
+  "namedExceptions": [
+    {
+      "name": "trufflehog",
+      "license": "AGPL-3.0-only",
+      "decided": "2026-11-17",
+      "reason": "Accepted by name by the user, unmodified and run as a separate process, because it verifies more kinds of secret than kingfisher (their own pages: over 700 against 266). The forbidden patterns stay in force for every other component; THIRD_PARTY_NOTICES.md carries its license and source."
     }
   ],
   "resolved": {
@@ -270,6 +309,590 @@
     "qrcode-terminal": {
       "license": "Apache-2.0",
       "evidence": "package.json of the package in the JGates CLI dependencies"
+    },
+    "@salesforce/ui-bundle-template-base-sfdx-project": {
+      "license": "BSD-3-Clause",
+      "evidence": "a project template inside @salesforce/templates 66.19.0 of the Salesforce CLI part (that package.json says BSD-3-Clause, its LICENSE.txt is at its root); the template's own package.json says SEE LICENSE IN LICENSE.txt and has none beside it"
+    },
+    "base-angular-app": {
+      "license": "BSD-3-Clause",
+      "evidence": "a private project template inside @salesforce/templates 66.19.0 of the Salesforce CLI part (that package.json says BSD-3-Clause); the template's package.json declares no license"
+    },
+    "base-react-app": {
+      "license": "BSD-3-Clause",
+      "evidence": "a private project template inside @salesforce/templates 66.19.0 of the Salesforce CLI part (that package.json says BSD-3-Clause); the template's package.json declares no license"
+    },
+    "base-vue-app": {
+      "license": "BSD-3-Clause",
+      "evidence": "a private project template inside @salesforce/templates 66.19.0 of the Salesforce CLI part (that package.json says BSD-3-Clause); the template's package.json declares no license"
+    },
+    "base64": {
+      "license": "BSD-2-Clause",
+      "evidence": "gemspec licenses [Ruby, BSD-2-Clause] of the gem in the image (rubocop's bundle and Ruby's default gems): RubyGems lists alternatives, the gem may be used under either; BSD-2-Clause is taken"
+    },
+    "com.github.nawforce:scala-json-rpc_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.github.nawforce:scala-json-rpc-upickle-json-serializer_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.github.pathikrit:better-files_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.lihaoyi:geny_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.lihaoyi:mainargs_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.lihaoyi:sourcecode_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.lihaoyi:ujson_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.lihaoyi:upack_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.lihaoyi:upickle_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.lihaoyi:upickle-core_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.lihaoyi:upickle-implicits_2.13": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.pcollections:pcollections": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.slf4j:slf4j-api": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project); slf4j-api 2.0.20 declares Bundle-License https://opensource.org/license/mit in its manifest"
+    },
+    "org.slf4j:jul-to-slf4j": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project); slf4j-api 2.0.20 declares Bundle-License https://opensource.org/license/mit in its manifest"
+    },
+    "org.slf4j:slf4j-simple": {
+      "license": "MIT",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MIT; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project); slf4j-api 2.0.20 declares Bundle-License https://opensource.org/license/mit in its manifest"
+    },
+    "com.google.guava:guava": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "com.google.guava:listenablefuture": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "info.picocli:picocli": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "io.methvin:directory-watcher": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "io.methvin:directory-watcher-better-files_2.13": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.danilopianini:gson-extras": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jspecify:jspecify": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.xmlresolver:xmlresolver": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.scala-lang.modules:scala-collection-compat_2.13": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.scala-lang.modules:scala-parallel-collections_2.13": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-build-tools-api": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-compiler-embeddable": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-daemon-embeddable": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-script-runtime": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-scripting-common": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-scripting-compiler-embeddable": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-scripting-compiler-impl-embeddable": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-scripting-jvm": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-stdlib": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-stdlib-jdk7": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlin:kotlin-stdlib-jdk8": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlinx:kotlinx-serialization-core-jvm": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.jetbrains.kotlinx:kotlinx-serialization-json-jvm": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "nl.stokpop.typemapper:kotlin-type-mapper-analyzer": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "nl.stokpop.typemapper:kotlin-type-mapper-model": {
+      "license": "Apache-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "io.github.apex-dev-tools:apex-ls_2.13": {
+      "license": "BSD-3-Clause",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license BSD-3-Clause; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "io.github.apex-dev-tools:outline-parser_2.13": {
+      "license": "BSD-3-Clause",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license BSD-3-Clause; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.antlr:antlr4-runtime": {
+      "license": "BSD-3-Clause",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license BSD-3-Clause; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.scalameta:common_2.13": {
+      "license": "BSD-4-Clause",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license BSD-4-Clause; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.scalameta:common2_2.13": {
+      "license": "BSD-4-Clause",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license BSD-4-Clause; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.scalameta:io_2.13": {
+      "license": "BSD-4-Clause",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license BSD-4-Clause; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.scalameta:parsers_2.13": {
+      "license": "BSD-4-Clause",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license BSD-4-Clause; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.scalameta:trees_2.13": {
+      "license": "BSD-4-Clause",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license BSD-4-Clause; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "org.scalameta:trees2_2.13": {
+      "license": "BSD-4-Clause",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license BSD-4-Clause; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "net.sf.saxon:Saxon-HE": {
+      "license": "MPL-2.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license MPL-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "javax.annotation:jsr250-api": {
+      "license": "CDDL-1.0",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license CDDL-1.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project)"
+    },
+    "net.java.dev.jna:jna": {
+      "license": "Apache-2.0 OR LGPL-2.1-or-later",
+      "evidence": "CycloneDX SBOM that PMD 7.29.0 ships in the image (/opt/tools/binaries/pmd/sbom/pmd-7.29.0-cyclonedx.json) lists this library of its lib folder with license LGPL-2.1-or-later and Apache-2.0; the jar itself carries no license data (the Salesforce code-analyzer engines bundle the same project); the LICENSE inside the jar starts with SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1, so either may be used"
+    },
+    "com.google.summit:summit-ast": {
+      "license": "Apache-2.0",
+      "evidence": "pom.xml <licenses> inside the jar of the Salesforce code-analyzer pmd engine (Apache License, Version 2.0)"
+    },
+    "io.netty:netty-common": {
+      "license": "Apache-2.0",
+      "evidence": "META-INF/MANIFEST.MF of the jar in the Salesforce code-analyzer sfge engine (Bundle-License https://www.apache.org/licenses/LICENSE-2.0)"
+    },
+    "io.netty:netty-resolver-dns-native-macos": {
+      "license": "Apache-2.0",
+      "evidence": "META-INF/MANIFEST.MF of the jar in the Salesforce code-analyzer sfge engine (Bundle-License https://www.apache.org/licenses/LICENSE-2.0)"
+    },
+    "io.netty:netty-transport-native-epoll": {
+      "license": "Apache-2.0",
+      "evidence": "META-INF/MANIFEST.MF of the jar in the Salesforce code-analyzer sfge engine (Bundle-License https://www.apache.org/licenses/LICENSE-2.0)"
+    },
+    "io.netty:netty-transport-native-kqueue": {
+      "license": "Apache-2.0",
+      "evidence": "META-INF/MANIFEST.MF of the jar in the Salesforce code-analyzer sfge engine (Bundle-License https://www.apache.org/licenses/LICENSE-2.0)"
+    },
+    "commons-beanutils:commons-beanutils": {
+      "license": "Apache-2.0",
+      "evidence": "Bundle-License https://www.apache.org/licenses/LICENSE-2.0(.txt) in the manifest and Apache License 2.0 text in LICENSE.txt of the same project's jars in the image (ZAP's lib folder, sfge engine); the copies shaded in checkstyle-all.jar carry no license data"
+    },
+    "commons-collections:commons-collections": {
+      "license": "Apache-2.0",
+      "evidence": "Bundle-License https://www.apache.org/licenses/LICENSE-2.0(.txt) in the manifest and Apache License 2.0 text in LICENSE.txt of the same project's jars in the image (ZAP's lib folder, sfge engine); the copies shaded in checkstyle-all.jar carry no license data"
+    },
+    "commons-logging:commons-logging": {
+      "license": "Apache-2.0",
+      "evidence": "Bundle-License https://www.apache.org/licenses/LICENSE-2.0(.txt) in the manifest and Apache License 2.0 text in LICENSE.txt of the same project's jars in the image (ZAP's lib folder, sfge engine); the copies shaded in checkstyle-all.jar carry no license data"
+    },
+    "software.amazon.awssdk:third-party-jackson-core": {
+      "license": "Apache-2.0",
+      "evidence": "LICENSE.txt with the Apache License 2.0 text inside the jar in the image"
+    },
+    "org.apache.tinkerpop:gremlin-shaded": {
+      "license": "Apache-2.0",
+      "evidence": "META-INF/LICENSE inside the jar (Apache License 2.0) and manifest vendor Apache Software Foundation; the third-party libraries it shades list their own licenses in their pom.xml (New BSD, Apache)"
+    },
+    "org.codehaus.janino:janino": {
+      "license": "BSD-3-Clause",
+      "evidence": "Bundle-License https://spdx.org/licenses/BSD-3-Clause.html in the manifest of the jar of the npm-groovy-lint part"
+    },
+    "org.codehaus.janino:commons-compiler": {
+      "license": "BSD-3-Clause",
+      "evidence": "Bundle-License https://spdx.org/licenses/BSD-3-Clause.html in the manifest of the jar of the npm-groovy-lint part"
+    },
+    "org.apache.ant:ant": {
+      "license": "Apache-2.0",
+      "evidence": "LICENSE.txt inside the jar (Apache License 2.0 text), in the Groovy lib folder of the npm-groovy-lint part"
+    },
+    "org.apache.ant:ant-launcher": {
+      "license": "Apache-2.0",
+      "evidence": "LICENSE.txt inside the jar (Apache License 2.0 text), in the Groovy lib folder of the npm-groovy-lint part"
+    },
+    "conda-inject": {
+      "license": "MIT",
+      "evidence": "dist-info/LICENSE (MIT License text; METADATA has no License field) of the package in the image"
+    },
+    "snakemake-interface-common": {
+      "license": "MIT",
+      "evidence": "dist-info/licenses/LICENSE (MIT License text; METADATA has no License field) of the package in the image"
+    },
+    "snakemake-interface-logger-plugins": {
+      "license": "MIT",
+      "evidence": "dist-info/licenses/LICENSE (MIT License text; METADATA has no License field) of the package in the image"
+    },
+    "snakemake-interface-report-plugins": {
+      "license": "MIT",
+      "evidence": "dist-info/licenses/LICENSE (MIT License text; METADATA has no License field) of the package in the image"
+    },
+    "snakemake-interface-scheduler-plugins": {
+      "license": "MIT",
+      "evidence": "dist-info/licenses/LICENSE (MIT License text; METADATA has no License field) of the package in the image"
+    },
+    "snakemake-interface-storage-plugins": {
+      "license": "MIT",
+      "evidence": "dist-info/licenses/LICENSE (MIT License text; METADATA has no License field) of the package in the image"
+    },
+    "cpplint": {
+      "license": "BSD-3-Clause",
+      "evidence": "METADATA says License: BSD-3-Clause and licenses/LICENSE is a three-clause BSD text; the extra classifier 'License :: Freely Distributable' is a trove classifier that Trivy turns into an unknown name"
+    },
+    "restructuredtext_lint": {
+      "license": "Unlicense",
+      "evidence": "METADATA says License: UNLICENSE and Classifier: License :: Public Domain (Unlicense is the SPDX identifier of that text)"
+    },
+    "bigdecimal": {
+      "license": "BSD-2-Clause",
+      "evidence": "gemspec licenses [Ruby, BSD-2-Clause] of the gem in the image (rubocop's bundle and Ruby's default gems): RubyGems lists alternatives, the gem may be used under either; BSD-2-Clause is taken"
+    },
+    "drb": {
+      "license": "BSD-2-Clause",
+      "evidence": "gemspec licenses [Ruby, BSD-2-Clause] of the gem in the image (rubocop's bundle and Ruby's default gems): RubyGems lists alternatives, the gem may be used under either; BSD-2-Clause is taken"
+    },
+    "logger": {
+      "license": "BSD-2-Clause",
+      "evidence": "gemspec licenses [Ruby, BSD-2-Clause] of the gem in the image (rubocop's bundle and Ruby's default gems): RubyGems lists alternatives, the gem may be used under either; BSD-2-Clause is taken"
+    },
+    "racc": {
+      "license": "BSD-2-Clause",
+      "evidence": "gemspec licenses [Ruby, BSD-2-Clause] of the gem in the image (rubocop's bundle and Ruby's default gems): RubyGems lists alternatives, the gem may be used under either; BSD-2-Clause is taken"
+    },
+    "securerandom": {
+      "license": "BSD-2-Clause",
+      "evidence": "gemspec licenses [Ruby, BSD-2-Clause] of the gem in the image (rubocop's bundle and Ruby's default gems): RubyGems lists alternatives, the gem may be used under either; BSD-2-Clause is taken"
+    },
+    "uri": {
+      "license": "BSD-2-Clause",
+      "evidence": "gemspec licenses [Ruby, BSD-2-Clause] of the gem in the image (rubocop's bundle and Ruby's default gems): RubyGems lists alternatives, the gem may be used under either; BSD-2-Clause is taken"
+    },
+    "salesforce-app": {
+      "license": "BSD-3-Clause",
+      "evidence": "a private project template inside @salesforce/templates 66.19.0 of the Salesforce CLI part (that package.json says BSD-3-Clause); the template's package.json declares no license"
+    },
+    "jgates-tools-salesforce-cli": {
+      "license": "Apache-2.0",
+      "evidence": "the private wrapper package of the Salesforce CLI part (no license field); the LICENSE file at its root, /opt/tools/parts/salesforce-cli/LICENSE, is the Apache License 2.0 text"
+    },
+    "benchmarks": {
+      "license": "BSD-3-Clause",
+      "evidence": "the benchmarks folder of secure-json-parse 2.7.0 (that package.json says BSD-3-Clause); the folder's own package.json declares no license"
+    },
+    "transport": {
+      "license": "MIT",
+      "evidence": "a test fixture inside pino 9.14.0 (that package.json says MIT); the fixture's own package.json declares no license"
+    },
+    "recursedir-comparisons": {
+      "license": "MIT",
+      "evidence": "a test folder inside walkdir 0.4.1 (that package.json says MIT, a license file sits at its root); the folder's own package.json declares no license"
+    },
+    "prelude-ls": {
+      "license": "MIT",
+      "evidence": "package.json of prelude-ls 1.1.2 in the image has licenses [{type: MIT}] (the old array form Trivy does not read), and a LICENSE file"
+    },
+    "reserved": {
+      "license": "MIT",
+      "evidence": "package.json of reserved 0.1.2 in the image has licenses [{type: MIT}] (the old array form Trivy does not read), and a LICENSE-MIT file"
+    },
+    "com.carrotsearch:hppc": {
+      "license": "Apache-2.0",
+      "evidence": "Maven Central parent POM https://repo1.maven.org/maven2/com/carrotsearch/hppc-parent/0.7.1/hppc-parent-0.7.1.pom (parent of hppc 0.7.1 POM) lists license \"The Apache Software License, Version 2.0\"; the jar itself carries no license data"
+    },
+    "com.google.flogger:flogger": {
+      "license": "Apache-2.0",
+      "evidence": "Maven Central POM https://repo1.maven.org/maven2/com/google/flogger/flogger/0.8/flogger-0.8.pom lists license \"Apache 2.0\" (https://www.apache.org/licenses/LICENSE-2.0.txt); the jar itself carries no license data"
+    },
+    "com.google.flogger:flogger-system-backend": {
+      "license": "Apache-2.0",
+      "evidence": "Maven Central POM https://repo1.maven.org/maven2/com/google/flogger/flogger-system-backend/0.8/flogger-system-backend-0.8.pom lists license \"Apache 2.0\" (https://www.apache.org/licenses/LICENSE-2.0.txt); the jar itself carries no license data"
+    },
+    "io.github.apex-dev-tools:apex-types_2.13": {
+      "license": "BSD-3-Clause",
+      "evidence": "Maven Central POM https://repo1.maven.org/maven2/io/github/apex-dev-tools/apex-types_2.13/1.3.0/apex-types_2.13-1.3.0.pom lists license \"BSD-3-Clause\"; the jar itself carries no license data"
+    },
+    "org.antlr:antlr-runtime": {
+      "license": "BSD-3-Clause",
+      "evidence": "Maven Central parent POM https://repo1.maven.org/maven2/org/antlr/antlr-master/3.5.3/antlr-master-3.5.3.pom (parent of antlr-runtime 3.5.3) lists license \"BSD licence\" (http://antlr.org/license.html); the ANTLR 3.5.3 tag's tool/LICENSE.txt (https://raw.githubusercontent.com/antlr/antlr3/3.5.3/tool/LICENSE.txt) is the three-clause text; the jar itself carries no license data"
+    },
+    "org.checkerframework:checker-compat-qual": {
+      "license": "MIT OR GPL-2.0-only WITH Classpath-exception-2.0",
+      "evidence": "Maven Central POM https://repo1.maven.org/maven2/org/checkerframework/checker-compat-qual/2.5.3/checker-compat-qual-2.5.3.pom lists two licenses, \"GNU General Public License, version 2 (GPL2), with the classpath exception\" and \"The MIT License\", so the user may take either; the jar itself carries no license data"
+    },
+    "org.codenarc:CodeNarc": {
+      "license": "Apache-2.0",
+      "evidence": "Maven Central POM https://repo1.maven.org/maven2/org/codenarc/CodeNarc/3.7.0-groovy-4.0/CodeNarc-3.7.0-groovy-4.0.pom lists license \"The Apache License, Version 2.0\" (http://www.apache.org/licenses/LICENSE-2.0.txt); the jar itself carries no license data"
+    },
+    "org.gmetrics:GMetrics-Groovy4": {
+      "license": "Apache-2.0",
+      "evidence": "Maven Central POM https://repo1.maven.org/maven2/org/gmetrics/GMetrics-Groovy4/2.1.0/GMetrics-Groovy4-2.1.0.pom lists license \"The Apache License, Version 2.0\" (http://www.apache.org/licenses/LICENSE-2.0.txt); the jar itself carries no license data"
+    },
+    "org.reactivestreams:reactive-streams": {
+      "license": "MIT-0",
+      "evidence": "Maven Central POM https://repo1.maven.org/maven2/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4.pom lists license \"MIT-0\" (https://spdx.org/licenses/MIT-0.html); the jar itself carries no license data"
+    },
+    "org.slf4j:jcl-over-slf4j": {
+      "license": "MIT",
+      "evidence": "Maven Central parent POM https://repo1.maven.org/maven2/org/slf4j/slf4j-parent/1.7.25/slf4j-parent-1.7.25.pom (parent of jcl-over-slf4j 1.7.25) lists license \"MIT License\" (http://www.opensource.org/licenses/mit-license.php); the jar itself carries no license data"
+    },
+    "org.slf4j:slf4j-nop": {
+      "license": "MIT",
+      "evidence": "Maven Central parent POM https://repo1.maven.org/maven2/org/slf4j/slf4j-parent/1.7.36/slf4j-parent-1.7.36.pom (parent of slf4j-nop 1.7.36) lists license \"MIT License\" (http://www.opensource.org/licenses/mit-license.php); the jar itself carries no license data"
+    },
+    "org.scala-js:scalajs-stubs_2.13": {
+      "license": "BSD-3-Clause",
+      "evidence": "Maven Central POM https://repo1.maven.org/maven2/org/scala-js/scalajs-stubs_2.13/1.0.0/scalajs-stubs_2.13-1.0.0.pom lists license \"BSD New\" (https://github.com/scala-js/scala-js-stubs/blob/master/LICENSE), which PMD 7.29.0's shipped CycloneDX SBOM also reports; \"BSD New\" is the three-clause BSD license; the jar itself carries no license data"
+    },
+    "org.portable-scala:portable-scala-reflect_2.13": {
+      "license": "BSD-3-Clause",
+      "evidence": "Maven Central POM https://repo1.maven.org/maven2/org/portable-scala/portable-scala-reflect_2.13/1.1.3/portable-scala-reflect_2.13-1.1.3.pom lists license \"BSD New\" (https://github.com/portable-scala/portable-scala-reflect/blob/master/LICENSE), which PMD 7.29.0's shipped CycloneDX SBOM also reports; \"BSD New\" is the three-clause BSD license; the jar itself carries no license data"
+    },
+    "taffydb": {
+      "license": "BSD-1-Clause",
+      "evidence": "header of taffy.js in the taffydb 2.6.2 tarball (https://registry.npmjs.org/taffydb/-/taffydb-2.6.2.tgz; package.json declares no license) says \"Software License Agreement (BSD License)\" and lists exactly one condition (redistributions of source code must retain the copyright notice, this list of conditions and the disclaimer), which is the one-clause BSD text"
+    },
+    "net.sourceforge.pmd:pmd-ant": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-apex": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-cli": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-coco": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-core": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-cpp": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-cs": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-css": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-dart": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-designer": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-fortran": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-gherkin": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-go": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-groovy": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-html": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-java": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-javascript": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-jsp": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-julia": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-kotlin": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-lua": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-matlab": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-modelica": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-objectivec": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-perl": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-php": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-plsql": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-python": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-ruby": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-rust": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-scala_2.13": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-swift": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-tsql": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-velocity": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-visualforce": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "net.sourceforge.pmd:pmd-xml": {
+      "license": "LicenseRef-PMD-BSD-style",
+      "evidence": "PMD's own BSD-style license (the LICENSE file PMD ships in the image); the jar carries no license data; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "json": {
+      "license": "Ruby OR BSD-2-Clause",
+      "evidence": "The json gem declares Ruby, and its LICENSE offers the Ruby license or BSD-2-Clause; accepted as permissive, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "docutils": {
+      "license": "LicenseRef-docutils-Public-Domain AND BSD-3-Clause AND GPL-3.0-or-later",
+      "evidence": "METADATA and COPYING of docutils in the image (public domain, BSD-3-Clause and GPL-3.0-or-later files); accepted by name, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
+    },
+    "org.controlsfx.custom:controlsfx-mr-jar": {
+      "license": "MIT",
+      "evidence": "No license data in the jar; it is MIT by the user's statement, decided by the user on 2026-11-18 (PLAN-image.md section 4)"
     }
   },
   "forbiddenContentAllow": [

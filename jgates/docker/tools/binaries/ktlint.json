@@ -1,0 +1,19 @@
+{
+  "note": "The release's self-executing file (a shell header followed by the jar); it runs on the image's JRE.",
+  "version": "1.8.0",
+  "url": "https://github.com/pinterest/ktlint/releases/download/{version}/ktlint",
+  "sha256": "a3fd620207d5c40da6ca789b95e7f823c54e854b7fade7f613e91096a3706d75",
+  "archive": "file",
+  "save": "ktlint",
+  "provides": [
+    {
+      "name": "ktlint",
+      "link": "ktlint",
+      "path": "ktlint",
+      "version": [
+        "ktlint",
+        "--version"
+      ]
+    }
+  ]
+}

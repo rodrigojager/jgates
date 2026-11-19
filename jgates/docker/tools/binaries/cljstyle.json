@@ -1,0 +1,23 @@
+{
+  "version": "0.17.642",
+  "url": "https://github.com/greglook/cljstyle/releases/download/{version}/cljstyle_{version}_linux_amd64_static.zip",
+  "sha256": "913e8985588aea63e49bdc697c9b54e82a170b08424167a725001324fe810621",
+  "archive": "zip",
+  "extract": {
+    "cljstyle": "cljstyle"
+  },
+  "executable": [
+    "cljstyle"
+  ],
+  "provides": [
+    {
+      "name": "cljstyle",
+      "link": "cljstyle",
+      "path": "cljstyle",
+      "version": [
+        "cljstyle",
+        "version"
+      ]
+    }
+  ]
+}

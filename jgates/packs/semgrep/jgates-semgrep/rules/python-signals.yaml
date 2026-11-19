@@ -1,0 +1,397 @@
+# Signal rules of the Python front: which technologies a project uses (jgates.python.uses-<tag>).
+# They are records of the scan, never findings: they feed the "not applicable" suggestions.
+# Each rule matches the import of the libraries that bring the technology into a Python project (any import
+# statement, at any depth of the file), or the typical call where the standard library needs no dependency.
+# Imports are syntax, so a comment or a string that only mentions a library does not match.
+rules:
+  - id: jgates.python.uses-graphql
+    message: The project uses GraphQL.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: graphql
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M
+          - pattern: from $M import $X
+          - pattern: from $M import *
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(graphene|graphene_django|graphene_sqlalchemy|graphene_pydantic|graphql|graphql_core|graphql_server|graphql_relay|graphql_ws|strawberry|ariadne|ariadne_django|gql|sgqlc|tartiflette|flask_graphql|flask_graphql_auth|graphql_jwt|django_graphql_jwt|django_graphene|promise|aiodataloader|graphql_api|starlette_graphene3|starlette_graphene|sanic_graphql|aiohttp_graphql|python_graphql_client|ratelimit_graphql|gql_ws|hasura)(\..*)?$
+
+  - id: jgates.python.uses-websocket
+    message: The project uses WebSocket.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: websocket
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(websockets|websocket|channels|channels_redis|daphne|flask_socketio|flask_sock|socketio|engineio|python_socketio|simple_websocket|tornado\.websocket|starlette\.websockets|fastapi\.websockets|autobahn|wsproto|geventwebsocket|gevent_websocket|aiohttp_sse|websocket_client|django_channels|ws4py|wsaccel|sanic\.websocket|quart\.websocket|pywebsocket|flask_uwsgi_websocket|django_websocket_redis|ws_stream|tornado_websocket|websockify|channels_graphql_ws|fastapi_websocket_pubsub|fastapi_websocket_rpc|starlette_websocket)(\..*)?$
+      - pattern: from fastapi import WebSocket
+      - pattern: from starlette import websockets
+      - pattern: from quart import websocket
+      - pattern: from sanic import Websocket
+      - pattern: fastapi.WebSocket
+      - pattern: $W.WebSocketResponse(...)
+      - pattern: $S.ws_connect(...)
+      - pattern: |
+          @$A.websocket(...)
+          def $F(...):
+            ...
+      - pattern: |
+          @$A.websocket(...)
+          async def $F(...):
+            ...
+      - pattern: |
+          @$A.websocket_route(...)
+          def $F(...):
+            ...
+      - pattern: |
+          @$A.websocket_route(...)
+          async def $F(...):
+            ...
+
+  - id: jgates.python.uses-webrtc
+    message: The project uses WebRTC.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: webrtc
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M
+          - pattern: from $M import $X
+          - pattern: from $M import *
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(aiortc|aiortc_dc|livekit|livekit_api|livekit_agents|pywebrtc|webrtc|webrtcvad_wheels|webrtc_noise_gain|janus_client|aiogram_webrtc|streamlit_webrtc|pion|mediasoup|daily|pipecat|vonage_video|opentok|twilio\.jwt\.access_token\.grants|av_webrtc|python_webrtc)(\..*)?$
+
+  - id: jgates.python.uses-oauth-client
+    message: The project uses an OAuth or OpenID Connect client.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: oauth-client
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M
+          - pattern: from $M import $X
+          - pattern: from $M import *
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(authlib\.integrations\.[a-z_]*client|authlib\.integrations\.base_client|authlib\.oauth1\.client|authlib\.oauth2\.client|authlib\.oauth2\.rfc6749\.wrappers|requests_oauthlib|oauthlib\.oauth1|oauthlib\.oauth2|oauth2client|oauth2|rauth|social_django|social_core|social_auth_app_django|social|allauth|flask_dance|httpx_oauth|fastapi_sso|google_auth_oauthlib|google\.oauth2|msal|oic\.oic\.consumer|oic\.oic|oic|flask_oidc|mozilla_django_oidc|django_auth_adfs|fastapi_oauth_client|requests_oauth2client|oauth2_client|keycloak|python_keycloak|okta|okta_jwt_verifier|pyoidc|gidgethub\.oauth|tweepy\.auth|spotipy\.oauth2|dropbox\.oauth|simple_salesforce|dj_rest_auth\.registration|rest_social_auth|flask_discord|discord_oauth|aioauth_client|asgi_oauth2|fief_client|auth0|stravalib|msgraph_core|azure\.identity)(\..*)?$
+
+  - id: jgates.python.uses-oauth-authorization-server
+    message: The project runs an OAuth or OpenID Connect authorization server.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: oauth-authorization-server
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M
+          - pattern: from $M import $X
+          - pattern: from $M import *
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(oauth2_provider|oidc_provider|django_oauth_toolkit|django_oidc_provider|authlib\.oauth2|authlib\.oidc|authlib\.integrations\.[a-z_]*oauth2|authlib\.oauth1|oauthlib\.oauth1|oauthlib\.oauth2|oauthlib\.openid|flask_oauthlib\.provider|flask_oauthlib|flask_oauth2_server|provider\.oauth2|provider|aioauth|aioauth_fastapi|aioauth_fastapi_demo|oic\.oic\.provider|oic\.extension|pyop|rest_framework_social_oauth2|oauth2_server|fastapi_oauth2|fastapi_oidc_provider|django_oidc_op|djangooidc|oauth_server|sanic_oauth|oidcop|idpy_oidc|jwtconnect|hydra|ory_hydra_client|ory_client|keycloak_server)(\..*)?$
+
+  - id: jgates.python.uses-jwt
+    message: The project uses JSON Web Tokens.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: jwt
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M
+          - pattern: from $M import $X
+          - pattern: from $M import *
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(jwt|pyjwt|jose|python_jose|joserfc|jwcrypto|jwskate|authlib\.jose|authlib\.oauth2\.rfc7519|authlib\.oauth2\.rfc7523|flask_jwt|flask_jwt_extended|flask_jwt_simple|flask_jwt_router|rest_framework_simplejwt|rest_framework_jwt|djangorestframework_simplejwt|fastapi_jwt_auth|fastapi_jwt|fastapi_login|sanic_jwt|sanic_jwt_extended|pyramid_jwt|jwtoken|jwt_extended|python_jwt|pyjwkest|jwkest|google\.auth\.jwt|google\.auth\.crypt|okta_jwt_verifier|fastapi_cloudauth|jwt_authorizer|aws_jwt_verify|josepy|jws|jwe|jwk|oic\.utils\.jwt|python_http_client_jwt|simplejwt|njwt|djoser|django_graphql_jwt|graphql_jwt|ninja_jwt|django_ninja_jwt|litestar\.security\.jwt|starlette_jwt|fastapi_users\.authentication\.strategy\.jwt|quart_jwt_extended)(\..*)?$
+
+  - id: jgates.python.uses-saml
+    message: The project uses SAML.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: saml
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M
+          - pattern: from $M import $X
+          - pattern: from $M import *
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(onelogin|saml2|python3_saml|python_saml|pysaml2|djangosaml2|django_saml2_auth|django_saml2|flask_saml2|flask_saml|lasso|saml2_aws|django_saml|pysaml|sp_saml|fastapi_saml|django_python3_saml|django_allauth_saml|allauth\.socialaccount\.providers\.saml|social_core\.backends\.saml|social_auth_saml|saml_service_provider|pyff|samlify)(\..*)?$
+
+  - id: jgates.python.uses-totp
+    message: The project uses one-time passwords (TOTP or HOTP).
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: totp
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(pyotp|onetimepass|mintotp|otpauth|django_otp|two_factor|django_two_factor_auth|flask_otp|flask_security\.twofactor|passlib\.totp|pyotp_wrapper|totp|hotp|otp|fastapi_totp|django_otp_webauthn|django_mfa|django_mfa2|allauth\.mfa|allauth_2fa|authenticator|pyauth|pyrfc6238|rfc6238|oathtool|oath|ykman|yubico_client|aiootp|django_totp|trench|django_trench)(\..*)?$
+      - patterns:
+          - pattern: "$S"
+          - metavariable-regex:
+              metavariable: $S
+              regex: ^\W{0,4}otpauth://
+
+  - id: jgates.python.uses-ldap
+    message: The project uses LDAP.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: ldap
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(ldap3|ldap|python_ldap|ldapurl|ldif|ldappool|ldap_filter|ldap3_orm|django_auth_ldap|django_python3_ldap|flask_ldap3_login|flask_simpleldap|flask_ldapconn|flask_ldap|bonsai|ms_active_directory|easyad|pyad|simpleldap|aioldap|aioldap3|ldaptor|ldapom|ldapdomaindump|ldapsearch|django_ldapdb|ldapdb|python_ldap_test|fastapi_ldap|fastapi_ldap3|ldap_auth|ldapauth|sssd|pyldap|samba\.dcerpc|samba\.samdb|pyasn1_ldap|msldap|ad_ldap|ldap_connector|fleep_ldap)(\..*)?$
+      - patterns:
+          - pattern: "$S"
+          - metavariable-regex:
+              metavariable: $S
+              regex: ^\W{0,4}ldaps?://
+
+  - id: jgates.python.uses-xml
+    message: The project parses or builds XML.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: xml
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M
+          - pattern: from $M import $X
+          - pattern: from $M import *
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(xml|lxml|defusedxml|xmltodict|untangle|xmlschema|elementpath|dicttoxml|xmlsec|signxml|pyxb|xmljson|xmlunittest|xmldiff|xmlrunner|beautifulsoup4_xml|pulldom|expat|pyexpat|genshi\.input|soappy|zeep|suds|spyne|xmlbuilder|xmlsig|xsdata|generateds|dexml|ncclient|libxml2|cElementTree|ElementTree|elementtree|cssselect|pyquery|feedparser|xmlformatter|oxml|openpyxl\.xml|docx\.oxml|jxmlease|xmlplain|xmlschema_cli|xmltodict3|saxonche|saxonpy|py_xml|xmldataset)(\..*)?$
+
+  - id: jgates.python.uses-latex
+    message: The project generates or processes LaTeX.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: latex
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(pylatex|pylatexenc|latex|django_tex|latex2mathml|latexcodec|pnglatex|texoutparse|latexify|latex2sympy|latex2sympy2|plasTeX|plastex|pytex|pdflatex|texfot|tex2pix|mathjax_pyfilter|jinja2_latex|flask_latex|pytexit|sphinx\.builders\.latex|sphinx\.writers\.latex|pandoc|pypandoc|tectonic|latexbuild|latex_utils|latexdiff|pylatex_ext|pybtex)(\..*)?$
+      - patterns:
+          - pattern-either:
+              - pattern: subprocess.$F($C, ...)
+              - pattern: os.system($C)
+              - pattern: os.popen($C)
+              - pattern: os.execvp($C, ...)
+              - pattern: asyncio.create_subprocess_exec($C, ...)
+              - pattern: asyncio.create_subprocess_shell($C, ...)
+          - metavariable-regex:
+              metavariable: $C
+              regex: ^\W{0,4}([\w.\\/-]*[\\/])?(pdflatex|xelatex|lualatex|latexmk|pdftex|xetex|luatex|tectonic|latex|texi2pdf|pandoc)(\W|$)
+
+  - id: jgates.python.uses-memcache
+    message: The project uses Memcached.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: memcache
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(memcache|pymemcache|pylibmc|bmemcached|aiomcache|emcache|libmc|python_memcached|django_pylibmc|django_bmemcached|django_memcached|pymemcached|uhashring|memcached|memcacheio|mcrouter|dogpile\.cache\.backends\.memcached|cachelib\.memcached|werkzeug\.contrib\.cache|flask_caching\.backends\.memcached|django\.core\.cache\.backends\.memcached|beaker\.ext\.memcached|beaker\.ext\.google|aiocache\.backends\.memcached|cachetools_memcached|memcachier|mcache|pymemcache_client|django_pymemcache|arcus|elasticache|elasticache_pyclient|pyelasticache)(\..*)?$
+      - pattern: from cachelib import MemcachedCache
+      - pattern: from aiocache import MemcachedCache
+      - pattern: from flask_caching import MemcachedCache
+      - pattern: from django.core.cache.backends import memcached
+      - patterns:
+          - pattern: "$S"
+          - metavariable-regex:
+              metavariable: $S
+              regex: ^\W{0,4}(django\.core\.cache\.backends\.memcached|django_pylibmc|django_bmemcached|MemcachedCache|flask_caching\.backends\.memcached|memcached://|memcache://)
+
+  - id: jgates.python.uses-mail
+    message: The project sends or reads e-mail.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: mail
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(smtplib|imaplib|poplib|smtpd|nntplib|mailbox|email|aiosmtplib|aiosmtpd|aioimaplib|aiopoplib|imapclient|imap_tools|imapy|django\.core\.mail|django_anymail|anymail|django_mailer|django_post_office|post_office|django_templated_email|django_ses|flask_mail|flask_mailman|flask_mailing|flask_emails|fastapi_mail|yagmail|sendgrid|mailjet_rest|mailchimp_transactional|mailchimp_marketing|mailchimp3|mailgun|postmarker|postmark|mandrill|sparkpost|sib_api_v3_sdk|brevo_python|redmail|envelopes|marrow\.mailer|mailer|mailthon|emails|python_mailer|resend|nylas|exchangelib|O365|win32com\.client\.dynamic|mailparser|mailparser_reply|pyzmail|pyzmail36|zmail|red_mail|premailer|inbox|inboxkitten|mailsender|mailtrap|mailersend|mailersend_python|twilio_sendgrid|amazon_ses|aws_ses|pysendgrid|ses_client|mailslurp_client|kombu_mail|celery_mail)(\..*)?$
+      - pattern: from django.core import mail
+      - pattern: boto3.client("ses", ...)
+      - pattern: boto3.client("sesv2", ...)
+      - pattern: boto3.client("pinpoint-email", ...)
+      - pattern: $S.send_raw_email(...)
+      - pattern: $S.send_templated_email(...)
+
+  - id: jgates.python.uses-templates
+    message: The project renders server-side templates.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: templates
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(jinja2|jinja|mako|chameleon|genshi|django\.template|django\.shortcuts|django_jinja|django_mako_plus|django_cotton|django_components|django_templatetags|flask_jinja|flask\.templating|tornado\.template|tornado\.web|starlette\.templating|fastapi\.templating|fastapi_jinja|jinja2_fragments|jinja2_time|pystache|chevron|airspeed|cheetah|Cheetah|web\.template|bottle_jinja2|pyramid_jinja2|pyramid_mako|pyramid_chameleon|sanic_jinja2|sanic_ext|quart_jinja2|aiohttp_jinja2|aiohttp_mako|cherrypy_mako|kajiki|pybars|pybars3|wheezy\.template|wheezy|tenjin|simpletal|templite|liquid|python_liquid|mustache|moban|cookiecutter|jinjasql|nunjucks|pug|pypugjs|pyjade|hamlpy|haml|slimish_jinja|htmlmin|django_htmx|htmx|django_bootstrap|crispy_forms|lektor|mkdocs|pelican|sphinx\.jinja2glue|sphinx\.application|litestar\.contrib\.jinja|litestar\.contrib\.mako|litestar\.template|robyn\.templating|falcon_jinja2|falcon_templates|flask_mako|flask_pystache|flask_themes|flask_themes2|flask_bootstrap|flask_admin|flask_appbuilder|flask_security|jinja_partials|jinja2_simple_tags|jinja2_highlight|webassets|django_compressor|compressor|sekizai|django_sekizai|cms|wagtail|mezzanine|django_cms|oscar|saleor|django_tables2|django_filters|django_extensions|rest_framework\.renderers)(\..*)?$
+      - pattern: from flask import render_template
+      - pattern: from flask import render_template_string
+      - pattern: from quart import render_template
+      - pattern: from quart import render_template_string
+      - pattern: from django.shortcuts import render
+      - pattern: from django.shortcuts import render_to_response
+      - pattern: from django.views.generic import TemplateView
+      - pattern: from bottle import template
+      - pattern: from bottle import jinja2_template
+      - pattern: from sanic_ext import render
+      - pattern: from string import Template
+      - pattern: flask.render_template(...)
+      - pattern: flask.render_template_string(...)
+      - pattern: string.Template(...)
+      - pattern: $T.render_template(...)
+      - pattern: $T.render_template_string(...)
+      - patterns:
+          - pattern: "$S"
+          - metavariable-regex:
+              metavariable: $S
+              regex: ^\W{0,4}(django\.template\.backends|django_jinja\.backend|jinja2\.Environment|django\.template\.loaders)
+
+  - id: jgates.python.uses-file-upload
+    message: The project receives file uploads.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: file-upload
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(multipart|python_multipart|streaming_form_data|flask_uploads|flask_reuploaded|flask_wtf\.file|flask_admin\.form\.upload|flask_admin\.contrib\.fileadmin|django\.core\.files\.uploadedfile|django\.core\.files\.uploadhandler|django\.core\.files\.uploadedfile|django_resumable|django_chunked_upload|django_filer|filer|sorl|easy_thumbnails|werkzeug\.formparser|werkzeug\.datastructures\.file_storage|fastapi\.datastructures|starlette\.datastructures|litestar\.datastructures|multipart_parser|aiohttp_multipart|tornado\.httputil|falcon\.media\.multipart|cherrypy\._cpreqbody|bottle_upload|dropzone|django_dropzone|django_file_form|django_uploadify|dj_pagination_upload|tusd|tuspy|django_tus|resumable|flask_resumable|uploadcare|pyuploadcare|cloudinary|django_cloudinary_storage|filepond|django_drf_filepond|drf_chunked_upload|flask_dropzone|sanic_ext\.extensions)(\..*)?$
+      - pattern: from fastapi import UploadFile
+      - pattern: from fastapi import File
+      - pattern: from starlette.datastructures import UploadFile
+      - pattern: from werkzeug.datastructures import FileStorage
+      - pattern: from werkzeug.utils import secure_filename
+      - pattern: from werkzeug import secure_filename
+      - pattern: from wtforms import FileField
+      - pattern: from wtforms import MultipleFileField
+      - pattern: from cgi import FieldStorage
+      - pattern: from django.forms import FileField
+      - pattern: from django.forms import ImageField
+      - pattern: from django.db.models import FileField
+      - pattern: from django.db.models import ImageField
+      - pattern: from rest_framework.parsers import MultiPartParser
+      - pattern: from rest_framework.parsers import FileUploadParser
+      - pattern: fastapi.UploadFile
+      - pattern: cgi.FieldStorage(...)
+      - pattern: $F.FileField(...)
+      - pattern: $F.ImageField(...)
+      - pattern: $R.FILES
+      - pattern: $R.files
+      - pattern: $R.multipart()
+      - pattern: $R.files.getlist(...)
+      - pattern: $R.get_files(...)
+
+  - id: jgates.python.uses-archives
+    message: The project reads or writes archives.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: archives
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(zipfile|zipfile36|zipfile_deflate64|zipfile_zstd|tarfile|gzip|bz2|lzma|zipimport|py7zr|rarfile|patoolib|libarchive|pyunpack|pyzipper|zipp|zstandard|zstd|zstarfile|ratarmount|unrar|unar|archive|archiver|stream_unzip|stream_zip|stream_unzip_py|xarray_archive|cpio|pycdlib|arpy|ar|pyarchive|indexed_gzip|rapidgzip|fastzipfile|tarsafe|safezip|zipstream|zipstream_new|zipfly|django_zip|django_zipfile|ziplib|remotezip|zipfile_inflate64|inflate64|brotli|pybz2)(\..*)?$
+      - pattern: shutil.unpack_archive(...)
+      - pattern: shutil.make_archive(...)
+      - pattern: from shutil import unpack_archive
+      - pattern: from shutil import make_archive
+      - pattern: $S.extractall(...)
+      - pattern: $S.extractfile(...)
+
+  - id: jgates.python.uses-browser-dom
+    message: The project runs Python in the browser or drives a browser and its DOM.
+    severity: INFO
+    languages: [python]
+    metadata:
+      signal: browser-dom
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: from $M import $X
+              - pattern: from $M import *
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(browser|js|pyodide|pyodide_js|pyscript|pyscript_js|brython|transcrypt|flexx|pyjs|pyjamas|pyjsdl|rapydscript|org\.transcrypt|selenium|seleniumbase|undetected_chromedriver|playwright|pyppeteer|pyppeteer_stealth|splinter|helium|mechanicalsoup|requests_html|robobrowser|webdriver_manager|appium|pyquery|hyperscript|pywebview|webview|eel|remi|nicegui|reflex|flet|dash|streamlit|panel|bokeh|pywebio|justpy|htmx|fasthtml|ipywidgets|ipyvue|pyxll|anywidget|mesop|gradio|pyvista|holoviews|plotly\.js|pydom|pyweb|js_sandbox|dukpy|js2py|py_mini_racer|quickjs|pythonmonkey|cefpython3|cefpython|pyqtwebengine|PyQt5\.QtWebEngineWidgets|PyQt6\.QtWebEngineWidgets|PySide2\.QtWebEngineWidgets|PySide6\.QtWebEngineWidgets|pywebkit|gi\.repository\.WebKit2|gi\.repository\.WebKit)(\..*)?$

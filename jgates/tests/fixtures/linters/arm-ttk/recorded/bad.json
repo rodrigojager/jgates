@@ -1,0 +1,20 @@
+{
+ "tool": "arm-ttk",
+ "kind": "bad",
+ "version": "0.27",
+ "calls": [
+  {
+   "args": [
+    "-NoLogo",
+    "-NoProfile",
+    "-NonInteractive",
+    "-CommandWithArgs",
+    "Import-Module /opt/tools/binaries/arm-ttk/arm-ttk/arm-ttk.psd1 -ErrorAction Stop; $settings = @{}; if (Test-Path -LiteralPath '.arm-ttk.psd1') { $data = Import-PowerShellDataFile -LiteralPath '.arm-ttk.psd1'; if ($data.Skip) { $settings.Skip = @($data.Skip) }; if ($data.Test) { $settings.Test = @($data.Test) } }; $found = foreach ($file in $args) { $results = Test-AzTemplate -TemplatePath $file @settings 2>$null 3>$null 6>$null; foreach ($result in $results) { if ($result.Passed) { continue }; foreach ($e in @($result.Errors)) { [pscustomobject]@{ file = $file; line = $e.Location.Line; column = $e.Location.Column; rule = [string]$result.Name; level = 'error'; message = [string]$e.Exception.Message } }; foreach ($w in @($result.Warnings)) { [pscustomobject]@{ file = $file; line = $w.Location.Line; column = $w.Location.Column; rule = [string]$result.Name; level = 'warning'; message = [string]$w.Exception.Message } } } }; ConvertTo-Json -Compress -InputObject @($found)",
+    "arm-template.json"
+   ],
+   "exit": 0,
+   "stdout": "[{\"file\":\"arm-template.json\",\"line\":5,\"column\":6,\"rule\":\"Parameters Must Be Referenced\",\"level\":\"error\",\"message\":\"Unreferenced parameter: unusedName\"}]\n",
+   "stderr": ""
+  }
+ ]
+}

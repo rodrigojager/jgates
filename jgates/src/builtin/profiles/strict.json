@@ -5,6 +5,7 @@
       "label": "Rigoroso",
       "description": "O Equilibrado mais testes e cobertura obrigatórios, e liga todas as outras verificações disponíveis onde houver ferramenta para elas.",
       "extends": "builtin:standard",
+      "tier": "extended",
       "checks": {
         "capability:pii": { "enabled": true },
         "capability:unit": { "enabled": true },
@@ -26,7 +27,10 @@
         "capability:ci-cd": { "enabled": true, "when": "available" },
         "capability:api-contract": { "enabled": true, "when": "available" },
         "capability:supply-chain": { "enabled": true, "when": "available" },
-        "capability:dast": { "enabled": true, "when": "available" }
+        "capability:dast": { "enabled": true, "when": "available" },
+        "capability:spelling": { "enabled": true, "when": "available" },
+        "capability:links": { "enabled": true, "when": "available" },
+        "capability:sbom": { "enabled": true, "when": "available" }
       }
     }
   }

@@ -1,0 +1,21 @@
+{
+ "tool": "luacheck",
+ "kind": "bad",
+ "version": "1.2.0",
+ "calls": [
+  {
+   "args": [
+    "--formatter",
+    "plain",
+    "--codes",
+    "--no-color",
+    "--no-cache",
+    "--",
+    "check.lua"
+   ],
+   "exit": 1,
+   "stdout": "check.lua:1:7: (W211) unused variable 'unused'\n",
+   "stderr": ""
+  }
+ ]
+}

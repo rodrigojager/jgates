@@ -4,7 +4,7 @@ No CI as regras não são decididas pelo código que está sendo verificado. O `
 
 ## O modelo
 
-- **Localmente** você edita tudo: `jgates.yml`, perfis, templates, waivers. É a sua área de trabalho, e o `jgates run` a obedece.
+- **Localmente** você edita tudo: `jgates.yml`, perfis, templates, dispensas (`.jgates/waivers.json`). É a sua área de trabalho, e o `jgates run` a obedece.
 - **No CI** só quem controla o pipeline define as regras. A configuração vem da pasta da política (`--policy` ou `JGATES_POLICY_DIR`), e o `jgates.yml` e o `.jgates/` do próprio projeto nunca são lidos.
 - A política é amarrada por `JGATES_POLICY_SHA256`, uma variável protegida do CI. Se o hash da pasta da política for diferente, nada roda (saída 3).
 - O commit é analisado numa cópia limpa, então arquivos que não estão no commit não contam.
@@ -39,6 +39,8 @@ O comando é o mesmo nos dois:
 ```bash
 jgates ci --policy <policy-folder> --sarif jgates.sarif
 ```
+
+O `jgates ci` não muda com as dispensas do projeto: ele aplica só as dispensas da política fixada, nunca o `.jgates/waivers.json` do projeto, e recusa `--waiver` e `--no-waivers`. Para um fluxo de deploy fora do modo governado que não deve aceitar nenhuma dispensa, rode `jgates run --no-waivers`.
 
 A política é obtida **fora** do projeto: no GitHub, dois passos `actions/checkout` (`path: project` e `path: policy`) e o comando roda em `project`; no GitLab, o projeto é `$CI_PROJECT_DIR` e a política é clonada em `$CI_BUILDS_DIR`. Uma política dentro do projeto analisado é recusada com `POLICY_INSIDE_PROJECT`.
 
@@ -76,7 +78,7 @@ Os serviços do projeto também seguem a política: um bind mount do computador,
 
 Saída 3, antes de qualquer coisa rodar:
 
-- `--skip`, `--only`, `--waiver`, `--no-cache`, `--plan`, `--path` e `--template`: o job não escolhe as próprias regras;
+- `--skip`, `--only`, `--waiver`, `--no-waivers`, `--no-cache`, `--plan`, `--path` e `--template`: o job não escolhe as próprias regras;
 - `--bridge-mode quick` ou `offline`, e `--scope paths`;
 - uma política sem `JGATES_POLICY_SHA256`, com hash diferente, com links simbólicos ou com referências fora da sua pasta;
 - uma política de qualidade que desliga ou afrouxa os orçamentos obrigatórios;
@@ -93,9 +95,20 @@ Alguns resultados dependem de código que o projeto controla, então não são c
 | --- | --- |
 | trusted | A ferramenta lê o código sem executá-lo. Conta normalmente. |
 | self-reported | A ferramenta executa código do projeto (testes, linters que carregam arquivos do projeto). O resultado vem marcado `selfReported` e só aprova se a política tiver `execution.trustSelfReported: true` (padrão: false). |
-| excluded | Ferramentas que leem configuração ou arquivos de ignore da árvore analisada por conta própria. Os scanners nativos (gitleaks, trivy, osv-scanner, checkov, jscpd, dependency-cruiser, import-linter) não rodam por conta própria no `jgates ci`: a ponte do quality gate, endurecida, já os cobre. Do MegaLinter rodam só os linters verificados, os listados como `trusted` ou `self-reported` em `quality-gate/sidecar/config/megalinter-linters.json`; os demais ficam de fora. |
+| excluded | Ferramentas que leem configuração ou arquivos de ignore da árvore analisada por conta própria. Os scanners nativos (gitleaks, trivy, osv-scanner, checkov, jscpd, dependency-cruiser, import-linter) não rodam por conta própria no `jgates ci`: a ponte do quality gate, endurecida, já os cobre. O MegaLinter não roda: a imagem de ferramentas não o tem, e os linters dele são ferramentas próprias do JGates, cada uma `trusted` ou `self-reported` pelo seu descritor (a subverificação `megalinter` da ponte fica sempre desligada e não aparece como ausente). |
 
 As supressões escritas no código (comentários que silenciam um achado) viram a etapa `jgates-ci.suppressions`, então aparecem no resultado em vez de sumir. Relatórios de cobertura que chegam dentro do commit são recusados, porque foi o projeto que os forneceu.
+
+Uma ferramenta autodeclarada habilitada pode reprovar com achados mesmo quando a política não aceita um resultado limpo. Descritores confiáveis usam entradas controladas pela política. A execução governada pula a auditoria de supressões no código. Etapas que precisam de rede exigem autorização na política com `execution.network: allow`. A verificação do TruffleHog, por exemplo, envia possíveis credenciais aos emissores. O Kingfisher, em modo somente detecção, roda sem rede. [Consulte o catálogo de ferramentas](tools.pt-BR.md).
+
+## Achados Revisar e códigos de saída
+
+O pacote Semgrep tem quatro classes: `ERROR`, `WARNING`, `INFO` comum e **Revisar**.
+Achados Revisar aparecem em **Para revisar**, separados dos bloqueantes e informativos. Nunca bloqueiam
+nem mudam o código de saída, inclusive no CI governado, em qualquer perfil e rigor. **Marcar como revisado** é
+uma ação de dispensa por ocorrência, não aprovação de um requisito ASVS, e Revisar sozinho nunca produz
+"aprovado com N dispensas". O CI governado continua aceitando só as dispensas da política fixada, nunca as do projeto.
+Veja [integrações do Quality](quality-integrations.pt-BR.md) e [o mapa ASVS](asvs-coverage.pt-BR.md).
 
 ## Proteger o pipeline
 

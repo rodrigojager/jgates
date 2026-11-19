@@ -1,0 +1,37 @@
+{
+  "files": [
+    "format-sample.cpp"
+  ],
+  "findings": [
+    {
+      "rule": "clang-format-violations",
+      "file": "format-sample.cpp",
+      "line": 3
+    },
+    {
+      "rule": "clang-format-violations",
+      "file": "format-sample.cpp",
+      "line": 3
+    },
+    {
+      "rule": "clang-format-violations",
+      "file": "format-sample.cpp",
+      "line": 3
+    },
+    {
+      "rule": "clang-format-violations",
+      "file": "format-sample.cpp",
+      "line": 3
+    },
+    {
+      "rule": "clang-format-violations",
+      "file": "format-sample.cpp",
+      "line": 3
+    },
+    {
+      "rule": "clang-format-violations",
+      "file": "format-sample.cpp",
+      "line": 3
+    }
+  ]
+}

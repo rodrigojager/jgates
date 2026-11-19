@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "yamllint",
+  "name": "yamllint",
+  "sourceUrl": "https://github.com/adrienverge/yamllint",
+  "license": "GPL-3.0-or-later",
+  "program": {
+    "tool": "yamllint",
+    "versionRange": ">=1.38.0 <2.0.0"
+  },
+  "megalinter": [
+    "YAML_YAMLLINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "yaml",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".yml",
+      ".yaml"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format",
+      "parsable",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        0,
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+): \\[(?<level>error|warning)\\] (?<message>.+) \\((?<rule>[a-z-]+)\\)$"
+  },
+  "configuration": {
+    "files": [
+      ".yamllint",
+      ".yamllint.yaml",
+      ".yamllint.yml"
+    ],
+    "default": "yamllint-default.yml",
+    "args": [
+      "--config-file",
+      "{config}"
+    ]
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "yamllint reads the project's .yamllint, .yamllint.yaml or .yamllint.yml: the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # yamllint disable, # yamllint disable-line and # yamllint disable-file comments",
+      "pattern": "#\\s*yamllint\\s+disable",
+      "files": "\\.ya?ml$"
+    }
+  },
+  "install": "yamllint",
+  "text": {
+    "en": {
+      "label": "yamllint (YAML)",
+      "purpose": "Checks YAML files for syntax errors and style problems: duplicate keys, indentation, line length, trailing spaces, truthy values and a missing document start.",
+      "limitation": "It checks the file text only and does not validate the content against a schema; its default rule set is opinionated, so a project usually adds a .yamllint file.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "yamllint (YAML)",
+      "purpose": "Verifica arquivos YAML quanto a erros de sintaxe e problemas de estilo: chaves duplicadas, indentação, tamanho de linha, espaços no fim da linha, valores truthy e início de documento ausente.",
+      "limitation": "Verifica apenas o texto do arquivo e não valida o conteúdo contra um schema; o conjunto de regras padrão é opinativo, então o projeto costuma adicionar um arquivo .yamllint.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

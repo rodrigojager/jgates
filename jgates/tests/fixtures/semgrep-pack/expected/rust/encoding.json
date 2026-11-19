@@ -1,0 +1,13 @@
+{
+  "files": ["src/encoding.rs"],
+  "ruleIds": [
+    "jgates.rust.regex-from-request",
+    "jgates.rust.csv-formula-injection",
+    "jgates.rust.memcache-key-from-request",
+    "jgates.rust.double-decoding",
+    "jgates.rust.markdown-raw-html-enabled",
+    "jgates.rust.markdown-raw-html-enabled-by-default",
+    "jgates.rust.url-parameter-unencoded",
+    "jgates.rust.json-built-by-concatenation"
+  ]
+}

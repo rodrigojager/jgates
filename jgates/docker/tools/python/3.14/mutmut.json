@@ -1,0 +1,15 @@
+{
+  "provides": [
+    {
+      "note": "mutmut reads its configuration first and needs a project with sources, even for --version.",
+      "name": "mutmut",
+      "link": "mutmut",
+      "path": "bin/mutmut",
+      "version": [
+        "sh",
+        "-c",
+        "mkdir -p /tmp/jgates-mutmut/src && cd /tmp/jgates-mutmut && mutmut --version"
+      ]
+    }
+  ]
+}

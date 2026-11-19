@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "flake8",
+  "name": "flake8",
+  "sourceUrl": "https://github.com/PyCQA/flake8",
+  "license": "MIT",
+  "program": {
+    "tool": "flake8",
+    "versionRange": ">=7.0.0 <8.0.0"
+  },
+  "megalinter": [
+    "PYTHON_FLAKE8"
+  ],
+  "place": {
+    "section": "language",
+    "group": "python",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".py"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>[^:\\n]+):(?<line>\\d+):(?<column>\\d+): (?<rule>[A-Z]+\\d+) (?<message>.+)$",
+    "level": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".flake8",
+      "setup.cfg",
+      "tox.ini"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "flake8 reads the project's .flake8, setup.cfg or tox.ini ([flake8] section): the project decides the checks",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # noqa and # flake8: noqa comments",
+      "pattern": "#\\s*(?:noqa|flake8[:=]\\s*noqa)",
+      "files": "\\.py$"
+    }
+  },
+  "install": "flake8",
+  "text": {
+    "en": {
+      "label": "flake8 (Python)",
+      "purpose": "The classic Python style and error checker: pycodestyle (E and W codes), pyflakes (F codes: unused imports and names) and McCabe complexity.",
+      "limitation": "Its default selection is wider than ruff's defaults (E4, E7, E9, F), so it reports style findings ruff does not; plugins are not installed, only the three checkers it bundles.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "flake8 (Python)",
+      "purpose": "O verificador clássico de estilo e erros de Python: pycodestyle (códigos E e W), pyflakes (códigos F: imports e nomes sem uso) e complexidade de McCabe.",
+      "limitation": "Sua seleção padrão é mais ampla que a do ruff (E4, E7, E9, F), então reporta questões de estilo que o ruff não reporta; plugins não vêm instalados, só os três verificadores que o acompanham.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

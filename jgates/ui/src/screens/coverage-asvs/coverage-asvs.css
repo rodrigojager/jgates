@@ -1,0 +1,28 @@
+.asvs-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.asvs-levels { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.asvs-levels .btn[aria-pressed="true"] { background: var(--ink); color: var(--surface); font-weight: 700; }
+.asvs-switch { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; }
+.asvs-plain-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.asvs-counters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.asvs-counter { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); text-align: left; cursor: pointer; }
+.asvs-counter[aria-pressed="true"] { border-width: 2px; border-color: var(--ink); box-shadow: 0 1px 6px #24342018; }
+.asvs-counter-count { font-size: 26px; font-weight: 700; line-height: 1; }
+.asvs-counter-name { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+.asvs-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.asvs-heading h2, .asvs-heading h3 { margin: 0; overflow-wrap: anywhere; }
+.asvs-na { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.asvs-na .btn { white-space: normal; font-size: 12px; padding: 6px 10px; }
+.asvs-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.asvs-row { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); display: flex; flex-direction: column; gap: 6px; overflow-wrap: anywhere; }
+.asvs-row-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.asvs-toggle { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 4px 6px; border: 0; background: transparent; color: var(--ink); cursor: pointer; text-align: left; }
+.asvs-chevron { display: inline-flex; transition: transform 0.15s; }
+.asvs-chevron.open { transform: rotate(90deg); }
+.asvs-text { margin: 0; }
+.asvs-detail { padding-top: 6px; border-top: 1px solid var(--line); }
+.asvs-checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.asvs-check { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); }
+.asvs-suggestion { align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-left: 3px solid var(--line); }
+.asvs-row[data-focused] { border-width: 2px; border-color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .asvs-chevron { transition: none; } }
+@media (max-width: 480px) { .asvs-counters { grid-template-columns: repeat(2, 1fr); } }

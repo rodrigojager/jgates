@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "tofu-validate",
+  "name": "tofu validate",
+  "sourceUrl": "https://github.com/opentofu/opentofu",
+  "license": "MPL-2.0",
+  "program": {
+    "tool": "tofu",
+    "versionRange": ">=1.13.9 <2.0.0"
+  },
+  "megalinter": [],
+  "place": {
+    "section": "tooling",
+    "group": "terraform",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".tf"
+    ]
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "validate",
+      "-json",
+      "-no-color"
+    ],
+    "env": {
+      "TF_DATA_DIR": "/tmp/tofu",
+      "TF_IN_AUTOMATION": "1",
+      "CHECKPOINT_DISABLE": "1"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "items": "diagnostics[]",
+    "fields": {
+      "file": "range.filename",
+      "line": "range.start.line",
+      "column": "range.start.column",
+      "level": "severity",
+      "rule": "summary",
+      "message": "detail"
+    }
+  },
+  "configuration": {
+    "files": [],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "tofu validate checks the module at the project root against its own configuration; there are no rules to tune",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: validation errors cannot be suppressed"
+    }
+  },
+  "install": "tofu",
+  "text": {
+    "en": {
+      "label": "tofu validate (Terraform validation)",
+      "purpose": "Validates the Terraform or OpenTofu module at the project root: syntax, references to undeclared variables and resources, and arguments of the wrong type.",
+      "limitation": "It runs without tofu init, so a module that needs providers or remote modules is reported as not initialized; the checks that need provider schemas are not run.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "tofu validate (validação Terraform)",
+      "purpose": "Valida o módulo Terraform ou OpenTofu na raiz do projeto: sintaxe, referências a variáveis e recursos não declarados e argumentos do tipo errado.",
+      "limitation": "Roda sem tofu init, então um módulo que precisa de provedores ou de módulos remotos é relatado como não inicializado; as verificações que dependem dos esquemas dos provedores não rodam.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

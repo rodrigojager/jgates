@@ -1,0 +1,350 @@
+# Group cookies-cors for JavaScript and TypeScript.
+# Libraries covered: Express (res.cookie, res.jsonp, express-session, cookie-session, cors, csurf, lusca, csrf-csrf),
+# the cookie package (serialize), js-cookie (Cookies.set), Koa (ctx.cookies.set), Next (cookies().set),
+# document.cookie string literals, window.postMessage, localStorage and sessionStorage.
+# Sources of the taint rules: the Origin request header (Express, Koa, Fetch API) and the query of the request.
+rules:
+  - id: jgates.js.cookie-without-secure
+    message: The Secure option is explicitly disabled for a cookie, so the browser also sends it over plain HTTP. Set secure to true.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+    pattern-either:
+      - pattern: '$RES.cookie($N, $V, {..., secure: false, ...})'
+      - pattern: 'Cookies.set($N, $V, {..., secure: false, ...})'
+      - pattern: '$CTX.cookies.set($N, $V, {..., secure: false, ...})'
+      - pattern: 'cookies().set($N, $V, {..., secure: false, ...})'
+      - pattern: 'cookie.serialize($N, $V, {..., secure: false, ...})'
+      - pattern: 'session({..., cookie: {..., secure: false, ...}, ...})'
+      - pattern: 'cookieSession({..., secure: false, ...})'
+
+  - id: jgates.js.cookie-without-secure-by-default
+    message: A cookie is written without a visible Secure option or attribute. If nothing else adds it, the browser can send the cookie over plain HTTP; set it here or confirm where it is set.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie
+      cwe: "CWE-614"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.1"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $RES.cookie($N, $V)
+              - pattern: $RES.cookie($N, $V, {...})
+              - pattern: Cookies.set($N, $V)
+              - pattern: Cookies.set($N, $V, {...})
+              - pattern: cookie.serialize($N, $V)
+              - pattern: cookie.serialize($N, $V, {...})
+          - pattern-not: '$F($N, $V, {..., secure: $S, ...})'
+      - patterns:
+          - pattern: document.cookie = $S
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?is)^["'`](?!.*(;\s*secure|1970|max-age=0))
+
+  - id: jgates.js.cookie-without-httponly
+    message: The HttpOnly option is explicitly disabled, so page scripts can read the cookie. Set httpOnly to true.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+    patterns:
+      - pattern: '{..., $K: false, ...}'
+      - metavariable-regex:
+          metavariable: $K
+          regex: (?i)^httponly$
+
+  - id: jgates.js.cookie-without-httponly-by-default
+    message: A cookie is written without a visible HttpOnly option. If nothing else adds it, page scripts can read the cookie; set httpOnly to true here or confirm where it is set.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie
+      cwe: "CWE-1004"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.4"]
+      class: review
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $RES.cookie($N, $V)
+              - pattern: $RES.cookie($N, $V, {...})
+              - pattern: cookie.serialize($N, $V)
+              - pattern: cookie.serialize($N, $V, {...})
+          - pattern-not: '$F($N, $V, {..., httpOnly: $S, ...})'
+
+  - id: jgates.js.cookie-without-samesite
+    message: A cookie is written with SameSite set to None, or without it where the API sends none, so the browser attaches it to cross-site requests. Pass sameSite "lax" or "strict".
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.2"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $RES.cookie($N, $V)
+              - pattern: $RES.cookie($N, $V, {...})
+              - pattern: Cookies.set($N, $V)
+              - pattern: Cookies.set($N, $V, {...})
+              - pattern: cookie.serialize($N, $V)
+              - pattern: cookie.serialize($N, $V, {...})
+          - pattern-not: '$F($N, $V, {..., sameSite: $S, ...})'
+      - patterns:
+          - pattern: '{..., $K: $V, ...}'
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^samesite$
+          - metavariable-regex:
+              metavariable: $V
+              regex: (?i)^(["'`]none["'`]|false)$
+      - patterns:
+          - pattern: document.cookie = $S
+          - metavariable-regex:
+              metavariable: $S
+              regex: (?is)^["'`](?!.*(samesite|1970|max-age=0))
+
+  - id: jgates.js.cookie-name-without-prefix
+    message: A cookie is written with a name that starts with neither __Host- nor __Secure-, so the browser does not enforce the Secure and path rules of the prefixes. Use a __Host- name for a cookie that carries a session.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: cookie
+      cwe: "CWE-1275"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.3.3", "V3.3.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $RES.cookie($N, ...)
+          - pattern: Cookies.set($N, ...)
+          - pattern: $CTX.cookies.set($N, ...)
+          - pattern: cookies().set($N, ...)
+          - pattern: cookie.serialize($N, ...)
+          - pattern: document.cookie = $N
+      - metavariable-regex:
+          metavariable: $N
+          regex: ^["'`](?!__Host-|__Secure-)
+
+  - id: jgates.js.cors-origin-reflected
+    message: The Origin header of the request is copied into the allow-origin response header, so every site is trusted. Compare the origin with an allow-list and answer only for a listed one.
+    severity: ERROR
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-sources:
+      - pattern: $REQ.headers.origin
+      - pattern: $REQ.headers["origin"]
+      - pattern: $REQ.header.origin
+      - pattern: $CTX.request.header.origin
+      - patterns:
+          - pattern-either:
+              - pattern: $REQ.get($H)
+              - pattern: $REQ.header($H)
+              - pattern: $REQ.headers.get($H)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["']origin["']$
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $ALLOWED.includes($X)
+          - focus-metavariable: $X
+        by-side-effect: true
+      - patterns:
+          - pattern: $ALLOWED.has($X)
+          - focus-metavariable: $X
+        by-side-effect: true
+      - patterns:
+          - pattern: $ALLOWED.indexOf($X)
+          - focus-metavariable: $X
+        by-side-effect: true
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $RES.setHeader($H, $X)
+              - pattern: $RES.header($H, $X)
+              - pattern: $RES.set($H, $X)
+              - pattern: $RES.append($H, $X)
+              - pattern: $RES.headers.set($H, $X)
+          - metavariable-regex:
+              metavariable: $H
+              regex: (?i)^["']access-control-allow-origin["']$
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: '{..., $K: $X, ...}'
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["']?access-control-allow-origin["']?$
+          - focus-metavariable: $X
+
+  - id: jgates.js.cors-origin-reflected-cors-package
+    message: The CORS configuration reflects every request origin or accepts every origin in its origin callback, so every site is trusted. List the trusted origins, or check the origin against an allow-list in the callback.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: cors
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.4.2"]
+    pattern-either:
+      - pattern: 'cors({..., origin: true, ...})'
+      - pattern: 'cors({..., origin: $REQ.headers.origin, ...})'
+      - pattern: 'cors((..., $CB) => $CB(null, {..., origin: true, ...}))'
+      - pattern: 'cors({..., origin: ($O, $CB) => $CB(null, true), ...})'
+      - pattern: 'cors({..., origin: ($O, $CB) => { $CB(null, true); }, ...})'
+      - pattern: 'cors({..., origin: function ($O, $CB) { $CB(null, true); }, ...})'
+      - pattern: 'cors({..., origin: ($O, $CB) => $CB(null, $O), ...})'
+      - pattern: 'cors({..., origin: ($O, $CB) => { $CB(null, $O); }, ...})'
+
+  - id: jgates.js.csrf-protection-disabled
+    message: The request-forgery protection middleware is switched off or told to skip every request. Keep it on for browser sessions and exempt only token-authenticated endpoints.
+    severity: ERROR
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.1"]
+    pattern-either:
+      - pattern: 'lusca({..., csrf: false, ...})'
+      - pattern: 'csurf({..., ignoreMethods: [..., "POST", ...], ...})'
+      - pattern: 'doubleCsrf({..., skipCsrfProtection: () => true, ...})'
+      - pattern: 'doubleCsrf({..., skipCsrfProtection: ($R) => true, ...})'
+      - pattern: 'doubleCsrf({..., ignoredMethods: [..., "POST", ...], ...})'
+
+  - id: jgates.js.jsonp-enabled
+    message: A response wraps its body in a callback name taken from the request (JSONP), so any site can read it with a script tag. Return plain JSON and use CORS with an allow-list.
+    severity: WARNING
+    languages: [javascript, typescript]
+    mode: taint
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern-sources:
+      - pattern: $REQ.query.callback
+      - pattern: $REQ.query.jsonp
+      - pattern: $REQ.query.cb
+      - pattern: $REQ.query.jsonpCallback
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $RES.send(<... $CB + "(" ...>)
+              - pattern: $RES.end(<... $CB + "(" ...>)
+              - pattern: $RES.write(<... $CB + "(" ...>)
+          - focus-metavariable: $CB
+      - patterns:
+          - pattern-either:
+              - pattern: $RES.send(`${$CB}(${...})`)
+              - pattern: $RES.end(`${$CB}(${...})`)
+              - pattern: $RES.write(`${$CB}(${...})`)
+          - focus-metavariable: $CB
+
+  - id: jgates.js.jsonp-enabled-express
+    message: The JSONP response call of Express wraps the body in a callback name taken from the request, so any site can read it with a script tag. Send plain JSON with res.json and use CORS with an allow-list.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: authorization
+      cwe: "CWE-346"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.6"]
+    pattern: $RES.jsonp(...)
+
+  - id: jgates.js.sensitive-query-parameter
+    message: A URL carries a password, secret or API key in its query string, where it ends up in logs, history and referrer headers. Send it in a header or the request body.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-598"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V14.2.1"]
+    pattern-either:
+      - pattern-regex: (?i)["'`][^"'`\n]*\?(?:[^"'`\s#]*&)?[\w.-]*(?:password|passwd|pwd|passphrase|senha|secret|api[_-]?key|private[_-]?key|segredo)[\w.-]*=
+      - patterns:
+          - pattern-either:
+              - pattern: $U.searchParams.set($K, ...)
+              - pattern: $U.searchParams.append($K, ...)
+              - pattern: $U.query.set($K, ...)
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["'`][\w.-]*(password|passwd|pwd|passphrase|senha|secret|api[_-]?key|private[_-]?key|segredo)[\w.-]*["'`]$
+      - patterns:
+          - pattern-either:
+              - pattern: 'new URLSearchParams({..., $K: $V, ...})'
+              - pattern: '$HTTP.$M($URL, {..., params: {..., $K: $V, ...}, ...})'
+          - metavariable-regex:
+              metavariable: $K
+              regex: (?i)^["'`]?[\w.-]*(password|passwd|pwd|passphrase|senha|secret|api[_-]?key|private[_-]?key|segredo)[\w.-]*["'`]?$
+
+  - id: jgates.js.sensitive-data-in-browser-storage
+    message: A password, secret, card or identity number is written to browser storage, where any script of the page can read it and it outlives the session. Keep it on the server, or hold it in memory only as long as it is needed.
+    severity: WARNING
+    languages: [javascript, typescript]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-922"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V14.3.3"]
+    patterns:
+      - pattern-either:
+          - pattern: localStorage.setItem($K, ...)
+          - pattern: sessionStorage.setItem($K, ...)
+          - pattern: window.localStorage.setItem($K, ...)
+          - pattern: window.sessionStorage.setItem($K, ...)
+          - pattern: localStorage[$K] = $V
+          - pattern: sessionStorage[$K] = $V
+      - metavariable-regex:
+          metavariable: $K
+          regex: (?i)^["'`].*(password|passwd|passphrase|senha|secret|api[_-]?key|private[_-]?key|segredo|card[_-]?number|cnpj|cvv|[^a-z](pwd|ssn|cpf|iban)[^a-z])
+
+  - id: jgates.js.oauth-token-in-browser-storage
+    message: An access or refresh token is written to browser storage, where any script of the page can read it. Keep tokens in a server-side session or in memory, and send the browser an HttpOnly cookie.
+    severity: INFO
+    languages: [javascript, typescript]
+    metadata:
+      category: data-exposure
+      cwe: "CWE-922"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V10.1.1"]
+    patterns:
+      - pattern-either:
+          - pattern: localStorage.setItem($K, ...)
+          - pattern: sessionStorage.setItem($K, ...)
+          - pattern: window.localStorage.setItem($K, ...)
+          - pattern: window.sessionStorage.setItem($K, ...)
+          - pattern: localStorage[$K] = $V
+          - pattern: sessionStorage[$K] = $V
+      - metavariable-regex:
+          metavariable: $K
+          regex: (?i)^["'`].*(access|refresh)[_.-]?token

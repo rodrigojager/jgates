@@ -1,6 +1,7 @@
 import { qualityBridgeManifest } from "../../adapters/quality-bridge/manifest.js";
 import { createCoreCatalog, type AdapterManifest } from "../catalog/index.js";
 import { suggestName } from "../config/load/schema.js";
+import { toolTierOf, type Tier } from "./tiers.js";
 
 /** Kinds of selector, the same in YAML, in the CLI and in the API. */
 export const SELECTOR_KINDS = ["category", "capability", "tool", "rule", "pii", "architecture", "component"] as const;
@@ -25,6 +26,8 @@ export interface UniverseTool {
   component: string | null;
   /** Composite adapter this instance belongs to (for example "quality-bridge" for "quality-bridge.lint"). */
   parent: string | null;
+  /** The instance's tier (ADR-0022): which profile switches it on through a capability, category or component. */
+  tier: Tier;
 }
 
 /** Everything a selector can name in a project: what exists is what can be selected. */
@@ -90,14 +93,14 @@ export function buildUniverse(config: Record<string, unknown>, inventory?: Inven
   for (const manifest of options.manifests ?? (declaresBridge ? [qualityBridgeManifest] : [])) {
     for (const sub of manifest.subchecks ?? []) {
       const id = `${manifest.id}.${sub.id}`;
-      tools.set(id, { id, capabilities: [...sub.capabilities], component: null, parent: manifest.id });
+      tools.set(id, { id, capabilities: [...sub.capabilities], component: null, parent: manifest.id, tier: "core" });
     }
   }
   const configured = at(config, "tools");
   for (const id of keysOf(configured)) {
     const body = (configured as Record<string, Record<string, unknown>>)[id] ?? {};
     const caps = Array.isArray(body.capabilities) ? body.capabilities.filter((c): c is string => typeof c === "string") : [];
-    tools.set(id, { id, capabilities: caps, component: typeof body.component === "string" ? body.component : null, parent: null });
+    tools.set(id, { id, capabilities: caps, component: typeof body.component === "string" ? body.component : null, parent: null, tier: toolTierOf(body) });
   }
 
   const rules: Universe["rules"] = [];

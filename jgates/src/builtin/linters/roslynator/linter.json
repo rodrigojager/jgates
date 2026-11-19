@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "id": "roslynator",
+  "name": "Roslynator",
+  "sourceUrl": "https://github.com/dotnet/roslynator",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "roslynator",
+    "prefix": [
+      "analyze"
+    ],
+    "versionRange": ">=1.0.1 <2.0.0"
+  },
+  "megalinter": [
+    "CSHARP_ROSLYNATOR"
+  ],
+  "place": {
+    "section": "language",
+    "group": "csharp",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".csproj"
+    ]
+  },
+  "run": {
+    "mode": "each-file",
+    "args": [
+      "{file}",
+      "--severity-level",
+      "info",
+      "--properties",
+      "BaseIntermediateOutputPath=/tmp/jg-obj/",
+      "MSBuildProjectExtensionsPath=/tmp/jg-obj/",
+      "BaseOutputPath=/tmp/jg-bin/",
+      "OutDir=/tmp/jg-bin/"
+    ],
+    "env": {
+      "HOME": "/tmp",
+      "DOTNET_CLI_HOME": "/tmp",
+      "DOTNET_NOLOGO": "1",
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+    },
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true,
+    "resources": {
+      "memoryMb": 2048
+    }
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^\\s+(?<file>.+?)\\((?<line>\\d+),(?<column>\\d+)\\): (?<level>warning|info|error) (?<rule>[A-Za-z]+\\d+): (?<message>.+)$"
+  },
+  "configuration": {
+    "files": [
+      ".editorconfig",
+      ".globalconfig",
+      "Directory.Build.props"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "Roslynator reads the project's .editorconfig and global analyzer configuration for rule severities: the project decides which rules apply",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: #pragma warning disable, [SuppressMessage] and .editorconfig severities",
+      "pattern": "pragma warning disable|SuppressMessage",
+      "files": "\\.cs$"
+    }
+  },
+  "install": "roslynator",
+  "text": {
+    "en": {
+      "label": "Roslynator (C# analyzers)",
+      "purpose": "Runs the Roslynator analyzers and the compiler diagnostics over a C# project file, reporting code smells, redundant code and style issues.",
+      "limitation": "It analyzes one project file at a time and needs the project to load; projects that need package restore or a different SDK may be reported as unreadable.",
+      "needs": "Nothing beyond the tools image: the .NET SDK it carries (about 2 GB of memory), no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "Roslynator (analisadores de C#)",
+      "purpose": "Roda os analisadores do Roslynator e os diagnósticos do compilador sobre um arquivo de projeto C#, reportando code smells, código redundante e problemas de estilo.",
+      "limitation": "Analisa um arquivo de projeto por vez e precisa que o projeto carregue; projetos que exigem restauração de pacotes ou outro SDK podem ser reportados como ilegíveis.",
+      "needs": "Nada além da imagem de ferramentas: o SDK .NET que ela traz (cerca de 2 GB de memória), sem rede e sem as dependências do projeto."
+    }
+  }
+}

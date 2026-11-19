@@ -13,6 +13,7 @@ import type { SourceIdentity } from "../gates/types.js";
 import type { Plan } from "../plan/types.js";
 import { hashesOfPlan, type AnalysisHashes } from "../provenance/index.js";
 import type { RunResult } from "../run/types.js";
+import { approvalWording } from "../results/index.js";
 import { translator } from "../../i18n/index.js";
 
 const t = translator("sequence");
@@ -60,7 +61,7 @@ const FIELD_CODE: Record<ReuseMatch["field"], string> = {
 };
 
 /** Compares one finished Quality run with the plan about to run and the current source. */
-export function compareQualityRun(dir: string, plan: Plan, current: SourceIdentity, version: string): { runId: string; finishedAt: string | null; sourceId: string | null; matches: ReuseMatch[] } | null {
+export function compareQualityRun(dir: string, plan: Plan, current: SourceIdentity, version: string, options: { noWaivers?: boolean } = {}): { runId: string; finishedAt: string | null; sourceId: string | null; matches: ReuseMatch[] } | null {
   const result = readJson<RunResult>(path.join(dir, "result.json"));
   if (!result || typeof result.runId !== "string") return null;
   let sourceId: string | null = null;
@@ -75,7 +76,7 @@ export function compareQualityRun(dir: string, plan: Plan, current: SourceIdenti
   const expected: AnalysisHashes = hashesOfPlan(plan);
   const found: Partial<AnalysisHashes> = result.analyzed?.hashes ?? {};
   const hashField = (field: keyof AnalysisHashes & ReuseMatch["field"]): ReuseMatch => ({ field, matched: found[field] === expected[field], expected: expected[field], found: found[field] ?? null });
-  const approved = result.decision === "passed" && result.complete === true && result.reduced !== true && result.partial !== true && result.analyzed?.stale !== true;
+  const approved = result.decision === "passed" && result.complete === true && result.reduced !== true && result.partial !== true && result.analyzed?.stale !== true && !(options.noWaivers === true && approvalWording(result).kind === "with-waivers");
   const matches: ReuseMatch[] = [
     { field: "source", matched: sourceSame, expected: current.id, found: sourceId },
     hashField("plan"),
@@ -92,13 +93,13 @@ export function compareQualityRun(dir: string, plan: Plan, current: SourceIdenti
 }
 
 /** The newest equivalent finished Quality run of the workspace, or why the newest candidate does not qualify. */
-export function findEquivalentQuality(home: string, workspaceId: string, plan: Plan, current: SourceIdentity, version: string): ReuseOutcome {
+export function findEquivalentQuality(home: string, workspaceId: string, plan: Plan, current: SourceIdentity, version: string, options: { noWaivers?: boolean } = {}): ReuseOutcome {
   const runs = listRuns(home, workspaceId)
     .filter((r) => !r.partial)
     .slice(0, MAX_CANDIDATES);
   let rejected: ReuseOutcome["rejected"] = null;
   for (const run of runs) {
-    const compared = compareQualityRun(run.dir, plan, current, version);
+    const compared = compareQualityRun(run.dir, plan, current, version, options);
     if (!compared) continue;
     const miss = compared.matches.find((m) => !m.matched);
     if (!miss && compared.sourceId) {

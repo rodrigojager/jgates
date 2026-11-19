@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "checkmake",
+  "name": "checkmake",
+  "sourceUrl": "https://github.com/checkmake/checkmake",
+  "license": "MIT",
+  "program": {
+    "tool": "checkmake",
+    "versionRange": ">=0.3.2 <1.0.0"
+  },
+  "megalinter": [
+    "MAKEFILE_CHECKMAKE"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "makefile",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "names": [
+      "Makefile"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "-o",
+      "json",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "json",
+    "emptyIsClean": true,
+    "fields": {
+      "file": "file_name",
+      "line": "line_number",
+      "rule": "rule",
+      "message": "violation"
+    }
+  },
+  "configuration": {
+    "files": [
+      "checkmake.ini",
+      ".checkmake.ini"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "checkmake reads checkmake.ini in the folder it runs from: the project decides which rules apply and their limits, such as the required phony targets and the maximum body length",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the tool has no in-file suppression; rules are tuned in checkmake.ini"
+    }
+  },
+  "install": "checkmake",
+  "text": {
+    "en": {
+      "label": "checkmake (Makefiles)",
+      "purpose": "Checks Makefiles for mistakes: missing required phony targets such as all, clean and test, phony targets that are not declared, overly long target bodies and missing timestamps.",
+      "limitation": "It checks the shape of the Makefile, not whether the commands work. It reads checkmake.ini from the folder it runs in, and only the Makefile named Makefile is checked.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "checkmake (Makefiles)",
+      "purpose": "Verifica Makefiles: alvos phony obrigatórios ausentes, como all, clean e test, alvos phony não declarados, corpos de alvo longos demais e carimbos de tempo ausentes.",
+      "limitation": "Verifica o formato do Makefile, não se os comandos funcionam. Lê o checkmake.ini da pasta em que roda, e só o arquivo chamado Makefile é verificado.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

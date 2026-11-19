@@ -1,0 +1,12 @@
+{
+  "files": [
+    "lint_core.clj"
+  ],
+  "findings": [
+    {
+      "rule": "unused-binding",
+      "file": "lint_core.clj",
+      "line": 4
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+# Errors, logging and availability for Rust.
+# Libraries covered: the log and tracing macros (trace!, debug!, info!, warn!, error!, with their log:: and tracing::
+# paths) for the logging rule; reqwest (the blocking and the async client) for the outbound timeout rule; actix-web and
+# axum responses for the error detail rules.
+rules:
+  - id: jgates.rust.sensitive-data-logged
+    message: A value named like a password, a secret, a token or an authorization header is passed to a logging macro, so it ends up in the log files. Log an identifier or a masked form instead, or leave the value out.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: logging
+      cwe: "CWE-532"
+      author: JGates
+      subdimension: privacy
+      asvs_requirements: ["V16.2.5"]
+    # Macro arguments are token trees, so the rule reads the text of the call: a sensitive name given as an argument,
+    # as the value of a tracing field, or inline in the format string ({password}).
+    pattern-regex: '(?is)\b(?:(?:log|tracing)::)?(?:trace|debug|info|warn|error)!\s*(?=\()(?:[^;]*?[,(]\s*[&%?]*\s*(?:\w+\.)*(?:\w*_)?(?:password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(?:_\w*)?\s*[,)]|[^;]*?[,(]\s*(?:\w*_)?(?:password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(?:_\w*)?\s*=|[^;]*?"[^"]*\{(?:\w*_)?(?:password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|client_?secret|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|reset_?code|verification_?code|activation_?code|ssn|cpf|cnpj|card_?number|cvv|iban|authorization)(?:_\w*)?(?::[^}]*)?\})'
+
+  - id: jgates.rust.http-client-without-timeout
+    message: An outbound HTTP call or client is built without a timeout, and reqwest waits forever by default, so a slow server holds the task open. Build the client with Client::builder().timeout(...) or set .timeout(...) on the request.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: availability
+      cwe: "CWE-400"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.2", "V13.2.6", "V15.2.2"]
+    pattern-either:
+      - pattern: reqwest::get(...)
+      - pattern: reqwest::blocking::get(...)
+      - pattern: reqwest::Client::new()
+      - pattern: reqwest::blocking::Client::new()
+      - patterns:
+          - pattern: $B.build()
+          - metavariable-regex:
+              metavariable: $B
+              regex: (?s)^(?!.*\.(connect_)?timeout\().*reqwest::(blocking::)?Client::builder\(\).*$
+
+  - id: jgates.rust.error-detail-in-response
+    message: The message of an error is written to the HTTP response, which can expose paths, queries and internals. Log the error on the server and return a generic error message.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: error-handling
+      cwe: "CWE-209"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.5.1"]
+    patterns:
+      - pattern-inside: |
+          match $RESULT {
+            Err($E) => { ... }
+          }
+      - pattern-either:
+          - pattern: HttpResponse::$STATUS().body($E.to_string())
+          - pattern: actix_web::HttpResponse::$STATUS().body($E.to_string())
+          - pattern: (StatusCode::$STATUS, $E.to_string())
+          - pattern: (axum::http::StatusCode::$STATUS, $E.to_string())
+
+  - id: jgates.rust.swallowed-exception
+    message: An explicit error handler is empty, so the failure is dropped without logging or handling it. Handle or log the error, or deliberately discard the result with let _ = when that is intended.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: error-handling
+      cwe: "CWE-390"
+      author: JGates
+      subdimension: hardening
+      asvs_requirements: ["V16.3.4", "V16.5.3"]
+    pattern-either:
+      - pattern: |
+          match $RESULT {
+            Err(_) => {}
+          }
+      - pattern: |
+          if let Err(_) = $RESULT {}
+
+  - id: jgates.rust.outbound-request-follows-redirects
+    message: An address from an incoming request is passed to a reqwest client without a redirect policy, which follows redirects by default. If no other protection validates each hop, the first host can redirect to another address; set redirect(reqwest::redirect::Policy::none()) here or confirm where each destination is checked.
+    severity: INFO
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: ssrf
+      cwe: "CWE-918"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V15.3.2"]
+      class: review
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: reqwest::get($URL)
+              - pattern: reqwest::blocking::get($URL)
+          - focus-metavariable: $URL
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  let $CLIENT = $BUILDER.build()?;
+                  ...
+              - pattern-inside: |
+                  let $CLIENT = $BUILDER.build().unwrap();
+                  ...
+          - metavariable-regex:
+              metavariable: $BUILDER
+              regex: (?s)^(?!.*\.redirect\().*reqwest::(blocking::)?Client::builder\(\).*$
+          - pattern: $CLIENT.$METHOD($URL)
+          - metavariable-regex:
+              metavariable: $METHOD
+              regex: ^(get|post|put|patch|delete|head)$
+          - focus-metavariable: $URL

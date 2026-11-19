@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "demo-project-scan",
+  "name": "demo-project-scan",
+  "sourceUrl": "https://example.invalid/demo-project-scan",
+  "license": "Apache-2.0",
+  "program": {
+    "tool": "demo-project-scan",
+    "command": "demo-scan",
+    "versionRange": ">=0.0.0"
+  },
+  "megalinter": [],
+  "place": {
+    "section": "other",
+    "group": "demo-scan",
+    "capability": "secrets",
+    "kind": "scan",
+    "tier": "extended"
+  },
+  "activation": {
+    "project": true
+  },
+  "run": {
+    "mode": "project",
+    "args": [
+      "scan",
+      "--format",
+      "sarif",
+      "--output",
+      "{report}",
+      "{workspace}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "file",
+    "file": "report.sarif",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      "demo-scan.toml"
+    ],
+    "default": "default.toml",
+    "args": [
+      "--config",
+      "{config}"
+    ],
+    "ci": {
+      "args": [
+        "--no-inline-ignores"
+      ]
+    }
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "demo-project-scan reads the project's demo-scan.toml, else JGates' default",
+    "suppressions": {
+      "honoured": false,
+      "description": "none: the tool honours no comment"
+    }
+  },
+  "install": "demo-project-scan",
+  "text": {
+    "en": {
+      "label": "demo-project-scan (secrets)",
+      "purpose": "Scans the whole project for secret-looking values.",
+      "limitation": "An invented tool of the linter engine's tests; it exists only as a recording.",
+      "needs": "Nothing: the test replays its recording."
+    },
+    "pt-BR": {
+      "label": "demo-project-scan (segredos)",
+      "purpose": "Procura valores com cara de segredo no projeto inteiro.",
+      "limitation": "Uma ferramenta inventada dos testes do motor de linters; existe só como gravação.",
+      "needs": "Nada: o teste reproduz a gravação."
+    }
+  }
+}

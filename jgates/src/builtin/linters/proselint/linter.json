@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "proselint",
+  "name": "proselint",
+  "sourceUrl": "https://github.com/amperser/proselint",
+  "license": "BSD-3-Clause",
+  "program": {
+    "tool": "proselint",
+    "versionRange": ">=0.16.0 <1.0.0",
+    "prefix": [
+      "check"
+    ]
+  },
+  "megalinter": [
+    "SPELL_PROSELINT"
+  ],
+  "place": {
+    "section": "other",
+    "group": "spelling",
+    "capability": "spelling",
+    "kind": "lint",
+    "tier": "extended"
+  },
+  "activation": {
+    "extensions": [
+      ".md",
+      ".txt"
+    ],
+    "requires": [
+      ".proselintrc",
+      "proselint/config.json"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>.+?):(?<line>\\d+):(?<column>\\d+): (?<rule>[^\\s:]+): (?<message>.+)$"
+  },
+  "configuration": {
+    "files": [
+      ".proselintrc",
+      "proselint/config.json"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "proselint reads the project's .proselintrc or proselint/config.json: the project decides which checks run",
+    "suppressions": {
+      "honoured": false,
+      "description": "not honored in code: proselint has no in-code suppression comment; the project's configuration turns checks off"
+    }
+  },
+  "install": "proselint",
+  "text": {
+    "en": {
+      "label": "proselint (prose)",
+      "purpose": "Checks prose for style problems: clichés, jargon, hedging, redundancy, and misused or overused words.",
+      "limitation": "It runs only when the project has a proselint configuration, and it judges English prose only.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "proselint (prosa)",
+      "purpose": "Verifica a prosa quanto a problemas de estilo: clichês, jargão, hesitação, redundância e palavras mal usadas ou em excesso.",
+      "limitation": "Só roda quando o projeto tem uma configuração do proselint e avalia apenas prosa em inglês.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

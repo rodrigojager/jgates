@@ -1,0 +1,20 @@
+{
+ "tool": "ansible-lint",
+ "kind": "bad",
+ "version": "26.11.0",
+ "calls": [
+  {
+   "args": [
+    "--offline",
+    "--nocolor",
+    "-f",
+    "sarif",
+    "--exclude",
+    ".jgates"
+   ],
+   "exit": 2,
+   "stdout": "{\"$schema\": \"https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json\", \"version\": \"2.1.0\", \"runs\": [{\"tool\": {\"driver\": {\"name\": \"ansible-lint\", \"version\": \"26.11.0\", \"informationUri\": \"https://github.com/ansible/ansible-lint\", \"rules\": [{\"id\": \"name[play]\", \"name\": \"name[play]\", \"shortDescription\": {\"text\": \"All plays should be named.\"}, \"defaultConfiguration\": {\"level\": \"warning\"}, \"help\": {\"text\": \"All tasks and plays should have a distinct name for readability and for ``--start-at-task`` to work\"}, \"helpUri\": \"https://docs.ansible.com/projects/lint/rules/name/\", \"properties\": {\"tags\": [\"idiom\"]}}, {\"id\": \"name[missing]\", \"name\": \"name[missing]\", \"shortDescription\": {\"text\": \"All tasks should be named.\"}, \"defaultConfiguration\": {\"level\": \"warning\"}, \"help\": {\"text\": \"All tasks and plays should have a distinct name for readability and for ``--start-at-task`` to work\"}, \"helpUri\": \"https://docs.ansible.com/projects/lint/rules/name/\", \"properties\": {\"tags\": [\"idiom\"]}}]}}, \"columnKind\": \"utf16CodeUnits\", \"results\": [{\"ruleId\": \"name[play]\", \"level\": \"error\", \"message\": {\"text\": \"All plays should be named.\"}, \"locations\": [{\"physicalLocation\": {\"artifactLocation\": {\"uri\": \"ansible_playbook.yml\", \"uriBaseId\": \"SRCROOT\"}, \"region\": {\"startLine\": 2, \"startColumn\": 3}}}]}, {\"ruleId\": \"name[missing]\", \"level\": \"error\", \"message\": {\"text\": \"Task/Handler: debug msg=hello\"}, \"locations\": [{\"physicalLocation\": {\"artifactLocation\": {\"uri\": \"ansible_playbook.yml\", \"uriBaseId\": \"SRCROOT\"}, \"region\": {\"startLine\": 4}}}]}], \"originalUriBaseIds\": {\"SRCROOT\": {\"uri\": \"file:///workspace/\"}}}]}\n",
+   "stderr": "WARNING: PATH altered to include /opt/tools/python/ansible-lint/bin, /opt/tools/python/ansible-lint/bin :: This is usually a sign of broken local setup, which can cause unexpected behaviors.\n[WARNING]: Deprecation warnings can be disabled by setting `deprecation_warnings=False` in ansible.cfg.\n[DEPRECATION WARNING]: oneline has been deprecated. Use another callback plugin, or vendor and/or move the oneline callback to a collection. This feature will be removed from ansible-core version 2.23.\nOrigin: <unknown>\n\noneline\n\n[DEPRECATION WARNING]: tree has been deprecated. Use another callback plugin, or vendor and/or move the tree callback to a collection. This feature will be removed from ansible-core version 2.23.\nOrigin: <unknown>\n\ntree\n\nRead documentation for instructions on how to ignore specific rule violations.\n\n# Rule Violation Summary\n\n  1 name profile:basic tags:idiom\n  1 name profile:basic tags:idiom\n\nFailed: 2 failure(s), 0 warning(s) in 3 files processed of 3 encountered. Profile 'basic' was required, but 'min' profile passed.\n"
+  }
+ ]
+}

@@ -1,0 +1,15 @@
+{
+  "files": ["Encoding.java"],
+  "ruleIds": [
+    "jgates.java.regex-from-request",
+    "jgates.java.redos-nested-quantifier",
+    "jgates.java.format-string-from-request",
+    "jgates.java.csv-formula-injection",
+    "jgates.java.memcache-key-from-request",
+    "jgates.java.double-decoding",
+    "jgates.java.url-parameter-unencoded",
+    "jgates.java.json-built-by-concatenation",
+    "jgates.java.markdown-raw-html-enabled",
+    "jgates.java.markdown-raw-html-enabled-by-default"
+  ]
+}

@@ -1,0 +1,84 @@
+rules:
+  - id: jgates.python.xss-response-write
+    message: Request data is written into an HTTP response that the browser renders as HTML. Escape it first (html.escape or markupsafe.escape) or return JSON.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.1"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sanitizers:
+      - pattern: html.escape(...)
+      - pattern: escape(...)
+      - pattern: markupsafe.escape(...)
+      - pattern: bleach.clean(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: HttpResponse($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: make_response($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: Response($X, ...)
+          - focus-metavariable: $X
+
+  - id: jgates.python.xss-template-autoescape-off
+    message: A template environment is created with autoescaping switched off, so every value is written into the page as raw HTML. Keep autoescape on.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.1"]
+    pattern-either:
+      - pattern: jinja2.Environment(..., autoescape=False, ...)
+      - pattern: Environment(..., autoescape=False, ...)
+      - pattern: jinja2.Template($S, ..., autoescape=False, ...)
+
+  - id: jgates.python.xss-mark-request-data-safe
+    message: Request data is marked as safe HTML, which turns off escaping for it. Escape the value first, or do not mark it safe.
+    severity: ERROR
+    languages: [python]
+    mode: taint
+    metadata:
+      category: xss
+      cwe: "CWE-79"
+      author: JGates
+      subdimension: injection
+      asvs_requirements: ["V1.2.1"]
+    pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.args[...]
+      - pattern: request.form.get(...)
+      - pattern: request.form[...]
+      - pattern: request.GET.get(...)
+      - pattern: request.GET[...]
+      - pattern: request.POST.get(...)
+      - pattern: request.POST[...]
+    pattern-sanitizers:
+      - pattern: html.escape(...)
+      - pattern: escape(...)
+      - pattern: markupsafe.escape(...)
+      - pattern: bleach.clean(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: Markup($X, ...)
+          - focus-metavariable: $X
+      - patterns:
+          - pattern: mark_safe($X)
+          - focus-metavariable: $X

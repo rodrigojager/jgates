@@ -3,6 +3,7 @@
 // that declare their tools and, when the project folder is given, whether their evidence files exist: nothing is
 // probed, installed or run.
 import fs from "node:fs";
+import { censusHasEvidence } from "../../adapters/linter/census.js";
 import path from "node:path";
 import { translator, type Translator } from "../../i18n/index.js";
 import { builtinManifests } from "../../adapters/manifests.js";
@@ -112,6 +113,8 @@ const evidenceText = (e: Evidence): string => (e.contains !== null ? `${e.path} 
 
 /** Same rule as template activation: the file exists (a `*` in the last segment matches names) and has the line. */
 function hasEvidence(dir: string, rel: string, contains: string | null): boolean {
+  // A `**` folder asks for a file at any depth (a derived linter template): the file census answers.
+  if (rel.includes("**/")) return censusHasEvidence(dir, rel, contains);
   const slash = rel.lastIndexOf("/");
   const leaf = rel.slice(slash + 1);
   if (leaf.includes("*")) {

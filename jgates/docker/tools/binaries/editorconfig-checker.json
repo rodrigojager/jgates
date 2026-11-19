@@ -1,0 +1,24 @@
+{
+  "version": "4.0.2",
+  "url": "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v{version}/editorconfig-checker-linux-amd64.tar.gz",
+  "sha256": "44efaef3ed14c6ab52eb87481d78e5e5c204796dccf26e2f4598a61ba17f8003",
+  "archive": "tar.gz",
+  "extract": {
+    "editorconfig-checker": "editorconfig-checker",
+    "LICENSE": "LICENSE"
+  },
+  "executable": [
+    "editorconfig-checker"
+  ],
+  "provides": [
+    {
+      "name": "editorconfig-checker",
+      "link": "editorconfig-checker",
+      "path": "editorconfig-checker",
+      "version": [
+        "editorconfig-checker",
+        "-version"
+      ]
+    }
+  ]
+}

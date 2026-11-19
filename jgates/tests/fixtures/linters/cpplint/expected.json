@@ -1,0 +1,12 @@
+{
+  "files": [
+    "cpplint-sample.cpp"
+  ],
+  "findings": [
+    {
+      "rule": "whitespace/line_length",
+      "file": "cpplint-sample.cpp",
+      "line": 3
+    }
+  ]
+}

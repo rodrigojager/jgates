@@ -2,7 +2,8 @@ import path from "node:path";
 import type { CommandModule } from "../command.js";
 import { EXIT_USAGE, reportError, writeJson } from "../output.js";
 import { translator } from "../../i18n/index.js";
-import { discoverWorkspace, projectDirExists } from "../../core/discovery/index.js";
+import { discoverWorkspace, labelOf, projectDirExists } from "../../core/discovery/index.js";
+import { bundledPackLanguages } from "../../adapters/semgrep/index.js";
 
 const tr = translator("discover");
 
@@ -22,6 +23,7 @@ export const command: CommandModule = {
 
     const { inventory, diagnostics } = discoverWorkspace(projectDir);
     const valid = diagnostics.length === 0;
+    const packLanguages = new Set(bundledPackLanguages());
 
     if (ctx.json) {
       writeJson(ctx, {
@@ -30,6 +32,7 @@ export const command: CommandModule = {
         version: ctx.version,
         projectDir,
         ...inventory,
+        packLanguages: [...packLanguages],
         diagnostics,
       });
     } else {
@@ -50,6 +53,11 @@ export const command: CommandModule = {
             reason: tr(`discover_reason_${c.reasonCode}`),
           }) + "\n",
         );
+        // A language without a stack is recognized, not ignored: say which checks do run on it.
+        if (c.classificationStatus === "unsupported" && c.language) {
+          const key = packLanguages.has(c.language) ? "discover_unsupported_note_pack" : "discover_unsupported_note";
+          ctx.stdout(`  ${tr(key, { language: labelOf(c.language) })}\n`);
+        }
       }
       for (const i of inventory.inconsistencies) ctx.stdout(tr("discover_inconsistency", { code: i.code, root: i.componentRoot }) + "\n");
       if (inventory.indexed.truncated) ctx.stdout(tr("discover_truncated") + "\n");

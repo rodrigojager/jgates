@@ -1,0 +1,431 @@
+{
+  "version": "5.0.0",
+  "chapter": "V7",
+  "entries": [
+    {
+      "requirement": "V7.1.1",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V7.1.2",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V7.1.3",
+      "status": "unmapped",
+      "evidence": "person",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V7.2.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether session tokens are checked by a trusted back-end component on every request rather than trusting what the browser sends or a client-side check.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V7.2.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether sessions rest on generated tokens (reference or self-contained) and not on a fixed API secret or static key used as the session credential.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V7.2.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "cryptography",
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.insecure-random-for-secret",
+          "covers": "Math.random feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a session identifier or reference token.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; the 128-bit length cannot be measured by a pattern, and session ids made by the framework's own session layer are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.python.insecure-random-for-secret",
+          "covers": "The random module feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a session identifier or reference token.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; the 128-bit length cannot be measured by a pattern, and session ids made by the framework's own session layer are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.csharp.insecure-random-for-secret",
+          "covers": "System.Random feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a session identifier or reference token.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; the 128-bit length cannot be measured by a pattern, and session ids made by the framework's own session layer are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.go.insecure-random-for-secret",
+          "covers": "Math/rand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a session identifier or reference token.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; the 128-bit length cannot be measured by a pattern, and session ids made by the framework's own session layer are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.insecure-random-for-secret",
+          "covers": "Java.util.Random, Math.random or ThreadLocalRandom feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a session identifier or reference token.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; the 128-bit length cannot be measured by a pattern, and session ids made by the framework's own session layer are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.insecure-random-for-secret",
+          "covers": "A non-cryptographic generator such as rand or mt_rand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a session or reference token named with the word token; a bare session id name is not matched.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; the 128-bit length cannot be measured by a pattern, and session ids made by the framework's own session layer are not seen.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.rust.insecure-random-for-secret",
+          "covers": "SmallRng, seeded generators and fastrand feeding a value named like a token, secret, password, code, nonce, salt or key, the case of a session identifier or reference token.",
+          "misses": "Values with names outside the list, randomness drawn through helper functions or library calls, and randomness that is secure but too short are not seen; the 128-bit length cannot be measured by a pattern, and session ids made by the framework's own session layer are not seen.",
+          "depth": "partial"
+        }
+      ],
+      "why": "A guessable generator feeding a session identifier is the predictable-token case; the length of the identifier needs a reader.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V7.2.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.js.session-id-not-regenerated",
+          "covers": "Points at an identity-like req.session assignment with no regenerate call visible in the enclosing function or callback.",
+          "misses": "Renewal protection may exist in middleware or helpers where the rule cannot see it. Re-authentication and termination of the previous token are not established; this Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.java.session-id-not-regenerated",
+          "covers": "Points at a method storing an identity-like HttpSession attribute without a visible changeSessionId or invalidate call.",
+          "misses": "Renewal protection may exist in filters or authentication frameworks where the rule cannot see it. Re-authentication and termination of the previous token are not established; this Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semgrep-rule",
+          "id": "jgates.php.session-id-not-regenerated",
+          "covers": "Points at an identity-like $_SESSION assignment inside a password_verify or Hash::check condition with no visible session_regenerate_id in the checked scope.",
+          "misses": "Renewal protection may exist in framework login helpers where the rule cannot see it. Re-authentication and termination of the previous token are not established; this Review check never examines the requirement.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Session fixation and invalidation",
+          "covers": "Whether the session identifier is rotated on login, MFA completion and other privilege changes.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+    "why": "The Review rules point at login-like session writes without visible renewal and never examine the requirement. The Semantic block separately reads session rotation and invalidation.",
+    "review": {
+      "by": "independent review context",
+      "date": "2026-11-16"
+      }
+    },
+    {
+      "requirement": "V7.3.1",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V7.3.2",
+      "status": "unmapped",
+      "evidence": "deployment",
+      "subdimensions": [],
+      "checks": []
+    },
+    {
+      "requirement": "V7.4.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Session fixation and invalidation",
+          "covers": "Whether a session stays usable after logout, expiry or revocation, across server sessions, refresh tokens and cached copies.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block checks that ended sessions stop working, including token and cache copies.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V7.4.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Session fixation and invalidation",
+          "covers": "Sessions and refresh tokens that remain valid after the account is disabled.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "Survival of sessions after an account disable is named in the block.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V7.4.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Session fixation and invalidation",
+          "covers": "Sessions that stay valid after a password change, revocation or account change.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository. It does not examine whether the user is offered the choice.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether, after a credential or MFA change, the user is offered the option to end the other active sessions.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. The audit block adds a second, narrower reading of the nearby weakness.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V7.4.4",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether every page behind authentication offers an easy and visible logout control.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable. What the rendered pages look like is not visible.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V7.4.5",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether administrators have a function to end the sessions of one user or of all users.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V7.5.1",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Account linking and identity collision",
+          "covers": "Whether adding an email, phone or external identity requires a current session and fresh step-up.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        },
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#MFA enrollment and assurance downgrade",
+          "covers": "Whether replacing or disabling a factor requires the policy-required fresh authentication.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "These blocks examine changes to email, phone and factors, and whether they demand fresh authentication.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V7.5.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether users can list their active sessions and end any or all of them after confirming with at least one factor.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V7.5.3",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-ledger",
+          "id": "WEB-PROTOCOL-AND-AUTH.md#Step-up binding and bypass",
+          "covers": "Whether sensitive operations demand the assurance check on every route, including alternate and batch routes.",
+          "misses": "Only a Semantic security-audit run examines it, as a model reading of the source; it is not proof and sees nothing outside the repository.",
+          "depth": "partial"
+        }
+      ],
+      "why": "The block looks for routes that skip the extra verification before a sensitive operation.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-14"
+      }
+    },
+    {
+      "requirement": "V7.6.1",
+      "status": "reviewed",
+      "evidence": "deployment",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [],
+      "applies": {
+        "technology": [
+          "oauth-client",
+          "saml"
+        ]
+      },
+      "why": "Only a project that relies on an identity provider has relying-party sessions to coordinate.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    },
+    {
+      "requirement": "V7.6.2",
+      "status": "reviewed",
+      "evidence": "repository",
+      "subdimensions": [
+        "authorization"
+      ],
+      "checks": [
+        {
+          "unit": "semantic-requirement",
+          "id": "asvs-review",
+          "covers": "An AI reading of the source: whether a new application session from a federated sign-in is created only after a user action or consent, not silently when an assertion arrives or from a background request.",
+          "misses": "A model reading of the files in scope, not proof: it sees nothing that runs, nothing deployed or configured outside the repository and no code outside the scope, and it can overlook a path. Where the answer depends on those, the requirement is reported as not examinable.",
+          "depth": "partial"
+        }
+      ],
+      "applies": {
+        "technology": [
+          "oauth-client",
+          "saml"
+        ]
+      },
+      "why": "No pattern in the source shows this behavior, so only a model reading of the code examines it. Only projects that use one of the listed technologies are concerned; JGates only suggests not applicable when a scan finds no sign of them.",
+      "review": {
+        "by": "independent review context",
+        "date": "2026-11-15"
+      }
+    }
+  ]
+}

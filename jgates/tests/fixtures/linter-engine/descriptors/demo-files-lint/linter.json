@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "id": "demo-files-lint",
+  "name": "demo-files-lint",
+  "sourceUrl": "https://example.invalid/demo-files-lint",
+  "license": "MIT",
+  "program": {
+    "tool": "demo-files-lint",
+    "versionRange": ">=0.0.0"
+  },
+  "megalinter": [
+    "DEMO_FILES_LINT"
+  ],
+  "place": {
+    "section": "format",
+    "group": "demo",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "extensions": [
+      ".demo"
+    ]
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format",
+      "lines"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        1
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "lines",
+    "pattern": "^(?<file>[^:]+):(?<line>\\d+):(?<column>\\d+): (?<level>\\w+) \\[(?<rule>[^\\]]+)\\] (?<message>.+)$"
+  },
+  "severity": {
+    "error": "error",
+    "warning": "warning"
+  },
+  "configuration": {
+    "files": [
+      ".demolint.yml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "demo-files-lint reads the project's .demolint.yml: the project decides the rules",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: # demo-lint: disable comments",
+      "pattern": "#\\s*demo-lint:\\s*disable"
+    }
+  },
+  "install": "demo-files-lint",
+  "text": {
+    "en": {
+      "label": "demo-files-lint (demo files)",
+      "purpose": "Checks .demo files line by line.",
+      "limitation": "An invented tool of the linter engine's tests; it exists only as a recording.",
+      "needs": "Nothing: the test replays its recording."
+    },
+    "pt-BR": {
+      "label": "demo-files-lint (arquivos demo)",
+      "purpose": "Verifica arquivos .demo linha a linha.",
+      "limitation": "Uma ferramenta inventada dos testes do motor de linters; existe só como gravação.",
+      "needs": "Nada: o teste reproduz a gravação."
+    }
+  }
+}

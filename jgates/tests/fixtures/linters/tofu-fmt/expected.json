@@ -1,0 +1,11 @@
+{
+  "files": [
+    "fmt-me.tf"
+  ],
+  "findings": [
+    {
+      "rule": "tofu-fmt.unformatted",
+      "file": "fmt-me.tf"
+    }
+  ]
+}

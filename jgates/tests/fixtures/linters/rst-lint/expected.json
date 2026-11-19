@@ -1,0 +1,12 @@
+{
+  "files": [
+    "rstlint_sample.rst"
+  ],
+  "findings": [
+    {
+      "rule": "rst-lint.docutils",
+      "file": "rstlint_sample.rst",
+      "line": 2
+    }
+  ]
+}

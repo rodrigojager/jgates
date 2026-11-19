@@ -1,0 +1,18 @@
+{
+ "tool": "vale",
+ "kind": "clean",
+ "version": "3.27.0",
+ "calls": [
+  {
+   "args": [
+    "--output=line",
+    "--no-wrap",
+    "--",
+    "style.md"
+   ],
+   "exit": 0,
+   "stdout": "",
+   "stderr": ""
+  }
+ ]
+}

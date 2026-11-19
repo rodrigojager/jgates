@@ -1,0 +1,4 @@
+apiVersion: v2
+name: webchart
+description: A small chart
+icon: https://example.com/icon.png

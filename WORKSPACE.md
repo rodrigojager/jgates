@@ -58,7 +58,11 @@ One row per folder (and relevant subfolder) of this repository. Keep it portable
 - `docs/jgates/storage.pt-BR.md`
 - `docs/jgates/extension.en.md`
 - `docs/jgates/extension.pt-BR.md`
+- `docs/jgates/asvs-coverage.en.md`
+- `docs/jgates/asvs-coverage.pt-BR.md`
+- `jgates/packs/asvs/jgates-asvs-map/NOTICE.md`
 - `jgates/packs/semgrep/jgates-semgrep/NOTICE.md`
+- `jgates/vendor/owasp-asvs/NOTICE.md`
 - `jgates/vendor/cloudflare-security-audit/attack-classes/AI-AND-LLM.md`
 - `jgates/vendor/cloudflare-security-audit/attack-classes/ATTACK-CLASSES.md`
 - `jgates/vendor/cloudflare-security-audit/attack-classes/CLIENT-SIDE.md`
@@ -93,5 +97,29 @@ One row per folder (and relevant subfolder) of this repository. Keep it portable
 - `semantic-gate/templates/system-prompt.md`
 - `use-jgates-quality/SKILL.md`
 - `use-jgates-semantic/SKILL.md`
+- `docs/jgates/tools.en.md`
+- `docs/jgates/tools.pt-BR.md`
+- `jgates/tests/fixtures/linter-engine/fixtures/demo-files-lint/bad/notes.md`
+- `jgates/tests/fixtures/linter-engine/fixtures/demo-files-lint/clean/notes.md`
+- `jgates/tests/fixtures/linters/codespell/bad/typos.md`
+- `jgates/tests/fixtures/linters/codespell/clean/typos.md`
+- `jgates/tests/fixtures/linters/cspell/bad/words.md`
+- `jgates/tests/fixtures/linters/cspell/clean/words.md`
+- `jgates/tests/fixtures/linters/lychee/bad/link-check.md`
+- `jgates/tests/fixtures/linters/lychee/bad/notes.md`
+- `jgates/tests/fixtures/linters/lychee/clean/link-check.md`
+- `jgates/tests/fixtures/linters/lychee/clean/notes.md`
+- `jgates/tests/fixtures/linters/markdown-table-formatter/bad/table.md`
+- `jgates/tests/fixtures/linters/markdown-table-formatter/clean/table.md`
+- `jgates/tests/fixtures/linters/markdownlint/bad/guide.md`
+- `jgates/tests/fixtures/linters/markdownlint/clean/guide.md`
+- `jgates/tests/fixtures/linters/proselint/bad/prose.md`
+- `jgates/tests/fixtures/linters/proselint/clean/prose.md`
+- `jgates/tests/fixtures/linters/remark-lint/bad/readme.md`
+- `jgates/tests/fixtures/linters/remark-lint/clean/readme.md`
+- `jgates/tests/fixtures/linters/rumdl/bad/notes.md`
+- `jgates/tests/fixtures/linters/rumdl/clean/notes.md`
+- `jgates/tests/fixtures/linters/vale/bad/style.md`
+- `jgates/tests/fixtures/linters/vale/clean/style.md`
 
 AI working artifacts live outside this repository, in the container's `_work/` folder.

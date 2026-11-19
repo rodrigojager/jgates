@@ -1,0 +1,12 @@
+{
+  "files": [
+    "style.md"
+  ],
+  "findings": [
+    {
+      "file": "style.md",
+      "rule": "Vale.Repetition",
+      "line": 3
+    }
+  ]
+}

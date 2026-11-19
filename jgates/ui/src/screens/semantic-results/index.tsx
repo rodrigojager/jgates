@@ -19,6 +19,11 @@ export default function SemanticResultsScreen({ params }: { params: Record<strin
           <a href="#/semantic">{t("semres_back")}</a>
         </div>
         <h1 style={{ overflowWrap: "anywhere" }}>{t("semres_title", { runId: id })}</h1>
+        <p className="small">
+          <a href={`#/validations/coverage/asvs?semanticRun=${encodeURIComponent(id)}`} data-testid="asvs-link">
+            {t("semres_asvs_link")}
+          </a>
+        </p>
       </div>
       {loaded.loading && !loaded.data ? <Loading /> : null}
       {notFound ? <p>{t("semres_not_found")}</p> : loaded.error ? <ErrorNotice error={loaded.error} onRetry={loaded.reload} /> : null}

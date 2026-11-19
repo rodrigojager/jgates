@@ -1,0 +1,83 @@
+rules:
+  - id: jgates.java.weak-hash
+    message: MD5 and SHA-1 are broken for security use. Use SHA-256 or a password hashing function.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.1"]
+    pattern-either:
+      - patterns:
+          - pattern: MessageDigest.getInstance($ALG, ...)
+          - metavariable-regex:
+              metavariable: $ALG
+              regex: ^"(?i:md2|md5|sha-?1)"$
+      - pattern: DigestUtils.md5Hex(...)
+      - pattern: DigestUtils.md5(...)
+      - pattern: DigestUtils.sha1Hex(...)
+      - pattern: DigestUtils.sha1(...)
+      - pattern: Hashing.md5()
+      - pattern: Hashing.sha1()
+
+  - id: jgates.java.weak-cipher
+    message: DES, 3DES, RC2, RC4 and AES in ECB mode are weak. Use AES-GCM or ChaCha20-Poly1305.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.1", "V11.3.2"]
+    patterns:
+      - pattern: Cipher.getInstance($ALG, ...)
+      - metavariable-regex:
+          metavariable: $ALG
+          regex: ^"(?i:(des|desede|rc2|rc4|arcfour)(/.*)?|aes(/ecb/.*)?)"$
+
+  - id: jgates.java.tls-verification-disabled
+    message: TLS certificate or host name verification is turned off. Keep verification on and trust a private CA through a trust store.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-295"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V12.3.2"]
+    pattern-either:
+      - pattern: |
+          new X509TrustManager() {
+            ...
+            public void checkServerTrusted(...) { }
+            ...
+          }
+      - pattern: |
+          class $C implements X509TrustManager {
+            ...
+            public void checkServerTrusted(...) { }
+            ...
+          }
+      - pattern: HttpsURLConnection.setDefaultHostnameVerifier(($A, $B) -> true)
+      - pattern: $X.setHostnameVerifier(($A, $B) -> true)
+      - pattern: $X.loadTrustMaterial($K, ($A, $T) -> true)
+      - pattern: NoopHostnameVerifier.INSTANCE
+      - pattern: InsecureTrustManagerFactory.INSTANCE
+
+  - id: jgates.java.csrf-protection-disabled
+    message: CSRF protection is switched off for the HTTP security configuration. Keep it on for browser sessions and exempt only token-authenticated endpoints.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: authorization
+      cwe: "CWE-352"
+      author: JGates
+      subdimension: authorization
+      asvs_requirements: ["V3.5.1"]
+    pattern-either:
+      - pattern: $HTTP.csrf().disable()
+      - pattern: $HTTP.csrf($C -> $C.disable())
+      - pattern: $HTTP.csrf(AbstractHttpConfigurer::disable)

@@ -1,0 +1,16 @@
+{
+  "packages": [
+    "bash"
+  ],
+  "provides": [
+    {
+      "name": "bash",
+      "path": "/bin/bash",
+      "version": [
+        "bash",
+        "--version"
+      ],
+      "pattern": "version (\\d+\\.\\d+\\.\\d+)"
+    }
+  ]
+}

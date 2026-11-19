@@ -104,6 +104,8 @@ export const routes: RouteDefinition[] = [
           ready: plan.ready,
           blockers: plan.blockers,
           planHash: plan.planHash,
+          // Only with asvs-review planned: how many requirements it will review and what it may cost.
+          ...(plan.asvsReview ? { asvsReview: plan.asvsReview } : {}),
         },
       };
     },

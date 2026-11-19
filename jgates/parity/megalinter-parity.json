@@ -1,0 +1,2818 @@
+{
+ "schemaVersion": 1,
+ "source": "MegaLinter 9.6.0 descriptors, facts only",
+ "entries": [
+  {
+   "id": "ACTION_ACTIONLINT",
+   "tool": "actionlint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".yml",
+     ".yaml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "actionlint",
+    "slice": "T01"
+   }
+  },
+  {
+   "id": "ACTION_ZIZMOR",
+   "tool": "zizmor",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".yml",
+     ".yaml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "zizmor"
+   }
+  },
+  {
+   "id": "ANSIBLE_ANSIBLE_LINT",
+   "tool": "ansible-lint",
+   "license": "GPL-3.0-only",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".yml",
+     ".yaml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     ".ansible-lint",
+     ".ansible-lint.yml",
+     ".ansible-lint.yaml",
+     ".config/ansible-lint.yml",
+     ".config/ansible-lint.yaml"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "ansible-lint",
+    "slice": "T02"
+   }
+  },
+  {
+   "id": "API_SPECTRAL",
+   "tool": "spectral",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".yml",
+     ".yaml",
+     ".json"
+    ],
+    "names": [],
+    "contains": [
+     "\"asyncapi\":",
+     "\"openapi\":",
+     "\"swagger\":",
+     "asyncapi:",
+     "openapi:",
+     "swagger:"
+    ],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "spectral",
+    "slice": "T03"
+   }
+  },
+  {
+   "id": "ARM_ARM_TTK",
+   "tool": "arm-ttk",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".json"
+    ],
+    "names": [],
+    "contains": [
+     "schema\\.management\\.azure\\.com"
+    ],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "arm-ttk",
+    "slice": "T04"
+   }
+  },
+  {
+   "id": "BASH_EXEC",
+   "tool": "bash-exec",
+   "license": "GPL-3.0-or-later",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     "",
+     ".sh",
+     ".bash",
+     ".dash",
+     ".ksh"
+    ],
+    "names": [],
+    "contains": [
+     "^#!/usr/bin/env bash",
+     "^#!/bin/bash",
+     "^#!/bin/sh"
+    ],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "bash-exec",
+    "slice": "L01"
+   }
+  },
+  {
+   "id": "BASH_SHELLCHECK",
+   "tool": "shellcheck",
+   "license": "GPL-3.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     "",
+     ".sh",
+     ".bash",
+     ".dash",
+     ".ksh"
+    ],
+    "names": [],
+    "contains": [
+     "^#!/usr/bin/env bash",
+     "^#!/bin/bash",
+     "^#!/bin/sh"
+    ],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "shellcheck",
+    "slice": "E01"
+   }
+  },
+  {
+   "id": "BASH_SHFMT",
+   "tool": "shfmt",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     "",
+     ".sh",
+     ".bash",
+     ".dash",
+     ".ksh"
+    ],
+    "names": [],
+    "contains": [
+     "^#!/usr/bin/env bash",
+     "^#!/bin/bash",
+     "^#!/bin/sh"
+    ],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "shfmt",
+    "slice": "L01"
+   }
+  },
+  {
+   "id": "BICEP_BICEP_LINTER",
+   "tool": "bicep_linter",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".bicep"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "bicep",
+    "slice": "T04"
+   }
+  },
+  {
+   "id": "C_CPPCHECK",
+   "tool": "cppcheck",
+   "license": "GPL-3.0",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".c",
+     ".h"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "cppcheck",
+    "slice": "L02"
+   }
+  },
+  {
+   "id": "C_CPPLINT",
+   "tool": "cpplint",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".c",
+     ".h"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "cpplint",
+    "slice": "L02"
+   }
+  },
+  {
+   "id": "C_CLANG_FORMAT",
+   "tool": "clang-format",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".c",
+     ".h"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "clang-format",
+    "slice": "L02"
+   }
+  },
+  {
+   "id": "CLOJURE_CLJ_KONDO",
+   "tool": "clj-kondo",
+   "license": "EPL-1.0",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".clj",
+     ".cljs",
+     ".cljc",
+     ".edn"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "clj-kondo",
+    "slice": "L03"
+   }
+  },
+  {
+   "id": "CLOJURE_CLJSTYLE",
+   "tool": "cljstyle",
+   "license": "EPL-1.0",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".clj",
+     ".cljs",
+     ".cljc",
+     ".edn"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "cljstyle",
+    "slice": "L03"
+   }
+  },
+  {
+   "id": "CLOUDFORMATION_CFN_LINT",
+   "tool": "cfn-lint",
+   "license": "MIT-0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".yml",
+     ".yaml",
+     ".json"
+    ],
+    "names": [],
+    "contains": [
+     "AWSTemplateFormatVersion",
+     "(AWS|Alexa|Custom)::"
+    ],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "cfn-lint",
+    "slice": "T05"
+   }
+  },
+  {
+   "id": "COFFEE_COFFEELINT",
+   "tool": "coffeelint",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".coffee"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "coffeelint",
+    "slice": "L04"
+   }
+  },
+  {
+   "id": "COPYPASTE_JSCPD",
+   "tool": "jscpd",
+   "license": "MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "jscpd"
+   }
+  },
+  {
+   "id": "CPP_CPPCHECK",
+   "tool": "cppcheck",
+   "license": "GPL-3.0",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".cpp",
+     ".h",
+     ".cc",
+     ".hpp",
+     ".cxx",
+     ".cu",
+     ".hxx",
+     ".c++",
+     ".hh",
+     ".h++",
+     ".cuh"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "cppcheck",
+    "slice": "L02"
+   }
+  },
+  {
+   "id": "CPP_CPPLINT",
+   "tool": "cpplint",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".cpp",
+     ".h",
+     ".cc",
+     ".hpp",
+     ".cxx",
+     ".cu",
+     ".hxx",
+     ".c++",
+     ".hh",
+     ".h++",
+     ".cuh"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "cpplint",
+    "slice": "L02"
+   }
+  },
+  {
+   "id": "CPP_CLANG_FORMAT",
+   "tool": "clang-format",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".cpp",
+     ".h",
+     ".cc",
+     ".hpp",
+     ".cxx",
+     ".cu",
+     ".hxx",
+     ".c++",
+     ".hh",
+     ".h++",
+     ".cuh"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "clang-format",
+    "slice": "L02"
+   }
+  },
+  {
+   "id": "CSHARP_DOTNET_FORMAT",
+   "tool": "dotnet-format",
+   "license": "MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".cs"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "format-check",
+    "slice": "E02"
+   }
+  },
+  {
+   "id": "CSHARP_CSHARPIER",
+   "tool": "csharpier",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".config",
+     ".cs",
+     ".csproj",
+     ".props",
+     ".targets"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "csharpier",
+    "slice": "L05"
+   }
+  },
+  {
+   "id": "CSHARP_ROSLYNATOR",
+   "tool": "roslynator",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".csproj"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "roslynator",
+    "slice": "L05"
+   }
+  },
+  {
+   "id": "CSS_STYLELINT",
+   "tool": "stylelint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".css",
+     ".scss",
+     ".saas"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "stylelint",
+    "slice": "F01"
+   }
+  },
+  {
+   "id": "DART_DARTANALYZER",
+   "tool": "dartanalyzer",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".dart"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "dartanalyzer",
+    "slice": "L06"
+   }
+  },
+  {
+   "id": "DOCKERFILE_HADOLINT",
+   "tool": "hadolint",
+   "license": "GPL-3.0-only",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [],
+    "names": [
+     "Containerfile",
+     "(.*\\.)?Dockerfile"
+    ],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "hadolint",
+    "slice": "E01"
+   }
+  },
+  {
+   "id": "EDITORCONFIG_EDITORCONFIG_CHECKER",
+   "tool": "editorconfig-checker",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     "*"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     ".editorconfig"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "editorconfig-checker",
+    "slice": "T07"
+   }
+  },
+  {
+   "id": "ENV_DOTENV_LINTER",
+   "tool": "dotenv-linter",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".env"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "dotenv-linter",
+    "slice": "F02"
+   }
+  },
+  {
+   "id": "GHERKIN_GHERKIN_LINT",
+   "tool": "gherkin-lint",
+   "license": "ISC",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".feature"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "gherkin-lint",
+    "slice": "T08"
+   }
+  },
+  {
+   "id": "GO_GOLANGCI_LINT",
+   "tool": "golangci-lint",
+   "license": "GPL-3.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".go"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "golangci-lint"
+   }
+  },
+  {
+   "id": "GO_REVIVE",
+   "tool": "revive",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".go"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "revive",
+    "slice": "L07"
+   }
+  },
+  {
+   "id": "GRAPHQL_GRAPHQL_SCHEMA_LINTER",
+   "tool": "graphql-schema-linter",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".graphql"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "graphql-schema-linter",
+    "slice": "F03"
+   }
+  },
+  {
+   "id": "GROOVY_NPM_GROOVY_LINT",
+   "tool": "npm-groovy-lint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".groovy",
+     ".gvy",
+     ".gradle",
+     ".nf"
+    ],
+    "names": [
+     "Jenkinsfile"
+    ],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "npm-groovy-lint",
+    "slice": "L08"
+   }
+  },
+  {
+   "id": "HTML_DJLINT",
+   "tool": "djlint",
+   "license": "GPL-3.0-only",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".html",
+     ".htm"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "djlint",
+    "slice": "F04"
+   }
+  },
+  {
+   "id": "HTML_HTMLHINT",
+   "tool": "htmlhint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".html",
+     ".htm"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "htmlhint",
+    "slice": "F04"
+   }
+  },
+  {
+   "id": "JAVA_CHECKSTYLE",
+   "tool": "checkstyle",
+   "license": "LGPL-2.1",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".java"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "checkstyle",
+    "slice": "L09"
+   }
+  },
+  {
+   "id": "JAVA_PMD",
+   "tool": "pmd",
+   "license": "BSD-2-Clause",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".java"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "pmd",
+    "slice": "L09"
+   }
+  },
+  {
+   "id": "JAVASCRIPT_ES",
+   "tool": "eslint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".js",
+     ".vue"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     "eslint.config.js",
+     "eslint.config.mjs",
+     "eslint.config.cjs",
+     "eslint.config.ts",
+     "eslint.config.mts",
+     "eslint.config.cts",
+     ".eslintrc.json",
+     ".eslintrc.yml",
+     ".eslintrc.yaml",
+     ".eslintrc.js",
+     ".eslintrc.cjs",
+     "package.json:eslintConfig"
+    ]
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "eslint"
+   }
+  },
+  {
+   "id": "JAVASCRIPT_STANDARD",
+   "tool": "standard",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".js"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "standard",
+    "slice": "L10"
+   }
+  },
+  {
+   "id": "JAVASCRIPT_PRETTIER",
+   "tool": "prettier",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".js"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "format-check"
+   }
+  },
+  {
+   "id": "JSON_JSONLINT",
+   "tool": "jsonlint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".json"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "jsonlint",
+    "slice": "F05"
+   }
+  },
+  {
+   "id": "JSON_ESLINT_PLUGIN_JSONC",
+   "tool": "eslint-plugin-jsonc",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".json",
+     ".json5",
+     ".jsonc"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "excluded",
+    "reason": "MegaLinter disabled it (a long-standing bug) and it is deprecated; replaced by jsonlint and prettier",
+    "decided": "2026-11-17"
+   }
+  },
+  {
+   "id": "JSON_V8R",
+   "tool": "v8r",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".json"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "v8r",
+    "slice": "F05"
+   }
+  },
+  {
+   "id": "JSON_PRETTIER",
+   "tool": "prettier",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".json"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "format-check",
+    "slice": "E03"
+   }
+  },
+  {
+   "id": "JSON_NPM_PACKAGE_JSON_LINT",
+   "tool": "npm-package-json-lint",
+   "license": "MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".json"
+    ],
+    "names": [
+     "package\\.json"
+    ],
+    "contains": [],
+    "onlyIfFileFound": [
+     "package.json"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "npm-package-json-lint",
+    "slice": "F05"
+   }
+  },
+  {
+   "id": "JSX_ESLINT",
+   "tool": "eslint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".jsx"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     "eslint.config.js",
+     "eslint.config.mjs",
+     "eslint.config.cjs",
+     "eslint.config.ts",
+     "eslint.config.mts",
+     "eslint.config.cts",
+     ".eslintrc.json",
+     ".eslintrc.yml",
+     ".eslintrc.yaml",
+     ".eslintrc.js",
+     ".eslintrc.cjs",
+     "package.json:eslintConfig"
+    ]
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "eslint"
+   }
+  },
+  {
+   "id": "KOTLIN_KTLINT",
+   "tool": "ktlint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".kt",
+     ".kts"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "ktlint",
+    "slice": "L11"
+   }
+  },
+  {
+   "id": "KOTLIN_DETEKT",
+   "tool": "detekt",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".kt",
+     ".kts"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "detekt",
+    "slice": "L11"
+   }
+  },
+  {
+   "id": "KUBERNETES_KUBECONFORM",
+   "tool": "kubeconform",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".yml",
+     ".yaml",
+     ".json"
+    ],
+    "names": [],
+    "contains": [
+     "apiVersion:",
+     "kustomize\\.config\\.k8s\\.io",
+     "tekton"
+    ],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "kubeconform",
+    "slice": "T09"
+   }
+  },
+  {
+   "id": "KUBERNETES_HELM",
+   "tool": "helm",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".yml",
+     ".yaml",
+     ".json"
+    ],
+    "names": [],
+    "contains": [
+     "apiVersion:",
+     "kustomize\\.config\\.k8s\\.io",
+     "tekton"
+    ],
+    "onlyIfFileFound": [
+     "Chart.yml",
+     "Chart.yaml"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "helm",
+    "slice": "T09"
+   }
+  },
+  {
+   "id": "KUBERNETES_KUBESCAPE",
+   "tool": "kubescape",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".yml",
+     ".yaml",
+     ".json"
+    ],
+    "names": [],
+    "contains": [
+     "apiVersion:",
+     "kustomize\\.config\\.k8s\\.io",
+     "tekton"
+    ],
+    "onlyIfFileFound": [
+     "Chart.yml",
+     "Chart.yaml"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "kubescape",
+    "slice": "T09"
+   }
+  },
+  {
+   "id": "LATEX_CHKTEX",
+   "tool": "chktex",
+   "license": "GPL-2.0",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".tex"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "chktex",
+    "slice": "F06"
+   }
+  },
+  {
+   "id": "LUA_LUACHECK",
+   "tool": "luacheck",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".lua"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "luacheck",
+    "slice": "L12"
+   }
+  },
+  {
+   "id": "LUA_SELENE",
+   "tool": "selene",
+   "license": null,
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".lua"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "selene",
+    "slice": "L12"
+   }
+  },
+  {
+   "id": "LUA_STYLUA",
+   "tool": "stylua",
+   "license": null,
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".lua"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "stylua",
+    "slice": "L12"
+   }
+  },
+  {
+   "id": "MAKEFILE_CHECKMAKE",
+   "tool": "checkmake",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [],
+    "names": [
+     "Makefile"
+    ],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "checkmake",
+    "slice": "T14"
+   }
+  },
+  {
+   "id": "MARKDOWN_MARKDOWNLINT",
+   "tool": "markdownlint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".md"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "markdownlint",
+    "slice": "F07"
+   }
+  },
+  {
+   "id": "MARKDOWN_REMARK_LINT",
+   "tool": "remark-lint",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".md"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "remark-lint",
+    "slice": "F12"
+   }
+  },
+  {
+   "id": "MARKDOWN_MARKDOWN_TABLE_FORMATTER",
+   "tool": "markdown-table-formatter",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".md"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "markdown-table-formatter",
+    "slice": "F07"
+   }
+  },
+  {
+   "id": "MARKDOWN_RUMDL",
+   "tool": "rumdl",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".md"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "rumdl",
+    "slice": "F07"
+   }
+  },
+  {
+   "id": "PERL_PERLCRITIC",
+   "tool": "perlcritic",
+   "license": "Artistic-1.0-Perl OR GPL-1.0-or-later",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".pl",
+     ".pm",
+     ".t",
+     ""
+    ],
+    "names": [],
+    "contains": [
+     "^#!/usr/bin/env perl",
+     "^#!/usr/bin/perl"
+    ],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "perlcritic",
+    "slice": "L13"
+   }
+  },
+  {
+   "id": "PHP_PHPCS",
+   "tool": "phpcs",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".php"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "phpcs",
+    "slice": "L14"
+   }
+  },
+  {
+   "id": "PHP_PHPSTAN",
+   "tool": "phpstan",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".php"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "phpstan",
+    "slice": "L14"
+   }
+  },
+  {
+   "id": "PHP_PSALM",
+   "tool": "psalm",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".php"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "psalm",
+    "slice": "L14"
+   }
+  },
+  {
+   "id": "PHP_PHPLINT",
+   "tool": "phplint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".php"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "phplint",
+    "slice": "L14"
+   }
+  },
+  {
+   "id": "PHP_PHPCSFIXER",
+   "tool": "php-cs-fixer",
+   "license": "MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".php"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "php-cs-fixer",
+    "slice": "L14"
+   }
+  },
+  {
+   "id": "POWERSHELL_POWERSHELL",
+   "tool": "powershell",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".ps1",
+     ".psm1",
+     ".psd1",
+     ".ps1xml",
+     ".pssc",
+     ".psrc",
+     ".cdxml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "psscriptanalyzer",
+    "slice": "L15"
+   }
+  },
+  {
+   "id": "POWERSHELL_POWERSHELL_FORMATTER",
+   "tool": "powershell_formatter",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".ps1",
+     ".psm1",
+     ".psd1",
+     ".ps1xml",
+     ".pssc",
+     ".psrc",
+     ".cdxml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "psscriptanalyzer-formatter",
+    "slice": "L15"
+   }
+  },
+  {
+   "id": "PROTOBUF_PROTOLINT",
+   "tool": "protolint",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".proto"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "protolint",
+    "slice": "F08"
+   }
+  },
+  {
+   "id": "PUPPET_PUPPET_LINT",
+   "tool": "puppet-lint",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".pp"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "puppet-lint",
+    "slice": "T15"
+   }
+  },
+  {
+   "id": "PYTHON_PYLINT",
+   "tool": "pylint",
+   "license": "GPL-2.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".py",
+     ".pyi"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "pylint",
+    "slice": "L16"
+   }
+  },
+  {
+   "id": "PYTHON_BLACK",
+   "tool": "black",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".py",
+     ".pyi",
+     ".ipynb"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "black",
+    "slice": "L16"
+   }
+  },
+  {
+   "id": "PYTHON_FLAKE8",
+   "tool": "flake8",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".py"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "flake8",
+    "slice": "L16"
+   }
+  },
+  {
+   "id": "PYTHON_ISORT",
+   "tool": "isort",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".py",
+     ".pyi",
+     ".pyx",
+     ".pxd"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "isort",
+    "slice": "L16"
+   }
+  },
+  {
+   "id": "PYTHON_BANDIT",
+   "tool": "bandit",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".py",
+     ".pyi",
+     ".ipynb"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "bandit",
+    "slice": "L16"
+   }
+  },
+  {
+   "id": "PYTHON_MYPY",
+   "tool": "mypy",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".py",
+     ".pyi"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "build-check",
+    "slice": "E04"
+   }
+  },
+  {
+   "id": "PYTHON_NBQA_MYPY",
+   "tool": "nbqa",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".ipynb"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "nbqa",
+    "slice": "L16"
+   }
+  },
+  {
+   "id": "PYTHON_PYRIGHT",
+   "tool": "pyright",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".py",
+     ".pyi"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "build-check",
+    "slice": "E04"
+   }
+  },
+  {
+   "id": "PYTHON_RUFF",
+   "tool": "ruff",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".py",
+     ".pyi",
+     ".ipynb"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "ruff"
+   }
+  },
+  {
+   "id": "PYTHON_RUFF_FORMAT",
+   "tool": "ruff-format",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".py",
+     ".pyi",
+     ".ipynb"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "format-check"
+   }
+  },
+  {
+   "id": "R_LINTR",
+   "tool": "lintr",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".r",
+     ".R",
+     ".Rmd",
+     ".RMD"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "lintr",
+    "slice": "L17"
+   }
+  },
+  {
+   "id": "RAKU_RAKU",
+   "tool": "raku",
+   "license": "Artistic-2.0",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".raku",
+     ".rakumod",
+     ".rakutest",
+     ".pm6",
+     ".pl6",
+     ".p6"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "raku",
+    "slice": "L18"
+   }
+  },
+  {
+   "id": "REPOSITORY_CHECKOV",
+   "tool": "checkov",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "checkov"
+   }
+  },
+  {
+   "id": "REPOSITORY_DEVSKIM",
+   "tool": "devskim",
+   "license": "MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "devskim",
+    "slice": "O03"
+   }
+  },
+  {
+   "id": "REPOSITORY_DUSTILOCK",
+   "tool": "dustilock",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "dustilock",
+    "slice": "O02"
+   }
+  },
+  {
+   "id": "REPOSITORY_GIT_DIFF",
+   "tool": "git_diff",
+   "license": "LGPL-2.1",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "git-diff-check",
+    "slice": "O04"
+   }
+  },
+  {
+   "id": "REPOSITORY_GITLEAKS",
+   "tool": "gitleaks",
+   "license": "MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "gitleaks"
+   }
+  },
+  {
+   "id": "REPOSITORY_BETTERLEAKS",
+   "tool": "betterleaks",
+   "license": "MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "betterleaks",
+    "slice": "O01"
+   }
+  },
+  {
+   "id": "REPOSITORY_GRYPE",
+   "tool": "grype",
+   "license": null,
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "grype",
+    "slice": "O02"
+   }
+  },
+  {
+   "id": "REPOSITORY_KICS",
+   "tool": "kics",
+   "license": null,
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "excluded",
+    "reason": "supply chain compromise of the vendor, excluded for safety; checkov and trivy scan the same files",
+    "decided": "2026-11-17"
+   }
+  },
+  {
+   "id": "REPOSITORY_LS_LINT",
+   "tool": "ls-lint",
+   "license": null,
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     ".ls-lint.yml"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "ls-lint",
+    "slice": "O04"
+   }
+  },
+  {
+   "id": "REPOSITORY_OSV_SCANNER",
+   "tool": "osv-scanner",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "osv-scanner"
+   }
+  },
+  {
+   "id": "REPOSITORY_SECRETLINT",
+   "tool": "secretlint",
+   "license": null,
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "secretlint",
+    "slice": "O01"
+   }
+  },
+  {
+   "id": "REPOSITORY_SEMGREP",
+   "tool": "semgrep",
+   "license": null,
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "semgrep"
+   }
+  },
+  {
+   "id": "REPOSITORY_SYFT",
+   "tool": "syft",
+   "license": null,
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "syft",
+    "slice": "O02"
+   }
+  },
+  {
+   "id": "REPOSITORY_TRIVY",
+   "tool": "trivy",
+   "license": null,
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "trivy"
+   }
+  },
+  {
+   "id": "REPOSITORY_TRIVY_SBOM",
+   "tool": "trivy-sbom",
+   "license": null,
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "trivy",
+    "slice": "E05"
+   }
+  },
+  {
+   "id": "REPOSITORY_TRUFFLEHOG",
+   "tool": "trufflehog",
+   "license": null,
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "trufflehog",
+    "slice": "O01"
+   }
+  },
+  {
+   "id": "REPOSITORY_KINGFISHER",
+   "tool": "kingfisher",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "kingfisher",
+    "slice": "O01"
+   }
+  },
+  {
+   "id": "ROBOTFRAMEWORK_ROBOCOP",
+   "tool": "robocop",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".robot",
+     ".resource"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "robocop",
+    "slice": "T10"
+   }
+  },
+  {
+   "id": "RST_RST_LINT",
+   "tool": "rst-lint",
+   "license": "Unlicense",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".rst"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "rst-lint",
+    "slice": "F09"
+   }
+  },
+  {
+   "id": "RST_RSTCHECK",
+   "tool": "rstcheck",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".rst"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "rstcheck",
+    "slice": "F09"
+   }
+  },
+  {
+   "id": "RST_RSTFMT",
+   "tool": "rstfmt",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".rst"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "rstfmt",
+    "slice": "F09"
+   }
+  },
+  {
+   "id": "RUBY_RUBOCOP",
+   "tool": "rubocop",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".rb"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "rubocop",
+    "slice": "L19"
+   }
+  },
+  {
+   "id": "RUST_CLIPPY",
+   "tool": "clippy",
+   "license": "Apache-2.0 OR MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".rs"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "clippy"
+   }
+  },
+  {
+   "id": "SALESFORCE_CODE_ANALYZER_APEX",
+   "tool": "code-analyzer-apex",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "code-analyzer-apex",
+    "slice": "L21"
+   }
+  },
+  {
+   "id": "SALESFORCE_CODE_ANALYZER_AURA",
+   "tool": "code-analyzer-aura",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "code-analyzer-aura",
+    "slice": "L21"
+   }
+  },
+  {
+   "id": "SALESFORCE_CODE_ANALYZER_LWC",
+   "tool": "code-analyzer-lwc",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "code-analyzer-lwc",
+    "slice": "L21"
+   }
+  },
+  {
+   "id": "SALESFORCE_SFDX_SCANNER_APEX",
+   "tool": "sfdx-scanner-apex",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "excluded",
+    "reason": "incompatible with Node.js 22+ and deprecated; replaced by the Salesforce code analyzer",
+    "decided": "2026-11-17"
+   }
+  },
+  {
+   "id": "SALESFORCE_SFDX_SCANNER_AURA",
+   "tool": "sfdx-scanner-aura",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "excluded",
+    "reason": "incompatible with Node.js 22+ and deprecated; replaced by the Salesforce code analyzer",
+    "decided": "2026-11-17"
+   }
+  },
+  {
+   "id": "SALESFORCE_SFDX_SCANNER_LWC",
+   "tool": "sfdx-scanner-lwc",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "excluded",
+    "reason": "incompatible with Node.js 22+ and deprecated; replaced by the Salesforce code analyzer",
+    "decided": "2026-11-17"
+   }
+  },
+  {
+   "id": "SALESFORCE_LIGHTNING_FLOW_SCANNER",
+   "tool": "lightning-flow-scanner",
+   "license": "AGPL-3.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "excluded",
+    "reason": "upstream repository archived (and AGPL-3.0)",
+    "decided": "2026-11-17"
+   }
+  },
+  {
+   "id": "SCALA_SCALAFIX",
+   "tool": "scalafix",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".scala"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "scalafix",
+    "slice": "L22"
+   }
+  },
+  {
+   "id": "SNAKEMAKE_LINT",
+   "tool": "snakemake",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".smk"
+    ],
+    "names": [
+     "Snakefile"
+    ],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "snakemake",
+    "slice": "T11"
+   }
+  },
+  {
+   "id": "SNAKEMAKE_SNAKEFMT",
+   "tool": "snakefmt",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".smk"
+    ],
+    "names": [
+     "Snakefile"
+    ],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "snakefmt",
+    "slice": "T11"
+   }
+  },
+  {
+   "id": "SPELL_CSPELL",
+   "tool": "cspell",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "cspell",
+    "slice": "O05"
+   }
+  },
+  {
+   "id": "SPELL_PROSELINT",
+   "tool": "proselint",
+   "license": "BSD-3-Clause",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".md",
+     ".txt"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     ".proselintrc",
+     "proselint/config.json"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "proselint",
+    "slice": "O05"
+   }
+  },
+  {
+   "id": "SPELL_VALE",
+   "tool": "vale",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".md",
+     ".rst"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     ".vale.ini"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "vale",
+    "slice": "O05"
+   }
+  },
+  {
+   "id": "SPELL_LYCHEE",
+   "tool": "lychee",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".md",
+     ".mdx",
+     ".markdown",
+     ".html",
+     ".htm",
+     ".rst",
+     ".txt",
+     ".json",
+     ".jsonc",
+     ".json5",
+     ".yaml",
+     ".yml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "lychee",
+    "slice": "O06"
+   }
+  },
+  {
+   "id": "SPELL_CODESPELL",
+   "tool": "codespell",
+   "license": null,
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".md",
+     ".mdx",
+     ".markdown",
+     ".html",
+     ".htm",
+     ".rst",
+     ".txt",
+     ".json",
+     ".jsonc",
+     ".json5",
+     ".yaml",
+     ".yml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     ".codespellrc"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "codespell",
+    "slice": "O05"
+   }
+  },
+  {
+   "id": "SQL_SQLFLUFF",
+   "tool": "sqlfluff",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".sql"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     ".sqlfluff"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "sqlfluff",
+    "slice": "L23"
+   }
+  },
+  {
+   "id": "SQL_TSQLLINT",
+   "tool": "tsqllint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".sql"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "excluded",
+    "reason": "fails the vulnerability gate: tsqllint 1.16.0, its latest release, ships System.Drawing.Common 4.7.0 (CVE-2021-24112, critical, fixed in 4.7.2); left out as decided in advance (PLAN-catalog section 3), as V1 had to",
+    "decided": "2026-11-17"
+   }
+  },
+  {
+   "id": "SWIFT_SWIFTLINT",
+   "tool": "swiftlint",
+   "license": "MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".swift"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     ".swiftlint.yml"
+    ]
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "swiftlint",
+    "slice": "L24"
+   }
+  },
+  {
+   "id": "TEKTON_TEKTON_LINT",
+   "tool": "tekton-lint",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".yml",
+     ".yaml"
+    ],
+    "names": [],
+    "contains": [
+     "apiVersion: tekton"
+    ],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "tekton-lint",
+    "slice": "T12"
+   }
+  },
+  {
+   "id": "TERRAFORM_TFLINT",
+   "tool": "tflint",
+   "license": "MPL-2.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".tf"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "tflint",
+    "slice": "T13"
+   }
+  },
+  {
+   "id": "TERRAFORM_TERRASCAN",
+   "tool": "terrascan",
+   "license": "Apache-2.0",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".tf"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "excluded",
+    "reason": "deprecated in MegaLinter and archived by its author; checkov and trivy scan the same files",
+    "decided": "2026-11-17"
+   }
+  },
+  {
+   "id": "TERRAFORM_TERRAGRUNT",
+   "tool": "terragrunt",
+   "license": "MIT",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".hcl"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "terragrunt",
+    "slice": "T13"
+   }
+  },
+  {
+   "id": "TERRAFORM_TERRAFORM_FMT",
+   "tool": "terraform-fmt",
+   "license": "BUSL-1.1",
+   "activation": {
+    "mode": "file",
+    "extensions": [
+     ".tf"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "tofu-fmt",
+    "slice": "T13"
+   }
+  },
+  {
+   "id": "TSX_ESLINT",
+   "tool": "eslint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".tsx"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     "eslint.config.js",
+     "eslint.config.mjs",
+     "eslint.config.cjs",
+     "eslint.config.ts",
+     "eslint.config.mts",
+     "eslint.config.cts",
+     ".eslintrc.json",
+     ".eslintrc.yml",
+     ".eslintrc.yaml",
+     ".eslintrc.js",
+     ".eslintrc.cjs",
+     "package.json:eslintConfig"
+    ]
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "eslint"
+   }
+  },
+  {
+   "id": "TYPESCRIPT_ES",
+   "tool": "eslint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".ts"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": [
+     "eslint.config.js",
+     "eslint.config.mjs",
+     "eslint.config.cjs",
+     "eslint.config.ts",
+     "eslint.config.mts",
+     "eslint.config.cts",
+     ".eslintrc.json",
+     ".eslintrc.yml",
+     ".eslintrc.yaml",
+     ".eslintrc.js",
+     ".eslintrc.cjs",
+     "package.json:eslintConfig"
+    ]
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "eslint"
+   }
+  },
+  {
+   "id": "TYPESCRIPT_STANDARD",
+   "tool": "ts-standard",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".ts"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "ts-standard",
+    "slice": "L10"
+   }
+  },
+  {
+   "id": "TYPESCRIPT_PRETTIER",
+   "tool": "prettier",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".ts"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "format-check"
+   }
+  },
+  {
+   "id": "VBDOTNET_DOTNET_FORMAT",
+   "tool": "dotnet-format",
+   "license": "MIT",
+   "activation": {
+    "mode": "project",
+    "extensions": [
+     ".vb"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "format-check",
+    "slice": "E02"
+   }
+  },
+  {
+   "id": "XML_XMLLINT",
+   "tool": "xmllint",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".xml",
+     ".xsd"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "xmllint",
+    "slice": "F10"
+   }
+  },
+  {
+   "id": "YAML_PRETTIER",
+   "tool": "prettier",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".yml",
+     ".yaml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "adapter",
+    "adapter": "format-check",
+    "slice": "E03"
+   }
+  },
+  {
+   "id": "YAML_YAMLLINT",
+   "tool": "yamllint",
+   "license": "GPL-3.0",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".yml",
+     ".yaml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "yamllint",
+    "slice": "F11"
+   }
+  },
+  {
+   "id": "YAML_V8R",
+   "tool": "v8r",
+   "license": "MIT",
+   "activation": {
+    "mode": "list_of_files",
+    "extensions": [
+     ".yml",
+     ".yaml"
+    ],
+    "names": [],
+    "contains": [],
+    "onlyIfFileFound": []
+   },
+   "answer": {
+    "kind": "descriptor",
+    "descriptor": "v8r",
+    "slice": "F05"
+   }
+  }
+ ]
+}

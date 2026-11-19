@@ -1,0 +1,18 @@
+{
+  "packages": [
+    "php-cli",
+    "php-mbstring",
+    "php-xml"
+  ],
+  "provides": [
+    {
+      "name": "php",
+      "path": "/usr/bin/php",
+      "version": [
+        "php",
+        "--version"
+      ],
+      "pattern": "PHP (\\d+\\.\\d+\\.\\d+)"
+    }
+  ]
+}

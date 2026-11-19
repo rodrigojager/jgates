@@ -1,0 +1,281 @@
+# Rust file-handling rules: uploads, archive extraction, request size limits and download headers.
+# Frameworks covered: axum (Multipart, Query, Path, Form, Json extractors), actix-web and actix-multipart; the tar and zip crates for archives.
+# Rocket upload types are not covered. The engine follows data inside one function, so each source and sink pair sits in one handler.
+rules:
+  - id: jgates.rust.upload-client-filename-in-path
+    message: The file name the client sent with an upload is used in a path the file is written to. Reduce it to a base name with Path::new(name).file_name(), or store the file under a name the server generates.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: path-traversal
+      cwe: "CWE-22"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.3.2"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $FIELD.file_name()
+              - pattern: $FIELD.get_filename()
+          - pattern-not: Path::new(...).file_name()
+          - pattern-not: PathBuf::from(...).file_name()
+          - pattern-not: $X.path().file_name()
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., $M: Multipart, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., mut $M: Multipart, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $M: axum::extract::Multipart, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., mut $M: axum::extract::Multipart, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $M: actix_multipart::Multipart, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., mut $M: actix_multipart::Multipart, ...) { ... }
+    pattern-sanitizers:
+      - pattern: Path::new(...).file_name()
+      - pattern: sanitize_filename::sanitize(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: std::fs::$F($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: fs::$F($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: tokio::fs::$F($P, ...)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: File::create($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: File::open($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $O.open($P)
+          - focus-metavariable: $P
+      - patterns:
+          - pattern: $B.join($P)
+          - focus-metavariable: $P
+
+  - id: jgates.rust.archive-extraction-unchecked
+    message: An archive is extracted without a visible path or size check. Confirm that extraction confines entries to the destination, rejects unsafe links and caps the total size, or enforce those checks here with enclosed_name, unpack_in and size limits.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: file-handling
+      cwe: "CWE-22"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.3", "V5.3.2"]
+      class: review
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $D.join($E.path().unwrap())
+                  - pattern: $D.join($E.path()?)
+                  - pattern: $D.join(&$E.path()?)
+                  - patterns:
+                      - pattern-either:
+                          - pattern: $D.join(<... $E.name() ...>)
+                          - pattern: Path::new(<... $E.name() ...>)
+                          - pattern: PathBuf::from(<... $E.name() ...>)
+                          - pattern: File::create(<... $E.name() ...>)
+                      - pattern-either:
+                          - pattern-inside: |
+                              let mut $E = $A.by_index(...)?;
+                              ...
+                          - pattern-inside: |
+                              let mut $E = $A.by_index(...).unwrap();
+                              ...
+                          - pattern-inside: |
+                              let $E = $A.by_index(...)?;
+                              ...
+                          - pattern-inside: |
+                              let $E = $A.by_index(...).unwrap();
+                              ...
+              - pattern-not-inside: |
+                  fn $F(...) { ... if <... $X.starts_with(...) ...> { ... } ... }
+              - pattern-not-inside: |
+                  fn $F(...) { ... if <... $X.contains("..") ...> { ... } ... }
+              - pattern-not-inside: |
+                  fn $F(...) { ... if <... Component::ParentDir ...> { ... } ... }
+              - pattern-not-inside: |
+                  fn $F(...) { ... if <... $X.is_absolute() ...> { ... } ... }
+          - patterns:
+              - pattern-either:
+                  - pattern: $A.unpack(...)
+                  - pattern: $A.extract(...)
+              - pattern-either:
+                  - pattern-inside: |
+                      let mut $A = $T::new(...);
+                      ...
+                  - pattern-inside: |
+                      let mut $A = $T::new(...).unwrap();
+                      ...
+                  - pattern-inside: |
+                      let mut $A = $T::new(...)?;
+                      ...
+              - metavariable-regex:
+                  metavariable: $T
+                  regex: '^(tar::Archive|Archive|ZipArchive|zip::ZipArchive)$'
+              - pattern-not-inside: |
+                  fn $F(...) { ... $V += <... $X.size() ...>; ... }
+              - pattern-not-inside: |
+                  fn $F(...) { ... let $V = <... $X.size() ...>; ... }
+              - pattern-not-inside: |
+                  fn $F(...) { ... let $V: $TY = <... $X.size() ...>; ... }
+              - pattern-not-inside: |
+                  fn $F(...) { ... if <... $X.size() ...> { ... } ... }
+              - pattern-not-inside: |
+                  fn $F(...) { ... let mut $B = $T2::new(<... $X.take(...) ...>); ... }
+
+  - id: jgates.rust.request-body-without-size-limit
+    message: The request body size limit is switched off or raised to the largest possible value, so one request can use all the memory of the server. Keep a fixed limit with DefaultBodyLimit::max or wrap the body in http_body_util::Limited.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.1"]
+    patterns:
+      - pattern-either:
+          - pattern: DefaultBodyLimit::disable()
+          - pattern: axum::extract::DefaultBodyLimit::disable()
+          - pattern: DefaultBodyLimit::max(usize::MAX)
+          - pattern: RequestBodyLimitLayer::new(usize::MAX)
+          - pattern: axum::body::to_bytes($B, usize::MAX)
+          - pattern: to_bytes($B, usize::MAX)
+          - pattern: web::PayloadConfig::new(usize::MAX)
+          - pattern: PayloadConfig::new(usize::MAX)
+          - pattern: $C.limit(usize::MAX)
+
+  - id: jgates.rust.request-body-without-size-limit-by-default
+    message: A Hyper request body is collected without a visible size limit. If an upstream layer does not enforce a fixed limit, a request can exhaust server memory; wrap the body in http_body_util::Limited or confirm where the limit is enforced.
+    severity: INFO
+    languages: [rust]
+    metadata:
+      category: file-handling
+      cwe: "CWE-770"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.1"]
+      class: review
+    patterns:
+      - pattern: hyper::body::to_bytes($B)
+      - pattern-not: hyper::body::to_bytes(Limited::new(...))
+      - pattern-not: hyper::body::to_bytes(http_body_util::Limited::new(...))
+
+  - id: jgates.rust.upload-content-type-trusted
+    message: The content type the client declared for an upload is used as the type check, and the client can set it to anything. Detect the type from the file content, for example with infer::get on the bytes, and compare that instead.
+    severity: WARNING
+    languages: [rust]
+    metadata:
+      category: file-handling
+      cwe: "CWE-434"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.2.2"]
+    patterns:
+      - pattern-either:
+          - pattern: $FIELD.content_type() == $X
+          - pattern: $FIELD.content_type() != $X
+          - pattern: $FIELD.content_type().unwrap() == $X
+          - pattern: $FIELD.content_type().unwrap() != $X
+          - pattern: $FIELD.content_type().essence_str() == $X
+          - pattern: $FIELD.content_type().essence_str() != $X
+          - pattern: $X.contains(&$FIELD.content_type().unwrap())
+          - pattern: $X.contains(&$FIELD.content_type())
+          - pattern: $X.contains(&$FIELD.content_type().essence_str())
+          - pattern: $FIELD.content_type().unwrap().starts_with(...)
+      - pattern-either:
+          - pattern-inside: |
+              async fn $F(..., $M: Multipart, ...) { ... }
+          - pattern-inside: |
+              async fn $F(..., mut $M: Multipart, ...) { ... }
+          - pattern-inside: |
+              async fn $F(..., $M: axum::extract::Multipart, ...) { ... }
+          - pattern-inside: |
+              async fn $F(..., mut $M: axum::extract::Multipart, ...) { ... }
+          - pattern-inside: |
+              async fn $F(..., $M: actix_multipart::Multipart, ...) { ... }
+          - pattern-inside: |
+              async fn $F(..., mut $M: actix_multipart::Multipart, ...) { ... }
+      - pattern-not-inside: |
+          async fn $F(...) { ... <... infer::get(...) ...> ... }
+      - pattern-not-inside: |
+          async fn $F(...) { ... <... tree_magic_mini::from_u8(...) ...> ... }
+
+  - id: jgates.rust.content-disposition-from-request
+    message: Data from the incoming request is joined into a Content-Disposition header. Build the value from a name the server controls, reduce the file name with sanitize_filename, or percent-encode it with urlencoding::encode.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    metadata:
+      category: file-handling
+      cwe: "CWE-113"
+      subdimension: injection
+      author: JGates
+      asvs_requirements: ["V5.4.1", "V5.4.2"]
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  async fn $F(..., Query($P): Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Path($P): Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Form($P): Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., Json($P): Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: Json<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Query<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Path<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Form<$T>, ...) { ... }
+              - pattern-inside: |
+                  async fn $F(..., $P: web::Json<$T>, ...) { ... }
+          - pattern: $P
+    pattern-sanitizers:
+      - pattern: sanitize_filename::sanitize(...)
+      - pattern: urlencoding::encode(...)
+      - pattern: Path::new(...).file_name()
+    pattern-sinks:
+      - patterns:
+          - pattern: (header::CONTENT_DISPOSITION, $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: (http::header::CONTENT_DISPOSITION, $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: (CONTENT_DISPOSITION, $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: ("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: ("content-disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $B.header(header::CONTENT_DISPOSITION, $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $B.header("Content-Disposition", $V)
+          - focus-metavariable: $V
+      - patterns:
+          - pattern: $B.header("content-disposition", $V)
+          - focus-metavariable: $V

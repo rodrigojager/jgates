@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
-import { REPO, createFixture, openApp, openGroups, pageGet, startServer, type Fixture } from "./support";
+import { REPO, createFixture, openApp, openGroups, pageGet, simulateHostDisk, startServer, type Fixture } from "./support";
 
 // The preparation phases in the interface, on the fake container engine: the review's "Preparação" group with the network
 // of each step and the single TOOL_MISSING blocker with its download; the run screen's five phases, each with its log
@@ -32,6 +32,7 @@ function build(imageThere: boolean): { fixture: Fixture; engine: string } {
   fixture.env.JGATES_CONTAINER_RUNTIME = runtime;
   fixture.env.JGATES_TOOLS_IMAGE = PINNED;
   fixture.env.JGATES_NO_CACHE = "1";
+  simulateHostDisk(fixture);
   fs.writeFileSync(path.join(fixture.home, "preferences.json"), `${JSON.stringify({ schemaVersion: 1, theme: "system", language: "pt-BR" }, null, 2)}\n`, { mode: 0o600 });
   return { fixture, engine };
 }

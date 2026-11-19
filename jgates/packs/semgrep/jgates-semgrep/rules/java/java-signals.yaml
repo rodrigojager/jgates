@@ -1,0 +1,253 @@
+# Signal rules of the Java front: which technologies a project uses (jgates.java.uses-<tag>).
+# They are records of the scan, never findings: they feed the "not applicable" suggestions.
+# Each rule matches the import of the libraries that bring the technology into a Java project (plain, wildcard and
+# static imports), or the typical call where the standard library needs no dependency. Imports are syntax, so a
+# comment or a string that only mentions a library does not match. The tag "latex" has no signal in Java: no library
+# is common enough to list with confidence.
+rules:
+  - id: jgates.java.uses-graphql
+    message: The project uses GraphQL.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: graphql
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(graphql|com\.netflix\.graphql|com\.apollographql|io\.leangen\.graphql|com\.graphql_java_generator|org\.springframework\.graphql|com\.expediagroup\.graphql|io\.smallrye\.graphql|org\.eclipse\.microprofile\.graphql|com\.kobylynskyi\.graphql|com\.coxautodev\.graphql|com\.introproventures\.graphql)(\..*)?$
+
+  - id: jgates.java.uses-websocket
+    message: The project uses WebSocket.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: websocket
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(javax\.websocket|jakarta\.websocket|java\.net\.http\.WebSocket|org\.springframework\.web\.socket|org\.springframework\.messaging\.simp|org\.springframework\.web\.reactive\.socket|org\.java_websocket|org\.eclipse\.jetty\.websocket|org\.eclipse\.jetty\.ee[0-9]*\.websocket|io\.undertow\.websockets|org\.glassfish\.tyrus|org\.apache\.tomcat\.websocket|io\.netty\.handler\.codec\.http\.websocketx|io\.socket|com\.corundumstudio\.socketio|org\.atmosphere|okhttp3\.WebSocket|okhttp3\.WebSocketListener|org\.asynchttpclient\.ws|io\.vertx\.core\.http\.WebSocket|io\.vertx\.core\.http\.ServerWebSocket|org\.apache\.cxf\.transport\.websocket|org\.eclipse\.jetty\.websocket|com\.neovisionaries\.ws|org\.drasyl|io\.quarkus\.websockets|org\.springframework\.web\.socket\.messaging|com\.sun\.net\.httpserver\.websocket)(\..*)?$
+
+  - id: jgates.java.uses-webrtc
+    message: The project uses WebRTC.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: webrtc
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(org\.webrtc|dev\.onvoid\.webrtc|io\.livekit|livekit|org\.kurento|io\.openvidu|org\.jitsi|io\.github\.webrtc-sdk|com\.ibm\.watson\.developer_cloud\.webrtc|org\.mediasoup|org\.ice4j|com\.github\.nkzawa\.webrtc|im\.vector\.webrtc|org\.restcomm\.media|org\.freeswitch)(\..*)?$
+
+  - id: jgates.java.uses-oauth-client
+    message: The project uses OAuth 2.0 or OpenID Connect as a client.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: oauth-client
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(com\.google\.api\.client\.auth\.oauth2|com\.google\.api\.client\.auth\.openidconnect|com\.google\.auth\.oauth2|org\.springframework\.security\.oauth2\.client|org\.springframework\.security\.oauth2\.core|org\.springframework\.security\.oauth2\.config|org\.springframework\.security\.oauth2\.resource|org\.springframework\.boot\.autoconfigure\.security\.oauth2\.client|org\.springframework\.cloud\.security\.oauth2|com\.nimbusds\.oauth2|com\.nimbusds\.openid|org\.pac4j\.oauth|org\.pac4j\.oidc|com\.github\.scribejava|org\.apache\.oltu\.oauth2\.client|org\.apache\.oltu\.oauth2\.common|org\.keycloak\.adapters|org\.keycloak\.authorization\.client|org\.keycloak\.OAuth2Constants|io\.quarkus\.oidc|io\.micronaut\.security\.oauth2|io\.micronaut\.security\.oauth2\.client|com\.microsoft\.aad\.msal4j|com\.azure\.identity|com\.okta|com\.auth0\.client|com\.auth0\.AuthenticationController|net\.openid\.appauth|com\.github\.scribejava\.core|org\.springframework\.security\.oauth\.consumer|oauth\.signpost|org\.eclipse\.microprofile\.auth|io\.helidon\.security\.providers\.oidc|io\.helidon\.security\.providers\.oauth2|com\.sap\.cloud\.security|com\.onelogin\.sdk|com\.amazonaws\.services\.cognitoidp|software\.amazon\.awssdk\.services\.cognitoidentityprovider|net\.minidev\.oauth2|org\.springframework\.security\.oauth2\.provider\.client)(\..*)?$
+
+  - id: jgates.java.uses-oauth-authorization-server
+    message: The project runs an OAuth 2.0 or OpenID Connect authorization server.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: oauth-authorization-server
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(org\.springframework\.security\.oauth2\.server\.authorization|org\.springframework\.security\.oauth2\.provider|org\.springframework\.security\.oauth2\.config\.annotation\.web\.configurers\.AuthorizationServer|org\.springframework\.security\.oauth2\.config\.annotation\.configurers\.ClientDetailsServiceConfigurer|org\.apache\.oltu\.oauth2\.as|org\.apache\.oltu\.oauth2\.authzserver|org\.apache\.cxf\.rs\.security\.oauth2\.provider|org\.apache\.cxf\.rs\.security\.oauth2\.services|org\.apache\.cxf\.rs\.security\.oidc\.idp|org\.mitre\.oauth2|org\.mitre\.openid\.connect|org\.keycloak\.services|org\.keycloak\.protocol|org\.keycloak\.models|org\.keycloak\.authentication|org\.keycloak\.provider|org\.keycloak\.events|org\.keycloak\.representations\.idm|com\.nimbusds\.oauth2\.sdk\.AuthorizationRequest|com\.nimbusds\.oauth2\.sdk\.TokenRequest|com\.nimbusds\.oauth2\.sdk\.AuthorizationCode|com\.nimbusds\.openid\.connect\.provider|com\.nimbusds\.oauth2\.sdk\.auth\.verifier|org\.pac4j\.oidc\.profile\.creator|io\.helidon\.security\.providers\.oidc\.server|org\.wso2\.carbon\.identity\.oauth|org\.forgerock\.openam|org\.forgerock\.oauth2|com\.sun\.identity\.oauth|org\.apache\.syncope\.core\.provisioning\.api\.oidc|net\.shibboleth\.idp|net\.openid\.conformance|com\.authlete|com\.fusionauth\.oauth|io\.fusionauth)(\..*)?$
+
+  - id: jgates.java.uses-jwt
+    message: The project uses JSON Web Tokens.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: jwt
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(io\.jsonwebtoken|com\.auth0\.jwt|com\.auth0\.jwk|com\.nimbusds\.jose|com\.nimbusds\.jwt|org\.jose4j|org\.bitbucket\.b_c\.jose4j|org\.springframework\.security\.oauth2\.jwt|org\.springframework\.security\.jwt|org\.springframework\.security\.oauth2\.server\.resource|org\.apache\.cxf\.rs\.security\.jose|org\.keycloak\.jose|org\.keycloak\.TokenVerifier|io\.fusionauth\.jwt|com\.github\.jwt|com\.google\.api\.client\.json\.webtoken|org\.eclipse\.microprofile\.jwt|io\.smallrye\.jwt|org\.pac4j\.jwt|io\.vertx\.ext\.auth\.jwt|io\.vertx\.ext\.jwt|io\.micronaut\.security\.token\.jwt|io\.helidon\.security\.providers\.jwt|io\.helidon\.security\.jwt|io\.quarkus\.security\.jwt|io\.jsonwebtoken\.security|com\.nimbusds\.oauth2\.sdk\.token|com\.microsoft\.azure\.spring\.jwt|org\.apache\.shiro\.jwt|org\.jwtk|com\.github\.benmanes\.jwt|net\.oauth\.jsontoken|com\.google\.api\.client\.googleapis\.auth\.oauth2\.GoogleIdToken|com\.google\.api\.client\.json\.webtoken\.JsonWebSignature|com\.auth0\.spring\.security\.api|com\.okta\.jwt|com\.okta\.spring\.boot\.oauth)(\..*)?$
+
+  - id: jgates.java.uses-saml
+    message: The project uses SAML.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: saml
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(org\.opensaml|org\.springframework\.security\.saml|org\.springframework\.security\.saml2|org\.pac4j\.saml|com\.onelogin\.saml2|org\.keycloak\.saml|org\.apache\.cxf\.rs\.security\.saml|org\.apache\.cxf\.ws\.security\.sts|org\.apache\.wss4j|net\.shibboleth|org\.picketlink\.identity\.federation|org\.picketlink\.identity\.federation\.saml|org\.wso2\.carbon\.identity\.sso\.saml|org\.opensaml\.saml|com\.coveo\.saml|com\.sun\.identity\.saml2|com\.sun\.identity\.saml|com\.sun\.xml\.wss\.saml|org\.jboss\.security\.saml|io\.quarkus\.saml|org\.apache\.ws\.security\.saml|org\.joda\.time\.saml|org\.springframework\.security\.extensions\.saml2|org\.springframework\.security\.saml\.provider|org\.pac4j\.core\.profile\.SAML|org\.jasig\.cas\.client\.validation\.Saml11|org\.apereo\.cas\.client\.validation\.Saml11)(\..*)?$
+
+  - id: jgates.java.uses-totp
+    message: The project uses time-based one-time passwords (TOTP).
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: totp
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(dev\.samstevens\.totp|com\.warrenstrange\.googleauth|org\.jboss\.aerogear\.security\.otp|com\.eatthepath\.otp|de\.taimos\.totp|com\.j256\.twofactorauth|org\.keycloak\.models\.utils\.TimeBasedOTP|org\.keycloak\.models\.OTPPolicy|org\.keycloak\.utils\.TotpUtils|com\.bastiaanjansen\.otp|com\.github\.bastiaanjansen\.otp|org\.wso2\.carbon\.identity\.application\.authenticator\.totp|io\.github\.thibaultmeyer\.totp|dev\.turingcomplete\.kotlinonetimepassword)(\..*)?$
+
+  - id: jgates.java.uses-ldap
+    message: The project uses LDAP.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: ldap
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(javax\.naming\.ldap|javax\.naming\.directory|com\.unboundid\.ldap|com\.unboundid\.util\.ssl|org\.springframework\.ldap|org\.springframework\.security\.ldap|org\.springframework\.data\.ldap|org\.springframework\.boot\.autoconfigure\.ldap|org\.springframework\.security\.config\.ldap|org\.springframework\.security\.config\.annotation\.authentication\.configurers\.ldap|org\.apache\.directory|org\.ldaptive|com\.novell\.ldap|netscape\.ldap|org\.forgerock\.opendj|org\.forgerock\.i18n\.ldap|org\.pac4j\.ldap|org\.keycloak\.storage\.ldap|org\.apache\.shiro\.realm\.ldap|org\.apache\.shiro\.realm\.activedirectory|org\.opends|com\.sun\.jndi\.ldap|com\.sun\.security\.auth\.module\.LdapLoginModule|org\.jasig\.cas\.authentication\.handler\.support\.Ldap|org\.apereo\.cas\.authentication\.handler\.support\.Ldap|io\.quarkus\.ldap|org\.wso2\.carbon\.user\.core\.ldap|com\.sun\.jndi\.ldap\.LdapCtxFactory|com\.sun\.identity\.ldap|org\.eclipse\.jetty\.jaas\.spi\.LdapLoginModule|org\.apache\.activemq\.jaas\.LDAPLoginModule|org\.springframework\.security\.ldap\.userdetails|org\.dcm4che3\.conf\.ldap|org\.jboss\.security\.auth\.spi\.LdapLoginModule|org\.picketbox\.datasource\.security\.ldap|org\.jvnet\.hudson\.plugins\.ldap|org\.apache\.felix\.useradmin\.ldap|io\.vertx\.ext\.ldap|com\.github\.ldap)(\..*)?$
+
+  - id: jgates.java.uses-xml
+    message: The project uses XML parsing or serialization.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: xml
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(javax\.xml|jakarta\.xml|org\.w3c\.dom|org\.xml\.sax|org\.dom4j|org\.jdom2?|com\.fasterxml\.jackson\.dataformat\.xml|org\.simpleframework\.xml|com\.thoughtworks\.xstream|org\.apache\.xerces|org\.apache\.xml|org\.apache\.xalan|org\.apache\.xmlbeans|org\.apache\.commons\.digester3?|org\.apache\.commons\.configuration2?\.XMLConfiguration|org\.apache\.axiom|org\.apache\.axis2?|org\.apache\.ws\.commons|org\.apache\.cxf\.staxutils|nu\.xom|net\.sf\.saxon|net\.sf\.jasperreports|org\.eclipse\.persistence\.oxm|org\.eclipse\.persistence\.jaxb|org\.eclipse\.angus\.xml|org\.glassfish\.jaxb|org\.springframework\.oxm|org\.springframework\.xml|org\.springframework\.ws|com\.sun\.xml|com\.sun\.org\.apache\.xerces|com\.sun\.org\.apache\.xalan|com\.sun\.org\.apache\.xml|com\.sun\.org\.apache\.xpath|com\.ctc\.wstx|org\.codehaus\.stax2|org\.codehaus\.woodstox|com\.fasterxml\.aalto|com\.fasterxml\.woodstox|org\.codehaus\.staxmate|org\.xmlpull|org\.kxml2|org\.jsoup\.parser\.Parser|org\.eclipse\.emf\.ecore\.xmi|org\.exolab\.castor|org\.apache\.camel\.converter\.jaxp|org\.mule\.api\.xml|org\.xmlunit|org\.custommonkey\.xmlunit|org\.jaxen|org\.apache\.commons\.jxpath|org\.apache\.jackrabbit\.value|org\.apache\.tika\.parser\.xml|org\.apache\.poi\.ooxml|org\.apache\.poi\.xssf|org\.apache\.poi\.xwpf|org\.apache\.poi\.xslf|org\.openxmlformats|org\.apache\.xmlgraphics|org\.apache\.fop|org\.apache\.batik|org\.apache\.ibatis\.parsing\.XPathParser|org\.apache\.ibatis\.builder\.xml|org\.mybatis\.generator\.config\.xml|org\.hibernate\.boot\.jaxb|org\.hibernate\.internal\.util\.xml|org\.hibernate\.xml)(\..*)?$
+
+  - id: jgates.java.uses-memcache
+    message: The project uses Memcached.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: memcache
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(net\.spy\.memcached|net\.rubyeye\.xmemcached|com\.whalin\.MemCached|com\.danga\.MemCached|com\.meetup\.memcached|com\.schooner\.MemCached|com\.google\.code\.yanf4j|com\.google\.code\.ssm|com\.google\.appengine\.api\.memcache|com\.alisoft\.xplatform\.asf\.cache\.memcached|com\.google\.code\.morphia\.memcache|org\.hibernate\.memcached|org\.springframework\.cache\.memcached|org\.apache\.camel\.component\.memcached|org\.apache\.shiro\.cache\.memcached|org\.springframework\.session\.memcached|org\.infinispan\.server\.memcached|org\.infinispan\.persistence\.memcached|org\.redisson\.spring\.cache\.memcached|org\.spymemcached|com\.amazonaws\.services\.elasticache|software\.amazon\.awssdk\.services\.elasticache|com\.googlecode\.hibernate\.memcached|com\.github\.memcached|io\.vertx\.ext\.memcached|com\.couchbase\.client\.memcached|com\.netflix\.evcache|com\.netflix\.spectator\.memcached|com\.twitter\.finagle\.memcached|org\.apache\.ignite\.memcached|org\.eclipse\.jetty\.memcached|org\.eclipse\.jetty\.session\.MemcachedSessionDataMapFactory|com\.hazelcast\.memcache|com\.hazelcast\.internal\.ascii\.memcache|org\.apache\.tomcat\.memcached|de\.javakaffee\.web\.msm|org\.jboss\.as\.clustering\.memcached|com\.alibaba\.memcached|com\.ning\.memcached)(\..*)?$
+
+  - id: jgates.java.uses-mail
+    message: The project sends or reads email.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: mail
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(javax\.mail|jakarta\.mail|com\.sun\.mail|org\.eclipse\.angus\.mail|org\.eclipse\.angus\.mail\.smtp|org\.springframework\.mail|org\.springframework\.boot\.autoconfigure\.mail|org\.apache\.commons\.mail|org\.simplejavamail|org\.codemonkey\.simplejavamail|com\.sendgrid|com\.mailjet|net\.sargue\.mailgun|com\.mailgun|software\.amazon\.awssdk\.services\.ses|software\.amazon\.awssdk\.services\.sesv2|com\.amazonaws\.services\.simpleemail|com\.amazonaws\.services\.simpleemailv2|org\.subethamail|com\.postmarkapp|org\.apache\.james|org\.apache\.camel\.component\.mail|io\.quarkus\.mailer|io\.vertx\.ext\.mail|io\.vertx\.mutiny\.ext\.mail|com\.microsoft\.graph\.requests\.MessageRequest|com\.microsoft\.graph\.models\.Message|io\.micronaut\.email|com\.sparkpost|com\.mandrill|com\.microtripit\.mandrillapp|com\.mailchimp|com\.google\.api\.services\.gmail|org\.apache\.tomcat\.mail|org\.jvnet\.mock_javamail|org\.jboss\.seam\.mail|org\.wildfly\.mail|org\.apache\.sling\.commons\.mail|org\.jsoup\.safety\.mail|com\.icegreen\.greenmail|org\.samba\.mail|io\.helidon\.mail|org\.eclipse\.angus\.mail\.imap|org\.apache\.directory\.james|org\.springframework\.integration\.mail|org\.apache\.sling\.mail|com\.github\.daddykotex\.mail|org\.apache\.mailet|org\.masukomi\.aspirin|com\.google\.api\.services\.gmail\.model|com\.azure\.communication\.email|com\.resend|com\.brevo|sibApi|com\.sendinblue|org\.apache\.sshd\.mail)(\..*)?$
+
+  - id: jgates.java.uses-templates
+    message: The project renders server-side templates.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: templates
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(org\.thymeleaf|org\.apache\.velocity|freemarker|org\.freemarker|com\.github\.jknack\.handlebars|com\.samskivert\.mustache|com\.github\.mustachejava|com\.mitchellbosecke\.pebble|io\.pebbletemplates|gg\.jte|org\.jtwig|org\.rythmengine|org\.trimou|org\.stringtemplate|org\.antlr\.stringtemplate|org\.apache\.tiles|org\.apache\.jasper|org\.apache\.taglibs|org\.apache\.struts2?\.views|org\.apache\.wicket|javax\.servlet\.jsp|jakarta\.servlet\.jsp|javax\.faces|jakarta\.faces|org\.primefaces|org\.richfaces|org\.apache\.myfaces|org\.springframework\.web\.servlet\.view|org\.springframework\.web\.reactive\.result\.view|org\.springframework\.ui\.freemarker|org\.springframework\.ui\.velocity|org\.springframework\.boot\.autoconfigure\.thymeleaf|org\.springframework\.boot\.autoconfigure\.freemarker|org\.springframework\.boot\.autoconfigure\.mustache|org\.springframework\.boot\.autoconfigure\.groovy\.template|org\.springframework\.boot\.autoconfigure\.web\.servlet\.JspTemplateAvailabilityProvider|org\.springframework\.web\.servlet\.ViewResolver|io\.quarkus\.qute|io\.helidon\.integrations\.cdi\.qute|groovy\.text|groovy\.xml\.MarkupBuilder|com\.hubspot\.jinjava|org\.beetl|com\.x5\.template|org\.apache\.commons\.jelly|org\.apache\.commons\.jexl|org\.jboss\.resteasy\.plugins\.providers\.freemarker|org\.glassfish\.jersey\.server\.mvc|org\.eclipse\.jetty\.jsp|org\.apache\.sling\.scripting|io\.vertx\.ext\.web\.templ|io\.vertx\.ext\.web\.templ\.thymeleaf|io\.vertx\.ext\.web\.templ\.freemarker|io\.vertx\.ext\.web\.templ\.handlebars|io\.vertx\.ext\.web\.templ\.pebble|io\.vertx\.ext\.web\.templ\.mvel|io\.vertx\.ext\.web\.templ\.rocker|com\.fizzed\.rocker|io\.jooby\.thymeleaf|io\.jooby\.freemarker|io\.jooby\.pebble|io\.jooby\.handlebars|io\.jooby\.jte|io\.javalin\.rendering|io\.micronaut\.views|org\.pac4j\.sparkjava|spark\.template|ratpack\.thymeleaf|ratpack\.handlebars|ratpack\.groovy\.template|play\.twirl|views\.html|com\.mitchellbosecke|org\.thymeleaf\.spring5|org\.thymeleaf\.spring6|org\.thymeleaf\.extras|nz\.net\.ultraq\.thymeleaf|org\.jsoup\.templates|com\.jfinal\.template|org\.apache\.shiro\.web\.tags|org\.mvel2\.templates|org\.mvel2\.templates\.TemplateRuntime)(\..*)?$
+
+  - id: jgates.java.uses-file-upload
+    message: The project accepts file uploads.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: file-upload
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M;
+              - pattern: import static $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(org\.springframework\.web\.multipart|org\.apache\.commons\.fileupload2?|org\.apache\.tomcat\.util\.http\.fileupload|javax\.servlet\.http\.Part|jakarta\.servlet\.http\.Part|javax\.servlet\.annotation\.MultipartConfig|jakarta\.servlet\.annotation\.MultipartConfig|javax\.servlet\.MultipartConfigElement|jakarta\.servlet\.MultipartConfigElement|org\.springframework\.boot\.web\.servlet\.MultipartConfigFactory|org\.springframework\.boot\.autoconfigure\.web\.servlet\.MultipartProperties|org\.springframework\.http\.codec\.multipart|org\.springframework\.web\.reactive\.function\.server\.MultipartConfig|org\.jboss\.resteasy\.plugins\.providers\.multipart|org\.jboss\.resteasy\.reactive\.multipart|org\.jboss\.resteasy\.reactive\.server\.multipart|org\.jboss\.resteasy\.reactive\.RestForm|org\.glassfish\.jersey\.media\.multipart|org\.apache\.cxf\.jaxrs\.ext\.multipart|io\.undertow\.server\.handlers\.form|io\.vertx\.ext\.web\.FileUpload|io\.vertx\.core\.http\.HttpServerFileUpload|io\.micronaut\.http\.multipart|io\.micronaut\.http\.server\.multipart|io\.quarkus\.vertx\.http\.runtime\.multipart|io\.netty\.handler\.codec\.http\.multipart|io\.javalin\.http\.UploadedFile|io\.jooby\.FileUpload|spark\.utils\.IOUtils|org\.apache\.struts2\.dispatcher\.multipart|org\.apache\.struts2\.interceptor\.FileUploadInterceptor|org\.apache\.struts\.upload|org\.apache\.wicket\.markup\.html\.form\.upload|org\.apache\.wicket\.markup\.html\.form\.FileUploadField|org\.primefaces\.model\.file|org\.primefaces\.model\.UploadedFile|org\.richfaces\.model\.UploadedFile|org\.apache\.myfaces\.custom\.fileupload|org\.eclipse\.jetty\.server\.MultiPartFormInputStream|org\.eclipse\.jetty\.http\.MultiPart|org\.eclipse\.jetty\.util\.MultiPart|org\.eclipse\.jetty\.ee[0-9]*\.servlet\.MultiPart|org\.eclipse\.jetty\.util\.MultiPartInputStreamParser|org\.eclipse\.jetty\.util\.MultiPartFormInputStream|org\.eclipse\.jetty\.server\.handler\.MultiPart|ratpack\.form\.UploadedFile|play\.mvc\.Http\.MultipartFormData|play\.api\.mvc\.MultipartFormData|com\.vaadin\.flow\.component\.upload|com\.vaadin\.ui\.Upload|org\.zkoss\.zk\.ui\.event\.UploadEvent|org\.apache\.http\.entity\.mime|org\.apache\.hc\.client5\.http\.entity\.mime|com\.google\.gwt\.user\.client\.ui\.FileUpload|gwtupload|org\.springframework\.integration\.file|org\.apache\.tapestry5\.upload|org\.apache\.tapestry5\.services\.upload|org\.apache\.sling\.api\.request\.RequestParameter|org\.apache\.sling\.servlets\.post|org\.restlet\.ext\.fileupload|org\.restlet\.ext\.html\.FormDataSet|org\.restlet\.ext\.fileupload2)(\..*)?$
+      - pattern: $REQ.getParts()
+      - pattern: $REQ.getPart($NAME)
+
+  - id: jgates.java.uses-archives
+    message: The project reads or writes archives (ZIP, TAR, JAR, 7z, RAR).
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: archives
+      author: JGates
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M;
+              - pattern: import static $M;
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(java\.util\.zip\.(ZipInputStream|ZipOutputStream|ZipFile|ZipEntry|GZIPInputStream|GZIPOutputStream|\*)|java\.util\.jar|org\.apache\.commons\.compress|net\.lingala\.zip4j|org\.apache\.tools\.zip|org\.apache\.tools\.tar|org\.apache\.tools\.bzip2|org\.tukaani\.xz|com\.github\.junrar|net\.sf\.sevenzipjbinding|org\.rauschig\.jarchivelib|org\.codehaus\.plexus\.archiver|org\.zeroturnaround\.zip|org\.kamranzafar\.jtar|org\.xeustechnologies\.jtar|de\.schlichtherle\.truezip|de\.schlichtherle\.io|org\.apache\.commons\.vfs2\.provider\.(zip|tar|jar|gzip|bzip2)|org\.apache\.commons\.vfs2\.provider\.compressed|org\.springframework\.core\.io\.support\.ResourcePatternUtils|org\.apache\.ant\.compress|org\.apache\.maven\.shared\.utils\.io|org\.eclipse\.jgit\.archive|org\.apache\.hadoop\.io\.compress|org\.apache\.tika\.parser\.pkg|org\.apache\.sshd\.common\.util\.io\.ZipUtils|net\.jpountz|com\.github\.luben\.zstd|org\.iq80\.snappy|org\.xerial\.snappy|com\.jcraft\.jzlib|com\.ice\.tar|org\.apache\.maven\.plugin\.assembly|org\.springframework\.boot\.loader\.jar|org\.springframework\.boot\.loader\.archive|org\.springframework\.boot\.loader\.tools|org\.springframework\.boot\.loader\.zip|org\.jboss\.shrinkwrap|org\.jboss\.vfs|org\.wildfly\.core\.deployment|org\.apache\.commons\.io\.IOUtils\.zip|org\.apache\.camel\.dataformat\.zipfile|org\.apache\.camel\.dataformat\.tarfile|org\.apache\.camel\.dataformat\.gzipdeflater|org\.apache\.camel\.dataformat\.zip|com\.google\.common\.io\.ZipUtils|org\.jclouds\.io\.payloads\.ZipPayload|com\.amazonaws\.services\.s3\.transfer\.internal\.ZipOutput|org\.apache\.nifi\.processors\.standard\.CompressContent|org\.apache\.nifi\.processors\.standard\.MergeContent|org\.apache\.nifi\.processors\.standard\.UnpackContent|org\.apache\.sling\.commons\.compress|org\.apache\.felix\.utils\.zip|org\.apache\.karaf\.util\.zip|org\.osgi\.framework\.wiring\.zip)(\..*)?$
+      - pattern: FileSystems.newFileSystem(...)
+      - pattern: java.nio.file.FileSystems.newFileSystem(...)
+      - pattern: java.util.zip.$CLASS
+
+  - id: jgates.java.uses-browser-dom
+    message: The project works with a browser DOM.
+    severity: INFO
+    languages: [java]
+    metadata:
+      signal: browser-dom
+      author: JGates
+    patterns:
+      - pattern-either:
+          - pattern: import $M;
+          - pattern: import static $M;
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(com\.google\.gwt|org\.gwtproject|elemental2|elemental|elemental\.dom|org\.teavm\.jso|org\.jsweet|org\.stjs|com\.vaadin\.flow\.dom|com\.vaadin\.flow\.component\.html|com\.vaadin\.flow\.component\.page|android\.webkit|javafx\.scene\.web|org\.cef|com\.teamdev\.jxbrowser|com\.gargoylesoftware\.htmlunit|org\.htmlunit|org\.openqa\.selenium|com\.microsoft\.playwright|org\.eclipse\.swt\.browser|org\.eclipse\.rap\.rwt\.client|org\.eclipse\.rap\.rwt\.widgets\.Browser|org\.zkoss\.zk\.ui\.Page|org\.zkoss\.zk\.ui\.util\.Clients|org\.apache\.wicket\.ajax|org\.apache\.wicket\.markup\.html\.WebMarkupContainer|org\.apache\.pivot\.web|org\.apache\.pivot\.wtk\.WebView|org\.vaadin\.addon|com\.vaadin\.client|com\.vaadin\.shared\.ui|com\.vaadin\.ui\.JavaScript|com\.vaadin\.flow\.component\.UI|com\.vaadin\.flow\.component\.Component|com\.vaadin\.flow\.component\.Html|com\.vaadin\.flow\.component\.html|jsinterop\.annotations|jsinterop\.base|org\.jboss\.errai\.common\.client\.dom|org\.jboss\.errai\.ui\.client|org\.jboss\.gwt\.elemento|org\.dominokit|org\.realityforge\.arez\.dom|org\.treblereel\.gwt|org\.vectomatic\.dom\.svg|com\.sencha\.gxt|com\.smartgwt|org\.gwtbootstrap3|com\.google\.web\.bindery|org\.fusesource\.restygwt|org\.jetbrains\.kotlin\.js\.dom|kotlinx\.browser|netscape\.javascript|com\.sun\.webkit|com\.sun\.javafx\.webkit)(\..*)?$

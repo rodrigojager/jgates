@@ -1,0 +1,470 @@
+# Group crypto-params for Java: key sizes, IVs and nonces, cipher modes, key derivation, comparison and randomness.
+# Libraries covered: JCA/JCE (KeyPairGenerator, Cipher, IvParameterSpec, GCMParameterSpec, SecretKeySpec, Signature,
+# Mac, MessageDigest, PBEKeySpec, SecureRandom), Spring Security crypto (BCryptPasswordEncoder, SCryptPasswordEncoder,
+# Argon2PasswordEncoder), jBCrypt and at.favre BCrypt, Apache Commons Codec (DigestUtils, HmacUtils), Guava Hashing,
+# BouncyCastle (block cipher modes, KeyParameter, SCrypt, Argon2Parameters, DHParametersGenerator), jjwt, auth0 java-jwt
+# and Nimbus JOSE.
+rules:
+  - id: jgates.java.weak-key-size
+    message: An RSA or DSA key is generated with fewer than 2048 bits, or an elliptic curve is smaller than 224 bits, so it can be factored or broken. Generate RSA keys with at least 3072 bits, or use the NIST P-256 curve (secp256r1).
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  $TY $G = KeyPairGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.initialize($N, ...);
+              - pattern: |
+                  $G = KeyPairGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.initialize($N, ...);
+              - pattern: KeyPairGenerator.getInstance($ALG, ...).initialize($N, ...)
+          - metavariable-regex:
+              metavariable: $ALG
+              regex: ^"(?i:rsa|dsa)"$
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  $TY $G = KeyPairGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.initialize($N, ...);
+              - pattern: |
+                  $G = KeyPairGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.initialize($N, ...);
+              - pattern: KeyPairGenerator.getInstance($ALG, ...).initialize($N, ...)
+          - metavariable-regex:
+              metavariable: $ALG
+              regex: ^"(?i:ec|ecdsa)"$
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 224
+      - patterns:
+          - pattern-either:
+              - pattern: new RSAKeyGenParameterSpec($N, ...)
+              - pattern: new RSAKeyGenerationParameters($E, $R, $N, $C)
+              - pattern: new DSAGenParameterSpec($N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+      - patterns:
+          - pattern: new ECGenParameterSpec($C)
+          - metavariable-regex:
+              metavariable: $C
+              regex: ^"(?i:sec[pt]1\d\d|sect2[01]\d|prime192|brainpoolP(1\d\d|2[01]\d|22[0-3]))
+
+  - id: jgates.java.rsa-key-below-3072
+    message: An RSA key is generated with 2048 to 3071 bits. That is still accepted, but the standard asks for 3072 bits or more for new keys. Generate the key with 3072 or 4096 bits.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.3"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  $TY $G = KeyPairGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.initialize($N, ...);
+              - pattern: |
+                  $G = KeyPairGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.initialize($N, ...);
+              - pattern: KeyPairGenerator.getInstance($ALG, ...).initialize($N, ...)
+          - metavariable-regex:
+              metavariable: $ALG
+              regex: ^"(?i:rsa)"$
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N >= 2048 and $N < 3072
+      - patterns:
+          - pattern-either:
+              - pattern: new RSAKeyGenParameterSpec($N, ...)
+              - pattern: new RSAKeyGenerationParameters($E, $R, $N, $C)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N >= 2048 and $N < 3072
+
+  - id: jgates.java.static-iv-or-nonce
+    message: A cipher gets an initialization vector or nonce that is a literal or all zeros, so equal messages give equal ciphertext and an AEAD key can be broken by nonce reuse. Generate a fresh one for each message with SecureRandom.nextBytes and store it with the ciphertext.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-329"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.4"]
+    patterns:
+      - pattern-either:
+          - pattern: new IvParameterSpec($IV, ...)
+          - pattern: new GCMParameterSpec($T, $IV, ...)
+          - pattern: new ParametersWithIV($K, $IV, ...)
+          - pattern: new AEADParameters($K, $T, $IV, ...)
+      - metavariable-pattern:
+          metavariable: $IV
+          pattern-either:
+            - pattern: new byte[$N]
+            - pattern: new byte[] { ... }
+            - pattern: "\"...\".getBytes(...)"
+            - pattern: Base64.getDecoder().decode("...")
+            - pattern: Hex.decodeHex("...")
+            - pattern: DatatypeConverter.parseHexBinary("...")
+
+  - id: jgates.java.cipher-mode-without-authentication
+    message: A block cipher mode without authentication (CBC, CTR, CFB or OFB) is selected, so the ciphertext can be changed without detection unless a MAC follows. Prefer AES/GCM/NoPadding or ChaCha20-Poly1305, or add an HMAC checked before decrypting.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-327"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.3.3"]
+    pattern-either:
+      - patterns:
+          - pattern: Cipher.getInstance($ALG, ...)
+          - metavariable-regex:
+              metavariable: $ALG
+              regex: ^"(?i:[a-z0-9]+/(cbc|ctr|cfb\d*|ofb\d*)/.*)"$
+      - pattern: new CBCBlockCipher(...)
+      - pattern: new CFBBlockCipher(...)
+      - pattern: new OFBBlockCipher(...)
+      - pattern: new SICBlockCipher(...)
+      - pattern: new CTRBlockCipher(...)
+
+  - id: jgates.java.weak-kdf-parameters
+    message: A password hashing or key derivation call uses a work factor below the floor (PBKDF2 under 100000 iterations, bcrypt cost under 10, scrypt N under 16384, Argon2 under 19 MiB or 2 passes), so stolen hashes fall to guessing quickly. Raise the factor, for example PBKDF2WithHmacSHA256 with at least 600000 iterations or bcrypt with cost 12.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2", "V11.4.4"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: new PBEKeySpec($P, $S, $N, ...)
+              - pattern: new PBEParameterSpec($S, $N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 100000
+      - patterns:
+          - pattern-either:
+              - pattern: BCrypt.gensalt($N, ...)
+              - pattern: BCrypt.withDefaults().hashToString($N, ...)
+              - pattern: BCrypt.withDefaults().hash($N, ...)
+              - pattern: new BCryptPasswordEncoder($N)
+              - pattern: new BCryptPasswordEncoder($V, $N)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 10
+      - patterns:
+          - pattern-either:
+              - pattern: new SCryptPasswordEncoder($N, ...)
+              - pattern: SCrypt.generate($P, $S, $N, ...)
+              - pattern: SCryptUtil.scrypt($P, $N, ...)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 16384
+      - patterns:
+          - pattern: new Argon2PasswordEncoder($SL, $HL, $PAR, $M, $IT)
+          - metavariable-comparison:
+              metavariable: $M
+              comparison: $M < 19456
+      - patterns:
+          - pattern: new Argon2PasswordEncoder($SL, $HL, $PAR, $M, $IT)
+          - metavariable-comparison:
+              metavariable: $IT
+              comparison: $IT < 2
+      - patterns:
+          - pattern: $A.hash($IT, $M, $PAR, ...)
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i).*argon.*
+          - metavariable-comparison:
+              metavariable: $M
+              comparison: $M < 19456
+      - patterns:
+          - pattern: $A.hash($IT, $M, $PAR, ...)
+          - metavariable-regex:
+              metavariable: $A
+              regex: (?i).*argon.*
+          - metavariable-comparison:
+              metavariable: $IT
+              comparison: $IT < 2
+      - patterns:
+          - pattern: $B.withIterations($N)
+          - metavariable-regex:
+              metavariable: $B
+              regex: (?i).*(argon|builder).*
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2
+      - patterns:
+          - pattern: $B.withMemoryAsKB($N)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 19456
+      - patterns:
+          - pattern: $B.withMemoryPowOfTwo($N)
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 15
+
+  - id: jgates.java.password-hash-with-fast-hash
+    message: A password is hashed with a plain, fast hash function, so a stolen hash can be guessed at billions per second. Use a password hashing function such as bcrypt, Argon2, scrypt or PBKDF2 with a high iteration count.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-916"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.2"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $MD.digest($P)
+                  - pattern: $MD.update($P)
+              - metavariable-regex:
+                  metavariable: $MD
+                  regex: (?i)^(?!.*(mac|bcrypt|argon|scrypt|pbkdf)).*$
+          - patterns:
+              - pattern-either:
+                  - pattern: DigestUtils.$M($P)
+              - metavariable-regex:
+                  metavariable: $M
+                  regex: ^(md5|sha1|sha256|sha384|sha512|sha3_256|sha3_512)(Hex)?$
+          - patterns:
+              - pattern-either:
+                  - pattern: Hashing.$H().hashString($P, ...)
+                  - pattern: Hashing.$H().hashBytes($P)
+              - metavariable-regex:
+                  metavariable: $H
+                  regex: ^(md5|sha1|sha256|sha384|sha512)$
+      - metavariable-regex:
+          metavariable: $P
+          regex: (?i).*(password|passwd|pwd|passphrase|senha)
+
+  - id: jgates.java.timing-unsafe-comparison
+    message: A MAC, digest or signature is compared with equals, which stops at the first different byte and leaks how much matched. Compare with MessageDigest.isEqual, which takes constant time.
+    severity: WARNING
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-208"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.2.4"]
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-either:
+                  - pattern: $A.equals($B)
+                  - pattern: $A.equalsIgnoreCase($B)
+                  - pattern: $A.contentEquals($B)
+                  - pattern: Arrays.equals($A, $B)
+              - metavariable-regex:
+                  metavariable: $A
+                  regex: (?i).*(hmac|signature|digest|(^|[^a-z])mac([^a-z]|$)|[a-z]mac$|computedhash|expectedhash|calculatedhash|receivedhash|providedhash)
+          - patterns:
+              - pattern-either:
+                  - pattern: $A.equals($B)
+                  - pattern: $A.equalsIgnoreCase($B)
+                  - pattern: $A.contentEquals($B)
+                  - pattern: Arrays.equals($A, $B)
+              - metavariable-regex:
+                  metavariable: $B
+                  regex: (?i).*(hmac|signature|digest|(^|[^a-z])mac([^a-z]|$)|[a-z]mac$|computedhash|expectedhash|calculatedhash|receivedhash|providedhash)
+      - pattern-not: $X.equals("...")
+      - pattern-not: "\"...\".equals($X)"
+      - pattern-not: $X.equalsIgnoreCase("...")
+      - pattern-not: "\"...\".equalsIgnoreCase($X)"
+      - pattern-not: $X.equals(null)
+
+  - id: jgates.java.weak-signature-hash
+    message: A signature or MAC is made or verified with MD5 or SHA-1, which are broken for this use because collisions can be forged. Use SHA-256 or stronger, for example SHA256withRSA or HmacSHA256.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-328"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.4.3", "V11.6.1"]
+    pattern-either:
+      - patterns:
+          - pattern: Signature.getInstance($ALG, ...)
+          - metavariable-regex:
+              metavariable: $ALG
+              regex: ^"(?i:(md2|md5|sha-?1)with.*)"$
+      - patterns:
+          - pattern: Mac.getInstance($ALG, ...)
+          - metavariable-regex:
+              metavariable: $ALG
+              regex: ^"(?i:hmac-?(md5|sha-?1))"$
+      - pattern: HmacAlgorithms.HMAC_MD5
+      - pattern: HmacAlgorithms.HMAC_SHA_1
+      - pattern: HmacUtils.hmacMd5(...)
+      - pattern: HmacUtils.hmacMd5Hex(...)
+      - pattern: HmacUtils.hmacSha1(...)
+      - pattern: HmacUtils.hmacSha1Hex(...)
+      - pattern: Hashing.hmacMd5(...)
+      - pattern: Hashing.hmacSha1(...)
+
+  - id: jgates.java.weak-dh-parameters
+    message: Diffie-Hellman parameters are generated with fewer than 2048 bits, so the key exchange can be broken with a discrete logarithm attack. Generate at least 2048-bit parameters, or use an elliptic curve exchange such as ECDH with secp256r1 or X25519.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-326"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.6.2"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  $TY $G = KeyPairGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.initialize($N, ...);
+              - pattern: |
+                  $G = KeyPairGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.initialize($N, ...);
+              - pattern: |
+                  $TY $G = AlgorithmParameterGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.init($N, ...);
+              - pattern: |
+                  $G = AlgorithmParameterGenerator.getInstance($ALG, ...);
+                  ...
+                  $G.init($N, ...);
+              - pattern: KeyPairGenerator.getInstance($ALG, ...).initialize($N, ...)
+              - pattern: AlgorithmParameterGenerator.getInstance($ALG, ...).init($N, ...)
+          - metavariable-regex:
+              metavariable: $ALG
+              regex: ^"(?i:dh|diffiehellman)"$
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+      - patterns:
+          - pattern-either:
+              - pattern: new DHGenParameterSpec($N, ...)
+              - pattern: |
+                  $TY $G = new DHParametersGenerator();
+                  ...
+                  $G.init($N, ...);
+              - pattern: |
+                  $G = new DHParametersGenerator();
+                  ...
+                  $G.init($N, ...);
+          - metavariable-comparison:
+              metavariable: $N
+              comparison: $N < 2048
+
+  - id: jgates.java.hardcoded-encryption-key
+    message: A literal is used as the key of a cipher, a MAC or a token signature, so anyone with the source or the binary can decrypt or forge data. Load the key from a secret store or an environment variable, or generate it with KeyGenerator or SecureRandom.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-321"
+      author: JGates
+      subdimension: secrets
+      asvs_requirements: ["V13.3.1"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: new SecretKeySpec($KEY, ...)
+              - pattern: Keys.hmacShaKeyFor($KEY)
+              - pattern: new KeyParameter($KEY)
+          - metavariable-pattern:
+              metavariable: $KEY
+              pattern-either:
+                - pattern: new byte[$N]
+                - pattern: new byte[] { ... }
+                - pattern: "\"...\".getBytes(...)"
+                - pattern: Base64.getDecoder().decode("...")
+                - pattern: Base64.decodeBase64("...")
+                - pattern: Decoders.BASE64.decode("...")
+                - pattern: Hex.decodeHex("...")
+                - pattern: DatatypeConverter.parseHexBinary("...")
+      - patterns:
+          - pattern: Algorithm.$M("...")
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^HMAC(256|384|512)$
+      - pattern: new MACSigner("...")
+      - pattern: new MACVerifier("...")
+      - pattern: $B.signWith($ALG, "...")
+      - pattern: $B.setSigningKey("...")
+
+  - id: jgates.java.insecure-random-for-secret
+    message: The non-cryptographic java.util.Random, Math.random or ThreadLocalRandom feeds a value named like a token, secret, password, code, nonce, salt or key, so the value can be predicted. Use SecureRandom.
+    severity: ERROR
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-338"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1", "V7.2.3", "V6.5.3", "V6.4.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $T = <... new Random(...).$M(...) ...>;
+          - pattern: $TY $T = <... new Random(...).$M(...) ...>;
+          - pattern: $T = <... Math.random() ...>;
+          - pattern: $TY $T = <... Math.random() ...>;
+          - pattern: $T = <... ThreadLocalRandom.current().$M(...) ...>;
+          - pattern: $TY $T = <... ThreadLocalRandom.current().$M(...) ...>;
+          - pattern: $T = <... (Random $R).$M(...) ...>;
+          - pattern: $TY $T = <... (Random $R).$M(...) ...>;
+          - pattern: $T = <... RandomStringUtils.$M(...) ...>;
+          - pattern: $TY $T = <... RandomStringUtils.$M(...) ...>;
+          - pattern: new Random(...).nextBytes($T)
+          - pattern: ThreadLocalRandom.current().nextBytes($T)
+          - pattern: (Random $R).nextBytes($T)
+      - metavariable-regex:
+          metavariable: $T
+          regex: (?i).*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|(reset|verification|activation|confirmation|auth)_?code|(encryption|secret|signing|aes|hmac)_?key)
+
+  - id: jgates.java.uuid-as-secret-token
+    message: A UUID is used as a token, secret, password, nonce, salt or key. A UUID is built for uniqueness, not for secrecy, and does not carry enough guaranteed randomness. Use SecureRandom.nextBytes and encode the bytes.
+    severity: INFO
+    languages: [java]
+    metadata:
+      category: weak-crypto
+      cwe: "CWE-330"
+      author: JGates
+      subdimension: cryptography
+      asvs_requirements: ["V11.5.1"]
+    patterns:
+      - pattern-either:
+          - pattern: $T = <... UUID.randomUUID() ...>;
+          - pattern: $TY $T = <... UUID.randomUUID() ...>;
+          - pattern: $T = <... UUID.nameUUIDFromBytes(...) ...>;
+          - pattern: $TY $T = <... UUID.nameUUIDFromBytes(...) ...>;
+      - metavariable-regex:
+          metavariable: $T
+          regex: (?i).*(password|passwd|pwd|passphrase|senha|secret|api_?key|private_?key|segredo|token|jwt|session_?id|otp|nonce|salt|csrf|(reset|verification|activation|confirmation|auth)_?code|(encryption|secret|signing|aes|hmac)_?key)

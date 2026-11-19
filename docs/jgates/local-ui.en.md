@@ -113,9 +113,14 @@ The result screen:
 
 - one card per check, with its own icon and word for each state: passed, failed, incomplete, blocked, not applicable, turned off; with the tool, the duration and the number of findings;
 - one card per finding: severity, tool, rule, message, the fix when the tool gives one, and the `file:line`;
+- **Waive** on each finding that can be waived: it asks for a reason and an end date, shows the exact entry first, and only then writes it to `.jgates/waivers.json` of the project. A waiver points at one occurrence of the finding;
+- the project's waivers, listed in the review of the plan: each with its reason, its end date and its state (in force, expired or stale), and a way to remove it. An expired waiver, or one that no longer matches the code safely (stale), does not apply;
+- a run that passes with waivers says "approved with N waivers" and lists which findings they cover;
 - filters by severity, tool, category and component;
 - **Export JSON**, **Export SARIF** and **Copy for the agent** (a safe summary to paste into an agent; nothing is sent);
 - what the run used (JGates version, tools image, age of the security data, dependency keys, services).
+
+The Semantic result (`#/semantic/results/<run>`) has its own actions: each `needs-validation` finding of a method that reads source code has **Try to reproduce**, and the list has **Try to reproduce all (N)**. A confirmation first shows how many findings will be tried, the most model calls it may spend and that it runs the project's tests in a container without network; nothing starts before **Confirm and start**. Afterwards the finding shows **Confirmed by execution**, with a link to the reproduction run and the test with its masked output, or **Reproduction attempted** with the reason, still needing validation. The action is disabled, with the reason, when no supported test runner runs the finding's file, when there is no container engine ready, or when the dependencies are not prepared (with **Prepare dependencies**). See [the semantic gate](semantic-gate.en.md#trying-to-reproduce-a-finding).
 
 A check that cannot run says why and what to do (see the [reason codes](troubleshooting.en.md#reason-codes)). Mutation testing, for example, is not applicable while the project's own tests fail, and runs once they pass.
 

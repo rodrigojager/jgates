@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "cfn-lint",
+  "name": "cfn-lint",
+  "sourceUrl": "https://github.com/aws-cloudformation/cfn-lint",
+  "license": "MIT-0",
+  "program": {
+    "tool": "cfn-lint",
+    "versionRange": ">=1.0.0 <2.0.0"
+  },
+  "megalinter": [
+    "CLOUDFORMATION_CFN_LINT"
+  ],
+  "place": {
+    "section": "tooling",
+    "group": "cloudformation",
+    "capability": "lint",
+    "kind": "lint",
+    "tier": "main"
+  },
+  "activation": {
+    "content": {
+      "pattern": "AWSTemplateFormatVersion|(AWS|Alexa|Custom)::",
+      "firstLine": false,
+      "names": [
+        "*.yml",
+        "*.yaml",
+        "*.json"
+      ]
+    }
+  },
+  "run": {
+    "mode": "files",
+    "args": [
+      "--format",
+      "sarif",
+      "--",
+      "{files}"
+    ],
+    "exit": {
+      "clean": [
+        0
+      ],
+      "findings": [
+        2,
+        4,
+        6,
+        8,
+        10,
+        12,
+        14
+      ]
+    },
+    "executesProjectCode": false,
+    "network": false,
+    "readOnly": true
+  },
+  "output": {
+    "from": "stdout",
+    "reader": "sarif"
+  },
+  "configuration": {
+    "files": [
+      ".cfnlintrc",
+      ".cfnlintrc.yml",
+      ".cfnlintrc.yaml"
+    ],
+    "default": "tool"
+  },
+  "governed": {
+    "treatment": "self-reported",
+    "config": "cfn-lint reads the project's .cfnlintrc, .cfnlintrc.yml or .cfnlintrc.yaml: the project decides the rules and the regions",
+    "suppressions": {
+      "honoured": true,
+      "description": "honored: Metadata cfn-lint ignore_checks lists in the template",
+      "pattern": "cfn-lint|ignore_checks",
+      "files": "\\.(?:ya?ml|json)$"
+    }
+  },
+  "install": "cfn-lint",
+  "text": {
+    "en": {
+      "label": "cfn-lint (CloudFormation)",
+      "purpose": "Checks AWS CloudFormation templates for validity against the resource specifications: unknown properties, wrong types, bad references and best-practice violations.",
+      "limitation": "It checks template validity only, not security posture (checkov and trivy cover that). It picks templates by content: a .yml, .yaml or .json file whose first 4 KiB mention AWSTemplateFormatVersion or an AWS::, Alexa:: or Custom:: type.",
+      "needs": "Nothing beyond the tools image: no network and no project dependencies."
+    },
+    "pt-BR": {
+      "label": "cfn-lint (CloudFormation)",
+      "purpose": "Verifica templates do AWS CloudFormation contra as especificações dos recursos: propriedades desconhecidas, tipos errados, referências inválidas e violações de boas práticas.",
+      "limitation": "Verifica só a validade do template, não a segurança (checkov e trivy cuidam disso). Escolhe templates pelo conteúdo: um arquivo .yml, .yaml ou .json cujos primeiros 4 KiB citem AWSTemplateFormatVersion ou um tipo AWS::, Alexa:: ou Custom::.",
+      "needs": "Nada além da imagem de ferramentas: sem rede e sem as dependências do projeto."
+    }
+  }
+}

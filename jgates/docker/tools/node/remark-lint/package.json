@@ -1,0 +1,12 @@
+{
+  "name": "jgates-tools-remark-lint",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated npm prefix of remark-cli with remark-lint recommended preset and the JSON reporter in the JGates tools image.",
+  "license": "MIT",
+  "dependencies": {
+    "remark-cli": "12.0.1",
+    "remark-preset-lint-recommended": "7.0.1",
+    "vfile-reporter-json": "4.0.0"
+  }
+}

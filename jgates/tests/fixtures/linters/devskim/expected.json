@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "findings": [
+    {
+      "rule": "DS126858",
+      "file": "digest.js",
+      "line": 4
+    }
+  ]
+}

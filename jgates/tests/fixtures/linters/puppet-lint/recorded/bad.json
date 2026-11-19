@@ -1,0 +1,19 @@
+{
+ "tool": "puppet-lint",
+ "kind": "bad",
+ "version": "5.1.1",
+ "calls": [
+  {
+   "args": [
+    "--fail-on-warnings",
+    "--log-format",
+    "%{path}:%{line}:%{column}:%{kind}:%{check}:%{message}",
+    "--",
+    "motd/manifests/init.pp"
+   ],
+   "exit": 1,
+   "stdout": "motd/manifests/init.pp:5:16:warning:double_quoted_strings:double quoted string containing no variables\n",
+   "stderr": ""
+  }
+ ]
+}

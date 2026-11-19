@@ -1,0 +1,18 @@
+{
+ "tool": "vale",
+ "kind": "bad",
+ "version": "3.27.0",
+ "calls": [
+  {
+   "args": [
+    "--output=line",
+    "--no-wrap",
+    "--",
+    "style.md"
+   ],
+   "exit": 1,
+   "stdout": "style.md:3:6:Vale.Repetition:'is' is repeated!\n",
+   "stderr": ""
+  }
+ ]
+}
